@@ -1,3 +1,4 @@
+use crate::domain::error::OrderError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -79,6 +80,21 @@ pub struct Order {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Order {
+    /// ステータス遷移を検証し、遷移後のステータスを返す。
+    /// ドメインルールをエンティティに集約し、貧血ドメインモデルを防ぐ（H-005）。
+    /// 無効な遷移は OrderError::InvalidStatusTransition を返す。
+    pub fn transition_to(&self, next: OrderStatus) -> Result<OrderStatus, OrderError> {
+        if !self.status.can_transition_to(&next) {
+            return Err(OrderError::InvalidStatusTransition {
+                from: self.status.to_string(),
+                to: next.to_string(),
+            });
+        }
+        Ok(next)
+    }
+}
+
 /// 注文明細エンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrderItem {
@@ -99,6 +115,64 @@ pub struct CreateOrder {
     pub currency: String,
     pub notes: Option<String>,
     pub items: Vec<CreateOrderItem>,
+}
+
+impl CreateOrder {
+    /// 入力値のドメインバリデーションを実行する。
+    /// バリデーションロジックをエンティティに集約し、ドメインルールを一箇所に保つ（M-001）。
+    pub fn validate(&self) -> Result<(), OrderError> {
+        if self.customer_id.trim().is_empty() {
+            return Err(OrderError::ValidationFailed(
+                "customer_id must not be empty".to_string(),
+            ));
+        }
+        if self.currency.trim().is_empty() {
+            return Err(OrderError::ValidationFailed(
+                "currency must not be empty".to_string(),
+            ));
+        }
+        if self.items.is_empty() {
+            return Err(OrderError::ValidationFailed(
+                "order must contain at least one item".to_string(),
+            ));
+        }
+        for (i, item) in self.items.iter().enumerate() {
+            if item.product_id.trim().is_empty() {
+                return Err(OrderError::ValidationFailed(format!(
+                    "items[{}].product_id must not be empty",
+                    i
+                )));
+            }
+            if item.product_name.trim().is_empty() {
+                return Err(OrderError::ValidationFailed(format!(
+                    "items[{}].product_name must not be empty",
+                    i
+                )));
+            }
+            if item.quantity <= 0 {
+                return Err(OrderError::ValidationFailed(format!(
+                    "items[{}].quantity must be greater than zero",
+                    i
+                )));
+            }
+            if item.unit_price < 0 {
+                return Err(OrderError::ValidationFailed(format!(
+                    "items[{}].unit_price must not be negative",
+                    i
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// 明細から合計金額を計算する。
+    /// 計算ロジックをエンティティに集約し、usecase 側の重複を排除する（M-001）。
+    pub fn calculate_total(&self) -> i64 {
+        self.items
+            .iter()
+            .map(|item| item.quantity as i64 * item.unit_price)
+            .sum()
+    }
 }
 
 /// 注文明細作成リクエスト。
@@ -171,5 +245,106 @@ mod tests {
             unit_price: 1000,
         };
         assert_eq!(item.quantity as i64 * item.unit_price, 3000);
+    }
+
+    #[test]
+    fn test_order_transition_to_valid() {
+        // Order::transition_to() が有効な遷移で次ステータスを返すことを確認する
+        let order = Order {
+            id: uuid::Uuid::new_v4(),
+            customer_id: "CUST-001".to_string(),
+            status: OrderStatus::Pending,
+            total_amount: 1000,
+            currency: "JPY".to_string(),
+            notes: None,
+            created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let result = order.transition_to(OrderStatus::Confirmed);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), OrderStatus::Confirmed);
+    }
+
+    #[test]
+    fn test_order_transition_to_invalid() {
+        // Order::transition_to() が無効な遷移で OrderError を返すことを確認する
+        let order = Order {
+            id: uuid::Uuid::new_v4(),
+            customer_id: "CUST-001".to_string(),
+            status: OrderStatus::Delivered,
+            total_amount: 1000,
+            currency: "JPY".to_string(),
+            notes: None,
+            created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+        let result = order.transition_to(OrderStatus::Pending);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("invalid status transition"));
+    }
+
+    #[test]
+    fn test_create_order_validate_success() {
+        // CreateOrder::validate() が有効な入力で Ok を返すことを確認する
+        let order = CreateOrder {
+            customer_id: "CUST-001".to_string(),
+            currency: "JPY".to_string(),
+            notes: None,
+            items: vec![CreateOrderItem {
+                product_id: "PROD-001".to_string(),
+                product_name: "Widget".to_string(),
+                quantity: 2,
+                unit_price: 500,
+            }],
+        };
+        assert!(order.validate().is_ok());
+    }
+
+    #[test]
+    fn test_create_order_validate_empty_items() {
+        // CreateOrder::validate() が空の items で ValidationFailed を返すことを確認する
+        let order = CreateOrder {
+            customer_id: "CUST-001".to_string(),
+            currency: "JPY".to_string(),
+            notes: None,
+            items: vec![],
+        };
+        let result = order.validate();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("at least one item"));
+    }
+
+    #[test]
+    fn test_create_order_calculate_total() {
+        // CreateOrder::calculate_total() が正しい合計を返すことを確認する
+        let order = CreateOrder {
+            customer_id: "CUST-001".to_string(),
+            currency: "JPY".to_string(),
+            notes: None,
+            items: vec![
+                CreateOrderItem {
+                    product_id: "A".to_string(),
+                    product_name: "A".to_string(),
+                    quantity: 2,
+                    unit_price: 1000,
+                },
+                CreateOrderItem {
+                    product_id: "B".to_string(),
+                    product_name: "B".to_string(),
+                    quantity: 3,
+                    unit_price: 500,
+                },
+            ],
+        };
+        assert_eq!(order.calculate_total(), 3500);
     }
 }

@@ -165,12 +165,10 @@ func parseStringSlice(v interface{}) []string {
 }
 
 // IsExpired はトークンの有効期限が切れているかを返す。
+// Exp フィールドへのフォールバックを削除し、ExpiresAt のみを参照する（L-003）。
+// extractClaims が常に ExpiresAt を設定するため、フォールバックは不要。
 func (c *Claims) IsExpired() bool {
-	exp := c.ExpiresAt
-	if exp.IsZero() && c.Exp > 0 {
-		exp = time.Unix(c.Exp, 0)
-	}
-	return time.Now().After(exp)
+	return time.Now().After(c.ExpiresAt)
 }
 
 // String は Claims のデバッグ用文字列を返す。

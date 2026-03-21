@@ -169,6 +169,8 @@ modules:
     skip-ci: true
 
   # k1s0-gui 内の fixture/テンプレート用 Go auth サーバー（CI スキップ）
+  # NOTE(H-011): go.work には含めない。GUI テンプレートの fixture であり、
+  # ワークスペース管理対象外のため意図的な不一致。
   - path: CLI/crates/k1s0-gui/regions/system/server/go/auth
     lang: go
     status: stable

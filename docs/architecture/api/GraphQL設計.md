@@ -424,6 +424,138 @@ pub struct Order {
 
 ---
 
+## N+1 問題と DataLoader パターン [技術品質監査 M-017]
+
+GraphQL リゾルバーで親エンティティのリストを取得した後に、各要素の子エンティティを個別に取得すると
+**N+1 クエリ問題**が発生する。100件の注文を返す場合、各注文の明細を1件ずつ取得すると101回のクエリが発生する。
+
+### N+1 問題の例
+
+```graphql
+query {
+  orders {       # 1回のDB呼び出し
+    id
+    items {      # N件 × 1回 = N回のDB呼び出し（N+1問題）
+      productName
+    }
+  }
+}
+```
+
+### DataLoader による解決
+
+DataLoader はリゾルバーの呼び出しを**バッチ化**し、N+1 クエリを1回のバルクフェッチに変換する。
+
+```
+リクエスト受信
+  ↓ リゾルバー1: items(order_id=1) → DataLoader にキューイング
+  ↓ リゾルバー2: items(order_id=2) → DataLoader にキューイング
+  ↓ ...（N件分）
+  ↓ イベントループ終端で DataLoader が flush
+  ↓ SELECT * FROM order_items WHERE order_id IN (1, 2, ..., N) ← 1回のクエリ
+  ↓ 結果を各リゾルバーに配布
+```
+
+### Go 実装（gqlgen）
+
+```go
+// graph/dataloader/order_items_loader.go
+import "github.com/vikstrous/dataloadgen"
+
+type OrderItemsLoader struct {
+    repo OrderItemRepository
+}
+
+// BatchFn は order_id のバッチを受け取り、対応する items を返す
+func (l *OrderItemsLoader) BatchFn(ctx context.Context, keys []string) ([][]*model.OrderItem, []error) {
+    items, err := l.repo.FindByOrderIDs(ctx, keys)
+    if err != nil {
+        errs := make([]error, len(keys))
+        for i := range errs { errs[i] = err }
+        return nil, errs
+    }
+    // キーごとに結果をグループ化して返す
+    result := make([][]*model.OrderItem, len(keys))
+    for i, key := range keys {
+        result[i] = items[key]
+    }
+    return result, nil
+}
+
+// リゾルバー側での使用
+func (r *orderResolver) Items(ctx context.Context, obj *model.Order) ([]*model.OrderItem, error) {
+    return dataloader.For(ctx).OrderItems.Load(ctx, obj.ID)
+}
+```
+
+### Rust 実装（async-graphql）
+
+```rust
+// src/graphql/dataloader/order_items_loader.rs
+use async_graphql::dataloader::Loader;
+
+pub struct OrderItemsLoader {
+    repo: Arc<dyn OrderItemRepository>,
+}
+
+#[async_trait::async_trait]
+impl Loader<String> for OrderItemsLoader {
+    type Value = Vec<OrderItem>;
+    type Error = Arc<anyhow::Error>;
+
+    async fn load(&self, keys: &[String]) -> HashMap<String, Self::Value> {
+        self.repo.find_by_order_ids(keys).await
+            .unwrap_or_default()
+    }
+}
+
+// スキーマ登録
+let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+    .data(DataLoader::new(OrderItemsLoader::new(repo), tokio::spawn))
+    .finish();
+
+// リゾルバー側での使用
+#[graphql(name = "items")]
+async fn items(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<OrderItem>> {
+    ctx.data_unchecked::<DataLoader<OrderItemsLoader>>()
+        .load_one(self.id.clone())
+        .await
+        .map(|v| v.unwrap_or_default())
+}
+```
+
+### N+1 検出方法
+
+1. **ログ監視**: `sqlx` の slow query log や `EXPLAIN ANALYZE` で繰り返しクエリを検出する
+2. **Apollo Studio / GraphQL Playground**: レスポンスタイムとクエリ実行数を確認する
+3. **テスト**: `mockall` や `wiremock` でリポジトリ呼び出し回数をアサートする
+4. **`graphql-query-complexity`**: クエリの深さ・フィールド数を制限し、意図的な深いクエリを防止する
+
+### クエリ深度制限
+
+```go
+// gqlgen 設定（gqlgen.yml）
+query_complexity:
+  max_depth: 10
+  max_complexity: 200
+```
+
+```rust
+// async-graphql
+let schema = Schema::build(...)
+    .limit_depth(10)
+    .limit_complexity(200)
+    .finish();
+```
+
+### 注意事項
+
+- DataLoader のキャッシュはリクエストスコープ（1リクエスト内のみ）。グローバルキャッシュに使用しないこと
+- N+1 が発生するのは1対多・多対多のリレーションが多い。設計時に関係を明確にしておく
+- DataLoader を使っても**深すぎるクエリ**（深度10以上）はパフォーマンスに影響する。クエリ深度制限を設定する
+
+---
+
 ## 関連ドキュメント
 
 - [API設計.md](./API設計.md) -- 基本方針・Tier 別 API 種別パターン

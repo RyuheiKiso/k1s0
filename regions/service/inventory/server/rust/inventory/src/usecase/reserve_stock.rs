@@ -13,8 +13,8 @@ impl ReserveStockUseCase {
         Self { inventory_repo }
     }
 
-    /// 最大リトライ回数（楽観ロック競合時）
-    const MAX_RETRIES: u32 = 3;
+    /// 最大リトライ回数（楽観ロック競合時）。高負荷環境でも十分な再試行回数を確保する（H-006）
+    const MAX_RETRIES: u32 = 5;
 
     pub async fn execute(
         &self,
@@ -53,14 +53,23 @@ impl ReserveStockUseCase {
                         .unwrap_or(false);
 
                     if is_version_conflict && attempt < Self::MAX_RETRIES - 1 {
-                        // 指数バックオフ: 10ms, 40ms, 90ms
-                        let backoff_ms = (attempt + 1) as u64 * (attempt + 1) as u64 * 10;
+                        // 指数バックオフ + ジッター: Thundering Herd を防止する（H-006）
+                        // ジッターにはシステム時刻の下位ビットを使用する（暗号学的乱数不要）
+                        let base_ms = (attempt + 1) as u64 * (attempt + 1) as u64 * 10;
+                        let jitter_range = (base_ms / 2).max(1);
+                        let jitter_ms = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.subsec_nanos() as u64 % jitter_range)
+                            .unwrap_or(0);
+                        let backoff_ms = base_ms + jitter_ms;
                         tokio::time::sleep(tokio::time::Duration::from_millis(backoff_ms)).await;
                         tracing::warn!(
                             attempt = attempt + 1,
+                            max_retries = Self::MAX_RETRIES,
+                            backoff_ms,
                             product_id,
                             warehouse_id,
-                            "version conflict on reserve_stock, retrying"
+                            "楽観ロック競合のためリトライします"
                         );
                         continue;
                     }
@@ -68,7 +77,13 @@ impl ReserveStockUseCase {
                 }
             }
         }
-        unreachable!()
+        // ここには到達しない（最終試行では必ず return Err(e) が実行される）
+        Err(anyhow::anyhow!(
+            "reserve_stock: {} 回のリトライ後も成功しませんでした (product_id={}, warehouse_id={})",
+            Self::MAX_RETRIES,
+            product_id,
+            warehouse_id
+        ))
     }
 }
 

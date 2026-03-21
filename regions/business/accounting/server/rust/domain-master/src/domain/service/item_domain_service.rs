@@ -1,7 +1,16 @@
-use crate::domain::repository::item_repository::ItemRepository;
 use std::collections::HashSet;
-use std::sync::Arc;
 use uuid::Uuid;
+
+/// 親チェーン解決の抽象化トレイト（M-004）。
+/// ItemDomainService が ItemRepository に直接依存しないよう、
+/// 親アイテム ID の取得を抽象化する。
+/// - アイテムが存在しない場合は Ok(None)（循環なし）
+/// - アイテムに親がない（root）場合も Ok(None)（循環なし）
+/// - 親が存在する場合は Ok(Some(parent_id))
+#[async_trait::async_trait]
+pub trait ParentChainResolver: Send + Sync {
+    async fn find_parent_id(&self, id: Uuid) -> anyhow::Result<Option<Uuid>>;
+}
 
 /// アイテムのドメインルールを検証するサービス。
 pub struct ItemDomainService;
@@ -10,8 +19,10 @@ impl ItemDomainService {
     /// 指定されたアイテムに parent_item_id を設定した場合に循環参照が発生しないか検証する。
     ///
     /// parent_item_id から親チェーンをたどり、item_id に到達した場合はエラーを返す。
+    /// Repository の代わりに ParentChainResolver トレイトを受け取り、
+    /// ドメインサービスの Repository 直接依存を除去する（M-004）。
     pub async fn check_circular_parent(
-        item_repo: &Arc<dyn ItemRepository>,
+        resolver: &dyn ParentChainResolver,
         item_id: Uuid,
         parent_item_id: Uuid,
     ) -> anyhow::Result<()> {
@@ -28,18 +39,13 @@ impl ItemDomainService {
                 anyhow::bail!("Circular parent detected: setting this parent would create a cycle");
             }
 
-            let Some(parent) = item_repo.find_by_id(current_id).await? else {
-                // 親が見つからない場合は循環ではないので終了
-                break;
-            };
-
-            match parent.parent_item_id {
+            match resolver.find_parent_id(current_id).await? {
+                None => {
+                    // アイテムが見つからないかルートに到達 — 循環なし
+                    break;
+                }
                 Some(next_parent_id) => {
                     current_id = next_parent_id;
-                }
-                None => {
-                    // ルートに到達 — 循環なし
-                    break;
                 }
             }
         }
@@ -51,38 +57,45 @@ impl ItemDomainService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::master_item::MasterItem;
-    use crate::domain::repository::item_repository::MockItemRepository;
-    use chrono::Utc;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
 
-    /// テスト用の MasterItem を生成するヘルパー。
-    fn make_item(id: Uuid, parent_item_id: Option<Uuid>) -> MasterItem {
-        MasterItem {
-            id,
-            category_id: Uuid::new_v4(),
-            code: "TEST".to_string(),
-            display_name: "Test Item".to_string(),
-            description: None,
-            attributes: None,
-            parent_item_id,
-            effective_from: None,
-            effective_until: None,
-            is_active: true,
-            sort_order: 0,
-            created_by: "test".to_string(),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+    /// テスト用 ParentChainResolver のインメモリ実装。
+    /// id → parent_id のマッピングを保持し、存在しない id は None を返す。
+    struct InMemoryParentResolver {
+        parent_map: Mutex<HashMap<Uuid, Option<Uuid>>>,
+    }
+
+    impl InMemoryParentResolver {
+        fn new(entries: Vec<(Uuid, Option<Uuid>)>) -> Self {
+            let mut map = HashMap::new();
+            for (id, parent) in entries {
+                map.insert(id, parent);
+            }
+            Self {
+                parent_map: Mutex::new(map),
+            }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl ParentChainResolver for InMemoryParentResolver {
+        async fn find_parent_id(&self, id: Uuid) -> anyhow::Result<Option<Uuid>> {
+            let map = self.parent_map.lock().unwrap();
+            match map.get(&id) {
+                None => Ok(None),          // アイテムが存在しない
+                Some(parent) => Ok(*parent), // アイテムの親（None = root）
+            }
         }
     }
 
     /// 自分自身を親に設定 → 即座にエラー。
     #[tokio::test]
     async fn test_same_item_as_parent_returns_error() {
-        let mock = MockItemRepository::new();
-        let repo: Arc<dyn ItemRepository> = Arc::new(mock);
+        let resolver = InMemoryParentResolver::new(vec![]);
         let id = Uuid::new_v4();
 
-        let result = ItemDomainService::check_circular_parent(&repo, id, id).await;
+        let result = ItemDomainService::check_circular_parent(&resolver, id, id).await;
 
         assert!(result.is_err());
         assert!(result
@@ -97,15 +110,8 @@ mod tests {
         let item_a = Uuid::new_v4();
         let item_b = Uuid::new_v4();
 
-        let mut mock = MockItemRepository::new();
-        let b_entity = make_item(item_b, None);
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_b)
-            .times(1)
-            .returning(move |_| Ok(Some(b_entity.clone())));
-
-        let repo: Arc<dyn ItemRepository> = Arc::new(mock);
-        let result = ItemDomainService::check_circular_parent(&repo, item_a, item_b).await;
+        let resolver = InMemoryParentResolver::new(vec![(item_b, None)]);
+        let result = ItemDomainService::check_circular_parent(&resolver, item_a, item_b).await;
 
         assert!(result.is_ok());
     }
@@ -120,23 +126,13 @@ mod tests {
         let item_c = Uuid::new_v4();
 
         // C の親は B、B の親は A
-        let c_entity = make_item(item_c, Some(item_b));
-        let b_entity = make_item(item_b, Some(item_a));
-
-        let mut mock = MockItemRepository::new();
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_c)
-            .times(1)
-            .returning(move |_| Ok(Some(c_entity.clone())));
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_b)
-            .times(1)
-            .returning(move |_| Ok(Some(b_entity.clone())));
-
-        let repo: Arc<dyn ItemRepository> = Arc::new(mock);
+        let resolver = InMemoryParentResolver::new(vec![
+            (item_c, Some(item_b)),
+            (item_b, Some(item_a)),
+        ]);
 
         // A の parent を C に設定 → C → B → A (visited に A があるので循環)
-        let result = ItemDomainService::check_circular_parent(&repo, item_a, item_c).await;
+        let result = ItemDomainService::check_circular_parent(&resolver, item_a, item_c).await;
 
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("cycle"));
@@ -150,28 +146,14 @@ mod tests {
         let item_c = Uuid::new_v4();
         let item_d = Uuid::new_v4();
 
-        let c_entity = make_item(item_c, Some(item_b));
-        let b_entity = make_item(item_b, Some(item_a));
-        let a_entity = make_item(item_a, None);
-
-        let mut mock = MockItemRepository::new();
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_c)
-            .times(1)
-            .returning(move |_| Ok(Some(c_entity.clone())));
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_b)
-            .times(1)
-            .returning(move |_| Ok(Some(b_entity.clone())));
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_a)
-            .times(1)
-            .returning(move |_| Ok(Some(a_entity.clone())));
-
-        let repo: Arc<dyn ItemRepository> = Arc::new(mock);
+        let resolver = InMemoryParentResolver::new(vec![
+            (item_c, Some(item_b)),
+            (item_b, Some(item_a)),
+            (item_a, None), // root
+        ]);
 
         // D の parent を C に設定 → C → B → A (root) → 循環なし
-        let result = ItemDomainService::check_circular_parent(&repo, item_d, item_c).await;
+        let result = ItemDomainService::check_circular_parent(&resolver, item_d, item_c).await;
 
         assert!(result.is_ok());
     }
@@ -182,14 +164,9 @@ mod tests {
         let item_a = Uuid::new_v4();
         let item_b = Uuid::new_v4();
 
-        let mut mock = MockItemRepository::new();
-        mock.expect_find_by_id()
-            .withf(move |id| *id == item_b)
-            .times(1)
-            .returning(|_| Ok(None));
-
-        let repo: Arc<dyn ItemRepository> = Arc::new(mock);
-        let result = ItemDomainService::check_circular_parent(&repo, item_a, item_b).await;
+        // item_b は登録されていないので find_parent_id は None を返す
+        let resolver = InMemoryParentResolver::new(vec![]);
+        let result = ItemDomainService::check_circular_parent(&resolver, item_a, item_b).await;
 
         assert!(result.is_ok());
     }

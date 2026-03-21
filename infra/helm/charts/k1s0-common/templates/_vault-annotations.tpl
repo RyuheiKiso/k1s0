@@ -39,7 +39,15 @@ vault.hashicorp.com/agent-inject-template-{{ $secret.name | default (printf "sec
 {{- end }}
 {{- end }}
 {{- if .Values.vault.tlsSkipVerify }}
+{{- /* 本番・ステージング環境での TLS 検証スキップは中間者攻撃リスクがあるため禁止する（H-012）
+     開発環境（dev/local）でのみ自己署名証明書用に使用可能。
+     本番環境は vault.tlsCACert / vault.tlsServerName で正しい TLS を設定すること。 */}}
+{{- $env := .Values.global.environment | default "dev" }}
+{{- if or (eq $env "production") (eq $env "staging") (eq $env "prod") }}
+{{- fail (printf "vault.tlsSkipVerify は %s 環境では使用できません。vault.tlsCACert で正しい TLS 設定を行ってください" $env) }}
+{{- else }}
 vault.hashicorp.com/tls-skip-verify: "true"
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

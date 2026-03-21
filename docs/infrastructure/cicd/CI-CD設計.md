@@ -970,7 +970,7 @@ GitHub Actions (self-hosted runner in cluster) → helm → Kubernetes Cluster
 | ランナー         | 各環境のクラスタ内で動作する self-hosted ランナーを使用（`[self-hosted, dev]` 等） |
 | Helm バージョン  | `azure/setup-helm@v4` で 3.16 を指定（[devcontainer設計.md](../devenv/devcontainer設計.md) と同期） |
 | デプロイ方式     | `helm upgrade --install --atomic --wait --timeout 5m`（冪等性 + 失敗時自動ロールバック） |
-| イメージタグ     | `--set image.tag=${VERSION}-${GITHUB_SHA::7}` で `{version}-{git-sha}` 形式を指定（`:latest` タグは廃止。[Dockerイメージ戦略.md](../docker/Dockerイメージ戦略.md) のタグ規則に準拠） |
+| イメージタグ     | `--set image.tag=${VERSION}-${GITHUB_SHA::12}` で `{version}-{git-sha}` 形式を指定（`:latest` タグは廃止。[Dockerイメージ戦略.md](../docker/Dockerイメージ戦略.md) のタグ規則に準拠） |
 
 ### キャッシュ戦略
 
@@ -1484,6 +1484,24 @@ bash scripts/check-modules-consistency.sh
 
 テストファイルは各サービスの `tests/integration_db_test.rs` に `#[ignore]` 属性付きで配置する。
 `DATABASE_URL` 環境変数（`postgres://postgres:postgres@localhost:5432/test_db`）で接続先を設定する。
+
+---
+
+## Doc Sync (2026-03-21) M-009 対応
+
+### Git SHA タグ長を 7 → 12 桁に変更 [技術品質監査 M-009]
+
+`deploy.yaml` および `_service-deploy.yaml` の `Set short SHA` ステップで使用する `${GITHUB_SHA::7}` を
+`${GITHUB_SHA::12}` に変更した。
+
+**背景**: 7桁では約268億通りの衝突確率があり、大規模リポジトリでは SHA1 衝突が現実的なリスクとなる。
+12桁は約1.6兆通りのエントロピーを持ち、実用上の衝突リスクをほぼゼロにできる。
+
+| 変更前 | 変更後 | 影響箇所 |
+| --- | --- | --- |
+| `${GITHUB_SHA::7}` | `${GITHUB_SHA::12}` | `deploy.yaml`（4箇所）、`_service-deploy.yaml`（全箇所） |
+
+イメージタグ形式: `{version}-{12桁git-sha}`（例: `1.2.3-a1b2c3d4e5f6`）
 
 ---
 

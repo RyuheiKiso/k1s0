@@ -6,3 +6,7 @@ metadata:
     tier: infra
     app.kubernetes.io/part-of: k1s0
     app.kubernetes.io/managed-by: helm
+    # Pod Security Standards: baseline モードを適用（インフラ系は restricted が困難な場合あり）（H-008）
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

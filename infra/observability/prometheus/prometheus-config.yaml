@@ -1,4 +1,7 @@
 global:
+  # 15s は Prometheus 推奨のデフォルト値（M-014）
+  # 大規模環境（1000+ ターゲット）での高負荷を避けるため 30s 以上への変更を検討すること
+  # critical alert（SLO burn rate 等）には ServiceMonitor で個別に短い interval を設定可能
   scrape_interval: 15s
   evaluation_interval: 15s
   scrape_timeout: 10s

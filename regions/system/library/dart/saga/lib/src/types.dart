@@ -139,11 +139,18 @@ class StartSagaRequest {
 }
 
 /// Saga 開始レスポンス。
+/// status フィールドを含め、Go/Rust 実装との型定義を統一する（M-002）。
 class StartSagaResponse {
   final String sagaId;
 
-  const StartSagaResponse({required this.sagaId});
+  /// Saga の開始直後ステータス（通常 STARTED）。
+  final SagaStatus status;
+
+  const StartSagaResponse({required this.sagaId, required this.status});
 
   factory StartSagaResponse.fromJson(Map<String, dynamic> json) =>
-      StartSagaResponse(sagaId: json['saga_id'] as String);
+      StartSagaResponse(
+        sagaId: json['saga_id'] as String,
+        status: SagaStatus.fromString(json['status'] as String? ?? 'STARTED'),
+      );
 }

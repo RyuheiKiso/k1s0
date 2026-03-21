@@ -39,6 +39,7 @@ func (h *HealthHandler) Healthz(c *gin.Context) {
 // OIDC discoveryチェックはboolフィールドの参照のみで軽量なため先に実行する。
 func (h *HealthHandler) Readyz(c *gin.Context) {
 	// OIDC discoveryの完了状態を確認（軽量チェックを先に実行）
+	// nil チェックは OIDC を使用しないデプロイ構成（テスト環境等）でも安全に動作させるための防御的実装（L-004）
 	if h.oauthClient != nil && !h.oauthClient.IsDiscovered() {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "not_ready",

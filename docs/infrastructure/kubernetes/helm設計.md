@@ -9,6 +9,23 @@ k1s0 のアプリケーションデプロイに使用する Helm Chart の設計
 - 環境別の差分は `values-{env}.yaml` で管理する
 - シークレットは Vault Agent Injector で Pod に注入する
 
+### k1s0-common 依存の本番移行（H-007）
+
+現状、全サービスの Chart.yaml で k1s0-common を `file://` パスで参照している。
+この方式はローカル開発では便利だが、CI/CD パイプラインや外部環境では壊れる可能性がある。
+
+**現状（開発環境用）:**
+```yaml
+repository: "file://../../../charts/k1s0-common"
+```
+
+**本番移行時の設定（TODO）:**
+```yaml
+repository: "oci://harbor.k1s0.io/helm-charts"
+```
+
+本番デプロイ前に Harbor 等の内部 Helm Registry に k1s0-common を publish し、参照を変更すること。
+
 ## Chart 構成
 
 ```

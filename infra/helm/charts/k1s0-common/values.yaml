@@ -146,6 +146,8 @@ istio:
     retries:
       attempts: 3
       perTryTimeout: 10s
+      # retryOn: 決済など冪等性が保証されないサービスでは、values.yaml で attempts: 0 に設定して
+      # リトライを無効化すること（M-013）。自動リトライによる二重課金・二重処理を防止する。
       retryOn: "5xx,reset,connect-failure"
   destinationRule:
     enabled: false

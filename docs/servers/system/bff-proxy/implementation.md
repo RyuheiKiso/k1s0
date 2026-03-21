@@ -261,3 +261,46 @@ pubsub := buildingblocks.NewRedisPubSub(name, client,
 `main.go` に `router.SetTrustedProxies(nil)` を追加した。
 Gin のデフォルト（全プロキシ信頼）を無効化し、X-Forwarded-For ヘッダーを直接の接続元 IP で上書きする。
 ロードバランサー配下では適切な CIDR（例: `10.0.0.0/8`）に変更すること。
+
+---
+
+## Doc Sync (2026-03-21)
+
+### トークンリフレッシュ失敗時のセッション削除（H-003）
+
+トークンリフレッシュが失敗した場合、Redis 上の無効なセッションを即座に削除する。
+削除しない場合、セッション TTL が残っている間、攻撃者がセッション ID を使い回せるリスクがある。
+
+```go
+// proxy_handler.go: リフレッシュ失敗時のセッション削除
+if err != nil {
+    if delErr := h.sessionStore.Delete(ctx, sessionID); delErr != nil {
+        h.logger.Error("期限切れセッションの削除に失敗しました", ...)
+    }
+    abortErrorWithMessage(c, http.StatusUnauthorized, ...)
+    return
+}
+```
+
+### 型アサーションの安全化（H-009）
+
+`c.Get()` が返す `interface{}` 値への型アサーションは comma-ok パターンを使用する。
+直接型アサーション（`x.(bool)` 形式）は実行時パニックのリスクがある。
+
+```go
+// 正しいパターン
+if refresh, ok := needsRefresh.(bool); ok && refresh { ... }
+// 禁止パターン
+if needsRefresh.(bool) { ... }  // パニックのリスク
+```
+
+### OTel トレーサーシャットダウン（H-004）
+
+`tp.Shutdown()` にはタイムアウト付きコンテキストを渡す。
+`context.Background()` を使用すると、OTel Collector が無応答の場合にシャットダウンが無期限にブロックされる。
+
+```go
+shutdownTraceCtx, cancelTrace := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancelTrace()
+tp.Shutdown(shutdownTraceCtx)
+```
