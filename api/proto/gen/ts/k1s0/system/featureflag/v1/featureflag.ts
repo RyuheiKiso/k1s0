@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ChangeType } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.featureflag.v1.EvaluateFlagRequest
@@ -286,6 +287,7 @@ export interface WatchFeatureFlagResponse {
      */
     flagKey: string;
     /**
+     * Deprecated: use change_type_enum instead.
      * CREATED, UPDATED, DELETED
      *
      * @generated from protobuf field: string change_type = 2
@@ -299,6 +301,12 @@ export interface WatchFeatureFlagResponse {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp changed_at = 4
      */
     changedAt?: Timestamp;
+    /**
+     * 変更操作の種別（change_type の enum 版）。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.ChangeType change_type_enum = 5
+     */
+    changeTypeEnum: ChangeType;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class EvaluateFlagRequest$Type extends MessageType<EvaluateFlagRequest> {
@@ -1310,13 +1318,15 @@ class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse
             { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "flag", kind: "message", T: () => FeatureFlag },
-            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp }
+            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "change_type_enum", kind: "enum", T: () => ["k1s0.system.common.v1.ChangeType", ChangeType, "CHANGE_TYPE_"] }
         ]);
     }
     create(value?: PartialMessage<WatchFeatureFlagResponse>): WatchFeatureFlagResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.flagKey = "";
         message.changeType = "";
+        message.changeTypeEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WatchFeatureFlagResponse>(this, message, value);
         return message;
@@ -1337,6 +1347,9 @@ class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse
                     break;
                 case /* k1s0.system.common.v1.Timestamp changed_at */ 4:
                     message.changedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.changedAt);
+                    break;
+                case /* k1s0.system.common.v1.ChangeType change_type_enum */ 5:
+                    message.changeTypeEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1362,6 +1375,9 @@ class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse
         /* k1s0.system.common.v1.Timestamp changed_at = 4; */
         if (message.changedAt)
             Timestamp.internalBinaryWrite(message.changedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.ChangeType change_type_enum = 5; */
+        if (message.changeTypeEnum !== 0)
+            writer.tag(5, WireType.Varint).int32(message.changeTypeEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

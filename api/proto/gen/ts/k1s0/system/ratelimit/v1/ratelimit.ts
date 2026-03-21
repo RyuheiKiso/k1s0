@@ -237,6 +237,8 @@ export interface RateLimitRule {
      */
     windowSeconds: string;
     /**
+     * Deprecated: use algorithm_enum instead.
+     *
      * @generated from protobuf field: string algorithm = 6
      */
     algorithm: string;
@@ -256,6 +258,12 @@ export interface RateLimitRule {
      * @generated from protobuf field: string name = 10
      */
     name: string;
+    /**
+     * レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum = 11
+     */
+    algorithmEnum: RateLimitAlgorithm;
 }
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.GetUsageRequest
@@ -287,6 +295,8 @@ export interface GetUsageResponse {
      */
     windowSeconds: string;
     /**
+     * Deprecated: use algorithm_enum instead.
+     *
      * @generated from protobuf field: string algorithm = 5
      */
     algorithm: string;
@@ -306,6 +316,12 @@ export interface GetUsageResponse {
      * @generated from protobuf field: optional int64 reset_at = 9
      */
     resetAt?: string;
+    /**
+     * レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum = 10
+     */
+    algorithmEnum: RateLimitAlgorithm;
 }
 /**
  * @generated from protobuf message k1s0.system.ratelimit.v1.ResetLimitRequest
@@ -328,6 +344,43 @@ export interface ResetLimitResponse {
      * @generated from protobuf field: bool success = 1
      */
     success: boolean;
+}
+/**
+ * RateLimitAlgorithm はレートリミットのアルゴリズム種別。
+ *
+ * @generated from protobuf enum k1s0.system.ratelimit.v1.RateLimitAlgorithm
+ */
+export enum RateLimitAlgorithm {
+    /**
+     * RATE_LIMIT_ALGORITHM_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: RATE_LIMIT_ALGORITHM_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * RATE_LIMIT_ALGORITHM_SLIDING_WINDOW はスライディングウィンドウアルゴリズム。
+     *
+     * @generated from protobuf enum value: RATE_LIMIT_ALGORITHM_SLIDING_WINDOW = 1;
+     */
+    SLIDING_WINDOW = 1,
+    /**
+     * RATE_LIMIT_ALGORITHM_TOKEN_BUCKET はトークンバケットアルゴリズム。
+     *
+     * @generated from protobuf enum value: RATE_LIMIT_ALGORITHM_TOKEN_BUCKET = 2;
+     */
+    TOKEN_BUCKET = 2,
+    /**
+     * RATE_LIMIT_ALGORITHM_FIXED_WINDOW は固定ウィンドウアルゴリズム。
+     *
+     * @generated from protobuf enum value: RATE_LIMIT_ALGORITHM_FIXED_WINDOW = 3;
+     */
+    FIXED_WINDOW = 3,
+    /**
+     * RATE_LIMIT_ALGORITHM_LEAKY_BUCKET はリーキーバケットアルゴリズム。
+     *
+     * @generated from protobuf enum value: RATE_LIMIT_ALGORITHM_LEAKY_BUCKET = 4;
+     */
+    LEAKY_BUCKET = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class CheckRateLimitRequest$Type extends MessageType<CheckRateLimitRequest> {
@@ -1076,7 +1129,8 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
             { no: 7, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 9, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 10, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "algorithm_enum", kind: "enum", T: () => ["k1s0.system.ratelimit.v1.RateLimitAlgorithm", RateLimitAlgorithm, "RATE_LIMIT_ALGORITHM_"] }
         ]);
     }
     create(value?: PartialMessage<RateLimitRule>): RateLimitRule {
@@ -1089,6 +1143,7 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
         message.algorithm = "";
         message.enabled = false;
         message.name = "";
+        message.algorithmEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<RateLimitRule>(this, message, value);
         return message;
@@ -1127,6 +1182,9 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
                     break;
                 case /* string name */ 10:
                     message.name = reader.string();
+                    break;
+                case /* k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum */ 11:
+                    message.algorithmEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1170,6 +1228,9 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
         /* string name = 10; */
         if (message.name !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.name);
+        /* k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum = 11; */
+        if (message.algorithmEnum !== 0)
+            writer.tag(11, WireType.Varint).int32(message.algorithmEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1239,7 +1300,8 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
             { no: 6, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "used", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
             { no: 8, name: "remaining", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
-            { no: 9, name: "reset_at", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
+            { no: 9, name: "reset_at", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "algorithm_enum", kind: "enum", T: () => ["k1s0.system.ratelimit.v1.RateLimitAlgorithm", RateLimitAlgorithm, "RATE_LIMIT_ALGORITHM_"] }
         ]);
     }
     create(value?: PartialMessage<GetUsageResponse>): GetUsageResponse {
@@ -1250,6 +1312,7 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
         message.windowSeconds = "0";
         message.algorithm = "";
         message.enabled = false;
+        message.algorithmEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<GetUsageResponse>(this, message, value);
         return message;
@@ -1285,6 +1348,9 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
                     break;
                 case /* optional int64 reset_at */ 9:
                     message.resetAt = reader.int64().toString();
+                    break;
+                case /* k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum */ 10:
+                    message.algorithmEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1325,6 +1391,9 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
         /* optional int64 reset_at = 9; */
         if (message.resetAt !== undefined)
             writer.tag(9, WireType.Varint).int64(message.resetAt);
+        /* k1s0.system.ratelimit.v1.RateLimitAlgorithm algorithm_enum = 10; */
+        if (message.algorithmEnum !== 0)
+            writer.tag(10, WireType.Varint).int32(message.algorithmEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -42,6 +42,7 @@ export interface SagaStateProto {
      */
     currentStep: number;
     /**
+     * Deprecated: use status_enum instead.
      * ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
      *
      * @generated from protobuf field: string status = 4
@@ -79,6 +80,12 @@ export interface SagaStateProto {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 10
      */
     updatedAt?: Timestamp;
+    /**
+     * Saga ステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.saga.v1.SagaStatus status_enum = 11
+     */
+    statusEnum: SagaStatus;
 }
 /**
  * SagaStepLogProto は Saga の各ステップ実行ログ。
@@ -416,6 +423,37 @@ export interface ListWorkflowsResponse {
      */
     workflows: WorkflowSummary[];
 }
+/**
+ * SagaStatus は Saga の実行ステータス。
+ *
+ * @generated from protobuf enum k1s0.system.saga.v1.SagaStatus
+ */
+export enum SagaStatus {
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_RUNNING = 1;
+     */
+    RUNNING = 1,
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_COMPLETED = 2;
+     */
+    COMPLETED = 2,
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_COMPENSATING = 4;
+     */
+    COMPENSATING = 4,
+    /**
+     * @generated from protobuf enum value: SAGA_STATUS_COMPENSATED = 5;
+     */
+    COMPENSATED = 5
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class SagaStateProto$Type extends MessageType<SagaStateProto> {
     constructor() {
@@ -429,7 +467,8 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
             { no: 7, name: "initiated_by", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 10, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 10, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "status_enum", kind: "enum", T: () => ["k1s0.system.saga.v1.SagaStatus", SagaStatus, "SAGA_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<SagaStateProto>): SagaStateProto {
@@ -438,6 +477,7 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
         message.workflowName = "";
         message.currentStep = 0;
         message.status = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<SagaStateProto>(this, message, value);
         return message;
@@ -476,6 +516,9 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 10:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* k1s0.system.saga.v1.SagaStatus status_enum */ 11:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -519,6 +562,9 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
         /* k1s0.system.common.v1.Timestamp updated_at = 10; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.saga.v1.SagaStatus status_enum = 11; */
+        if (message.statusEnum !== 0)
+            writer.tag(11, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -889,11 +889,14 @@ type WatchConfigResponse struct {
 	OldVersion int32  `protobuf:"varint,5,opt,name=old_version,json=oldVersion,proto3" json:"old_version,omitempty"`
 	NewVersion int32  `protobuf:"varint,6,opt,name=new_version,json=newVersion,proto3" json:"new_version,omitempty"`
 	ChangedBy  string `protobuf:"bytes,7,opt,name=changed_by,json=changedBy,proto3" json:"changed_by,omitempty"`
+	// Deprecated: use change_type_enum instead.
 	// CREATED, UPDATED, DELETED
-	ChangeType    string        `protobuf:"bytes,8,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
-	ChangedAt     *v1.Timestamp `protobuf:"bytes,9,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ChangeType string        `protobuf:"bytes,8,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
+	ChangedAt  *v1.Timestamp `protobuf:"bytes,9,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
+	// 変更操作の種別（change_type の enum 版）。
+	ChangeTypeEnum v1.ChangeType `protobuf:"varint,10,opt,name=change_type_enum,json=changeTypeEnum,proto3,enum=k1s0.system.common.v1.ChangeType" json:"change_type_enum,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *WatchConfigResponse) Reset() {
@@ -987,6 +990,13 @@ func (x *WatchConfigResponse) GetChangedAt() *v1.Timestamp {
 		return x.ChangedAt
 	}
 	return nil
+}
+
+func (x *WatchConfigResponse) GetChangeTypeEnum() v1.ChangeType {
+	if x != nil {
+		return x.ChangeTypeEnum
+	}
+	return v1.ChangeType(0)
 }
 
 // ConfigFieldSchema は設定フィールドのスキーマ定義。
@@ -1589,7 +1599,7 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\x12WatchConfigRequest\x12\x1e\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\tR\n" +
-	"namespaces\"\xc2\x02\n" +
+	"namespaces\"\x8f\x03\n" +
 	"\x13WatchConfigResponse\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x1b\n" +
@@ -1604,7 +1614,9 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\vchange_type\x18\b \x01(\tR\n" +
 	"changeType\x12?\n" +
 	"\n" +
-	"changed_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt\"\xaa\x02\n" +
+	"changed_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt\x12K\n" +
+	"\x10change_type_enum\x18\n" +
+	" \x01(\x0e2!.k1s0.system.common.v1.ChangeTypeR\x0echangeTypeEnum\"\xaa\x02\n" +
 	"\x11ConfigFieldSchema\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\x12 \n" +
@@ -1708,6 +1720,7 @@ var file_k1s0_system_config_v1_config_proto_goTypes = []any{
 	(*v1.Timestamp)(nil),               // 24: k1s0.system.common.v1.Timestamp
 	(*v1.Pagination)(nil),              // 25: k1s0.system.common.v1.Pagination
 	(*v1.PaginationResult)(nil),        // 26: k1s0.system.common.v1.PaginationResult
+	(v1.ChangeType)(0),                 // 27: k1s0.system.common.v1.ChangeType
 }
 var file_k1s0_system_config_v1_config_proto_depIdxs = []int32{
 	24, // 0: k1s0.system.config.v1.ConfigEntry.created_at:type_name -> k1s0.system.common.v1.Timestamp
@@ -1719,37 +1732,38 @@ var file_k1s0_system_config_v1_config_proto_depIdxs = []int32{
 	1,  // 6: k1s0.system.config.v1.UpdateConfigResponse.entry:type_name -> k1s0.system.config.v1.ConfigEntry
 	11, // 7: k1s0.system.config.v1.GetServiceConfigResponse.entries:type_name -> k1s0.system.config.v1.ServiceConfigEntry
 	24, // 8: k1s0.system.config.v1.WatchConfigResponse.changed_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 9: k1s0.system.config.v1.ConfigFieldSchema.type:type_name -> k1s0.system.config.v1.ConfigFieldType
-	15, // 10: k1s0.system.config.v1.ConfigCategorySchema.fields:type_name -> k1s0.system.config.v1.ConfigFieldSchema
-	16, // 11: k1s0.system.config.v1.ConfigEditorSchema.categories:type_name -> k1s0.system.config.v1.ConfigCategorySchema
-	24, // 12: k1s0.system.config.v1.ConfigEditorSchema.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	17, // 13: k1s0.system.config.v1.GetConfigSchemaResponse.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
-	17, // 14: k1s0.system.config.v1.UpsertConfigSchemaRequest.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
-	17, // 15: k1s0.system.config.v1.UpsertConfigSchemaResponse.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
-	17, // 16: k1s0.system.config.v1.ListConfigSchemasResponse.schemas:type_name -> k1s0.system.config.v1.ConfigEditorSchema
-	2,  // 17: k1s0.system.config.v1.ConfigService.GetConfig:input_type -> k1s0.system.config.v1.GetConfigRequest
-	4,  // 18: k1s0.system.config.v1.ConfigService.ListConfigs:input_type -> k1s0.system.config.v1.ListConfigsRequest
-	6,  // 19: k1s0.system.config.v1.ConfigService.UpdateConfig:input_type -> k1s0.system.config.v1.UpdateConfigRequest
-	8,  // 20: k1s0.system.config.v1.ConfigService.DeleteConfig:input_type -> k1s0.system.config.v1.DeleteConfigRequest
-	10, // 21: k1s0.system.config.v1.ConfigService.GetServiceConfig:input_type -> k1s0.system.config.v1.GetServiceConfigRequest
-	13, // 22: k1s0.system.config.v1.ConfigService.WatchConfig:input_type -> k1s0.system.config.v1.WatchConfigRequest
-	18, // 23: k1s0.system.config.v1.ConfigService.GetConfigSchema:input_type -> k1s0.system.config.v1.GetConfigSchemaRequest
-	20, // 24: k1s0.system.config.v1.ConfigService.UpsertConfigSchema:input_type -> k1s0.system.config.v1.UpsertConfigSchemaRequest
-	22, // 25: k1s0.system.config.v1.ConfigService.ListConfigSchemas:input_type -> k1s0.system.config.v1.ListConfigSchemasRequest
-	3,  // 26: k1s0.system.config.v1.ConfigService.GetConfig:output_type -> k1s0.system.config.v1.GetConfigResponse
-	5,  // 27: k1s0.system.config.v1.ConfigService.ListConfigs:output_type -> k1s0.system.config.v1.ListConfigsResponse
-	7,  // 28: k1s0.system.config.v1.ConfigService.UpdateConfig:output_type -> k1s0.system.config.v1.UpdateConfigResponse
-	9,  // 29: k1s0.system.config.v1.ConfigService.DeleteConfig:output_type -> k1s0.system.config.v1.DeleteConfigResponse
-	12, // 30: k1s0.system.config.v1.ConfigService.GetServiceConfig:output_type -> k1s0.system.config.v1.GetServiceConfigResponse
-	14, // 31: k1s0.system.config.v1.ConfigService.WatchConfig:output_type -> k1s0.system.config.v1.WatchConfigResponse
-	19, // 32: k1s0.system.config.v1.ConfigService.GetConfigSchema:output_type -> k1s0.system.config.v1.GetConfigSchemaResponse
-	21, // 33: k1s0.system.config.v1.ConfigService.UpsertConfigSchema:output_type -> k1s0.system.config.v1.UpsertConfigSchemaResponse
-	23, // 34: k1s0.system.config.v1.ConfigService.ListConfigSchemas:output_type -> k1s0.system.config.v1.ListConfigSchemasResponse
-	26, // [26:35] is the sub-list for method output_type
-	17, // [17:26] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	27, // 9: k1s0.system.config.v1.WatchConfigResponse.change_type_enum:type_name -> k1s0.system.common.v1.ChangeType
+	0,  // 10: k1s0.system.config.v1.ConfigFieldSchema.type:type_name -> k1s0.system.config.v1.ConfigFieldType
+	15, // 11: k1s0.system.config.v1.ConfigCategorySchema.fields:type_name -> k1s0.system.config.v1.ConfigFieldSchema
+	16, // 12: k1s0.system.config.v1.ConfigEditorSchema.categories:type_name -> k1s0.system.config.v1.ConfigCategorySchema
+	24, // 13: k1s0.system.config.v1.ConfigEditorSchema.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	17, // 14: k1s0.system.config.v1.GetConfigSchemaResponse.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
+	17, // 15: k1s0.system.config.v1.UpsertConfigSchemaRequest.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
+	17, // 16: k1s0.system.config.v1.UpsertConfigSchemaResponse.schema:type_name -> k1s0.system.config.v1.ConfigEditorSchema
+	17, // 17: k1s0.system.config.v1.ListConfigSchemasResponse.schemas:type_name -> k1s0.system.config.v1.ConfigEditorSchema
+	2,  // 18: k1s0.system.config.v1.ConfigService.GetConfig:input_type -> k1s0.system.config.v1.GetConfigRequest
+	4,  // 19: k1s0.system.config.v1.ConfigService.ListConfigs:input_type -> k1s0.system.config.v1.ListConfigsRequest
+	6,  // 20: k1s0.system.config.v1.ConfigService.UpdateConfig:input_type -> k1s0.system.config.v1.UpdateConfigRequest
+	8,  // 21: k1s0.system.config.v1.ConfigService.DeleteConfig:input_type -> k1s0.system.config.v1.DeleteConfigRequest
+	10, // 22: k1s0.system.config.v1.ConfigService.GetServiceConfig:input_type -> k1s0.system.config.v1.GetServiceConfigRequest
+	13, // 23: k1s0.system.config.v1.ConfigService.WatchConfig:input_type -> k1s0.system.config.v1.WatchConfigRequest
+	18, // 24: k1s0.system.config.v1.ConfigService.GetConfigSchema:input_type -> k1s0.system.config.v1.GetConfigSchemaRequest
+	20, // 25: k1s0.system.config.v1.ConfigService.UpsertConfigSchema:input_type -> k1s0.system.config.v1.UpsertConfigSchemaRequest
+	22, // 26: k1s0.system.config.v1.ConfigService.ListConfigSchemas:input_type -> k1s0.system.config.v1.ListConfigSchemasRequest
+	3,  // 27: k1s0.system.config.v1.ConfigService.GetConfig:output_type -> k1s0.system.config.v1.GetConfigResponse
+	5,  // 28: k1s0.system.config.v1.ConfigService.ListConfigs:output_type -> k1s0.system.config.v1.ListConfigsResponse
+	7,  // 29: k1s0.system.config.v1.ConfigService.UpdateConfig:output_type -> k1s0.system.config.v1.UpdateConfigResponse
+	9,  // 30: k1s0.system.config.v1.ConfigService.DeleteConfig:output_type -> k1s0.system.config.v1.DeleteConfigResponse
+	12, // 31: k1s0.system.config.v1.ConfigService.GetServiceConfig:output_type -> k1s0.system.config.v1.GetServiceConfigResponse
+	14, // 32: k1s0.system.config.v1.ConfigService.WatchConfig:output_type -> k1s0.system.config.v1.WatchConfigResponse
+	19, // 33: k1s0.system.config.v1.ConfigService.GetConfigSchema:output_type -> k1s0.system.config.v1.GetConfigSchemaResponse
+	21, // 34: k1s0.system.config.v1.ConfigService.UpsertConfigSchema:output_type -> k1s0.system.config.v1.UpsertConfigSchemaResponse
+	23, // 35: k1s0.system.config.v1.ConfigService.ListConfigSchemas:output_type -> k1s0.system.config.v1.ListConfigSchemasResponse
+	27, // [27:36] is the sub-list for method output_type
+	18, // [18:27] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_config_v1_config_proto_init() }

@@ -31,7 +31,10 @@ export interface Order {
      */
     customerId: string;
     /**
-     * @generated from protobuf field: string status = 3
+     * Deprecated: status_enum を使用すること。
+     *
+     * @deprecated
+     * @generated from protobuf field: string status = 3 [deprecated = true]
      */
     status: string;
     /**
@@ -70,6 +73,12 @@ export interface Order {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 12
      */
     updatedAt?: Timestamp;
+    /**
+     * 注文ステータス（enum）
+     *
+     * @generated from protobuf field: k1s0.service.order.v1.OrderStatus status_enum = 13
+     */
+    statusEnum: OrderStatus;
 }
 /**
  * 注文明細
@@ -190,13 +199,22 @@ export interface ListOrdersRequest {
      */
     customerId?: string;
     /**
-     * @generated from protobuf field: optional string status = 2
+     * Deprecated: status_enum を使用すること。
+     *
+     * @deprecated
+     * @generated from protobuf field: optional string status = 2 [deprecated = true]
      */
     status?: string;
     /**
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
     pagination?: Pagination;
+    /**
+     * 注文ステータスフィルタ（enum）
+     *
+     * @generated from protobuf field: optional k1s0.service.order.v1.OrderStatus status_enum = 4
+     */
+    statusEnum?: OrderStatus;
 }
 /**
  * @generated from protobuf message k1s0.service.order.v1.ListOrdersResponse
@@ -220,9 +238,18 @@ export interface UpdateOrderStatusRequest {
      */
     orderId: string;
     /**
-     * @generated from protobuf field: string status = 2
+     * Deprecated: status_enum を使用すること。
+     *
+     * @deprecated
+     * @generated from protobuf field: string status = 2 [deprecated = true]
      */
     status: string;
+    /**
+     * 注文ステータス（enum）
+     *
+     * @generated from protobuf field: k1s0.service.order.v1.OrderStatus status_enum = 3
+     */
+    statusEnum: OrderStatus;
 }
 /**
  * @generated from protobuf message k1s0.service.order.v1.UpdateOrderStatusResponse
@@ -232,6 +259,47 @@ export interface UpdateOrderStatusResponse {
      * @generated from protobuf field: k1s0.service.order.v1.Order order = 1
      */
     order?: Order;
+}
+// ---------- Enum ----------
+
+/**
+ * OrderStatus は注文のステータス。
+ *
+ * @generated from protobuf enum k1s0.service.order.v1.OrderStatus
+ */
+export enum OrderStatus {
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_CONFIRMED = 2;
+     */
+    CONFIRMED = 2,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_PROCESSING = 3;
+     */
+    PROCESSING = 3,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_SHIPPED = 4;
+     */
+    SHIPPED = 4,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_DELIVERED = 5;
+     */
+    DELIVERED = 5,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_CANCELLED = 6;
+     */
+    CANCELLED = 6,
+    /**
+     * @generated from protobuf enum value: ORDER_STATUS_REFUNDED = 7;
+     */
+    REFUNDED = 7
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Order$Type extends MessageType<Order> {
@@ -248,7 +316,8 @@ class Order$Type extends MessageType<Order> {
             { no: 9, name: "version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 10, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => OrderItem },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "status_enum", kind: "enum", T: () => ["k1s0.service.order.v1.OrderStatus", OrderStatus, "ORDER_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<Order>): Order {
@@ -261,6 +330,7 @@ class Order$Type extends MessageType<Order> {
         message.createdBy = "";
         message.version = 0;
         message.items = [];
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<Order>(this, message, value);
         return message;
@@ -276,7 +346,7 @@ class Order$Type extends MessageType<Order> {
                 case /* string customer_id */ 2:
                     message.customerId = reader.string();
                     break;
-                case /* string status */ 3:
+                case /* string status = 3 [deprecated = true] */ 3:
                     message.status = reader.string();
                     break;
                 case /* int64 total_amount */ 4:
@@ -306,6 +376,9 @@ class Order$Type extends MessageType<Order> {
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 12:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
+                case /* k1s0.service.order.v1.OrderStatus status_enum */ 13:
+                    message.statusEnum = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -324,7 +397,7 @@ class Order$Type extends MessageType<Order> {
         /* string customer_id = 2; */
         if (message.customerId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.customerId);
-        /* string status = 3; */
+        /* string status = 3 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.status);
         /* int64 total_amount = 4; */
@@ -354,6 +427,9 @@ class Order$Type extends MessageType<Order> {
         /* k1s0.system.common.v1.Timestamp updated_at = 12; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.service.order.v1.OrderStatus status_enum = 13; */
+        if (message.statusEnum !== 0)
+            writer.tag(13, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -752,7 +828,8 @@ class ListOrdersRequest$Type extends MessageType<ListOrdersRequest> {
         super("k1s0.service.order.v1.ListOrdersRequest", [
             { no: 1, name: "customer_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "status", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 4, name: "status_enum", kind: "enum", opt: true, T: () => ["k1s0.service.order.v1.OrderStatus", OrderStatus, "ORDER_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<ListOrdersRequest>): ListOrdersRequest {
@@ -769,11 +846,14 @@ class ListOrdersRequest$Type extends MessageType<ListOrdersRequest> {
                 case /* optional string customer_id */ 1:
                     message.customerId = reader.string();
                     break;
-                case /* optional string status */ 2:
+                case /* optional string status = 2 [deprecated = true] */ 2:
                     message.status = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Pagination pagination */ 3:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* optional k1s0.service.order.v1.OrderStatus status_enum */ 4:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -790,12 +870,15 @@ class ListOrdersRequest$Type extends MessageType<ListOrdersRequest> {
         /* optional string customer_id = 1; */
         if (message.customerId !== undefined)
             writer.tag(1, WireType.LengthDelimited).string(message.customerId);
-        /* optional string status = 2; */
+        /* optional string status = 2 [deprecated = true]; */
         if (message.status !== undefined)
             writer.tag(2, WireType.LengthDelimited).string(message.status);
         /* k1s0.system.common.v1.Pagination pagination = 3; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* optional k1s0.service.order.v1.OrderStatus status_enum = 4; */
+        if (message.statusEnum !== undefined)
+            writer.tag(4, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -865,13 +948,15 @@ class UpdateOrderStatusRequest$Type extends MessageType<UpdateOrderStatusRequest
     constructor() {
         super("k1s0.service.order.v1.UpdateOrderStatusRequest", [
             { no: 1, name: "order_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "status_enum", kind: "enum", T: () => ["k1s0.service.order.v1.OrderStatus", OrderStatus, "ORDER_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<UpdateOrderStatusRequest>): UpdateOrderStatusRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.orderId = "";
         message.status = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<UpdateOrderStatusRequest>(this, message, value);
         return message;
@@ -884,8 +969,11 @@ class UpdateOrderStatusRequest$Type extends MessageType<UpdateOrderStatusRequest
                 case /* string order_id */ 1:
                     message.orderId = reader.string();
                     break;
-                case /* string status */ 2:
+                case /* string status = 2 [deprecated = true] */ 2:
                     message.status = reader.string();
+                    break;
+                case /* k1s0.service.order.v1.OrderStatus status_enum */ 3:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -902,9 +990,12 @@ class UpdateOrderStatusRequest$Type extends MessageType<UpdateOrderStatusRequest
         /* string order_id = 1; */
         if (message.orderId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.orderId);
-        /* string status = 2; */
+        /* string status = 2 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.status);
+        /* k1s0.service.order.v1.OrderStatus status_enum = 3; */
+        if (message.statusEnum !== 0)
+            writer.tag(3, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

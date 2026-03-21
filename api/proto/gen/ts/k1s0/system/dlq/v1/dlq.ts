@@ -15,7 +15,7 @@ import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
- * / DlqMessage は DLQ メッセージ。
+ * DlqMessage は DLQ メッセージ。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.DlqMessage
  */
@@ -47,6 +47,8 @@ export interface DlqMessage {
      */
     payload: Uint8Array;
     /**
+     * Deprecated: use status_enum instead.
+     *
      * @generated from protobuf field: string status = 7
      */
     status: string;
@@ -62,9 +64,15 @@ export interface DlqMessage {
      * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp last_retry_at = 10
      */
     lastRetryAt?: Timestamp;
+    /**
+     * メッセージステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.dlq.v1.DlqMessageStatus status_enum = 11
+     */
+    statusEnum: DlqMessageStatus;
 }
 /**
- * / ListMessagesRequest は一覧取得リクエスト。
+ * ListMessagesRequest は一覧取得リクエスト。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.ListMessagesRequest
  */
@@ -81,7 +89,7 @@ export interface ListMessagesRequest {
     pagination?: Pagination;
 }
 /**
- * / ListMessagesResponse は一覧取得レスポンス。
+ * ListMessagesResponse は一覧取得レスポンス。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.ListMessagesResponse
  */
@@ -96,7 +104,7 @@ export interface ListMessagesResponse {
     pagination?: PaginationResult;
 }
 /**
- * / GetMessageRequest はメッセージ取得リクエスト。
+ * GetMessageRequest はメッセージ取得リクエスト。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.GetMessageRequest
  */
@@ -107,7 +115,7 @@ export interface GetMessageRequest {
     id: string;
 }
 /**
- * / GetMessageResponse はメッセージ取得レスポンス。
+ * GetMessageResponse はメッセージ取得レスポンス。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.GetMessageResponse
  */
@@ -118,7 +126,7 @@ export interface GetMessageResponse {
     message?: DlqMessage;
 }
 /**
- * / RetryMessageRequest はリトライリクエスト。
+ * RetryMessageRequest はリトライリクエスト。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.RetryMessageRequest
  */
@@ -129,7 +137,7 @@ export interface RetryMessageRequest {
     id: string;
 }
 /**
- * / RetryMessageResponse はリトライレスポンス。
+ * RetryMessageResponse はリトライレスポンス。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.RetryMessageResponse
  */
@@ -140,7 +148,7 @@ export interface RetryMessageResponse {
     message?: DlqMessage;
 }
 /**
- * / DeleteMessageRequest は削除リクエスト。
+ * DeleteMessageRequest は削除リクエスト。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.DeleteMessageRequest
  */
@@ -151,7 +159,7 @@ export interface DeleteMessageRequest {
     id: string;
 }
 /**
- * / DeleteMessageResponse は削除レスポンス。
+ * DeleteMessageResponse は削除レスポンス。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.DeleteMessageResponse
  */
@@ -162,7 +170,7 @@ export interface DeleteMessageResponse {
     id: string;
 }
 /**
- * / RetryAllRequest は一括リトライリクエスト。
+ * RetryAllRequest は一括リトライリクエスト。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.RetryAllRequest
  */
@@ -173,7 +181,7 @@ export interface RetryAllRequest {
     topic: string;
 }
 /**
- * / RetryAllResponse は一括リトライレスポンス。
+ * RetryAllResponse は一括リトライレスポンス。
  *
  * @generated from protobuf message k1s0.system.dlq.v1.RetryAllResponse
  */
@@ -186,6 +194,33 @@ export interface RetryAllResponse {
      * @generated from protobuf field: string message = 2
      */
     message: string;
+}
+/**
+ * DlqMessageStatus は DLQ メッセージのステータス。
+ *
+ * @generated from protobuf enum k1s0.system.dlq.v1.DlqMessageStatus
+ */
+export enum DlqMessageStatus {
+    /**
+     * @generated from protobuf enum value: DLQ_MESSAGE_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: DLQ_MESSAGE_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * @generated from protobuf enum value: DLQ_MESSAGE_STATUS_RETRYING = 2;
+     */
+    RETRYING = 2,
+    /**
+     * @generated from protobuf enum value: DLQ_MESSAGE_STATUS_SUCCEEDED = 3;
+     */
+    SUCCEEDED = 3,
+    /**
+     * @generated from protobuf enum value: DLQ_MESSAGE_STATUS_FAILED = 4;
+     */
+    FAILED = 4
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class DlqMessage$Type extends MessageType<DlqMessage> {
@@ -200,7 +235,8 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
             { no: 7, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 9, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 10, name: "last_retry_at", kind: "message", T: () => Timestamp }
+            { no: 10, name: "last_retry_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "status_enum", kind: "enum", T: () => ["k1s0.system.dlq.v1.DlqMessageStatus", DlqMessageStatus, "DLQ_MESSAGE_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<DlqMessage>): DlqMessage {
@@ -212,6 +248,7 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
         message.maxRetries = 0;
         message.payload = new Uint8Array(0);
         message.status = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<DlqMessage>(this, message, value);
         return message;
@@ -250,6 +287,9 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
                     break;
                 case /* optional k1s0.system.common.v1.Timestamp last_retry_at */ 10:
                     message.lastRetryAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastRetryAt);
+                    break;
+                case /* k1s0.system.dlq.v1.DlqMessageStatus status_enum */ 11:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -293,6 +333,9 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
         /* optional k1s0.system.common.v1.Timestamp last_retry_at = 10; */
         if (message.lastRetryAt)
             Timestamp.internalBinaryWrite(message.lastRetryAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.dlq.v1.DlqMessageStatus status_enum = 11; */
+        if (message.statusEnum !== 0)
+            writer.tag(11, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

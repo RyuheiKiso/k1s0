@@ -15,6 +15,7 @@ pub struct Payment {
     pub amount: i64,
     #[prost(string, tag="5")]
     pub currency: ::prost::alloc::string::String,
+    /// Deprecated: status_enum を使用すること。
     #[prost(string, tag="6")]
     pub status: ::prost::alloc::string::String,
     #[prost(string, optional, tag="7")]
@@ -31,6 +32,9 @@ pub struct Payment {
     pub created_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
     #[prost(message, optional, tag="13")]
     pub updated_at: ::core::option::Option<super::super::super::system::common::v1::Timestamp>,
+    /// 決済ステータス（enum）
+    #[prost(enumeration="PaymentStatus", tag="14")]
+    pub status_enum: i32,
 }
 // ---------- リクエスト/レスポンス ----------
 
@@ -68,10 +72,14 @@ pub struct ListPaymentsRequest {
     pub order_id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag="2")]
     pub customer_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// Deprecated: status_enum を使用すること。
     #[prost(string, optional, tag="3")]
     pub status: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, optional, tag="4")]
     pub pagination: ::core::option::Option<super::super::super::system::common::v1::Pagination>,
+    /// 決済ステータスフィルタ（enum）
+    #[prost(enumeration="PaymentStatus", optional, tag="5")]
+    pub status_enum: ::core::option::Option<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListPaymentsResponse {
@@ -117,6 +125,50 @@ pub struct RefundPaymentRequest {
 pub struct RefundPaymentResponse {
     #[prost(message, optional, tag="1")]
     pub payment: ::core::option::Option<Payment>,
+}
+// ---------- Enum ----------
+
+/// PaymentStatus は決済のステータス。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum PaymentStatus {
+    Unspecified = 0,
+    Pending = 1,
+    Processing = 2,
+    Succeeded = 3,
+    Failed = 4,
+    Cancelled = 5,
+    Refunded = 6,
+}
+impl PaymentStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "PAYMENT_STATUS_UNSPECIFIED",
+            Self::Pending => "PAYMENT_STATUS_PENDING",
+            Self::Processing => "PAYMENT_STATUS_PROCESSING",
+            Self::Succeeded => "PAYMENT_STATUS_SUCCEEDED",
+            Self::Failed => "PAYMENT_STATUS_FAILED",
+            Self::Cancelled => "PAYMENT_STATUS_CANCELLED",
+            Self::Refunded => "PAYMENT_STATUS_REFUNDED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "PAYMENT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "PAYMENT_STATUS_PENDING" => Some(Self::Pending),
+            "PAYMENT_STATUS_PROCESSING" => Some(Self::Processing),
+            "PAYMENT_STATUS_SUCCEEDED" => Some(Self::Succeeded),
+            "PAYMENT_STATUS_FAILED" => Some(Self::Failed),
+            "PAYMENT_STATUS_CANCELLED" => Some(Self::Cancelled),
+            "PAYMENT_STATUS_REFUNDED" => Some(Self::Refunded),
+            _ => None,
+        }
+    }
 }
 include!("k1s0.service.payment.v1.tonic.rs");
 // @@protoc_insertion_point(module)

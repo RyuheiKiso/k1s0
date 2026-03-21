@@ -146,6 +146,7 @@ pub struct WatchFeatureFlagRequest {
 pub struct WatchFeatureFlagResponse {
     #[prost(string, tag="1")]
     pub flag_key: ::prost::alloc::string::String,
+    /// Deprecated: use change_type_enum instead.
     /// CREATED, UPDATED, DELETED
     #[prost(string, tag="2")]
     pub change_type: ::prost::alloc::string::String,
@@ -153,6 +154,9 @@ pub struct WatchFeatureFlagResponse {
     pub flag: ::core::option::Option<FeatureFlag>,
     #[prost(message, optional, tag="4")]
     pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// 変更操作の種別（change_type の enum 版）。
+    #[prost(enumeration="super::super::common::v1::ChangeType", tag="5")]
+    pub change_type_enum: i32,
 }
 include!("k1s0.system.featureflag.v1.tonic.rs");
 // @@protoc_insertion_point(module)

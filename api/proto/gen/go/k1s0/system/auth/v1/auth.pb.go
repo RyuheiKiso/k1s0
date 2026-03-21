@@ -26,6 +26,118 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AuditEventType は監査イベントの種別。
+type AuditEventType int32
+
+const (
+	AuditEventType_AUDIT_EVENT_TYPE_UNSPECIFIED      AuditEventType = 0
+	AuditEventType_AUDIT_EVENT_TYPE_LOGIN            AuditEventType = 1
+	AuditEventType_AUDIT_EVENT_TYPE_LOGOUT           AuditEventType = 2
+	AuditEventType_AUDIT_EVENT_TYPE_TOKEN_REFRESH    AuditEventType = 3
+	AuditEventType_AUDIT_EVENT_TYPE_PERMISSION_CHECK AuditEventType = 4
+	AuditEventType_AUDIT_EVENT_TYPE_API_KEY_CREATED  AuditEventType = 5
+	AuditEventType_AUDIT_EVENT_TYPE_API_KEY_REVOKED  AuditEventType = 6
+)
+
+// Enum value maps for AuditEventType.
+var (
+	AuditEventType_name = map[int32]string{
+		0: "AUDIT_EVENT_TYPE_UNSPECIFIED",
+		1: "AUDIT_EVENT_TYPE_LOGIN",
+		2: "AUDIT_EVENT_TYPE_LOGOUT",
+		3: "AUDIT_EVENT_TYPE_TOKEN_REFRESH",
+		4: "AUDIT_EVENT_TYPE_PERMISSION_CHECK",
+		5: "AUDIT_EVENT_TYPE_API_KEY_CREATED",
+		6: "AUDIT_EVENT_TYPE_API_KEY_REVOKED",
+	}
+	AuditEventType_value = map[string]int32{
+		"AUDIT_EVENT_TYPE_UNSPECIFIED":      0,
+		"AUDIT_EVENT_TYPE_LOGIN":            1,
+		"AUDIT_EVENT_TYPE_LOGOUT":           2,
+		"AUDIT_EVENT_TYPE_TOKEN_REFRESH":    3,
+		"AUDIT_EVENT_TYPE_PERMISSION_CHECK": 4,
+		"AUDIT_EVENT_TYPE_API_KEY_CREATED":  5,
+		"AUDIT_EVENT_TYPE_API_KEY_REVOKED":  6,
+	}
+)
+
+func (x AuditEventType) Enum() *AuditEventType {
+	p := new(AuditEventType)
+	*p = x
+	return p
+}
+
+func (x AuditEventType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuditEventType) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_auth_v1_auth_proto_enumTypes[0].Descriptor()
+}
+
+func (AuditEventType) Type() protoreflect.EnumType {
+	return &file_k1s0_system_auth_v1_auth_proto_enumTypes[0]
+}
+
+func (x AuditEventType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuditEventType.Descriptor instead.
+func (AuditEventType) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_auth_v1_auth_proto_rawDescGZIP(), []int{0}
+}
+
+// AuditResult は監査イベントの結果。
+type AuditResult int32
+
+const (
+	AuditResult_AUDIT_RESULT_UNSPECIFIED AuditResult = 0
+	AuditResult_AUDIT_RESULT_SUCCESS     AuditResult = 1
+	AuditResult_AUDIT_RESULT_FAILURE     AuditResult = 2
+)
+
+// Enum value maps for AuditResult.
+var (
+	AuditResult_name = map[int32]string{
+		0: "AUDIT_RESULT_UNSPECIFIED",
+		1: "AUDIT_RESULT_SUCCESS",
+		2: "AUDIT_RESULT_FAILURE",
+	}
+	AuditResult_value = map[string]int32{
+		"AUDIT_RESULT_UNSPECIFIED": 0,
+		"AUDIT_RESULT_SUCCESS":     1,
+		"AUDIT_RESULT_FAILURE":     2,
+	}
+)
+
+func (x AuditResult) Enum() *AuditResult {
+	p := new(AuditResult)
+	*p = x
+	return p
+}
+
+func (x AuditResult) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuditResult) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_auth_v1_auth_proto_enumTypes[1].Descriptor()
+}
+
+func (AuditResult) Type() protoreflect.EnumType {
+	return &file_k1s0_system_auth_v1_auth_proto_enumTypes[1]
+}
+
+func (x AuditResult) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuditResult.Descriptor instead.
+func (AuditResult) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_auth_v1_auth_proto_rawDescGZIP(), []int{1}
+}
+
 // ValidateTokenRequest はトークン検証リクエスト。
 type ValidateTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1091,6 +1203,7 @@ func (x *CheckPermissionResponse) GetReason() string {
 type RecordAuditLogRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+	// Deprecated: event_type_enum を使用すること。
 	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	IpAddress string `protobuf:"bytes,3,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
@@ -1100,13 +1213,18 @@ type RecordAuditLogRequest struct {
 	// HTTP メソッドまたは gRPC メソッド名
 	Action string `protobuf:"bytes,6,opt,name=action,proto3" json:"action,omitempty"`
 	// SUCCESS / FAILURE
+	// Deprecated: result_enum を使用すること。
 	Result string `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
 	// 操作の詳細情報（client_id, grant_type 等）
 	Detail *structpb.Struct `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
 	// 操作対象リソースの ID
 	ResourceId string `protobuf:"bytes,9,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// OpenTelemetry トレース ID
-	TraceId       string `protobuf:"bytes,10,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	TraceId string `protobuf:"bytes,10,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	// 監査イベント種別（enum）
+	EventTypeEnum AuditEventType `protobuf:"varint,11,opt,name=event_type_enum,json=eventTypeEnum,proto3,enum=k1s0.system.auth.v1.AuditEventType" json:"event_type_enum,omitempty"`
+	// 監査イベント結果（enum）
+	ResultEnum    AuditResult `protobuf:"varint,12,opt,name=result_enum,json=resultEnum,proto3,enum=k1s0.system.auth.v1.AuditResult" json:"result_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1211,6 +1329,20 @@ func (x *RecordAuditLogRequest) GetTraceId() string {
 	return ""
 }
 
+func (x *RecordAuditLogRequest) GetEventTypeEnum() AuditEventType {
+	if x != nil {
+		return x.EventTypeEnum
+	}
+	return AuditEventType_AUDIT_EVENT_TYPE_UNSPECIFIED
+}
+
+func (x *RecordAuditLogRequest) GetResultEnum() AuditResult {
+	if x != nil {
+		return x.ResultEnum
+	}
+	return AuditResult_AUDIT_RESULT_UNSPECIFIED
+}
+
 // RecordAuditLogResponse は監査ログ記録レスポンス。
 type RecordAuditLogResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1270,11 +1402,17 @@ type SearchAuditLogsRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	Pagination *v1.Pagination         `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	UserId     string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	EventType  string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	From       *v1.Timestamp          `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
-	To         *v1.Timestamp          `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
+	// Deprecated: event_type_enum を使用すること。
+	EventType string        `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	From      *v1.Timestamp `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
+	To        *v1.Timestamp `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
 	// SUCCESS / FAILURE
-	Result        string `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
+	// Deprecated: result_enum を使用すること。
+	Result string `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
+	// 監査イベント種別フィルタ（enum）
+	EventTypeEnum AuditEventType `protobuf:"varint,7,opt,name=event_type_enum,json=eventTypeEnum,proto3,enum=k1s0.system.auth.v1.AuditEventType" json:"event_type_enum,omitempty"`
+	// 監査イベント結果フィルタ（enum）
+	ResultEnum    AuditResult `protobuf:"varint,8,opt,name=result_enum,json=resultEnum,proto3,enum=k1s0.system.auth.v1.AuditResult" json:"result_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1351,6 +1489,20 @@ func (x *SearchAuditLogsRequest) GetResult() string {
 	return ""
 }
 
+func (x *SearchAuditLogsRequest) GetEventTypeEnum() AuditEventType {
+	if x != nil {
+		return x.EventTypeEnum
+	}
+	return AuditEventType_AUDIT_EVENT_TYPE_UNSPECIFIED
+}
+
+func (x *SearchAuditLogsRequest) GetResultEnum() AuditResult {
+	if x != nil {
+		return x.ResultEnum
+	}
+	return AuditResult_AUDIT_RESULT_UNSPECIFIED
+}
+
 // SearchAuditLogsResponse は監査ログ検索レスポンス。
 type SearchAuditLogsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1406,22 +1558,28 @@ func (x *SearchAuditLogsResponse) GetPagination() *v1.PaginationResult {
 
 // AuditLog は監査ログエントリ。
 type AuditLog struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	EventType string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	UserId    string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IpAddress string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	UserAgent string                 `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	Resource  string                 `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
-	Action    string                 `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
-	Result    string                 `protobuf:"bytes,8,opt,name=result,proto3" json:"result,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Deprecated: event_type_enum を使用すること。
+	EventType string `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	UserId    string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IpAddress string `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	UserAgent string `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	Resource  string `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
+	Action    string `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
+	// Deprecated: result_enum を使用すること。
+	Result string `protobuf:"bytes,8,opt,name=result,proto3" json:"result,omitempty"`
 	// 操作の詳細情報（変更前後の値等）
 	Detail    *structpb.Struct `protobuf:"bytes,9,opt,name=detail,proto3" json:"detail,omitempty"`
 	CreatedAt *v1.Timestamp    `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// 操作対象リソースの ID
 	ResourceId string `protobuf:"bytes,11,opt,name=resource_id,json=resourceId,proto3" json:"resource_id,omitempty"`
 	// OpenTelemetry トレース ID
-	TraceId       string `protobuf:"bytes,12,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	TraceId string `protobuf:"bytes,12,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
+	// 監査イベント種別（enum）
+	EventTypeEnum AuditEventType `protobuf:"varint,13,opt,name=event_type_enum,json=eventTypeEnum,proto3,enum=k1s0.system.auth.v1.AuditEventType" json:"event_type_enum,omitempty"`
+	// 監査イベント結果（enum）
+	ResultEnum    AuditResult `protobuf:"varint,14,opt,name=result_enum,json=resultEnum,proto3,enum=k1s0.system.auth.v1.AuditResult" json:"result_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1540,6 +1698,20 @@ func (x *AuditLog) GetTraceId() string {
 	return ""
 }
 
+func (x *AuditLog) GetEventTypeEnum() AuditEventType {
+	if x != nil {
+		return x.EventTypeEnum
+	}
+	return AuditEventType_AUDIT_EVENT_TYPE_UNSPECIFIED
+}
+
+func (x *AuditLog) GetResultEnum() AuditResult {
+	if x != nil {
+		return x.ResultEnum
+	}
+	return AuditResult_AUDIT_RESULT_UNSPECIFIED
+}
+
 var File_k1s0_system_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
@@ -1641,7 +1813,7 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\b_user_id\"K\n" +
 	"\x17CheckPermissionResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xc6\x02\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xd6\x03\n" +
 	"\x15RecordAuditLogRequest\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x17\n" +
@@ -1657,11 +1829,14 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\vresource_id\x18\t \x01(\tR\n" +
 	"resourceId\x12\x19\n" +
 	"\btrace_id\x18\n" +
-	" \x01(\tR\atraceId\"i\n" +
+	" \x01(\tR\atraceId\x12K\n" +
+	"\x0fevent_type_enum\x18\v \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
+	"\vresult_enum\x18\f \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
+	"resultEnum\"i\n" +
 	"\x16RecordAuditLogResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12?\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\x93\x02\n" +
+	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xa3\x03\n" +
 	"\x16SearchAuditLogsRequest\x12A\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
@@ -1671,12 +1846,15 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"event_type\x18\x03 \x01(\tR\teventType\x124\n" +
 	"\x04from\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\x04from\x120\n" +
 	"\x02to\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\x02to\x12\x16\n" +
-	"\x06result\x18\x06 \x01(\tR\x06result\"\x95\x01\n" +
+	"\x06result\x18\x06 \x01(\tR\x06result\x12K\n" +
+	"\x0fevent_type_enum\x18\a \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
+	"\vresult_enum\x18\b \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
+	"resultEnum\"\x95\x01\n" +
 	"\x17SearchAuditLogsResponse\x121\n" +
 	"\x04logs\x18\x01 \x03(\v2\x1d.k1s0.system.auth.v1.AuditLogR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x8a\x03\n" +
+	"pagination\"\x9a\x04\n" +
 	"\bAuditLog\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1695,7 +1873,22 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12\x1f\n" +
 	"\vresource_id\x18\v \x01(\tR\n" +
 	"resourceId\x12\x19\n" +
-	"\btrace_id\x18\f \x01(\tR\atraceId2\xfa\x03\n" +
+	"\btrace_id\x18\f \x01(\tR\atraceId\x12K\n" +
+	"\x0fevent_type_enum\x18\r \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
+	"\vresult_enum\x18\x0e \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
+	"resultEnum*\x82\x02\n" +
+	"\x0eAuditEventType\x12 \n" +
+	"\x1cAUDIT_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16AUDIT_EVENT_TYPE_LOGIN\x10\x01\x12\x1b\n" +
+	"\x17AUDIT_EVENT_TYPE_LOGOUT\x10\x02\x12\"\n" +
+	"\x1eAUDIT_EVENT_TYPE_TOKEN_REFRESH\x10\x03\x12%\n" +
+	"!AUDIT_EVENT_TYPE_PERMISSION_CHECK\x10\x04\x12$\n" +
+	" AUDIT_EVENT_TYPE_API_KEY_CREATED\x10\x05\x12$\n" +
+	" AUDIT_EVENT_TYPE_API_KEY_REVOKED\x10\x06*_\n" +
+	"\vAuditResult\x12\x1c\n" +
+	"\x18AUDIT_RESULT_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14AUDIT_RESULT_SUCCESS\x10\x01\x12\x18\n" +
+	"\x14AUDIT_RESULT_FAILURE\x10\x022\xfa\x03\n" +
 	"\vAuthService\x12f\n" +
 	"\rValidateToken\x12).k1s0.system.auth.v1.ValidateTokenRequest\x1a*.k1s0.system.auth.v1.ValidateTokenResponse\x12T\n" +
 	"\aGetUser\x12#.k1s0.system.auth.v1.GetUserRequest\x1a$.k1s0.system.auth.v1.GetUserResponse\x12Z\n" +
@@ -1718,82 +1911,91 @@ func file_k1s0_system_auth_v1_auth_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_auth_v1_auth_proto_rawDescData
 }
 
+var file_k1s0_system_auth_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_k1s0_system_auth_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_k1s0_system_auth_v1_auth_proto_goTypes = []any{
-	(*ValidateTokenRequest)(nil),    // 0: k1s0.system.auth.v1.ValidateTokenRequest
-	(*ValidateTokenResponse)(nil),   // 1: k1s0.system.auth.v1.ValidateTokenResponse
-	(*TokenClaims)(nil),             // 2: k1s0.system.auth.v1.TokenClaims
-	(*RealmAccess)(nil),             // 3: k1s0.system.auth.v1.RealmAccess
-	(*ClientRoles)(nil),             // 4: k1s0.system.auth.v1.ClientRoles
-	(*GetUserRequest)(nil),          // 5: k1s0.system.auth.v1.GetUserRequest
-	(*GetUserResponse)(nil),         // 6: k1s0.system.auth.v1.GetUserResponse
-	(*ListUsersRequest)(nil),        // 7: k1s0.system.auth.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),       // 8: k1s0.system.auth.v1.ListUsersResponse
-	(*User)(nil),                    // 9: k1s0.system.auth.v1.User
-	(*StringList)(nil),              // 10: k1s0.system.auth.v1.StringList
-	(*GetUserRolesRequest)(nil),     // 11: k1s0.system.auth.v1.GetUserRolesRequest
-	(*GetUserRolesResponse)(nil),    // 12: k1s0.system.auth.v1.GetUserRolesResponse
-	(*Role)(nil),                    // 13: k1s0.system.auth.v1.Role
-	(*RoleList)(nil),                // 14: k1s0.system.auth.v1.RoleList
-	(*CheckPermissionRequest)(nil),  // 15: k1s0.system.auth.v1.CheckPermissionRequest
-	(*CheckPermissionResponse)(nil), // 16: k1s0.system.auth.v1.CheckPermissionResponse
-	(*RecordAuditLogRequest)(nil),   // 17: k1s0.system.auth.v1.RecordAuditLogRequest
-	(*RecordAuditLogResponse)(nil),  // 18: k1s0.system.auth.v1.RecordAuditLogResponse
-	(*SearchAuditLogsRequest)(nil),  // 19: k1s0.system.auth.v1.SearchAuditLogsRequest
-	(*SearchAuditLogsResponse)(nil), // 20: k1s0.system.auth.v1.SearchAuditLogsResponse
-	(*AuditLog)(nil),                // 21: k1s0.system.auth.v1.AuditLog
-	nil,                             // 22: k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry
-	nil,                             // 23: k1s0.system.auth.v1.User.AttributesEntry
-	nil,                             // 24: k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry
-	(*v1.Pagination)(nil),           // 25: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),     // 26: k1s0.system.common.v1.PaginationResult
-	(*v1.Timestamp)(nil),            // 27: k1s0.system.common.v1.Timestamp
-	(*structpb.Struct)(nil),         // 28: google.protobuf.Struct
+	(AuditEventType)(0),             // 0: k1s0.system.auth.v1.AuditEventType
+	(AuditResult)(0),                // 1: k1s0.system.auth.v1.AuditResult
+	(*ValidateTokenRequest)(nil),    // 2: k1s0.system.auth.v1.ValidateTokenRequest
+	(*ValidateTokenResponse)(nil),   // 3: k1s0.system.auth.v1.ValidateTokenResponse
+	(*TokenClaims)(nil),             // 4: k1s0.system.auth.v1.TokenClaims
+	(*RealmAccess)(nil),             // 5: k1s0.system.auth.v1.RealmAccess
+	(*ClientRoles)(nil),             // 6: k1s0.system.auth.v1.ClientRoles
+	(*GetUserRequest)(nil),          // 7: k1s0.system.auth.v1.GetUserRequest
+	(*GetUserResponse)(nil),         // 8: k1s0.system.auth.v1.GetUserResponse
+	(*ListUsersRequest)(nil),        // 9: k1s0.system.auth.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),       // 10: k1s0.system.auth.v1.ListUsersResponse
+	(*User)(nil),                    // 11: k1s0.system.auth.v1.User
+	(*StringList)(nil),              // 12: k1s0.system.auth.v1.StringList
+	(*GetUserRolesRequest)(nil),     // 13: k1s0.system.auth.v1.GetUserRolesRequest
+	(*GetUserRolesResponse)(nil),    // 14: k1s0.system.auth.v1.GetUserRolesResponse
+	(*Role)(nil),                    // 15: k1s0.system.auth.v1.Role
+	(*RoleList)(nil),                // 16: k1s0.system.auth.v1.RoleList
+	(*CheckPermissionRequest)(nil),  // 17: k1s0.system.auth.v1.CheckPermissionRequest
+	(*CheckPermissionResponse)(nil), // 18: k1s0.system.auth.v1.CheckPermissionResponse
+	(*RecordAuditLogRequest)(nil),   // 19: k1s0.system.auth.v1.RecordAuditLogRequest
+	(*RecordAuditLogResponse)(nil),  // 20: k1s0.system.auth.v1.RecordAuditLogResponse
+	(*SearchAuditLogsRequest)(nil),  // 21: k1s0.system.auth.v1.SearchAuditLogsRequest
+	(*SearchAuditLogsResponse)(nil), // 22: k1s0.system.auth.v1.SearchAuditLogsResponse
+	(*AuditLog)(nil),                // 23: k1s0.system.auth.v1.AuditLog
+	nil,                             // 24: k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry
+	nil,                             // 25: k1s0.system.auth.v1.User.AttributesEntry
+	nil,                             // 26: k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry
+	(*v1.Pagination)(nil),           // 27: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),     // 28: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),            // 29: k1s0.system.common.v1.Timestamp
+	(*structpb.Struct)(nil),         // 30: google.protobuf.Struct
 }
 var file_k1s0_system_auth_v1_auth_proto_depIdxs = []int32{
-	2,  // 0: k1s0.system.auth.v1.ValidateTokenResponse.claims:type_name -> k1s0.system.auth.v1.TokenClaims
-	3,  // 1: k1s0.system.auth.v1.TokenClaims.realm_access:type_name -> k1s0.system.auth.v1.RealmAccess
-	22, // 2: k1s0.system.auth.v1.TokenClaims.resource_access:type_name -> k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry
-	9,  // 3: k1s0.system.auth.v1.GetUserResponse.user:type_name -> k1s0.system.auth.v1.User
-	25, // 4: k1s0.system.auth.v1.ListUsersRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	9,  // 5: k1s0.system.auth.v1.ListUsersResponse.users:type_name -> k1s0.system.auth.v1.User
-	26, // 6: k1s0.system.auth.v1.ListUsersResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	27, // 7: k1s0.system.auth.v1.User.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 8: k1s0.system.auth.v1.User.attributes:type_name -> k1s0.system.auth.v1.User.AttributesEntry
-	13, // 9: k1s0.system.auth.v1.GetUserRolesResponse.realm_roles:type_name -> k1s0.system.auth.v1.Role
-	24, // 10: k1s0.system.auth.v1.GetUserRolesResponse.client_roles:type_name -> k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry
-	13, // 11: k1s0.system.auth.v1.RoleList.roles:type_name -> k1s0.system.auth.v1.Role
-	28, // 12: k1s0.system.auth.v1.RecordAuditLogRequest.detail:type_name -> google.protobuf.Struct
-	27, // 13: k1s0.system.auth.v1.RecordAuditLogResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	25, // 14: k1s0.system.auth.v1.SearchAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	27, // 15: k1s0.system.auth.v1.SearchAuditLogsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 16: k1s0.system.auth.v1.SearchAuditLogsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
-	21, // 17: k1s0.system.auth.v1.SearchAuditLogsResponse.logs:type_name -> k1s0.system.auth.v1.AuditLog
-	26, // 18: k1s0.system.auth.v1.SearchAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	28, // 19: k1s0.system.auth.v1.AuditLog.detail:type_name -> google.protobuf.Struct
-	27, // 20: k1s0.system.auth.v1.AuditLog.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	4,  // 21: k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry.value:type_name -> k1s0.system.auth.v1.ClientRoles
-	10, // 22: k1s0.system.auth.v1.User.AttributesEntry.value:type_name -> k1s0.system.auth.v1.StringList
-	14, // 23: k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry.value:type_name -> k1s0.system.auth.v1.RoleList
-	0,  // 24: k1s0.system.auth.v1.AuthService.ValidateToken:input_type -> k1s0.system.auth.v1.ValidateTokenRequest
-	5,  // 25: k1s0.system.auth.v1.AuthService.GetUser:input_type -> k1s0.system.auth.v1.GetUserRequest
-	7,  // 26: k1s0.system.auth.v1.AuthService.ListUsers:input_type -> k1s0.system.auth.v1.ListUsersRequest
-	11, // 27: k1s0.system.auth.v1.AuthService.GetUserRoles:input_type -> k1s0.system.auth.v1.GetUserRolesRequest
-	15, // 28: k1s0.system.auth.v1.AuthService.CheckPermission:input_type -> k1s0.system.auth.v1.CheckPermissionRequest
-	17, // 29: k1s0.system.auth.v1.AuditService.RecordAuditLog:input_type -> k1s0.system.auth.v1.RecordAuditLogRequest
-	19, // 30: k1s0.system.auth.v1.AuditService.SearchAuditLogs:input_type -> k1s0.system.auth.v1.SearchAuditLogsRequest
-	1,  // 31: k1s0.system.auth.v1.AuthService.ValidateToken:output_type -> k1s0.system.auth.v1.ValidateTokenResponse
-	6,  // 32: k1s0.system.auth.v1.AuthService.GetUser:output_type -> k1s0.system.auth.v1.GetUserResponse
-	8,  // 33: k1s0.system.auth.v1.AuthService.ListUsers:output_type -> k1s0.system.auth.v1.ListUsersResponse
-	12, // 34: k1s0.system.auth.v1.AuthService.GetUserRoles:output_type -> k1s0.system.auth.v1.GetUserRolesResponse
-	16, // 35: k1s0.system.auth.v1.AuthService.CheckPermission:output_type -> k1s0.system.auth.v1.CheckPermissionResponse
-	18, // 36: k1s0.system.auth.v1.AuditService.RecordAuditLog:output_type -> k1s0.system.auth.v1.RecordAuditLogResponse
-	20, // 37: k1s0.system.auth.v1.AuditService.SearchAuditLogs:output_type -> k1s0.system.auth.v1.SearchAuditLogsResponse
-	31, // [31:38] is the sub-list for method output_type
-	24, // [24:31] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	4,  // 0: k1s0.system.auth.v1.ValidateTokenResponse.claims:type_name -> k1s0.system.auth.v1.TokenClaims
+	5,  // 1: k1s0.system.auth.v1.TokenClaims.realm_access:type_name -> k1s0.system.auth.v1.RealmAccess
+	24, // 2: k1s0.system.auth.v1.TokenClaims.resource_access:type_name -> k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry
+	11, // 3: k1s0.system.auth.v1.GetUserResponse.user:type_name -> k1s0.system.auth.v1.User
+	27, // 4: k1s0.system.auth.v1.ListUsersRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	11, // 5: k1s0.system.auth.v1.ListUsersResponse.users:type_name -> k1s0.system.auth.v1.User
+	28, // 6: k1s0.system.auth.v1.ListUsersResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	29, // 7: k1s0.system.auth.v1.User.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 8: k1s0.system.auth.v1.User.attributes:type_name -> k1s0.system.auth.v1.User.AttributesEntry
+	15, // 9: k1s0.system.auth.v1.GetUserRolesResponse.realm_roles:type_name -> k1s0.system.auth.v1.Role
+	26, // 10: k1s0.system.auth.v1.GetUserRolesResponse.client_roles:type_name -> k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry
+	15, // 11: k1s0.system.auth.v1.RoleList.roles:type_name -> k1s0.system.auth.v1.Role
+	30, // 12: k1s0.system.auth.v1.RecordAuditLogRequest.detail:type_name -> google.protobuf.Struct
+	0,  // 13: k1s0.system.auth.v1.RecordAuditLogRequest.event_type_enum:type_name -> k1s0.system.auth.v1.AuditEventType
+	1,  // 14: k1s0.system.auth.v1.RecordAuditLogRequest.result_enum:type_name -> k1s0.system.auth.v1.AuditResult
+	29, // 15: k1s0.system.auth.v1.RecordAuditLogResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	27, // 16: k1s0.system.auth.v1.SearchAuditLogsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	29, // 17: k1s0.system.auth.v1.SearchAuditLogsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 18: k1s0.system.auth.v1.SearchAuditLogsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 19: k1s0.system.auth.v1.SearchAuditLogsRequest.event_type_enum:type_name -> k1s0.system.auth.v1.AuditEventType
+	1,  // 20: k1s0.system.auth.v1.SearchAuditLogsRequest.result_enum:type_name -> k1s0.system.auth.v1.AuditResult
+	23, // 21: k1s0.system.auth.v1.SearchAuditLogsResponse.logs:type_name -> k1s0.system.auth.v1.AuditLog
+	28, // 22: k1s0.system.auth.v1.SearchAuditLogsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	30, // 23: k1s0.system.auth.v1.AuditLog.detail:type_name -> google.protobuf.Struct
+	29, // 24: k1s0.system.auth.v1.AuditLog.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 25: k1s0.system.auth.v1.AuditLog.event_type_enum:type_name -> k1s0.system.auth.v1.AuditEventType
+	1,  // 26: k1s0.system.auth.v1.AuditLog.result_enum:type_name -> k1s0.system.auth.v1.AuditResult
+	6,  // 27: k1s0.system.auth.v1.TokenClaims.ResourceAccessEntry.value:type_name -> k1s0.system.auth.v1.ClientRoles
+	12, // 28: k1s0.system.auth.v1.User.AttributesEntry.value:type_name -> k1s0.system.auth.v1.StringList
+	16, // 29: k1s0.system.auth.v1.GetUserRolesResponse.ClientRolesEntry.value:type_name -> k1s0.system.auth.v1.RoleList
+	2,  // 30: k1s0.system.auth.v1.AuthService.ValidateToken:input_type -> k1s0.system.auth.v1.ValidateTokenRequest
+	7,  // 31: k1s0.system.auth.v1.AuthService.GetUser:input_type -> k1s0.system.auth.v1.GetUserRequest
+	9,  // 32: k1s0.system.auth.v1.AuthService.ListUsers:input_type -> k1s0.system.auth.v1.ListUsersRequest
+	13, // 33: k1s0.system.auth.v1.AuthService.GetUserRoles:input_type -> k1s0.system.auth.v1.GetUserRolesRequest
+	17, // 34: k1s0.system.auth.v1.AuthService.CheckPermission:input_type -> k1s0.system.auth.v1.CheckPermissionRequest
+	19, // 35: k1s0.system.auth.v1.AuditService.RecordAuditLog:input_type -> k1s0.system.auth.v1.RecordAuditLogRequest
+	21, // 36: k1s0.system.auth.v1.AuditService.SearchAuditLogs:input_type -> k1s0.system.auth.v1.SearchAuditLogsRequest
+	3,  // 37: k1s0.system.auth.v1.AuthService.ValidateToken:output_type -> k1s0.system.auth.v1.ValidateTokenResponse
+	8,  // 38: k1s0.system.auth.v1.AuthService.GetUser:output_type -> k1s0.system.auth.v1.GetUserResponse
+	10, // 39: k1s0.system.auth.v1.AuthService.ListUsers:output_type -> k1s0.system.auth.v1.ListUsersResponse
+	14, // 40: k1s0.system.auth.v1.AuthService.GetUserRoles:output_type -> k1s0.system.auth.v1.GetUserRolesResponse
+	18, // 41: k1s0.system.auth.v1.AuthService.CheckPermission:output_type -> k1s0.system.auth.v1.CheckPermissionResponse
+	20, // 42: k1s0.system.auth.v1.AuditService.RecordAuditLog:output_type -> k1s0.system.auth.v1.RecordAuditLogResponse
+	22, // 43: k1s0.system.auth.v1.AuditService.SearchAuditLogs:output_type -> k1s0.system.auth.v1.SearchAuditLogsResponse
+	37, // [37:44] is the sub-list for method output_type
+	30, // [30:37] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_auth_v1_auth_proto_init() }
@@ -1809,13 +2011,14 @@ func file_k1s0_system_auth_v1_auth_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_auth_v1_auth_proto_rawDesc), len(file_k1s0_system_auth_v1_auth_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      2,
 			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
 		GoTypes:           file_k1s0_system_auth_v1_auth_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_auth_v1_auth_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_auth_v1_auth_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_auth_v1_auth_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_auth_v1_auth_proto = out.File

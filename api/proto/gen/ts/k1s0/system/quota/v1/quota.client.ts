@@ -26,7 +26,7 @@ import type { CreateQuotaPolicyRequest } from "./quota";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
- * / QuotaService はクォータポリシー管理サービス。
+ * QuotaService はクォータポリシー管理サービス。
  *
  * @generated from protobuf service k1s0.system.quota.v1.QuotaService
  */
@@ -69,7 +69,7 @@ export interface IQuotaServiceClient {
     resetQuotaUsage(input: ResetQuotaUsageRequest, options?: RpcOptions): UnaryCall<ResetQuotaUsageRequest, ResetQuotaUsageResponse>;
 }
 /**
- * / QuotaService はクォータポリシー管理サービス。
+ * QuotaService はクォータポリシー管理サービス。
  *
  * @generated from protobuf service k1s0.system.quota.v1.QuotaService
  */

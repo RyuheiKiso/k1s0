@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ChangeType } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
@@ -326,6 +327,7 @@ export interface WatchConfigResponse {
      */
     changedBy: string;
     /**
+     * Deprecated: use change_type_enum instead.
      * CREATED, UPDATED, DELETED
      *
      * @generated from protobuf field: string change_type = 8
@@ -335,6 +337,12 @@ export interface WatchConfigResponse {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp changed_at = 9
      */
     changedAt?: Timestamp;
+    /**
+     * 変更操作の種別（change_type の enum 版）。
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.ChangeType change_type_enum = 10
+     */
+    changeTypeEnum: ChangeType;
 }
 /**
  * ConfigFieldSchema は設定フィールドのスキーマ定義。
@@ -1355,7 +1363,8 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
             { no: 6, name: "new_version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 7, name: "changed_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "changed_at", kind: "message", T: () => Timestamp }
+            { no: 9, name: "changed_at", kind: "message", T: () => Timestamp },
+            { no: 10, name: "change_type_enum", kind: "enum", T: () => ["k1s0.system.common.v1.ChangeType", ChangeType, "CHANGE_TYPE_"] }
         ]);
     }
     create(value?: PartialMessage<WatchConfigResponse>): WatchConfigResponse {
@@ -1368,6 +1377,7 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
         message.newVersion = 0;
         message.changedBy = "";
         message.changeType = "";
+        message.changeTypeEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WatchConfigResponse>(this, message, value);
         return message;
@@ -1403,6 +1413,9 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp changed_at */ 9:
                     message.changedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.changedAt);
+                    break;
+                case /* k1s0.system.common.v1.ChangeType change_type_enum */ 10:
+                    message.changeTypeEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1443,6 +1456,9 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
         /* k1s0.system.common.v1.Timestamp changed_at = 9; */
         if (message.changedAt)
             Timestamp.internalBinaryWrite(message.changedAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.ChangeType change_type_enum = 10; */
+        if (message.changeTypeEnum !== 0)
+            writer.tag(10, WireType.Varint).int32(message.changeTypeEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

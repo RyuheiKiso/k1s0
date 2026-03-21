@@ -400,8 +400,6 @@ export interface CheckPermissionResponse {
      */
     reason: string;
 }
-// ============================================================// Audit Log// ============================================================
-
 /**
  * RecordAuditLogRequest は監査ログ記録リクエスト。
  *
@@ -410,6 +408,7 @@ export interface CheckPermissionResponse {
 export interface RecordAuditLogRequest {
     /**
      * LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
+     * Deprecated: event_type_enum を使用すること。
      *
      * @generated from protobuf field: string event_type = 1
      */
@@ -440,6 +439,7 @@ export interface RecordAuditLogRequest {
     action: string;
     /**
      * SUCCESS / FAILURE
+     * Deprecated: result_enum を使用すること。
      *
      * @generated from protobuf field: string result = 7
      */
@@ -462,6 +462,18 @@ export interface RecordAuditLogRequest {
      * @generated from protobuf field: string trace_id = 10
      */
     traceId: string;
+    /**
+     * 監査イベント種別（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditEventType event_type_enum = 11
+     */
+    eventTypeEnum: AuditEventType;
+    /**
+     * 監査イベント結果（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditResult result_enum = 12
+     */
+    resultEnum: AuditResult;
 }
 /**
  * RecordAuditLogResponse は監査ログ記録レスポンス。
@@ -495,6 +507,8 @@ export interface SearchAuditLogsRequest {
      */
     userId: string;
     /**
+     * Deprecated: event_type_enum を使用すること。
+     *
      * @generated from protobuf field: string event_type = 3
      */
     eventType: string;
@@ -508,10 +522,23 @@ export interface SearchAuditLogsRequest {
     to?: Timestamp;
     /**
      * SUCCESS / FAILURE
+     * Deprecated: result_enum を使用すること。
      *
      * @generated from protobuf field: string result = 6
      */
     result: string;
+    /**
+     * 監査イベント種別フィルタ（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditEventType event_type_enum = 7
+     */
+    eventTypeEnum: AuditEventType;
+    /**
+     * 監査イベント結果フィルタ（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditResult result_enum = 8
+     */
+    resultEnum: AuditResult;
 }
 /**
  * SearchAuditLogsResponse は監査ログ検索レスポンス。
@@ -539,6 +566,8 @@ export interface AuditLog {
      */
     id: string;
     /**
+     * Deprecated: event_type_enum を使用すること。
+     *
      * @generated from protobuf field: string event_type = 2
      */
     eventType: string;
@@ -563,6 +592,8 @@ export interface AuditLog {
      */
     action: string;
     /**
+     * Deprecated: result_enum を使用すること。
+     *
      * @generated from protobuf field: string result = 8
      */
     result: string;
@@ -588,6 +619,74 @@ export interface AuditLog {
      * @generated from protobuf field: string trace_id = 12
      */
     traceId: string;
+    /**
+     * 監査イベント種別（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditEventType event_type_enum = 13
+     */
+    eventTypeEnum: AuditEventType;
+    /**
+     * 監査イベント結果（enum）
+     *
+     * @generated from protobuf field: k1s0.system.auth.v1.AuditResult result_enum = 14
+     */
+    resultEnum: AuditResult;
+}
+// ============================================================// Audit Log// ============================================================
+
+/**
+ * AuditEventType は監査イベントの種別。
+ *
+ * @generated from protobuf enum k1s0.system.auth.v1.AuditEventType
+ */
+export enum AuditEventType {
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_LOGIN = 1;
+     */
+    LOGIN = 1,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_LOGOUT = 2;
+     */
+    LOGOUT = 2,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_TOKEN_REFRESH = 3;
+     */
+    TOKEN_REFRESH = 3,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_PERMISSION_CHECK = 4;
+     */
+    PERMISSION_CHECK = 4,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_API_KEY_CREATED = 5;
+     */
+    API_KEY_CREATED = 5,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_API_KEY_REVOKED = 6;
+     */
+    API_KEY_REVOKED = 6
+}
+/**
+ * AuditResult は監査イベントの結果。
+ *
+ * @generated from protobuf enum k1s0.system.auth.v1.AuditResult
+ */
+export enum AuditResult {
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_SUCCESS = 1;
+     */
+    SUCCESS = 1,
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_FAILURE = 2;
+     */
+    FAILURE = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ValidateTokenRequest$Type extends MessageType<ValidateTokenRequest> {
@@ -1723,7 +1822,9 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
             { no: 7, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "detail", kind: "message", T: () => Struct },
             { no: 9, name: "resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "event_type_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditEventType", AuditEventType, "AUDIT_EVENT_TYPE_"] },
+            { no: 12, name: "result_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] }
         ]);
     }
     create(value?: PartialMessage<RecordAuditLogRequest>): RecordAuditLogRequest {
@@ -1737,6 +1838,8 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
         message.result = "";
         message.resourceId = "";
         message.traceId = "";
+        message.eventTypeEnum = 0;
+        message.resultEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<RecordAuditLogRequest>(this, message, value);
         return message;
@@ -1775,6 +1878,12 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
                     break;
                 case /* string trace_id */ 10:
                     message.traceId = reader.string();
+                    break;
+                case /* k1s0.system.auth.v1.AuditEventType event_type_enum */ 11:
+                    message.eventTypeEnum = reader.int32();
+                    break;
+                case /* k1s0.system.auth.v1.AuditResult result_enum */ 12:
+                    message.resultEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1818,6 +1927,12 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
         /* string trace_id = 10; */
         if (message.traceId !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.traceId);
+        /* k1s0.system.auth.v1.AuditEventType event_type_enum = 11; */
+        if (message.eventTypeEnum !== 0)
+            writer.tag(11, WireType.Varint).int32(message.eventTypeEnum);
+        /* k1s0.system.auth.v1.AuditResult result_enum = 12; */
+        if (message.resultEnum !== 0)
+            writer.tag(12, WireType.Varint).int32(message.resultEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1891,7 +2006,9 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
             { no: 3, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "from", kind: "message", T: () => Timestamp },
             { no: 5, name: "to", kind: "message", T: () => Timestamp },
-            { no: 6, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "event_type_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditEventType", AuditEventType, "AUDIT_EVENT_TYPE_"] },
+            { no: 8, name: "result_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] }
         ]);
     }
     create(value?: PartialMessage<SearchAuditLogsRequest>): SearchAuditLogsRequest {
@@ -1899,6 +2016,8 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
         message.userId = "";
         message.eventType = "";
         message.result = "";
+        message.eventTypeEnum = 0;
+        message.resultEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<SearchAuditLogsRequest>(this, message, value);
         return message;
@@ -1925,6 +2044,12 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
                     break;
                 case /* string result */ 6:
                     message.result = reader.string();
+                    break;
+                case /* k1s0.system.auth.v1.AuditEventType event_type_enum */ 7:
+                    message.eventTypeEnum = reader.int32();
+                    break;
+                case /* k1s0.system.auth.v1.AuditResult result_enum */ 8:
+                    message.resultEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1956,6 +2081,12 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
         /* string result = 6; */
         if (message.result !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.result);
+        /* k1s0.system.auth.v1.AuditEventType event_type_enum = 7; */
+        if (message.eventTypeEnum !== 0)
+            writer.tag(7, WireType.Varint).int32(message.eventTypeEnum);
+        /* k1s0.system.auth.v1.AuditResult result_enum = 8; */
+        if (message.resultEnum !== 0)
+            writer.tag(8, WireType.Varint).int32(message.resultEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2035,7 +2166,9 @@ class AuditLog$Type extends MessageType<AuditLog> {
             { no: 9, name: "detail", kind: "message", T: () => Struct },
             { no: 10, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "event_type_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditEventType", AuditEventType, "AUDIT_EVENT_TYPE_"] },
+            { no: 14, name: "result_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] }
         ]);
     }
     create(value?: PartialMessage<AuditLog>): AuditLog {
@@ -2050,6 +2183,8 @@ class AuditLog$Type extends MessageType<AuditLog> {
         message.result = "";
         message.resourceId = "";
         message.traceId = "";
+        message.eventTypeEnum = 0;
+        message.resultEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<AuditLog>(this, message, value);
         return message;
@@ -2094,6 +2229,12 @@ class AuditLog$Type extends MessageType<AuditLog> {
                     break;
                 case /* string trace_id */ 12:
                     message.traceId = reader.string();
+                    break;
+                case /* k1s0.system.auth.v1.AuditEventType event_type_enum */ 13:
+                    message.eventTypeEnum = reader.int32();
+                    break;
+                case /* k1s0.system.auth.v1.AuditResult result_enum */ 14:
+                    message.resultEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2143,6 +2284,12 @@ class AuditLog$Type extends MessageType<AuditLog> {
         /* string trace_id = 12; */
         if (message.traceId !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.traceId);
+        /* k1s0.system.auth.v1.AuditEventType event_type_enum = 13; */
+        if (message.eventTypeEnum !== 0)
+            writer.tag(13, WireType.Varint).int32(message.eventTypeEnum);
+        /* k1s0.system.auth.v1.AuditResult result_enum = 14; */
+        if (message.resultEnum !== 0)
+            writer.tag(14, WireType.Varint).int32(message.resultEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

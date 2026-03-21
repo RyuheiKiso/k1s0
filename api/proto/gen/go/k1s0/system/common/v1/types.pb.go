@@ -24,6 +24,63 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ChangeType は設定・フラグ変更操作の種別。
+type ChangeType int32
+
+const (
+	// CHANGE_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+	ChangeType_CHANGE_TYPE_UNSPECIFIED ChangeType = 0
+	// CHANGE_TYPE_CREATED は新規作成。
+	ChangeType_CHANGE_TYPE_CREATED ChangeType = 1
+	// CHANGE_TYPE_UPDATED は更新。
+	ChangeType_CHANGE_TYPE_UPDATED ChangeType = 2
+	// CHANGE_TYPE_DELETED は削除。
+	ChangeType_CHANGE_TYPE_DELETED ChangeType = 3
+)
+
+// Enum value maps for ChangeType.
+var (
+	ChangeType_name = map[int32]string{
+		0: "CHANGE_TYPE_UNSPECIFIED",
+		1: "CHANGE_TYPE_CREATED",
+		2: "CHANGE_TYPE_UPDATED",
+		3: "CHANGE_TYPE_DELETED",
+	}
+	ChangeType_value = map[string]int32{
+		"CHANGE_TYPE_UNSPECIFIED": 0,
+		"CHANGE_TYPE_CREATED":     1,
+		"CHANGE_TYPE_UPDATED":     2,
+		"CHANGE_TYPE_DELETED":     3,
+	}
+)
+
+func (x ChangeType) Enum() *ChangeType {
+	p := new(ChangeType)
+	*p = x
+	return p
+}
+
+func (x ChangeType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ChangeType) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_common_v1_types_proto_enumTypes[0].Descriptor()
+}
+
+func (ChangeType) Type() protoreflect.EnumType {
+	return &file_k1s0_system_common_v1_types_proto_enumTypes[0]
+}
+
+func (x ChangeType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ChangeType.Descriptor instead.
+func (ChangeType) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_common_v1_types_proto_rawDescGZIP(), []int{0}
+}
+
 // Pagination はページネーションリクエストパラメータ。
 type Pagination struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -152,7 +209,21 @@ func (x *PaginationResult) GetHasNext() bool {
 	return false
 }
 
-// Timestamp は時刻情報。google.protobuf.Timestamp と互換。
+// Timestamp は時刻情報。google.protobuf.Timestamp と互換性のある独自型。
+//
+// 【移行計画】google.protobuf.Timestamp への段階的移行を予定している。
+// 現時点では Well-Known Types への追加依存を避けるために独自型を維持する。
+// 移行の詳細は docs/architecture/api/proto設計.md を参照すること。
+//
+// マイルストーン:
+//
+//	Phase 1 (beta 安定化後): 新規 proto ファイルは google.protobuf.Timestamp を使用する。
+//	Phase 2 (全サービス v1 安定化後): 既存フィールドを Deprecated とし
+//	          新フィールド (google.protobuf.Timestamp) を追加する。
+//	Phase 3 (廃止バージョン除去時): Deprecated フィールドを削除し移行完了とする。
+//
+// フィールド定義は google.protobuf.Timestamp と同一であり、
+// seconds/nanos の意味・範囲・精度も Google の仕様に準拠する。
 type Timestamp struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unix epoch からの秒数
@@ -224,7 +295,13 @@ const file_k1s0_system_common_v1_types_proto_rawDesc = "" +
 	"\bhas_next\x18\x04 \x01(\bR\ahasNext\";\n" +
 	"\tTimestamp\x12\x18\n" +
 	"\aseconds\x18\x01 \x01(\x03R\aseconds\x12\x14\n" +
-	"\x05nanos\x18\x02 \x01(\x05R\x05nanosBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
+	"\x05nanos\x18\x02 \x01(\x05R\x05nanos*t\n" +
+	"\n" +
+	"ChangeType\x12\x1b\n" +
+	"\x17CHANGE_TYPE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13CHANGE_TYPE_CREATED\x10\x01\x12\x17\n" +
+	"\x13CHANGE_TYPE_UPDATED\x10\x02\x12\x17\n" +
+	"\x13CHANGE_TYPE_DELETED\x10\x03BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
 
 var (
 	file_k1s0_system_common_v1_types_proto_rawDescOnce sync.Once
@@ -238,11 +315,13 @@ func file_k1s0_system_common_v1_types_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_common_v1_types_proto_rawDescData
 }
 
+var file_k1s0_system_common_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_common_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_k1s0_system_common_v1_types_proto_goTypes = []any{
-	(*Pagination)(nil),       // 0: k1s0.system.common.v1.Pagination
-	(*PaginationResult)(nil), // 1: k1s0.system.common.v1.PaginationResult
-	(*Timestamp)(nil),        // 2: k1s0.system.common.v1.Timestamp
+	(ChangeType)(0),          // 0: k1s0.system.common.v1.ChangeType
+	(*Pagination)(nil),       // 1: k1s0.system.common.v1.Pagination
+	(*PaginationResult)(nil), // 2: k1s0.system.common.v1.PaginationResult
+	(*Timestamp)(nil),        // 3: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_common_v1_types_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -262,13 +341,14 @@ func file_k1s0_system_common_v1_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_common_v1_types_proto_rawDesc), len(file_k1s0_system_common_v1_types_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_k1s0_system_common_v1_types_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_common_v1_types_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_common_v1_types_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_common_v1_types_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_common_v1_types_proto = out.File

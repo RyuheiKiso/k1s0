@@ -61,7 +61,20 @@ export interface PaginationResult {
     hasNext: boolean;
 }
 /**
- * Timestamp は時刻情報。google.protobuf.Timestamp と互換。
+ * Timestamp は時刻情報。google.protobuf.Timestamp と互換性のある独自型。
+ *
+ * 【移行計画】google.protobuf.Timestamp への段階的移行を予定している。
+ * 現時点では Well-Known Types への追加依存を避けるために独自型を維持する。
+ * 移行の詳細は docs/architecture/api/proto設計.md を参照すること。
+ *
+ * マイルストーン:
+ *   Phase 1 (beta 安定化後): 新規 proto ファイルは google.protobuf.Timestamp を使用する。
+ *   Phase 2 (全サービス v1 安定化後): 既存フィールドを Deprecated とし
+ *             新フィールド (google.protobuf.Timestamp) を追加する。
+ *   Phase 3 (廃止バージョン除去時): Deprecated フィールドを削除し移行完了とする。
+ *
+ * フィールド定義は google.protobuf.Timestamp と同一であり、
+ * seconds/nanos の意味・範囲・精度も Google の仕様に準拠する。
  *
  * @generated from protobuf message k1s0.system.common.v1.Timestamp
  */
@@ -78,6 +91,37 @@ export interface Timestamp {
      * @generated from protobuf field: int32 nanos = 2
      */
     nanos: number;
+}
+/**
+ * ChangeType は設定・フラグ変更操作の種別。
+ *
+ * @generated from protobuf enum k1s0.system.common.v1.ChangeType
+ */
+export enum ChangeType {
+    /**
+     * CHANGE_TYPE_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * CHANGE_TYPE_CREATED は新規作成。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_CREATED = 1;
+     */
+    CREATED = 1,
+    /**
+     * CHANGE_TYPE_UPDATED は更新。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_UPDATED = 2;
+     */
+    UPDATED = 2,
+    /**
+     * CHANGE_TYPE_DELETED は削除。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_DELETED = 3;
+     */
+    DELETED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Pagination$Type extends MessageType<Pagination> {

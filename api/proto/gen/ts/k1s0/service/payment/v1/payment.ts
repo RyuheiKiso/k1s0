@@ -43,6 +43,8 @@ export interface Payment {
      */
     currency: string;
     /**
+     * Deprecated: status_enum を使用すること。
+     *
      * @generated from protobuf field: string status = 6
      */
     status: string;
@@ -74,6 +76,12 @@ export interface Payment {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 13
      */
     updatedAt?: Timestamp;
+    /**
+     * 決済ステータス（enum）
+     *
+     * @generated from protobuf field: k1s0.service.payment.v1.PaymentStatus status_enum = 14
+     */
+    statusEnum: PaymentStatus;
 }
 // ---------- リクエスト/レスポンス ----------
 
@@ -142,6 +150,8 @@ export interface ListPaymentsRequest {
      */
     customerId?: string;
     /**
+     * Deprecated: status_enum を使用すること。
+     *
      * @generated from protobuf field: optional string status = 3
      */
     status?: string;
@@ -149,6 +159,12 @@ export interface ListPaymentsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 4
      */
     pagination?: Pagination;
+    /**
+     * 決済ステータスフィルタ（enum）
+     *
+     * @generated from protobuf field: optional k1s0.service.payment.v1.PaymentStatus status_enum = 5
+     */
+    statusEnum?: PaymentStatus;
 }
 /**
  * @generated from protobuf message k1s0.service.payment.v1.ListPaymentsResponse
@@ -233,6 +249,43 @@ export interface RefundPaymentResponse {
      */
     payment?: Payment;
 }
+// ---------- Enum ----------
+
+/**
+ * PaymentStatus は決済のステータス。
+ *
+ * @generated from protobuf enum k1s0.service.payment.v1.PaymentStatus
+ */
+export enum PaymentStatus {
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_PROCESSING = 2;
+     */
+    PROCESSING = 2,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_SUCCEEDED = 3;
+     */
+    SUCCEEDED = 3,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_FAILED = 4;
+     */
+    FAILED = 4,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_CANCELLED = 5;
+     */
+    CANCELLED = 5,
+    /**
+     * @generated from protobuf enum value: PAYMENT_STATUS_REFUNDED = 6;
+     */
+    REFUNDED = 6
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class Payment$Type extends MessageType<Payment> {
     constructor() {
@@ -249,7 +302,8 @@ class Payment$Type extends MessageType<Payment> {
             { no: 10, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 12, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 13, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 13, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 14, name: "status_enum", kind: "enum", T: () => ["k1s0.service.payment.v1.PaymentStatus", PaymentStatus, "PAYMENT_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<Payment>): Payment {
@@ -261,6 +315,7 @@ class Payment$Type extends MessageType<Payment> {
         message.currency = "";
         message.status = "";
         message.version = 0;
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<Payment>(this, message, value);
         return message;
@@ -308,6 +363,9 @@ class Payment$Type extends MessageType<Payment> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 13:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* k1s0.service.payment.v1.PaymentStatus status_enum */ 14:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -360,6 +418,9 @@ class Payment$Type extends MessageType<Payment> {
         /* k1s0.system.common.v1.Timestamp updated_at = 13; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.service.payment.v1.PaymentStatus status_enum = 14; */
+        if (message.statusEnum !== 0)
+            writer.tag(14, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -594,7 +655,8 @@ class ListPaymentsRequest$Type extends MessageType<ListPaymentsRequest> {
             { no: 1, name: "order_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "customer_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "status", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 4, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 5, name: "status_enum", kind: "enum", opt: true, T: () => ["k1s0.service.payment.v1.PaymentStatus", PaymentStatus, "PAYMENT_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<ListPaymentsRequest>): ListPaymentsRequest {
@@ -620,6 +682,9 @@ class ListPaymentsRequest$Type extends MessageType<ListPaymentsRequest> {
                 case /* k1s0.system.common.v1.Pagination pagination */ 4:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
                     break;
+                case /* optional k1s0.service.payment.v1.PaymentStatus status_enum */ 5:
+                    message.statusEnum = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -644,6 +709,9 @@ class ListPaymentsRequest$Type extends MessageType<ListPaymentsRequest> {
         /* k1s0.system.common.v1.Pagination pagination = 4; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* optional k1s0.service.payment.v1.PaymentStatus status_enum = 5; */
+        if (message.statusEnum !== undefined)
+            writer.tag(5, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

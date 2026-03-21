@@ -22,6 +22,67 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// RateLimitAlgorithm はレートリミットのアルゴリズム種別。
+type RateLimitAlgorithm int32
+
+const (
+	// RATE_LIMIT_ALGORITHM_UNSPECIFIED は未指定（デフォルト値）。
+	RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_UNSPECIFIED RateLimitAlgorithm = 0
+	// RATE_LIMIT_ALGORITHM_SLIDING_WINDOW はスライディングウィンドウアルゴリズム。
+	RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_SLIDING_WINDOW RateLimitAlgorithm = 1
+	// RATE_LIMIT_ALGORITHM_TOKEN_BUCKET はトークンバケットアルゴリズム。
+	RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_TOKEN_BUCKET RateLimitAlgorithm = 2
+	// RATE_LIMIT_ALGORITHM_FIXED_WINDOW は固定ウィンドウアルゴリズム。
+	RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_FIXED_WINDOW RateLimitAlgorithm = 3
+	// RATE_LIMIT_ALGORITHM_LEAKY_BUCKET はリーキーバケットアルゴリズム。
+	RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_LEAKY_BUCKET RateLimitAlgorithm = 4
+)
+
+// Enum value maps for RateLimitAlgorithm.
+var (
+	RateLimitAlgorithm_name = map[int32]string{
+		0: "RATE_LIMIT_ALGORITHM_UNSPECIFIED",
+		1: "RATE_LIMIT_ALGORITHM_SLIDING_WINDOW",
+		2: "RATE_LIMIT_ALGORITHM_TOKEN_BUCKET",
+		3: "RATE_LIMIT_ALGORITHM_FIXED_WINDOW",
+		4: "RATE_LIMIT_ALGORITHM_LEAKY_BUCKET",
+	}
+	RateLimitAlgorithm_value = map[string]int32{
+		"RATE_LIMIT_ALGORITHM_UNSPECIFIED":    0,
+		"RATE_LIMIT_ALGORITHM_SLIDING_WINDOW": 1,
+		"RATE_LIMIT_ALGORITHM_TOKEN_BUCKET":   2,
+		"RATE_LIMIT_ALGORITHM_FIXED_WINDOW":   3,
+		"RATE_LIMIT_ALGORITHM_LEAKY_BUCKET":   4,
+	}
+)
+
+func (x RateLimitAlgorithm) Enum() *RateLimitAlgorithm {
+	p := new(RateLimitAlgorithm)
+	*p = x
+	return p
+}
+
+func (x RateLimitAlgorithm) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RateLimitAlgorithm) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_ratelimit_v1_ratelimit_proto_enumTypes[0].Descriptor()
+}
+
+func (RateLimitAlgorithm) Type() protoreflect.EnumType {
+	return &file_k1s0_system_ratelimit_v1_ratelimit_proto_enumTypes[0]
+}
+
+func (x RateLimitAlgorithm) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RateLimitAlgorithm.Descriptor instead.
+func (RateLimitAlgorithm) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDescGZIP(), []int{0}
+}
+
 type CheckRateLimitRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
@@ -734,13 +795,16 @@ type RateLimitRule struct {
 	IdentifierPattern string                 `protobuf:"bytes,3,opt,name=identifier_pattern,json=identifierPattern,proto3" json:"identifier_pattern,omitempty"`
 	Limit             int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	WindowSeconds     int64                  `protobuf:"varint,5,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
-	Algorithm         string                 `protobuf:"bytes,6,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
-	Enabled           bool                   `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	CreatedAt         *v1.Timestamp          `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt         *v1.Timestamp          `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Name              string                 `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Deprecated: use algorithm_enum instead.
+	Algorithm string        `protobuf:"bytes,6,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
+	Enabled   bool          `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	CreatedAt *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Name      string        `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
+	// レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+	AlgorithmEnum RateLimitAlgorithm `protobuf:"varint,11,opt,name=algorithm_enum,json=algorithmEnum,proto3,enum=k1s0.system.ratelimit.v1.RateLimitAlgorithm" json:"algorithm_enum,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RateLimitRule) Reset() {
@@ -843,6 +907,13 @@ func (x *RateLimitRule) GetName() string {
 	return ""
 }
 
+func (x *RateLimitRule) GetAlgorithmEnum() RateLimitAlgorithm {
+	if x != nil {
+		return x.AlgorithmEnum
+	}
+	return RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_UNSPECIFIED
+}
+
 type GetUsageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
@@ -893,11 +964,14 @@ type GetUsageResponse struct {
 	RuleName      string                 `protobuf:"bytes,2,opt,name=rule_name,json=ruleName,proto3" json:"rule_name,omitempty"`
 	Limit         int64                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	WindowSeconds int64                  `protobuf:"varint,4,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
-	Algorithm     string                 `protobuf:"bytes,5,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
-	Enabled       bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Used          *int64                 `protobuf:"varint,7,opt,name=used,proto3,oneof" json:"used,omitempty"`
-	Remaining     *int64                 `protobuf:"varint,8,opt,name=remaining,proto3,oneof" json:"remaining,omitempty"`
-	ResetAt       *int64                 `protobuf:"varint,9,opt,name=reset_at,json=resetAt,proto3,oneof" json:"reset_at,omitempty"`
+	// Deprecated: use algorithm_enum instead.
+	Algorithm string `protobuf:"bytes,5,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
+	Enabled   bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Used      *int64 `protobuf:"varint,7,opt,name=used,proto3,oneof" json:"used,omitempty"`
+	Remaining *int64 `protobuf:"varint,8,opt,name=remaining,proto3,oneof" json:"remaining,omitempty"`
+	ResetAt   *int64 `protobuf:"varint,9,opt,name=reset_at,json=resetAt,proto3,oneof" json:"reset_at,omitempty"`
+	// レートリミットアルゴリズムの enum 版（algorithm の型付き版）。
+	AlgorithmEnum RateLimitAlgorithm `protobuf:"varint,10,opt,name=algorithm_enum,json=algorithmEnum,proto3,enum=k1s0.system.ratelimit.v1.RateLimitAlgorithm" json:"algorithm_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -993,6 +1067,13 @@ func (x *GetUsageResponse) GetResetAt() int64 {
 		return *x.ResetAt
 	}
 	return 0
+}
+
+func (x *GetUsageResponse) GetAlgorithmEnum() RateLimitAlgorithm {
+	if x != nil {
+		return x.AlgorithmEnum
+	}
+	return RateLimitAlgorithm_RATE_LIMIT_ALGORITHM_UNSPECIFIED
 }
 
 type ResetLimitRequest struct {
@@ -1150,7 +1231,7 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\x05rules\x18\x01 \x03(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x05rules\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xef\x02\n" +
+	"pagination\"\xc4\x03\n" +
 	"\rRateLimitRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05scope\x18\x02 \x01(\tR\x05scope\x12-\n" +
@@ -1164,9 +1245,10 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12\x12\n" +
 	"\x04name\x18\n" +
-	" \x01(\tR\x04name\"*\n" +
+	" \x01(\tR\x04name\x12S\n" +
+	"\x0ealgorithm_enum\x18\v \x01(\x0e2,.k1s0.system.ratelimit.v1.RateLimitAlgorithmR\ralgorithmEnum\"*\n" +
 	"\x0fGetUsageRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\xbd\x02\n" +
+	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\x92\x03\n" +
 	"\x10GetUsageResponse\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x1b\n" +
 	"\trule_name\x18\x02 \x01(\tR\bruleName\x12\x14\n" +
@@ -1176,7 +1258,9 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\aenabled\x18\x06 \x01(\bR\aenabled\x12\x17\n" +
 	"\x04used\x18\a \x01(\x03H\x00R\x04used\x88\x01\x01\x12!\n" +
 	"\tremaining\x18\b \x01(\x03H\x01R\tremaining\x88\x01\x01\x12\x1e\n" +
-	"\breset_at\x18\t \x01(\x03H\x02R\aresetAt\x88\x01\x01B\a\n" +
+	"\breset_at\x18\t \x01(\x03H\x02R\aresetAt\x88\x01\x01\x12S\n" +
+	"\x0ealgorithm_enum\x18\n" +
+	" \x01(\x0e2,.k1s0.system.ratelimit.v1.RateLimitAlgorithmR\ralgorithmEnumB\a\n" +
 	"\x05_usedB\f\n" +
 	"\n" +
 	"_remainingB\v\n" +
@@ -1187,7 +1271,13 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"identifier\x18\x02 \x01(\tR\n" +
 	"identifier\".\n" +
 	"\x12ResetLimitResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess2\xd4\x06\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess*\xd8\x01\n" +
+	"\x12RateLimitAlgorithm\x12$\n" +
+	" RATE_LIMIT_ALGORITHM_UNSPECIFIED\x10\x00\x12'\n" +
+	"#RATE_LIMIT_ALGORITHM_SLIDING_WINDOW\x10\x01\x12%\n" +
+	"!RATE_LIMIT_ALGORITHM_TOKEN_BUCKET\x10\x02\x12%\n" +
+	"!RATE_LIMIT_ALGORITHM_FIXED_WINDOW\x10\x03\x12%\n" +
+	"!RATE_LIMIT_ALGORITHM_LEAKY_BUCKET\x10\x042\xd4\x06\n" +
 	"\x10RateLimitService\x12s\n" +
 	"\x0eCheckRateLimit\x12/.k1s0.system.ratelimit.v1.CheckRateLimitRequest\x1a0.k1s0.system.ratelimit.v1.CheckRateLimitResponse\x12g\n" +
 	"\n" +
@@ -1214,59 +1304,63 @@ func file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDescData
 }
 
+var file_k1s0_system_ratelimit_v1_ratelimit_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_ratelimit_v1_ratelimit_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_k1s0_system_ratelimit_v1_ratelimit_proto_goTypes = []any{
-	(*CheckRateLimitRequest)(nil),  // 0: k1s0.system.ratelimit.v1.CheckRateLimitRequest
-	(*CheckRateLimitResponse)(nil), // 1: k1s0.system.ratelimit.v1.CheckRateLimitResponse
-	(*CreateRuleRequest)(nil),      // 2: k1s0.system.ratelimit.v1.CreateRuleRequest
-	(*CreateRuleResponse)(nil),     // 3: k1s0.system.ratelimit.v1.CreateRuleResponse
-	(*GetRuleRequest)(nil),         // 4: k1s0.system.ratelimit.v1.GetRuleRequest
-	(*GetRuleResponse)(nil),        // 5: k1s0.system.ratelimit.v1.GetRuleResponse
-	(*UpdateRuleRequest)(nil),      // 6: k1s0.system.ratelimit.v1.UpdateRuleRequest
-	(*UpdateRuleResponse)(nil),     // 7: k1s0.system.ratelimit.v1.UpdateRuleResponse
-	(*DeleteRuleRequest)(nil),      // 8: k1s0.system.ratelimit.v1.DeleteRuleRequest
-	(*DeleteRuleResponse)(nil),     // 9: k1s0.system.ratelimit.v1.DeleteRuleResponse
-	(*ListRulesRequest)(nil),       // 10: k1s0.system.ratelimit.v1.ListRulesRequest
-	(*ListRulesResponse)(nil),      // 11: k1s0.system.ratelimit.v1.ListRulesResponse
-	(*RateLimitRule)(nil),          // 12: k1s0.system.ratelimit.v1.RateLimitRule
-	(*GetUsageRequest)(nil),        // 13: k1s0.system.ratelimit.v1.GetUsageRequest
-	(*GetUsageResponse)(nil),       // 14: k1s0.system.ratelimit.v1.GetUsageResponse
-	(*ResetLimitRequest)(nil),      // 15: k1s0.system.ratelimit.v1.ResetLimitRequest
-	(*ResetLimitResponse)(nil),     // 16: k1s0.system.ratelimit.v1.ResetLimitResponse
-	(*v1.Pagination)(nil),          // 17: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),    // 18: k1s0.system.common.v1.PaginationResult
-	(*v1.Timestamp)(nil),           // 19: k1s0.system.common.v1.Timestamp
+	(RateLimitAlgorithm)(0),        // 0: k1s0.system.ratelimit.v1.RateLimitAlgorithm
+	(*CheckRateLimitRequest)(nil),  // 1: k1s0.system.ratelimit.v1.CheckRateLimitRequest
+	(*CheckRateLimitResponse)(nil), // 2: k1s0.system.ratelimit.v1.CheckRateLimitResponse
+	(*CreateRuleRequest)(nil),      // 3: k1s0.system.ratelimit.v1.CreateRuleRequest
+	(*CreateRuleResponse)(nil),     // 4: k1s0.system.ratelimit.v1.CreateRuleResponse
+	(*GetRuleRequest)(nil),         // 5: k1s0.system.ratelimit.v1.GetRuleRequest
+	(*GetRuleResponse)(nil),        // 6: k1s0.system.ratelimit.v1.GetRuleResponse
+	(*UpdateRuleRequest)(nil),      // 7: k1s0.system.ratelimit.v1.UpdateRuleRequest
+	(*UpdateRuleResponse)(nil),     // 8: k1s0.system.ratelimit.v1.UpdateRuleResponse
+	(*DeleteRuleRequest)(nil),      // 9: k1s0.system.ratelimit.v1.DeleteRuleRequest
+	(*DeleteRuleResponse)(nil),     // 10: k1s0.system.ratelimit.v1.DeleteRuleResponse
+	(*ListRulesRequest)(nil),       // 11: k1s0.system.ratelimit.v1.ListRulesRequest
+	(*ListRulesResponse)(nil),      // 12: k1s0.system.ratelimit.v1.ListRulesResponse
+	(*RateLimitRule)(nil),          // 13: k1s0.system.ratelimit.v1.RateLimitRule
+	(*GetUsageRequest)(nil),        // 14: k1s0.system.ratelimit.v1.GetUsageRequest
+	(*GetUsageResponse)(nil),       // 15: k1s0.system.ratelimit.v1.GetUsageResponse
+	(*ResetLimitRequest)(nil),      // 16: k1s0.system.ratelimit.v1.ResetLimitRequest
+	(*ResetLimitResponse)(nil),     // 17: k1s0.system.ratelimit.v1.ResetLimitResponse
+	(*v1.Pagination)(nil),          // 18: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),    // 19: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),           // 20: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_ratelimit_v1_ratelimit_proto_depIdxs = []int32{
-	12, // 0: k1s0.system.ratelimit.v1.CreateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	12, // 1: k1s0.system.ratelimit.v1.GetRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	12, // 2: k1s0.system.ratelimit.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	17, // 3: k1s0.system.ratelimit.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	12, // 4: k1s0.system.ratelimit.v1.ListRulesResponse.rules:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
-	18, // 5: k1s0.system.ratelimit.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	19, // 6: k1s0.system.ratelimit.v1.RateLimitRule.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	19, // 7: k1s0.system.ratelimit.v1.RateLimitRule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 8: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:input_type -> k1s0.system.ratelimit.v1.CheckRateLimitRequest
-	2,  // 9: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:input_type -> k1s0.system.ratelimit.v1.CreateRuleRequest
-	4,  // 10: k1s0.system.ratelimit.v1.RateLimitService.GetRule:input_type -> k1s0.system.ratelimit.v1.GetRuleRequest
-	6,  // 11: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:input_type -> k1s0.system.ratelimit.v1.UpdateRuleRequest
-	8,  // 12: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:input_type -> k1s0.system.ratelimit.v1.DeleteRuleRequest
-	10, // 13: k1s0.system.ratelimit.v1.RateLimitService.ListRules:input_type -> k1s0.system.ratelimit.v1.ListRulesRequest
-	13, // 14: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:input_type -> k1s0.system.ratelimit.v1.GetUsageRequest
-	15, // 15: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:input_type -> k1s0.system.ratelimit.v1.ResetLimitRequest
-	1,  // 16: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:output_type -> k1s0.system.ratelimit.v1.CheckRateLimitResponse
-	3,  // 17: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:output_type -> k1s0.system.ratelimit.v1.CreateRuleResponse
-	5,  // 18: k1s0.system.ratelimit.v1.RateLimitService.GetRule:output_type -> k1s0.system.ratelimit.v1.GetRuleResponse
-	7,  // 19: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:output_type -> k1s0.system.ratelimit.v1.UpdateRuleResponse
-	9,  // 20: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:output_type -> k1s0.system.ratelimit.v1.DeleteRuleResponse
-	11, // 21: k1s0.system.ratelimit.v1.RateLimitService.ListRules:output_type -> k1s0.system.ratelimit.v1.ListRulesResponse
-	14, // 22: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:output_type -> k1s0.system.ratelimit.v1.GetUsageResponse
-	16, // 23: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:output_type -> k1s0.system.ratelimit.v1.ResetLimitResponse
-	16, // [16:24] is the sub-list for method output_type
-	8,  // [8:16] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	13, // 0: k1s0.system.ratelimit.v1.CreateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
+	13, // 1: k1s0.system.ratelimit.v1.GetRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
+	13, // 2: k1s0.system.ratelimit.v1.UpdateRuleResponse.rule:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
+	18, // 3: k1s0.system.ratelimit.v1.ListRulesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	13, // 4: k1s0.system.ratelimit.v1.ListRulesResponse.rules:type_name -> k1s0.system.ratelimit.v1.RateLimitRule
+	19, // 5: k1s0.system.ratelimit.v1.ListRulesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	20, // 6: k1s0.system.ratelimit.v1.RateLimitRule.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	20, // 7: k1s0.system.ratelimit.v1.RateLimitRule.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 8: k1s0.system.ratelimit.v1.RateLimitRule.algorithm_enum:type_name -> k1s0.system.ratelimit.v1.RateLimitAlgorithm
+	0,  // 9: k1s0.system.ratelimit.v1.GetUsageResponse.algorithm_enum:type_name -> k1s0.system.ratelimit.v1.RateLimitAlgorithm
+	1,  // 10: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:input_type -> k1s0.system.ratelimit.v1.CheckRateLimitRequest
+	3,  // 11: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:input_type -> k1s0.system.ratelimit.v1.CreateRuleRequest
+	5,  // 12: k1s0.system.ratelimit.v1.RateLimitService.GetRule:input_type -> k1s0.system.ratelimit.v1.GetRuleRequest
+	7,  // 13: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:input_type -> k1s0.system.ratelimit.v1.UpdateRuleRequest
+	9,  // 14: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:input_type -> k1s0.system.ratelimit.v1.DeleteRuleRequest
+	11, // 15: k1s0.system.ratelimit.v1.RateLimitService.ListRules:input_type -> k1s0.system.ratelimit.v1.ListRulesRequest
+	14, // 16: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:input_type -> k1s0.system.ratelimit.v1.GetUsageRequest
+	16, // 17: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:input_type -> k1s0.system.ratelimit.v1.ResetLimitRequest
+	2,  // 18: k1s0.system.ratelimit.v1.RateLimitService.CheckRateLimit:output_type -> k1s0.system.ratelimit.v1.CheckRateLimitResponse
+	4,  // 19: k1s0.system.ratelimit.v1.RateLimitService.CreateRule:output_type -> k1s0.system.ratelimit.v1.CreateRuleResponse
+	6,  // 20: k1s0.system.ratelimit.v1.RateLimitService.GetRule:output_type -> k1s0.system.ratelimit.v1.GetRuleResponse
+	8,  // 21: k1s0.system.ratelimit.v1.RateLimitService.UpdateRule:output_type -> k1s0.system.ratelimit.v1.UpdateRuleResponse
+	10, // 22: k1s0.system.ratelimit.v1.RateLimitService.DeleteRule:output_type -> k1s0.system.ratelimit.v1.DeleteRuleResponse
+	12, // 23: k1s0.system.ratelimit.v1.RateLimitService.ListRules:output_type -> k1s0.system.ratelimit.v1.ListRulesResponse
+	15, // 24: k1s0.system.ratelimit.v1.RateLimitService.GetUsage:output_type -> k1s0.system.ratelimit.v1.GetUsageResponse
+	17, // 25: k1s0.system.ratelimit.v1.RateLimitService.ResetLimit:output_type -> k1s0.system.ratelimit.v1.ResetLimitResponse
+	18, // [18:26] is the sub-list for method output_type
+	10, // [10:18] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_ratelimit_v1_ratelimit_proto_init() }
@@ -1281,13 +1375,14 @@ func file_k1s0_system_ratelimit_v1_ratelimit_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc), len(file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_ratelimit_v1_ratelimit_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_ratelimit_v1_ratelimit_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_ratelimit_v1_ratelimit_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_ratelimit_v1_ratelimit_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_ratelimit_v1_ratelimit_proto = out.File

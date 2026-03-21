@@ -26,22 +26,87 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// PaymentStatus は決済のステータス。
+type PaymentStatus int32
+
+const (
+	PaymentStatus_PAYMENT_STATUS_UNSPECIFIED PaymentStatus = 0
+	PaymentStatus_PAYMENT_STATUS_PENDING     PaymentStatus = 1
+	PaymentStatus_PAYMENT_STATUS_PROCESSING  PaymentStatus = 2
+	PaymentStatus_PAYMENT_STATUS_SUCCEEDED   PaymentStatus = 3
+	PaymentStatus_PAYMENT_STATUS_FAILED      PaymentStatus = 4
+	PaymentStatus_PAYMENT_STATUS_CANCELLED   PaymentStatus = 5
+	PaymentStatus_PAYMENT_STATUS_REFUNDED    PaymentStatus = 6
+)
+
+// Enum value maps for PaymentStatus.
+var (
+	PaymentStatus_name = map[int32]string{
+		0: "PAYMENT_STATUS_UNSPECIFIED",
+		1: "PAYMENT_STATUS_PENDING",
+		2: "PAYMENT_STATUS_PROCESSING",
+		3: "PAYMENT_STATUS_SUCCEEDED",
+		4: "PAYMENT_STATUS_FAILED",
+		5: "PAYMENT_STATUS_CANCELLED",
+		6: "PAYMENT_STATUS_REFUNDED",
+	}
+	PaymentStatus_value = map[string]int32{
+		"PAYMENT_STATUS_UNSPECIFIED": 0,
+		"PAYMENT_STATUS_PENDING":     1,
+		"PAYMENT_STATUS_PROCESSING":  2,
+		"PAYMENT_STATUS_SUCCEEDED":   3,
+		"PAYMENT_STATUS_FAILED":      4,
+		"PAYMENT_STATUS_CANCELLED":   5,
+		"PAYMENT_STATUS_REFUNDED":    6,
+	}
+)
+
+func (x PaymentStatus) Enum() *PaymentStatus {
+	p := new(PaymentStatus)
+	*p = x
+	return p
+}
+
+func (x PaymentStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PaymentStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_service_payment_v1_payment_proto_enumTypes[0].Descriptor()
+}
+
+func (PaymentStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_service_payment_v1_payment_proto_enumTypes[0]
+}
+
+func (x PaymentStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PaymentStatus.Descriptor instead.
+func (PaymentStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_service_payment_v1_payment_proto_rawDescGZIP(), []int{0}
+}
+
 // 決済
 type Payment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	Amount        int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
-	Currency      string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
-	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	PaymentMethod *string                `protobuf:"bytes,7,opt,name=payment_method,json=paymentMethod,proto3,oneof" json:"payment_method,omitempty"`
-	TransactionId *string                `protobuf:"bytes,8,opt,name=transaction_id,json=transactionId,proto3,oneof" json:"transaction_id,omitempty"`
-	ErrorCode     *string                `protobuf:"bytes,9,opt,name=error_code,json=errorCode,proto3,oneof" json:"error_code,omitempty"`
-	ErrorMessage  *string                `protobuf:"bytes,10,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
-	Version       int32                  `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
-	CreatedAt     *v1.Timestamp          `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *v1.Timestamp          `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	OrderId    string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	CustomerId string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	Amount     int64                  `protobuf:"varint,4,opt,name=amount,proto3" json:"amount,omitempty"`
+	Currency   string                 `protobuf:"bytes,5,opt,name=currency,proto3" json:"currency,omitempty"`
+	// Deprecated: status_enum を使用すること。
+	Status        string        `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	PaymentMethod *string       `protobuf:"bytes,7,opt,name=payment_method,json=paymentMethod,proto3,oneof" json:"payment_method,omitempty"`
+	TransactionId *string       `protobuf:"bytes,8,opt,name=transaction_id,json=transactionId,proto3,oneof" json:"transaction_id,omitempty"`
+	ErrorCode     *string       `protobuf:"bytes,9,opt,name=error_code,json=errorCode,proto3,oneof" json:"error_code,omitempty"`
+	ErrorMessage  *string       `protobuf:"bytes,10,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
+	Version       int32         `protobuf:"varint,11,opt,name=version,proto3" json:"version,omitempty"`
+	CreatedAt     *v1.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *v1.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// 決済ステータス（enum）
+	StatusEnum    PaymentStatus `protobuf:"varint,14,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.service.payment.v1.PaymentStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -165,6 +230,13 @@ func (x *Payment) GetUpdatedAt() *v1.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *Payment) GetStatusEnum() PaymentStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
 }
 
 type InitiatePaymentRequest struct {
@@ -376,11 +448,14 @@ func (x *GetPaymentResponse) GetPayment() *Payment {
 }
 
 type ListPaymentsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       *string                `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3,oneof" json:"order_id,omitempty"`
-	CustomerId    *string                `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3,oneof" json:"customer_id,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	Pagination    *v1.Pagination         `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	OrderId    *string                `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3,oneof" json:"order_id,omitempty"`
+	CustomerId *string                `protobuf:"bytes,2,opt,name=customer_id,json=customerId,proto3,oneof" json:"customer_id,omitempty"`
+	// Deprecated: status_enum を使用すること。
+	Status     *string        `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	Pagination *v1.Pagination `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	// 決済ステータスフィルタ（enum）
+	StatusEnum    *PaymentStatus `protobuf:"varint,5,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.service.payment.v1.PaymentStatus,oneof" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -441,6 +516,13 @@ func (x *ListPaymentsRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListPaymentsRequest) GetStatusEnum() PaymentStatus {
+	if x != nil && x.StatusEnum != nil {
+		return *x.StatusEnum
+	}
+	return PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
 }
 
 type ListPaymentsResponse struct {
@@ -795,7 +877,7 @@ var File_k1s0_service_payment_v1_payment_proto protoreflect.FileDescriptor
 
 const file_k1s0_service_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
-	"%k1s0/service/payment/v1/payment.proto\x12\x17k1s0.service.payment.v1\x1a!k1s0/system/common/v1/types.proto\"\xaa\x04\n" +
+	"%k1s0/service/payment/v1/payment.proto\x12\x17k1s0.service.payment.v1\x1a!k1s0/system/common/v1/types.proto\"\xf3\x04\n" +
 	"\aPayment\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x12\x1f\n" +
@@ -814,7 +896,9 @@ const file_k1s0_service_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x11\n" +
+	"updated_at\x18\r \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12G\n" +
+	"\vstatus_enum\x18\x0e \x01(\x0e2&.k1s0.service.payment.v1.PaymentStatusR\n" +
+	"statusEnumB\x11\n" +
 	"\x0f_payment_methodB\x11\n" +
 	"\x0f_transaction_idB\r\n" +
 	"\v_error_codeB\x10\n" +
@@ -833,7 +917,7 @@ const file_k1s0_service_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\"P\n" +
 	"\x12GetPaymentResponse\x12:\n" +
-	"\apayment\x18\x01 \x01(\v2 .k1s0.service.payment.v1.PaymentR\apayment\"\xe3\x01\n" +
+	"\apayment\x18\x01 \x01(\v2 .k1s0.service.payment.v1.PaymentR\apayment\"\xc1\x02\n" +
 	"\x13ListPaymentsRequest\x12\x1e\n" +
 	"\border_id\x18\x01 \x01(\tH\x00R\aorderId\x88\x01\x01\x12$\n" +
 	"\vcustomer_id\x18\x02 \x01(\tH\x01R\n" +
@@ -841,10 +925,13 @@ const file_k1s0_service_payment_v1_payment_proto_rawDesc = "" +
 	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12A\n" +
 	"\n" +
 	"pagination\x18\x04 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"paginationB\v\n" +
+	"pagination\x12L\n" +
+	"\vstatus_enum\x18\x05 \x01(\x0e2&.k1s0.service.payment.v1.PaymentStatusH\x03R\n" +
+	"statusEnum\x88\x01\x01B\v\n" +
 	"\t_order_idB\x0e\n" +
 	"\f_customer_idB\t\n" +
-	"\a_status\"\xb0\x01\n" +
+	"\a_statusB\x0e\n" +
+	"\f_status_enum\"\xb0\x01\n" +
 	"\x14ListPaymentsResponse\x12<\n" +
 	"\bpayments\x18\x01 \x03(\v2 .k1s0.service.payment.v1.PaymentR\bpayments\x12G\n" +
 	"\n" +
@@ -870,7 +957,15 @@ const file_k1s0_service_payment_v1_payment_proto_rawDesc = "" +
 	"\x06reason\x18\x02 \x01(\tH\x00R\x06reason\x88\x01\x01B\t\n" +
 	"\a_reason\"S\n" +
 	"\x15RefundPaymentResponse\x12:\n" +
-	"\apayment\x18\x01 \x01(\v2 .k1s0.service.payment.v1.PaymentR\apayment2\xaa\x05\n" +
+	"\apayment\x18\x01 \x01(\v2 .k1s0.service.payment.v1.PaymentR\apayment*\xde\x01\n" +
+	"\rPaymentStatus\x12\x1e\n" +
+	"\x1aPAYMENT_STATUS_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16PAYMENT_STATUS_PENDING\x10\x01\x12\x1d\n" +
+	"\x19PAYMENT_STATUS_PROCESSING\x10\x02\x12\x1c\n" +
+	"\x18PAYMENT_STATUS_SUCCEEDED\x10\x03\x12\x19\n" +
+	"\x15PAYMENT_STATUS_FAILED\x10\x04\x12\x1c\n" +
+	"\x18PAYMENT_STATUS_CANCELLED\x10\x05\x12\x1b\n" +
+	"\x17PAYMENT_STATUS_REFUNDED\x10\x062\xaa\x05\n" +
 	"\x0ePaymentService\x12t\n" +
 	"\x0fInitiatePayment\x12/.k1s0.service.payment.v1.InitiatePaymentRequest\x1a0.k1s0.service.payment.v1.InitiatePaymentResponse\x12e\n" +
 	"\n" +
@@ -892,53 +987,57 @@ func file_k1s0_service_payment_v1_payment_proto_rawDescGZIP() []byte {
 	return file_k1s0_service_payment_v1_payment_proto_rawDescData
 }
 
+var file_k1s0_service_payment_v1_payment_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_service_payment_v1_payment_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_k1s0_service_payment_v1_payment_proto_goTypes = []any{
-	(*Payment)(nil),                 // 0: k1s0.service.payment.v1.Payment
-	(*InitiatePaymentRequest)(nil),  // 1: k1s0.service.payment.v1.InitiatePaymentRequest
-	(*InitiatePaymentResponse)(nil), // 2: k1s0.service.payment.v1.InitiatePaymentResponse
-	(*GetPaymentRequest)(nil),       // 3: k1s0.service.payment.v1.GetPaymentRequest
-	(*GetPaymentResponse)(nil),      // 4: k1s0.service.payment.v1.GetPaymentResponse
-	(*ListPaymentsRequest)(nil),     // 5: k1s0.service.payment.v1.ListPaymentsRequest
-	(*ListPaymentsResponse)(nil),    // 6: k1s0.service.payment.v1.ListPaymentsResponse
-	(*CompletePaymentRequest)(nil),  // 7: k1s0.service.payment.v1.CompletePaymentRequest
-	(*CompletePaymentResponse)(nil), // 8: k1s0.service.payment.v1.CompletePaymentResponse
-	(*FailPaymentRequest)(nil),      // 9: k1s0.service.payment.v1.FailPaymentRequest
-	(*FailPaymentResponse)(nil),     // 10: k1s0.service.payment.v1.FailPaymentResponse
-	(*RefundPaymentRequest)(nil),    // 11: k1s0.service.payment.v1.RefundPaymentRequest
-	(*RefundPaymentResponse)(nil),   // 12: k1s0.service.payment.v1.RefundPaymentResponse
-	(*v1.Timestamp)(nil),            // 13: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),           // 14: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),     // 15: k1s0.system.common.v1.PaginationResult
+	(PaymentStatus)(0),              // 0: k1s0.service.payment.v1.PaymentStatus
+	(*Payment)(nil),                 // 1: k1s0.service.payment.v1.Payment
+	(*InitiatePaymentRequest)(nil),  // 2: k1s0.service.payment.v1.InitiatePaymentRequest
+	(*InitiatePaymentResponse)(nil), // 3: k1s0.service.payment.v1.InitiatePaymentResponse
+	(*GetPaymentRequest)(nil),       // 4: k1s0.service.payment.v1.GetPaymentRequest
+	(*GetPaymentResponse)(nil),      // 5: k1s0.service.payment.v1.GetPaymentResponse
+	(*ListPaymentsRequest)(nil),     // 6: k1s0.service.payment.v1.ListPaymentsRequest
+	(*ListPaymentsResponse)(nil),    // 7: k1s0.service.payment.v1.ListPaymentsResponse
+	(*CompletePaymentRequest)(nil),  // 8: k1s0.service.payment.v1.CompletePaymentRequest
+	(*CompletePaymentResponse)(nil), // 9: k1s0.service.payment.v1.CompletePaymentResponse
+	(*FailPaymentRequest)(nil),      // 10: k1s0.service.payment.v1.FailPaymentRequest
+	(*FailPaymentResponse)(nil),     // 11: k1s0.service.payment.v1.FailPaymentResponse
+	(*RefundPaymentRequest)(nil),    // 12: k1s0.service.payment.v1.RefundPaymentRequest
+	(*RefundPaymentResponse)(nil),   // 13: k1s0.service.payment.v1.RefundPaymentResponse
+	(*v1.Timestamp)(nil),            // 14: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),           // 15: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),     // 16: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_service_payment_v1_payment_proto_depIdxs = []int32{
-	13, // 0: k1s0.service.payment.v1.Payment.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	13, // 1: k1s0.service.payment.v1.Payment.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 2: k1s0.service.payment.v1.InitiatePaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
-	0,  // 3: k1s0.service.payment.v1.GetPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
-	14, // 4: k1s0.service.payment.v1.ListPaymentsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 5: k1s0.service.payment.v1.ListPaymentsResponse.payments:type_name -> k1s0.service.payment.v1.Payment
-	15, // 6: k1s0.service.payment.v1.ListPaymentsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	0,  // 7: k1s0.service.payment.v1.CompletePaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
-	0,  // 8: k1s0.service.payment.v1.FailPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
-	0,  // 9: k1s0.service.payment.v1.RefundPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
-	1,  // 10: k1s0.service.payment.v1.PaymentService.InitiatePayment:input_type -> k1s0.service.payment.v1.InitiatePaymentRequest
-	3,  // 11: k1s0.service.payment.v1.PaymentService.GetPayment:input_type -> k1s0.service.payment.v1.GetPaymentRequest
-	5,  // 12: k1s0.service.payment.v1.PaymentService.ListPayments:input_type -> k1s0.service.payment.v1.ListPaymentsRequest
-	7,  // 13: k1s0.service.payment.v1.PaymentService.CompletePayment:input_type -> k1s0.service.payment.v1.CompletePaymentRequest
-	9,  // 14: k1s0.service.payment.v1.PaymentService.FailPayment:input_type -> k1s0.service.payment.v1.FailPaymentRequest
-	11, // 15: k1s0.service.payment.v1.PaymentService.RefundPayment:input_type -> k1s0.service.payment.v1.RefundPaymentRequest
-	2,  // 16: k1s0.service.payment.v1.PaymentService.InitiatePayment:output_type -> k1s0.service.payment.v1.InitiatePaymentResponse
-	4,  // 17: k1s0.service.payment.v1.PaymentService.GetPayment:output_type -> k1s0.service.payment.v1.GetPaymentResponse
-	6,  // 18: k1s0.service.payment.v1.PaymentService.ListPayments:output_type -> k1s0.service.payment.v1.ListPaymentsResponse
-	8,  // 19: k1s0.service.payment.v1.PaymentService.CompletePayment:output_type -> k1s0.service.payment.v1.CompletePaymentResponse
-	10, // 20: k1s0.service.payment.v1.PaymentService.FailPayment:output_type -> k1s0.service.payment.v1.FailPaymentResponse
-	12, // 21: k1s0.service.payment.v1.PaymentService.RefundPayment:output_type -> k1s0.service.payment.v1.RefundPaymentResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	14, // 0: k1s0.service.payment.v1.Payment.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	14, // 1: k1s0.service.payment.v1.Payment.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 2: k1s0.service.payment.v1.Payment.status_enum:type_name -> k1s0.service.payment.v1.PaymentStatus
+	1,  // 3: k1s0.service.payment.v1.InitiatePaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
+	1,  // 4: k1s0.service.payment.v1.GetPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
+	15, // 5: k1s0.service.payment.v1.ListPaymentsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 6: k1s0.service.payment.v1.ListPaymentsRequest.status_enum:type_name -> k1s0.service.payment.v1.PaymentStatus
+	1,  // 7: k1s0.service.payment.v1.ListPaymentsResponse.payments:type_name -> k1s0.service.payment.v1.Payment
+	16, // 8: k1s0.service.payment.v1.ListPaymentsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	1,  // 9: k1s0.service.payment.v1.CompletePaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
+	1,  // 10: k1s0.service.payment.v1.FailPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
+	1,  // 11: k1s0.service.payment.v1.RefundPaymentResponse.payment:type_name -> k1s0.service.payment.v1.Payment
+	2,  // 12: k1s0.service.payment.v1.PaymentService.InitiatePayment:input_type -> k1s0.service.payment.v1.InitiatePaymentRequest
+	4,  // 13: k1s0.service.payment.v1.PaymentService.GetPayment:input_type -> k1s0.service.payment.v1.GetPaymentRequest
+	6,  // 14: k1s0.service.payment.v1.PaymentService.ListPayments:input_type -> k1s0.service.payment.v1.ListPaymentsRequest
+	8,  // 15: k1s0.service.payment.v1.PaymentService.CompletePayment:input_type -> k1s0.service.payment.v1.CompletePaymentRequest
+	10, // 16: k1s0.service.payment.v1.PaymentService.FailPayment:input_type -> k1s0.service.payment.v1.FailPaymentRequest
+	12, // 17: k1s0.service.payment.v1.PaymentService.RefundPayment:input_type -> k1s0.service.payment.v1.RefundPaymentRequest
+	3,  // 18: k1s0.service.payment.v1.PaymentService.InitiatePayment:output_type -> k1s0.service.payment.v1.InitiatePaymentResponse
+	5,  // 19: k1s0.service.payment.v1.PaymentService.GetPayment:output_type -> k1s0.service.payment.v1.GetPaymentResponse
+	7,  // 20: k1s0.service.payment.v1.PaymentService.ListPayments:output_type -> k1s0.service.payment.v1.ListPaymentsResponse
+	9,  // 21: k1s0.service.payment.v1.PaymentService.CompletePayment:output_type -> k1s0.service.payment.v1.CompletePaymentResponse
+	11, // 22: k1s0.service.payment.v1.PaymentService.FailPayment:output_type -> k1s0.service.payment.v1.FailPaymentResponse
+	13, // 23: k1s0.service.payment.v1.PaymentService.RefundPayment:output_type -> k1s0.service.payment.v1.RefundPaymentResponse
+	18, // [18:24] is the sub-list for method output_type
+	12, // [12:18] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_service_payment_v1_payment_proto_init() }
@@ -955,13 +1054,14 @@ func file_k1s0_service_payment_v1_payment_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_service_payment_v1_payment_proto_rawDesc), len(file_k1s0_service_payment_v1_payment_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_service_payment_v1_payment_proto_goTypes,
 		DependencyIndexes: file_k1s0_service_payment_v1_payment_proto_depIdxs,
+		EnumInfos:         file_k1s0_service_payment_v1_payment_proto_enumTypes,
 		MessageInfos:      file_k1s0_service_payment_v1_payment_proto_msgTypes,
 	}.Build()
 	File_k1s0_service_payment_v1_payment_proto = out.File

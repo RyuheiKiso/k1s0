@@ -67,22 +67,5 @@ observability:
     enabled: true
     path: "/metrics"
 
-# === Production configuration (uncomment as needed) ===
-database:
-  host: "localhost"
-  port: 5432
-  name: "auth_db"
-  user: "app"
-  password: ""
-  ssl_mode: "disable"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
-# kafka:
-#   brokers:
-#     - "localhost:9092"
-#   security_protocol: "PLAINTEXT"
-# auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
-#   audience: "k1s0-system"
+# ローカル開発環境用の設定は config.docker.yaml を参照のこと。
+# 本設定ファイルは本番/Kubernetes 環境向けのデフォルト値。

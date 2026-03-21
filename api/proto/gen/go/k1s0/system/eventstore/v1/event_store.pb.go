@@ -126,10 +126,12 @@ type StreamInfo struct {
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	AggregateType  string                 `protobuf:"bytes,2,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
 	CurrentVersion int64                  `protobuf:"varint,3,opt,name=current_version,json=currentVersion,proto3" json:"current_version,omitempty"`
-	CreatedAt      string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	CreatedAt *v1.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	UpdatedAt     *v1.Timestamp `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StreamInfo) Reset() {
@@ -183,18 +185,18 @@ func (x *StreamInfo) GetCurrentVersion() int64 {
 	return 0
 }
 
-func (x *StreamInfo) GetCreatedAt() string {
+func (x *StreamInfo) GetCreatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *StreamInfo) GetUpdatedAt() string {
+func (x *StreamInfo) GetUpdatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return ""
+	return nil
 }
 
 type AppendEventsRequest struct {
@@ -639,10 +641,11 @@ type CreateSnapshotResponse struct {
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	StreamId        string                 `protobuf:"bytes,2,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	SnapshotVersion int64                  `protobuf:"varint,3,opt,name=snapshot_version,json=snapshotVersion,proto3" json:"snapshot_version,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	AggregateType   string                 `protobuf:"bytes,5,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	CreatedAt     *v1.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	AggregateType string        `protobuf:"bytes,5,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSnapshotResponse) Reset() {
@@ -696,11 +699,11 @@ func (x *CreateSnapshotResponse) GetSnapshotVersion() int64 {
 	return 0
 }
 
-func (x *CreateSnapshotResponse) GetCreatedAt() string {
+func (x *CreateSnapshotResponse) GetCreatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
 func (x *CreateSnapshotResponse) GetAggregateType() string {
@@ -898,7 +901,7 @@ type EventData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	EventType     string                 `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
-	Metadata      *EventMetadata         `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Metadata      *EventStoreMetadata    `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -947,7 +950,7 @@ func (x *EventData) GetPayload() []byte {
 	return nil
 }
 
-func (x *EventData) GetMetadata() *EventMetadata {
+func (x *EventData) GetMetadata() *EventStoreMetadata {
 	if x != nil {
 		return x.Metadata
 	}
@@ -955,15 +958,17 @@ func (x *EventData) GetMetadata() *EventMetadata {
 }
 
 type StoredEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	Sequence      uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
-	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	Version       int64                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
-	Payload       []byte                 `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
-	Metadata      *EventMetadata         `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	OccurredAt    string                 `protobuf:"bytes,7,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
-	StoredAt      string                 `protobuf:"bytes,8,opt,name=stored_at,json=storedAt,proto3" json:"stored_at,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	StreamId  string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	Sequence  uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	EventType string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Version   int64                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	Payload   []byte                 `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	Metadata  *EventStoreMetadata    `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	OccurredAt *v1.Timestamp `protobuf:"bytes,7,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"`
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	StoredAt      *v1.Timestamp `protobuf:"bytes,8,opt,name=stored_at,json=storedAt,proto3" json:"stored_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1033,28 +1038,28 @@ func (x *StoredEvent) GetPayload() []byte {
 	return nil
 }
 
-func (x *StoredEvent) GetMetadata() *EventMetadata {
+func (x *StoredEvent) GetMetadata() *EventStoreMetadata {
 	if x != nil {
 		return x.Metadata
 	}
 	return nil
 }
 
-func (x *StoredEvent) GetOccurredAt() string {
+func (x *StoredEvent) GetOccurredAt() *v1.Timestamp {
 	if x != nil {
 		return x.OccurredAt
 	}
-	return ""
+	return nil
 }
 
-func (x *StoredEvent) GetStoredAt() string {
+func (x *StoredEvent) GetStoredAt() *v1.Timestamp {
 	if x != nil {
 		return x.StoredAt
 	}
-	return ""
+	return nil
 }
 
-type EventMetadata struct {
+type EventStoreMetadata struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ActorId       *string                `protobuf:"bytes,1,opt,name=actor_id,json=actorId,proto3,oneof" json:"actor_id,omitempty"`
 	CorrelationId *string                `protobuf:"bytes,2,opt,name=correlation_id,json=correlationId,proto3,oneof" json:"correlation_id,omitempty"`
@@ -1063,20 +1068,20 @@ type EventMetadata struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EventMetadata) Reset() {
-	*x = EventMetadata{}
+func (x *EventStoreMetadata) Reset() {
+	*x = EventStoreMetadata{}
 	mi := &file_k1s0_system_eventstore_v1_event_store_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EventMetadata) String() string {
+func (x *EventStoreMetadata) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EventMetadata) ProtoMessage() {}
+func (*EventStoreMetadata) ProtoMessage() {}
 
-func (x *EventMetadata) ProtoReflect() protoreflect.Message {
+func (x *EventStoreMetadata) ProtoReflect() protoreflect.Message {
 	mi := &file_k1s0_system_eventstore_v1_event_store_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1088,26 +1093,26 @@ func (x *EventMetadata) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EventMetadata.ProtoReflect.Descriptor instead.
-func (*EventMetadata) Descriptor() ([]byte, []int) {
+// Deprecated: Use EventStoreMetadata.ProtoReflect.Descriptor instead.
+func (*EventStoreMetadata) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_eventstore_v1_event_store_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *EventMetadata) GetActorId() string {
+func (x *EventStoreMetadata) GetActorId() string {
 	if x != nil && x.ActorId != nil {
 		return *x.ActorId
 	}
 	return ""
 }
 
-func (x *EventMetadata) GetCorrelationId() string {
+func (x *EventStoreMetadata) GetCorrelationId() string {
 	if x != nil && x.CorrelationId != nil {
 		return *x.CorrelationId
 	}
 	return ""
 }
 
-func (x *EventMetadata) GetCausationId() string {
+func (x *EventStoreMetadata) GetCausationId() string {
 	if x != nil && x.CausationId != nil {
 		return *x.CausationId
 	}
@@ -1121,9 +1126,10 @@ type Snapshot struct {
 	SnapshotVersion int64                  `protobuf:"varint,3,opt,name=snapshot_version,json=snapshotVersion,proto3" json:"snapshot_version,omitempty"`
 	AggregateType   string                 `protobuf:"bytes,4,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
 	State           []byte                 `protobuf:"bytes,5,opt,name=state,proto3" json:"state,omitempty"`
-	CreatedAt       string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// タイムスタンプ型を共通型に統一（string → Timestamp）
+	CreatedAt     *v1.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Snapshot) Reset() {
@@ -1191,11 +1197,11 @@ func (x *Snapshot) GetState() []byte {
 	return nil
 }
 
-func (x *Snapshot) GetCreatedAt() string {
+func (x *Snapshot) GetCreatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
 var File_k1s0_system_eventstore_v1_event_store_proto protoreflect.FileDescriptor
@@ -1211,16 +1217,16 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\astreams\x18\x01 \x03(\v2%.k1s0.system.eventstore.v1.StreamInfoR\astreams\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xaa\x01\n" +
+	"pagination\"\xee\x01\n" +
 	"\n" +
 	"StreamInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\x0eaggregate_type\x18\x02 \x01(\tR\raggregateType\x12'\n" +
-	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\x12\x1d\n" +
+	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\x12?\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\tR\tupdatedAt\"\xc2\x01\n" +
+	"updated_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"\xc2\x01\n" +
 	"\x13AppendEventsRequest\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12<\n" +
 	"\x06events\x18\x02 \x03(\v2$.k1s0.system.eventstore.v1.EventDataR\x06events\x12)\n" +
@@ -1258,13 +1264,13 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12)\n" +
 	"\x10snapshot_version\x18\x02 \x01(\x03R\x0fsnapshotVersion\x12%\n" +
 	"\x0eaggregate_type\x18\x03 \x01(\tR\raggregateType\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\fR\x05state\"\xb6\x01\n" +
+	"\x05state\x18\x04 \x01(\fR\x05state\"\xd8\x01\n" +
 	"\x16CreateSnapshotResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tstream_id\x18\x02 \x01(\tR\bstreamId\x12)\n" +
-	"\x10snapshot_version\x18\x03 \x01(\x03R\x0fsnapshotVersion\x12\x1d\n" +
+	"\x10snapshot_version\x18\x03 \x01(\x03R\x0fsnapshotVersion\x12?\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12%\n" +
+	"created_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12%\n" +
 	"\x0eaggregate_type\x18\x05 \x01(\tR\raggregateType\"7\n" +
 	"\x18GetLatestSnapshotRequest\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\"\\\n" +
@@ -1274,38 +1280,38 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\"J\n" +
 	"\x14DeleteStreamResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x8a\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x8f\x01\n" +
 	"\tEventData\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x18\n" +
-	"\apayload\x18\x02 \x01(\fR\apayload\x12D\n" +
-	"\bmetadata\x18\x03 \x01(\v2(.k1s0.system.eventstore.v1.EventMetadataR\bmetadata\"\x9d\x02\n" +
+	"\apayload\x18\x02 \x01(\fR\apayload\x12I\n" +
+	"\bmetadata\x18\x03 \x01(\v2-.k1s0.system.eventstore.v1.EventStoreMetadataR\bmetadata\"\xe6\x02\n" +
 	"\vStoredEvent\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x03 \x01(\tR\teventType\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x03R\aversion\x12\x18\n" +
-	"\apayload\x18\x05 \x01(\fR\apayload\x12D\n" +
-	"\bmetadata\x18\x06 \x01(\v2(.k1s0.system.eventstore.v1.EventMetadataR\bmetadata\x12\x1f\n" +
-	"\voccurred_at\x18\a \x01(\tR\n" +
-	"occurredAt\x12\x1b\n" +
-	"\tstored_at\x18\b \x01(\tR\bstoredAt\"\xb4\x01\n" +
-	"\rEventMetadata\x12\x1e\n" +
+	"\apayload\x18\x05 \x01(\fR\apayload\x12I\n" +
+	"\bmetadata\x18\x06 \x01(\v2-.k1s0.system.eventstore.v1.EventStoreMetadataR\bmetadata\x12A\n" +
+	"\voccurred_at\x18\a \x01(\v2 .k1s0.system.common.v1.TimestampR\n" +
+	"occurredAt\x12=\n" +
+	"\tstored_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\bstoredAt\"\xb9\x01\n" +
+	"\x12EventStoreMetadata\x12\x1e\n" +
 	"\bactor_id\x18\x01 \x01(\tH\x00R\aactorId\x88\x01\x01\x12*\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tH\x01R\rcorrelationId\x88\x01\x01\x12&\n" +
 	"\fcausation_id\x18\x03 \x01(\tH\x02R\vcausationId\x88\x01\x01B\v\n" +
 	"\t_actor_idB\x11\n" +
 	"\x0f_correlation_idB\x0f\n" +
-	"\r_causation_id\"\xbe\x01\n" +
+	"\r_causation_id\"\xe0\x01\n" +
 	"\bSnapshot\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tstream_id\x18\x02 \x01(\tR\bstreamId\x12)\n" +
 	"\x10snapshot_version\x18\x03 \x01(\x03R\x0fsnapshotVersion\x12%\n" +
 	"\x0eaggregate_type\x18\x04 \x01(\tR\raggregateType\x12\x14\n" +
-	"\x05state\x18\x05 \x01(\fR\x05state\x12\x1d\n" +
+	"\x05state\x18\x05 \x01(\fR\x05state\x12?\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt2\xcc\x06\n" +
+	"created_at\x18\x06 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt2\xcc\x06\n" +
 	"\x11EventStoreService\x12l\n" +
 	"\vListStreams\x12-.k1s0.system.eventstore.v1.ListStreamsRequest\x1a..k1s0.system.eventstore.v1.ListStreamsResponse\x12o\n" +
 	"\fAppendEvents\x12..k1s0.system.eventstore.v1.AppendEventsRequest\x1a/.k1s0.system.eventstore.v1.AppendEventsResponse\x12i\n" +
@@ -1347,43 +1353,50 @@ var file_k1s0_system_eventstore_v1_event_store_proto_goTypes = []any{
 	(*DeleteStreamResponse)(nil),        // 14: k1s0.system.eventstore.v1.DeleteStreamResponse
 	(*EventData)(nil),                   // 15: k1s0.system.eventstore.v1.EventData
 	(*StoredEvent)(nil),                 // 16: k1s0.system.eventstore.v1.StoredEvent
-	(*EventMetadata)(nil),               // 17: k1s0.system.eventstore.v1.EventMetadata
+	(*EventStoreMetadata)(nil),          // 17: k1s0.system.eventstore.v1.EventStoreMetadata
 	(*Snapshot)(nil),                    // 18: k1s0.system.eventstore.v1.Snapshot
 	(*v1.Pagination)(nil),               // 19: k1s0.system.common.v1.Pagination
 	(*v1.PaginationResult)(nil),         // 20: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),                // 21: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_eventstore_v1_event_store_proto_depIdxs = []int32{
 	19, // 0: k1s0.system.eventstore.v1.ListStreamsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
 	2,  // 1: k1s0.system.eventstore.v1.ListStreamsResponse.streams:type_name -> k1s0.system.eventstore.v1.StreamInfo
 	20, // 2: k1s0.system.eventstore.v1.ListStreamsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	15, // 3: k1s0.system.eventstore.v1.AppendEventsRequest.events:type_name -> k1s0.system.eventstore.v1.EventData
-	16, // 4: k1s0.system.eventstore.v1.AppendEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	19, // 5: k1s0.system.eventstore.v1.ReadEventsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	16, // 6: k1s0.system.eventstore.v1.ReadEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	20, // 7: k1s0.system.eventstore.v1.ReadEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	16, // 8: k1s0.system.eventstore.v1.ReadEventBySequenceResponse.event:type_name -> k1s0.system.eventstore.v1.StoredEvent
-	18, // 9: k1s0.system.eventstore.v1.GetLatestSnapshotResponse.snapshot:type_name -> k1s0.system.eventstore.v1.Snapshot
-	17, // 10: k1s0.system.eventstore.v1.EventData.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
-	17, // 11: k1s0.system.eventstore.v1.StoredEvent.metadata:type_name -> k1s0.system.eventstore.v1.EventMetadata
-	0,  // 12: k1s0.system.eventstore.v1.EventStoreService.ListStreams:input_type -> k1s0.system.eventstore.v1.ListStreamsRequest
-	3,  // 13: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:input_type -> k1s0.system.eventstore.v1.AppendEventsRequest
-	5,  // 14: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:input_type -> k1s0.system.eventstore.v1.ReadEventsRequest
-	7,  // 15: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:input_type -> k1s0.system.eventstore.v1.ReadEventBySequenceRequest
-	9,  // 16: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:input_type -> k1s0.system.eventstore.v1.CreateSnapshotRequest
-	11, // 17: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:input_type -> k1s0.system.eventstore.v1.GetLatestSnapshotRequest
-	13, // 18: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:input_type -> k1s0.system.eventstore.v1.DeleteStreamRequest
-	1,  // 19: k1s0.system.eventstore.v1.EventStoreService.ListStreams:output_type -> k1s0.system.eventstore.v1.ListStreamsResponse
-	4,  // 20: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:output_type -> k1s0.system.eventstore.v1.AppendEventsResponse
-	6,  // 21: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:output_type -> k1s0.system.eventstore.v1.ReadEventsResponse
-	8,  // 22: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:output_type -> k1s0.system.eventstore.v1.ReadEventBySequenceResponse
-	10, // 23: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:output_type -> k1s0.system.eventstore.v1.CreateSnapshotResponse
-	12, // 24: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:output_type -> k1s0.system.eventstore.v1.GetLatestSnapshotResponse
-	14, // 25: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:output_type -> k1s0.system.eventstore.v1.DeleteStreamResponse
-	19, // [19:26] is the sub-list for method output_type
-	12, // [12:19] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	21, // 3: k1s0.system.eventstore.v1.StreamInfo.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	21, // 4: k1s0.system.eventstore.v1.StreamInfo.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	15, // 5: k1s0.system.eventstore.v1.AppendEventsRequest.events:type_name -> k1s0.system.eventstore.v1.EventData
+	16, // 6: k1s0.system.eventstore.v1.AppendEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
+	19, // 7: k1s0.system.eventstore.v1.ReadEventsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	16, // 8: k1s0.system.eventstore.v1.ReadEventsResponse.events:type_name -> k1s0.system.eventstore.v1.StoredEvent
+	20, // 9: k1s0.system.eventstore.v1.ReadEventsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	16, // 10: k1s0.system.eventstore.v1.ReadEventBySequenceResponse.event:type_name -> k1s0.system.eventstore.v1.StoredEvent
+	21, // 11: k1s0.system.eventstore.v1.CreateSnapshotResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	18, // 12: k1s0.system.eventstore.v1.GetLatestSnapshotResponse.snapshot:type_name -> k1s0.system.eventstore.v1.Snapshot
+	17, // 13: k1s0.system.eventstore.v1.EventData.metadata:type_name -> k1s0.system.eventstore.v1.EventStoreMetadata
+	17, // 14: k1s0.system.eventstore.v1.StoredEvent.metadata:type_name -> k1s0.system.eventstore.v1.EventStoreMetadata
+	21, // 15: k1s0.system.eventstore.v1.StoredEvent.occurred_at:type_name -> k1s0.system.common.v1.Timestamp
+	21, // 16: k1s0.system.eventstore.v1.StoredEvent.stored_at:type_name -> k1s0.system.common.v1.Timestamp
+	21, // 17: k1s0.system.eventstore.v1.Snapshot.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 18: k1s0.system.eventstore.v1.EventStoreService.ListStreams:input_type -> k1s0.system.eventstore.v1.ListStreamsRequest
+	3,  // 19: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:input_type -> k1s0.system.eventstore.v1.AppendEventsRequest
+	5,  // 20: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:input_type -> k1s0.system.eventstore.v1.ReadEventsRequest
+	7,  // 21: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:input_type -> k1s0.system.eventstore.v1.ReadEventBySequenceRequest
+	9,  // 22: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:input_type -> k1s0.system.eventstore.v1.CreateSnapshotRequest
+	11, // 23: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:input_type -> k1s0.system.eventstore.v1.GetLatestSnapshotRequest
+	13, // 24: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:input_type -> k1s0.system.eventstore.v1.DeleteStreamRequest
+	1,  // 25: k1s0.system.eventstore.v1.EventStoreService.ListStreams:output_type -> k1s0.system.eventstore.v1.ListStreamsResponse
+	4,  // 26: k1s0.system.eventstore.v1.EventStoreService.AppendEvents:output_type -> k1s0.system.eventstore.v1.AppendEventsResponse
+	6,  // 27: k1s0.system.eventstore.v1.EventStoreService.ReadEvents:output_type -> k1s0.system.eventstore.v1.ReadEventsResponse
+	8,  // 28: k1s0.system.eventstore.v1.EventStoreService.ReadEventBySequence:output_type -> k1s0.system.eventstore.v1.ReadEventBySequenceResponse
+	10, // 29: k1s0.system.eventstore.v1.EventStoreService.CreateSnapshot:output_type -> k1s0.system.eventstore.v1.CreateSnapshotResponse
+	12, // 30: k1s0.system.eventstore.v1.EventStoreService.GetLatestSnapshot:output_type -> k1s0.system.eventstore.v1.GetLatestSnapshotResponse
+	14, // 31: k1s0.system.eventstore.v1.EventStoreService.DeleteStream:output_type -> k1s0.system.eventstore.v1.DeleteStreamResponse
+	25, // [25:32] is the sub-list for method output_type
+	18, // [18:25] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_eventstore_v1_event_store_proto_init() }

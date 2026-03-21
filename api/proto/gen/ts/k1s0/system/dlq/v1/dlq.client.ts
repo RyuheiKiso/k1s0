@@ -18,44 +18,44 @@ import type { ListMessagesRequest } from "./dlq";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
- * / DlqService は DLQ メッセージ管理サービス。
+ * DlqService は DLQ メッセージ管理サービス。
  *
  * @generated from protobuf service k1s0.system.dlq.v1.DlqService
  */
 export interface IDlqServiceClient {
     /**
-     * / DLQ メッセージ一覧取得
+     * DLQ メッセージ一覧取得
      *
      * @generated from protobuf rpc: ListMessages
      */
     listMessages(input: ListMessagesRequest, options?: RpcOptions): UnaryCall<ListMessagesRequest, ListMessagesResponse>;
     /**
-     * / DLQ メッセージ取得
+     * DLQ メッセージ取得
      *
      * @generated from protobuf rpc: GetMessage
      */
     getMessage(input: GetMessageRequest, options?: RpcOptions): UnaryCall<GetMessageRequest, GetMessageResponse>;
     /**
-     * / DLQ メッセージのリトライ
+     * DLQ メッセージのリトライ
      *
      * @generated from protobuf rpc: RetryMessage
      */
     retryMessage(input: RetryMessageRequest, options?: RpcOptions): UnaryCall<RetryMessageRequest, RetryMessageResponse>;
     /**
-     * / DLQ メッセージ削除
+     * DLQ メッセージ削除
      *
      * @generated from protobuf rpc: DeleteMessage
      */
     deleteMessage(input: DeleteMessageRequest, options?: RpcOptions): UnaryCall<DeleteMessageRequest, DeleteMessageResponse>;
     /**
-     * / DLQ メッセージ一括リトライ
+     * DLQ メッセージ一括リトライ
      *
      * @generated from protobuf rpc: RetryAll
      */
     retryAll(input: RetryAllRequest, options?: RpcOptions): UnaryCall<RetryAllRequest, RetryAllResponse>;
 }
 /**
- * / DlqService は DLQ メッセージ管理サービス。
+ * DlqService は DLQ メッセージ管理サービス。
  *
  * @generated from protobuf service k1s0.system.dlq.v1.DlqService
  */
@@ -66,7 +66,7 @@ export class DlqServiceClient implements IDlqServiceClient, ServiceInfo {
     constructor(private readonly _transport: RpcTransport) {
     }
     /**
-     * / DLQ メッセージ一覧取得
+     * DLQ メッセージ一覧取得
      *
      * @generated from protobuf rpc: ListMessages
      */
@@ -75,7 +75,7 @@ export class DlqServiceClient implements IDlqServiceClient, ServiceInfo {
         return stackIntercept<ListMessagesRequest, ListMessagesResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * / DLQ メッセージ取得
+     * DLQ メッセージ取得
      *
      * @generated from protobuf rpc: GetMessage
      */
@@ -84,7 +84,7 @@ export class DlqServiceClient implements IDlqServiceClient, ServiceInfo {
         return stackIntercept<GetMessageRequest, GetMessageResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * / DLQ メッセージのリトライ
+     * DLQ メッセージのリトライ
      *
      * @generated from protobuf rpc: RetryMessage
      */
@@ -93,7 +93,7 @@ export class DlqServiceClient implements IDlqServiceClient, ServiceInfo {
         return stackIntercept<RetryMessageRequest, RetryMessageResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * / DLQ メッセージ削除
+     * DLQ メッセージ削除
      *
      * @generated from protobuf rpc: DeleteMessage
      */
@@ -102,7 +102,7 @@ export class DlqServiceClient implements IDlqServiceClient, ServiceInfo {
         return stackIntercept<DeleteMessageRequest, DeleteMessageResponse>("unary", this._transport, method, opt, input);
     }
     /**
-     * / DLQ メッセージ一括リトライ
+     * DLQ メッセージ一括リトライ
      *
      * @generated from protobuf rpc: RetryAll
      */
