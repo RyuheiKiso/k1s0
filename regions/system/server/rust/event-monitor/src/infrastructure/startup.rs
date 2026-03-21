@@ -108,16 +108,24 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.cache.flow_def_ttl_seconds,
     ));
 
-    // DLQ Manager client: config に dlq_manager セクションがあれば接続を試み、
-    // なければ NoopDlqClient にフォールバックする。Noop 使用時は health endpoint が degraded を返す。
+    // DLQ Manager client: config に dlq_manager セクションがあれば実 gRPC クライアントを生成し、
+    // なければ NoopDlqClient にフォールバックする。
+    // dlq_noop=false のとき health endpoint は正常（DLQ 接続あり）を返し、
+    // dlq_noop=true のとき degraded を返してオペレーターに通知する。
     let (dlq_client, dlq_noop): (Arc<dyn DlqManagerClient>, bool) =
-        if let Some(ref _dlq_cfg) = cfg.dlq_manager {
-            // TODO: DlqManagerConfig を使って実際の gRPC クライアントを生成する
-            // 現時点では config が存在しても Noop にフォールバックする
+        if let Some(ref dlq_cfg) = cfg.dlq_manager {
+            // DlqManagerConfig の grpc_endpoint と timeout_ms を使って gRPC クライアントを生成する。
+            // 接続は各 RPC 呼び出し時に確立する（lazy connect）。
             info!(
-                "dlq_manager config found but real client not yet implemented, using no-op DLQ client"
+                endpoint = %dlq_cfg.grpc_endpoint,
+                timeout_ms = dlq_cfg.timeout_ms,
+                "dlq_manager config found, creating gRPC DLQ client"
             );
-            (Arc::new(NoopDlqClient), true)
+            let client = GrpcDlqClient::new(
+                dlq_cfg.grpc_endpoint.clone(),
+                dlq_cfg.timeout_ms,
+            );
+            (Arc::new(client), false)
         } else {
             info!("no dlq_manager config, using no-op DLQ client");
             (Arc::new(NoopDlqClient), true)

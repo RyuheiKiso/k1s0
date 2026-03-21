@@ -13,9 +13,8 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
-    /// DLQ 転送機能で使用予定。YAML から読み込むため Deserialize に必要。
+    /// DLQ Manager gRPC クライアントの接続設定。startup.rs で GrpcDlqClient 生成に使用する。
     #[serde(default)]
-    #[allow(dead_code)]
     pub dlq_manager: Option<DlqManagerConfig>,
     #[serde(default)]
     pub cache: CacheConfig,
