@@ -49,6 +49,8 @@ npm run report
 | ファイル | 内容 |
 |----------|------|
 | `specs/health-check.spec.ts` | 各サービスのヘルスチェック検証 |
+| `specs/auth-flow.spec.ts` | BFF 認証フロー検証（未認証 401・ログインリダイレクト・CSRF 保護） |
+| `specs/api-crud.spec.ts` | API CRUD エンドポイントルーティング確認（Order/Inventory/Payment） |
 
 ## 環境変数
 

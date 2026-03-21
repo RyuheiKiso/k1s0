@@ -106,7 +106,7 @@ regions/system/server/rust/search/
 #### 外部連携
 
 - **OpenSearch Repository** (`adapter/repository/search_opensearch.rs`): opensearch-rs を使用して OpenSearch クラスターと通信する
-- **PostgreSQL Repository** (`adapter/repository/search_postgres.rs`): OpenSearch 障害時のフォールバック実装。`ILIKE` による簡易全文検索を提供する
+- **PostgreSQL Repository** (`adapter/repository/search_postgres.rs`): OpenSearch 障害時のフォールバック実装。`plainto_tsquery('simple', ...)` による全文検索、`QueryBuilder` を使った動的 WHERE 句によるフィルタ適用、GROUP BY によるファセット集計を提供する。`to_tsquery` は使用しない（ユーザー入力をそのまま渡すとシンタックスエラーになるため）
 - **Kafka Consumer** (`infrastructure/kafka_consumer.rs`): `k1s0.system.search.index.requested.v1` トピックから非同期インデックス要求を受信する
 - **Kafka Producer** (`infrastructure/kafka_producer.rs`): `k1s0.system.search.indexed.v1` トピックにインデックス完了通知を配信する
 

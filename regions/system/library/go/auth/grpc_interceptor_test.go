@@ -22,8 +22,8 @@ func (m *mockServerStream) SetHeader(metadata.MD) error  { return nil }
 func (m *mockServerStream) SendHeader(metadata.MD) error { return nil }
 func (m *mockServerStream) SetTrailer(metadata.MD)       {}
 func (m *mockServerStream) Context() context.Context     { return m.ctx }
-func (m *mockServerStream) SendMsg(interface{}) error    { return nil }
-func (m *mockServerStream) RecvMsg(interface{}) error    { return nil }
+func (m *mockServerStream) SendMsg(any) error    { return nil }
+func (m *mockServerStream) RecvMsg(any) error    { return nil }
 
 // ctxWithMD は指定メタデータを含む incoming gRPC コンテキストを生成する。
 func ctxWithMD(pairs ...string) context.Context {
@@ -53,7 +53,7 @@ func TestUnaryInterceptor_NoMetadata(t *testing.T) {
 	interceptor := UnaryServerInterceptor(verifier)
 
 	_, err := interceptor(context.Background(), nil, &grpc.UnaryServerInfo{},
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "ok", nil
 		},
 	)
@@ -70,7 +70,7 @@ func TestUnaryInterceptor_NoAuthorizationHeader(t *testing.T) {
 	ctx := ctxWithMD("x-request-id", "req-1")
 
 	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "ok", nil
 		},
 	)
@@ -87,7 +87,7 @@ func TestUnaryInterceptor_NoBearerPrefix(t *testing.T) {
 	ctx := ctxWithMD("authorization", tokenStr) // "Bearer " プレフィックスなし
 
 	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "ok", nil
 		},
 	)
@@ -104,7 +104,7 @@ func TestUnaryInterceptor_InvalidToken(t *testing.T) {
 	ctx := ctxWithMD("authorization", "Bearer invalid-token")
 
 	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			return "ok", nil
 		},
 	)
@@ -122,7 +122,7 @@ func TestUnaryInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 
 	var capturedClaims *Claims
 	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
-		func(ctx context.Context, req interface{}) (interface{}, error) {
+		func(ctx context.Context, req any) (any, error) {
 			claims, ok := GetClaimsFromContext(ctx)
 			if ok {
 				capturedClaims = claims
@@ -146,7 +146,7 @@ func TestStreamInterceptor_NoMetadata(t *testing.T) {
 	ss := &mockServerStream{ctx: context.Background()}
 
 	err := interceptor(nil, ss, &grpc.StreamServerInfo{},
-		func(srv interface{}, stream grpc.ServerStream) error {
+		func(srv any, stream grpc.ServerStream) error {
 			return nil
 		},
 	)
@@ -165,7 +165,7 @@ func TestStreamInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 
 	var capturedClaims *Claims
 	err := interceptor(nil, ss, &grpc.StreamServerInfo{},
-		func(srv interface{}, stream grpc.ServerStream) error {
+		func(srv any, stream grpc.ServerStream) error {
 			claims, ok := GetClaimsFromContext(stream.Context())
 			if ok {
 				capturedClaims = claims
@@ -187,7 +187,7 @@ func TestStreamInterceptor_InvalidToken(t *testing.T) {
 	ss := &mockServerStream{ctx: ctx}
 
 	err := interceptor(nil, ss, &grpc.StreamServerInfo{},
-		func(srv interface{}, stream grpc.ServerStream) error {
+		func(srv any, stream grpc.ServerStream) error {
 			return nil
 		},
 	)
@@ -195,6 +195,69 @@ func TestStreamInterceptor_InvalidToken(t *testing.T) {
 	require.Error(t, err)
 	st, _ := status.FromError(err)
 	assert.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+// UnaryServerInterceptor が小文字の "bearer " プレフィックスでも有効なトークンを受け入れることを確認する。
+// RFC 7235 は認証スキーム名を case-insensitive と規定している。
+func TestUnaryInterceptor_LowercaseBearerPrefix(t *testing.T) {
+	verifier, tokenStr := makeVerifier(t)
+	interceptor := UnaryServerInterceptor(verifier)
+	ctx := ctxWithMD("authorization", "bearer "+tokenStr) // 小文字の "bearer"
+
+	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
+		func(ctx context.Context, req any) (any, error) {
+			return "ok", nil
+		},
+	)
+
+	require.NoError(t, err)
+}
+
+// UnaryServerInterceptor が大文字の "BEARER " プレフィックスでも有効なトークンを受け入れることを確認する。
+func TestUnaryInterceptor_UppercaseBearerPrefix(t *testing.T) {
+	verifier, tokenStr := makeVerifier(t)
+	interceptor := UnaryServerInterceptor(verifier)
+	ctx := ctxWithMD("authorization", "BEARER "+tokenStr) // 大文字の "BEARER"
+
+	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{},
+		func(ctx context.Context, req any) (any, error) {
+			return "ok", nil
+		},
+	)
+
+	require.NoError(t, err)
+}
+
+// StreamServerInterceptor が小文字の "bearer " プレフィックスでも有効なトークンを受け入れることを確認する。
+func TestStreamInterceptor_LowercaseBearerPrefix(t *testing.T) {
+	verifier, tokenStr := makeVerifier(t)
+	interceptor := StreamServerInterceptor(verifier)
+	ctx := ctxWithMD("authorization", "bearer "+tokenStr) // 小文字の "bearer"
+	ss := &mockServerStream{ctx: ctx}
+
+	err := interceptor(nil, ss, &grpc.StreamServerInfo{},
+		func(srv any, stream grpc.ServerStream) error {
+			return nil
+		},
+	)
+
+	require.NoError(t, err)
+}
+
+// StreamServerInterceptor が大文字の "BEARER " プレフィックスでも有効なトークンを受け入れることを確認する。
+func TestStreamInterceptor_UppercaseBearerPrefix(t *testing.T) {
+	verifier, tokenStr := makeVerifier(t)
+	interceptor := StreamServerInterceptor(verifier)
+	ctx := ctxWithMD("authorization", "BEARER "+tokenStr) // 大文字の "BEARER"
+	ss := &mockServerStream{ctx: ctx}
+
+	err := interceptor(nil, ss, &grpc.StreamServerInfo{},
+		func(srv any, stream grpc.ServerStream) error {
+			return nil
+		},
+	)
+
+	require.NoError(t, err)
 }
 
 // --- wrappedServerStream テスト ---

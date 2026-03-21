@@ -495,6 +495,41 @@ func TestLogin_RejectsDangerousSchemes(t *testing.T) {
 	}
 }
 
+// TestLogin_RejectsArbitraryCustomScheme は k1s0 以外の任意カスタムスキームを拒否するテスト。
+// allowlist が denylist ではなく許可リスト方式であることを確認する（Finding 6）。
+func TestLogin_RejectsArbitraryCustomScheme(t *testing.T) {
+	mock := &mockOAuthClient{
+		authCodeURLFn: func(state, codeChallenge string) (string, error) {
+			return "https://idp.example.com/auth?state=" + state, nil
+		},
+	}
+
+	// k1s0 以外の任意カスタムスキームはすべて拒否されること
+	arbitrarySchemes := []string{
+		"evilapp://callback",
+		"myapp://open",
+		"com.example.app://auth",
+		"k1s0evil://callback", // k1s0 プレフィックスを含む偽スキームも拒否
+	}
+
+	for _, rawURL := range arbitrarySchemes {
+		t.Run(rawURL, func(t *testing.T) {
+			h := newTestAuthHandler(mock, newMockSessionStore())
+			router := setupTestRouter(h)
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/auth/login?redirect_to="+url.QueryEscape(rawURL), nil)
+			router.ServeHTTP(w, req)
+
+			cookies := w.Result().Cookies()
+			for _, c := range cookies {
+				assert.NotEqual(t, "k1s0_post_auth_redirect", c.Name,
+					"arbitrary custom scheme should be rejected: "+rawURL)
+			}
+		})
+	}
+}
+
 // TestCallback_MobileRedirect はモバイルリダイレクト付きの Callback テスト。
 // 認証成功後にカスタムスキームへ交換コード付きでリダイレクトされることを検証する。
 func TestCallback_MobileRedirect(t *testing.T) {
