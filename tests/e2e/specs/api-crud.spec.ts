@@ -3,8 +3,8 @@
 // 認証が必要なエンドポイントは未認証で 401 が返ること、
 // また、存在しないリソースは 401（認証エラーが先立つ）または 404 が返ることを確認する。
 import { test, expect } from "@playwright/test";
-
-const BFF_BASE = "http://localhost:8082";
+// BFF_BASE は環境変数または config.ts のデフォルト値を使用する
+import { BFF_BASE } from "./config";
 
 // 認証が必要なため、未認証リクエストは 401 を返す
 const AUTH_ERROR_STATUSES = [401, 403];

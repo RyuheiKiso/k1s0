@@ -24,9 +24,27 @@ echo "=== modules.yaml と CI 整合性チェック ==="
 failed=0
 
 # Python が利用可能かチェック（YAML パース用）
+# CI 環境では python3 がない場合はエラーとして終了し、ローカルではスキップする
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "WARNING: python3 が見つかりません。YAML パースチェックをスキップします。"
-  exit 0
+  if [ -n "${CI:-}" ]; then
+    echo "ERROR: python3 が見つかりません。CI 環境では必須です。"
+    exit 1
+  else
+    echo "WARNING: python3 が見つかりません。YAML パースチェックをスキップします。"
+    exit 0
+  fi
+fi
+
+# PyYAML が利用可能かチェック（YAML パース用）
+# CI 環境では PyYAML がない場合はエラーとして終了し、ローカルではスキップする
+if ! python3 -c "import yaml" 2>/dev/null; then
+  if [ -n "${CI:-}" ]; then
+    echo "ERROR: PyYAML が未インストールです。CI 環境では必須です。'pip install pyyaml' を実行してください。"
+    exit 1
+  else
+    echo "WARNING: PyYAML が未インストールです。YAML パースチェックをスキップします。"
+    exit 0
+  fi
 fi
 
 # modules.yaml のパース：各モジュールの存在チェック
@@ -81,8 +99,9 @@ with open(ci_yaml) as f:
     ci_data = yaml.safe_load(f)
 
 # ci.yaml の paths-ignore を取得
+# YAML の 'on:' キーは Python の yaml.safe_load で True に変換される場合があるため両方を試みる
 paths_ignore = []
-on_section = ci_data.get('on', {})
+on_section = ci_data.get('on') or ci_data.get(True, {})
 for event in ['pull_request', 'push']:
     if event in on_section and isinstance(on_section[event], dict):
         paths_ignore.extend(on_section[event].get('paths-ignore', []))

@@ -62,6 +62,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | ジョブ名 | 目的 |
 | --- | --- |
 | `check-tier-deps` | H5対応: system→business→service のティア依存方向を強制し、逆方向依存（system が business/service に依存する等）を CI で検出・失敗させる |
+| `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定 |
 
 ### security.yaml 変更点（セキュリティ監査対応）
 
@@ -1237,6 +1238,14 @@ env:
   run: |
     wget --timeout=5 --tries=3 -qO- http://localhost:${{ steps.port.outputs.value }}/health
 ```
+
+### Dart カバレッジ計測方式
+
+`ci.yaml` の `test-dart` ジョブでは以下の方式で Dart/Flutter パッケージのカバレッジを計測する。
+
+- **Flutter パッケージ**: `flutter test --coverage` で `coverage/lcov.info` を生成し、`lcov --summary` で行カバレッジ率を算出する
+- **非Flutter Dart パッケージ**: `dart test --coverage=coverage` でカバレッジデータを収集した後、`dart pub global run coverage:format_coverage` で lcov 形式に変換する
+- テスト失敗時は `|| { failed=1; }` パターンで記録し、全パッケージのテスト完了後にまとめて終了コード 1 で失敗させる（`|| true` による偽陽性を排除）
 
 ### カバレッジ閾値ロードマップ（LOW-08）
 

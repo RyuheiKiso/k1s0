@@ -801,29 +801,46 @@ jobs:
           # Rust/Go より高い閾値を設定。lcov の行カバレッジで判定する。）
           DART_COVERAGE_THRESHOLD=80
           failed=0
+          # Dart (非Flutter) の lcov 形式変換に必要なツールをインストールする
+          dart pub global activate coverage
           for package_dir in "${packages[@]}"; do
             echo "=== Coverage $package_dir ==="
             pkgname="$(basename "$package_dir")"
             if grep -q "sdk: flutter" "$package_dir/pubspec.yaml"; then
+              # Flutter パッケージは flutter test --coverage で lcov.info を生成する
+              # テスト失敗時もループを継続し全パッケージの結果を収集する
               (
                 cd "$package_dir"
                 flutter pub get
-                flutter test --coverage || true
+                flutter test --coverage
                 if [ -f coverage/lcov.info ]; then
                   cp coverage/lcov.info "$GITHUB_WORKSPACE/coverage/${pkgname}.lcov"
                 fi
-              )
+              ) || { failed=1; echo "::error::$pkgname のテストが失敗しました"; }
             else
+              # 非Flutter Dart パッケージはカバレッジデータを lcov 形式に変換する
+              # テスト失敗時もループを継続し全パッケージの結果を収集する
               (
                 cd "$package_dir"
                 dart pub get
-                dart test --coverage=coverage || true
-                if [ -d coverage ]; then
-                  cp -r coverage "$GITHUB_WORKSPACE/coverage/${pkgname}"
+                dart test --coverage=coverage
+                # dart pub global run coverage:format_coverage で lcov 形式に変換する
+                dart pub global run coverage:format_coverage \
+                  --packages=.dart_tool/package_config.json \
+                  --report-on=lib \
+                  --lcov \
+                  --in=coverage \
+                  --out=coverage/lcov.info
+                if [ -f coverage/lcov.info ]; then
+                  cp coverage/lcov.info "$GITHUB_WORKSPACE/coverage/${pkgname}.lcov"
                 fi
-              )
+              ) || { failed=1; echo "::error::$pkgname のテストが失敗しました"; }
             fi
           done
+          # 全パッケージのテスト結果を収集した後、失敗があれば終了コード 1 で終了する
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
       # Dart/Flutter カバレッジ閾値チェック: lcov.info から行カバレッジ率を算出して閾値と比較する
       - name: Dart/Flutter カバレッジ閾値チェック
         shell: bash
@@ -965,6 +982,28 @@ jobs:
             )
           done
 
+  # GUI フロントエンドビルド検証（Windows）
+  # Rolldown/Vite の Windows 互換性を可視化するためのジョブ。
+  # 既知の Rolldown panic で失敗する可能性があるため continue-on-error を設定する。
+  build-gui-windows:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ts == 'true' || needs.detect-changes.outputs.rust == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: GUI フロントエンドビルド（Windows）
+        working-directory: CLI/crates/k1s0-gui/ui
+        run: |
+          npm ci
+          npm run build
+
   # Docker イメージのビルド検証
   build-docker:
     needs:
@@ -1098,7 +1137,7 @@ jobs:
               scripts/list-modules.sh --lang rust --type client
               # Go/TypeScript/Dart: 全エントリが go.mod/package.json/pubspec.yaml を持つ
               scripts/list-modules.sh --lang go
-              scripts/list-modules.sh --lang typescript
+              scripts/list-modules.sh --lang ts
               scripts/list-modules.sh --lang dart
             } | sort -u
           )
@@ -1166,7 +1205,7 @@ jobs:
         shell: bash
         run: |
           missing=0
-          for pkg in $(find regions CLI -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null); do
+          for pkg in $(find regions CLI tests -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null); do
             dir=$(dirname "$pkg")
             if [ ! -f "$dir/package-lock.json" ]; then
               echo "::error::$dir に package-lock.json がありません。npm install で生成してください。"

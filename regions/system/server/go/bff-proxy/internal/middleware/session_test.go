@@ -141,6 +141,43 @@ func TestSessionMiddleware_ExpiredSession(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
 
+// TestSessionMiddleware_ExpiredSessionWithRefreshToken は expired + refresh token ありの場合に
+// ハンドラーが呼ばれ session_needs_refresh フラグが設定されることを確認する。
+func TestSessionMiddleware_ExpiredSessionWithRefreshToken(t *testing.T) {
+	store := newTestStore()
+	store.sessions["expired-refresh-session"] = &session.SessionData{
+		AccessToken:  "expired-token",
+		RefreshToken: "refresh-token-123",
+		ExpiresAt:    time.Now().Add(-1 * time.Hour).Unix(),
+	}
+
+	var handlerCalled bool
+	var needsRefresh bool
+
+	router := gin.New()
+	router.Use(SessionMiddleware(store, "session", 30*time.Minute, false))
+	router.GET("/test", func(c *gin.Context) {
+		handlerCalled = true
+		val, exists := c.Get(SessionNeedsRefreshKey)
+		if exists {
+			if b, ok := val.(bool); ok {
+				needsRefresh = b
+			}
+		}
+		c.Status(http.StatusOK)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "expired-refresh-session"})
+	router.ServeHTTP(w, req)
+
+	// handler が呼ばれること（401 で止まらないこと）
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, handlerCalled, "handler should be called when refresh token is present")
+	assert.True(t, needsRefresh, "session_needs_refresh flag should be set")
+}
+
 func TestSessionMiddleware_SlidingTTL(t *testing.T) {
 	store := newTestStore()
 	store.sessions["sliding-session"] = &session.SessionData{

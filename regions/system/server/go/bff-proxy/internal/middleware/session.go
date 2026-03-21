@@ -16,6 +16,10 @@ const (
 
 	// SessionIDKey is the gin context key where the session ID is stored.
 	SessionIDKey = "bff_session_id"
+
+	// SessionNeedsRefreshKey は期限切れセッションで refresh token がある場合に
+	// handler への silent refresh 指示として設定する gin context キー。
+	SessionNeedsRefreshKey = "session_needs_refresh"
 )
 
 // SessionMiddleware extracts a session from the cookie, validates it,
@@ -43,15 +47,19 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		}
 
 		// アクセストークンの有効期限を確認する。
-		// Redis TTL に依存するだけでは不十分: ExpiresAt フィールドが示す
-		// アクセストークン期限切れセッションを拒否する必要がある。
+		// refresh token がある場合は handler 側で silent refresh を試みるため、
+		// フラグを立てて handler に通す。refresh token がない場合は即 401 を返す。
 		if sess.IsExpired() {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":      "BFF_SESSION_EXPIRED",
-				"message":    "Session token has expired",
-				"request_id": GetRequestID(c),
-			})
-			return
+			if sess.RefreshToken == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error":      "BFF_SESSION_EXPIRED",
+					"message":    "Session token has expired",
+					"request_id": GetRequestID(c),
+				})
+				return
+			}
+			// refresh token がある場合は handler に refresh 可能フラグを伝える
+			c.Set(SessionNeedsRefreshKey, true)
 		}
 
 		c.Set(SessionDataKey, sess)

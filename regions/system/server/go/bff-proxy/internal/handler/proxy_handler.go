@@ -57,8 +57,10 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 
 	sessionID, _ := middleware.GetSessionID(c)
 
-	// Try silent token refresh if expired.
-	if sess.IsExpired() && sess.RefreshToken != "" {
+	// SessionMiddleware が session_needs_refresh フラグを立てた場合のみ silent refresh を試みる。
+	// フラグは「期限切れ かつ refresh token あり」の場合のみ middleware が設定する。
+	needsRefresh, _ := c.Get(middleware.SessionNeedsRefreshKey)
+	if needsRefresh != nil && needsRefresh.(bool) {
 		tokenResp, err := h.oauthClient.RefreshToken(c.Request.Context(), sess.RefreshToken)
 		if err != nil {
 			h.logger.Warn("token refresh failed, session expired",

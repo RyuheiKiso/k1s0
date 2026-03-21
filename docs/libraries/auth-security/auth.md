@@ -77,10 +77,30 @@ func NewJWKSVerifierWithFetcher(
 | new AuthClient | `(options: AuthClientOptions) -> AuthClient` | OAuth2 PKCE クライアント生成（`AuthClientOptions` は `config`, `tokenStore?`, `fetch?` 等を含む） |
 | login | `() -> void` | 認証フロー開始（認可サーバーへリダイレクト） |
 | handleCallback | `(code, state) -> TokenSet` | 認可コードを受け取りトークンを取得 |
-| logout | `() -> void` | ログアウト |
+| logout | `() -> void` | ログアウト（`logoutUrl` 優先、未設定時は Discovery の `end_session_endpoint` を使用） |
 | getAccessToken | `() -> string` | アクセストークン取得（自動リフレッシュ） |
 | isAuthenticated | `() -> bool` | 認証状態確認 |
 | DeviceCodeResponse.VerificationURIComplete | `string?` | Go のみ: ユーザーが直接アクセスできる完全な認証 URL |
+
+### Dart AuthConfig フィールド
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `discoveryUrl` | `String` | OIDC Discovery URL（必須） |
+| `clientId` | `String` | OAuth2 クライアント ID（必須） |
+| `redirectUri` | `String` | 認可コールバック URI（必須） |
+| `scopes` | `List<String>` | 要求するスコープ（必須） |
+| `logoutUrl` | `String?` | ログアウト用エンドポイント URL（オプション）。設定時は OIDC Discovery より優先される |
+| `postLogoutRedirectUri` | `String?` | ログアウト後のリダイレクト先 URI（オプション） |
+
+### Dart logout の end_session エンドポイント優先順位
+
+Dart `AuthClient.logout()` は以下の優先順位で end_session エンドポイントを決定する:
+
+1. `AuthConfig.logoutUrl` が設定されている場合 → そのURLを使用（Discovery リクエストは行わない）
+2. `AuthConfig.logoutUrl` が未設定または空文字の場合 → OIDC Discovery の `end_session_endpoint` を使用
+
+この優先順位により、Keycloak 等の IdP で Discovery とは異なる logout URL を使用する場合に柔軟に対応できる。
 
 ## Go 実装
 

@@ -4,6 +4,12 @@
 # --tier オプションで対象ティアを指定できる（デフォルト: system）
 set -euo pipefail
 
+# jq の存在チェック（JSON 配列出力に必要）
+if ! command -v jq >/dev/null 2>&1; then
+  echo "::error::jq が見つかりません。'apt-get install jq' または 'brew install jq' を実行してください。" >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 

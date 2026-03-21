@@ -7,8 +7,8 @@ Playwright を使用した k1s0 プラットフォームの E2E テスト。
 ```bash
 cd tests/e2e
 
-# 依存関係のインストール
-npm install
+# 依存関係のインストール（package-lock.json を使用して再現性を確保）
+npm ci
 
 # Playwright ブラウザのインストール
 npx playwright install --with-deps chromium
@@ -54,7 +54,19 @@ npm run report
 
 ## 環境変数
 
+全ての URL とポートは `specs/config.ts` で一元管理されている。spec ファイルにハードコードせず、以下の環境変数で上書き可能。
+
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
 | `BASE_URL` | `http://localhost:8082` | BFF プロキシのベース URL |
+| `KEYCLOAK_URL` | `http://localhost:8180` | Keycloak のベース URL |
+| `AUTH_PORT` | `8083` | auth サービスのポート |
+| `CONFIG_PORT` | `8084` | config サービスのポート |
+| `SAGA_PORT` | `8085` | saga サービスのポート |
+| `DLQ_MANAGER_PORT` | `8086` | dlq-manager サービスのポート |
+| `FEATUREFLAG_PORT` | `8087` | featureflag サービスのポート |
+| `RATELIMIT_PORT` | `8088` | ratelimit サービスのポート |
+| `TENANT_PORT` | `8089` | tenant サービスのポート |
+| `VAULT_PORT` | `8091` | vault サービスのポート |
+| `BFF_PROXY_PORT` | `8082` | bff-proxy サービスのポート |
 | `CI` | - | CI 環境フラグ（リトライ・ワーカー数の制御） |

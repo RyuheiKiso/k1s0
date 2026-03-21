@@ -2,6 +2,7 @@ package buildingblocks
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -89,6 +90,7 @@ func (p *RedisPubSub) Publish(ctx context.Context, msg *Message) error {
 
 // Subscribe は指定した Redis トピックのメッセージを受信するチャネルを返す。
 // チャネルのバッファサイズは64で、バッファが満杯の場合はメッセージをドロップする。
+// backpressure 対策として、コンシューマが追いつかない場合はブロックせずにドロップする。
 func (p *RedisPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Message, error) {
 	// バッファ付きチャネルを作成し、受信側の処理が遅れてもブロックを防ぐ。
 	ch := make(chan *Message, 64)
@@ -99,12 +101,20 @@ func (p *RedisPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 			Data:      payload,
 			Timestamp: time.Now(),
 		}
-		// コンテキストキャンセルまでチャネルへの送信をブロックする。
-		// default による無言ドロップを排除し、ctx.Done() でシャットダウンを検出する。
+		// バッファ満杯時はメッセージをドロップして配信ループの継続を優先する。
+		// コンテキストキャンセル時はエラーを返してシャットダウンを伝播する。
 		select {
 		case ch <- msg:
 		case <-ctx.Done():
 			return ctx.Err()
+		default:
+			// バッファが満杯のためメッセージをドロップする。
+			// コンシューマが追いつかない場合の backpressure 対策として、
+			// ブロックせずにドロップして配信ループの継続を優先する。
+			slog.Warn("PubSub メッセージをドロップしました: バッファ満杯",
+				slog.String("topic", topic),
+				slog.Int("buffer_cap", cap(ch)),
+			)
 		}
 		return nil
 	}

@@ -23,16 +23,22 @@ LANG_FILTER="${2:-}"
 # Python の yaml モジュールを使ってパースし、除外パスリストを生成する
 SKIP_PATHS=()
 if command -v python3 >/dev/null 2>&1 && [ -f "$MODULES_YAML" ]; then
-  # skip-ci: true または status: archived のモジュールパスを一覧化する
-  mapfile -t SKIP_PATHS < <(python3 - <<'PYEOF'
+  # PyYAML が利用可能かを事前チェックする。未インストールの場合は警告を出す。
+  if ! python3 -c "import yaml" 2>/dev/null; then
+    echo "::warning::PyYAML が未インストールです。skip-ci フィルタをスキップします。" >&2
+  else
+    mapfile -t SKIP_PATHS < <(python3 - "$MODULES_YAML" <<'PYEOF'
 import sys, yaml
-with open(sys.argv[1]) as f:
+
+modules_yaml = sys.argv[1]
+with open(modules_yaml) as f:
     data = yaml.safe_load(f)
 for mod in data.get('modules', []):
     if mod.get('skip-ci', False) or mod.get('status') == 'archived':
         print(mod['path'])
 PYEOF
-  "$MODULES_YAML" 2>/dev/null || true)
+    )
+  fi
 fi
 
 # ベースブランチを明示的に fetch してマージベースを確実に取得する

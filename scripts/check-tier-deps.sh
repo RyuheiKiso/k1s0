@@ -26,10 +26,11 @@ while IFS= read -r cargo_toml; do
     dir="$(dirname "$cargo_toml")"
     # system 層ディレクトリかどうか確認
     if echo "$dir" | grep -qE 'regions/system/(server|library)'; then
-        # business/service 固有のクレートへの依存があるか検索
-        if grep -qE 'k1s0-(business|service)-' "$cargo_toml" 2>/dev/null; then
+        # [dependencies] セクションのみを対象にパターンを検索する。
+        # package の name フィールドがパターンに一致しても偽陽性にならないよう制限する。
+        if sed -n '/^\[.*dependencies/,/^\[/p' "$cargo_toml" 2>/dev/null | grep -qE 'k1s0-(business|service)-'; then
             echo "ERROR: system tier が business/service クレートに依存しています: $cargo_toml"
-            grep -E 'k1s0-(business|service)-' "$cargo_toml"
+            sed -n '/^\[.*dependencies/,/^\[/p' "$cargo_toml" 2>/dev/null | grep -E 'k1s0-(business|service)-'
             failed=1
         fi
     fi
@@ -52,9 +53,11 @@ echo "--- business tier: service への逆依存チェック ---"
 while IFS= read -r cargo_toml; do
     dir="$(dirname "$cargo_toml")"
     if echo "$dir" | grep -qE 'regions/business'; then
-        if grep -qE 'k1s0-service-' "$cargo_toml" 2>/dev/null; then
+        # [dependencies] セクションのみを対象にパターンを検索する。
+        # package の name フィールドがパターンに一致しても偽陽性にならないよう制限する。
+        if sed -n '/^\[.*dependencies/,/^\[/p' "$cargo_toml" 2>/dev/null | grep -qE 'k1s0-service-'; then
             echo "ERROR: business tier が service クレートに依存しています: $cargo_toml"
-            grep -E 'k1s0-service-' "$cargo_toml"
+            sed -n '/^\[.*dependencies/,/^\[/p' "$cargo_toml" 2>/dev/null | grep -E 'k1s0-service-'
             failed=1
         fi
     fi

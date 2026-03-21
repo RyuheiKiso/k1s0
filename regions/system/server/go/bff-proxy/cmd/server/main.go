@@ -82,12 +82,12 @@ func run() error {
 	// Redis接続を確認する。
 	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
 	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
-	// ALLOW_REDIS_SKIP は development 環境のみ有効。production/staging では無視してエラーで終了する。
+	// ALLOW_REDIS_SKIP は dev/development/local 環境のみ有効。production/staging では無視してエラーで終了する。
 	if err := redisClient.Ping(ctx).Err(); err != nil {
 		env := cfg.App.Environment
-		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && env == "development"
+		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
 		if allowSkip {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（development環境のみ）", slog.String("error", err.Error()))
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
 		} else {
 			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
 			return fmt.Errorf("Redis接続に失敗しました: %w", err)
@@ -102,8 +102,11 @@ func run() error {
 	sessionStore := session.NewRedisStore(redisClient, prefix)
 	sessionTTL := config.ParseDuration(cfg.Session.TTL, 30*time.Minute)
 
-	// Initialize OIDC client.
+	// OIDC クライアントを初期化する。
+	// ctx（アプリケーションレベルのコンテキスト）を渡すことで、シャットダウン時に
+	// JWKS バックグラウンドフェッチがキャンセルされるようになる。
 	oauthClient := oauth.NewClient(
+		ctx,
 		cfg.Auth.DiscoveryURL,
 		cfg.Auth.ClientID,
 		cfg.Auth.ClientSecret,
@@ -133,8 +136,9 @@ func run() error {
 		}()
 	}
 
-	// Determine secure cookies based on environment.
-	secureCookie := cfg.App.Environment != "dev"
+	// 開発環境（dev/development/local）では secure フラグを外す。
+	// IsDevEnvironment で統一的に判定することで dev/development の不一致を防ぐ。
+	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 
 	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアントを渡す。
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient)

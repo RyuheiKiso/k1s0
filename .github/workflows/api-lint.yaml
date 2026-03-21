@@ -52,10 +52,10 @@ jobs:
           npx @openapitools/openapi-generator-cli generate \
             -i api/openapi/openapi.yaml \
             -g typescript-axios \
-            -o gen/ts-client \
+            -o api/openapi/gen/ts-client \
             --additional-properties=supportsES6=true
       - name: Verify no diff
-        run: git diff --exit-code gen/ts-client
+        run: git diff --exit-code api/openapi/gen/ts-client
 
   # Dart SDK 生成の検証
   sdk-generate-dart:
@@ -71,6 +71,6 @@ jobs:
           npx @openapitools/openapi-generator-cli generate \
             -i api/openapi/openapi.yaml \
             -g dart \
-            -o gen/dart-client
+            -o api/openapi/gen/dart-client
       - name: Verify no diff
-        run: git diff --exit-code gen/dart-client
+        run: git diff --exit-code api/openapi/gen/dart-client

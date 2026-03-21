@@ -401,6 +401,35 @@ mod tests {
 
 ## Doc Sync (2026-03-21)
 
+### RedisPubSub backpressure ポリシー [F10]
+
+**backpressure 方針**
+
+`redis_pubsub.go` の `Subscribe` ハンドラーは、バッファ付きチャネル（容量 64）を使用する。
+コンシューマが追いつかずバッファが満杯になった場合は、メッセージをドロップして配信ループの継続を優先する。
+
+- バッファ満杯時: メッセージをドロップし、`slog.Warn` でトピック名とバッファ容量をログ出力する
+- コンテキストキャンセル時: エラーを返して処理を終了する
+
+```go
+select {
+case ch <- msg:
+case <-ctx.Done():
+    return ctx.Err()
+default:
+    // バッファが満杯のためメッセージをドロップする。
+    // コンシューマが追いつかない場合の backpressure 対策として、
+    // ブロックせずにドロップして配信ループの継続を優先する。
+    slog.Warn("PubSub メッセージをドロップしました: バッファ満杯",
+        slog.String("topic", topic),
+        slog.Int("buffer_cap", cap(ch)),
+    )
+}
+```
+
+この設計により、低速コンシューマが Redis のメッセージ受信ループをブロックするリスクを排除する。
+ドロップが頻発する場合は `slog.Warn` ログを監視してコンシューマの処理速度改善またはバッファ拡大を検討する。
+
 ### goroutine チャネル送信の ctx.Done() 対応 [技術品質監査 High 3-1]
 
 **背景・問題**
@@ -412,27 +441,8 @@ mod tests {
 
 **対応内容**
 
-Kafka・Redis 双方のハンドラーで `default:` ケースを除去し、`ctx.Done()` ケースに置き換えた。
-
-```go
-// 変更前: バッファ満杯時はドロップ
-select {
-case ch <- msg:
-default:
-}
-
-// 変更後: コンテキストキャンセルまでブロック
-select {
-case ch <- msg:
-case <-ctx.Done():
-    return ctx.Err()
-}
-```
-
-これにより：
-- バッファが一時的に満杯でも、受信側の処理が追いつけばメッセージを送信できる
-- コンテキストがキャンセルされた場合はエラーを返して処理を終了する
-- lessons.md の「goroutine内チャネル送信は select + ctx.Done()」ポリシーに準拠
+Kafka・Redis 双方のハンドラーで `default:` ケースを除去し、`ctx.Done()` ケースに置き換えた後、
+RedisPubSub は F10 対応で再度 `default:` ケースを追加して backpressure ドロップポリシーを明示化した。
 
 **影響範囲**
 

@@ -89,6 +89,21 @@ components:
 | `from_yaml(yaml: &str)` | YAML 文字列からパース |
 | `from_file(path: &Path)` | YAML ファイルから読み込み |
 
+### Dart ComponentsConfig.fromYaml エラーハンドリング
+
+Dart 実装の `ComponentsConfig.fromYaml` は以下のエラーを `ComponentError` としてラップして報告する:
+
+| エラー条件 | 詳細 |
+|-----------|------|
+| YAML 構文エラー | `YamlException` をキャッチし `ComponentError(operation: 'parse', message: 'invalid YAML syntax: ...')` に変換 |
+| `components` フィールド不正 | Map でない、または `components` がリストでない場合に `ComponentError` をスロー |
+| 要素が Map でない | `components[i]` が Map でない場合に要素インデックス付きの `ComponentError` をスロー |
+| フィールド型不正 | `ComponentConfig.fromYaml` 内で `name`・`type` が String でない場合に `ComponentError` をスロー |
+| `TypeError` | `ComponentConfig.fromYaml` での型キャスト失敗を要素インデックス付きの `ComponentError` に変換 |
+
+`ComponentConfig.fromYaml` は必須フィールド `name` と `type` の存在・型を明示的に検証する。
+これにより素の `TypeError` が呼び出し元に漏れることなく、診断可能なエラーメッセージが提供される。
+
 ## 使用例
 
 ```rust

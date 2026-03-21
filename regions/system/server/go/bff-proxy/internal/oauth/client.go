@@ -43,6 +43,9 @@ type Client struct {
 	redirectURI  string
 	scopes       []string
 	httpClient   *http.Client
+	// ctx はアプリケーションレベルのコンテキスト。シャットダウン時にJWKSフェッチを含む
+	// バックグラウンド操作がキャンセルされるようにするために保持する。
+	ctx context.Context
 	// mu はoidcConfigとverifierへの並行アクセスを保護するRWMutex。
 	// Discover/ClearDiscoveryCacheは書き込みロック、読み取り系メソッドは読み取りロックを使用する。
 	mu         sync.RWMutex
@@ -65,9 +68,12 @@ func WithHTTPTimeout(d time.Duration) ClientOption {
 }
 
 // NewClient creates an OIDC client for the BFF proxy.
-// オプション関数を渡すことで HTTP タイムアウト等の動作をカスタマイズできる。
-func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes []string, opts ...ClientOption) *Client {
+// ctx はアプリケーションレベルのコンテキストで、シャットダウン時に JWKS フェッチを
+// キャンセルできるようにするために必要。オプション関数を渡すことで HTTP タイムアウト等の
+// 動作をカスタマイズできる。
+func NewClient(ctx context.Context, discoveryURL, clientID, clientSecret, redirectURI string, scopes []string, opts ...ClientOption) *Client {
 	c := &Client{
+		ctx:          ctx,
 		discoveryURL: discoveryURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
@@ -324,8 +330,10 @@ func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
 		return nil, fmt.Errorf("jwks_uri not available in OIDC discovery document")
 	}
 
-	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う
-	keySet := oidc.NewRemoteKeySet(context.Background(), cfg.JwksURI)
+	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う。
+	// c.ctx（アプリケーションレベルのコンテキスト）を使用することで、
+	// シャットダウン時に JWKS のバックグラウンドフェッチがキャンセルされる。
+	keySet := oidc.NewRemoteKeySet(c.ctx, cfg.JwksURI)
 	c.verifier = oidc.NewVerifier(cfg.Issuer, keySet, &oidc.Config{ClientID: c.clientID})
 	return c.verifier, nil
 }

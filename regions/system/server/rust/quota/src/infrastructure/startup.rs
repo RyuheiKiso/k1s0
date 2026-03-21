@@ -106,9 +106,17 @@ pub async fn run() -> anyhow::Result<()> {
                 (policy_repo, usage_repo)
             }
             Err(e) => {
+                // 環境に応じてフォールバックの許否を判断する。
+                // dev/test 以外ではインフラ接続失敗時に即座にサーバー起動を中断する。
+                if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
+                    return Err(anyhow::anyhow!(
+                        "PostgreSQL 接続に失敗しました。本番環境ではフォールバックは許可されていません: {}",
+                        e
+                    ));
+                }
                 tracing::warn!(
                     error = %e,
-                    "failed to connect to PostgreSQL, falling back to InMemory"
+                    "dev/test 環境: PostgreSQL 接続失敗のため InMemory フォールバックで起動します"
                 );
                 // usage_repo: Redis が使えればRedis、なければInMemory
                 let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
@@ -174,15 +182,30 @@ pub async fn run() -> anyhow::Result<()> {
                     Arc::new(producer)
                 }
                 Err(e) => {
+                    // 環境に応じてフォールバックの許否を判断する。
+                    // dev/test 以外では Kafka 初期化失敗時に即座にサーバー起動を中断する。
+                    if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
+                        return Err(anyhow::anyhow!(
+                            "Kafka プロデューサーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {}",
+                            e
+                        ));
+                    }
                     tracing::warn!(
                         error = %e,
-                        "failed to create Kafka producer, using NoopQuotaEventPublisher"
+                        "dev/test 環境: Kafka 初期化失敗のため NoopQuotaEventPublisher で起動します"
                     );
                     Arc::new(infrastructure::kafka_producer::NoopQuotaEventPublisher)
                 }
             }
         } else {
-            info!("no Kafka config found, using NoopQuotaEventPublisher");
+            // Kafka 設定が未指定の場合も infra_guard で dev/test 環境のみ許可する。
+            k1s0_server_common::require_infra(
+                "quota",
+                k1s0_server_common::InfraKind::Kafka,
+                &cfg.app.environment,
+                None::<String>,
+            )?;
+            info!("no Kafka config found, using NoopQuotaEventPublisher (dev/test bypass)");
             Arc::new(infrastructure::kafka_producer::NoopQuotaEventPublisher)
         };
 

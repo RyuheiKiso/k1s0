@@ -1,9 +1,8 @@
 // BFF 認証フロー E2E テスト
 // 未認証リクエストが適切に拒否され、認証エンドポイントが正しく動作することを検証する
 import { test, expect } from "@playwright/test";
-
-// BFF プロキシのベース URL
-const BFF_BASE = "http://localhost:8082";
+// BFF_BASE は環境変数または config.ts のデフォルト値を使用する
+import { BFF_BASE } from "./config";
 
 test.describe("未認証アクセス保護", () => {
   // セッション Cookie なしで保護エンドポイントにアクセスすると 401 が返ることを検証する

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -107,6 +108,16 @@ type CSRFConfig struct {
 type UpstreamConfig struct {
 	BaseURL string `yaml:"base_url" validate:"required,url"`
 	Timeout string `yaml:"timeout"`
+}
+
+// IsDevEnvironment は開発環境かどうかを判定する。
+// "dev", "development", "local" のいずれかを開発環境として扱う。
+func IsDevEnvironment(env string) bool {
+	switch strings.ToLower(strings.TrimSpace(env)) {
+	case "dev", "development", "local":
+		return true
+	}
+	return false
 }
 
 // ParseDuration parses a duration string with a fallback default.

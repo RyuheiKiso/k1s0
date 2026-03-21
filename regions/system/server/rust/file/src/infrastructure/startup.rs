@@ -128,7 +128,18 @@ pub async fn run() -> anyhow::Result<()> {
                 Arc::new(p)
             }
             Err(e) => {
-                tracing::warn!("Failed to create Kafka publisher, using noop: {}", e);
+                // 環境に応じてフォールバックの許否を判断する。
+                // dev/test 以外では Kafka 初期化失敗時に即座にサーバー起動を中断する。
+                if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
+                    return Err(anyhow::anyhow!(
+                        "Kafka パブリッシャーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {}",
+                        e
+                    ));
+                }
+                tracing::warn!(
+                    error = %e,
+                    "dev/test 環境: Kafka 初期化失敗のため NoopFileEventPublisher で起動します"
+                );
                 Arc::new(NoopFileEventPublisher)
             }
         }

@@ -27,7 +27,7 @@ func TestClient_Discover(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewClient(srv.URL, "client-id", "client-secret", "http://localhost/callback", []string{"openid"})
+	client := NewClient(context.Background(), srv.URL, "client-id", "client-secret", "http://localhost/callback", []string{"openid"})
 
 	cfg, err := client.Discover(context.Background())
 	require.NoError(t, err)
@@ -45,7 +45,7 @@ func TestClient_Discover_Cached(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewClient(srv.URL, "client-id", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), srv.URL, "client-id", "", "http://localhost/callback", nil)
 
 	_, err := client.Discover(context.Background())
 	require.NoError(t, err)
@@ -57,7 +57,7 @@ func TestClient_Discover_Cached(t *testing.T) {
 }
 
 func TestClient_AuthCodeURL(t *testing.T) {
-	client := NewClient("https://idp.example.com", "my-client", "", "http://localhost/callback", []string{"openid", "profile"})
+	client := NewClient(context.Background(), "https://idp.example.com", "my-client", "", "http://localhost/callback", []string{"openid", "profile"})
 	client.oidcConfig = &OIDCConfig{
 		AuthorizationEndpoint: "https://idp.example.com/authorize",
 	}
@@ -97,7 +97,7 @@ func TestClient_ExchangeCode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewClient("https://idp.example.com", "my-client", "secret", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), "https://idp.example.com", "my-client", "secret", "http://localhost/callback", nil)
 	client.oidcConfig = &OIDCConfig{TokenEndpoint: srv.URL}
 
 	resp, err := client.ExchangeCode(context.Background(), "code-abc", "verifier-xyz")
@@ -108,7 +108,7 @@ func TestClient_ExchangeCode(t *testing.T) {
 }
 
 func TestClient_LogoutURL(t *testing.T) {
-	client := NewClient("https://idp.example.com", "my-client", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), "https://idp.example.com", "my-client", "", "http://localhost/callback", nil)
 	client.oidcConfig = &OIDCConfig{
 		EndSessionEndpoint: "https://idp.example.com/logout",
 	}
@@ -121,7 +121,7 @@ func TestClient_LogoutURL(t *testing.T) {
 
 // TestClient_IsDiscovered_Before はdiscovery実行前にfalseを返すことを確認する。
 func TestClient_IsDiscovered_Before(t *testing.T) {
-	client := NewClient("https://idp.example.com", "client-id", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), "https://idp.example.com", "client-id", "", "http://localhost/callback", nil)
 	assert.False(t, client.IsDiscovered())
 }
 
@@ -133,7 +133,7 @@ func TestClient_IsDiscovered_After(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewClient(srv.URL, "client-id", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), srv.URL, "client-id", "", "http://localhost/callback", nil)
 
 	_, err := client.Discover(context.Background())
 	require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestClient_IsDiscovered_After(t *testing.T) {
 }
 
 func TestClient_EnsureDiscovered_Error(t *testing.T) {
-	client := NewClient("https://idp.example.com", "my-client", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), "https://idp.example.com", "my-client", "", "http://localhost/callback", nil)
 	// No discovery performed.
 
 	_, err := client.AuthCodeURL("state", "challenge")
@@ -162,7 +162,7 @@ func TestClient_ClearDiscoveryCache(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := NewClient(srv.URL, "client-id", "", "http://localhost/callback", nil)
+	client := NewClient(context.Background(), srv.URL, "client-id", "", "http://localhost/callback", nil)
 
 	// 初回 discovery を実行する
 	_, err := client.Discover(context.Background())

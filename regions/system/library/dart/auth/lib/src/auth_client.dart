@@ -245,7 +245,9 @@ class AuthClient {
   }
 
   /// ログアウト処理。
-  /// トークンを削除し、Keycloak の logout endpoint にリダイレクトする。
+  /// トークンを削除し、end_session エンドポイントにリダイレクトする。
+  /// logoutUrl が設定されている場合はそれを優先し、
+  /// 未設定の場合は OIDC Discovery の end_session_endpoint を使用する。
   Future<void> logout() async {
     final tokenSet = _tokenStore.getTokenSet();
     _tokenStore.clearAll();
@@ -253,15 +255,22 @@ class AuthClient {
 
     if (tokenSet != null) {
       try {
-        final discovery = await fetchDiscovery();
+        // logoutUrl が設定されている場合はそれを優先し、
+        // 未設定の場合は OIDC Discovery の end_session_endpoint を使用する。
+        String endSessionUrl;
+        if (_config.logoutUrl != null && _config.logoutUrl!.isNotEmpty) {
+          endSessionUrl = _config.logoutUrl!;
+        } else {
+          final discovery = await fetchDiscovery();
+          endSessionUrl = discovery.endSessionEndpoint;
+        }
         final params = <String, String>{};
         params['id_token_hint'] = tokenSet.idToken;
         if (_config.postLogoutRedirectUri != null) {
           params['post_logout_redirect_uri'] = _config.postLogoutRedirectUri!;
           params['client_id'] = _config.clientId;
         }
-        final uri = Uri.parse(discovery.endSessionEndpoint)
-            .replace(queryParameters: params);
+        final uri = Uri.parse(endSessionUrl).replace(queryParameters: params);
         _redirect(uri.toString());
       } catch (_) {
         // Discovery 取得に失敗してもログアウト自体は成功とする
