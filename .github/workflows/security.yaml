@@ -53,7 +53,7 @@ jobs:
       # Rust ツールチェインのセットアップ
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Rust セットアップ
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # stable
       # cargo-audit コマンドのインストール
       - name: cargo-audit インストール
         run: cargo install cargo-audit
@@ -275,7 +275,7 @@ jobs:
       # Rust ツールチェインのセットアップ
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Rust セットアップ
-        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # stable
         with:
           components: clippy
 
