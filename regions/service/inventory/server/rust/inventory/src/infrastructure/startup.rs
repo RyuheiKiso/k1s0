@@ -130,11 +130,38 @@ pub async fn run() -> anyhow::Result<()> {
         Duration::from_secs(5),
         100,
     ));
+    let outbox_shutdown_rx = shutdown_rx.clone();
     let outbox_poller_clone = outbox_poller.clone();
     let outbox_handle = tokio::spawn(async move {
-        outbox_poller_clone.run(shutdown_rx).await;
+        outbox_poller_clone.run(outbox_shutdown_rx).await;
     });
     info!("outbox poller started");
+
+    // 7-b. Saga Consumer — order イベントを購読して在庫操作を行う（C-001）
+    let consumer_handle = if let Some(ref kafka_cfg) = cfg.kafka {
+        let handle_order_event_uc = Arc::new(
+            usecase::handle_order_event::HandleOrderEventUseCase::new(inventory_repo.clone()),
+        );
+        match infrastructure::kafka::inventory_consumer::InventoryKafkaConsumer::new(
+            kafka_cfg,
+            handle_order_event_uc,
+        ) {
+            Ok(consumer) => {
+                let consumer_shutdown_rx = shutdown_rx.clone();
+                let handle = tokio::spawn(async move {
+                    consumer.run(consumer_shutdown_rx).await;
+                });
+                info!("inventory kafka consumer started");
+                Some(handle)
+            }
+            Err(e) => {
+                tracing::warn!("failed to initialize inventory kafka consumer: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // 8. Use Cases
     let reserve_stock_uc = Arc::new(usecase::reserve_stock::ReserveStockUseCase::new(
@@ -250,9 +277,12 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
-    // 13. Graceful shutdown — Outbox Poller を停止
-    info!("shutting down outbox poller");
+    // 13. Graceful shutdown — Outbox Poller と Kafka Consumer を停止
+    info!("shutting down outbox poller and kafka consumer");
     let _ = outbox_handle.await;
+    if let Some(handle) = consumer_handle {
+        let _ = handle.await;
+    }
 
     // R-06 対応: テレメトリのグレースフルシャットダウンを実行する。
     // バッファに残っているトレーススパンや指標をエクスポーターにフラッシュして確実に送信する。

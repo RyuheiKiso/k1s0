@@ -27,6 +27,20 @@ service tier の決済管理サーバーは以下の機能を提供する。
 | 決済失敗 API | エラーコード・メッセージを記録して決済を失敗にする |
 | 決済返金 API | 完了済み決済を返金する |
 | 決済イベント配信 | Kafka トピックへの決済ライフサイクルイベントの非同期配信 |
+| **Saga Consumer** | `order.created` を購読して決済を自動開始する（C-001） |
+
+### Saga 補償フロー（C-001）
+
+Choreography-based Saga パターンを採用。Payment Consumer は order.created を購読して決済を開始する。
+
+| 購読トピック | 処理 | 結果 |
+|-----------|------|------|
+| `order.created` | `InitiatePayment(order_id, customer_id, amount, currency)` | Saga 正常フロー（決済開始） |
+
+- Consumer Group: `k1s0-payment-consumer`（`kafka.consumer_group_id` で設定可能）
+- 冪等性: `InitiatePaymentUseCase` が `find_by_order_id` で重複チェックを行い二重課金を防止
+- 決済失敗時: Outbox 経由で `payment.failed` が発行 → Order Consumer が注文をキャンセル → 在庫解放
+- 詳細: [イベント駆動設計.md](../../../libraries/_common/イベント駆動設計.md#saga-補償トランザクションパターンc-001)
 
 ### 技術スタック
 

@@ -26,6 +26,21 @@ service tier の在庫管理サーバーは以下の機能を提供する。
 | 在庫一覧取得 API | 商品 ID・倉庫 ID によるフィルタリング付きの在庫一覧を取得する |
 | 在庫更新 API | 在庫数量を直接更新する（楽観的ロック付き） |
 | 在庫イベント配信 | Kafka トピックへの在庫予約・解放イベントの非同期配信 |
+| **Saga Consumer** | `order.created/cancelled` を購読して在庫を自動操作する（C-001） |
+
+### Saga 補償フロー（C-001）
+
+Choreography-based Saga パターンを採用。Inventory Consumer は order イベントを購読して在庫操作を行う。
+
+| 購読トピック | 処理 | 結果 |
+|-----------|------|------|
+| `order.created` | `ReserveStock(items[*])` | Saga 正常フロー（在庫確保） |
+| `order.cancelled` | `ReleaseStock(items[*])` | Saga 補償トランザクション（在庫解放） |
+
+- Consumer Group: `k1s0-inventory-consumer`（`kafka.consumer_group_id` で設定可能）
+- 倉庫 ID: デフォルト `WH-DEFAULT`（将来的には注文データに `warehouse_id` を含める）
+- `order.cancelled` 処理: `find_reserved_by_order_id` が未実装のため現在は警告ログのみ
+- 詳細: [イベント駆動設計.md](../../../libraries/_common/イベント駆動設計.md#saga-補償トランザクションパターンc-001)
 
 ### 技術スタック
 

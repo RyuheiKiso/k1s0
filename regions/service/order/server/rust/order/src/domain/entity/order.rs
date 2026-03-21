@@ -323,6 +323,212 @@ mod tests {
         assert!(result.unwrap_err().to_string().contains("at least one item"));
     }
 
+    // CreateOrder::validate() のバリデーションルールを網羅的にテストする（テーブルドリブン方式）
+    #[test]
+    fn test_create_order_validate_table_driven() {
+        // テストケースの構造体
+        struct Case {
+            name: &'static str,
+            input: CreateOrder,
+            // None なら Ok を期待、Some(s) ならエラーメッセージに s が含まれることを期待
+            expected_err_contains: Option<&'static str>,
+        }
+
+        // 各テストケースで使用する有効なデフォルトアイテムを生成するクロージャ
+        let valid_item = || CreateOrderItem {
+            product_id: "PROD-001".to_string(),
+            product_name: "Widget".to_string(),
+            quantity: 2,
+            unit_price: 500,
+        };
+
+        let cases = vec![
+            Case {
+                name: "空文字の customer_id は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![valid_item()],
+                },
+                expected_err_contains: Some("customer_id"),
+            },
+            Case {
+                name: "空白のみの customer_id は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "   ".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![valid_item()],
+                },
+                expected_err_contains: Some("customer_id"),
+            },
+            Case {
+                name: "空文字の currency は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "".to_string(),
+                    notes: None,
+                    items: vec![valid_item()],
+                },
+                expected_err_contains: Some("currency"),
+            },
+            Case {
+                name: "空白のみの currency は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "  ".to_string(),
+                    notes: None,
+                    items: vec![valid_item()],
+                },
+                expected_err_contains: Some("currency"),
+            },
+            Case {
+                name: "空文字の product_id は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: 1,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("product_id"),
+            },
+            Case {
+                name: "空白のみの product_id は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "  ".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: 1,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("product_id"),
+            },
+            Case {
+                name: "空文字の product_name は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "".to_string(),
+                        quantity: 1,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("product_name"),
+            },
+            Case {
+                name: "空白のみの product_name は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "  ".to_string(),
+                        quantity: 1,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("product_name"),
+            },
+            Case {
+                name: "quantity = 0 は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: 0,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("quantity"),
+            },
+            Case {
+                name: "quantity = -1 は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: -1,
+                        unit_price: 100,
+                    }],
+                },
+                expected_err_contains: Some("quantity"),
+            },
+            Case {
+                name: "unit_price = -1 は ValidationFailed を返す",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: 1,
+                        unit_price: -1,
+                    }],
+                },
+                expected_err_contains: Some("unit_price"),
+            },
+            Case {
+                name: "unit_price = 0 は Ok を返す（無料商品は許可）",
+                input: CreateOrder {
+                    customer_id: "CUST-001".to_string(),
+                    currency: "JPY".to_string(),
+                    notes: None,
+                    items: vec![CreateOrderItem {
+                        product_id: "PROD-001".to_string(),
+                        product_name: "Widget".to_string(),
+                        quantity: 1,
+                        unit_price: 0,
+                    }],
+                },
+                expected_err_contains: None,
+            },
+        ];
+
+        for case in &cases {
+            let result = case.input.validate();
+            match case.expected_err_contains {
+                Some(expected) => {
+                    assert!(result.is_err(), "{}: Ok を返したが Err を期待", case.name);
+                    assert!(
+                        result.unwrap_err().to_string().contains(expected),
+                        "{}: エラーメッセージに '{}' が含まれていない",
+                        case.name,
+                        expected
+                    );
+                }
+                None => {
+                    assert!(
+                        result.is_ok(),
+                        "{}: Err を返したが Ok を期待: {:?}",
+                        case.name,
+                        result
+                    );
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_create_order_calculate_total() {
         // CreateOrder::calculate_total() が正しい合計を返すことを確認する
