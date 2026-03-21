@@ -35,6 +35,9 @@ x-rust-healthcheck: &rust-healthcheck
   interval: 10s
   timeout: 5s
   retries: 5
+  # Rust サービス初回起動（DBマイグレーション含む）に時間がかかるため、
+  # start_period 内の失敗はカウントせず、起動完了後から retries を適用する（M-22対応）
+  start_period: 30s
 
 services:
   # ============================================================
@@ -61,7 +64,8 @@ services:
       - SETUID
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     ports:
       - "${PG_HOST_PORT:-5432}:5432"
     volumes:
@@ -93,9 +97,10 @@ services:
       - SETGID
       - SETUID
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       MYSQL_USER: ${MYSQL_USER:-dev}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-dev}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
@@ -125,7 +130,8 @@ services:
     # Redis 認証: 環境変数 REDIS_PASSWORD を参照してパスワード保護を有効化する。
     # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
     # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
@@ -258,16 +264,17 @@ services:
       KC_DB_URL_HOST: postgres
       KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: ${KC_DB_USERNAME:-dev}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワード/シークレットを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:?KC_DB_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       KC_HEALTH_ENABLED: "true"
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-dev}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       # Realm JSONのenvsubst用シークレット変数
-      KC_BFF_CLIENT_SECRET: ${KC_BFF_CLIENT_SECRET:-dev-bff-secret}
-      KC_SERVICE_CLIENT_SECRET: ${KC_SERVICE_CLIENT_SECRET:-dev-service-secret}
-      KC_TEST_ADMIN_PASSWORD: ${KC_TEST_ADMIN_PASSWORD:-admin123}
-      KC_TEST_USER_PASSWORD: ${KC_TEST_USER_PASSWORD:-user123}
-      KC_TEST_ORDER_MGR_PASSWORD: ${KC_TEST_ORDER_MGR_PASSWORD:-order123}
+      KC_BFF_CLIENT_SECRET: ${KC_BFF_CLIENT_SECRET:?KC_BFF_CLIENT_SECRET must be set. For local dev use docker-compose.dev.yaml}
+      KC_SERVICE_CLIENT_SECRET: ${KC_SERVICE_CLIENT_SECRET:?KC_SERVICE_CLIENT_SECRET must be set. For local dev use docker-compose.dev.yaml}
+      KC_TEST_ADMIN_PASSWORD: ${KC_TEST_ADMIN_PASSWORD:?KC_TEST_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      KC_TEST_USER_PASSWORD: ${KC_TEST_USER_PASSWORD:?KC_TEST_USER_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      KC_TEST_ORDER_MGR_PASSWORD: ${KC_TEST_ORDER_MGR_PASSWORD:?KC_TEST_ORDER_MGR_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
     command: ["start-dev", "--import-realm"]
     ports:
@@ -304,7 +311,8 @@ services:
     # Redis 認証: 環境変数 REDIS_PASSWORD を参照してパスワード保護を有効化する。
     # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
     environment:
-      REDIS_PASSWORD: ${REDIS_SESSION_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      REDIS_PASSWORD: ${REDIS_SESSION_PASSWORD:?REDIS_SESSION_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
     # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
@@ -373,7 +381,8 @@ services:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
       KONG_PROXY_LISTEN: "0.0.0.0:8000"
-      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+      # Admin API はコンテナ内 localhost のみにバインドし、外部ネットワークからの直接アクセスを防止する（C-02対応）
+      KONG_ADMIN_LISTEN: "127.0.0.1:8001"
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -1204,7 +1213,8 @@ services:
     cap_drop:
       - ALL
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-dev}
+      # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     ports:
       - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:

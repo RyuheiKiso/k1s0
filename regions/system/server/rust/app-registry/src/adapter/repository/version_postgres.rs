@@ -54,7 +54,8 @@ pub struct VersionPostgresRepository {
 }
 
 impl VersionPostgresRepository {
-    #[allow(dead_code)]
+    // テスト環境でのみ使用するコンストラクタ。本番では with_metrics を使用する（M-01対応）
+    #[cfg(test)]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,

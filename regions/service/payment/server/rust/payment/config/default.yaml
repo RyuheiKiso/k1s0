@@ -27,6 +27,10 @@ kafka:
   payment_completed_topic: "k1s0.service.payment.completed.v1"
   payment_failed_topic: "k1s0.service.payment.failed.v1"
   payment_refunded_topic: "k1s0.service.payment.refunded.v1"
+  # Saga: order.created を受信して決済を開始する（C-001）
+  order_created_topic: "k1s0.event.service.order.created.v1"
+  # Saga: order.cancelled を受信して進行中の決済を中断する（M-20）
+  order_cancelled_topic: "k1s0.event.service.order.cancelled.v1"
   security_protocol: "PLAINTEXT"
 
 auth:

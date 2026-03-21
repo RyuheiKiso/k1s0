@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# エラー発生時に即座に終了し、未定義変数をエラーとして扱い、パイプラインの途中エラーも検知する（M-26対応）
+set -euo pipefail
 # events.yaml から各言語（Rust/Go）のイベントコードを生成するスクリプト。
 # Rust codegen ライブラリを使用して proto ファイル、型定義、Producer/Consumer を生成する。
 #

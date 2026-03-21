@@ -1,4 +1,6 @@
 #!/bin/bash
+# エラー発生時に即座に終了し、未定義変数をエラーとして扱い、パイプラインの途中エラーも検知する（M-26対応）
+set -euo pipefail
 # coverage.sh - Rust プロジェクトのテストカバレッジ測定スクリプト
 # cargo-tarpaulin を使用して全 Rust ライブラリ・サーバーのカバレッジを測定し、
 # HTML レポートを coverage/ ディレクトリに出力する。

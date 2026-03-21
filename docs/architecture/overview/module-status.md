@@ -89,7 +89,7 @@
 |-----------|--------|------|
 | order | `template-only` | scaffold生成のみ |
 | inventory | `template-only` | scaffold生成のみ |
-| payment | `template-only` | scaffold生成のみ |
+| payment | `beta` | ドメインモデル・ユースケース・Outbox/Kafka連携・冪等性チェック実装済み |
 
 ---
 

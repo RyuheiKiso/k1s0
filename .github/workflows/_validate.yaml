@@ -1,0 +1,234 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/_validate.yaml
+# 設定・セキュリティ・整合性の検証ジョブを集約した再利用可能ワークフロー
+# ci.yaml から workflow_call で呼び出す（detect 完了後に並行実行可能）
+name: _validate
+
+permissions: {}
+
+on:
+  workflow_call:
+    inputs:
+      helm:
+        type: string
+        required: false
+        default: 'false'
+
+jobs:
+  # Helm チャートのリント
+  helm-lint:
+    if: inputs.helm == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: "3.16"
+      - run: |
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              helm lint "$chart"
+            fi
+          done
+
+  # modules.yaml とディスク上のマニフェストの整合性検証
+  validate-modules:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: modules.yaml とディスク上マニフェストの整合性チェック
+        shell: bash
+        run: |
+          chmod +x scripts/list-modules.sh
+          registered=$(
+            {
+              scripts/list-modules.sh --lang rust --type workspace
+              scripts/list-modules.sh --lang rust --type server
+              scripts/list-modules.sh --lang rust --type library
+              scripts/list-modules.sh --lang rust --type cli
+              scripts/list-modules.sh --lang rust --type client
+              scripts/list-modules.sh --lang go
+              scripts/list-modules.sh --lang ts
+              scripts/list-modules.sh --lang dart
+            } | sort -u
+          )
+          disk_modules=$(
+            {
+              find regions CLI -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              find regions CLI -name 'go.mod' -not -path '*/vendor/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              find regions CLI -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null | while read -r f; do dirname "$f"; done
+              find regions CLI -name 'pubspec.yaml' 2>/dev/null | while read -r f; do dirname "$f"; done
+            } | sort -u
+          )
+          unregistered=$(comm -23 <(echo "$disk_modules") <(echo "$registered"))
+          if [ -n "$unregistered" ]; then
+            echo "::error::以下のモジュールが modules.yaml に未登録です:"
+            echo "$unregistered" | while read -r path; do echo "::error::  - $path"; done
+            exit 1
+          fi
+          ghost=$(comm -13 <(echo "$disk_modules") <(echo "$registered"))
+          if [ -n "$ghost" ]; then
+            echo "::error::以下のモジュールが modules.yaml に登録されていますがディスクに存在しません:"
+            echo "$ghost" | while read -r path; do echo "::error::  - $path"; done
+            exit 1
+          fi
+          echo "modules.yaml とディスク上のマニフェストが双方向で一致しています"
+
+  # Vault policy の広域 wildcard 検出
+  validate-vault-policies:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Check for overly broad Vault wildcards
+        shell: bash
+        run: |
+          if grep -rn 'secret/data/k1s0/.*\*' infra/vault/policies/ 2>/dev/null | grep -v '/common/\*'; then
+            echo "::error::Vault policy に広域 wildcard が検出されました。共通パス (common/*) のみ許可されています。"
+            exit 1
+          fi
+
+  # TypeScript パッケージの lockfile 存在チェック
+  validate-ts-lockfiles:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Check package-lock.json exists for all TS packages
+        shell: bash
+        run: |
+          missing=0
+          for pkg in $(find regions CLI tests -name 'package.json' -not -path '*/node_modules/*' 2>/dev/null); do
+            dir=$(dirname "$pkg")
+            if [ ! -f "$dir/package-lock.json" ]; then
+              echo "::error::$dir に package-lock.json がありません。npm install で生成してください。"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then exit 1; fi
+
+  # リリースビルドに dev フィーチャーが含まれないことを検証
+  # SEC-005 / RUST-003: dev-auth-bypass / dev-infra-bypass の本番バイナリへの混入を防止する
+  verify-release-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Dockerfile に dev フィーチャーのハードコードがないことを検証
+        shell: bash
+        run: |
+          if grep -rn 'cargo build.*--release.*--features.*dev-' --include='Dockerfile' regions/ 2>/dev/null | grep -v 'CARGO_FEATURES'; then
+            echo "::error::Dockerfile に dev フィーチャーがハードコードされています。CARGO_FEATURES ARG 経由でのみ指定してください。"
+            exit 1
+          fi
+          echo "Dockerfile に dev フィーチャーのハードコードはありません"
+      - name: CARGO_FEATURES ARG のデフォルト値が空文字であることを検証
+        shell: bash
+        run: |
+          failed=0
+          while IFS= read -r dockerfile; do
+            default_val=$(grep -oP 'ARG CARGO_FEATURES="\K[^"]*' "$dockerfile" 2>/dev/null || echo "")
+            if [ -n "$default_val" ]; then
+              echo "::error::$dockerfile: CARGO_FEATURES のデフォルト値が空文字ではありません: '$default_val'"
+              failed=1
+            fi
+          done < <(find regions/ -name 'Dockerfile' 2>/dev/null)
+          if [ "$failed" -eq 1 ]; then exit 1; fi
+          echo "全 Dockerfile の CARGO_FEATURES デフォルト値は空文字です"
+
+  # ティア間依存関係の検証（system → business → service の一方向性を強制する）
+  check-tier-deps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: ティア間依存関係の検証
+        shell: bash
+        run: |
+          failed=0
+          while IFS= read -r cargo_toml; do
+            if grep -qE 'path\s*=\s*"[^"]*regions/(business|service)' "$cargo_toml" 2>/dev/null; then
+              echo "::error::$cargo_toml: system ティアから business/service ティアへの依存が検出されました（逆方向依存違反）"
+              failed=1
+            fi
+          done < <(find regions/system -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null)
+          while IFS= read -r cargo_toml; do
+            if grep -qE 'path\s*=\s*"[^"]*regions/service' "$cargo_toml" 2>/dev/null; then
+              echo "::error::$cargo_toml: business ティアから service ティアへの依存が検出されました（逆方向依存違反）"
+              failed=1
+            fi
+          done < <(find regions/business -name 'Cargo.toml' -not -path '*/target/*' 2>/dev/null)
+          if [ "$failed" -eq 1 ]; then exit 1; fi
+          echo "ティア間依存関係の検証が完了しました（逆方向依存なし）"
+
+  # Terraform の構文・フォーマット検証
+  iac-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3
+      - name: Terraform format check
+        run: terraform fmt -check -recursive infra/terraform/
+      - name: Terraform validate (dev)
+        working-directory: infra/terraform/environments/dev
+        run: |
+          terraform init -backend=false
+          terraform validate
+      - name: Terraform validate (prod)
+        working-directory: infra/terraform/environments/prod
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  # セキュリティスキャン（Trivy）
+  security-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: 1
+
+  # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
+  check-ai-experimental:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+        with:
+          components: clippy
+      - name: Check ai-agent
+        continue-on-error: true
+        run: cargo check --manifest-path regions/system/server/rust/ai-agent/Cargo.toml --all-targets
+      - name: Check ai-gateway
+        continue-on-error: true
+        run: cargo check --manifest-path regions/system/server/rust/ai-gateway/Cargo.toml --all-targets
+      - name: Clippy ai-agent
+        continue-on-error: true
+        run: cargo clippy --manifest-path regions/system/server/rust/ai-agent/Cargo.toml --all-targets -- -D warnings
+      - name: Clippy ai-gateway
+        continue-on-error: true
+        run: cargo clippy --manifest-path regions/system/server/rust/ai-gateway/Cargo.toml --all-targets -- -D warnings

@@ -3,6 +3,7 @@
 
 plugins:
   # JWT Plugin - JWT 認証（グローバル適用）
+  # protocols を https のみに限定し、平文 HTTP 通信を禁止する（M-07 対応）
   - name: jwt
     config:
       uri_param_names: []
@@ -13,6 +14,8 @@ plugins:
       maximum_expiration: 900           # 15分（Access Token のライフタイム）
       header_names:
         - Authorization
+    protocols:
+      - https
 
 # Keycloak JWKS 連携用 Consumer
 consumers:

@@ -276,6 +276,8 @@ fn map_anyhow_to_status(err: anyhow::Error) -> Status {
                 PaymentError::InvalidStatusTransition { .. } => Status::failed_precondition(msg),
                 PaymentError::ValidationFailed(_) => Status::invalid_argument(msg),
                 PaymentError::VersionConflict(_) => Status::aborted(msg),
+                // 冪等性違反は HTTP 409 Conflict に相当する gRPC already_exists にマッピングする。
+                PaymentError::IdempotencyViolation { .. } => Status::already_exists(msg),
                 PaymentError::Internal(_) => Status::internal(msg),
             }
         }

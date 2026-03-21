@@ -17,8 +17,9 @@ export default defineConfig({
   // リトライ設定: CI では 2 回リトライ、ローカルでは 0 回
   retries: process.env.CI ? 2 : 0,
 
-  // 並列ワーカー数: CI では 1 ワーカーに制限し、リソース消費を抑える
-  workers: process.env.CI ? 1 : undefined,
+  // 並列ワーカー数: CI でも 4 ワーカーで並列実行し、E2E テスト時間を短縮する（m-10 対応）
+  // 各テストは独立した HTTP リクエストのみで構成されており、テスト間に共有状態がないため並列安全
+  workers: process.env.CI ? 4 : undefined,
 
   // テストレポート形式: HTML レポートを生成
   reporter: process.env.CI ? "github" : "html",

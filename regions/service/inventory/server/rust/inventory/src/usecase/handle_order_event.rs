@@ -1,15 +1,11 @@
-// Saga 正常/補償: Order イベントに応じた在庫操作ユースケース（C-001）。
+// Saga 正常/補償: Order イベントに応じた在庫操作ユースケース（C-003）。
 // order.created → 注文明細ごとに ReserveStockUseCase を呼び出して在庫を確保する。
-// order.cancelled → 注文に紐づく在庫を ReleaseStockUseCase で解放する（補償トランザクション）。
+// order.cancelled → compensate_order_reservations を呼び出して注文に紐づく全予約を解放する（補償トランザクション）。
 //
-// 冪等性: ReserveStockUseCase / ReleaseStockUseCase は InventoryError::VersionConflict や
-// InventoryError::InsufficientReserved を返す場合がある。
-// 既に同一 order_id で在庫操作が完了している場合、重複は在庫数の不整合を引き起こすため、
-// order_id で操作済みかどうかを確認してからスキップする。
-// 現実装では二重処理抑制はステータス遷移の前提条件チェックに依存する（inventory_item の予約管理）。
+// 冪等性: compensate_order_reservations は inventory_reservations テーブルを参照するため、
+// 既に解放済みの予約（status='released'）は対象外となり、二重解放が発生しない。
 
 use crate::domain::repository::inventory_repository::InventoryRepository;
-use crate::usecase::release_stock::ReleaseStockUseCase;
 use crate::usecase::reserve_stock::ReserveStockUseCase;
 use crate::proto::k1s0::event::service::order::v1::{OrderCancelledEvent, OrderCreatedEvent};
 use std::sync::Arc;
@@ -18,16 +14,15 @@ use tracing::{info, warn};
 /// HandleOrderEventUseCase は order イベントに応じた在庫操作を担う。
 pub struct HandleOrderEventUseCase {
     reserve_stock_uc: Arc<ReserveStockUseCase>,
-    // TODO(C-001): find_reserved_by_order_id 実装後に handle_cancelled で使用する
-    #[allow(dead_code)]
-    release_stock_uc: Arc<ReleaseStockUseCase>,
+    /// Saga 補償トランザクションで order_id に紐づく全予約を解放するために使用する
+    inventory_repo: Arc<dyn InventoryRepository>,
 }
 
 impl HandleOrderEventUseCase {
     pub fn new(inventory_repo: Arc<dyn InventoryRepository>) -> Self {
         Self {
             reserve_stock_uc: Arc::new(ReserveStockUseCase::new(inventory_repo.clone())),
-            release_stock_uc: Arc::new(ReleaseStockUseCase::new(inventory_repo)),
+            inventory_repo,
         }
     }
 
@@ -68,20 +63,27 @@ impl HandleOrderEventUseCase {
         Ok(())
     }
 
-    /// order.cancelled イベントに応じて注文明細ごとに在庫を解放する（Saga 補償）。
+    /// order.cancelled イベントに応じて注文に紐づく全予約を解放する（Saga 補償トランザクション）。
+    /// compensate_order_reservations を呼び出し、単一トランザクション内で
+    /// 予約レコードの更新・在庫数量の復元・Outbox イベント挿入を一括実行する。
     pub async fn handle_cancelled(&self, event: &OrderCancelledEvent) -> anyhow::Result<()> {
-        // order.cancelled イベントには在庫明細情報がないため、
-        // 在庫リポジトリで order_id に紐づく予約を検索して解放する。
-        // 注意: 現在の InventoryRepository には find_by_order_id がないため、
-        //       release は NOP として警告のみ記録する。
-        // TODO(C-001): InventoryRepository に find_reserved_by_order_id を追加し、
-        //              order_id に紐づく全予約を解放する実装に差し替える。
-        warn!(
-            order_id = %event.order_id,
-            reason = %event.reason,
-            "order cancelled: stock release for order_id is not yet implemented (requires find_reserved_by_order_id). \
-             Manual compensation may be required."
-        );
+        let released_items = self
+            .inventory_repo
+            .compensate_order_reservations(&event.order_id, &event.reason)
+            .await?;
+
+        if released_items.is_empty() {
+            info!(
+                order_id = %event.order_id,
+                "no active reservations found for order, saga compensation is idempotent"
+            );
+        } else {
+            info!(
+                order_id = %event.order_id,
+                released_count = released_items.len(),
+                "saga compensation completed: stock reservations released"
+            );
+        }
         Ok(())
     }
 }
@@ -149,10 +151,40 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // order.cancelled イベントは警告ログを出して Ok を返すことを確認する（TODO 実装完了まで）
+    // order.cancelled イベントで予約が存在しない場合は冪等に Ok を返すことを確認する
     #[tokio::test]
-    async fn test_handle_cancelled_returns_ok_with_warning() {
-        let mock_repo = MockInventoryRepository::new();
+    async fn test_handle_cancelled_no_reservations_is_idempotent() {
+        let mut mock_repo = MockInventoryRepository::new();
+        // 予約が存在しないケース: 空リストを返す
+        mock_repo
+            .expect_compensate_order_reservations()
+            .times(1)
+            .returning(|_, _| Ok(vec![]));
+
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: "ORD-001".to_string(),
+            user_id: "saga-consumer".to_string(),
+            reason: "payment failed".to_string(),
+        };
+        let result = uc.handle_cancelled(&event).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled イベントで予約が存在する場合は補償処理が実行されることを確認する
+    #[tokio::test]
+    async fn test_handle_cancelled_releases_reservations() {
+        let released_item = sample_inventory_item();
+        let released_clone = released_item.clone();
+
+        let mut mock_repo = MockInventoryRepository::new();
+        // 1件の予約が解放されるケース
+        mock_repo
+            .expect_compensate_order_reservations()
+            .times(1)
+            .returning(move |_, _| Ok(vec![released_clone.clone()]));
+
         let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
         let event = OrderCancelledEvent {
             metadata: None,

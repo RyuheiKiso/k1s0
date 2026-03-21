@@ -25,6 +25,18 @@
 | SLO バーンレート warning | [common/slo-burn-rate-warning.md](./common/slo-burn-rate-warning.md) | warning |
 | TLS 証明書期限切れ | [common/certificate-expiring.md](./common/certificate-expiring.md) | critical / warning |
 
+## サービス固有 Runbook 一覧
+
+| サービス | アラート名 | ファイル | 重要度 |
+|---------|-----------|---------|--------|
+| bff-proxy | BFFProxy認証障害 | [services/bff-proxy.md](./services/bff-proxy.md) | critical |
+| graphql-gateway | GW バックエンドタイムアウト / 高エラー率 | [services/graphql-gateway.md](./services/graphql-gateway.md) | critical / warning |
+| auth | 認証サービス障害 | [services/auth.md](./services/auth.md) | critical |
+| config | 設定サービス障害 | [services/config.md](./services/config.md) | warning |
+| saga | Saga 補償処理失敗 | [services/saga.md](./services/saga.md) | critical |
+| order | 注文 Kafka コンシューマーラグ | [services/order.md](./services/order.md) | critical / warning |
+| payment | 決済 DLQ 溢れ / 高エラー率 | [services/payment.md](./services/payment.md) | critical |
+
 ## インシデント管理
 
 インシデント対応ワークフロー・エスカレーションパス・ポストモーテムについては

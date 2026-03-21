@@ -226,22 +226,26 @@ impl FeatureFlagGrpcClient {
             .await?
             .into_inner();
 
+        // WatchFeatureFlag ストリームの各レスポンスを FeatureFlag ドメインモデルに変換する。
+        // flag フィールドが None の場合（バックエンドの不整合）はイベントをスキップして次へ進む。
+        // 空のデフォルト値で構築するとサイレントなデータ欠損を招くため、None はスキップが正しい。
         Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
-            match stream.message().await {
-                Ok(Some(resp)) => {
-                    let flag = resp
-                        .flag
-                        .map(|f| Self::to_domain_flag(f, None, None))
-                        .unwrap_or(FeatureFlag {
-                            key: resp.flag_key,
-                            name: String::new(),
-                            enabled: false,
-                            rollout_percentage: 0,
-                            target_environments: vec![],
-                        });
-                    Some((flag, stream))
+            loop {
+                match stream.message().await {
+                    Ok(Some(resp)) => {
+                        // flag フィールドが存在する場合のみドメインモデルに変換して返す
+                        if let Some(f) = resp.flag {
+                            return Some((Self::to_domain_flag(f, None, None), stream));
+                        }
+                        // flag フィールドが None の場合はスキップして次のメッセージを待つ
+                        tracing::warn!(
+                            flag_key = %resp.flag_key,
+                            "WatchFeatureFlag: received event with no flag payload, skipping"
+                        );
+                        // loop を継続して次のメッセージを取得する
+                    }
+                    _ => return None,
                 }
-                _ => None,
             }
         }))
     }

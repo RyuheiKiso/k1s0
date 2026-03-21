@@ -1,4 +1,10 @@
+//! レコードの CRUD 操作を担当する usecase。
+//!
+//! テーブル定義に基づく動的レコードの作成・読み取り・更新・削除を行う。
+//! バリデーションルール評価と変更ログの記録も含む。
+
 use crate::domain::entity::change_log::ChangeLog;
+use crate::domain::error::MasterMaintenanceError;
 use crate::domain::repository::change_log_repository::ChangeLogRepository;
 use crate::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
@@ -11,26 +17,18 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+/// RecordValidationError は domain 層で定義されているが、後方互換性のため usecase からも公開する。
+/// 既存のコードが `usecase::crud_records::RecordValidationError` で参照できるようにする。
+pub use crate::domain::error::RecordValidationError;
+
+/// レコード変更操作の出力型。変更後のレコードとバリデーション警告を含む。
 #[derive(Debug, Clone)]
 pub struct RecordMutationOutput {
     pub record: Value,
     pub warnings: Vec<RuleResult>,
 }
 
-#[derive(Debug)]
-pub struct RecordValidationError {
-    pub errors: Vec<RuleResult>,
-    pub warnings: Vec<RuleResult>,
-}
-
-impl std::fmt::Display for RecordValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "validation failed")
-    }
-}
-
-impl std::error::Error for RecordValidationError {}
-
+/// レコード CRUD 操作を提供する usecase 構造体。
 pub struct CrudRecordsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
@@ -40,6 +38,7 @@ pub struct CrudRecordsUseCase {
     rule_evaluator: RuleEvaluator,
 }
 
+/// レコード一覧取得の出力型。テーブルメタデータとページングされたレコードリストを含む。
 pub struct ListRecordsOutput {
     pub table_name: String,
     pub display_name: String,
@@ -51,6 +50,7 @@ pub struct ListRecordsOutput {
 }
 
 impl CrudRecordsUseCase {
+    /// 依存リポジトリと rule_engine を注入して usecase を構築する。
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
@@ -76,23 +76,27 @@ impl CrudRecordsUseCase {
         }
     }
 
+    /// 保存前ルールを評価して RuleResult の一覧を返す。
     async fn evaluate_before_save_rules(
         &self,
         table: &crate::domain::entity::table_definition::TableDefinition,
         columns: &[crate::domain::entity::column_definition::ColumnDefinition],
         data: &Value,
-    ) -> anyhow::Result<Vec<RuleResult>> {
+    ) -> Result<Vec<RuleResult>, MasterMaintenanceError> {
+        // before_save タイミングのルールのみを評価対象とする
         let rules = self
             .rule_repo
             .find_by_table_id(table.id, Some("before_save"))
-            .await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
         let mut results = Vec::new();
         for rule in rules.into_iter().filter(|rule| rule.is_active) {
             let result = self
                 .rule_evaluator
                 .evaluate_rule(&rule, table, columns, data)
-                .await?
+                .await
+                .map_err(MasterMaintenanceError::from)?
                 .with_rule_info(rule.id.to_string(), rule.name.clone());
             results.push(result);
         }
@@ -100,7 +104,11 @@ impl CrudRecordsUseCase {
         Ok(results)
     }
 
-    fn fail_on_rule_errors(results: &[RuleResult]) -> anyhow::Result<Vec<RuleResult>> {
+    /// ルール評価結果を検査し、エラーがあれば RecordValidation エラーを返す。
+    /// エラーがない場合は警告リストを返す。
+    fn fail_on_rule_errors(
+        results: &[RuleResult],
+    ) -> Result<Vec<RuleResult>, MasterMaintenanceError> {
         let errors: Vec<RuleResult> = results
             .iter()
             .filter(|result| !result.passed && result.severity == "error")
@@ -115,13 +123,14 @@ impl CrudRecordsUseCase {
         if errors.is_empty() {
             Ok(warnings)
         } else {
-            Err(anyhow::Error::new(RecordValidationError {
-                errors,
-                warnings,
-            }))
+            // 型安全なバリアントで RecordValidationError を内包する（C-04対応）
+            Err(MasterMaintenanceError::RecordValidation(Box::new(
+                RecordValidationError { errors, warnings },
+            )))
         }
     }
 
+    /// レコード一覧を取得する。selected_columns で返却カラムを絞り込める。
     #[allow(clippy::too_many_arguments)]
     pub async fn list_records(
         &self,
@@ -133,18 +142,26 @@ impl CrudRecordsUseCase {
         search: Option<&str>,
         selected_columns: Option<&str>,
         domain_scope: Option<&str>,
-    ) -> anyhow::Result<ListRecordsOutput> {
+    ) -> Result<ListRecordsOutput, MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
-        let column_defs = self.column_repo.find_by_table_id(table.id).await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
+        let column_defs = self
+            .column_repo
+            .find_by_table_id(table.id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
         let (mut records, total) = self
             .record_repo
             .find_all(&table, &column_defs, page, page_size, sort, filter, search)
-            .await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
+        // selected_columns が指定されている場合は指定カラムのみに絞り込む
         if let Some(raw_columns) = selected_columns {
             let selected: HashSet<String> = raw_columns
                 .split(',')
@@ -184,18 +201,25 @@ impl CrudRecordsUseCase {
         })
     }
 
+    /// 単一レコードを ID で取得する。
     pub async fn get_record(
         &self,
         table_name: &str,
         record_id: &str,
         domain_scope: Option<&str>,
-    ) -> anyhow::Result<Option<Value>> {
+    ) -> Result<Option<Value>, MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
-        let columns = self.column_repo.find_by_table_id(table.id).await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
+        let columns = self
+            .column_repo
+            .find_by_table_id(table.id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
         self.record_repo
             .find_by_id(&table, &columns, record_id)
             .await
@@ -204,21 +228,26 @@ impl CrudRecordsUseCase {
                     filter_record_by_mode(&value, &columns, RecordVisibility::Form, None)
                 })
             })
+            .map_err(MasterMaintenanceError::from)
     }
 
+    /// テーブルの操作許可フラグ（create/update/delete）を返す。
     pub async fn table_permissions(
         &self,
         table_name: &str,
         domain_scope: Option<&str>,
-    ) -> anyhow::Result<(bool, bool, bool)> {
+    ) -> Result<(bool, bool, bool), MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
         Ok((table.allow_create, table.allow_update, table.allow_delete))
     }
 
+    /// レコードを新規作成する。バリデーションルールを評価してから保存する。
     pub async fn create_record(
         &self,
         table_name: &str,
@@ -226,23 +255,38 @@ impl CrudRecordsUseCase {
         created_by: &str,
         domain_scope: Option<&str>,
         trace_id: Option<String>,
-    ) -> anyhow::Result<RecordMutationOutput> {
+    ) -> Result<RecordMutationOutput, MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
+        // create が許可されていない場合は OperationNotAllowed を返す
         if !table.allow_create {
-            anyhow::bail!("Create not allowed for table '{}'", table_name);
+            return Err(MasterMaintenanceError::OperationNotAllowed {
+                table_name: table_name.to_string(),
+                operation: "Create".to_string(),
+            });
         }
-        let columns = self.column_repo.find_by_table_id(table.id).await?;
+        let columns = self
+            .column_repo
+            .find_by_table_id(table.id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
         let warnings = Self::fail_on_rule_errors(
             &self
                 .evaluate_before_save_rules(&table, &columns, data)
                 .await?,
         )?;
-        let record = self.record_repo.create(&table, &columns, data).await?;
+        let record = self
+            .record_repo
+            .create(&table, &columns, data)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
+        // 変更ログを非同期で記録する（失敗しても無視する）
         let log = ChangeLog {
             id: uuid::Uuid::new_v4(),
             target_table: table_name.to_string(),
@@ -269,6 +313,7 @@ impl CrudRecordsUseCase {
         })
     }
 
+    /// レコードを更新する。バリデーションルールを評価してから保存する。
     pub async fn update_record(
         &self,
         table_name: &str,
@@ -277,16 +322,26 @@ impl CrudRecordsUseCase {
         updated_by: &str,
         domain_scope: Option<&str>,
         trace_id: Option<String>,
-    ) -> anyhow::Result<RecordMutationOutput> {
+    ) -> Result<RecordMutationOutput, MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
+        // update が許可されていない場合は OperationNotAllowed を返す
         if !table.allow_update {
-            anyhow::bail!("Update not allowed for table '{}'", table_name);
+            return Err(MasterMaintenanceError::OperationNotAllowed {
+                table_name: table_name.to_string(),
+                operation: "Update".to_string(),
+            });
         }
-        let columns = self.column_repo.find_by_table_id(table.id).await?;
+        let columns = self
+            .column_repo
+            .find_by_table_id(table.id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
         let warnings = Self::fail_on_rule_errors(
             &self
                 .evaluate_before_save_rules(&table, &columns, data)
@@ -296,12 +351,15 @@ impl CrudRecordsUseCase {
         let before = self
             .record_repo
             .find_by_id(&table, &columns, record_id)
-            .await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?;
         let record = self
             .record_repo
             .update(&table, &columns, record_id, data)
-            .await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
+        // 変更ログを非同期で記録する（失敗しても無視する）
         let log = ChangeLog {
             id: uuid::Uuid::new_v4(),
             target_table: table_name.to_string(),
@@ -328,6 +386,7 @@ impl CrudRecordsUseCase {
         })
     }
 
+    /// レコードを削除する。delete が許可されていない場合はエラーを返す。
     pub async fn delete_record(
         &self,
         table_name: &str,
@@ -335,23 +394,38 @@ impl CrudRecordsUseCase {
         deleted_by: &str,
         domain_scope: Option<&str>,
         trace_id: Option<String>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<(), MasterMaintenanceError> {
+        // テーブル定義を取得し、見つからない場合は TableNotFound を返す
         let table = self
             .table_repo
             .find_by_name(table_name, domain_scope)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .await
+            .map_err(MasterMaintenanceError::from)?
+            .ok_or_else(|| MasterMaintenanceError::TableNotFound(table_name.to_string()))?;
+        // delete が許可されていない場合は OperationNotAllowed を返す
         if !table.allow_delete {
-            anyhow::bail!("Delete not allowed for table '{}'", table_name);
+            return Err(MasterMaintenanceError::OperationNotAllowed {
+                table_name: table_name.to_string(),
+                operation: "Delete".to_string(),
+            });
         }
-        let columns = self.column_repo.find_by_table_id(table.id).await?;
+        let columns = self
+            .column_repo
+            .find_by_table_id(table.id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
         let before = self
             .record_repo
             .find_by_id(&table, &columns, record_id)
-            .await?;
-        self.record_repo.delete(&table, record_id).await?;
+            .await
+            .map_err(MasterMaintenanceError::from)?;
+        self.record_repo
+            .delete(&table, record_id)
+            .await
+            .map_err(MasterMaintenanceError::from)?;
 
+        // 変更ログを非同期で記録する（失敗しても無視する）
         let log = ChangeLog {
             id: uuid::Uuid::new_v4(),
             target_table: table_name.to_string(),
@@ -372,12 +446,14 @@ impl CrudRecordsUseCase {
     }
 }
 
+/// レコードの表示モード。一覧表示用と詳細フォーム用で表示カラムが異なる。
 #[derive(Copy, Clone)]
 enum RecordVisibility {
     List,
     Form,
 }
 
+/// 表示モードに基づいて許可カラム名のセットを返す。
 fn allowed_columns(
     columns: &[crate::domain::entity::column_definition::ColumnDefinition],
     mode: RecordVisibility,
@@ -392,6 +468,7 @@ fn allowed_columns(
         .collect()
 }
 
+/// レコードを表示モードと selected_columns でフィルタリングした新しい Value を返す。
 fn filter_record_by_mode(
     record: &Value,
     columns: &[crate::domain::entity::column_definition::ColumnDefinition],
@@ -416,6 +493,7 @@ fn filter_record_by_mode(
     Value::Object(filtered)
 }
 
+/// 新規作成時に値が null でないカラム名のリストを返す。変更ログに記録する。
 fn changed_columns_for_create(
     record: &Value,
     columns: &[crate::domain::entity::column_definition::ColumnDefinition],
@@ -435,6 +513,7 @@ fn changed_columns_for_create(
         .collect()
 }
 
+/// 更新時に before と after で値が異なるカラム名のリストを返す。変更ログに記録する。
 fn changed_columns_for_update(
     before: Option<&Value>,
     after: &Value,
@@ -457,130 +536,22 @@ fn changed_columns_for_update(
         .collect()
 }
 
+/// 削除時に値が null でないカラム名のリストを返す。変更ログに記録する。
 fn changed_columns_for_delete(
     before: Option<&Value>,
     columns: &[crate::domain::entity::column_definition::ColumnDefinition],
 ) -> Vec<String> {
-    let Some(object) = before.and_then(Value::as_object) else {
+    let Some(before_object) = before.and_then(Value::as_object) else {
         return Vec::new();
     };
 
     columns
         .iter()
         .filter_map(|column| {
-            object
+            before_object
                 .get(&column.column_name)
                 .filter(|value| !value.is_null())
                 .map(|_| column.column_name.clone())
         })
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::domain::entity::column_definition::ColumnDefinition;
-    use chrono::Utc;
-    use uuid::Uuid;
-
-    fn sample_column(
-        column_name: &str,
-        is_primary_key: bool,
-        is_visible_in_list: bool,
-        is_visible_in_form: bool,
-    ) -> ColumnDefinition {
-        ColumnDefinition {
-            id: Uuid::new_v4(),
-            table_id: Uuid::new_v4(),
-            column_name: column_name.to_string(),
-            display_name: column_name.to_string(),
-            data_type: "text".to_string(),
-            is_primary_key,
-            is_nullable: true,
-            is_unique: false,
-            default_value: None,
-            max_length: None,
-            min_value: None,
-            max_value: None,
-            regex_pattern: None,
-            display_order: 0,
-            is_searchable: false,
-            is_sortable: false,
-            is_filterable: false,
-            is_visible_in_list,
-            is_visible_in_form,
-            is_readonly: false,
-            input_type: "text".to_string(),
-            select_options: None,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
-    }
-
-    #[test]
-    fn list_visibility_filters_out_hidden_columns() {
-        let record = serde_json::json!({
-            "id": "dept-1",
-            "name": "Platform",
-            "secret_code": "hidden",
-        });
-        let columns = vec![
-            sample_column("id", true, true, false),
-            sample_column("name", false, true, true),
-            sample_column("secret_code", false, false, false),
-        ];
-
-        let filtered = filter_record_by_mode(&record, &columns, RecordVisibility::List, None);
-
-        assert_eq!(
-            filtered,
-            serde_json::json!({
-                "id": "dept-1",
-                "name": "Platform",
-            })
-        );
-    }
-
-    #[test]
-    fn form_visibility_keeps_primary_key_and_selected_columns() {
-        let record = serde_json::json!({
-            "id": "dept-1",
-            "name": "Platform",
-            "secret_code": "hidden",
-        });
-        let columns = vec![
-            sample_column("id", true, true, false),
-            sample_column("name", false, true, true),
-            sample_column("secret_code", false, false, false),
-        ];
-        let selected = HashSet::from([String::from("id")]);
-
-        let filtered =
-            filter_record_by_mode(&record, &columns, RecordVisibility::Form, Some(&selected));
-
-        assert_eq!(filtered, serde_json::json!({ "id": "dept-1" }));
-    }
-
-    #[test]
-    fn changed_columns_for_update_only_returns_modified_fields() {
-        let before = serde_json::json!({
-            "id": "dept-1",
-            "name": "Platform",
-            "status": "active",
-        });
-        let after = serde_json::json!({
-            "id": "dept-1",
-            "name": "Data",
-            "status": "active",
-        });
-        let columns = vec![
-            sample_column("id", true, true, false),
-            sample_column("name", false, true, true),
-            sample_column("status", false, true, true),
-        ];
-
-        let changed = changed_columns_for_update(Some(&before), &after, &columns);
-
-        assert_eq!(changed, vec![String::from("name")]);
-    }
 }

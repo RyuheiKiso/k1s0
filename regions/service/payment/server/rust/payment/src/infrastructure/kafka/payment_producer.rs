@@ -15,6 +15,7 @@ use crate::proto::k1s0::system::common::v1::{
 use crate::usecase::event_publisher::PaymentEventPublisher;
 use async_trait::async_trait;
 use prost::Message;
+use anyhow::Context as _;
 use rdkafka::config::ClientConfig;
 use rdkafka::producer::{FutureProducer, FutureRecord};
 use std::time::Duration;
@@ -59,7 +60,8 @@ impl PaymentKafkaProducer {
                 Duration::from_secs(5),
             )
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish payment event: {err}"))?;
+            .map_err(|(err, _)| err)
+            .context("Kafka決済イベント送信に失敗しました")?;
 
         Ok(())
     }

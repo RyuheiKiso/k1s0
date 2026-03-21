@@ -42,7 +42,7 @@ pub async fn run() -> anyhow::Result<()> {
     // テレメトリ初期化: 失敗時はサーバーを起動しない（R-04 対応）。
     // オブザーバビリティは本番環境で必須のため、初期化失敗は即時エラーとして扱う。
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
+        .context("テレメトリ初期化に失敗しました")?;
 
     info!("starting {}", cfg.app.name);
 
@@ -50,7 +50,7 @@ pub async fn run() -> anyhow::Result<()> {
     let db_cfg = cfg
         .database
         .as_ref()
-        .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
+        .context("データベース設定が必要です")?;
     let db_pool = connect_database(db_cfg).await?;
     // R-05 対応: PostgreSQL advisory lock でマイグレーション競合を防止する。
     // 複数のインスタンスが同時に起動した場合も、マイグレーションが重複して実行されないようにする。
@@ -135,14 +135,19 @@ pub async fn run() -> anyhow::Result<()> {
     });
     info!("outbox poller started");
 
-    // 7-b. Saga Consumer — order.created を購読して決済を開始する（C-001）
+    // 7-b. Saga Consumer — order.created と order.cancelled を購読して決済を開始・中断する（C-001 / M-20）
     let initiate_payment_uc_for_consumer = Arc::new(usecase::initiate_payment::InitiatePaymentUseCase::new(
+        payment_repo.clone(),
+    ));
+    let fail_payment_uc_for_consumer = Arc::new(usecase::fail_payment::FailPaymentUseCase::new(
         payment_repo.clone(),
     ));
     let consumer_handle = if let Some(ref kafka_cfg) = cfg.kafka {
         let handle_order_event_uc = Arc::new(
             usecase::handle_order_event::HandleOrderEventUseCase::new(
                 initiate_payment_uc_for_consumer,
+                fail_payment_uc_for_consumer,
+                payment_repo.clone(),
             ),
         );
         match infrastructure::kafka::payment_consumer::PaymentKafkaConsumer::new(
@@ -251,7 +256,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown_rx.changed().await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .context("gRPC サーバーエラー")
     };
 
     // 12. Start REST server
@@ -265,7 +270,11 @@ pub async fn run() -> anyhow::Result<()> {
     let shutdown_future = async move {
         shutdown_signal()
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+<<<<<<< HEAD
+            .map_err(|e| anyhow::anyhow!("シャットダウンシグナルの待機中にエラーが発生しました: {}", e))?;
+=======
+            .context("シャットダウンシグナルの待機中にエラーが発生しました")?;
+>>>>>>> e8c740ed7baf1825e39b2059959bd23d6c34eb8c
         let _ = shutdown_grpc_tx.send(true);
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
@@ -277,7 +286,7 @@ pub async fn run() -> anyhow::Result<()> {
         }
         result = rest_future => {
             if let Err(e) = result {
-                return Err(anyhow::anyhow!("REST server error: {}", e));
+                return Err(anyhow::Error::from(e).context("REST サーバーエラー"));
             }
         }
         result = grpc_future => {

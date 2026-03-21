@@ -11,6 +11,7 @@ use tower::ServiceExt;
 // 在庫サーバーのクレートから必要な型をインポート
 use k1s0_inventory_server::adapter::handler::{router, AppState};
 use k1s0_inventory_server::domain::entity::inventory_item::{InventoryFilter, InventoryItem};
+use k1s0_inventory_server::domain::entity::inventory_reservation::InventoryReservation;
 use k1s0_inventory_server::domain::entity::outbox::OutboxEvent;
 use k1s0_inventory_server::domain::repository::inventory_repository::InventoryRepository;
 use k1s0_inventory_server::usecase;
@@ -91,6 +92,23 @@ impl InventoryRepository for StubInventoryRepo {
     /// 指定した ID のイベントをパブリッシュ済みとしてマークする（統合テストでは何もしない）。
     async fn mark_events_published(&self, _ids: &[Uuid]) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    /// 注文IDに紐づく予約中の在庫予約レコードを取得する（統合テストでは空を返す）。
+    async fn find_reservations_by_order_id(
+        &self,
+        _order_id: &str,
+    ) -> anyhow::Result<Vec<InventoryReservation>> {
+        Ok(vec![])
+    }
+
+    /// order_id に紐づく全在庫予約を解放する（統合テストでは空を返す）。
+    async fn compensate_order_reservations(
+        &self,
+        _order_id: &str,
+        _reason: &str,
+    ) -> anyhow::Result<Vec<InventoryItem>> {
+        Ok(vec![])
     }
 }
 

@@ -64,6 +64,15 @@ repos:
         files: 'CLI/.*\.rs$'
         pass_filenames: false
 
+      # TypeScript の依存インストール（ESLint/Prettier 実行前に node_modules を準備する）
+      # pass_filenames: false で全体を対象にし、CI でも確実に依存が揃った状態にする（m-05 対応）
+      - id: ts-npm-install
+        name: TypeScript npm install
+        entry: bash -c 'find . -name "package.json" -not -path "*/node_modules/*" -not -path "*/.git/*" -execdir npm install --prefer-offline --no-audit --no-fund \;'
+        language: system
+        pass_filenames: false
+        files: '\.([tj]sx?|json)$'
+
       # TypeScript ESLint（変更されたファイルのみ対象）
       - id: ts-lint
         name: TypeScript Lint

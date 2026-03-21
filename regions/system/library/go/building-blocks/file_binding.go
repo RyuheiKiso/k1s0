@@ -130,7 +130,11 @@ func (b *FileOutputBinding) Invoke(ctx context.Context, operation string, _ []by
 		if err != nil {
 			return nil, NewComponentError(b.name, "Invoke", "failed to generate upload URL", err)
 		}
-		data, _ := json.Marshal(info)
+		// レスポンス構造体を JSON にシリアライズしてバイト列として返す。
+		data, err := json.Marshal(info)
+		if err != nil {
+			return nil, NewComponentError(b.name, "Invoke", "レスポンスのJSON変換に失敗しました", err)
+		}
 		return &BindingResponse{Data: data}, nil
 
 	case "download-url":
@@ -143,7 +147,11 @@ func (b *FileOutputBinding) Invoke(ctx context.Context, operation string, _ []by
 		if err != nil {
 			return nil, NewComponentError(b.name, "Invoke", "failed to generate download URL", err)
 		}
-		data, _ := json.Marshal(info)
+		// レスポンス構造体を JSON にシリアライズしてバイト列として返す。
+		data, err := json.Marshal(info)
+		if err != nil {
+			return nil, NewComponentError(b.name, "Invoke", "レスポンスのJSON変換に失敗しました", err)
+		}
 		return &BindingResponse{Data: data}, nil
 
 	case "delete":
@@ -163,7 +171,11 @@ func (b *FileOutputBinding) Invoke(ctx context.Context, operation string, _ []by
 		if err != nil {
 			return nil, NewComponentError(b.name, "Invoke", "failed to list files", err)
 		}
-		data, _ := json.Marshal(files)
+		// ファイル一覧を JSON にシリアライズしてバイト列として返す。
+		data, err := json.Marshal(files)
+		if err != nil {
+			return nil, NewComponentError(b.name, "Invoke", "レスポンスのJSON変換に失敗しました", err)
+		}
 		return &BindingResponse{Data: data}, nil
 
 	case "copy":
