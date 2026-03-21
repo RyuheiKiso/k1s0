@@ -86,13 +86,18 @@ impl ValidateApiKeyUseCase {
 /// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
 /// ペッパーが未設定の場合はエラーを返し、デフォルト値へのフォールバックを行わない。
 fn hash_key(raw_key: &str) -> Result<String, ValidateApiKeyError> {
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    type HmacSha256 = Hmac<Sha256>;
-
     // サーバー側ペッパーを環境変数から取得（未設定時はエラー）
     let pepper = std::env::var("API_KEY_PEPPER")
         .map_err(|_| ValidateApiKeyError::PepperNotConfigured)?;
+    Ok(compute_hmac_hex(raw_key, &pepper))
+}
+
+/// HMAC-SHA256 ハッシュ計算の内部実装。
+/// テストから環境変数に依存せず直接呼び出せるよう分離する。
+fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
 
     let mut mac = HmacSha256::new_from_slice(pepper.as_bytes())
         .expect("HMAC accepts any key length");
@@ -105,7 +110,7 @@ fn hash_key(raw_key: &str) -> Result<String, ValidateApiKeyError> {
         use std::fmt::Write;
         let _ = write!(&mut out, "{:02x}", b);
     }
-    Ok(out)
+    out
 }
 
 #[cfg(test)]
@@ -119,6 +124,11 @@ mod tests {
     /// テスト用ペッパー定数（本番環境では使用しない）。
     const TEST_PEPPER: &str = "test-pepper-for-unit-tests";
 
+    /// env var を変更するテスト間の競合を防ぐためのセマフォ（max=1 で直列化）。
+    static PEPPER_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+
+    /// テスト用 ApiKey を生成する。
+    /// compute_hmac_hex を直接使用することで、環境変数に依存しないテストを実現する。
     fn make_api_key(raw_key: &str, revoked: bool, expired: bool) -> ApiKey {
         let now = Utc::now();
         let expires_at = if expired {
@@ -131,8 +141,8 @@ mod tests {
             id: Uuid::new_v4(),
             tenant_id: "tenant-1".to_string(),
             name: "Test Key".to_string(),
-            // テスト用ペッパーを設定してからハッシュを生成する
-            key_hash: hash_key(raw_key).unwrap(),
+            // 環境変数に依存せず、固定ペッパーで直接ハッシュを生成する
+            key_hash: compute_hmac_hex(raw_key, TEST_PEPPER),
             prefix: raw_key[..13].to_string(),
             scopes: vec!["read".to_string()],
             expires_at,
@@ -144,7 +154,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_api_key_success() {
-        // テスト用ペッパーを設定する
+        // ペッパーセマフォを取得し、env var を安定させる
+        let _permit = PEPPER_SEM.acquire().await.unwrap();
         std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let raw_key = "k1s0_abcdef1234567890abcdef";
         let api_key = make_api_key(raw_key, false, false);
@@ -165,7 +176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_api_key_not_found() {
-        // テスト用ペッパーを設定する
+        let _permit = PEPPER_SEM.acquire().await.unwrap();
         std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let mut mock = MockApiKeyRepository::new();
         mock.expect_find_by_prefix().returning(|_| Ok(None));
@@ -182,7 +193,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_api_key_revoked() {
-        // テスト用ペッパーを設定する
+        let _permit = PEPPER_SEM.acquire().await.unwrap();
         std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let raw_key = "k1s0_revoked_1234567890abc";
         let api_key = make_api_key(raw_key, true, false);
@@ -203,7 +214,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_api_key_expired() {
-        // テスト用ペッパーを設定する
+        let _permit = PEPPER_SEM.acquire().await.unwrap();
         std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let raw_key = "k1s0_expired_1234567890abc";
         let api_key = make_api_key(raw_key, false, true);
@@ -224,7 +235,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_api_key_too_short() {
-        // テスト用ペッパーを設定する（短すぎるキーは prefix チェックで弾かれるが一貫性のため設定）
+        let _permit = PEPPER_SEM.acquire().await.unwrap();
         std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let mock = MockApiKeyRepository::new();
         let uc = ValidateApiKeyUseCase::new(Arc::new(mock));
@@ -237,43 +248,31 @@ mod tests {
         }
     }
 
-    /// 同一入力に対して hash_key が決定的な結果を返すことを確認する。
+    /// 同一入力に対して compute_hmac_hex が決定的な結果を返すことを確認する。
+    /// 環境変数を使わず compute_hmac_hex を直接呼び出してテスト間の競合を回避する。
     #[test]
     fn test_hash_key_deterministic() {
-        // テスト用ペッパーを設定する
-        std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
         let key = "k1s0_test_deterministic_key";
-        let h1 = hash_key(key).unwrap();
-        let h2 = hash_key(key).unwrap();
+        let h1 = compute_hmac_hex(key, TEST_PEPPER);
+        let h2 = compute_hmac_hex(key, TEST_PEPPER);
         assert_eq!(h1, h2, "同一入力に対するハッシュは一致すべき");
     }
 
-    /// 異なる入力に対して hash_key が異なるハッシュを返すことを確認する。
+    /// 異なる入力に対して compute_hmac_hex が異なるハッシュを返すことを確認する。
     #[test]
     fn test_hash_key_different_inputs() {
-        // テスト用ペッパーを設定する
-        std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
-        let h1 = hash_key("k1s0_key_alpha").unwrap();
-        let h2 = hash_key("k1s0_key_beta").unwrap();
+        let h1 = compute_hmac_hex("k1s0_key_alpha", TEST_PEPPER);
+        let h2 = compute_hmac_hex("k1s0_key_beta", TEST_PEPPER);
         assert_ne!(h1, h2, "異なる入力に対するハッシュは異なるべき");
     }
 
     /// ペッパーが変わるとハッシュ値も変わることを確認する。
+    /// 環境変数を使わず compute_hmac_hex を直接呼び出してテスト間の競合を回避する。
     #[test]
     fn test_hash_key_pepper_changes_output() {
         let key = "k1s0_pepper_test_key_12345";
-
-        // 1 つ目のペッパーでハッシュ生成
-        std::env::set_var("API_KEY_PEPPER", TEST_PEPPER);
-        let h_first = hash_key(key).unwrap();
-
-        // 別のペッパーでハッシュ生成
-        std::env::set_var("API_KEY_PEPPER", "custom-test-pepper");
-        let h_custom = hash_key(key).unwrap();
-
-        // テスト後に環境変数をクリーンアップ
-        std::env::remove_var("API_KEY_PEPPER");
-
+        let h_first = compute_hmac_hex(key, TEST_PEPPER);
+        let h_custom = compute_hmac_hex(key, "custom-test-pepper");
         assert_ne!(
             h_first, h_custom,
             "ペッパーが異なればハッシュも異なるべき"
@@ -281,11 +280,19 @@ mod tests {
     }
 
     /// ペッパーが未設定の場合に hash_key がエラーを返すことを確認する。
+    /// セマフォを取得して async テストとの env var 競合を防ぐ。
     #[test]
     fn test_hash_key_pepper_not_set_returns_error() {
-        // ペッパーが未設定の場合にエラーを返すことを確認する
-        std::env::remove_var("API_KEY_PEPPER");
-        let result = hash_key("k1s0_test_key_12345");
-        assert!(matches!(result, Err(ValidateApiKeyError::PepperNotConfigured)));
+        // 一時的な tokio ランタイムでセマフォを取得してから環境変数を操作する
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let _permit = PEPPER_SEM.acquire().await.unwrap();
+            std::env::remove_var("API_KEY_PEPPER");
+            let result = hash_key("k1s0_test_key_12345");
+            assert!(matches!(result, Err(ValidateApiKeyError::PepperNotConfigured)));
+            // permit がここでドロップされ、セマフォが解放される
+        });
     }
 }

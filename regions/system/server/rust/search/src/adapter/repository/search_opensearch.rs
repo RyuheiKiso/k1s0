@@ -35,11 +35,12 @@ impl SearchOpenSearchRepository {
     ) -> anyhow::Result<Self> {
         let url = Url::parse(url)?;
         let conn_pool = SingleNodeConnectionPool::new(url);
-        // tls_insecure フラグに基づいて TLS 証明書検証モードを設定する
+        // tls_insecure フラグに基づいて TLS 証明書検証モードを設定する。
+        // Full(cert) はカスタム証明書ピン止め用のため、通常の証明書検証には Default を使用する。
         let cert_validation = if tls_insecure {
             CertificateValidation::None
         } else {
-            CertificateValidation::Full
+            CertificateValidation::Default
         };
         let mut builder = TransportBuilder::new(conn_pool).cert_validation(cert_validation);
 

@@ -111,7 +111,7 @@ fn test_url_valid_with_port() {
 fn test_url_invalid_ftp_scheme() {
     let err = validate_url("url", "ftp://example.com").unwrap_err();
     assert_eq!(err.code, "INVALID_URL");
-    assert!(err.message.contains("unsupported scheme"));
+    assert!(err.message.contains("unsupported url scheme"));
 }
 
 // スキームなしの URL 検証がエラーを返すことを確認する。
@@ -505,32 +505,33 @@ fn test_validate_macro_partial_errors() {
 
 // ===========================================================================
 // Error message content checks
+// PII 保護: エラーメッセージにユーザー入力値は含めず、固定のエラー種別文字列のみを含める
 // ===========================================================================
 
-// メール検証エラーメッセージに入力値が含まれることを確認する。
+// メール検証エラーメッセージが正しいフォーマットエラーを示すことを確認する。
 #[test]
 fn test_email_error_message_contains_input() {
     let err = validate_email("email", "bad-input").unwrap_err();
-    assert!(err.message.contains("bad-input"));
+    assert!(err.message.contains("invalid email format"));
 }
 
-// UUID 検証エラーメッセージに入力値が含まれることを確認する。
+// UUID 検証エラーメッセージが正しいフォーマットエラーを示すことを確認する。
 #[test]
 fn test_uuid_error_message_contains_input() {
     let err = validate_uuid("id", "bad-uuid").unwrap_err();
-    assert!(err.message.contains("bad-uuid"));
+    assert!(err.message.contains("invalid uuid v4 format"));
 }
 
-// URL 検証エラーメッセージに入力値が含まれることを確認する。
+// URL 検証エラーメッセージが正しいフォーマットエラーを示すことを確認する。
 #[test]
 fn test_url_error_message_contains_input() {
     let err = validate_url("url", "not-a-url").unwrap_err();
-    assert!(err.message.contains("not-a-url"));
+    assert!(err.message.contains("invalid url format"));
 }
 
-// テナント ID 検証エラーメッセージに入力値が含まれることを確認する。
+// テナント ID 検証エラーメッセージが長さ制約情報を含むことを確認する。
 #[test]
 fn test_tenant_id_error_message_contains_length_info() {
     let err = validate_tenant_id("tenant", "ab").unwrap_err();
-    assert!(err.message.contains("ab")); // エラーメッセージに入力値が含まれる
+    assert!(err.message.contains("3-63 chars"));
 }
