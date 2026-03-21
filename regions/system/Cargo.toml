@@ -113,7 +113,7 @@ chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
-mockall = "0.13"
+mockall = "0.14"
 tokio-test = "0.4"
 
 # ワークスペース共通リント: プロダクションコードでの unwrap() 使用を禁止する
