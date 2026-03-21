@@ -1,4 +1,5 @@
 use crate::domain::entity::payment::{InitiatePayment, Payment};
+use crate::domain::error::PaymentError;
 use crate::domain::repository::payment_repository::PaymentRepository;
 use crate::domain::service::payment_service::PaymentDomainService;
 use std::sync::Arc;
@@ -22,11 +23,12 @@ impl InitiatePaymentUseCase {
         if let Some(existing) = self.payment_repo.find_by_order_id(&input.order_id).await? {
             // 同一 order_id で異なる金額/通貨のリクエストは冪等性違反として拒否する。
             // これにより、誤ったリトライや不正な重複決済を防止する。
+            // 金額または通貨が異なる場合は型付きエラーを返し、呼び出し元で適切な HTTP 409 にマッピングする。
             if existing.amount != input.amount || existing.currency != input.currency {
-                return Err(anyhow::anyhow!(
-                    "Idempotency violation: payment for order {} already exists with different amount/currency",
-                    input.order_id
-                ));
+                return Err(PaymentError::IdempotencyViolation {
+                    order_id: input.order_id.clone(),
+                }
+                .into());
             }
             tracing::info!(
                 order_id = %input.order_id,
@@ -162,7 +164,7 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Idempotency violation"));
+            .contains("冪等性違反"));
     }
 
     // 同一 order_id で異なる通貨を持つ既存決済がある場合に冪等性違反エラーを返すことを確認する。

@@ -41,7 +41,7 @@ resource "vault_kubernetes_auth_backend_role" "business" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "business"
   bound_service_account_names      = [
-    "inventory-rust", "payment-rust", "domain-master-go",
+    "domain-master-go",
   ]
   bound_service_account_namespaces = ["k1s0-business"]
   token_policies                   = ["business"]
@@ -55,7 +55,7 @@ resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"
   bound_service_account_names      = [
-    "order-rust", "bff-proxy",
+    "order-rust", "bff-proxy", "inventory-rust", "payment-rust",
   ]
   bound_service_account_namespaces = ["k1s0-service"]
   token_policies                   = ["service"]
