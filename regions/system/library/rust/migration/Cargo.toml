@@ -19,7 +19,7 @@ sqlx = {workspace = true, features = ["migrate"]}
 chrono = {workspace = true}
 sha2 = "0.10"
 clap = { version = "4", features = ["derive"], optional = true }
-sqlparser = { version = "0.53", optional = true }
+sqlparser = { version = "0.61", optional = true }
 toml = { version = "0.8", optional = true }
 
 [dev-dependencies]
