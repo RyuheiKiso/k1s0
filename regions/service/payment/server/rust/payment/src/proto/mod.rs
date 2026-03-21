@@ -21,6 +21,12 @@ pub mod k1s0 {
                     include!("k1s0.event.service.payment.v1.rs");
                 }
             }
+            // Saga: Payment Consumer が購読する order イベント型（C-001）
+            pub mod order {
+                pub mod v1 {
+                    include!("k1s0.event.service.order.v1.rs");
+                }
+            }
         }
     }
 }
