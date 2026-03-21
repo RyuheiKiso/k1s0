@@ -4,6 +4,7 @@
 //! DLQ トピック名は元トピック名 + `.dlq` サフィックスのパターンに従う。
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 use crate::error::MessagingError;
 use crate::event::EventEnvelope;
@@ -14,6 +15,12 @@ const DLQ_SUFFIX: &str = ".dlq";
 
 /// デフォルトの最大リトライ回数。
 const DEFAULT_MAX_RETRIES: u32 = 3;
+
+/// リトライ初回待機時間（ミリ秒）。エクスポネンシャルバックオフの起点。
+const RETRY_INITIAL_DELAY_MS: u64 = 100;
+
+/// リトライ待機時間の上限（ミリ秒）。バックオフが際限なく伸びないよう上限を設ける。
+const RETRY_MAX_DELAY_MS: u64 = 30_000;
 
 /// 元トピック名から DLQ トピック名を生成する。
 ///
@@ -84,11 +91,18 @@ where
     let retries = max_retries.unwrap_or(DEFAULT_MAX_RETRIES);
     let mut last_error = None;
 
-    for _ in 0..retries {
+    for attempt in 0..retries {
         match handler(&payload).await {
             Ok(()) => return Ok(()),
             Err(e) => {
                 last_error = Some(e);
+                // 最終リトライ以外はエクスポネンシャルバックオフで待機する。
+                // 一時的な障害（DB 瞬断等）からの自動回復率を高めるため。
+                if attempt + 1 < retries {
+                    let delay_ms = (RETRY_INITIAL_DELAY_MS * 2u64.pow(attempt))
+                        .min(RETRY_MAX_DELAY_MS);
+                    tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                }
             }
         }
     }
