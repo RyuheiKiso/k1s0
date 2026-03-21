@@ -158,6 +158,8 @@ jobs:
           name: trivy-sarif-${{ steps.image.outputs.service_name }}
           path: trivy-results.sarif
           if-no-files-found: warn
+          # 監査証跡として1年分保持する（m-04対応: デフォルト90日では監査要件を満たせないため）
+          retention-days: 365
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3

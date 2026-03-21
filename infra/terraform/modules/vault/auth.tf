@@ -32,6 +32,8 @@ resource "vault_kubernetes_auth_backend_role" "system" {
   bound_service_account_namespaces = ["k1s0-system"]
   token_policies                   = ["system"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # business Tier role - サービス別SA名で最小権限を適用
@@ -44,6 +46,8 @@ resource "vault_kubernetes_auth_backend_role" "business" {
   bound_service_account_namespaces = ["k1s0-business"]
   token_policies                   = ["business"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # service Tier role - サービス別SA名で最小権限を適用
@@ -56,6 +60,8 @@ resource "vault_kubernetes_auth_backend_role" "service" {
   bound_service_account_namespaces = ["k1s0-service"]
   token_policies                   = ["service"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # ============================================================
