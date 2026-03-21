@@ -50,14 +50,18 @@ pub struct ListInventoryQuery {
     pub offset: Option<i64>,
 }
 
-/// 在庫予約ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 在庫予約ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn reserve_stock(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(body): Json<ReserveStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
+    // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "reserve_stock invoked");
 
     let item = state
         .reserve_stock_uc
@@ -74,14 +78,17 @@ pub async fn reserve_stock(
     Ok((StatusCode::OK, Json(response)))
 }
 
-/// 在庫解放ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 在庫解放ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn release_stock(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(body): Json<ReleaseStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    // Claims が存在しない（未認証）場合は 401 を返す（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "release_stock invoked");
 
     let item = state
         .release_stock_uc
@@ -99,10 +106,14 @@ pub async fn release_stock(
     Ok((StatusCode::OK, Json(response)))
 }
 
+/// 在庫取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_inventory(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(inventory_id): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
     let id = parse_uuid(&inventory_id)?;
 
     let item = state
@@ -115,10 +126,14 @@ pub async fn get_inventory(
     Ok(Json(response))
 }
 
+/// 在庫一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_inventory(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListInventoryQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
     let filter = InventoryFilter {
         product_id: query.product_id,
         warehouse_id: query.warehouse_id,
@@ -136,15 +151,18 @@ pub async fn list_inventory(
     Ok(Json(response))
 }
 
-/// 在庫更新ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 在庫更新ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn update_stock(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(inventory_id): Path<String>,
     Json(body): Json<UpdateStockRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let _actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    // Claims が存在しない（未認証）場合は 401 を返す（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "update_stock invoked");
     let id = parse_uuid(&inventory_id)?;
 
     let item = state

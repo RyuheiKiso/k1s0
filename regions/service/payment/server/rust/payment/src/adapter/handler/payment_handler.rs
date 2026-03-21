@@ -52,15 +52,18 @@ pub struct ListPaymentsQuery {
     pub offset: Option<i64>,
 }
 
-/// 決済開始ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 決済開始ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn initiate_payment(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(body): Json<InitiatePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
-    tracing::debug!(actor = %actor, "payment operation invoked");
+    // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
+    // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "initiate_payment invoked");
 
     let input = InitiatePayment {
         order_id: body.order_id,
@@ -80,10 +83,14 @@ pub async fn initiate_payment(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+/// 決済取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_payment(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    claims.ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -96,10 +103,14 @@ pub async fn get_payment(
     Ok(Json(response))
 }
 
+/// 決済一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_payments(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListPaymentsQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    claims.ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
     let status = match &query.status {
         Some(s) => Some(
             s.parse::<PaymentStatus>()
@@ -132,16 +143,17 @@ pub async fn list_payments(
     Ok(Json(response))
 }
 
-/// 決済完了ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 決済完了ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn complete_payment(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
     Json(body): Json<CompletePaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
-    tracing::debug!(actor = %actor, "payment operation invoked");
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "complete_payment invoked");
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -154,16 +166,17 @@ pub async fn complete_payment(
     Ok(Json(response))
 }
 
-/// 決済失敗ハンドラー。認証済みユーザーのClaimsを抽出してアクター情報を取得する。
+/// 決済失敗ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn fail_payment(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
     Json(body): Json<FailPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
-    tracing::debug!(actor = %actor, "payment operation invoked");
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "fail_payment invoked");
     let id = parse_uuid(&payment_id)?;
 
     let payment = state
@@ -176,16 +189,17 @@ pub async fn fail_payment(
     Ok(Json(response))
 }
 
-/// 決済返金ハンドラー。認証済みユーザーのClaimsを抽出し、返金理由をユースケースに伝播する。
+/// 決済返金ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn refund_payment(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(payment_id): Path<String>,
     Json(body): Json<RefundPaymentRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // 認証済みユーザーのアクター情報を抽出する
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
-    tracing::debug!(actor = %actor, "payment operation invoked");
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "refund_payment invoked");
     let id = parse_uuid(&payment_id)?;
 
     // 返金理由をユースケースに伝播する
