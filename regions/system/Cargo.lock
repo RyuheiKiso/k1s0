@@ -3572,7 +3572,7 @@ name = "k1s0-bulkhead"
 version = "0.1.0"
 dependencies = [
  "mockall",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "thiserror 2.0.18",
  "tokio",
 ]
@@ -3599,7 +3599,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "mockall",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "thiserror 2.0.18",
  "tokio",
 ]
@@ -4083,7 +4083,7 @@ dependencies = [
  "k1s0-server-common",
  "k1s0-telemetry",
  "mockall",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "prometheus",
@@ -4411,7 +4411,7 @@ dependencies = [
  "k1s0-circuit-breaker",
  "k1s0-featureflag",
  "k1s0-retry",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -4776,7 +4776,7 @@ dependencies = [
  "axum 0.8.8",
  "http 1.4.0",
  "k1s0-telemetry-macros",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "pin-project-lite",
@@ -5552,6 +5552,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "opentelemetry"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b84bcd6ae87133e903af7ef497404dda70c60d0ea14895fc8a5e6722754fc2a0"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "js-sys",
+ "pin-project-lite",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "opentelemetry-otlp"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5560,7 +5573,7 @@ dependencies = [
  "async-trait",
  "futures-core",
  "http 1.4.0",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost",
@@ -5576,7 +5589,7 @@ version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a6e05acbfada5ec79023c85368af14abd0b307c015e9064d249b2a950ef459a6"
 dependencies = [
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "opentelemetry_sdk",
  "prost",
  "tonic",
@@ -5593,7 +5606,7 @@ dependencies = [
  "futures-executor",
  "futures-util",
  "glob",
- "opentelemetry",
+ "opentelemetry 0.27.1",
  "percent-encoding",
  "rand 0.8.5",
  "serde_json",
@@ -8288,14 +8301,12 @@ dependencies = [
 
 [[package]]
 name = "tracing-opentelemetry"
-version = "0.28.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97a971f6058498b5c0f1affa23e7ea202057a7301dbff68e968b2d578bcbd053"
+checksum = "1ac28f2d093c6c477eaa76b23525478f38de514fa9aeb1285738d4b97a9552fc"
 dependencies = [
  "js-sys",
- "once_cell",
- "opentelemetry",
- "opentelemetry_sdk",
+ "opentelemetry 0.31.0",
  "smallvec",
  "tracing",
  "tracing-core",
