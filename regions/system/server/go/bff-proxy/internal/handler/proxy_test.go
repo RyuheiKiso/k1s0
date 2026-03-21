@@ -2,8 +2,11 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/middleware"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
 )
 
@@ -93,6 +97,77 @@ func TestProxyHandler_InjectsAuthHeader(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+// TestProxyHandler_RefreshFailure_DeletesSession はトークンリフレッシュ失敗時に
+// セッションが削除されることを検証する（H-003）。
+// 期限切れセッションのリフレッシュが失敗した場合、無効なセッションを再利用できないよう
+// ストアから削除し、401 を返すことを確認する。
+func TestProxyHandler_RefreshFailure_DeletesSession(t *testing.T) {
+	// モック OIDC サーバー: discovery は成功するがトークンエンドポイントは常に失敗する
+	oidcServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/.well-known/openid-configuration") {
+			w.Header().Set("Content-Type", "application/json")
+			// トークンエンドポイントとして自身のホストを返す
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"issuer":         "http://" + r.Host,
+				"token_endpoint": "http://" + r.Host + "/token",
+			})
+			return
+		}
+		// /token エンドポイントは常に 401 を返してリフレッシュ失敗をシミュレートする
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"invalid_grant"}`))
+	}))
+	defer oidcServer.Close()
+
+	// アップストリームサーバー（リフレッシュ失敗時は呼ばれないはず）
+	upstreamServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("リフレッシュ失敗時にアップストリームは呼ばれてはいけない")
+	}))
+	defer upstreamServer.Close()
+
+	// oauthClient を discovery 済み状態で初期化する
+	oauthClient := oauth.NewClient(
+		context.Background(),
+		oidcServer.URL,
+		"test-client", "", "http://localhost/callback",
+		[]string{"openid"},
+		oauth.WithHTTPTimeout(5*time.Second),
+	)
+	_, err := oauthClient.Discover(context.Background())
+	require.NoError(t, err)
+
+	// 期限切れトークンを持つセッションをストアに登録する
+	store := newProxyTestStore()
+	store.sessions["refresh-session"] = &session.SessionData{
+		AccessToken:  "expired-access-token",
+		RefreshToken: "old-refresh-token",
+		ExpiresAt:    time.Now().Add(-1 * time.Minute).Unix(),
+	}
+
+	// ログ出力をテストログに流すため slog.Default() を使用する（nil ロガーはパニックの原因になる）
+	handler, err := NewProxyHandler(upstreamServer.URL, store, oauthClient, 30*time.Minute, 10*time.Second, slog.Default())
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.Any("/api/*path", func(c *gin.Context) {
+		// SessionMiddleware が設定するのと同等のコンテキストキーを手動で設定する
+		c.Set(middleware.SessionDataKey, store.sessions["refresh-session"])
+		c.Set(middleware.SessionIDKey, "refresh-session")
+		c.Set(middleware.SessionNeedsRefreshKey, true)
+		handler.Handle(c)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/test", nil)
+	router.ServeHTTP(w, req)
+
+	// リフレッシュ失敗時は 401 が返ること
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+	// リフレッシュ失敗後にセッションがストアから削除されていること（H-003）
+	_, exists := store.sessions["refresh-session"]
+	assert.False(t, exists, "リフレッシュ失敗後、無効なセッションはストアから削除されるべき")
 }
 
 func TestProxyHandler_NoSession(t *testing.T) {
