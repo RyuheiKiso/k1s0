@@ -211,12 +211,13 @@ mod tests {
 
         let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
 
+        // 同一 order_id・同一金額・同一通貨で再送信 → 既存決済を返す（正常な冪等性）
         let event = OrderCreatedEvent {
             metadata: None,
             order_id: order_id.to_string(),
             customer_id: "CUST-001".to_string(),
             items: vec![],
-            total_amount: 3000,
+            total_amount: 5000, // sample_payment と同じ金額・通貨を使用する
             currency: "JPY".to_string(),
         };
         let result = uc.handle_created(&event).await;
