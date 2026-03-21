@@ -70,8 +70,11 @@ resource "vault_approle_auth_backend_role" "cicd" {
   backend        = vault_auth_backend.approle.path
   role_name      = "cicd"
   token_policies = ["cicd"]
-  token_ttl      = 1800
-  token_max_ttl  = 3600
+  # token_ttl を 7200（2時間）に延長する。
+  # CI/CD パイプラインが長時間のビルド・デプロイ中にトークン期限切れで失敗する問題を防ぐ。
+  # token_max_ttl（上限）は token_ttl と同じ 7200 に合わせて整合性を保つ。
+  token_ttl      = 7200
+  token_max_ttl  = 7200
 }
 
 # ============================================================

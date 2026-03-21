@@ -121,4 +121,108 @@ mod tests {
         let result = uc.execute(&input).await;
         assert!(result.is_err());
     }
+
+    // 同一 order_id で異なる金額を持つ既存決済がある場合に冪等性違反エラーを返すことを確認する。
+    #[tokio::test]
+    async fn test_initiate_payment_idempotency_violation_amount_mismatch() {
+        let existing = Payment {
+            id: Uuid::new_v4(),
+            order_id: "ORD-002".to_string(),
+            customer_id: "CUST-001".to_string(),
+            amount: 3000, // 既存は 3000
+            currency: "JPY".to_string(),
+            status: PaymentStatus::Initiated,
+            payment_method: Some("credit_card".to_string()),
+            transaction_id: None,
+            error_code: None,
+            error_message: None,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let existing_clone = existing.clone();
+
+        let mut mock_repo = MockPaymentRepository::new();
+        // find_by_order_id は金額が異なる既存決済を返す
+        mock_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(existing_clone.clone())));
+
+        let uc = InitiatePaymentUseCase::new(Arc::new(mock_repo));
+        let input = InitiatePayment {
+            order_id: "ORD-002".to_string(),
+            customer_id: "CUST-001".to_string(),
+            amount: 5000, // 新規リクエストは 5000（不一致）
+            currency: "JPY".to_string(),
+            payment_method: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Idempotency violation"));
+    }
+
+    // 同一 order_id で異なる通貨を持つ既存決済がある場合に冪等性違反エラーを返すことを確認する。
+    #[tokio::test]
+    async fn test_initiate_payment_idempotency_violation_currency_mismatch() {
+        let existing = Payment {
+            id: Uuid::new_v4(),
+            order_id: "ORD-003".to_string(),
+            customer_id: "CUST-001".to_string(),
+            amount: 5000,
+            currency: "USD".to_string(), // 既存は USD
+            status: PaymentStatus::Initiated,
+            payment_method: Some("credit_card".to_string()),
+            transaction_id: None,
+            error_code: None,
+            error_message: None,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        let existing_clone = existing.clone();
+
+        let mut mock_repo = MockPaymentRepository::new();
+        mock_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(existing_clone.clone())));
+
+        let uc = InitiatePaymentUseCase::new(Arc::new(mock_repo));
+        let input = InitiatePayment {
+            order_id: "ORD-003".to_string(),
+            customer_id: "CUST-001".to_string(),
+            amount: 5000,
+            currency: "JPY".to_string(), // 新規は JPY（不一致）
+            payment_method: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Idempotency violation"));
+    }
+
+    // 同一 order_id・同一金額・同一通貨の場合は既存決済を返す（正常な冪等性）ことを確認する。
+    #[tokio::test]
+    async fn test_initiate_payment_idempotency_same_amount_and_currency() {
+        let existing = sample_payment();
+        let existing_clone = existing.clone();
+
+        let mut mock_repo = MockPaymentRepository::new();
+        mock_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(existing_clone.clone())));
+
+        let uc = InitiatePaymentUseCase::new(Arc::new(mock_repo));
+        let input = sample_initiate_payment(); // amount=5000, currency="JPY" で一致
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, existing.id);
+    }
 }
