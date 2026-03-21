@@ -56,7 +56,7 @@ k1s0-correlation = { path = "../../../library/rust/correlation", features = ["to
 k1s0-auth = { path = "../../../library/rust/auth" }
 
 # Server common (structured error codes)
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["auth", "axum", "shutdown"] }
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["auth", "axum", "shutdown", "grpc-auth"] }
 
 [features]
 db-tests = []
