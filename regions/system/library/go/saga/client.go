@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -78,8 +79,9 @@ func (c *SagaClient) StartSaga(ctx context.Context, req *StartSagaRequest) (*Sta
 
 // GetSaga は Saga の現在状態を取得する。
 // GET /api/v1/sagas/{sagaID}
+// sagaID はパストラバーサル防止のため url.PathEscape でエスケープする。
 func (c *SagaClient) GetSaga(ctx context.Context, sagaID string) (*SagaState, error) {
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/v1/sagas/%s", c.endpoint, sagaID), nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/v1/sagas/%s", c.endpoint, url.PathEscape(sagaID)), nil)
 	if err != nil {
 		return nil, &SagaError{Op: "get_saga", Err: fmt.Errorf("failed to create request: %w", err)}
 	}
@@ -116,8 +118,9 @@ func (c *SagaClient) GetSaga(ctx context.Context, sagaID string) (*SagaState, er
 
 // CancelSaga は Saga をキャンセルする。
 // POST /api/v1/sagas/{sagaID}/cancel
+// sagaID はパストラバーサル防止のため url.PathEscape でエスケープする。
 func (c *SagaClient) CancelSaga(ctx context.Context, sagaID string) error {
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api/v1/sagas/%s/cancel", c.endpoint, sagaID), nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/api/v1/sagas/%s/cancel", c.endpoint, url.PathEscape(sagaID)), nil)
 	if err != nil {
 		return &SagaError{Op: "cancel_saga", Err: fmt.Errorf("failed to create request: %w", err)}
 	}

@@ -224,7 +224,8 @@ func TestCallback_StateMismatch(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_STATE_MISMATCH", body["error"])
+	// ADR-0005形式: body["error"] はネストオブジェクト、コードは ["code"] キーで取得する
+	assert.Equal(t, "BFF_AUTH_STATE_MISMATCH", body["error"].(map[string]any)["code"])
 }
 
 // TestCallback_CodeMissing は Callback 異常系のテスト。
@@ -246,7 +247,8 @@ func TestCallback_CodeMissing(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_CODE_MISSING", body["error"])
+	// ADR-0005形式: body["error"] はネストオブジェクト、コードは ["code"] キーで取得する
+	assert.Equal(t, "BFF_AUTH_CODE_MISSING", body["error"].(map[string]any)["code"])
 }
 
 // TestLogout_WithSession は Logout 正常系のテスト。
@@ -354,7 +356,8 @@ func TestSession_NoCookie(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_SESSION_NOT_FOUND", body["error"])
+	// ADR-0005形式: body["error"] はネストオブジェクト、コードは ["code"] キーで取得する
+	assert.Equal(t, "BFF_AUTH_SESSION_NOT_FOUND", body["error"].(map[string]any)["code"])
 }
 
 // TestSession_InvalidSession は無効なセッション ID での Session テスト。
@@ -375,7 +378,8 @@ func TestSession_InvalidSession(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_SESSION_NOT_FOUND", body["error"])
+	// ADR-0005形式: body["error"] はネストオブジェクト、コードは ["code"] キーで取得する
+	assert.Equal(t, "BFF_AUTH_SESSION_NOT_FOUND", body["error"].(map[string]any)["code"])
 }
 
 // TestSession_Expired は期限切れセッションでの Session テスト。
@@ -405,7 +409,8 @@ func TestSession_Expired(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_SESSION_EXPIRED", body["error"])
+	// ADR-0005形式: body["error"] はネストオブジェクト、コードは ["code"] キーで取得する
+	assert.Equal(t, "BFF_AUTH_SESSION_EXPIRED", body["error"].(map[string]any)["code"])
 }
 
 // TestLogin_WithMobileRedirect はモバイルリダイレクトパラメータ付きの Login テスト。
@@ -639,7 +644,8 @@ func TestExchange_InvalidCode(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_INVALID", body["error"])
+	// ADR-0005形式: body["error"] はネストされたオブジェクトのためコードフィールドを参照する
+	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_INVALID", body["error"].(map[string]any)["code"])
 }
 
 // TestExchange_MissingCode は交換コード未指定での Exchange テスト。
@@ -657,7 +663,8 @@ func TestExchange_MissingCode(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_MISSING", body["error"])
+	// ADR-0005形式: body["error"] はネストされたオブジェクトのためコードフィールドを参照する
+	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_MISSING", body["error"].(map[string]any)["code"])
 }
 
 // TestExchange_ExpiredCode は期限切れ交換コードでの Exchange テスト。
@@ -683,5 +690,6 @@ func TestExchange_ExpiredCode(t *testing.T) {
 	var body map[string]any
 	err := json.NewDecoder(w.Body).Decode(&body)
 	require.NoError(t, err)
-	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_INVALID", body["error"])
+	// ADR-0005形式: body["error"] はネストされたオブジェクトのためコードフィールドを参照する
+	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_INVALID", body["error"].(map[string]any)["code"])
 }

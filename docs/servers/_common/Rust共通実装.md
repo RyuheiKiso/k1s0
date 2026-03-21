@@ -216,6 +216,67 @@ CorrelationLayer は受信リクエストに対して:
 3. `CorrelationContext` を `Extensions` に格納（ハンドラーから取得可能）
 4. レスポンスヘッダーに `X-Correlation-Id` / `X-Trace-Id` を自動付与
 
+### CancellationToken によるバックグラウンドタスクのキャンセル {#cancellation-token}
+
+`tokio::spawn` で起動したバックグラウンドタスクは、`JoinHandle` を破棄すると参照が失われてグレースフルシャットダウン時に停止できなくなる。`tokio-util::sync::CancellationToken` を使ってキャンセル可能なタスクを実装する。
+
+#### Cargo.toml 設定
+
+```toml
+# CancellationToken はデフォルト機能で利用可能（features 指定不要）
+tokio-util = { version = "0.7" }
+```
+
+#### 実装パターン
+
+```rust
+// tokio-util の CancellationToken を受け取り、キャンセル可能なバックグラウンドタスクを起動する
+pub fn start_background_refresh(
+    self: Arc<Self>,
+    refresh_interval: Duration,
+    cancellation_token: tokio_util::sync::CancellationToken,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
+        let mut ticker = tokio::time::interval(refresh_interval);
+        loop {
+            // キャンセルシグナルとタイマーを同時に待機し、キャンセル時はタスクを終了する
+            tokio::select! {
+                _ = ticker.tick() => {
+                    if let Err(err) = self.do_work().await {
+                        tracing::warn!(error = %err, "バックグラウンドタスクでエラーが発生しました");
+                    }
+                }
+                _ = cancellation_token.cancelled() => {
+                    tracing::info!("バックグラウンドタスクをキャンセルしました");
+                    return;
+                }
+            }
+        }
+    })
+}
+```
+
+#### startup.rs での利用パターン
+
+```rust
+// バックグラウンドタスク用の CancellationToken を作成する
+let bg_cancel = tokio_util::sync::CancellationToken::new();
+let _bg_handle = component
+    .clone()
+    .start_background_refresh(interval, bg_cancel.clone());
+
+// シャットダウンシグナル受信時にバックグラウンドタスクをキャンセルするタスクを起動する
+tokio::spawn(async move {
+    let _ = k1s0_server_common::shutdown::shutdown_signal().await;
+    bg_cancel.cancel();
+});
+```
+
+**設計上の注意点**:
+- `JoinHandle` を `_bg_handle` として保持することで、タスクの破棄を明示的に制御できる
+- `CancellationToken::clone()` によりトークンを共有し、複数のタスクを一括キャンセルすることも可能
+- `shutdown_signal()` は複数回呼び出し可能なため、バックグラウンドタスク用に追加で呼び出しても問題ない
+
 ---
 
 ## 共通 ObservabilityConfig モジュール {#共通observabilityconfig}

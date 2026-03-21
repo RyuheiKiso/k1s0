@@ -30,6 +30,14 @@ pub use startup::parse_pool_duration;
 /// 全サーバーの設定デフォルト値として使用する。エンドポイント変更時はここだけ修正すればよい。
 pub const DEFAULT_OTEL_ENDPOINT: &str = "http://otel-collector.observability:4317";
 
+/// デフォルトの gRPC ポート番号。
+/// 全サーバーの設定デフォルト値として使用する。ポート変更時はここだけ修正すればよい。
+pub const DEFAULT_GRPC_PORT: u16 = 50051;
+
+/// デフォルトの HTTP/REST ポート番号。
+/// 全サーバーの設定デフォルト値として使用する。
+pub const DEFAULT_HTTP_PORT: u16 = 8080;
+
 pub use auth::{allow_insecure_no_auth, require_auth_state};
 #[cfg(feature = "grpc-auth")]
 pub use error::{map_anyhow_to_grpc_status, IntoGrpcStatus};

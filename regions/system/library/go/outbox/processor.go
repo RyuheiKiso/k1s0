@@ -7,7 +7,8 @@ import (
 )
 
 // OutboxProcessor はアウトボックスメッセージの定期処理を担う。
-// FetchPending → Publish → Update のサイクルを実行する。
+// FetchAndLock → Publish → Update のサイクルを実行する。
+// FetchAndLock は SELECT FOR UPDATE SKIP LOCKED を利用して複数インスタンスの重複処理を防ぐ。
 type OutboxProcessor struct {
 	store     OutboxStore
 	publisher OutboxPublisher
@@ -38,11 +39,14 @@ func NewOutboxProcessorWithLogger(store OutboxStore, publisher OutboxPublisher, 
 }
 
 // ProcessBatch は1回分のアウトボックス処理を実行する。
+// FetchAndLock で DB レベルのロックを取得してから処理することで、
+// 複数インスタンスが同一メッセージを処理するレース状態を防ぐ。
 // 処理したメッセージ数を返す。
 func (p *OutboxProcessor) ProcessBatch(ctx context.Context) (int, error) {
-	messages, err := p.store.FetchPending(ctx, p.batchSize)
+	// SELECT FOR UPDATE SKIP LOCKED でメッセージを取得・ロックする
+	messages, err := p.store.FetchAndLock(ctx, p.batchSize)
 	if err != nil {
-		return 0, NewStoreError("FetchPending", err)
+		return 0, NewStoreError("FetchAndLock", err)
 	}
 
 	processed := 0

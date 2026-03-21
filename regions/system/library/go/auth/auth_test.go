@@ -130,26 +130,32 @@ func TestExtractClaims(t *testing.T) {
 }
 
 // Claims の IsExpired メソッドが期限切れと有効なトークンを正しく判定することを確認する。
+// IsExpired は ExpiresAt (time.Time) を参照するため、Exp (int64) ではなく ExpiresAt を設定する。
 func TestClaims_IsExpired(t *testing.T) {
-	claims := &Claims{Exp: time.Now().Add(-1 * time.Hour).Unix()}
+	claims := &Claims{ExpiresAt: time.Now().Add(-1 * time.Hour)}
 	assert.True(t, claims.IsExpired())
 
-	claims2 := &Claims{Exp: time.Now().Add(1 * time.Hour).Unix()}
+	claims2 := &Claims{ExpiresAt: time.Now().Add(1 * time.Hour)}
 	assert.False(t, claims2.IsExpired())
 }
 
-// Claims の String メソッドが Subject やユーザー名を含む文字列を返すことを確認する。
+// Claims の String メソッドが Subject やユーザー名を含む文字列を返し、
+// email は PII マスキング（先頭1文字 + "***" + "@以降"）されることを確認する。
 func TestClaims_String(t *testing.T) {
 	claims := &Claims{
-		Sub:               "user-1",
-		Iss:               testIssuer,
-		Aud:               testAudience,
-		PreferredUsername: "taro",
-		Email:             "taro@example.com",
+		Sub:      "user-1",
+		Issuer:   testIssuer,
+		Audience: []string{testAudience},
+		Username: "taro",
+		Email:    "taro@example.com",
 	}
 	s := claims.String()
 	assert.Contains(t, s, "user-1")
 	assert.Contains(t, s, "taro")
+	// email はマスキングされ "t***@example.com" となること
+	assert.Contains(t, s, "t***@example.com")
+	// 元のメールアドレスがそのまま含まれていないこと
+	assert.NotContains(t, s, "taro@example.com")
 }
 
 // --- JWKS Verifier テスト ---
@@ -359,6 +365,21 @@ func TestHasPermission_SysAdmin(t *testing.T) {
 	assert.True(t, HasPermission(claims, "any-resource", "read"))
 	assert.True(t, HasPermission(claims, "any-resource", "write"))
 	assert.True(t, HasPermission(claims, "any-resource", "delete"))
+}
+
+// HasPermission が realm_access の admin ロールを持つクレームに対して全権限を付与しないことを確認する。
+// 最小権限原則により、realm_access の admin は通常ロールとして扱い、sys_admin のみ全権限を持つ。
+func TestHasPermission_RealmAdminNotAllPowerful(t *testing.T) {
+	claims := &Claims{
+		RealmAccess: RealmAccess{
+			Roles: []string{"admin"},
+		},
+	}
+
+	// realm_access の admin は全権限を持たない（最小権限原則）
+	assert.False(t, HasPermission(claims, "any-resource", "read"))
+	assert.False(t, HasPermission(claims, "any-resource", "write"))
+	assert.False(t, HasPermission(claims, "any-resource", "delete"))
 }
 
 // HasPermission がリソースに admin ロールを持つクレームに対してそのリソースの全操作で true を返すことを確認する。

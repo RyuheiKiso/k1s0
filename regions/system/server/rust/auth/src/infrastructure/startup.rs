@@ -193,11 +193,21 @@ pub async fn run() -> anyhow::Result<()> {
             info!("initial keycloak role-permission table sync completed");
         }
 
-        table
+        // バックグラウンドリフレッシュタスク用の CancellationToken を作成する
+        let bg_cancel = tokio_util::sync::CancellationToken::new();
+        let _bg_handle = table
             .clone()
-            .start_background_refresh(std::time::Duration::from_secs(
-                cfg.keycloak_admin.refresh_interval_secs,
-            ));
+            .start_background_refresh(
+                std::time::Duration::from_secs(cfg.keycloak_admin.refresh_interval_secs),
+                bg_cancel.clone(),
+            );
+
+        // シャットダウンシグナル受信時にバックグラウンドタスクをキャンセルするタスクを起動する
+        tokio::spawn(async move {
+            let _ = k1s0_server_common::shutdown::shutdown_signal().await;
+            bg_cancel.cancel();
+        });
+
         Some(table)
     } else {
         None

@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-server-go-bff-proxy
 
-go 1.25.0
+go 1.26.1
 
 require (
 	github.com/coreos/go-oidc/v3 v3.17.0

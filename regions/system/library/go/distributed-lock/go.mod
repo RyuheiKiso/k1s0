@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-distributed-lock
 
-go 1.24.0
+go 1.26.1
 
 require (
 	github.com/redis/go-redis/v9 v9.18.0

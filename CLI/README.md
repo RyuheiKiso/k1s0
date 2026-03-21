@@ -313,6 +313,16 @@ npx tsc --noEmit             # TypeScript 型チェック
 
 Tauri v2 デスクトップ GUI。React フロントエンドから `#[tauri::command]` 経由で `k1s0-core` を呼び出す。
 
+#### `crates/k1s0-gui/regions/` ディレクトリについて
+
+`crates/k1s0-gui/regions/` 配下のコード（例: `regions/system/server/go/auth/`）は、
+**CLI がサーバーのスキャフォールドを行う際に参照するコード生成テンプレート**である。
+
+- これらは実際に動作するサーバーコードではなく、CLI の `generate` コマンドがひな形生成時に参照する参照実装（スキャフォールドテンプレート）である
+- `sparse-checkout` の仕組みによってリポジトリから取り込まれており、CLI がオフラインでも生成できるよう手元に配置されている
+- `CLI/crates/k1s0-cli/templates/` にある Tera テンプレートと組み合わせて使用される
+- このディレクトリ内のコードを直接ビルドしたり、デプロイしたりしないこと
+
 | 技術 | 用途 |
 |------|------|
 | Tauri 2 | デスクトップフレームワーク |

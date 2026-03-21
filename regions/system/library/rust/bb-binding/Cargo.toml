@@ -1,8 +1,8 @@
 [package]
 name = "k1s0-bb-binding"
 version = "0.1.0"
-# TODO: edition統一 - プロジェクト全体の方針決定後に統一（大多数は edition = "2021"）
-edition = "2024"
+# Rustエディション: プロジェクト全体で統一した edition = "2021" を使用する（ADR-0013参照）
+edition = "2021"
 rust-version = "1.93"
 
 [features]

@@ -136,7 +136,13 @@ type EventEnvelope struct {
     RecordedAt time.Time
 }
 
-func NewEventEnvelope(streamID StreamId, version uint64, eventType string, payload json.RawMessage) *EventEnvelope
+// EventEnvelope オプション関数型（メタデータ等を後付けで設定可能）
+type EventEnvelopeOption func(*EventEnvelope)
+
+func WithMetadata(meta json.RawMessage) EventEnvelopeOption  // メタデータ設定オプション
+
+// opts は可変長引数のため既存コードへの後方互換性を維持する
+func NewEventEnvelope(streamID StreamId, version uint64, eventType string, payload json.RawMessage, opts ...EventEnvelopeOption) *EventEnvelope
 
 type Snapshot struct {
     StreamID  string
@@ -172,8 +178,18 @@ func NewStreamNotFoundError(streamID string) *EventStoreError
 func NewInMemoryEventStore() *InMemoryEventStore    // implements EventStore
 func NewInMemorySnapshotStore() *InMemorySnapshotStore  // implements SnapshotStore
 
+// PostgreSQL 接続プール設定（外部化）
+type EventStoreConfig struct {
+    MaxOpenConns    int
+    MaxIdleConns    int
+    ConnMaxLifetime time.Duration
+}
+
+func DefaultEventStoreConfig() EventStoreConfig  // デフォルト設定（MaxOpenConns=10, MaxIdleConns=5, 5分）
+
 // PostgreSQL 実装
-func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error)
+func NewPostgresEventStore(databaseURL string) (*PostgresEventStore, error)              // デフォルト設定で生成（後方互換）
+func NewPostgresEventStoreWithConfig(databaseURL string, cfg EventStoreConfig) (*PostgresEventStore, error)  // カスタム設定で生成
 func NewPostgresEventStoreFromDB(db *sql.DB) *PostgresEventStore
 func (s *PostgresEventStore) Migrate(ctx context.Context) error  // イベントテーブル作成
 func (s *PostgresEventStore) Close() error                       // DB 接続クローズ

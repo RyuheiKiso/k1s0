@@ -123,6 +123,52 @@ func TestFileSecretStore_NotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
+// TestFileSecretStore_PathTraversal_EtcPasswd は "../../../etc/passwd" 形式のキーでエラーが返ることを確認する。
+// パストラバーサル攻撃による任意ファイル読み取りを防止するための検証。
+func TestFileSecretStore_PathTraversal_EtcPasswd(t *testing.T) {
+	ctx := context.Background()
+	// 一時ディレクトリを基底ディレクトリとして使用する。
+	dir := t.TempDir()
+	store := secretstore.NewFileSecretStore(dir)
+
+	// "../../etc/passwd" 形式のパストラバーサル試行はエラーを返す必要がある。
+	_, err := store.Get(ctx, "../../etc/passwd")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal detected")
+}
+
+// TestFileSecretStore_PathTraversal_SiblingDir は "../sibling_dir/secret" 形式のキーでエラーが返ることを確認する。
+// 隣接ディレクトリへのパストラバーサル攻撃を防止するための検証。
+func TestFileSecretStore_PathTraversal_SiblingDir(t *testing.T) {
+	ctx := context.Background()
+	// 一時ディレクトリを基底ディレクトリとして使用する。
+	dir := t.TempDir()
+	store := secretstore.NewFileSecretStore(dir)
+
+	// "../sibling/secret" 形式のパストラバーサル試行はエラーを返す必要がある。
+	_, err := store.Get(ctx, "../sibling/secret")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "path traversal detected")
+}
+
+// TestFileSecretStore_ValidKey は正常なキー名でファイルが読み取れることを確認する。
+// パストラバーサル防止追加後も正常なキーが動作することを検証する。
+func TestFileSecretStore_ValidKey(t *testing.T) {
+	ctx := context.Background()
+	// 一時ディレクトリにテスト用シークレットファイルを作成する。
+	dir := t.TempDir()
+	err := os.WriteFile(filepath.Join(dir, "valid-secret"), []byte("secret-value\n"), 0600)
+	require.NoError(t, err)
+
+	store := secretstore.NewFileSecretStore(dir)
+
+	// 正常なキー名でシークレットが取得できることを確認する。
+	secret, err := store.Get(ctx, "valid-secret")
+	require.NoError(t, err)
+	assert.Equal(t, "valid-secret", secret.Key)
+	assert.Equal(t, "secret-value", secret.Value)
+}
+
 // ─────────────────────────────────────────
 // VaultSecretStore テスト
 // ─────────────────────────────────────────

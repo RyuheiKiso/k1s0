@@ -148,6 +148,26 @@ func LogWithTrace(ctx context.Context, logger *slog.Logger) *slog.Logger {
 }
 ```
 
+### TLS 設定（gRPC エクスポーター）
+
+Go 実装の `InitTelemetry` は `cfg.Environment` に基づいて gRPC エクスポーターの TLS 設定を制御する。
+
+| 環境値 | TLS 動作 |
+|--------|---------|
+| `development` / `dev` / `local` | `WithInsecure()` を付与（TLS 無効） |
+| `staging` / `prod` / その他 | TLS 有効（デフォルト gRPC TLS） |
+
+`IsDevEnvironment(env string) bool` ヘルパーで判定しており、本番環境で平文送信が行われることを防ぐ。
+
+```go
+// IsDevEnvironment の動作例
+IsDevEnvironment("dev")          // → true（WithInsecure 適用）
+IsDevEnvironment("development")  // → true（WithInsecure 適用）
+IsDevEnvironment("local")        // → true（WithInsecure 適用）
+IsDevEnvironment("staging")      // → false（TLS 有効）
+IsDevEnvironment("prod")         // → false（TLS 有効）
+```
+
 **Metrics の使用パターン**: Go の `Metrics` 構造体は 4 つのフィールドを直接公開する。他言語のように `record*` ヘルパーメソッドは無く、呼び出し元が直接 Prometheus API を使用する。
 
 ```go

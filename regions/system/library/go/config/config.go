@@ -85,10 +85,16 @@ type KafkaConfig struct {
 	Topics           KafkaTopics      `yaml:"topics"`
 }
 
+// KafkaSASLConfig は Kafka の SASL 認証設定を保持する。
+// KafkaConfig.SASL がポインタ（*KafkaSASLConfig）のため、
+// SASL 無効時（nil）は validate タグの検証はスキップされる。
+// SASL 有効時は Username / Password の両フィールドが必須となる。
 type KafkaSASLConfig struct {
 	Mechanism string `yaml:"mechanism" validate:"required,oneof=SCRAM-SHA-512 PLAIN"`
-	Username  string `yaml:"username"`
-	Password  string `yaml:"password"`
+	// SASL 認証に使用するユーザー名。SASL 有効時は必須フィールド。
+	Username string `yaml:"username" validate:"required"`
+	// SASL 認証に使用するパスワード。SASL 有効時は必須フィールド。
+	Password string `yaml:"password" validate:"required"`
 }
 
 type KafkaTLSConfig struct {
@@ -175,6 +181,11 @@ func Load(basePath string, envPath ...string) (*Config, error) {
 		if err := mergeFromFile(&cfg, envPath[0]); err != nil {
 			return nil, fmt.Errorf("%w: %w", ErrConfigLoadFailed, err)
 		}
+	}
+
+	// ロード後に自動でバリデーションを実行し、無効な設定を早期に検出する
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 
 	return &cfg, nil

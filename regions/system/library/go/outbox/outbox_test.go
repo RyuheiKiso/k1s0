@@ -43,6 +43,11 @@ func (m *mockStore) FetchPending(ctx context.Context, limit int) ([]outbox.Outbo
 	return m.messages, nil
 }
 
+// FetchAndLock はテスト用モック実装。SELECT FOR UPDATE SKIP LOCKED の代わりに FetchPending と同等の動作を行う。
+func (m *mockStore) FetchAndLock(ctx context.Context, batchSize int) ([]outbox.OutboxMessage, error) {
+	return m.FetchPending(ctx, batchSize)
+}
+
 func (m *mockStore) Update(ctx context.Context, msg *outbox.OutboxMessage) error {
 	if m.updateErr != nil {
 		return m.updateErr
@@ -85,6 +90,20 @@ func TestNewOutboxMessage(t *testing.T) {
 	assert.Empty(t, msg.LastError)
 	assert.False(t, msg.CreatedAt.IsZero())
 	assert.True(t, msg.IsProcessable())
+}
+
+// WithMaxRetriesオプションを指定してNewOutboxMessageを呼び出すとMaxRetriesが設定されることを確認する。
+func TestNewOutboxMessage_WithMaxRetries(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("topic", "key", payload, outbox.WithMaxRetries(10))
+	assert.Equal(t, 10, msg.MaxRetries)
+}
+
+// WithMaxRetriesオプションなしで呼び出した場合はMaxRetriesがデフォルト値（3）になることを確認する。
+func TestNewOutboxMessage_DefaultMaxRetries(t *testing.T) {
+	payload := json.RawMessage(`{}`)
+	msg := outbox.NewOutboxMessage("topic", "key", payload)
+	assert.Equal(t, 3, msg.MaxRetries)
 }
 
 // NewOutboxMessageが呼び出しごとに一意なIDを生成することを確認する。

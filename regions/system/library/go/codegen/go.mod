@@ -1,8 +1,6 @@
 module github.com/k1s0-platform/system-library-go-codegen
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.26.1
 
 require github.com/stretchr/testify v1.11.1
 

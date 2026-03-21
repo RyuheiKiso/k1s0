@@ -35,9 +35,20 @@ type EventEnvelope struct {
 	RecordedAt time.Time       `json:"recorded_at"`
 }
 
+// EventEnvelopeOption は NewEventEnvelope のオプション関数型
+type EventEnvelopeOption func(*EventEnvelope)
+
+// WithMetadata はイベントエンベロープにメタデータを設定するオプション
+func WithMetadata(meta json.RawMessage) EventEnvelopeOption {
+	return func(e *EventEnvelope) {
+		e.Metadata = meta
+	}
+}
+
 // NewEventEnvelope は新しい EventEnvelope を作成する。
-func NewEventEnvelope(streamID StreamId, version uint64, eventType string, payload json.RawMessage) *EventEnvelope {
-	return &EventEnvelope{
+// オプション関数（EventEnvelopeOption）を可変長引数で受け取り、後方互換性を維持しながらメタデータ等を設定できる。
+func NewEventEnvelope(streamID StreamId, version uint64, eventType string, payload json.RawMessage, opts ...EventEnvelopeOption) *EventEnvelope {
+	e := &EventEnvelope{
 		EventID:    uuid.New(),
 		StreamID:   streamID.String(),
 		Version:    version,
@@ -46,6 +57,11 @@ func NewEventEnvelope(streamID StreamId, version uint64, eventType string, paylo
 		Metadata:   json.RawMessage("{}"),
 		RecordedAt: time.Now(),
 	}
+	// 各オプション関数を適用する
+	for _, opt := range opts {
+		opt(e)
+	}
+	return e
 }
 
 // Snapshot はイベントストリームのスナップショット。

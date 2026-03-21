@@ -143,6 +143,23 @@ func (c *SagaClient) GetSaga(ctx context.Context, sagaID string) (*SagaState, er
 func (c *SagaClient) CancelSaga(ctx context.Context, sagaID string) error
 ```
 
+### セキュリティ: URL パスエスケープ（パストラバーサル防止）
+
+`GetSaga` および `CancelSaga` の `sagaID` パラメータは URL パスに直接埋め込まれる。
+`sagaID` に `../` のようなパストラバーサルシーケンスが含まれる場合、
+意図しないエンドポイントへのリクエストが発生する可能性がある。
+
+Go 実装では `net/url` パッケージの `url.PathEscape` を使用して `sagaID` をエスケープする:
+
+```go
+// url.PathEscape により "/" は "%2F" にエンコードされ、パストラバーサルを防止する
+url.PathEscape(sagaID)
+// 例: "../attack" → "..%2Fattack"（HTTP リクエストの RawPath に %2F として送信）
+```
+
+**注意**: `r.URL.Path`（Go HTTP サーバーの decoded パス）では `%2F` がデコードされて `/` に戻るが、
+HTTP ワイヤー上の実際のリクエストは `%2F` のままであるため、パストラバーサルは防止される。
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/saga/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）

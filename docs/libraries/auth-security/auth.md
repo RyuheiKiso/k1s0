@@ -51,7 +51,7 @@
 
 ### Doc Sync 補足（Go 実装差分）
 
-- `CheckPermission` は `sys_admin` を最優先で許可し、その後 `realm_access` / `resource_access` を評価する。
+- `CheckPermission` は `sys_admin` を最優先で許可し、その後 `resource_access` を評価する。`realm_access` の `admin` ロールは全権限を付与しない（最小権限原則・ADR-0011）。`admin` が全アクションを持てるのは `resource_access.{resource}.roles` に明示的に付与された場合のみ、そのリソース内に限定される。
 - `AuthError` には `MissingToken` と `InvalidAuthHeader` を含む。
 - `JWKSFetcher` インターフェースと `NewJWKSVerifierWithFetcher` を提供する（テスト差し替え用途）。
 - `getKeySet` はダブルチェックロックでキャッシュを更新し、取得失敗時は **max_stale_duration 以内の** stale cache をフォールバックとして返す。Rust 実装では `max_stale_duration`（デフォルト 1時間）を超えた stale cache は使用せずエラーを伝播する。これにより侵害された鍵が長期間キャッシュされることを防ぐ。
@@ -248,6 +248,23 @@ func CheckPermission(claims *Claims, resource, action string) bool {
     }
     return false
 }
+```
+
+### PII マスキング
+
+Go 実装の `Claims.String()` メソッドはデバッグ出力時に email を自動マスキングする。
+
+- `maskEmail(email string) string` ヘルパーで `@` より前の先頭1文字のみ残し `***` で置換する
+- 例: `user@example.com` → `u***@example.com`
+- `@` がない場合や空文字列の場合は `***` を返す
+- ログやデバッグ出力に PII（個人識別情報）が露出することを防ぐ
+
+```go
+// maskEmail の動作例
+maskEmail("user@example.com")  // → "u***@example.com"
+maskEmail("a@b.com")           // → "a***@b.com"
+maskEmail("")                  // → "***"
+maskEmail("nodomain")          // → "***"
 ```
 
 ## Rust 実装

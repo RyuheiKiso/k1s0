@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// CSRF トークンを提供するコールバック型
 typedef CsrfTokenProvider = Future<String?> Function();
@@ -27,25 +28,32 @@ class CsrfTokenInterceptor extends Interceptor {
 /// Flutter Web ではブラウザが Cookie を自動管理するため不要だが、
 /// モバイルでは Dio が Cookie を扱わないため手動で管理する。
 ///
-/// TODO(M-019): セキュリティ強化のため、セッション ID をメモリ上の String ではなく
-/// flutter_secure_storage（AES-GCM 暗号化）で管理することを検討する。
-/// 特に越獄済みデバイスやメモリダンプ攻撃に対する防御として有効。
+/// セッション ID は flutter_secure_storage（AES-GCM 暗号化）で管理し、
+/// 越獄済みデバイスやメモリダンプ攻撃に対する防御を行う。（M-019 対応済み）
 /// 参考: https://pub.dev/packages/flutter_secure_storage
 class SessionCookieInterceptor extends Interceptor {
-  /// 保持中のセッション ID
-  String? sessionId;
+  /// flutter_secure_storage を使用した暗号化ストレージ（AES-GCM）
+  final FlutterSecureStorage _storage;
 
   /// セッションクッキー名
   final String cookieName;
 
-  SessionCookieInterceptor({this.cookieName = 'k1s0_session'});
+  /// セキュアストレージのキー名
+  static const _sessionIdKey = 'session_id';
+
+  // コンストラクタでセキュアストレージとクッキー名を初期化する
+  SessionCookieInterceptor({
+    this.cookieName = 'k1s0_session',
+    FlutterSecureStorage? storage,
+  }) : _storage = storage ?? const FlutterSecureStorage();
 
   @override
-  void onRequest(
+  Future<void> onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
-  ) {
-    // セッション ID が保持されている場合はリクエストに Cookie ヘッダーを付与する
+  ) async {
+    // セキュアストレージからセッション ID を非同期で読み出し、リクエストに Cookie ヘッダーを付与する
+    final sessionId = await _storage.read(key: _sessionIdKey);
     if (sessionId != null) {
       final existing = options.headers['Cookie'] as String?;
       final sessionCookie = '$cookieName=$sessionId';
@@ -56,32 +64,34 @@ class SessionCookieInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(
+  Future<void> onResponse(
     Response response,
     ResponseInterceptorHandler handler,
-  ) {
-    // Set-Cookie ヘッダーからセッションクッキーを抽出して保持する
-    _extractSessionCookie(response.headers);
+  ) async {
+    // Set-Cookie ヘッダーからセッションクッキーを抽出してセキュアストレージに保存する
+    await _extractSessionCookie(response.headers);
     handler.next(response);
   }
 
-  /// Set-Cookie ヘッダーからセッション ID を抽出する
-  void _extractSessionCookie(Headers headers) {
+  /// Set-Cookie ヘッダーからセッション ID を抽出し、セキュアストレージに書き込む
+  Future<void> _extractSessionCookie(Headers headers) async {
     final setCookies = headers['set-cookie'];
     if (setCookies == null) return;
     for (final cookie in setCookies) {
       if (cookie.startsWith('$cookieName=')) {
         final value = cookie.split(';').first.substring(cookieName.length + 1);
         if (value.isNotEmpty) {
-          sessionId = value;
+          // セッション ID を AES-GCM 暗号化ストレージに書き込む
+          await _storage.write(key: _sessionIdKey, value: value);
         }
       }
     }
   }
 
   /// セッションをクリアする（ログアウト時に使用）
-  void clearSession() {
-    sessionId = null;
+  Future<void> clearSession() async {
+    // セキュアストレージからセッション ID を削除する
+    await _storage.delete(key: _sessionIdKey);
   }
 }
 

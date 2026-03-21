@@ -238,3 +238,49 @@ func TestStartSaga_WithPayload(t *testing.T) {
 	assert.Equal(t, "saga-with-payload", resp.SagaID)
 	assert.Equal(t, "STARTED", resp.Status)
 }
+
+// GetSagaが../を含む悪意あるsagaIDをurl.PathEscapeで安全にエスケープしてリクエストすることを確認する。
+// r.URL.RawPath にはエンコード済みパスが格納されるため、%2F がスラッシュとして解釈されないことを検証する。
+func TestGetSaga_PathTraversalEscaped(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// RawPath にエンコード済みパスが含まれる場合はそちらで検証する
+		rawPath := r.URL.RawPath
+		if rawPath == "" {
+			rawPath = r.URL.Path
+		}
+		// url.PathEscape により / は %2F にエンコードされているため、パストラバーサルは発生しない
+		assert.Contains(t, rawPath, "..%2F", "sagaID の / は %%2F にエンコードされていること")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("not found"))
+	}))
+	defer server.Close()
+
+	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
+	// ../attack のようなパストラバーサルを試みる sagaID を渡す
+	_, err := client.GetSaga(context.Background(), "../attack")
+	// エラーが返るが、パストラバーサルは発生していない
+	require.Error(t, err)
+}
+
+// CancelSagaが../を含む悪意あるsagaIDをurl.PathEscapeで安全にエスケープしてリクエストすることを確認する。
+// r.URL.RawPath にはエンコード済みパスが格納されるため、%2F がスラッシュとして解釈されないことを検証する。
+func TestCancelSaga_PathTraversalEscaped(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// RawPath にエンコード済みパスが含まれる場合はそちらで検証する
+		rawPath := r.URL.RawPath
+		if rawPath == "" {
+			rawPath = r.URL.Path
+		}
+		// url.PathEscape により / は %2F にエンコードされているため、パストラバーサルは発生しない
+		assert.Contains(t, rawPath, "..%2F", "sagaID の / は %%2F にエンコードされていること")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("not found"))
+	}))
+	defer server.Close()
+
+	client := saga.NewSagaClientWithHTTPClient(server.URL, server.Client())
+	// ../attack のようなパストラバーサルを試みる sagaID を渡す
+	err := client.CancelSaga(context.Background(), "../attack")
+	// エラーが返るが、パストラバーサルは発生していない
+	require.Error(t, err)
+}

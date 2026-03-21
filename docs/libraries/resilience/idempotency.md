@@ -248,6 +248,22 @@ func NewRedisIdempotencyStoreFromURL(url string, opts ...RedisStoreOption) (*Red
 
 > **注意**: Go の `IdempotencyStore` は `delete` メソッドを持たない。TypeScript/Dart/Rust とは異なる。
 
+### Redis バックエンドの並行安全性（Lua CAS）
+
+`RedisIdempotencyStore` の `MarkCompleted` / `MarkFailed` メソッドは、
+**Redis Lua スクリプトによるアトミック CAS（Compare-and-Swap）** で実装されている。
+
+旧実装では `GET → メモリ更新 → SET` という非アトミックなパターンを使用していたため、
+複数 goroutine が同じキーを並行操作した場合に TOCTOU 競合（Lost Update）が発生する問題があった。
+
+新実装では `redis.NewScript(luaScript)` + `Script.Run()` を使用し、
+`GET → cjson.decode → フィールド更新 → cjson.encode → SET KEEPTTL` を
+1回のアトミック操作として実行する。これにより並行安全性が保証される。
+
+- `KEEPTTL` オプションにより既存の TTL が透過的に保持される（Redis 6.0 以降が必要）
+- Go の `[]byte` フィールド（`response`）は `base64.StdEncoding` でエンコードして Lua に渡す
+- 詳細は [ADR-0010](../../architecture/adr/0010-idempotency-atomic-cas.md) を参照
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/idempotency/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）

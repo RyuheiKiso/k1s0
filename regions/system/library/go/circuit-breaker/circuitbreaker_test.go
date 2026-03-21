@@ -2,6 +2,7 @@ package circuitbreaker_test
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -104,6 +105,54 @@ func TestCall_Failure(t *testing.T) {
 	testErr := errors.New("fail")
 	err := cb.Call(func() error { return testErr })
 	assert.ErrorIs(t, err, testErr)
+}
+
+// HalfOpen状態で複数goroutineが同時に Call を呼んだ場合、1件のみ通過し残りは ErrOpen を返すことを確認する。
+func TestCall_HalfOpen_OnlyOneConcurrentRequest(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Timeout = 50 * time.Millisecond
+	cb := circuitbreaker.New(cfg)
+
+	// Open 状態に遷移させる
+	for i := 0; i < 3; i++ {
+		cb.RecordFailure()
+	}
+	// タイムアウト待機で HalfOpen へ
+	time.Sleep(60 * time.Millisecond)
+	assert.Equal(t, circuitbreaker.StateHalfOpen, cb.State())
+
+	// 1件目の fn を実行中に2件目の Call が来るよう blocker で同期する。
+	// blocker を受信するまで1件目の fn がブロックし、その間に2件目を試みる。
+	blocker := make(chan struct{})
+	firstStarted := make(chan struct{})
+
+	var result1, result2 error
+	var wg sync.WaitGroup
+
+	// 1件目: fn の中でブロックして halfOpenInFlight=1 の状態を維持する
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		result1 = cb.Call(func() error {
+			close(firstStarted) // fn が始まったことを通知
+			<-blocker           // 2件目の結果取得後に解放される
+			return nil
+		})
+	}()
+
+	// 1件目の fn が開始するまで待つ
+	<-firstStarted
+
+	// 2件目: 1件目実行中に試みる → ErrOpen になるはず
+	result2 = cb.Call(func() error { return nil })
+
+	// 1件目の fn を解放
+	close(blocker)
+	wg.Wait()
+
+	// 1件目は成功、2件目は ErrOpen
+	assert.NoError(t, result1, "1件目の Call は成功すること")
+	assert.ErrorIs(t, result2, circuitbreaker.ErrOpen, "HalfOpen状態で2件目は ErrOpen を返すこと")
 }
 
 // 成功を記録すると失敗カウントがリセットされ、その後の失敗でOpenにならないことを確認する。

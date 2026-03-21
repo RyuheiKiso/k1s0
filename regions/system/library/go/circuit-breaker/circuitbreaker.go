@@ -78,14 +78,16 @@ func (m *metricsRecorder) snapshot() Metrics {
 }
 
 // CircuitBreaker はサーキットブレーカー。
+// halfOpenInFlight は HalfOpen 状態で同時に通過できるリクエストを1件に制限するためのアトミックフラグ。
 type CircuitBreaker struct {
-	mu             sync.Mutex
-	config         Config
-	state          State
-	failureCount   uint32
-	successCount   uint32
-	lastFailureAt  time.Time
-	metrics        *metricsRecorder
+	mu                sync.Mutex
+	config            Config
+	state             State
+	failureCount      uint32
+	successCount      uint32
+	lastFailureAt     time.Time
+	metrics           *metricsRecorder
+	halfOpenInFlight  int32
 }
 
 // New は新しい CircuitBreaker を生成する。
@@ -165,6 +167,8 @@ func (cb *CircuitBreaker) Metrics() Metrics {
 }
 
 // Call は関数を呼び出す。Open状態の場合は ErrOpen を返す。
+// HalfOpen状態では atomic CAS により同時に1件のリクエストのみ通過させ、
+// 複数 goroutine が同時にプローブ呼び出しを行うことを防ぐ。
 func (cb *CircuitBreaker) Call(fn func() error) error {
 	cb.mu.Lock()
 	cb.checkStateTransition()
@@ -172,7 +176,17 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 		cb.mu.Unlock()
 		return ErrOpen
 	}
-	cb.mu.Unlock()
+	// HalfOpen状態の場合は1件のみ通過させ、それ以外は ErrOpen を返す
+	if cb.state == StateHalfOpen {
+		if !atomic.CompareAndSwapInt32(&cb.halfOpenInFlight, 0, 1) {
+			cb.mu.Unlock()
+			return ErrOpen
+		}
+		cb.mu.Unlock()
+		defer atomic.StoreInt32(&cb.halfOpenInFlight, 0)
+	} else {
+		cb.mu.Unlock()
+	}
 
 	err := fn()
 	if err != nil {

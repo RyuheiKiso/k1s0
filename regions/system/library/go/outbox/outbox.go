@@ -50,10 +50,21 @@ type OutboxMessage struct {
 	ProcessAfter time.Time
 }
 
+// OutboxMessageOption は NewOutboxMessage のオプション関数型
+type OutboxMessageOption func(*OutboxMessage)
+
+// WithMaxRetries はアウトボックスメッセージのリトライ上限を設定するオプション
+func WithMaxRetries(n int) OutboxMessageOption {
+	return func(m *OutboxMessage) {
+		m.MaxRetries = n
+	}
+}
+
 // NewOutboxMessage は新しいアウトボックスメッセージを生成する。
-func NewOutboxMessage(topic, partitionKey string, payload json.RawMessage) OutboxMessage {
+// オプション関数（OutboxMessageOption）を可変長引数で受け取り、後方互換性を維持しながらリトライ上限等を設定できる。
+func NewOutboxMessage(topic, partitionKey string, payload json.RawMessage, opts ...OutboxMessageOption) OutboxMessage {
 	now := time.Now().UTC()
-	return OutboxMessage{
+	m := OutboxMessage{
 		ID:           uuid.New().String(),
 		Topic:        topic,
 		PartitionKey: partitionKey,
@@ -65,6 +76,11 @@ func NewOutboxMessage(topic, partitionKey string, payload json.RawMessage) Outbo
 		CreatedAt:    now,
 		ProcessAfter: now,
 	}
+	// 各オプション関数を適用する
+	for _, opt := range opts {
+		opt(&m)
+	}
+	return m
 }
 
 // MarkProcessing はメッセージを処理中状態に遷移する。
@@ -171,7 +187,13 @@ type OutboxStore interface {
 	// Save はメッセージをアウトボックステーブルに保存する。
 	Save(ctx context.Context, msg *OutboxMessage) error
 	// FetchPending は処理待ちのメッセージを一覧取得する（最大 limit 件）。
+	// 後方互換のため残存する。分散環境では FetchAndLock の使用を推奨する。
 	FetchPending(ctx context.Context, limit int) ([]OutboxMessage, error)
+	// FetchAndLock は SELECT FOR UPDATE SKIP LOCKED でメッセージを取得しロックする。
+	// 複数インスタンスが同一メッセージを処理しないよう、DB レベルで排他制御を行う。
+	// 未実装の場合は FetchPending と同等の動作にフォールバックする実装を提供すること。
+	// 分散環境での重複処理防止のために使用する。
+	FetchAndLock(ctx context.Context, batchSize int) ([]OutboxMessage, error)
 	// Update はメッセージのステータスを更新する。
 	Update(ctx context.Context, msg *OutboxMessage) error
 	// DeleteDelivered は配信完了メッセージを削除する（保持期間超過後）。

@@ -40,6 +40,36 @@ auth:
 	assert.Equal(t, 8080, cfg.Server.Port)
 }
 
+// Load() がファイル読み込み後に自動でバリデーションを実行し、
+// 必須フィールドが欠けた場合は ErrConfigValidation を返すことを確認する。
+func TestLoad_AutoValidation(t *testing.T) {
+	dir := t.TempDir()
+	base := filepath.Join(dir, "config.yaml")
+	// app.name が空のため自動バリデーションで ErrConfigValidation が発生する
+	os.WriteFile(base, []byte(`
+app:
+  name: ""
+  version: "1.0.0"
+  tier: system
+  environment: dev
+server:
+  host: "0.0.0.0"
+  port: 8080
+observability:
+  log:
+    level: debug
+    format: json
+auth:
+  jwt:
+    issuer: "http://localhost:8180/realms/k1s0"
+    audience: "k1s0-api"
+`), 0644)
+
+	_, err := Load(base)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrConfigValidation), "Load() が自動バリデーションで ErrConfigValidation を返すこと")
+}
+
 // 存在しないファイルを読み込もうとすると ErrConfigNotFound が返ることを確認する。
 func TestLoad_FileNotFound(t *testing.T) {
 	_, err := Load("/nonexistent/config.yaml")
@@ -426,6 +456,77 @@ func TestRedisConfig_String_MasksPassword(t *testing.T) {
 	if !strings.Contains(s, "***") {
 		t.Errorf("String() にマスク文字列が含まれていない: %s", s)
 	}
+}
+
+// KafkaSASLConfig が Username/Password なしでバリデーションエラーを返すことを確認する。
+func TestValidate_KafkaSASL_RequiredFields(t *testing.T) {
+	cfg := &Config{
+		App: AppConfig{
+			Name:        "test",
+			Version:     "1.0.0",
+			Tier:        "system",
+			Environment: "dev",
+		},
+		Server: ServerConfig{
+			Host: "0.0.0.0",
+			Port: 8080,
+		},
+		Observability: ObservabilityConfig{
+			Log: LogConfig{Level: "info", Format: "json"},
+		},
+		Auth: AuthConfig{
+			JWT: JWTConfig{
+				Issuer:   "http://localhost",
+				Audience: "test",
+			},
+		},
+		Kafka: &KafkaConfig{
+			Brokers:          []string{"localhost:9092"},
+			ConsumerGroup:    "test-group",
+			SecurityProtocol: "SASL_SSL",
+			// Username / Password が空のため validate:"required" でエラーになること
+			SASL: &KafkaSASLConfig{
+				Mechanism: "SCRAM-SHA-512",
+				Username:  "",
+				Password:  "",
+			},
+		},
+	}
+	err := cfg.Validate()
+	assert.Error(t, err, "SASL Username/Password が空のときバリデーションエラーが発生すること")
+}
+
+// KafkaSASL が nil（SASL 無効）の場合にバリデーションがスキップされることを確認する。
+func TestValidate_KafkaSASL_NilSkipsValidation(t *testing.T) {
+	cfg := &Config{
+		App: AppConfig{
+			Name:        "test",
+			Version:     "1.0.0",
+			Tier:        "system",
+			Environment: "dev",
+		},
+		Server: ServerConfig{
+			Host: "0.0.0.0",
+			Port: 8080,
+		},
+		Observability: ObservabilityConfig{
+			Log: LogConfig{Level: "info", Format: "json"},
+		},
+		Auth: AuthConfig{
+			JWT: JWTConfig{
+				Issuer:   "http://localhost",
+				Audience: "test",
+			},
+		},
+		Kafka: &KafkaConfig{
+			Brokers:          []string{"localhost:9092"},
+			ConsumerGroup:    "test-group",
+			SecurityProtocol: "PLAINTEXT",
+			SASL:             nil, // SASL 無効時は nil → バリデーションスキップ
+		},
+	}
+	err := cfg.Validate()
+	assert.NoError(t, err, "SASL が nil のときバリデーションエラーが発生しないこと")
 }
 
 // OIDCConfig の String() がクライアントシークレットをマスクすることを確認する。
