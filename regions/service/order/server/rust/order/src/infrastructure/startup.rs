@@ -118,7 +118,7 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(usecase::event_publisher::NoopOrderEventPublisher)
         };
 
-    // 7. Outbox Poller — k1s0-outbox の汎用ポーラーをバックグラウンドタスクとして起動
+    // 7. Outbox Poller + Kafka Consumer — バックグラウンドタスクとして起動
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let outbox_poller = Arc::new(super::outbox_poller::new_outbox_poller(
         order_repo.clone(),
@@ -126,11 +126,38 @@ pub async fn run() -> anyhow::Result<()> {
         Duration::from_secs(5),
         100,
     ));
+    let outbox_shutdown_rx = shutdown_rx.clone();
     let outbox_poller_clone = outbox_poller.clone();
     let outbox_handle = tokio::spawn(async move {
-        outbox_poller_clone.run(shutdown_rx).await;
+        outbox_poller_clone.run(outbox_shutdown_rx).await;
     });
     info!("outbox poller started");
+
+    // 7-b. Saga Consumer — payment イベントを購読して注文ステータスを更新する（C-001）
+    let consumer_handle = if let Some(ref kafka_cfg) = cfg.kafka {
+        let handle_payment_event_uc = Arc::new(
+            usecase::handle_payment_event::HandlePaymentEventUseCase::new(order_repo.clone()),
+        );
+        match infrastructure::kafka::order_consumer::OrderKafkaConsumer::new(
+            kafka_cfg,
+            handle_payment_event_uc,
+        ) {
+            Ok(consumer) => {
+                let consumer_shutdown_rx = shutdown_rx.clone();
+                let handle = tokio::spawn(async move {
+                    consumer.run(consumer_shutdown_rx).await;
+                });
+                info!("order kafka consumer started");
+                Some(handle)
+            }
+            Err(e) => {
+                tracing::warn!("failed to initialize order kafka consumer: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // 8. Use Cases
     let create_order_uc = Arc::new(usecase::create_order::CreateOrderUseCase::new(
@@ -237,9 +264,12 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
-    // 13. Graceful shutdown — Outbox Poller を停止
-    info!("shutting down outbox poller");
+    // 13. Graceful shutdown — Outbox Poller と Kafka Consumer を停止
+    info!("shutting down outbox poller and kafka consumer");
     let _ = outbox_handle.await;
+    if let Some(handle) = consumer_handle {
+        let _ = handle.await;
+    }
 
     // テレメトリデータをフラッシュしてからシャットダウンする
     k1s0_telemetry::shutdown();

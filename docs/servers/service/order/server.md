@@ -23,6 +23,20 @@ service tier の注文管理サーバーは以下の機能を提供する。
 | 注文詳細取得 API | 注文 ID を指定して注文と明細を取得する |
 | ステータス更新 API | 注文ステータスのステートマシンに従った遷移を行う |
 | 注文イベント配信 | Kafka トピックへの注文作成・更新・キャンセルイベントの非同期配信 |
+| **Saga Consumer** | `payment.completed/failed` を購読して注文ステータスを自動更新する（C-001） |
+
+### Saga 補償フロー（C-001）
+
+Choreography-based Saga パターンを採用。Order Consumer は payment イベントを購読して注文ステータスを更新する。
+
+| 購読トピック | 処理 | 結果 |
+|-----------|------|------|
+| `payment.completed` | `UpdateOrderStatus(Confirmed)` | Saga 正常完了 |
+| `payment.failed` | `UpdateOrderStatus(Cancelled)` | Saga 補償開始（order.cancelled → 在庫解放） |
+
+- Consumer Group: `k1s0-order-consumer`（`kafka.consumer_group_id` で設定可能）
+- 冪等性: `InvalidStatusTransition` エラーを "処理済み" としてスキップ
+- 詳細: [イベント駆動設計.md](../../../libraries/_common/イベント駆動設計.md#saga-補償トランザクションパターンc-001)
 
 ### 技術スタック
 
