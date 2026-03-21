@@ -85,3 +85,112 @@ impl SchemaGeneratorService {
         serde_json::Value::Object(schema)
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::column_definition::ColumnDefinition;
+    use crate::domain::entity::table_definition::TableDefinition;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn sample_table(name: &str) -> TableDefinition {
+        let now = Utc::now();
+        TableDefinition {
+            id: Uuid::new_v4(),
+            name: name.to_string(),
+            schema_name: "public".to_string(),
+            database_name: "main".to_string(),
+            display_name: name.to_string(),
+            description: None,
+            category: None,
+            is_active: true,
+            allow_create: true,
+            allow_update: true,
+            allow_delete: true,
+            read_roles: vec![],
+            write_roles: vec![],
+            admin_roles: vec![],
+            sort_order: 0,
+            created_by: "system".to_string(),
+            created_at: now,
+            updated_at: now,
+            domain_scope: None,
+        }
+    }
+
+    fn sample_column(table_id: Uuid, name: &str, data_type: &str, is_form: bool) -> ColumnDefinition {
+        let now = Utc::now();
+        ColumnDefinition {
+            id: Uuid::new_v4(),
+            table_id,
+            column_name: name.to_string(),
+            display_name: name.to_string(),
+            data_type: data_type.to_string(),
+            is_primary_key: false,
+            is_nullable: true,
+            is_unique: false,
+            default_value: None,
+            max_length: None,
+            min_value: None,
+            max_value: None,
+            regex_pattern: None,
+            display_order: 0,
+            is_searchable: false,
+            is_sortable: false,
+            is_filterable: false,
+            is_visible_in_list: true,
+            is_visible_in_form: is_form,
+            is_readonly: false,
+            input_type: "text".to_string(),
+            select_options: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    /// カラムなしの場合はpropertiesが空のスキーマを生成する
+    #[test]
+    fn generate_json_schema_no_columns() {
+        let table = sample_table("empty_table");
+        let schema = SchemaGeneratorService::generate_json_schema(&table, &[]);
+        assert_eq!(schema["type"], "object");
+        assert_eq!(schema["title"], "empty_table");
+        assert!(schema["properties"].as_object().unwrap().is_empty());
+    }
+
+    /// is_visible_in_form=trueのカラムのみスキーマに含まれる
+    #[test]
+    fn generate_json_schema_includes_only_form_visible_columns() {
+        let table = sample_table("products");
+        let col_visible = sample_column(table.id, "name", "text", true);
+        let col_hidden = sample_column(table.id, "internal_code", "text", false);
+        let schema =
+            SchemaGeneratorService::generate_json_schema(&table, &[col_visible, col_hidden]);
+        let props = schema["properties"].as_object().unwrap();
+        assert!(props.contains_key("name"));
+        assert!(!props.contains_key("internal_code"));
+    }
+
+    /// integerカラムのJSON Schema型がintegerになる
+    #[test]
+    fn generate_json_schema_integer_column_type() {
+        let table = sample_table("orders");
+        let col = sample_column(table.id, "quantity", "integer", true);
+        let schema = SchemaGeneratorService::generate_json_schema(&table, &[col]);
+        assert_eq!(schema["properties"]["quantity"]["type"], "integer");
+    }
+
+    /// dateカラムのフォーマットがdate、datetimeはdate-timeになる
+    #[test]
+    fn generate_json_schema_date_format() {
+        let table = sample_table("events");
+        let col_date = sample_column(table.id, "event_date", "date", true);
+        let col_datetime = sample_column(table.id, "created_at", "datetime", true);
+        let schema =
+            SchemaGeneratorService::generate_json_schema(&table, &[col_date, col_datetime]);
+        assert_eq!(schema["properties"]["event_date"]["format"], "date");
+        assert_eq!(schema["properties"]["created_at"]["format"], "date-time");
+    }
+}

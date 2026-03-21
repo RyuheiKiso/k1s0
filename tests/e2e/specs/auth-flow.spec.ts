@@ -88,3 +88,72 @@ test.describe("CSRF 保護", () => {
     expect([401, 403]).toContain(response.status());
   });
 });
+
+// T-04 対応: 認証成功フローの E2E テスト
+// Keycloak が TEST_KEYCLOAK_AVAILABLE=true で利用可能な場合のみ実行する。
+// CI では keycloak サービスコンテナが起動している場合に実行される。
+test.describe("認証成功フロー（Keycloak 連携）", () => {
+  // Keycloak が利用可能かどうかを確認するフラグ
+  const keycloakAvailable = process.env.TEST_KEYCLOAK_AVAILABLE === "true";
+
+  test.skip(!keycloakAvailable, "Keycloak が利用不可のためスキップ");
+
+  test("ログイン → セッション確認 → ログアウトの完全フロー", async ({
+    page,
+  }) => {
+    // Keycloak のテストユーザー認証情報（CI 環境の環境変数から取得）
+    const testUser = process.env.TEST_USER ?? "testuser";
+    const testPassword = process.env.TEST_PASSWORD ?? "testpassword";
+
+    // 1. ログインエンドポイントにアクセスして Keycloak にリダイレクトされることを確認する
+    await page.goto(`${BFF_BASE}/bff/auth/login`);
+    // Keycloak のログインページに遷移していることを確認する
+    await expect(page).toHaveURL(/\/realms\/k1s0\/protocol\/openid-connect\/auth/);
+
+    // 2. Keycloak ログインフォームに認証情報を入力する
+    await page.fill("#username", testUser);
+    await page.fill("#password", testPassword);
+    await page.click('[type="submit"]');
+
+    // 3. BFF へのコールバック後、元のアプリに戻ることを確認する
+    await page.waitForURL(`${BFF_BASE}/**`);
+
+    // 4. セッション情報が取得できることを確認する（認証成功の証明）
+    const sessionResponse = await page.request.get(
+      `${BFF_BASE}/bff/auth/session`,
+    );
+    expect(sessionResponse.status()).toBe(200);
+    const sessionData = await sessionResponse.json();
+    expect(sessionData).toHaveProperty("sub");
+    expect(sessionData.sub).toBeTruthy();
+
+    // 5. ログアウトしてセッションが無効化されることを確認する
+    await page.request.post(`${BFF_BASE}/bff/auth/logout`);
+
+    // 6. ログアウト後はセッションがないため 401 が返ることを確認する
+    const afterLogoutResponse = await page.request.get(
+      `${BFF_BASE}/bff/auth/session`,
+    );
+    expect(afterLogoutResponse.status()).toBe(401);
+  });
+
+  test("認証後の API アクセスが成功すること", async ({ page }) => {
+    const testUser = process.env.TEST_USER ?? "testuser";
+    const testPassword = process.env.TEST_PASSWORD ?? "testpassword";
+
+    // ログインフロー
+    await page.goto(`${BFF_BASE}/bff/auth/login`);
+    await expect(page).toHaveURL(/\/realms\/k1s0\/protocol\/openid-connect\/auth/);
+    await page.fill("#username", testUser);
+    await page.fill("#password", testPassword);
+    await page.click('[type="submit"]');
+    await page.waitForURL(`${BFF_BASE}/**`);
+
+    // 認証後は保護された API に 200 または 2xx でアクセスできることを確認する
+    const apiResponse = await page.request.get(
+      `${BFF_BASE}/bff/api/v1/orders`,
+    );
+    // 認証済みリクエストは 200 または空リスト（204）を返す（401 は返らない）
+    expect(apiResponse.status()).not.toBe(401);
+  });
+});

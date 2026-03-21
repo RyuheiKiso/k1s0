@@ -30,7 +30,7 @@ service tier の注文管理サーバーは以下の機能を提供する。
 
 | コンポーネント | Rust |
 | --- | --- |
-| Kafka クライアント | rdkafka v0.36 |
+| Kafka クライアント | rdkafka v0.37 |
 | バリデーション | validator v0.18 |
 
 ### 配置パス

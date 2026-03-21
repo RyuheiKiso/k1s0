@@ -74,3 +74,114 @@ impl FeatureFlagClient for InMemoryFeatureFlagClient {
         Ok(self.evaluate(flag_key, context).await?.enabled)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::flag::FlagVariant;
+
+    fn make_flag(key: &str, enabled: bool) -> FeatureFlag {
+        FeatureFlag {
+            id: format!("id-{key}"),
+            flag_key: key.to_string(),
+            description: "test flag".to_string(),
+            enabled,
+            variants: vec![],
+        }
+    }
+
+    fn make_flag_with_variant(key: &str, enabled: bool, variant: &str) -> FeatureFlag {
+        FeatureFlag {
+            id: format!("id-{key}"),
+            flag_key: key.to_string(),
+            description: "test flag".to_string(),
+            enabled,
+            variants: vec![FlagVariant {
+                name: variant.to_string(),
+                value: "1".to_string(),
+                weight: 100,
+            }],
+        }
+    }
+
+    /// 有効なフラグを evaluate すると FLAG_ENABLED reason が返る
+    #[tokio::test]
+    async fn evaluate_enabled_flag_returns_enabled_reason() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("feature-a", true)).await;
+        let ctx = EvaluationContext::new();
+        let result = client.evaluate("feature-a", &ctx).await.unwrap();
+        assert!(result.enabled);
+        assert_eq!(result.reason, "FLAG_ENABLED");
+        assert_eq!(result.flag_key, "feature-a");
+    }
+
+    /// 無効なフラグを evaluate すると FLAG_DISABLED reason が返る
+    #[tokio::test]
+    async fn evaluate_disabled_flag_returns_disabled_reason() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("feature-b", false)).await;
+        let ctx = EvaluationContext::new();
+        let result = client.evaluate("feature-b", &ctx).await.unwrap();
+        assert!(!result.enabled);
+        assert_eq!(result.reason, "FLAG_DISABLED");
+    }
+
+    /// 存在しないフラグを evaluate すると FlagNotFound エラーが返る
+    #[tokio::test]
+    async fn evaluate_missing_flag_returns_not_found() {
+        let client = InMemoryFeatureFlagClient::new();
+        let ctx = EvaluationContext::new();
+        let err = client.evaluate("nonexistent", &ctx).await.unwrap_err();
+        assert!(matches!(err, FeatureFlagError::FlagNotFound { .. }));
+    }
+
+    /// get_flag で登録済みフラグを取得できる
+    #[tokio::test]
+    async fn get_flag_returns_stored_flag() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("my-flag", true)).await;
+        let flag = client.get_flag("my-flag").await.unwrap();
+        assert_eq!(flag.flag_key, "my-flag");
+        assert!(flag.enabled);
+    }
+
+    /// is_enabled で有効フラグが true を返す
+    #[tokio::test]
+    async fn is_enabled_returns_true_for_enabled_flag() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("flag-enabled", true)).await;
+        let ctx = EvaluationContext::new().with_user_id("user-1");
+        assert!(client.is_enabled("flag-enabled", &ctx).await.unwrap());
+    }
+
+    /// is_enabled で無効フラグが false を返す
+    #[tokio::test]
+    async fn is_enabled_returns_false_for_disabled_flag() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("flag-disabled", false)).await;
+        let ctx = EvaluationContext::new();
+        assert!(!client.is_enabled("flag-disabled", &ctx).await.unwrap());
+    }
+
+    /// バリアント付きフラグで variant が返る
+    #[tokio::test]
+    async fn evaluate_flag_with_variant_returns_variant_name() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag_with_variant("flag-var", true, "beta")).await;
+        let ctx = EvaluationContext::new();
+        let result = client.evaluate("flag-var", &ctx).await.unwrap();
+        assert_eq!(result.variant, Some("beta".to_string()));
+    }
+
+    /// set_flag で上書きができる
+    #[tokio::test]
+    async fn set_flag_overwrites_existing_flag() {
+        let client = InMemoryFeatureFlagClient::new();
+        client.set_flag(make_flag("flag-x", true)).await;
+        client.set_flag(make_flag("flag-x", false)).await;
+        let ctx = EvaluationContext::new();
+        let result = client.evaluate("flag-x", &ctx).await.unwrap();
+        assert!(!result.enabled);
+    }
+}

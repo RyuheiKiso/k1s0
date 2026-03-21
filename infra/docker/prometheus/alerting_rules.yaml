@@ -9,6 +9,7 @@ groups:
         annotations:
           summary: "{{ $labels.job }} is down"
           description: "{{ $labels.instance }} has been unreachable for more than 1 minute"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
 
       - alert: HighErrorRate
         expr: service:http_errors:rate5m > 0.05
@@ -18,6 +19,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }} error rate > 5%"
           description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
 
       - alert: HighLatency
         expr: service:http_request_duration_seconds:p99 > 1
@@ -26,6 +28,7 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} P99 latency > 1s"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
       # gRPC エラー率が 5% を超えた場合にアラートを発火する
       - alert: GrpcHighErrorRate
@@ -36,6 +39,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }}/{{ $labels.grpc_service }} gRPC error rate > 5%"
           description: "{{ $labels.service }} の gRPC エラー率が {{ $value | humanizePercentage }} です"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
       # DB コネクションプールの使用率が 90% を超えた場合にアラートを発火する
       - alert: DbPoolExhaustion
@@ -47,6 +51,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }} DB pool usage > 90%"
           description: "{{ $labels.service }} の DB コネクションプール使用率が {{ $value | humanizePercentage }} です。プール枯渇の恐れがあります"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/db-pool-exhaustion.md"
 
       # Kafka コンシューマーラグが 1000 を超えた場合にアラートを発火する
       - alert: KafkaConsumerLagHigh
@@ -58,6 +63,7 @@ groups:
         annotations:
           summary: "Kafka consumer group {{ $labels.consumergroup }} lag > 1000"
           description: "コンシューマーグループ {{ $labels.consumergroup }} のラグが {{ $value }} メッセージです"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/kafka-consumer-lag.md"
 
       # TLS 証明書の有効期限が 30 日以内に切れる場合にアラートを発火する（Blackbox Exporter 利用時）
       - alert: CertificateExpiringSoon
@@ -68,6 +74,7 @@ groups:
         annotations:
           summary: "TLS certificate expiring in {{ $value | humanizeDuration }}"
           description: "{{ $labels.instance }} の TLS 証明書が {{ $value | humanizeDuration }} 以内に期限切れになります"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
       # cert-manager が管理する証明書の有効期限が 30 日（2592000 秒）以内の場合にアラートを発火する
       - alert: CertManagerCertExpiringSoon
@@ -78,3 +85,4 @@ groups:
         annotations:
           summary: "cert-manager certificate {{ $labels.name }} expiring soon"
           description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）の有効期限が 30 日以内です"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"

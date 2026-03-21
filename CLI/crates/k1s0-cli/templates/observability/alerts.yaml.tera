@@ -11,28 +11,51 @@ spec:
   groups:
     - name: {{ service_name_snake }}.rules
       rules:
+        # Tier 別アラート閾値:
+        #   system Tier    → SLO 99.95%: error rate > 1% で critical, P99 > 500ms で warning
+        #   business/service Tier → SLO 99.9%: error rate > 5% で critical, P99 > 1s で warning
         - alert: {{ service_name_pascal }}HighErrorRate
           expr: |
             sum(rate(http_requests_total{service="{{ service_name }}", code=~"5.."}[5m]))
+            {% if tier == "system" %}
+            / sum(rate(http_requests_total{service="{{ service_name }}"}[5m])) > 0.01
+            {% else %}
             / sum(rate(http_requests_total{service="{{ service_name }}"}[5m])) > 0.05
+            {% endif %}
           for: 5m
           labels:
             severity: critical
             tier: {{ tier }}
           annotations:
+            {% if tier == "system" %}
+            summary: "High error rate on {{ service_name }} (system Tier: > 1%)"
+            description: "Error rate is above 1% for 5 minutes. SLO target: < 0.05%"
+            {% else %}
             summary: "High error rate on {{ service_name }}"
             description: "Error rate is above 5% for 5 minutes."
+            {% endif %}
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
         - alert: {{ service_name_pascal }}HighLatency
           expr: |
             histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{service="{{ service_name }}"}[5m])) by (le))
+            {% if tier == "system" %}
+            > 0.5
+            {% else %}
             > 1.0
+            {% endif %}
           for: 5m
           labels:
             severity: warning
             tier: {{ tier }}
           annotations:
+            {% if tier == "system" %}
+            summary: "High P99 latency on {{ service_name }} (system Tier: > 500ms)"
+            description: "P99 latency is above 500ms for 5 minutes. SLO target: P99 < 200ms"
+            {% else %}
             summary: "High latency on {{ service_name }}"
             description: "P99 latency is above 1 second for 5 minutes."
+            {% endif %}
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
         - alert: {{ service_name_pascal }}PodRestart
           expr: |
             increase(kube_pod_container_status_restarts_total{namespace="{{ namespace }}", pod=~"{{ service_name }}-.*"}[1h]) > 3
@@ -43,3 +66,4 @@ spec:
           annotations:
             summary: "Frequent pod restarts for {{ service_name }}"
             description: "Pod has restarted more than 3 times in the last hour."
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/pod-restart.md"

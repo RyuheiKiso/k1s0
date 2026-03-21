@@ -8,15 +8,24 @@ on:
     branches: [main]
     paths-ignore:
       # 個別 CI ワークフローがカバーするサービスパス（重複実行の回避）
+      # C-06 対応: 死角解消のため対象パスを個別 CI の trigger paths に合わせて限定する。
+      # 広すぎる除外（例: regions/service/order/**）は、対象サービスの docs や設定変更が
+      # 個別 CI にも ci.yaml にも掛からない死角を生む。サブディレクトリを明示的に除外する。
       - 'regions/system/server/rust/auth/**'
       - 'regions/system/server/rust/app-registry/**'
       - 'regions/system/server/rust/config/**'
       - 'regions/system/server/rust/saga/**'
       - 'regions/system/server/rust/dlq-manager/**'
       - 'regions/system/server/go/bff-proxy/**'
-      - 'regions/service/order/**'
-      - 'regions/service/inventory/**'
-      - 'regions/service/payment/**'
+      - 'regions/service/order/server/**'
+      - 'regions/service/order/client/**'
+      - 'regions/service/order/database/**'
+      - 'regions/service/inventory/server/**'
+      - 'regions/service/inventory/client/**'
+      - 'regions/service/inventory/database/**'
+      - 'regions/service/payment/server/**'
+      - 'regions/service/payment/client/**'
+      - 'regions/service/payment/database/**'
       - 'regions/business/accounting/**'
 
 concurrency:

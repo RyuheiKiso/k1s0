@@ -81,7 +81,7 @@ anyhow = "1"
 thiserror = "2"
 async-trait = "0.1"
 tracing = "0.1"
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", features = ["full"] }
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
 k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum"] }
@@ -187,9 +187,42 @@ impl ReserveStockUseCase {
 | ReleaseStockUseCase | 正常解放、在庫アイテム未存在 |
 | UpdateStockUseCase | 正常更新、バージョン競合 |
 
+### 実 DB 統合テスト（T-01/T-02）
+
+`tests/integration_db_test.rs` に `#[ignore]` 属性付きの統合テストを配置する。
+通常の `cargo test` ではスキップされ、CI 環境（PostgreSQL サービスコンテナ）でのみ実行される。
+
+```bash
+# ローカルで実行する場合（DATABASE_URL 要設定）
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/test_db \
+  cargo test --all -- --include-ignored
+```
+
+| テスト | 内容 |
+| --- | --- |
+| `test_inventory_crud_with_real_db` | 基本 CRUD（create / find_by_id） |
+| `test_optimistic_lock_with_real_db` | 楽観ロック: 古い version での reserve_stock がエラーになること |
+| `test_outbox_events_with_real_db` | Outbox: insert / fetch_unpublished / mark_published |
+
+CI では `inventory-ci.yaml` の `integration-test` ジョブが PostgreSQL 16 サービスコンテナを起動して実行する。
+
 ---
 
 ## Doc Sync (2026-03-21)
+
+### REST サーバーへの MetricsLayer/CorrelationLayer 追加 [技術品質監査 High R-01]
+
+`startup.rs` の REST router に `MetricsLayer` と `CorrelationLayer` を追加した（file サーバーと同様）。
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
+```
+
+`Cargo.toml` に `k1s0-correlation = { path = "...", features = ["tower-layer"] }` を追加した。
+
+---
 
 ### REST ハンドラー 全エンドポイント認証必須化 [技術品質監査 Critical 2-1]
 
@@ -224,6 +257,29 @@ tracing::info!(actor = %actor, "handler_name invoked");
 
 認証ミドルウェアが正しく設定されている場合、Claims は常に extensions に存在するはずである。
 このチェックは、認証ミドルウェアのバイパスや設定漏れを早期検出するためのフェイルセーフとして機能する。
+
+---
+
+### テレメトリ初期化の fail-fast 化 [技術品質監査 Medium R-04]
+
+`startup.rs` のテレメトリ初期化を graceful degrade から fail-fast に変更した。
+
+```rust
+// 変更前: match で警告のみ
+// 変更後: .map_err()? で即時エラー
+k1s0_telemetry::init_telemetry(&telemetry_cfg)
+    .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
+```
+
+### advisory lock によるマイグレーション保護 [技術品質監査 Medium R-05]
+
+`startup.rs` のマイグレーション実行前に PostgreSQL advisory lock を追加した。
+ロック ID: `1000000001`（inventory サービス専用）。
+
+### テレメトリ グレースフルシャットダウン [技術品質監査 Medium R-06]
+
+`startup.rs` のシャットダウン処理に `k1s0_telemetry::shutdown()` を追加した。
+サーバー停止時にバッファのトレースデータをフラッシュする。
 
 ---
 

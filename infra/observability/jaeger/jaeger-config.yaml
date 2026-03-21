@@ -43,7 +43,9 @@ spec:
         num-replicas: 1
     esIndexCleaner:
       enabled: true
-      numberOfDays: 14
+      # トレース保持期間: 30日（ログの90日保持に揃えた合理的な範囲）
+      # ログの trace_id からトレースを追跡できる期間を確保する
+      numberOfDays: 30
       schedule: "55 23 * * *"
 
   sampling:

@@ -61,7 +61,7 @@ reqwest = {workspace = true, features = ["rustls-tls"]}
 axum = {workspace = true, optional = true}
 
 # workspace 未定義の依存はバージョンを直接指定する
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # 社内ライブラリ（path 依存はワークスペース管理外）
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }

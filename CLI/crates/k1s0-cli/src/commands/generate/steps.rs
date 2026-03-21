@@ -34,6 +34,10 @@ pub(super) fn step_tier(kind: Kind) -> Result<Option<Tier>> {
         .iter()
         .map(k1s0_core::commands::generate::Tier::label)
         .collect();
+    // 各 Tier の役割を説明する
+    println!("  system  : 全社共通のプラットフォームサービス（認証・設定・Saga 等）");
+    println!("  business: ビジネスドメインサービス（業務ロジック）");
+    println!("  service : 末端のマイクロサービス（最も細粒度）");
     let idx = prompt::select_prompt("Tier を選択してください", &labels)?;
     Ok(idx.map(|i| available[i]))
 }

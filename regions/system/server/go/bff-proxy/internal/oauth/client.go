@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -113,27 +112,27 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, wellKnown, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create discovery request: %w", err)
+		return nil, fmt.Errorf("discovery リクエストの作成に失敗しました: %w", err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("OIDC discovery request failed: %w", err)
+		return nil, fmt.Errorf("OIDC discovery リクエストが失敗しました: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("OIDC discovery returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("OIDC discovery がステータス %d を返しました", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read discovery response: %w", err)
+		return nil, fmt.Errorf("discovery レスポンスの読み込みに失敗しました: %w", err)
 	}
 
 	var cfg OIDCConfig
 	if err := json.Unmarshal(body, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse discovery response: %w", err)
+		return nil, fmt.Errorf("discovery レスポンスの解析に失敗しました: %w", err)
 	}
 
 	c.oidcConfig = &cfg
@@ -235,28 +234,28 @@ func (c *Client) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, e
 func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Values) (*TokenResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create token request: %w", err)
+		return nil, fmt.Errorf("トークンリクエストの作成に失敗しました: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("token request failed: %w", err)
+		return nil, fmt.Errorf("トークンリクエストが失敗しました: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read token response: %w", err)
+		return nil, fmt.Errorf("トークンレスポンスの読み込みに失敗しました: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token endpoint returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("トークンエンドポイントがステータス %d を返しました: %s", resp.StatusCode, string(body))
 	}
 
 	var tokenResp TokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return nil, fmt.Errorf("failed to parse token response: %w", err)
+		return nil, fmt.Errorf("トークンレスポンスの解析に失敗しました: %w", err)
 	}
 
 	return &tokenResp, nil
@@ -284,67 +283,50 @@ func (c *Client) ensureDiscovered() (*OIDCConfig, error) {
 }
 
 // ExtractSubject はIDトークンをJWKSで署名検証し、subクレームを返す。
-// verifierはキャッシュし、JWKS公開鍵の再取得はライブラリ内部のキャッシュに委ねる。
+// ロール取得も必要な場合は ExtractClaims を使用すること。
 func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, error) {
-	v, err := c.ensureVerifier()
-	if err != nil {
-		return "", err
-	}
-
-	token, err := v.Verify(ctx, idToken)
-	if err != nil {
-		return "", fmt.Errorf("ID token signature verification failed: %w", err)
-	}
-
-	return token.Subject, nil
+	subject, _, err := c.ExtractClaims(ctx, idToken)
+	return subject, err
 }
 
-// keycloakAccessTokenClaims は Keycloak アクセストークンから roles を取得するための claims 構造体。
-type keycloakAccessTokenClaims struct {
+// keycloakIDTokenClaims は Keycloak ID トークンから subject と roles を取得するための claims 構造体。
+// JWKS 署名検証済みのトークンに対して使用する。
+type keycloakIDTokenClaims struct {
 	// RealmAccess は Keycloak realm レベルのロール情報を保持する。
 	RealmAccess struct {
 		Roles []string `json:"roles"`
 	} `json:"realm_access"`
 }
 
-// ExtractRoles は JWT アクセストークンのペイロードを解析し、Keycloak realm roles を返す。
-// アクセストークンの署名検証は行わない（BFF は既に ID トークン検証済みのセッションを前提とする）。
+// ExtractClaims は ID トークンを JWKS で署名検証し、subject と realm roles を返す。
+// アクセストークンの署名未検証によるロール改ざんリスクを排除するため、
+// 必ず JWKS 検証済みの ID トークンから roles を取得する。
 // 解析に失敗した場合は空スライスを返す（roles 取得失敗でログインを妨げない）。
-func ExtractRolesFromAccessToken(accessToken string) []string {
-	// JWT は header.payload.signature の形式で構成される
-	parts := strings.SplitN(accessToken, ".", 3)
-	if len(parts) != 3 {
-		return []string{}
-	}
-
-	// Base64URL デコード（パディングなし）
-	payload, err := base64URLDecode(parts[1])
+func (c *Client) ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error) {
+	v, err := c.ensureVerifier()
 	if err != nil {
-		return []string{}
+		return "", []string{}, err
 	}
 
-	var claims keycloakAccessTokenClaims
-	if err := json.Unmarshal(payload, &claims); err != nil {
-		return []string{}
+	// JWKS による署名検証を行う
+	token, err := v.Verify(ctx, idToken)
+	if err != nil {
+		return "", []string{}, fmt.Errorf("ID トークンの署名検証に失敗しました: %w", err)
+	}
+
+	// 署名検証済みトークンの claims から roles を取得する
+	var claims keycloakIDTokenClaims
+	if claimsErr := token.Claims(&claims); claimsErr != nil {
+		// claims の取得に失敗しても subject は返す（roles は空スライス）
+		return token.Subject, []string{}, nil
 	}
 
 	if claims.RealmAccess.Roles == nil {
-		return []string{}
+		return token.Subject, []string{}, nil
 	}
-	return claims.RealmAccess.Roles
+	return token.Subject, claims.RealmAccess.Roles, nil
 }
 
-// base64URLDecode は Base64URL エンコードされた文字列をデコードする（パディングなし対応）。
-func base64URLDecode(s string) ([]byte, error) {
-	// パディングを追加する
-	switch len(s) % 4 {
-	case 2:
-		s += "=="
-	case 3:
-		s += "="
-	}
-	return base64.RawURLEncoding.DecodeString(strings.TrimRight(s, "="))
-}
 
 // ensureVerifier はverifierを初期化してキャッシュする。
 // RemoteKeySetはcontext.Backgroundで生成し、JWKS鍵のHTTPフェッチを
@@ -370,12 +352,12 @@ func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
 	}
 
 	if c.oidcConfig == nil {
-		return nil, fmt.Errorf("OIDC not discovered: OIDC discovery not performed; call Discover() first")
+		return nil, fmt.Errorf("OIDC discovery が未完了です。Discover() を先に呼び出してください")
 	}
 
 	cfg := c.oidcConfig
 	if cfg.JwksURI == "" {
-		return nil, fmt.Errorf("jwks_uri not available in OIDC discovery document")
+		return nil, fmt.Errorf("OIDC discovery ドキュメントに jwks_uri が含まれていません")
 	}
 
 	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う。

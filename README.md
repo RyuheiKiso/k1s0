@@ -15,6 +15,8 @@
 
 **k1s0（キソ）** — CLI 一つでマイクロサービスの構築から運用まで完結する、エンタープライズ向け開発基盤。
 
+> **貢献・開発参加について**: [CONTRIBUTING.md](CONTRIBUTING.md) | [オンボーディングガイド](docs/onboarding/README.md) | [Day 1 クイックスタート](docs/onboarding/quickstart.md)
+
 Go / Rust / TypeScript / Dart の 4 言語に対応し、クリーンアーキテクチャ・DDD・TDD に沿った設計を初期構成に組み込みます。対話式 CLI と Tauri デスクトップ GUI で、ひな形生成・ビルド・テスト・デプロイまで開発者体験を統一します。
 
 ---
@@ -285,6 +287,14 @@ ingress           Nginx Ingress Controller
 
 ## クイックスタート
 
+### ⚠️ Windowsユーザーへの注意（クローン前に必須）
+
+Windowsでクローンする前に、以下のコマンドを実行して改行コードの自動変換を無効にしてください。`.gitattributes` で `eol=lf` を設定済みですが、`core.autocrlf` がデフォルトのままだと競合が発生します。
+
+```bash
+git config --global core.autocrlf input
+```
+
 ### Windows 開発者向けセットアップ
 
 Windows では以下の3つの方法で開発環境を構築できます。詳細は [`docs/infrastructure/devenv/windows-quickstart.md`](docs/infrastructure/devenv/windows-quickstart.md) を参照してください。
@@ -353,6 +363,8 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 
 ### Docker Compose 構成
 
+> **リソース要件**: インフラサービス（infra + system プロファイル）を全起動すると約9個のコンテナが起動し、**5GB以上のメモリ**を消費します。**メモリ8GB以上**、CPU 4コア以上の環境を推奨します。Docker Desktop をお使いの場合は Settings → Resources で割り当てを増やしてください。
+
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。
 
 | ファイル | 用途 |
@@ -367,6 +379,18 @@ docker compose --profile infra --profile system up -d
 # 開発環境: 明示的に dev オーバーライドを指定（認証バイパス有効化）
 docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra --profile system up -d
 ```
+
+### 段階的起動（リソース節約）
+
+全サービスを一度に起動するのではなく、必要なサービスだけを起動できます。
+
+| 構成 | コマンド | 目安メモリ |
+|------|---------|-----------|
+| インフラのみ (DB/Kafka/Redis/Keycloak/Vault) | `docker compose --profile infra up -d` | ~2GB |
+| System Tier サービス追加 | `docker compose --profile infra --profile system up -d` | ~4GB |
+| 全サービス | `docker compose --profile infra --profile system --profile business up -d` | ~5GB+ |
+
+> **推奨**: 開発中のサービスに関連するprofileのみ起動してください。
 
 ### 1. クローン & インフラ起動
 
@@ -490,6 +514,16 @@ cargo build --release
 ---
 
 ## ドキュメント
+
+### 開発者向けガイド
+
+| ガイド | パス | 内容 |
+|--------|------|------|
+| オンボーディング | [`docs/onboarding/README.md`](docs/onboarding/README.md) | 開発参加のスタートガイド（Tier別） |
+| 貢献ガイド | [`CONTRIBUTING.md`](CONTRIBUTING.md) | ブランチ戦略・コミット規約・PRプロセス |
+| 開発環境セットアップ | [`docs/infrastructure/devenv/windows-quickstart.md`](docs/infrastructure/devenv/windows-quickstart.md) | Windows・WSL2・devcontainer のセットアップ |
+
+### 設計・仕様ドキュメント
 
 | カテゴリ | パス | 内容 |
 |----------|------|------|

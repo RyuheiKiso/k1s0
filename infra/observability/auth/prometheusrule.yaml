@@ -27,6 +27,7 @@ spec:
           annotations:
             summary: "High error rate on auth-server"
             description: "Error rate is above 1% for auth-server in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
 
         # High Latency (P99)
         - alert: auth_server_high_latency
@@ -42,6 +43,7 @@ spec:
           annotations:
             summary: "High P99 latency on auth-server"
             description: "P99 latency is above 500ms for auth-server in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
         # Pod Restart
         - alert: auth_server_pod_restart
@@ -55,3 +57,4 @@ spec:
           annotations:
             summary: "Pod restarts detected for auth-server"
             description: "Pod auth-server in k1s0-system has restarted more than 3 times in the last hour"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/pod-restart.md"

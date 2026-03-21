@@ -97,8 +97,11 @@ fn resolve_template_dir() -> Result<PathBuf> {
         return Ok(path);
     }
 
+    // ワークスペースルートから実行していない可能性を含め、具体的な解決策を案内する
     anyhow::bail!(
         "テンプレートディレクトリが見つかりません。\n\
-         CLI/crates/k1s0-cli/templates/events/ が存在することを確認してください。"
+         以下を確認してください:\n\
+         - k1s0 プロジェクトのルートディレクトリで実行していること\n\
+         - CLI/crates/k1s0-cli/templates/events/ ディレクトリが存在すること"
     );
 }

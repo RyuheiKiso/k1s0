@@ -21,7 +21,13 @@ rustup component add clippy rustfmt
 # sqlx-cli（データベースマイグレーション管理ツール）
 # postgres feature のみビルドして依存を最小化する
 if ! command -v sqlx &>/dev/null; then
-    cargo install sqlx-cli --no-default-features --features postgres
+    cargo install sqlx-cli --no-default-features --features postgres --locked
+fi
+
+# k1s0 CLI（プロジェクト管理・コード生成ツール）
+# リポジトリルートから直接インストールする
+if ! command -v k1s0 &>/dev/null; then
+    cargo install --path CLI/crates/k1s0-cli --locked
 fi
 
 # protobuf コンパイラ

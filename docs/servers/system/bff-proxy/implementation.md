@@ -43,6 +43,7 @@ internal/
   - `refresh_token`
   - `id_token`
   - `sub`
+  - `roles` (Keycloak realm roles — JWKS 検証済み ID トークンから取得)
   - `expires_at`
   - `created_at`
   - `csrf_token`
@@ -93,8 +94,12 @@ handler 側（`proxy_handler.go`）が `sess.IsExpired() && sess.RefreshToken !=
 type OAuthClient interface {
     AuthCodeURL(state, codeChallenge string) (string, error)
     ExchangeCode(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-    ExtractSubject(ctx context.Context, idToken string) (string, error)
+    // ExtractClaims は JWKS 署名検証済みの ID トークンから subject と realm roles を返す。
+    // アクセストークン（署名未検証）からロールを取得する旧方式を廃止し、
+    // ロール改ざん攻撃を防止する（S-02 対応）。
+    ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error)
     LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
+    ClearDiscoveryCache()
 }
 ```
 
@@ -122,6 +127,61 @@ type OAuthClient interface {
 - エラーコードは `BFF_*` の固定値を返す。
 - 認証・CSRF 不備は 401/403、内部処理失敗は 500。
 - `request_id` を全エラーレスポンスに付与する。
+
+## セキュリティ設計（追記）
+
+### S-03: セッション固定化防止
+
+`Callback` ハンドラーの冒頭で既存セッションを削除する。
+認証完了前の Cookie にセッション ID が存在する場合、セッションストアから削除してから新規セッションを作成する。
+これにより攻撃者が認証前に取得したセッション ID を認証後に再利用できなくなる。
+
+```go
+if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && existingSessionID != "" {
+    _ = h.sessionStore.Delete(c.Request.Context(), existingSessionID)
+}
+```
+
+### S-04: Redis セッション暗号化
+
+`session/encrypted_store.go` に `EncryptedStore` を実装した（`Store` インターフェース実装）。
+
+- AES-256-GCM による authenticated encryption
+- セッションごとにランダムな nonce を生成（12 バイト、GCM standard）
+- 保存形式: `base64url(nonce || ciphertext || auth_tag)`
+- `SESSION_ENCRYPTION_KEY` 環境変数に hex エンコードされた 32 バイトの鍵を設定する
+
+`main.go` の起動時に `SESSION_ENCRYPTION_KEY` が設定されていれば `EncryptedStore` を使用し、未設定の場合は `RedisStore` にフォールバックして警告を出力する。
+
+### S-05: url.Parse エラーハンドリング
+
+モバイルフローの Callback ハンドラーで `url.Parse` のエラーを無視していた箇所（`redirectURL, _ := url.Parse(...)`）を修正した。
+パース失敗時は `400 BFF_AUTH_REDIRECT_URL_INVALID` を返す。
+
+## Go 実装（追記）
+
+### G-01: HTTP サーバータイムアウト修正
+
+`main.go` の `http.Server` タイムアウトをプロキシ用途に適した値に変更した。
+
+| パラメーター | 変更前デフォルト | 変更後デフォルト | 理由 |
+| --- | --- | --- | --- |
+| `ReadTimeout` | 10s | 60s | 大きなリクエストボディ・スロークライアントへの対応 |
+| `WriteTimeout` | 30s | 120s | 上流サービスの処理時間（upstreamTimeout 30s + バッファ）を考慮 |
+
+設定ファイル（`config.yaml`）の `server.read_timeout` / `server.write_timeout` で上書き可能。
+
+### G-02: リクエストボディサイズ制限
+
+`main.go` の Gin ルーター初期化後に `http.MaxBytesReader` ミドルウェアを追加した。
+全エンドポイントに対してリクエストボディを 64MB に制限し、大容量リクエストによる DoS・OOM を防止する。
+
+```go
+router.Use(func(c *gin.Context) {
+    c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024*1024)
+    c.Next()
+})
+```
 
 ## Doc Sync (2026-03-21)
 
@@ -167,3 +227,37 @@ client := oauth.NewClient(..., oauth.WithHTTPTimeout(30 * time.Second))
 `main.go` 内で `env == "development"` と `env != "dev"` が混在しており、`config.yaml` のデフォルト `dev` と不一致だった。
 `internal/config/config.go` に `IsDevEnvironment()` ヘルパーを追加し、全比較箇所を統一した。
 JWKS の `context.Background()` もアプリケーションレベルの `ctx` に変更し、シャットダウン時にキャンセルされるよう修正した。
+
+---
+
+## Doc Sync (2026-03-21)
+
+### singleflight によるトークンリフレッシュ重複排除 [技術品質監査 Medium G-03]
+
+`proxy_handler.go` のトークンリフレッシュに `golang.org/x/sync/singleflight` を導入した。
+同一セッション ID に対して並行リクエストが殺到した場合、最初の 1 件のみ `RefreshToken` を呼び出し、
+他のリクエストは同じ結果を共有する。これにより Keycloak のレート制限エラーを防止する。
+
+### Redis PubSub ドロップコールバック [技術品質監査 Medium G-04]
+
+`building-blocks/redis_pubsub.go` のメッセージドロップ時にコールバックを呼び出す機能を追加した（G-04 対応）。
+
+```go
+// Prometheus カウンターをコールバックとして登録する例
+pubsub := buildingblocks.NewRedisPubSub(name, client,
+    buildingblocks.WithDroppedMessageCallback(func(topic string) {
+        droppedCounter.WithLabelValues(topic).Inc()
+    }),
+)
+```
+
+### OIDC リトライ上限 [技術品質監査 Medium G-05]
+
+`retryOIDCDiscovery` に最大 20 回のリトライ上限を追加した。
+無限リトライによる長時間待機を防止する。20 回失敗後はゴルーチンを終了し、エラーログを出力する。
+
+### TrustedProxies 設定 [技術品質監査 Medium G-06]
+
+`main.go` に `router.SetTrustedProxies(nil)` を追加した。
+Gin のデフォルト（全プロキシ信頼）を無効化し、X-Forwarded-For ヘッダーを直接の接続元 IP で上書きする。
+ロードバランサー配下では適切な CIDR（例: `10.0.0.0/8`）に変更すること。

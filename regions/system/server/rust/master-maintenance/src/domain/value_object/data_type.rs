@@ -43,3 +43,53 @@ impl DataType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Display traitが小文字のデータ型名を出力する
+    #[test]
+    fn display_outputs_lowercase_name() {
+        assert_eq!(DataType::Text.to_string(), "text");
+        assert_eq!(DataType::Integer.to_string(), "integer");
+        assert_eq!(DataType::Decimal.to_string(), "decimal");
+        assert_eq!(DataType::Boolean.to_string(), "boolean");
+    }
+
+    /// to_sql_type が対応するSQL型名を返す
+    #[test]
+    fn to_sql_type_returns_sql_name() {
+        assert_eq!(DataType::Text.to_sql_type(), "TEXT");
+        assert_eq!(DataType::Integer.to_sql_type(), "INTEGER");
+        assert_eq!(DataType::Uuid.to_sql_type(), "UUID");
+        assert_eq!(DataType::Jsonb.to_sql_type(), "JSONB");
+    }
+
+    /// serde_json からのデシリアライズが正しく動作する
+    #[test]
+    fn deserialize_from_string() {
+        let dt: DataType = serde_json::from_str("\"integer\"").unwrap();
+        assert_eq!(dt, DataType::Integer);
+        let dt2: DataType = serde_json::from_str("\"datetime\"").unwrap();
+        assert_eq!(dt2, DataType::Datetime);
+    }
+
+    /// 全バリアントがto_sql_typeを持つ（網羅的チェック）
+    #[test]
+    fn all_variants_have_sql_type() {
+        let all = [
+            DataType::Text,
+            DataType::Integer,
+            DataType::Decimal,
+            DataType::Boolean,
+            DataType::Date,
+            DataType::Datetime,
+            DataType::Uuid,
+            DataType::Jsonb,
+        ];
+        for dt in &all {
+            assert!(!dt.to_sql_type().is_empty());
+        }
+    }
+}

@@ -138,6 +138,83 @@ impl RuleSetVersion {
     }
 }
 
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// Rule::new がデフォルト値（enabled=true, version=1）で生成される
+    #[test]
+    fn rule_new_defaults() {
+        let rule = Rule::new(
+            "my-rule".to_string(),
+            "description".to_string(),
+            50,
+            serde_json::json!({"field": "x", "operator": "eq", "value": "y"}),
+            serde_json::json!({"action": "allow"}),
+        );
+        assert_eq!(rule.name, "my-rule");
+        assert_eq!(rule.priority, 50);
+        assert!(rule.enabled);
+        assert_eq!(rule.version, 1);
+    }
+
+    /// RuleSet::new が current_version=0 で生成される
+    #[test]
+    fn rule_set_new_defaults() {
+        let rs = RuleSet::new(
+            "pricing".to_string(),
+            "Pricing rules".to_string(),
+            "sales".to_string(),
+            EvaluationMode::FirstMatch,
+            serde_json::json!({}),
+            vec![],
+        );
+        assert_eq!(rs.name, "pricing");
+        assert_eq!(rs.domain, "sales");
+        assert_eq!(rs.current_version, 0);
+        assert!(rs.enabled);
+        assert!(rs.rule_ids.is_empty());
+    }
+
+    /// EvaluationMode::as_str が snake_case 文字列を返す
+    #[test]
+    fn evaluation_mode_as_str() {
+        assert_eq!(EvaluationMode::FirstMatch.as_str(), "first_match");
+        assert_eq!(EvaluationMode::AllMatch.as_str(), "all_match");
+    }
+
+    /// EvaluationMode::from_str が正しいバリアントを返す
+    #[test]
+    fn evaluation_mode_from_str_valid() {
+        assert_eq!(
+            EvaluationMode::from_str("first_match"),
+            Some(EvaluationMode::FirstMatch)
+        );
+        assert_eq!(
+            EvaluationMode::from_str("all_match"),
+            Some(EvaluationMode::AllMatch)
+        );
+    }
+
+    /// EvaluationMode::from_str が不明な文字列に None を返す
+    #[test]
+    fn evaluation_mode_from_str_unknown() {
+        assert!(EvaluationMode::from_str("random").is_none());
+        assert!(EvaluationMode::from_str("").is_none());
+    }
+
+    /// EvaluationMode が serde_json でシリアライズ・デシリアライズできる
+    #[test]
+    fn evaluation_mode_serde_roundtrip() {
+        let mode = EvaluationMode::AllMatch;
+        let json = serde_json::to_string(&mode).unwrap();
+        assert_eq!(json, "\"all_match\"");
+        let decoded: EvaluationMode = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, EvaluationMode::AllMatch);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct EvaluationLog {
     pub id: Uuid,

@@ -330,9 +330,9 @@ pub fn load_config(path: &str) -> anyhow::Result<CliConfig> {
         return Ok(CliConfig::default());
     }
     let content = std::fs::read_to_string(config_path)
-        .map_err(|e| anyhow::anyhow!("Failed to read config file: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("設定ファイルの読み込みに失敗しました: {e}"))?;
     let config: CliConfig = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("Failed to parse config file: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("設定ファイルの解析に失敗しました: {e}"))?;
     Ok(config)
 }
 
@@ -412,7 +412,7 @@ pub fn merge_vault_secrets(
 
     let Some(token) = vault_token() else {
         eprintln!(
-            "WARN: Vault token is not set. Skipping secret merge. addr={vault_addr} path={vault_path}"
+            "警告: Vault トークンが設定されていません。シークレットのマージをスキップします。addr={vault_addr} path={vault_path}"
         );
         return Ok(());
     };
@@ -427,7 +427,7 @@ pub fn merge_vault_secrets(
         Ok(response) => response,
         Err(err) => {
             eprintln!(
-                "WARN: failed to reach Vault. Skipping secret merge. addr={vault_addr} path={vault_path} error={err}"
+                "警告: Vault への接続に失敗しました。シークレットのマージをスキップします。addr={vault_addr} path={vault_path} error={err}"
             );
             return Ok(());
         }
@@ -436,10 +436,10 @@ pub fn merge_vault_secrets(
     let body: serde_json::Value = response
         .into_body()
         .read_json()
-        .map_err(|e| anyhow::anyhow!("Vault response parse error: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("Vault レスポンスの解析に失敗しました: {e}"))?;
 
     let secrets = extract_vault_secret_data(&body)
-        .ok_or_else(|| anyhow::anyhow!("Vault response does not contain secret data"))?;
+        .ok_or_else(|| anyhow::anyhow!("Vault レスポンスにシークレットデータが含まれていません"))?;
 
     apply_secret_overrides(base, secrets);
     Ok(())
@@ -456,9 +456,9 @@ pub fn merge_config(base: &mut CliConfig, override_path: &str) -> anyhow::Result
         return Ok(());
     }
     let content = std::fs::read_to_string(path)
-        .map_err(|e| anyhow::anyhow!("Failed to read override config: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("上書き設定ファイルの読み込みに失敗しました: {e}"))?;
     let override_config: serde_yaml::Value = serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("Failed to parse override config: {e}"))?;
+        .map_err(|e| anyhow::anyhow!("上書き設定ファイルの解析に失敗しました: {e}"))?;
 
     if let serde_yaml::Value::Mapping(map) = override_config {
         if let Some(serde_yaml::Value::String(name)) =

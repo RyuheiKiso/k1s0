@@ -57,3 +57,40 @@ impl From<PolicyError> for ServiceError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn not_found_to_service_error() {
+        let err = PolicyError::NotFound("rbac".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+    }
+
+    /// AlreadyExists エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn already_exists_to_conflict() {
+        let err = PolicyError::AlreadyExists("rbac".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// EvaluationFailed エラーが ServiceError::Internal に変換される
+    #[test]
+    fn evaluation_failed_to_internal() {
+        let err = PolicyError::EvaluationFailed("opa timeout".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+
+    /// ValidationFailed エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn validation_failed_to_bad_request() {
+        let err = PolicyError::ValidationFailed("rego syntax error".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+}

@@ -31,3 +31,35 @@ impl NotificationTemplate {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotificationTemplate::new が tpl_ プレフィックス付きの ID を生成する
+    #[test]
+    fn new_template_id_has_prefix() {
+        let tpl = NotificationTemplate::new(
+            "welcome-email".to_string(),
+            "email".to_string(),
+            Some("Welcome {{name}}".to_string()),
+            "Hello {{name}}, welcome!".to_string(),
+        );
+        assert!(tpl.id.starts_with("tpl_"));
+        assert_eq!(tpl.name, "welcome-email");
+        assert_eq!(tpl.subject_template.as_deref(), Some("Welcome {{name}}"));
+    }
+
+    /// subject_template が None の場合も正常に生成される
+    #[test]
+    fn new_without_subject() {
+        let tpl = NotificationTemplate::new(
+            "slack-alert".to_string(),
+            "slack".to_string(),
+            None,
+            "Alert: {{message}}".to_string(),
+        );
+        assert!(tpl.subject_template.is_none());
+        assert_eq!(tpl.body_template, "Alert: {{message}}");
+    }
+}

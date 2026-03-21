@@ -58,3 +58,49 @@ impl From<ServiceCatalogError> for ServiceError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn not_found_to_service_error() {
+        let err = ServiceCatalogError::NotFound("svc-123".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+        assert!(svc.to_string().contains("svc-123"));
+    }
+
+    /// AlreadyExists エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn already_exists_to_conflict() {
+        let err = ServiceCatalogError::AlreadyExists("my-service".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// VersionConflict エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn version_conflict_to_conflict() {
+        let err = ServiceCatalogError::VersionConflict("version mismatch".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// ValidationFailed エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn validation_failed_to_bad_request() {
+        let err = ServiceCatalogError::ValidationFailed("name is empty".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+
+    /// Internal エラーが ServiceError::Internal に変換される
+    #[test]
+    fn internal_to_internal() {
+        let err = ServiceCatalogError::Internal("unexpected".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+}

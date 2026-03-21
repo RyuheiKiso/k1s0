@@ -14,6 +14,8 @@ Rust で実装する。
 
 Tier: `Tier::Service`。JWKS ベースの JWT 認証と、`require_permission(Tier::Service, "inventory", action)` による権限チェックを行う。
 
+> **認証必須チェック**: `startup.rs` で `k1s0_server_common::auth::require_auth_state("inventory", env, auth_state)` を呼ぶことで、本番環境では `auth` 設定が未指定の場合に起動を即座に拒否する（S-01 対応）。
+
 service tier の在庫管理サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -31,7 +33,7 @@ service tier の在庫管理サーバーは以下の機能を提供する。
 
 | コンポーネント | Rust |
 | --- | --- |
-| Kafka クライアント | rdkafka v0.36 |
+| Kafka クライアント | rdkafka v0.37 |
 | gRPC | tonic v0.12 |
 
 ### 配置パス

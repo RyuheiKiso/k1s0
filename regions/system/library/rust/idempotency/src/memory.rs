@@ -91,3 +91,105 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
         Ok(map.remove(key).is_some())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::IdempotencyStore;
+
+    fn make_record(key: &str) -> IdempotencyRecord {
+        IdempotencyRecord::new(key.to_string(), None)
+    }
+
+    /// set してから get で取得できる
+    #[tokio::test]
+    async fn set_and_get_returns_record() {
+        let store = InMemoryIdempotencyStore::new();
+        let record = make_record("key-1");
+        store.set(record).await.unwrap();
+        let got = store.get("key-1").await.unwrap();
+        assert!(got.is_some());
+        assert_eq!(got.unwrap().key, "key-1");
+    }
+
+    /// 存在しないキーの get は None を返す
+    #[tokio::test]
+    async fn get_missing_key_returns_none() {
+        let store = InMemoryIdempotencyStore::new();
+        let result = store.get("nonexistent").await.unwrap();
+        assert!(result.is_none());
+    }
+
+    /// 同じキーで二回 set すると Duplicate エラーが返る
+    #[tokio::test]
+    async fn set_duplicate_key_returns_error() {
+        let store = InMemoryIdempotencyStore::new();
+        store.set(make_record("dup-key")).await.unwrap();
+        let err = store.set(make_record("dup-key")).await.unwrap_err();
+        assert!(matches!(err, IdempotencyError::Duplicate { .. }));
+    }
+
+    /// mark_completed でステータスが Completed になる
+    #[tokio::test]
+    async fn mark_completed_sets_status() {
+        let store = InMemoryIdempotencyStore::new();
+        store.set(make_record("comp-key")).await.unwrap();
+        store.mark_completed("comp-key", Some(r#"{"ok":true}"#.to_string()), Some(200)).await.unwrap();
+        let record = store.get("comp-key").await.unwrap().unwrap();
+        assert_eq!(record.status, IdempotencyStatus::Completed);
+        assert_eq!(record.response_status, Some(200));
+    }
+
+    /// mark_failed でステータスが Failed になる
+    #[tokio::test]
+    async fn mark_failed_sets_status() {
+        let store = InMemoryIdempotencyStore::new();
+        store.set(make_record("fail-key")).await.unwrap();
+        store.mark_failed("fail-key", Some("error message".to_string()), Some(500)).await.unwrap();
+        let record = store.get("fail-key").await.unwrap().unwrap();
+        assert_eq!(record.status, IdempotencyStatus::Failed);
+        assert_eq!(record.response_body, Some("error message".to_string()));
+    }
+
+    /// 存在しないキーの mark_completed は NotFound エラーを返す
+    #[tokio::test]
+    async fn mark_completed_missing_key_returns_not_found() {
+        let store = InMemoryIdempotencyStore::new();
+        let err = store.mark_completed("ghost", None, None).await.unwrap_err();
+        assert!(matches!(err, IdempotencyError::NotFound { .. }));
+    }
+
+    /// delete で削除でき、その後 get は None を返す
+    #[tokio::test]
+    async fn delete_removes_record() {
+        let store = InMemoryIdempotencyStore::new();
+        store.set(make_record("del-key")).await.unwrap();
+        let deleted = store.delete("del-key").await.unwrap();
+        assert!(deleted);
+        assert!(store.get("del-key").await.unwrap().is_none());
+    }
+
+    /// 存在しないキーの delete は false を返す
+    #[tokio::test]
+    async fn delete_nonexistent_returns_false() {
+        let store = InMemoryIdempotencyStore::new();
+        let deleted = store.delete("no-such").await.unwrap();
+        assert!(!deleted);
+    }
+
+    /// IdempotencyRecord::new がデフォルトで Pending ステータスを持つ
+    #[test]
+    fn new_record_has_pending_status() {
+        let record = IdempotencyRecord::new("test-key".to_string(), None);
+        assert_eq!(record.status, IdempotencyStatus::Pending);
+        assert!(record.expires_at.is_none());
+        assert!(record.completed_at.is_none());
+    }
+
+    /// IdempotencyRecord::new が TTL を設定する
+    #[test]
+    fn new_record_with_ttl_sets_expires_at() {
+        let record = IdempotencyRecord::new("ttl-key".to_string(), Some(3600));
+        assert!(record.expires_at.is_some());
+    }
+}

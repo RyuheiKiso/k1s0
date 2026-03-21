@@ -38,6 +38,10 @@ _check-env:
 default:
     @just --list
 
+# 開発環境の自己診断を実行する
+doctor:
+    bash scripts/doctor.sh
+
 # --- Lint ---
 
 # 全言語リント
@@ -361,6 +365,111 @@ local-down: _check-env
         docker compose {{_dc_profiles}} down
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
         docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} down
+    fi
+
+# 認証バイパス付きでローカル開発環境を起動（ローカル開発専用・本番では使用不可）
+local-up-dev: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting local dev environment (auth bypass enabled) ==="
+    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+
+# 指定プロファイルのみ起動（例: just local-up-profile infra）
+local-up-profile profile: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting profile: {{profile}} ==="
+    docker compose --profile {{profile}} up -d
+
+# 可観測性スタック（Jaeger / Prometheus / Grafana / Loki）を起動
+observability-up: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting observability stack ==="
+    docker compose --profile observability up -d
+
+# 可観測性スタックを停止
+observability-down: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    docker compose --profile observability down
+
+# サービスのログを表示する（引数なしで全サービス）
+logs service="": _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "{{service}}" ]; then
+        docker compose logs -f {{service}}
+    else
+        docker compose {{_dc_profiles}} logs -f
+    fi
+
+# DBマイグレーションを実行する（引数: migrations/ を含むサービスパス）
+migrate path=".":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    db_url="${DATABASE_URL:-postgresql://dev:dev@localhost:5432/k1s0}"
+    migrations_dir="{{path}}/migrations"
+    if [ ! -d "$migrations_dir" ]; then
+        echo "Error: migrations/ ディレクトリが見つかりません: $migrations_dir"
+        exit 1
+    fi
+    echo "=== Running migrations from $migrations_dir ==="
+    sqlx migrate run --database-url "$db_url" --source "$migrations_dir"
+
+# 指定パスのサービスをリントする（言語を自動検出）
+lint-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Linting: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo fmt --manifest-path "{{path}}/Cargo.toml" --all -- --check
+        cargo clippy --manifest-path "{{path}}/Cargo.toml" --all-targets -- -D warnings
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && golangci-lint run ./... && go vet ./...)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm run lint --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart analyze)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
+    fi
+
+# 指定パスのサービスをテストする（言語を自動検出）
+test-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Testing: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo test --manifest-path "{{path}}/Cargo.toml"
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && go test ./... -race -count=1)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm test --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart test)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
+    fi
+
+# 指定パスのサービスをビルドする（言語を自動検出）
+build-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Building: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo build --manifest-path "{{path}}/Cargo.toml" --all-targets
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && go build ./...)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm run build --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart compile exe .)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
     fi
 
 # 統合テストを実行

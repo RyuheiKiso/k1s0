@@ -150,6 +150,8 @@ fn step_tier_select() -> Result<Option<String>> {
 }
 
 /// ステップ2b: サービス複数選択
+///
+/// 空選択の場合は再入力を促すループを使用する（再帰呼び出しを避ける）。
 fn step_service_select() -> Result<Option<Vec<String>>> {
     let services = scan_services(std::path::Path::new("."));
     if services.is_empty() {
@@ -159,19 +161,22 @@ fn step_service_select() -> Result<Option<Vec<String>>> {
     let names: Vec<String> = services.iter().map(|s| s.name.clone()).collect();
     let labels: Vec<&str> = names.iter().map(String::as_str).collect();
 
-    let selected =
-        prompt::multi_select_prompt("サービスを選択してください（複数選択可）", &labels)?;
+    loop {
+        let selected =
+            prompt::multi_select_prompt("サービスを選択してください（複数選択可）", &labels)?;
 
-    match selected {
-        None => Ok(None),
-        Some(indices) => {
-            if indices.is_empty() {
-                println!("少なくとも1つのサービスを選択してください。");
-                step_service_select()
-            } else {
-                let selected_names: Vec<String> =
-                    indices.iter().map(|&i| names[i].clone()).collect();
-                Ok(Some(selected_names))
+        match selected {
+            // Esc が押された場合は前のステップに戻る
+            None => return Ok(None),
+            Some(indices) => {
+                if indices.is_empty() {
+                    // 未選択の場合は警告を出して再入力を促す
+                    println!("少なくとも1つのサービスを選択してください。");
+                } else {
+                    let selected_names: Vec<String> =
+                        indices.iter().map(|&i| names[i].clone()).collect();
+                    return Ok(Some(selected_names));
+                }
             }
         }
     }

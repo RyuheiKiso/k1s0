@@ -5,21 +5,21 @@ use crate::domain::repository::column_definition_repository::ColumnDefinitionRep
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::service::metadata_service::SchemaGeneratorService;
 use crate::domain::value_object::domain_filter::DomainFilter;
-use crate::infrastructure::schema::PhysicalSchemaManager;
+use crate::infrastructure::schema::SchemaManager;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct ManageTableDefinitionsUseCase {
     table_repo: Arc<dyn TableDefinitionRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
-    schema_manager: Arc<PhysicalSchemaManager>,
+    schema_manager: Arc<dyn SchemaManager>,
 }
 
 impl ManageTableDefinitionsUseCase {
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
-        schema_manager: Arc<PhysicalSchemaManager>,
+        schema_manager: Arc<dyn SchemaManager>,
     ) -> Self {
         Self {
             table_repo,

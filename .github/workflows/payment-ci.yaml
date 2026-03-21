@@ -33,3 +33,40 @@ jobs:
       package-name: k1s0-payment-server
       workspace-path: regions/service/payment/server/rust/payment
       standalone: true
+
+  # 実 DB 統合テスト（T-01/T-02/R-03 対応）
+  # PostgreSQL サービスコンテナを使用し、#[ignore] テストを実行する
+  integration-test:
+    needs: ci
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+        with:
+          toolchain: "1.93"
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: regions/service/payment/server/rust/payment
+      - name: Run integration tests with real DB
+        run: cargo test --manifest-path regions/service/payment/server/rust/payment/Cargo.toml --all -- --include-ignored

@@ -104,7 +104,7 @@ tonic = "0.12"
 prost = "0.13"
 
 # Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # Redis
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }

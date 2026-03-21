@@ -102,7 +102,7 @@ tempfile = "3"
 | tonic | 0.12 | gRPC フレームワーク |
 | prost | 0.13 | Protobuf シリアライゼーション |
 | sqlx | 0.8 | PostgreSQL 非同期ドライバー |
-| rdkafka | 0.36 | Kafka プロデューサー / コンシューマー |
+| rdkafka | 0.37 | Kafka プロデューサー / コンシューマー |
 | serde / serde_json | 1 | JSON シリアライゼーション |
 | serde_yaml | 0.9 | YAML 解析（ワークフロー定義・設定） |
 | uuid | 1 | UUID v4 生成 |

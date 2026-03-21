@@ -70,6 +70,13 @@ else
     fail "sqlx が見つかりません"
 fi
 
+# k1s0 CLI（プロジェクト管理ツール）
+if command -v k1s0 &>/dev/null; then
+    ok "k1s0:          $(k1s0 --version 2>/dev/null || echo '(version不明)')"
+else
+    fail "k1s0 CLI が見つかりません（cargo install --path CLI/crates/k1s0-cli を実行してください）"
+fi
+
 # Docker（docker-in-docker 経由）
 if command -v docker &>/dev/null; then
     ok "Docker:        $(docker --version 2>/dev/null || echo '(デーモン未起動)')"

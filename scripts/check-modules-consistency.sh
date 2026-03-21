@@ -15,6 +15,10 @@
 
 set -euo pipefail
 
+# C-01 対応: Windows/CI 環境での Python UTF-8 出力を保証する。
+# PYTHONIOENCODING が未設定の場合、日本語を含む YAML のパース・出力が文字化けする可能性がある。
+export PYTHONIOENCODING=utf-8
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 MODULES_YAML="${REPO_ROOT}/modules.yaml"
@@ -130,6 +134,77 @@ if orphan_ignores:
 else:
     print(f"OK: ci.yaml paths-ignore の全エントリが modules.yaml のパスと整合しています")
 PYEOF
+
+# C-02 対応: 逆方向検証（FS→YAML）
+# regions/ 配下の実際のプロジェクトマニフェストファイルを走査し、
+# modules.yaml に登録されていないパスを検出する。
+# これにより modules.yaml への登録漏れを CI で早期検出できる。
+echo ""
+echo "--- 逆方向検証: FS に存在するモジュールが modules.yaml に登録されているか ---"
+python3 - "$MODULES_YAML" "$REPO_ROOT" <<'PYEOF'
+import sys, yaml, os, subprocess
+
+modules_yaml = sys.argv[1]
+repo_root = sys.argv[2]
+
+with open(modules_yaml) as f:
+    data = yaml.safe_load(f)
+
+# modules.yaml に登録されている全パスのセット
+registered_paths = {mod['path'] for mod in data.get('modules', [])}
+
+# regions/ 配下のマニフェストファイル（Cargo.toml, go.mod, package.json, pubspec.yaml）を走査する。
+# ただしワークスペースルートの Cargo.toml や node_modules は除外する。
+manifest_files = ['Cargo.toml', 'go.mod', 'package.json', 'pubspec.yaml']
+unregistered = []
+
+regions_dir = os.path.join(repo_root, 'regions')
+for dirpath, dirnames, filenames in os.walk(regions_dir):
+    # node_modules, target, .git などは除外する
+    dirnames[:] = [d for d in dirnames if d not in ('node_modules', 'target', '.git', '.cargo')]
+
+    for manifest in manifest_files:
+        if manifest in filenames:
+            abs_path = os.path.join(dirpath, manifest)
+            rel_dir = os.path.relpath(dirpath, repo_root).replace(os.sep, '/')
+
+            # Cargo.toml の場合: [workspace] セクションがあるワークスペースルートはスキップ
+            if manifest == 'Cargo.toml':
+                try:
+                    with open(abs_path) as f:
+                        content = f.read()
+                    if '[workspace]' in content and '[package]' not in content:
+                        continue
+                except Exception:
+                    pass
+
+            # このパスまたは親パスが modules.yaml に登録されているか確認する
+            is_registered = any(
+                rel_dir == p or rel_dir.startswith(p + '/')
+                for p in registered_paths
+            )
+            if not is_registered:
+                unregistered.append(f"  - {rel_dir} ({manifest})")
+
+if unregistered:
+    # 重複を除去して表示する
+    seen = set()
+    unique = []
+    for entry in unregistered:
+        if entry not in seen:
+            seen.add(entry)
+            unique.append(entry)
+    print("WARNING: 以下のパスは modules.yaml に登録されていません:")
+    for u in unique:
+        print(u)
+    print("  → 新規モジュールを追加した場合は modules.yaml への登録を忘れずに行ってください")
+else:
+    print("OK: regions/ 配下の全マニフェストファイルが modules.yaml に登録されています")
+PYEOF
+check_result=$?
+if [ $check_result -ne 0 ]; then
+  failed=1
+fi
 
 # 最終結果
 echo ""

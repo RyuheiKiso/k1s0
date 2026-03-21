@@ -3,7 +3,7 @@ use crate::domain::repository::column_definition_repository::ColumnDefinitionRep
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use crate::domain::repository::table_definition_repository::TableDefinitionRepository;
 use crate::domain::repository::table_relationship_repository::TableRelationshipRepository;
-use crate::infrastructure::schema::PhysicalSchemaManager;
+use crate::infrastructure::schema::SchemaManager;
 use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -13,7 +13,7 @@ pub struct ManageRelationshipsUseCase {
     relationship_repo: Arc<dyn TableRelationshipRepository>,
     record_repo: Arc<dyn DynamicRecordRepository>,
     column_repo: Arc<dyn ColumnDefinitionRepository>,
-    schema_manager: Arc<PhysicalSchemaManager>,
+    schema_manager: Arc<dyn SchemaManager>,
 }
 
 impl ManageRelationshipsUseCase {
@@ -22,7 +22,7 @@ impl ManageRelationshipsUseCase {
         relationship_repo: Arc<dyn TableRelationshipRepository>,
         record_repo: Arc<dyn DynamicRecordRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
-        schema_manager: Arc<PhysicalSchemaManager>,
+        schema_manager: Arc<dyn SchemaManager>,
     ) -> Self {
         Self {
             table_repo,

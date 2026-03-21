@@ -2,6 +2,7 @@ use crate::domain::entity::table_relationship::TableRelationship;
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait TableRelationshipRepository: Send + Sync {
     async fn find_all(&self) -> anyhow::Result<Vec<TableRelationship>>;

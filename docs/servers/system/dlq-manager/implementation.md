@@ -76,7 +76,7 @@ tower = { version = "0.5", features = ["util"] }
 | axum | 0.8 | REST HTTP フレームワーク |
 | tokio | 1 | 非同期ランタイム（full features） |
 | sqlx | 0.8 | PostgreSQL 非同期ドライバー |
-| rdkafka | 0.36 | Kafka プロデューサー / コンシューマー |
+| rdkafka | 0.37 | Kafka プロデューサー / コンシューマー |
 | serde / serde_json | 1 | JSON シリアライゼーション |
 | serde_yaml | 0.9 | YAML 解析（設定ファイル） |
 | uuid | 1 | UUID v4 生成 |

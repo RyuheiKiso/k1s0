@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/middleware"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
@@ -21,6 +22,10 @@ type ProxyHandler struct {
 	oauthClient  *oauth.Client
 	sessionTTL   time.Duration
 	logger       *slog.Logger
+	// G-03 対応: トークンリフレッシュの重複実行を防止するための singleflight グループ。
+	// 同一セッション ID に対して複数の並行リクエストが同時にリフレッシュを試みる場合、
+	// 最初の 1 件のみ実際に RefreshToken を呼び出し、他は結果を共有する。
+	refreshGroup singleflight.Group
 }
 
 // NewProxyHandler creates a new reverse proxy handler targeting the upstream URL.
@@ -51,7 +56,7 @@ func NewProxyHandler(
 func (h *ProxyHandler) Handle(c *gin.Context) {
 	sess, ok := middleware.GetSessionData(c)
 	if !ok {
-		abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_NO_SESSION", "Session not found")
+		abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_NO_SESSION", "セッションが見つかりません")
 		return
 	}
 
@@ -61,14 +66,28 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// フラグは「期限切れ かつ refresh token あり」の場合のみ middleware が設定する。
 	needsRefresh, _ := c.Get(middleware.SessionNeedsRefreshKey)
 	if needsRefresh != nil && needsRefresh.(bool) {
-		tokenResp, err := h.oauthClient.RefreshToken(c.Request.Context(), sess.RefreshToken)
+		// G-03 対応: singleflight でセッション単位のリフレッシュ重複を排除する。
+		// 同一 sessionID に対して並行リクエストが殺到した場合、1 件のみ実際にリフレッシュし
+		// 残りは同じ結果を共有する。これにより RefreshToken のレート制限エラーを防ぐ。
+		type refreshResult struct {
+			tokenResp *oauth.TokenResponse
+		}
+		val, err, _ := h.refreshGroup.Do(sessionID, func() (any, error) {
+			resp, e := h.oauthClient.RefreshToken(c.Request.Context(), sess.RefreshToken)
+			if e != nil {
+				return nil, e
+			}
+			return &refreshResult{tokenResp: resp}, nil
+		})
 		if err != nil {
 			h.logger.Warn("token refresh failed, session expired",
 				slog.String("error", err.Error()),
 			)
-			abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_TOKEN_EXPIRED", "Session expired, please re-authenticate")
+			abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_TOKEN_EXPIRED", "セッションが期限切れです。再認証してください")
 			return
 		}
+
+		tokenResp := val.(*refreshResult).tokenResp
 
 		// Update session with new tokens.
 		sess.AccessToken = tokenResp.AccessToken

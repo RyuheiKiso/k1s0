@@ -23,11 +23,11 @@ import (
 // mockOAuthClient は OAuthClient インターフェースのテスト用モック。
 // 関数フィールドでメソッドの振る舞いを差し替える。
 type mockOAuthClient struct {
-	authCodeURLFn          func(state, codeChallenge string) (string, error)
-	exchangeCodeFn         func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-	extractSubjectFn       func(ctx context.Context, idToken string) (string, error)
-	logoutURLFn            func(idTokenHint, postLogoutRedirectURI string) (string, error)
-	discoveryCacheCleared  bool
+	authCodeURLFn         func(state, codeChallenge string) (string, error)
+	exchangeCodeFn        func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
+	extractClaimsFn       func(ctx context.Context, idToken string) (string, []string, error)
+	logoutURLFn           func(idTokenHint, postLogoutRedirectURI string) (string, error)
+	discoveryCacheCleared bool
 }
 
 // AuthCodeURL は認可コードフローの URL を構築するモック実装。
@@ -40,9 +40,9 @@ func (m *mockOAuthClient) ExchangeCode(ctx context.Context, code, codeVerifier s
 	return m.exchangeCodeFn(ctx, code, codeVerifier)
 }
 
-// ExtractSubject は ID トークンから subject を抽出するモック実装。
-func (m *mockOAuthClient) ExtractSubject(ctx context.Context, idToken string) (string, error) {
-	return m.extractSubjectFn(ctx, idToken)
+// ExtractClaims は JWKS 署名検証済み ID トークンから subject と realm roles を返すモック実装。
+func (m *mockOAuthClient) ExtractClaims(ctx context.Context, idToken string) (string, []string, error) {
+	return m.extractClaimsFn(ctx, idToken)
 }
 
 // LogoutURL は IdP のログアウト URL を返すモック実装。
@@ -174,8 +174,9 @@ func TestCallback_Success(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		extractSubjectFn: func(_ context.Context, idToken string) (string, error) {
-			return "user-sub-001", nil
+		// ExtractClaims は JWKS 署名検証済み ID トークンから subject と roles を返す
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "user-sub-001", []string{"user"}, nil
 		},
 	}
 
@@ -543,8 +544,9 @@ func TestCallback_MobileRedirect(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		extractSubjectFn: func(_ context.Context, idToken string) (string, error) {
-			return "mobile-user-001", nil
+		// ExtractClaims は JWKS 署名検証済み ID トークンから subject と roles を返す
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "mobile-user-001", []string{"user"}, nil
 		},
 	}
 

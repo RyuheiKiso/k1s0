@@ -22,6 +22,7 @@ groups:
         annotations:
           summary: "System Tier SLO burn rate critical: {{ $labels.service }}"
           description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-critical.md"
 
       - alert: SLOBurnRateWarning
         expr: |
@@ -43,6 +44,7 @@ groups:
         annotations:
           summary: "System Tier SLO burn rate warning: {{ $labels.service }}"
           description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-warning.md"
 
       # business / service Tier (SLO 99.9%, error_budget = 0.001)
       - alert: SLOBurnRateCritical
@@ -64,6 +66,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }} SLO burn rate critical"
           description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-critical.md"
 
       - alert: SLOBurnRateWarning
         expr: |
@@ -84,3 +87,4 @@ groups:
         annotations:
           summary: "{{ $labels.service }} SLO burn rate warning"
           description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-warning.md"

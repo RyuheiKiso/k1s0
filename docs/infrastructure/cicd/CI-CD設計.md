@@ -1468,6 +1468,25 @@ bash scripts/check-modules-consistency.sh
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### service tier サービス CI への実 DB 統合テストジョブ追加 [技術品質監査 T-01/T-02]
+
+`inventory-ci.yaml`・`order-ci.yaml`・`payment-ci.yaml` に `integration-test` ジョブを追加した。
+`ci`（`_rust-service-ci.yaml` 呼び出し）の完了後に実行され、PostgreSQL 16 サービスコンテナを起動して
+`#[ignore]` 付き統合テストを `-- --include-ignored` で実行する。
+
+| ワークフロー | 追加ジョブ | PostgreSQL サービス |
+| --- | --- | --- |
+| `inventory-ci.yaml` | `integration-test` | `postgres:16` (localhost:5432) |
+| `order-ci.yaml` | `integration-test` | `postgres:16` (localhost:5432) |
+| `payment-ci.yaml` | `integration-test` | `postgres:16` (localhost:5432) |
+
+テストファイルは各サービスの `tests/integration_db_test.rs` に `#[ignore]` 属性付きで配置する。
+`DATABASE_URL` 環境変数（`postgres://postgres:postgres@localhost:5432/test_db`）で接続先を設定する。
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

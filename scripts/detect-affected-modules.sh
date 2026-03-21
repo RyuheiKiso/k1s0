@@ -41,10 +41,12 @@ PYEOF
   fi
 fi
 
-# ベースブランチを明示的に fetch してマージベースを確実に取得する
-# CI 環境では shallow clone のためベースブランチが存在しない場合がある
+# ベースブランチを明示的に fetch してマージベースを確実に取得する。
+# CI 環境では shallow clone のためベースブランチが存在しない場合がある。
+# C-03 対応: --depth=1 では浅すぎてマージベースが取得できないため --deepen=50 を使用する。
+# squash merge や長い PR チェーンでも正確なマージベースを取得できる。
 if ! git rev-parse --verify "origin/${BASE_BRANCH}" >/dev/null 2>&1; then
-  git fetch origin "${BASE_BRANCH}" --depth=1 2>/dev/null || true
+  git fetch origin "${BASE_BRANCH}" --deepen=50 2>/dev/null || true
 fi
 
 # マージベースを取得して正確な差分を算出する
