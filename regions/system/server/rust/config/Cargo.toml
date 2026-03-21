@@ -50,7 +50,7 @@ moka = { version = "0.12", features = ["future"] }
 tokio-stream = "0.1"
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 # Auth library (JWKS verifier + middleware)
 k1s0-auth = { path = "../../../library/rust/auth" }

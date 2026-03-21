@@ -42,7 +42,7 @@ aws-sdk-s3 = "1"
 aws-config = "1"
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 sqlx = {workspace = true}
 
 [build-dependencies]

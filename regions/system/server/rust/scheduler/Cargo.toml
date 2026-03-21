@@ -39,7 +39,7 @@ k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-server-common = { path = "../../../library/rust/server-common", features = ["auth", "shutdown"] }
 utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
 cron = "0.15"
 tokio-util = { version = "0.7", features = ["rt"] }

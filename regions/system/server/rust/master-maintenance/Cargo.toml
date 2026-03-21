@@ -78,7 +78,7 @@ prost = {workspace = true}
 prost-types = {workspace = true}
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 [build-dependencies]
 tonic-build = {workspace = true}
