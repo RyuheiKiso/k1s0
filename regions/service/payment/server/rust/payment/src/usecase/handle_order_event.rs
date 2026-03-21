@@ -120,6 +120,7 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
+    // テスト用の決済エンティティを生成するヘルパー
     fn sample_payment(order_id: &str) -> Payment {
         Payment {
             id: Uuid::new_v4(),
@@ -138,6 +139,18 @@ mod tests {
         }
     }
 
+    // テスト用の HandleOrderEventUseCase をモックリポジトリから構築するヘルパー
+    // initiate / fail の両ユースケースと共有リポジトリを組み立てる
+    fn make_uc_with_repos(
+        initiate_repo: MockPaymentRepository,
+        fail_repo: MockPaymentRepository,
+        search_repo: MockPaymentRepository,
+    ) -> HandleOrderEventUseCase {
+        let initiate_uc = Arc::new(InitiatePaymentUseCase::new(Arc::new(initiate_repo)));
+        let fail_uc = Arc::new(FailPaymentUseCase::new(Arc::new(fail_repo)));
+        HandleOrderEventUseCase::new(initiate_uc, fail_uc, Arc::new(search_repo))
+    }
+
     // order.created イベントで決済が開始されることを確認する
     #[tokio::test]
     async fn test_handle_created_initiates_payment() {
@@ -145,19 +158,22 @@ mod tests {
         let payment = sample_payment(order_id);
         let payment_clone = payment.clone();
 
-        let mut mock_repo = MockPaymentRepository::new();
-        // 冪等性チェック: 既存決済なし
-        mock_repo
+        // initiate_uc 用モック: 冪等性チェックなし → create 呼び出し
+        let mut initiate_repo = MockPaymentRepository::new();
+        initiate_repo
             .expect_find_by_order_id()
             .times(1)
             .returning(|_| Ok(None));
-        mock_repo
+        initiate_repo
             .expect_create()
             .times(1)
             .returning(move |_| Ok(payment_clone.clone()));
 
-        let initiate_uc = Arc::new(InitiatePaymentUseCase::new(Arc::new(mock_repo)));
-        let uc = HandleOrderEventUseCase::new(initiate_uc);
+        // fail_uc / search_repo は呼ばれない
+        let fail_repo = MockPaymentRepository::new();
+        let search_repo = MockPaymentRepository::new();
+
+        let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
 
         let event = OrderCreatedEvent {
             metadata: None,
@@ -182,16 +198,18 @@ mod tests {
         let existing = sample_payment(order_id);
         let existing_clone = existing.clone();
 
-        let mut mock_repo = MockPaymentRepository::new();
-        // 冪等性チェック: 既存決済あり → create は呼ばれない
-        mock_repo
+        // initiate_uc 用モック: 冪等性チェック → 既存決済あり → create は呼ばれない
+        let mut initiate_repo = MockPaymentRepository::new();
+        initiate_repo
             .expect_find_by_order_id()
             .times(1)
             .returning(move |_| Ok(Some(existing_clone.clone())));
-        mock_repo.expect_create().times(0);
+        initiate_repo.expect_create().times(0);
 
-        let initiate_uc = Arc::new(InitiatePaymentUseCase::new(Arc::new(mock_repo)));
-        let uc = HandleOrderEventUseCase::new(initiate_uc);
+        let fail_repo = MockPaymentRepository::new();
+        let search_repo = MockPaymentRepository::new();
+
+        let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
 
         let event = OrderCreatedEvent {
             metadata: None,
@@ -202,6 +220,108 @@ mod tests {
             currency: "JPY".to_string(),
         };
         let result = uc.handle_created(&event).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled イベントで Initiated 状態の決済が Failed に遷移することを確認する（M-20）
+    #[tokio::test]
+    async fn test_handle_cancelled_fails_initiated_payment() {
+        let order_id = "ORD-003";
+        let payment = sample_payment(order_id);
+        let payment_id = payment.id;
+        let payment_clone = payment.clone();
+        let mut failed_payment = payment.clone();
+        failed_payment.status = PaymentStatus::Failed;
+        failed_payment.error_code = Some("ORDER_CANCELLED".to_string());
+        let failed_clone = failed_payment.clone();
+
+        // search_repo: order_id から決済を検索する
+        let mut search_repo = MockPaymentRepository::new();
+        search_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(payment_clone.clone())));
+
+        // fail_uc 用モック: find_by_id → fail の順に呼び出される
+        let mut fail_repo = MockPaymentRepository::new();
+        fail_repo
+            .expect_find_by_id()
+            .withf(move |id| *id == payment_id)
+            .times(1)
+            .returning(move |_| {
+                let mut p = payment.clone();
+                p.status = PaymentStatus::Initiated;
+                Ok(Some(p))
+            });
+        fail_repo
+            .expect_fail()
+            .times(1)
+            .returning(move |_, _, _, _| Ok(failed_clone.clone()));
+
+        let initiate_repo = MockPaymentRepository::new();
+        let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
+
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: order_id.to_string(),
+            user_id: "USER-001".to_string(),
+            reason: "customer request".to_string(),
+        };
+        let result = uc.handle_cancelled(&event).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled イベントで対応する決済が存在しない場合に Ok を返すことを確認する（冪等性）
+    #[tokio::test]
+    async fn test_handle_cancelled_no_payment_returns_ok() {
+        // search_repo: 決済が存在しない
+        let mut search_repo = MockPaymentRepository::new();
+        search_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(|_| Ok(None));
+
+        let initiate_repo = MockPaymentRepository::new();
+        let fail_repo = MockPaymentRepository::new();
+        let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
+
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: "ORD-NOTFOUND".to_string(),
+            user_id: "USER-001".to_string(),
+            reason: "no payment exists".to_string(),
+        };
+        let result = uc.handle_cancelled(&event).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled イベントで Initiated 以外の決済はスキップされることを確認する（冪等性）
+    #[tokio::test]
+    async fn test_handle_cancelled_non_initiated_payment_is_skipped() {
+        let order_id = "ORD-004";
+        let mut payment = sample_payment(order_id);
+        payment.status = PaymentStatus::Completed;
+        let payment_clone = payment.clone();
+
+        // search_repo: Completed の決済を返す
+        let mut search_repo = MockPaymentRepository::new();
+        search_repo
+            .expect_find_by_order_id()
+            .times(1)
+            .returning(move |_| Ok(Some(payment_clone.clone())));
+
+        let initiate_repo = MockPaymentRepository::new();
+        // fail_uc は呼ばれない（Initiated でないためスキップ）
+        let fail_repo = MockPaymentRepository::new();
+        let uc = make_uc_with_repos(initiate_repo, fail_repo, search_repo);
+
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: order_id.to_string(),
+            user_id: "USER-001".to_string(),
+            reason: "completed payment should not be cancelled".to_string(),
+        };
+        let result = uc.handle_cancelled(&event).await;
         assert!(result.is_ok());
     }
 }

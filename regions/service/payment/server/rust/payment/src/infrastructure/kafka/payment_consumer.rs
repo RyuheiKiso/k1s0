@@ -1,15 +1,15 @@
-// Saga: Order 作成イベントを受信して決済を開始する Kafka Consumer（C-001）。
+// Saga: Order イベントを受信して決済操作を行う Kafka Consumer（C-001 / M-20）。
 // order.created → InitiatePaymentUseCase を呼び出して決済レコードを作成する。
-// 決済失敗時は PaymentFailedEvent（Outbox 経由）が order.failed として発行され、
-// Order Consumer が注文をキャンセルする補償フローが起動する。
+// order.cancelled → FailPaymentUseCase を呼び出して進行中の決済を中断する（M-20）。
 //
 // 設計注: Choreography-based Saga パターンを採用。
 // inventory と payment は共に order.created を購読して並行して処理を開始する。
 // 決済失敗 → 注文キャンセル → 在庫解放、という補償チェーンが確立される。
+// また、注文キャンセル → 決済中断、という補償チェーンも同 Consumer で処理する。
 
 use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::handle_order_event::HandleOrderEventUseCase;
-use crate::proto::k1s0::event::service::order::v1::OrderCreatedEvent;
+use crate::proto::k1s0::event::service::order::v1::{OrderCancelledEvent, OrderCreatedEvent};
 use anyhow::Context;
 use prost::Message;
 use rdkafka::config::ClientConfig;
@@ -19,15 +19,19 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 /// Payment Kafka Consumer。
-/// order.created トピックを購読し、決済を開始する。
+/// order.created および order.cancelled トピックを購読し、決済を開始・中断する。
 pub struct PaymentKafkaConsumer {
     consumer: StreamConsumer,
     handle_order_event_uc: Arc<HandleOrderEventUseCase>,
+    /// order.created トピック名
     order_created_topic: String,
+    /// order.cancelled トピック名（M-20: 注文キャンセル時の決済中断）
+    order_cancelled_topic: String,
 }
 
 impl PaymentKafkaConsumer {
     /// 新しい PaymentKafkaConsumer を生成する。
+    /// order.created と order.cancelled の両トピックを購読する。
     pub fn new(
         kafka_cfg: &KafkaConfig,
         handle_order_event_uc: Arc<HandleOrderEventUseCase>,
@@ -38,15 +42,19 @@ impl PaymentKafkaConsumer {
             .set("security.protocol", &kafka_cfg.security_protocol)
             .set("enable.auto.commit", "false")
             .set("session.timeout.ms", "30000")
-            // サービス再起動後は最古の未処理オフセットから再開し、決済開始を取りこぼさない
+            // サービス再起動後は最古の未処理オフセットから再開し、決済開始・中断を取りこぼさない
             .set("auto.offset.reset", "earliest")
             .create()
             .context("Payment Kafka consumer の生成に失敗")?;
 
-        let topics = [kafka_cfg.order_created_topic.as_str()];
+        // order.created と order.cancelled の両トピックを購読する（M-20）
+        let topics = [
+            kafka_cfg.order_created_topic.as_str(),
+            kafka_cfg.order_cancelled_topic.as_str(),
+        ];
         consumer
             .subscribe(&topics)
-            .context("order.created トピックへのサブスクライブに失敗")?;
+            .context("order トピックへのサブスクライブに失敗")?;
 
         info!(
             topics = ?topics,
@@ -58,6 +66,7 @@ impl PaymentKafkaConsumer {
             consumer,
             handle_order_event_uc,
             order_created_topic: kafka_cfg.order_created_topic.clone(),
+            order_cancelled_topic: kafka_cfg.order_cancelled_topic.clone(),
         })
     }
 
@@ -96,6 +105,7 @@ impl PaymentKafkaConsumer {
         dispatch_message(
             &self.handle_order_event_uc,
             &self.order_created_topic,
+            &self.order_cancelled_topic,
             topic,
             payload,
         )
@@ -105,9 +115,11 @@ impl PaymentKafkaConsumer {
 
 /// topic と payload を受け取ってディスパッチするコアロジック。
 /// テスタビリティのため PaymentKafkaConsumer 構造体から分離する。
+/// order.created → handle_created / order.cancelled → handle_cancelled（M-20）
 async fn dispatch_message(
     uc: &HandleOrderEventUseCase,
     order_created_topic: &str,
+    order_cancelled_topic: &str,
     topic: &str,
     payload: &[u8],
 ) -> anyhow::Result<()> {
@@ -119,6 +131,14 @@ async fn dispatch_message(
         uc.handle_created(&event)
             .await
             .context("order created 決済開始処理に失敗")?;
+    } else if topic == order_cancelled_topic {
+        // order.cancelled: 進行中の決済を中断する（Saga 補償フロー / M-20）
+        let event = OrderCancelledEvent::decode(payload)
+            .context("OrderCancelledEvent のデシリアライズに失敗")?;
+        info!(order_id = %event.order_id, reason = %event.reason, "order cancelled received, failing payment");
+        uc.handle_cancelled(&event)
+            .await
+            .context("order cancelled 決済中断処理に失敗")?;
     } else {
         warn!(topic, "payment consumer: unknown topic, skipping");
     }
