@@ -53,8 +53,8 @@ pub async fn get_item(
         .ok_or_else(|| ServiceError::NotFound {
             code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_ITEM_NOT_FOUND"),
             message: format!(
-                "Item '{}' not found in category '{}'",
-                item_code, category_code
+                "カテゴリ '{}' にアイテム '{}' が見つかりません",
+                category_code, item_code
             ),
         })?;
     Ok(Json(item))
