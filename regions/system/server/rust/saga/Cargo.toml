@@ -53,7 +53,7 @@ tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 # Auth library
 k1s0-auth = { path = "../../../library/rust/auth" }

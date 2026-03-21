@@ -19,7 +19,7 @@ mockall = {workspace = true, optional = true}
 reqwest = {workspace = true, optional = true}
 urlencoding = { version = "2", optional = true }
 tonic = {workspace = true, optional = true}
-rdkafka = { version = "0.37", optional = true, features = ["cmake-build"] }
+rdkafka = { version = "0.39", optional = true, features = ["cmake-build"] }
 
 [dev-dependencies]
 tokio = {workspace = true}
