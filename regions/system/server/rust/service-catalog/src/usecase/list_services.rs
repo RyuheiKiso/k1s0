@@ -23,15 +23,51 @@ impl ListServicesUseCase {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::domain::entity::service::{ServiceLifecycle, ServiceTier};
     use crate::domain::repository::service_repository::MockServiceRepository;
+    use chrono::Utc;
+    use uuid::Uuid;
 
+    /// テスト用 Service ヘルパー
+    fn make_service() -> Service {
+        Service {
+            id: Uuid::new_v4(),
+            name: "svc".to_string(),
+            description: None,
+            team_id: Uuid::new_v4(),
+            tier: ServiceTier::Internal,
+            lifecycle: ServiceLifecycle::Production,
+            repository_url: None,
+            api_endpoint: None,
+            healthcheck_url: None,
+            tags: vec![],
+            metadata: serde_json::json!({}),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// 空リストを返す
     #[tokio::test]
-    async fn test_list_services_success() {
+    async fn test_list_services_empty() {
         let mut mock = MockServiceRepository::new();
         mock.expect_list().returning(|_| Ok(vec![]));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
         let result = uc.execute(ServiceListFilters::default()).await.unwrap();
         assert!(result.is_empty());
+    }
+
+    /// 複数のサービスを返す
+    #[tokio::test]
+    async fn test_list_services_returns_all() {
+        let services = vec![make_service(), make_service(), make_service()];
+        let services_clone = services.clone();
+        let mut mock = MockServiceRepository::new();
+        mock.expect_list().returning(move |_| Ok(services_clone.clone()));
+
+        let uc = ListServicesUseCase::new(Arc::new(mock));
+        let result = uc.execute(ServiceListFilters::default()).await.unwrap();
+        assert_eq!(result.len(), 3);
     }
 }
