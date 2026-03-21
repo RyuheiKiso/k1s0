@@ -184,7 +184,6 @@ jobs:
       - build-go
       - build-rust
       - build-ts
-      - test-dart
       - build-docker
     if: always() && !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
