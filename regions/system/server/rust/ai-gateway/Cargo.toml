@@ -47,6 +47,8 @@ tonic-build = {workspace = true}
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
+# LLMクライアントのHTTPリクエストをモックするために使用する
+wiremock = "0.6"
 
 [lints]
 workspace = true

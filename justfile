@@ -14,22 +14,23 @@ _dc_profiles := "--profile infra --profile system"
 _standalone_rust_servers := "regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment"
 
 # Windows ネイティブ環境チェック: WSL2/Git Bash 以外の環境では警告を出す
+# このレシピはサーバービルド系（local-up/local-down）でのみ呼び出す
 _check-env:
     #!/usr/bin/env bash
     set -euo pipefail
     # MSYS (Git Bash) / Cygwin 環境を検出した場合は警告を表示
     if [[ "${OSTYPE:-}" == msys* ]] || [[ "${OSTYPE:-}" == cygwin* ]]; then
-        echo "⚠ WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
+        echo "WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
         echo "  WSL2 での実行を強く推奨します（Git Bash は一部制限あり）。"
-        echo "  PowerShell / cmd.exe からの実行はサポート対象外です。"
         echo "  詳細: README.md の「前提条件」セクションを参照してください。"
         echo ""
     fi
     # PowerShell から bash を経由して呼ばれた場合の検出（PSModulePath が設定されている）
     if [[ -n "${PSModulePath:-}" ]] && [[ -z "${WSL_DISTRO_NAME:-}" ]]; then
-        echo "⚠ ERROR: PowerShell 環境から実行されています。"
-        echo "  justfile は WSL2 または Git Bash 内で実行してください。"
-        echo "  PowerShell / cmd.exe からの直接実行はサポートしていません。"
+        echo "WARNING: PowerShell 環境から実行されています。"
+        echo "  このレシピは Docker Compose を使用するため WSL2 が必要です。"
+        echo "  WSL2 または devcontainer 内で実行してください。"
+        echo "  Windows ネイティブで可能な作業: just cli-build / cli-test / cli-lint / cli-fmt"
         exit 1
     fi
 
@@ -404,3 +405,33 @@ security-ts:
 # Dart/Flutter 依存チェック
 security-dart:
     bash scripts/security/dart-outdated.sh
+
+# --- CLI（Windows ネイティブ対応）---
+# 以下のレシピは Windows ネイティブ（Git Bash / PowerShell）でも動作する
+# rdkafka / zen-engine に依存しない CLI ワークスペース（k1s0-cli, k1s0-core）のみを対象とする
+# k1s0-gui（Tauri）は WebView2 SDK が必要なため除外する
+
+# CLI ビルド（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-build:
+    cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
+
+# CLI テスト（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-test:
+    cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
+
+# CLI リント（Windows/Unix 共通）
+[windows]
+cli-lint:
+    cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+    cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+
+[unix]
+cli-lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+    cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+
+# CLI フォーマット（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-fmt:
+    cargo fmt --all --manifest-path CLI/Cargo.toml

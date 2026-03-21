@@ -285,17 +285,32 @@ ingress           Nginx Ingress Controller
 
 ## クイックスタート
 
+### Windows 開発者向けセットアップ
+
+Windows では以下の3つの方法で開発環境を構築できます。詳細は [`docs/infrastructure/devenv/windows-quickstart.md`](docs/infrastructure/devenv/windows-quickstart.md) を参照してください。
+
+| 方法 | 対象 | 所要時間 | セットアップ |
+|------|------|----------|------------|
+| **A: devcontainer（推奨）** | 全機能（Rust/Go/TS/Dart/サーバー開発） | 約10〜20分 | Docker Desktop + VS Code + Dev Containers拡張のみ |
+| **B: WSL2 ネイティブ** | 全機能 | 約30分 | `bash scripts/setup-wsl.sh` |
+| **C: Windows ネイティブ** | CLI・TS・Dart 開発のみ | 約10分 | `.\scripts\setup-windows.ps1` → Rust インストール |
+
+```powershell
+# C: Windows ネイティブの初期設定（PowerShell で実行）
+.\scripts\setup-windows.ps1
+```
+
+> **Note**: サーバー開発・統合テスト・Docker Compose 操作は rdkafka/zen-engine の制約により A または B が必要です。
+
+---
+
 ### 前提条件
 
-- **Bash 環境**（WSL2 または Git Bash **必須**）— justfile・スクリプトは全て Bash 前提のため、PowerShell / cmd.exe では動作しません
+- **Bash 環境**（WSL2 または Git Bash **必須**）— justfile・スクリプトは全て Bash 前提のため、PowerShell / cmd.exe では動作しません（CLI専用の `just cli-*` レシピを除く）
 - **just**（justfile 実行に必要）
 - **Docker / Docker Compose** v2（必須）
 - **Rust 1.93+**（CLI ビルド・サーバー開発時）
 - Go 1.24+ / Node.js 22+ / Dart 3.5+（各言語で開発する場合）
-
-> **Windows ユーザー**: justfile および全スクリプトは **WSL2（推奨）または Git Bash が必須**です。PowerShell / cmd.exe からの直接実行は**サポート対象外**であり、動作しません。devcontainer 内での実行も可能です。
-
-> **Note**: `master-maintenance` サーバーは `zen-engine` (rquickjs-sys) に依存しており、Windows ネイティブ環境ではビルドできません。WSL2 または devcontainer を使用してください。
 
 ### Dev Container セットアップ
 
@@ -305,15 +320,15 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 
 | ソフトウェア | 備考 |
 |-------------|------|
-| **Docker Desktop** | WSL2 バックエンド推奨（Windows） |
+| **Docker Desktop** | WSL2 バックエンド推奨（Windows）。または WSL2 + Docker Engine CE |
 | **VSCode** | [Dev Containers 拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) が必要 |
 
 #### セットアップ手順
 
 1. VSCode でリポジトリを開く
 2. コマンドパレット（`F1`）→ `Dev Containers: Reopen in Container` を選択
-3. 初回起動時に Docker イメージのビルドと `post-create.sh` の実行が自動で行われる（数分かかる）
-4. devcontainer 内では `infra` プロファイル（PostgreSQL, Redis, Kafka, Keycloak 等）が自動起動する
+3. 初回起動時に Docker イメージのビルドと `post-create.sh` の実行が自動で行われる（約10〜20分）
+4. devcontainer 起動後、インフラ（PostgreSQL, Redis, Kafka, Keycloak 等）が自動起動する
 
 #### Windows 固有の注意事項
 
@@ -324,19 +339,6 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 | **ファイル監視** | WSL2 ファイルシステム上にクローンすると `inotify` による変更検知が高速に動作する |
 | **Docker リソース** | Docker Desktop の Settings → Resources で メモリ 8GB 以上、CPU 4 コア以上を推奨 |
 | **master-maintenance** | `zen-engine` (rquickjs-sys) は Windows ネイティブ未対応。devcontainer 内でビルドすること |
-
-#### Windows 環境での開発
-
-Windows での開発は WSL2 (Windows Subsystem for Linux) を推奨します。
-
-- **推奨:** WSL2 上の Ubuntu/Debian で開発する
-- **Git Bash 使用時:** `cygpath` が必要（Git for Windows に含まれる）
-- **PowerShell:** `set windows-shell` が設定済みですが、一部の bash スクリプトは WSL2 が必要
-
-Windows ネイティブでのビルドに必要なツール:
-- `cmake` (rdkafka, openssl ビルド用)
-- `patch` (zen-engine/rquickjs-sys ビルド用)
-- Visual C++ Build Tools または MSVC
 
 ### ネイティブビルド依存関係
 

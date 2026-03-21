@@ -58,3 +58,71 @@ impl EmbedUseCase {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::llm_client::LlmClient;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    // 正常系: エンベディングリクエストが成功し、ベクトルが返される
+    #[tokio::test]
+    async fn test_embed_success() {
+        // wiremockでOpenAI互換APIをモックする
+        let mock_server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/embeddings"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": [
+                    {"embedding": [0.1_f32, 0.2_f32, 0.3_f32]},
+                    {"embedding": [0.4_f32, 0.5_f32, 0.6_f32]}
+                ]
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let llm_client = Arc::new(LlmClient::new(mock_server.uri(), "test-key".to_string()));
+        let uc = EmbedUseCase::new(llm_client);
+
+        let result = uc
+            .execute(EmbedInput {
+                model: "text-embedding-ada-002".to_string(),
+                inputs: vec!["テキスト1".to_string(), "テキスト2".to_string()],
+            })
+            .await;
+
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert_eq!(output.model, "text-embedding-ada-002");
+        // 2つの入力に対して2つのベクトルが返される
+        assert_eq!(output.embeddings.len(), 2);
+        assert_eq!(output.embeddings[0], vec![0.1_f32, 0.2_f32, 0.3_f32]);
+        assert_eq!(output.embeddings[1], vec![0.4_f32, 0.5_f32, 0.6_f32]);
+    }
+
+    // 異常系: LLMリクエストが失敗した場合にLlmErrorが返る
+    #[tokio::test]
+    async fn test_embed_llm_error() {
+        // wiremockでエラーレスポンスを返すモックサーバーを設定する
+        let mock_server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/embeddings"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("Service Unavailable"))
+            .mount(&mock_server)
+            .await;
+
+        let llm_client = Arc::new(LlmClient::new(mock_server.uri(), "test-key".to_string()));
+        let uc = EmbedUseCase::new(llm_client);
+
+        let result = uc
+            .execute(EmbedInput {
+                model: "text-embedding-ada-002".to_string(),
+                inputs: vec!["テキスト".to_string()],
+            })
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.err().unwrap(), EmbedError::LlmError(_)));
+    }
+}

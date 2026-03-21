@@ -18,12 +18,33 @@ go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 # Rust コンポーネント
 rustup component add clippy rustfmt
 
+# sqlx-cli（データベースマイグレーション管理ツール）
+# postgres feature のみビルドして依存を最小化する
+if ! command -v sqlx &>/dev/null; then
+    cargo install sqlx-cli --no-default-features --features postgres
+fi
+
 # protobuf コンパイラ
 sudo apt-get update && sudo apt-get install -y protobuf-compiler
 
 # buf (Protocol Buffers ツール)
 BUF_VERSION="1.47.2"
-curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
-chmod +x /usr/local/bin/buf
+if ! command -v buf &>/dev/null || [[ "$(buf --version 2>/dev/null)" != "${BUF_VERSION}" ]]; then
+    curl -sSL "https://github.com/bufbuild/buf/releases/download/v${BUF_VERSION}/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
+    chmod +x /usr/local/bin/buf
+fi
+
+# just（justfile タスクランナー）
+if ! command -v just &>/dev/null; then
+    curl -sSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+fi
+
+# pnpm（TypeScript ワークスペース管理）
+# corepack は Node.js に同梱されているため別途インストール不要
+corepack enable pnpm
 
 echo "Dev Container setup complete."
+echo ""
+
+# セットアップ完了後のツール確認
+bash .devcontainer/health-check.sh

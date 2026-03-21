@@ -7,6 +7,8 @@ use crate::domain::entity::model::AiModel;
 
 /// AIモデルリポジトリのインターフェース。
 /// モデル一覧の取得やID指定での検索を提供する。
+// テスト時にmockallによるモック自動生成を有効にする
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ModelRepository: Send + Sync {
     /// 全モデルの一覧を取得する。
