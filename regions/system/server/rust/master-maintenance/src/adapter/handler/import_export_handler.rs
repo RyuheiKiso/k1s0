@@ -123,7 +123,7 @@ pub async fn export_records(
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     // read 操作も認証が必要（P0-2 対応）。
-    claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let result = state
         .import_export_uc
         .export_records(
@@ -173,7 +173,7 @@ pub async fn get_import_job(
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
     // read 操作も認証が必要（P0-2 対応）。
-    claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let job = state
         .import_export_uc
         .get_import_job(id)
