@@ -1,10 +1,17 @@
+//! HTTPレスポンス用のアプリケーションエラー型。
+//!
+//! MasterMaintenanceError から型安全に HTTP ステータスコードへ変換する（C-04対応）。
+//! 文字列マッチングによるエラー分類を廃止し、enum の match で変換する。
+
 use crate::adapter::presenter::response::{ErrorDetail, ErrorResponse};
+use crate::domain::error::MasterMaintenanceError;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 
+/// HTTP レスポンスとして返却するアプリケーションエラー型。
 #[derive(Debug)]
 pub struct AppError {
     pub status: StatusCode,
@@ -14,6 +21,7 @@ pub struct AppError {
 }
 
 impl AppError {
+    /// 404 Not Found レスポンスを生成する。
     pub fn not_found(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
@@ -23,6 +31,7 @@ impl AppError {
         }
     }
 
+    /// 400 Bad Request レスポンスを生成する。
     pub fn bad_request(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
@@ -32,6 +41,7 @@ impl AppError {
         }
     }
 
+    /// 409 Conflict レスポンスを生成する。
     pub fn conflict(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::CONFLICT,
@@ -41,6 +51,7 @@ impl AppError {
         }
     }
 
+    /// 401 Unauthorized レスポンスを生成する。
     pub fn unauthorized(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::UNAUTHORIZED,
@@ -50,6 +61,7 @@ impl AppError {
         }
     }
 
+    /// 403 Forbidden レスポンスを生成する。
     pub fn forbidden(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::FORBIDDEN,
@@ -59,6 +71,7 @@ impl AppError {
         }
     }
 
+    /// 500 Internal Server Error レスポンスを生成する。
     pub fn internal(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -68,12 +81,14 @@ impl AppError {
         }
     }
 
+    /// エラー詳細情報を付与する。バリデーションエラーの errors/warnings に使用する。
     pub fn with_details(mut self, details: serde_json::Value) -> Self {
         self.details = Some(details);
         self
     }
 }
 
+/// AppError を Axum の HTTP レスポンスに変換する実装。
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let body = ErrorResponse {
@@ -88,71 +103,68 @@ impl IntoResponse for AppError {
     }
 }
 
-impl From<anyhow::Error> for AppError {
-    fn from(err: anyhow::Error) -> Self {
-        if let Some(validation) =
-            err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
-        {
-            return Self::bad_request("SYS_MM_VALIDATION_ERROR", "validation failed").with_details(
-                serde_json::json!({
-                    "errors": validation.errors,
-                    "warnings": validation.warnings,
-                }),
-            );
-        }
-
-        let msg = err.to_string();
-        let lower = msg.to_ascii_lowercase();
-
-        if lower.contains("not found") {
-            if lower.contains("table") {
-                return Self::not_found("SYS_MM_TABLE_NOT_FOUND", &msg);
+/// MasterMaintenanceError を AppError に型安全に変換する実装（C-04対応）。
+/// 文字列マッチングを廃止し、enum の各バリアントに対して正確な HTTP ステータスコードとエラーコードを割り当てる。
+impl From<MasterMaintenanceError> for AppError {
+    fn from(err: MasterMaintenanceError) -> Self {
+        match &err {
+            MasterMaintenanceError::TableNotFound(_) => {
+                Self::not_found("SYS_MM_TABLE_NOT_FOUND", &err.to_string())
             }
-            if lower.contains("record") {
-                return Self::not_found("SYS_MM_RECORD_NOT_FOUND", &msg);
+            MasterMaintenanceError::RecordNotFound(_) => {
+                Self::not_found("SYS_MM_RECORD_NOT_FOUND", &err.to_string())
             }
-            if lower.contains("rule") {
-                return Self::not_found("SYS_MM_RULE_NOT_FOUND", &msg);
+            MasterMaintenanceError::RuleNotFound(_) => {
+                Self::not_found("SYS_MM_RULE_NOT_FOUND", &err.to_string())
             }
-            if lower.contains("display config") {
-                return Self::not_found("SYS_MM_DISPLAY_CONFIG_NOT_FOUND", &msg);
+            MasterMaintenanceError::DisplayConfigNotFound(_) => {
+                Self::not_found("SYS_MM_DISPLAY_CONFIG_NOT_FOUND", &err.to_string())
             }
-            if lower.contains("import job") {
-                return Self::not_found("SYS_MM_IMPORT_JOB_NOT_FOUND", &msg);
+            MasterMaintenanceError::ImportJobNotFound(_) => {
+                Self::not_found("SYS_MM_IMPORT_JOB_NOT_FOUND", &err.to_string())
             }
-            if lower.contains("relationship") {
-                return Self::not_found("SYS_MM_RELATIONSHIP_NOT_FOUND", &msg);
+            MasterMaintenanceError::RelationshipNotFound(_) => {
+                Self::not_found("SYS_MM_RELATIONSHIP_NOT_FOUND", &err.to_string())
             }
-            return Self::not_found("SYS_MM_NOT_FOUND", &msg);
+            MasterMaintenanceError::ColumnNotFound(_) => {
+                Self::not_found("SYS_MM_COLUMN_NOT_FOUND", &err.to_string())
+            }
+            MasterMaintenanceError::OperationNotAllowed { .. } => {
+                Self::forbidden("SYS_MM_OPERATION_NOT_ALLOWED", &err.to_string())
+            }
+            MasterMaintenanceError::DuplicateTable(_) => {
+                Self::conflict("SYS_MM_DUPLICATE_TABLE", &err.to_string())
+            }
+            MasterMaintenanceError::DuplicateColumn(_) => {
+                Self::conflict("SYS_MM_DUPLICATE_COLUMN", &err.to_string())
+            }
+            MasterMaintenanceError::InvalidRule(_) => {
+                Self::bad_request("SYS_MM_INVALID_RULE", &err.to_string())
+            }
+            MasterMaintenanceError::ImportFailed(_) => {
+                Self::bad_request("SYS_MM_IMPORT_FAILED", &err.to_string())
+            }
+            MasterMaintenanceError::SqlBuildError(_) => {
+                Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+            }
+            MasterMaintenanceError::ValidationFailed(_) => {
+                Self::bad_request("SYS_MM_VALIDATION_ERROR", &err.to_string())
+            }
+            // RecordValidation は errors/warnings の詳細情報を JSON で付与する
+            MasterMaintenanceError::RecordValidation(validation) => {
+                Self::bad_request("SYS_MM_VALIDATION_ERROR", &err.to_string()).with_details(
+                    serde_json::json!({
+                        "errors": validation.errors,
+                        "warnings": validation.warnings,
+                    }),
+                )
+            }
+            MasterMaintenanceError::VersionConflict(_) => {
+                Self::conflict("SYS_MM_VERSION_CONFLICT", &err.to_string())
+            }
+            MasterMaintenanceError::Internal(_) => {
+                Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+            }
         }
-        if lower.contains("delete not allowed")
-            || (lower.contains("delete") && lower.contains("not allowed"))
-        {
-            return Self::forbidden("SYS_AUTH_PERMISSION_DENIED", &msg);
-        }
-        if lower.contains("duplicate table")
-            || (lower.contains("table") && lower.contains("already exists"))
-        {
-            return Self::conflict("SYS_MM_DUPLICATE_TABLE", &msg);
-        }
-        if lower.contains("duplicate column")
-            || (lower.contains("column") && lower.contains("already exists"))
-        {
-            return Self::conflict("SYS_MM_DUPLICATE_COLUMN", &msg);
-        }
-        if lower.contains("invalid rule") {
-            return Self::bad_request("SYS_MM_INVALID_RULE", &msg);
-        }
-        if lower.contains("import") && lower.contains("fail") {
-            return Self::bad_request("SYS_MM_IMPORT_FAILED", &msg);
-        }
-        if lower.contains("sql") && lower.contains("build") {
-            return Self::internal("SYS_MM_INTERNAL_ERROR", &msg);
-        }
-        if lower.contains("validation") {
-            return Self::bad_request("SYS_MM_VALIDATION_ERROR", &msg);
-        }
-
-        Self::internal("SYS_MM_INTERNAL_ERROR", &msg)
     }
 }
