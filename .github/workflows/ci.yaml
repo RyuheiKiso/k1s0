@@ -303,7 +303,7 @@ jobs:
       - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
         with:
           version: 9
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "22"
           cache: 'pnpm'
@@ -697,7 +697,7 @@ jobs:
       - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
         with:
           version: 9
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "22"
           cache: 'pnpm'
@@ -729,7 +729,7 @@ jobs:
       - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
         with:
           version: 9
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "22"
           cache: 'pnpm'
@@ -1008,7 +1008,7 @@ jobs:
       - uses: pnpm/action-setup@fe02b74ab4e416c4c7bab5f6b855b3dfcebc46e2 # v4
         with:
           version: 9
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "22"
           cache: 'pnpm'
@@ -1040,7 +1040,7 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: "22"
           cache: npm
