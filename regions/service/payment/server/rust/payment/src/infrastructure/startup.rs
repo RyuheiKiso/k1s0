@@ -42,7 +42,7 @@ pub async fn run() -> anyhow::Result<()> {
     // テレメトリ初期化: 失敗時はサーバーを起動しない（R-04 対応）。
     // オブザーバビリティは本番環境で必須のため、初期化失敗は即時エラーとして扱う。
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .context("テレメトリ初期化に失敗しました")?;
+        .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
 
     info!("starting {}", cfg.app.name);
 
@@ -270,7 +270,7 @@ pub async fn run() -> anyhow::Result<()> {
     let shutdown_future = async move {
         shutdown_signal()
             .await
-            .context("シャットダウンシグナルの待機中にエラーが発生しました")?;
+            .map_err(|e| anyhow::anyhow!("シャットダウンシグナルの待機中にエラーが発生しました: {}", e))?;
         let _ = shutdown_grpc_tx.send(true);
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
