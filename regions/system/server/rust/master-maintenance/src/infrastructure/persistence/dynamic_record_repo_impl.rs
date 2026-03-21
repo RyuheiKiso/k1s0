@@ -427,7 +427,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             postgres_cast_type(&pk_col.data_type)?,
             returning_cols.join(", ")
         );
-        values.push(record_id.to_string());
+        // WHERE 句のプレースホルダー用に record_id を Option でラップしてバインドリストへ追加する
+        values.push(Some(record_id.to_string()));
 
         let mut q = sqlx::query(&sql);
         for val in &values {

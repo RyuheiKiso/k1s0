@@ -25,10 +25,12 @@ pub struct DomainScopeQuery {
     pub domain_scope: Option<String>,
 }
 
+/// ヘルスチェックハンドラー。認証不要。
 pub async fn healthz() -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({ "status": "ok" })))
 }
 
+/// 起動確認ハンドラー。認証不要。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let postgres_ok = state
         .manage_tables_uc
@@ -51,6 +53,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
+/// メトリクスハンドラー。認証不要。
 pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
     (
@@ -60,10 +63,15 @@ pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse
     )
 }
 
+/// テーブル一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_tables(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListTablesQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let domain_filter = match &query.domain_scope {
         Some(ds) => DomainFilter::Domain(ds.clone()),
         None => DomainFilter::All,
@@ -98,11 +106,16 @@ pub async fn list_tables(
     })))
 }
 
+/// テーブル取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_table(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let table = state
         .manage_tables_uc
         .get_table(&name, ds_query.domain_scope.as_deref())
@@ -127,12 +140,16 @@ pub async fn get_table(
     Ok(Json(payload))
 }
 
+/// テーブル作成ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn create_table(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(input): Json<CreateTableDefinition>,
 ) -> Result<impl IntoResponse, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // 認証トークンが存在しない場合は 401 を返す
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     let table = state.manage_tables_uc.create_table(&input, &actor).await?;
     publish_change_event(
         &state,
@@ -151,12 +168,17 @@ pub async fn create_table(
     Ok((StatusCode::CREATED, Json(table)))
 }
 
+/// テーブル更新ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn update_table(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<UpdateTableDefinition>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let table = state
         .manage_tables_uc
         .update_table(&name, &input, ds_query.domain_scope.as_deref())
@@ -164,11 +186,16 @@ pub async fn update_table(
     Ok(Json(table))
 }
 
+/// テーブル削除ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn delete_table(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     state
         .manage_tables_uc
         .delete_table(&name, ds_query.domain_scope.as_deref())
@@ -176,11 +203,16 @@ pub async fn delete_table(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// テーブルスキーマ取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_table_schema(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let schema = state
         .manage_tables_uc
         .get_table_schema(&name, ds_query.domain_scope.as_deref())
@@ -188,11 +220,16 @@ pub async fn get_table_schema(
     Ok(Json(schema))
 }
 
+/// カラム一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_columns(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let columns = state
         .manage_columns_uc
         .list_columns(&name, ds_query.domain_scope.as_deref())
@@ -200,12 +237,17 @@ pub async fn list_columns(
     Ok(Json(columns))
 }
 
+/// カラム作成ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn create_columns(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let columns = state
         .manage_columns_uc
         .create_columns(&name, &input, ds_query.domain_scope.as_deref())
@@ -213,12 +255,17 @@ pub async fn create_columns(
     Ok((StatusCode::CREATED, Json(columns)))
 }
 
+/// カラム更新ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn update_column(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((name, column)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
     Json(input): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let col = state
         .manage_columns_uc
         .update_column(&name, &column, &input, ds_query.domain_scope.as_deref())
@@ -226,11 +273,16 @@ pub async fn update_column(
     Ok(Json(col))
 }
 
+/// カラム削除ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn delete_column(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((name, column)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     state
         .manage_columns_uc
         .delete_column(&name, &column, ds_query.domain_scope.as_deref())
@@ -238,7 +290,14 @@ pub async fn delete_column(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn list_domains(State(state): State<AppState>) -> Result<impl IntoResponse, AppError> {
+/// ドメイン一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
+pub async fn list_domains(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _ = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let domains = state.manage_tables_uc.list_domains().await?;
     let domain_list: Vec<serde_json::Value> = domains
         .into_iter()
