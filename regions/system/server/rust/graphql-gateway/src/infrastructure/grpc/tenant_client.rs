@@ -276,19 +276,26 @@ impl TenantGrpcClient {
             .await?
             .into_inner();
 
+        // WatchTenant ストリームの各レスポンスを Tenant ドメインモデルに変換する。
+        // tenant フィールドが None の場合（バックエンドの不整合）はイベントをスキップして次へ進む。
+        // 空のデフォルト値で構築するとサイレントなデータ欠損を招くため、None はスキップが正しい。
         Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
-            match stream.message().await {
-                Ok(Some(resp)) => {
-                    let tenant = resp.tenant.map(Self::tenant_from_proto).unwrap_or(Tenant {
-                        id: resp.tenant_id,
-                        name: String::new(),
-                        status: TenantStatus::from(String::new()),
-                        created_at: String::new(),
-                        updated_at: String::new(),
-                    });
-                    Some((tenant, stream))
+            loop {
+                match stream.message().await {
+                    Ok(Some(resp)) => {
+                        // tenant フィールドが存在する場合のみドメインモデルに変換して返す
+                        if let Some(t) = resp.tenant {
+                            return Some((Self::tenant_from_proto(t), stream));
+                        }
+                        // tenant フィールドが None の場合はスキップして次のメッセージを待つ
+                        tracing::warn!(
+                            tenant_id = %resp.tenant_id,
+                            "WatchTenant: received event with no tenant payload, skipping"
+                        );
+                        // loop を継続して次のメッセージを取得する
+                    }
+                    _ => return None,
                 }
-                _ => None,
             }
         }))
     }

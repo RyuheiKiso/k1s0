@@ -32,6 +32,8 @@ resource "vault_kubernetes_auth_backend_role" "system" {
   bound_service_account_namespaces = ["k1s0-system"]
   token_policies                   = ["system"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # business Tier role - サービス別SA名で最小権限を適用
@@ -39,11 +41,13 @@ resource "vault_kubernetes_auth_backend_role" "business" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "business"
   bound_service_account_names      = [
-    "inventory-rust", "payment-rust", "domain-master-go",
+    "domain-master-go",
   ]
   bound_service_account_namespaces = ["k1s0-business"]
   token_policies                   = ["business"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # service Tier role - サービス別SA名で最小権限を適用
@@ -51,11 +55,13 @@ resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"
   bound_service_account_names      = [
-    "order-rust", "bff-proxy",
+    "order-rust", "bff-proxy", "inventory-rust", "payment-rust",
   ]
   bound_service_account_namespaces = ["k1s0-service"]
   token_policies                   = ["service"]
   token_ttl                        = 3600
+  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
+  token_max_ttl                    = 86400
 }
 
 # ============================================================
@@ -70,8 +76,11 @@ resource "vault_approle_auth_backend_role" "cicd" {
   backend        = vault_auth_backend.approle.path
   role_name      = "cicd"
   token_policies = ["cicd"]
-  token_ttl      = 1800
-  token_max_ttl  = 3600
+  # token_ttl を 7200（2時間）に延長する。
+  # CI/CD パイプラインが長時間のビルド・デプロイ中にトークン期限切れで失敗する問題を防ぐ。
+  # token_max_ttl（上限）は token_ttl と同じ 7200 に合わせて整合性を保つ。
+  token_ttl      = 7200
+  token_max_ttl  = 7200
 }
 
 # ============================================================

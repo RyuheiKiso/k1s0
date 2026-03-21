@@ -12,6 +12,9 @@
 | [ADR-0004](./0004-timestamp-migration.md) | カスタム Timestamp 型から google.protobuf.Timestamp への移行計画 | 提案 |
 | [ADR-0005](./0005-error-response-format.md) | エラーレスポンス体系の統一 | 承認済み |
 | [ADR-0006](./0006-proto-versioning.md) | Protobuf バージョニング戦略 | 承認済み |
+| [ADR-0007](./0007-saga-compensation-inventory-reservations.md) | Saga 補償トランザクションのための inventory_reservations テーブル導入 | 承認済み |
+| [ADR-0008](./0008-jwt-key-rotation.md) | JWT 秘密鍵ローテーション手順 | 承認済み |
+| [ADR-0009](./0009-auth-navigation-boundary.md) | Auth サービスと Navigation サービスの責務境界 | 承認済み |
 
 ## ADR の追加方法
 

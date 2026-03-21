@@ -20,7 +20,7 @@ pub async fn get_tenant_extension(
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
     let _guard = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let extension = state
         .manage_tenant_extensions_uc
         .get_extension(&tenant_id, item_id)
@@ -29,7 +29,7 @@ pub async fn get_tenant_extension(
         .ok_or_else(|| ServiceError::NotFound {
             code: k1s0_server_common::ErrorCode::new("BIZ_DOMAINMASTER_ITEM_NOT_FOUND"),
             message: format!(
-                "Tenant extension not found for tenant '{}', item '{}'",
+                "テナント '{}' のアイテム '{}' に対する拡張設定が見つかりません",
                 tenant_id, item_id
             ),
         })?;
@@ -46,7 +46,7 @@ pub async fn upsert_tenant_extension(
     // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
     // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
     let claims = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let actor = actor_from_claims(Some(&claims.0));
     let extension = state
         .manage_tenant_extensions_uc
@@ -65,7 +65,7 @@ pub async fn delete_tenant_extension(
     // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
     // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
     let claims = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let actor = actor_from_claims(Some(&claims.0));
     state
         .manage_tenant_extensions_uc
@@ -83,7 +83,7 @@ pub async fn list_tenant_items(
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
     let _guard = claims
-        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "authentication required"))?;
+        .ok_or_else(|| ServiceError::unauthorized("BIZ_DOMAINMASTER", "認証が必要です"))?;
     let merged_items = state
         .manage_tenant_extensions_uc
         .list_tenant_items(&tenant_id, &category_code)

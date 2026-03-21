@@ -76,7 +76,9 @@ impl SecretStore for VaultSecretStore {
         // Vault の Secret.data (HashMap<String, String>) の最初の値をシークレット値として使用。
         // 複数キーがある場合は JSON シリアライズする。
         let value = if secret.data.len() == 1 {
-            secret.data.values().next().unwrap().clone()
+            secret.data.values().next()
+                .ok_or_else(|| SecretStoreError::NotFound(format!("シークレット '{}' のデータが空です", key)))?
+                .clone()
         } else {
             serde_json::to_string(&secret.data).unwrap_or_else(|_| format!("{:?}", secret.data))
         };

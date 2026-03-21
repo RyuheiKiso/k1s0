@@ -15,6 +15,12 @@ resources:
     cpu: 4000m
     memory: 4Gi
 
+# ============================================================
+# レートリミット設定 — 単一ソースオブトゥルース（SoT）
+# このファイルが Kong レートリミットの唯一の管理主体です。
+# Istio VirtualService にはレートリミット設定を追加しないこと。
+# 詳細: docs/infrastructure/rate-limiting-strategy.md
+# ============================================================
 # Rate Limiting - 環境別倍率: prod=x1（ベースライン）
 # Tier別デフォルト値: system=3000, business=1000, service=500
 rateLimiting:

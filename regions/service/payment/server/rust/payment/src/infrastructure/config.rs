@@ -1,3 +1,4 @@
+use anyhow::Context as _;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -39,7 +40,7 @@ impl Config {
         let db = self
             .database
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
+            .context("database configuration is required")?;
         if db.host.trim().is_empty() {
             anyhow::bail!("database.host must not be empty");
         }
@@ -121,6 +122,10 @@ pub struct KafkaConfig {
     // 注文作成と同時に決済を開始し、失敗時は Saga 補償で注文をキャンセルする
     #[serde(default = "default_order_created_topic")]
     pub order_created_topic: String,
+    // Saga: order.cancelled を受信して進行中の決済を中断する（M-20）
+    // 注文キャンセル時に Initiated 状態の決済を Failed に遷移させる
+    #[serde(default = "default_order_cancelled_topic")]
+    pub order_cancelled_topic: String,
     #[serde(default = "default_payment_consumer_group_id")]
     pub consumer_group_id: String,
 }
@@ -132,6 +137,10 @@ fn default_security_protocol() -> String {
 }
 fn default_order_created_topic() -> String {
     "k1s0.event.service.order.created.v1".to_string()
+}
+/// order.cancelled トピックのデフォルト名。KafkaConfig で未指定時に使用する。
+fn default_order_cancelled_topic() -> String {
+    "k1s0.event.service.order.cancelled.v1".to_string()
 }
 fn default_payment_consumer_group_id() -> String {
     "k1s0-payment-consumer".to_string()
