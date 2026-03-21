@@ -137,6 +137,10 @@ fn default_security_protocol() -> String {
 fn default_order_created_topic() -> String {
     "k1s0.event.service.order.created.v1".to_string()
 }
+/// order.cancelled トピックのデフォルト名。KafkaConfig で未指定時に使用する。
+fn default_order_cancelled_topic() -> String {
+    "k1s0.event.service.order.cancelled.v1".to_string()
+}
 fn default_payment_consumer_group_id() -> String {
     "k1s0-payment-consumer".to_string()
 }
