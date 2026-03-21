@@ -7,7 +7,7 @@ pub mod k1s0 {
         }
         pub mod event_monitor {
             pub mod v1 {
-                include!("k1s0.system.event_monitor.v1.rs");
+                include!("k1s0.system.eventmonitor.v1.rs");
             }
         }
     }

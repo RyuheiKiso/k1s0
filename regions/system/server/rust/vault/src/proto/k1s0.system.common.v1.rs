@@ -25,7 +25,14 @@ pub struct PaginationResult {
     #[prost(bool, tag = "4")]
     pub has_next: bool,
 }
-/// Timestamp は時刻情報。google.protobuf.Timestamp と互換。
+/// Timestamp は時刻情報。google.protobuf.Timestamp と互換性のある独自型。
+///
+/// 【移行計画】将来的に google.protobuf.Timestamp への段階的移行を予定している。
+/// 現時点では Well-Known Types への追加依存を避けるために独自型を維持する。
+/// 移行の詳細は docs/architecture/api/proto設計.md を参照すること。
+///
+/// フィールド定義は google.protobuf.Timestamp と同一であり、
+/// seconds/nanos の意味・範囲・精度も Google の仕様に準拠する。
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct Timestamp {
     /// Unix epoch からの秒数
