@@ -12,7 +12,7 @@ async-trait = {workspace = true}
 thiserror = {workspace = true}
 tokio = {workspace = true}
 tracing = {workspace = true}
-opentelemetry = { version = "0.27", optional = true }
+opentelemetry = { version = "0.31", optional = true }
 k1s0-bulkhead = { path = "../bulkhead" }
 k1s0-retry = { path = "../retry" }
 k1s0-circuit-breaker = { path = "../circuit-breaker" }

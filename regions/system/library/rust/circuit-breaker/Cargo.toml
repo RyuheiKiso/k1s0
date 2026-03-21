@@ -11,7 +11,7 @@ mock = ["mockall"]
 async-trait = {workspace = true}
 thiserror = {workspace = true}
 tokio = {workspace = true}
-opentelemetry = { version = "0.27", optional = true }
+opentelemetry = { version = "0.31", optional = true }
 mockall = {workspace = true, optional = true}
 
 [dev-dependencies]
