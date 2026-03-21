@@ -168,9 +168,8 @@ fn default_event_topic_pattern() -> String {
     "k1s0.*.*.*.v1".to_string()
 }
 
-// DLQ Manager 設定。DLQ クライアント接続に使用される。
+// DLQ Manager 設定。startup.rs で GrpcDlqClient の接続パラメータとして使用される。
 #[derive(Debug, Clone, Deserialize)]
-#[allow(dead_code)]
 pub struct DlqManagerConfig {
     pub grpc_endpoint: String,
     #[serde(default = "default_dlq_timeout_ms")]
