@@ -1,22 +1,30 @@
 groups:
   - name: slo-recording-rules
     rules:
+      # 全ティア共通: 過去30日間の可用性比率（正常レスポンス / 全リクエスト）を計算する
       - record: slo:availability:ratio
         expr: |
           sum(rate(http_requests_total{status!~"5.."}[30d])) by (namespace, service)
           / sum(rate(http_requests_total[30d])) by (namespace, service)
 
+      # System Tier (SLO 99.95%): エラーバジェット残量を計算する
+      # error_budget = 1 - 0.9995 = 0.0005
       - record: slo:error_budget:remaining
         expr: |
           1 - (
-            (1 - slo:availability:ratio)
-            / (1 - (
-              label_replace(
-                vector(0.9995) and on() (kube_namespace_labels{namespace="k1s0-system"})
-                or vector(0.999),
-                "namespace", "$1", "namespace", "(.*)"
-              )
-            ))
+            (1 - slo:availability:ratio{namespace="k1s0-system"})
+            / 0.0005
           )
-        # system Tier: 可用性目標 99.95% (0.9995)
-        # business / service Tier: 可用性目標 99.9% (0.999)
+        labels:
+          tier: system
+
+      # Business / Service Tier (SLO 99.9%): エラーバジェット残量を計算する
+      # error_budget = 1 - 0.999 = 0.001
+      - record: slo:error_budget:remaining
+        expr: |
+          1 - (
+            (1 - slo:availability:ratio{namespace=~"k1s0-business|k1s0-service"})
+            / 0.001
+          )
+        labels:
+          tier: service

@@ -10,8 +10,7 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # ローカル開発で起動する Docker Compose profile（infra + system tier）
 _dc_profiles := "--profile infra --profile system"
 
-# standalone Rust サーバーパス一覧（business/service tier）
-_standalone_rust_servers := "regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment"
+# standalone Rust サーバーパスは scripts/list-standalone-servers.sh で modules.yaml から動的取得する
 
 # Windows ネイティブ環境チェック: WSL2/Git Bash 以外の環境では警告を出す
 # このレシピはサーバービルド系（local-up/local-down）でのみ呼び出す
@@ -76,8 +75,9 @@ lint-rust:
     cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
     echo "=== clippy CLI ==="
     cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== fmt $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml" -- --check
@@ -148,8 +148,9 @@ test-rust:
     # CLI ワークスペース一括テスト（k1s0-gui を除外）
     echo "=== Testing CLI ==="
     cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Testing $dir ==="
             cargo test --manifest-path "$dir/Cargo.toml"
@@ -212,8 +213,9 @@ fmt-rust:
     cargo fmt --all --manifest-path regions/system/Cargo.toml
     echo "=== Formatting CLI ==="
     cargo fmt --all --manifest-path CLI/Cargo.toml
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Formatting $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml"
@@ -272,8 +274,9 @@ build-rust:
     cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
     echo "=== Building CLI ==="
     cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Building $dir ==="
             cargo build --manifest-path "$dir/Cargo.toml" --all-targets

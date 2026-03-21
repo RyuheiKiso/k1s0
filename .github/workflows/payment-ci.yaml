@@ -42,22 +42,24 @@ jobs:
     # コードの読み取りのみ必要
     permissions:
       contents: read
+    # NOTE: DB認証情報は平文で記載しているが、これはエフェメラルCIランナー上の
+    # サービスコンテナ専用であり、テスト完了後に自動破棄される。
+    # 本番環境の認証情報は GitHub Secrets / Vault 経由で管理する。
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17.2
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U dev"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+      DATABASE_URL: postgresql://dev:dev@localhost:5432/k1s0_service?options=-c%20search_path%3Dpayment,public
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
@@ -68,5 +70,14 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: regions/service/payment/server/rust/payment
+      # DB スキーマを初期化する（integration-test.yaml と同じ手順で実行）
+      - name: Initialize database schemas
+        env:
+          PGPASSWORD: dev
+        run: |
+          for sql in infra/docker/init-db/*.sql; do
+            echo "=== Running $sql ==="
+            psql -h localhost -U dev -d postgres -f "$sql"
+          done
       - name: Run integration tests with real DB
         run: cargo test --manifest-path regions/service/payment/server/rust/payment/Cargo.toml --all -- --include-ignored
