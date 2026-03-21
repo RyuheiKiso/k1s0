@@ -14,6 +14,9 @@ use axum::{
 use k1s0_ratelimit_client::RateLimitClient;
 use tracing::{info, warn};
 
+// Claims を取得するため graphql-gateway のローカル型をインポートする
+use crate::adapter::middleware::auth_middleware::Claims;
+
 /// レート制限ミドルウェアの Tower Layer。
 /// RateLimitClient と設定スコープを保持し、リクエストごとにレート制限チェックを行う。
 #[derive(Clone)]
@@ -60,8 +63,14 @@ pub struct RateLimitService<S> {
 }
 
 /// リクエストからレート制限キーの識別子を抽出する。
-/// 優先順位: X-Forwarded-For ヘッダー → リモートアドレス → "anonymous"
+/// 優先順位: Claims（認証済みユーザーID）→ X-Forwarded-For ヘッダー → ConnectInfo IP → "anonymous"
+/// Claims ベースのキーを最優先とすることで、認証済みユーザーを正確にレート制限できる。
 fn extract_identifier(req: &Request<Body>) -> String {
+    // 認証済みユーザーの場合は sub クレームをキーとして使用する（IP スプーフィング耐性）
+    if let Some(claims) = req.extensions().get::<Claims>() {
+        return format!("user:{}", claims.sub);
+    }
+
     // X-Forwarded-For ヘッダーからクライアント IP を取得（プロキシ経由の場合）
     if let Some(forwarded_for) = req
         .headers()
@@ -85,7 +94,9 @@ fn extract_identifier(req: &Request<Body>) -> String {
         return connect_info.0.ip().to_string();
     }
 
-    // フォールバック: 識別子が取得できない場合
+    // フォールバック: 識別子が取得できない場合は警告ログを出力する
+    // 匿名キーが多発する場合はネットワーク設定や認証フローを確認すること
+    warn!("レート制限キーの識別子を取得できないため anonymous を使用します。ConnectInfo または認証設定を確認してください。");
     "anonymous".to_string()
 }
 

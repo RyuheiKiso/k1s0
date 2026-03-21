@@ -10,6 +10,9 @@ use crate::adapter::grpc::ConfigGrpcService;
 use crate::adapter::handler;
 use crate::adapter::repository::config_postgres::ConfigPostgresRepository;
 use crate::adapter::repository::config_schema_postgres::ConfigSchemaPostgresRepository;
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
 
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
@@ -306,6 +309,8 @@ pub async fn run() -> anyhow::Result<()> {
     if kafka_producer.is_some() {
         state = state.with_kafka();
     }
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, config_grpc_action);
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
@@ -325,6 +330,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(ConfigServiceServer::new(config_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -363,6 +369,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// UpdateConfig / DeleteConfig / UpsertConfigSchema は write、それ以外は read。
+fn config_grpc_action(method: &str) -> &'static str {
+    match method {
+        "UpdateConfig" | "DeleteConfig" | "UpsertConfigSchema" => "write",
+        _ => "read",
+    }
 }
 
 // --- In-memory implementation for dev mode ---

@@ -1,37 +1,45 @@
 # k1s0 monorepo build orchestration
 # Usage: just <recipe> or just <recipe>-<lang>
+# TypeScript レシピは pnpm を使用する（pnpm-workspace.yaml で workspace:* 依存を管理）
+# 前提: pnpm がインストール済みであること（npm install -g pnpm または corepack enable pnpm）
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
+# Windows 環境では PowerShell を使用する（ただし WSL2/Git Bash 推奨）
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # ローカル開発で起動する Docker Compose profile（infra + system tier）
 _dc_profiles := "--profile infra --profile system"
 
-# standalone Rust サーバーパス一覧（business/service tier）
-_standalone_rust_servers := "regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment"
+# standalone Rust サーバーパスは scripts/list-standalone-servers.sh で modules.yaml から動的取得する
 
 # Windows ネイティブ環境チェック: WSL2/Git Bash 以外の環境では警告を出す
+# このレシピはサーバービルド系（local-up/local-down）でのみ呼び出す
 _check-env:
     #!/usr/bin/env bash
     set -euo pipefail
     # MSYS (Git Bash) / Cygwin 環境を検出した場合は警告を表示
     if [[ "${OSTYPE:-}" == msys* ]] || [[ "${OSTYPE:-}" == cygwin* ]]; then
-        echo "⚠ WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
+        echo "WARNING: Windows ネイティブ環境（MSYS/Cygwin）を検出しました。"
         echo "  WSL2 での実行を強く推奨します（Git Bash は一部制限あり）。"
-        echo "  PowerShell / cmd.exe からの実行はサポート対象外です。"
         echo "  詳細: README.md の「前提条件」セクションを参照してください。"
         echo ""
     fi
     # PowerShell から bash を経由して呼ばれた場合の検出（PSModulePath が設定されている）
     if [[ -n "${PSModulePath:-}" ]] && [[ -z "${WSL_DISTRO_NAME:-}" ]]; then
-        echo "⚠ ERROR: PowerShell 環境から実行されています。"
-        echo "  justfile は WSL2 または Git Bash 内で実行してください。"
-        echo "  PowerShell / cmd.exe からの直接実行はサポートしていません。"
+        echo "WARNING: PowerShell 環境から実行されています。"
+        echo "  このレシピは Docker Compose を使用するため WSL2 が必要です。"
+        echo "  WSL2 または devcontainer 内で実行してください。"
+        echo "  Windows ネイティブで可能な作業: just cli-build / cli-test / cli-lint / cli-fmt"
         exit 1
     fi
 
 # デフォルト: ヘルプ表示
 default:
     @just --list
+
+# 開発環境の自己診断を実行する
+doctor:
+    bash scripts/doctor.sh
 
 # --- Lint ---
 
@@ -67,8 +75,9 @@ lint-rust:
     cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
     echo "=== clippy CLI ==="
     cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== fmt $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml" -- --check
@@ -86,9 +95,9 @@ lint-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Linting $dir ==="
-            # package-lock.json を使って依存関係をインストールし、リント・型チェックを実行
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、リント・型チェックを実行
             # --if-present: スクリプト未定義のパッケージでもエラーにしない
-            (cd "$dir" && npm ci && npm run lint --if-present && npm run typecheck --if-present)
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run lint --if-present && pnpm run typecheck --if-present)
         fi
     done
 
@@ -139,8 +148,9 @@ test-rust:
     # CLI ワークスペース一括テスト（k1s0-gui を除外）
     echo "=== Testing CLI ==="
     cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Testing $dir ==="
             cargo test --manifest-path "$dir/Cargo.toml"
@@ -156,8 +166,8 @@ test-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Testing $dir ==="
-            # package-lock.json を使って依存関係をインストールし、テストを実行
-            (cd "$dir" && npm ci && npm test --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、テストを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm test --if-present)
         fi
     done
 
@@ -203,8 +213,9 @@ fmt-rust:
     cargo fmt --all --manifest-path regions/system/Cargo.toml
     echo "=== Formatting CLI ==="
     cargo fmt --all --manifest-path CLI/Cargo.toml
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Formatting $dir ==="
             cargo fmt --all --manifest-path "$dir/Cargo.toml"
@@ -219,8 +230,8 @@ fmt-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Formatting $dir ==="
-            # package-lock.json を使って依存関係をインストールし、フォーマットを実行
-            (cd "$dir" && npm ci && npm run format --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、フォーマットを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run format --if-present)
         fi
     done
 
@@ -263,8 +274,9 @@ build-rust:
     cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
     echo "=== Building CLI ==="
     cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
-    # standalone Rust サーバー（business/service tier）— 変数から参照
-    for dir in {{_standalone_rust_servers}}; do
+    # standalone Rust サーバー（business/service tier）— modules.yaml から動的取得する
+    mapfile -t _standalone_dirs < <(bash scripts/list-standalone-servers.sh)
+    for dir in "${_standalone_dirs[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
             echo "=== Building $dir ==="
             cargo build --manifest-path "$dir/Cargo.toml" --all-targets
@@ -279,8 +291,8 @@ build-ts:
     for dir in "${packages[@]}"; do
         if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
             echo "=== Building $dir ==="
-            # package-lock.json を使って依存関係をインストールし、ビルドを実行
-            (cd "$dir" && npm ci && npm run build --if-present)
+            # pnpm frozen-lockfile でロックファイルに基づいた依存関係をインストールし、ビルドを実行
+            (cd "$dir" && pnpm install --frozen-lockfile && pnpm run build --if-present)
         fi
     done
 
@@ -358,6 +370,111 @@ local-down: _check-env
         docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} down
     fi
 
+# 認証バイパス付きでローカル開発環境を起動（ローカル開発専用・本番では使用不可）
+local-up-dev: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting local dev environment (auth bypass enabled) ==="
+    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+
+# 指定プロファイルのみ起動（例: just local-up-profile infra）
+local-up-profile profile: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting profile: {{profile}} ==="
+    docker compose --profile {{profile}} up -d
+
+# 可観測性スタック（Jaeger / Prometheus / Grafana / Loki）を起動
+observability-up: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Starting observability stack ==="
+    docker compose --profile observability up -d
+
+# 可観測性スタックを停止
+observability-down: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    docker compose --profile observability down
+
+# サービスのログを表示する（引数なしで全サービス）
+logs service="": _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -n "{{service}}" ]; then
+        docker compose logs -f {{service}}
+    else
+        docker compose {{_dc_profiles}} logs -f
+    fi
+
+# DBマイグレーションを実行する（引数: migrations/ を含むサービスパス）
+migrate path=".":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    db_url="${DATABASE_URL:-postgresql://dev:dev@localhost:5432/k1s0}"
+    migrations_dir="{{path}}/migrations"
+    if [ ! -d "$migrations_dir" ]; then
+        echo "Error: migrations/ ディレクトリが見つかりません: $migrations_dir"
+        exit 1
+    fi
+    echo "=== Running migrations from $migrations_dir ==="
+    sqlx migrate run --database-url "$db_url" --source "$migrations_dir"
+
+# 指定パスのサービスをリントする（言語を自動検出）
+lint-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Linting: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo fmt --manifest-path "{{path}}/Cargo.toml" --all -- --check
+        cargo clippy --manifest-path "{{path}}/Cargo.toml" --all-targets -- -D warnings
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && golangci-lint run ./... && go vet ./...)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm run lint --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart analyze)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
+    fi
+
+# 指定パスのサービスをテストする（言語を自動検出）
+test-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Testing: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo test --manifest-path "{{path}}/Cargo.toml"
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && go test ./... -race -count=1)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm test --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart test)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
+    fi
+
+# 指定パスのサービスをビルドする（言語を自動検出）
+build-service path:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Building: {{path}} ==="
+    if [ -f "{{path}}/Cargo.toml" ]; then
+        cargo build --manifest-path "{{path}}/Cargo.toml" --all-targets
+    elif [ -f "{{path}}/go.mod" ]; then
+        (cd "{{path}}" && go build ./...)
+    elif [ -f "{{path}}/package.json" ]; then
+        (cd "{{path}}" && pnpm install --frozen-lockfile && pnpm run build --if-present)
+    elif [ -f "{{path}}/pubspec.yaml" ]; then
+        (cd "{{path}}" && dart pub get && dart compile exe .)
+    else
+        echo "Error: 対応する言語ファイルが見つかりません: {{path}}"
+        exit 1
+    fi
+
 # 統合テストを実行
 integration-test:
     #!/usr/bin/env bash
@@ -400,3 +517,33 @@ security-ts:
 # Dart/Flutter 依存チェック
 security-dart:
     bash scripts/security/dart-outdated.sh
+
+# --- CLI（Windows ネイティブ対応）---
+# 以下のレシピは Windows ネイティブ（Git Bash / PowerShell）でも動作する
+# rdkafka / zen-engine に依存しない CLI ワークスペース（k1s0-cli, k1s0-core）のみを対象とする
+# k1s0-gui（Tauri）は WebView2 SDK が必要なため除外する
+
+# CLI ビルド（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-build:
+    cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
+
+# CLI テスト（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-test:
+    cargo test --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui
+
+# CLI リント（Windows/Unix 共通）
+[windows]
+cli-lint:
+    cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+    cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+
+[unix]
+cli-lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo fmt --all --manifest-path CLI/Cargo.toml -- --check
+    cargo clippy --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets -- -D warnings
+
+# CLI フォーマット（Windows/Unix 共通: cargo コマンドは PowerShell/bash 両方で同一構文）
+cli-fmt:
+    cargo fmt --all --manifest-path CLI/Cargo.toml

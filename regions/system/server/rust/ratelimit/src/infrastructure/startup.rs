@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use crate::adapter;
 use crate::domain;
 use crate::proto;
@@ -220,6 +223,9 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // gRPC 認証レイヤー（未認証アクセスを middleware レベルでブロック）
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, ratelimit_grpc_action);
+
     // AppState (REST handler 用)
     let mut state = AppState::new(
         check_uc.clone(),
@@ -267,6 +273,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .layer(grpc_auth_layer)
             .add_service(RateLimitServiceServer::new(tonic_svc))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;
@@ -303,6 +310,16 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名からアクション種別へのマッパー（RBAC 判定に使用）。
+fn ratelimit_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateRateLimitRule" | "UpdateRateLimitRule" | "DeleteRateLimitRule" | "ResetQuota" => {
+            "write"
+        }
+        _ => "read",
+    }
 }
 
 // --- In-memory implementations for dev mode ---

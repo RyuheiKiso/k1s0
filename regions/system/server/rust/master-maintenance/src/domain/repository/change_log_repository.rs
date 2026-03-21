@@ -1,6 +1,7 @@
 use crate::domain::entity::change_log::ChangeLog;
 use async_trait::async_trait;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ChangeLogRepository: Send + Sync {
     async fn create(&self, log: &ChangeLog) -> anyhow::Result<ChangeLog>;

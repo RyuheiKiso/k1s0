@@ -256,7 +256,8 @@ client_secret: "secret"
             client_id: "admin-cli".to_string(),
             client_secret: "secret".to_string(),
         };
-        let client = KeycloakAdminClient::new(config);
+        // new() は Result を返すため unwrap() でテスト内の失敗を伝播する
+        let client = KeycloakAdminClient::new(config).unwrap();
         assert_eq!(client.config().base_url, "http://localhost:8080");
     }
 }

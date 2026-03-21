@@ -2,6 +2,7 @@ use crate::domain::entity::column_definition::{ColumnDefinition, CreateColumnDef
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ColumnDefinitionRepository: Send + Sync {
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<ColumnDefinition>>;

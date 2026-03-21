@@ -1,6 +1,7 @@
 package upstream
 
 import (
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,8 +15,8 @@ type ReverseProxy struct {
 }
 
 // NewReverseProxy は指定されたアップストリームURLとタイムアウトでリバースプロキシを生成する。
-// http.DefaultTransport をクローンして ResponseHeaderTimeout のみ上書きすることで、
-// デフォルトの接続プール・TLS・プロキシ設定を維持しつつタイムアウトを設定する。
+// http.DefaultTransport をクローンして全タイムアウトを明示設定し、
+// ハングしたバックエンド接続によるリソースリークを防止する。
 func NewReverseProxy(upstreamURL string, timeout time.Duration) (*ReverseProxy, error) {
 	target, err := url.Parse(upstreamURL)
 	if err != nil {
@@ -24,7 +25,16 @@ func NewReverseProxy(upstreamURL string, timeout time.Duration) (*ReverseProxy, 
 
 	// DefaultTransport をクローンしてデフォルト設定（接続プール、TLS等）を引き継ぐ
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	// レスポンスヘッダーのタイムアウトを設定（アップストリームの応答遅延を検出するため）
+	// TCP 接続確立のタイムアウト（DNSルックアップ + 3way handshake の上限）
+	transport.DialContext = (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}).DialContext
+	// TLS ハンドシェイクのタイムアウト（証明書検証を含む）
+	transport.TLSHandshakeTimeout = 10 * time.Second
+	// アイドル接続の保持上限（バックエンドの FIN_WAIT2 との競合を防ぐ）
+	transport.IdleConnTimeout = 90 * time.Second
+	// レスポンスヘッダーのタイムアウト（アップストリームの応答遅延を検出するため）
 	transport.ResponseHeaderTimeout = timeout
 
 	proxy := httputil.NewSingleHostReverseProxy(target)

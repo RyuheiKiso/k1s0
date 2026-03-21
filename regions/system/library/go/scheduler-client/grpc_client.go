@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// grpcJobResponse は scheduler-server のジョブレスポンス形式。
-type grpcJobResponse struct {
+// httpJobResponse は scheduler-server のジョブレスポンス形式。
+type httpJobResponse struct {
 	ID          string          `json:"id"`
 	Name        string          `json:"name"`
 	Schedule    scheduleJSON    `json:"schedule"`
@@ -33,8 +33,8 @@ type scheduleJSON struct {
 	Interval *int64     `json:"interval_secs,omitempty"`
 }
 
-// grpcJobRequest は scheduler-server へのジョブ登録リクエスト形式。
-type grpcJobRequest struct {
+// httpJobRequest は scheduler-server へのジョブ登録リクエスト形式。
+type httpJobRequest struct {
 	Name        string          `json:"name"`
 	Schedule    scheduleJSON    `json:"schedule"`
 	Payload     json.RawMessage `json:"payload"`
@@ -42,8 +42,8 @@ type grpcJobRequest struct {
 	TimeoutSecs uint64          `json:"timeout_secs"`
 }
 
-// grpcJobExecutionResponse は scheduler-server の実行履歴レスポンス形式。
-type grpcJobExecutionResponse struct {
+// httpJobExecutionResponse は scheduler-server の実行履歴レスポンス形式。
+type httpJobExecutionResponse struct {
 	ID         string     `json:"id"`
 	JobID      string     `json:"job_id"`
 	StartedAt  time.Time  `json:"started_at"`
@@ -73,7 +73,7 @@ func fromScheduleJSON(sj scheduleJSON) Schedule {
 	return s
 }
 
-func fromJobResponse(r grpcJobResponse) Job {
+func fromJobResponse(r httpJobResponse) Job {
 	return Job{
 		ID:          r.ID,
 		Name:        r.Name,
@@ -87,29 +87,28 @@ func fromJobResponse(r grpcJobResponse) Job {
 	}
 }
 
-// GrpcSchedulerClient は scheduler-server への HTTP/gRPC クライアント。
-// 実際の gRPC プロトコルではなく HTTP REST API を使用するが、
-// gRPC サーバーのエンドポイント（:8080）に接続する。
-type GrpcSchedulerClient struct {
+// HttpSchedulerClient は scheduler-server への HTTP REST クライアント。
+// HTTP/JSON API 経由で scheduler-server のエンドポイント（:8080）に接続する。
+type HttpSchedulerClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-// NewGrpcSchedulerClient は新しい GrpcSchedulerClient を生成する。
-// addr は "scheduler-server:8080" または "http://scheduler-server:8080" の形式。
-func NewGrpcSchedulerClient(addr string) (*GrpcSchedulerClient, error) {
+// NewHttpSchedulerClient は新しい HttpSchedulerClient を生成する。
+// addr は "scheduler-server:8080" または "http://scheduler-server:8080" 形式。
+func NewHttpSchedulerClient(addr string) (*HttpSchedulerClient, error) {
 	base := addr
 	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
 		base = "http://" + base
 	}
 	base = strings.TrimRight(base, "/")
-	return &GrpcSchedulerClient{
+	return &HttpSchedulerClient{
 		baseURL:    base,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 
-func (c *GrpcSchedulerClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
+func (c *HttpSchedulerClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -143,8 +142,8 @@ func parseSchedulerError(resp *http.Response, op string) error {
 }
 
 // CreateJob はジョブを登録する。
-func (c *GrpcSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Job, error) {
-	body := grpcJobRequest{
+func (c *HttpSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Job, error) {
+	body := httpJobRequest{
 		Name:        req.Name,
 		Schedule:    toScheduleJSON(req.Schedule),
 		Payload:     req.Payload,
@@ -162,7 +161,7 @@ func (c *GrpcSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Jo
 		return Job{}, parseSchedulerError(resp, "create_job")
 	}
 
-	var result grpcJobResponse
+	var result httpJobResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return Job{}, fmt.Errorf("create_job: decode response: %w", err)
 	}
@@ -170,7 +169,7 @@ func (c *GrpcSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Jo
 }
 
 // CancelJob はジョブをキャンセルする。
-func (c *GrpcSchedulerClient) CancelJob(ctx context.Context, jobID string) error {
+func (c *HttpSchedulerClient) CancelJob(ctx context.Context, jobID string) error {
 	path := fmt.Sprintf("/api/v1/jobs/%s/cancel", url.PathEscape(jobID))
 	resp, err := c.doRequest(ctx, http.MethodPost, path, struct{}{})
 	if err != nil {
@@ -185,7 +184,7 @@ func (c *GrpcSchedulerClient) CancelJob(ctx context.Context, jobID string) error
 }
 
 // PauseJob はジョブを一時停止する。
-func (c *GrpcSchedulerClient) PauseJob(ctx context.Context, jobID string) error {
+func (c *HttpSchedulerClient) PauseJob(ctx context.Context, jobID string) error {
 	path := fmt.Sprintf("/api/v1/jobs/%s/pause", url.PathEscape(jobID))
 	resp, err := c.doRequest(ctx, http.MethodPost, path, struct{}{})
 	if err != nil {
@@ -200,7 +199,7 @@ func (c *GrpcSchedulerClient) PauseJob(ctx context.Context, jobID string) error 
 }
 
 // ResumeJob はジョブを再開する。
-func (c *GrpcSchedulerClient) ResumeJob(ctx context.Context, jobID string) error {
+func (c *HttpSchedulerClient) ResumeJob(ctx context.Context, jobID string) error {
 	path := fmt.Sprintf("/api/v1/jobs/%s/resume", url.PathEscape(jobID))
 	resp, err := c.doRequest(ctx, http.MethodPost, path, struct{}{})
 	if err != nil {
@@ -215,7 +214,7 @@ func (c *GrpcSchedulerClient) ResumeJob(ctx context.Context, jobID string) error
 }
 
 // GetJob はジョブ情報を取得する。
-func (c *GrpcSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, error) {
+func (c *HttpSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, error) {
 	path := fmt.Sprintf("/api/v1/jobs/%s", url.PathEscape(jobID))
 	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
@@ -227,7 +226,7 @@ func (c *GrpcSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, er
 		return Job{}, parseSchedulerError(resp, "get_job")
 	}
 
-	var result grpcJobResponse
+	var result httpJobResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return Job{}, fmt.Errorf("get_job: decode response: %w", err)
 	}
@@ -235,7 +234,7 @@ func (c *GrpcSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, er
 }
 
 // ListJobs はジョブ一覧を取得する。
-func (c *GrpcSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job, error) {
+func (c *HttpSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job, error) {
 	reqURL := c.baseURL + "/api/v1/jobs"
 	q := url.Values{}
 	if filter.Status != nil {
@@ -263,7 +262,7 @@ func (c *GrpcSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([
 		return nil, parseSchedulerError(resp, "list_jobs")
 	}
 
-	var results []grpcJobResponse
+	var results []httpJobResponse
 	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
 		return nil, fmt.Errorf("list_jobs: decode response: %w", err)
 	}
@@ -276,7 +275,7 @@ func (c *GrpcSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([
 }
 
 // GetExecutions はジョブの実行履歴を取得する。
-func (c *GrpcSchedulerClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error) {
+func (c *HttpSchedulerClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error) {
 	path := fmt.Sprintf("/api/v1/jobs/%s/executions", url.PathEscape(jobID))
 	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
@@ -288,7 +287,7 @@ func (c *GrpcSchedulerClient) GetExecutions(ctx context.Context, jobID string) (
 		return nil, parseSchedulerError(resp, "get_executions")
 	}
 
-	var results []grpcJobExecutionResponse
+	var results []httpJobExecutionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
 		return nil, fmt.Errorf("get_executions: decode response: %w", err)
 	}

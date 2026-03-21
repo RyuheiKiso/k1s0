@@ -10,6 +10,9 @@ use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::delivery::{
     EmailDeliveryClient, PushDeliveryClient, SlackDeliveryClient, SmsDeliveryClient,
@@ -38,7 +41,8 @@ pub async fn run() -> anyhow::Result<()> {
     let cfg = Config::load(&config_path)?;
 
     // ServerBuilder でテレメトリを初期化する（全サーバー共通の初期化パターン）
-    let server = ServerBuilder::new("k1s0-notification-server", "0.1.0");
+    // tier を必須引数として渡す（P2-34: ServerBuilder tier 必須化）
+    let server = ServerBuilder::new("k1s0-notification-server", "0.1.0", "system");
     server.init_telemetry(
         &cfg.app.environment,
         &ObservabilityFields {
@@ -293,6 +297,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, notification_grpc_action);
+
     let mut state = adapter::handler::AppState {
         send_notification_uc,
         retry_notification_uc,
@@ -325,6 +332,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(NotificationServiceServer::new(notification_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -362,6 +370,22 @@ pub async fn run() -> anyhow::Result<()> {
     server.shutdown_telemetry();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// 通知送信・リトライ・チャンネル/テンプレートの作成・更新・削除は write、それ以外は read とする。
+fn notification_grpc_action(method: &str) -> &'static str {
+    match method {
+        "SendNotification"
+        | "RetryNotification"
+        | "CreateChannel"
+        | "UpdateChannel"
+        | "DeleteChannel"
+        | "CreateTemplate"
+        | "UpdateTemplate"
+        | "DeleteTemplate" => "write",
+        _ => "read",
+    }
 }
 
 // --- InMemory Repositories ---

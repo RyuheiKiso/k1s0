@@ -15,6 +15,8 @@
 
 **k1s0（キソ）** — CLI 一つでマイクロサービスの構築から運用まで完結する、エンタープライズ向け開発基盤。
 
+> **貢献・開発参加について**: [CONTRIBUTING.md](CONTRIBUTING.md) | [オンボーディングガイド](docs/onboarding/README.md) | [Day 1 クイックスタート](docs/onboarding/quickstart.md)
+
 Go / Rust / TypeScript / Dart の 4 言語に対応し、クリーンアーキテクチャ・DDD・TDD に沿った設計を初期構成に組み込みます。対話式 CLI と Tauri デスクトップ GUI で、ひな形生成・ビルド・テスト・デプロイまで開発者体験を統一します。
 
 ---
@@ -285,17 +287,40 @@ ingress           Nginx Ingress Controller
 
 ## クイックスタート
 
+### ⚠️ Windowsユーザーへの注意（クローン前に必須）
+
+Windowsでクローンする前に、以下のコマンドを実行して改行コードの自動変換を無効にしてください。`.gitattributes` で `eol=lf` を設定済みですが、`core.autocrlf` がデフォルトのままだと競合が発生します。
+
+```bash
+git config --global core.autocrlf input
+```
+
+### Windows 開発者向けセットアップ
+
+Windows では以下の3つの方法で開発環境を構築できます。詳細は [`docs/infrastructure/devenv/windows-quickstart.md`](docs/infrastructure/devenv/windows-quickstart.md) を参照してください。
+
+| 方法 | 対象 | 所要時間 | セットアップ |
+|------|------|----------|------------|
+| **A: devcontainer（推奨）** | 全機能（Rust/Go/TS/Dart/サーバー開発） | 約10〜20分 | Docker Desktop + VS Code + Dev Containers拡張のみ |
+| **B: WSL2 ネイティブ** | 全機能 | 約30分 | `bash scripts/setup-wsl.sh` |
+| **C: Windows ネイティブ** | CLI・TS・Dart 開発のみ | 約10分 | `.\scripts\setup-windows.ps1` → Rust インストール |
+
+```powershell
+# C: Windows ネイティブの初期設定（PowerShell で実行）
+.\scripts\setup-windows.ps1
+```
+
+> **Note**: サーバー開発・統合テスト・Docker Compose 操作は rdkafka/zen-engine の制約により A または B が必要です。
+
+---
+
 ### 前提条件
 
-- **Bash 環境**（WSL2 または Git Bash **必須**）— justfile・スクリプトは全て Bash 前提のため、PowerShell / cmd.exe では動作しません
+- **Bash 環境**（WSL2 または Git Bash **必須**）— justfile・スクリプトは全て Bash 前提のため、PowerShell / cmd.exe では動作しません（CLI専用の `just cli-*` レシピを除く）
 - **just**（justfile 実行に必要）
 - **Docker / Docker Compose** v2（必須）
 - **Rust 1.93+**（CLI ビルド・サーバー開発時）
 - Go 1.24+ / Node.js 22+ / Dart 3.5+（各言語で開発する場合）
-
-> **Windows ユーザー**: justfile および全スクリプトは **WSL2（推奨）または Git Bash が必須**です。PowerShell / cmd.exe からの直接実行は**サポート対象外**であり、動作しません。devcontainer 内での実行も可能です。
-
-> **Note**: `master-maintenance` サーバーは `zen-engine` (rquickjs-sys) に依存しており、Windows ネイティブ環境ではビルドできません。WSL2 または devcontainer を使用してください。
 
 ### Dev Container セットアップ
 
@@ -305,15 +330,15 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 
 | ソフトウェア | 備考 |
 |-------------|------|
-| **Docker Desktop** | WSL2 バックエンド推奨（Windows） |
+| **Docker Desktop** | WSL2 バックエンド推奨（Windows）。または WSL2 + Docker Engine CE |
 | **VSCode** | [Dev Containers 拡張機能](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) が必要 |
 
 #### セットアップ手順
 
 1. VSCode でリポジトリを開く
 2. コマンドパレット（`F1`）→ `Dev Containers: Reopen in Container` を選択
-3. 初回起動時に Docker イメージのビルドと `post-create.sh` の実行が自動で行われる（数分かかる）
-4. devcontainer 内では `infra` プロファイル（PostgreSQL, Redis, Kafka, Keycloak 等）が自動起動する
+3. 初回起動時に Docker イメージのビルドと `post-create.sh` の実行が自動で行われる（約10〜20分）
+4. devcontainer 起動後、インフラ（PostgreSQL, Redis, Kafka, Keycloak 等）が自動起動する
 
 #### Windows 固有の注意事項
 
@@ -325,7 +350,20 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 | **Docker リソース** | Docker Desktop の Settings → Resources で メモリ 8GB 以上、CPU 4 コア以上を推奨 |
 | **master-maintenance** | `zen-engine` (rquickjs-sys) は Windows ネイティブ未対応。devcontainer 内でビルドすること |
 
+### ネイティブビルド依存関係
+
+一部のサービスは追加のネイティブライブラリを必要とします:
+
+| サービス/機能 | 依存関係 | インストール方法 (Ubuntu/Debian) |
+|-------------|---------|-------------------------------|
+| `master-maintenance` | `patch` コマンド | `apt-get install patch` |
+| business/service tier Rust サーバー | `zlib` 開発ライブラリ | `apt-get install libz-dev` |
+| Kafka 接続 (rdkafka) | `libsasl2`, `openssl` | `apt-get install libsasl2-dev libssl-dev` |
+| Windows の場合 | cmake, openssl, patch | [vcpkg](https://vcpkg.io/) 推奨 |
+
 ### Docker Compose 構成
+
+> **リソース要件**: インフラサービス（infra + system プロファイル）を全起動すると約9個のコンテナが起動し、**5GB以上のメモリ**を消費します。**メモリ8GB以上**、CPU 4コア以上の環境を推奨します。Docker Desktop をお使いの場合は Settings → Resources で割り当てを増やしてください。
 
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。
 
@@ -341,6 +379,18 @@ docker compose --profile infra --profile system up -d
 # 開発環境: 明示的に dev オーバーライドを指定（認証バイパス有効化）
 docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra --profile system up -d
 ```
+
+### 段階的起動（リソース節約）
+
+全サービスを一度に起動するのではなく、必要なサービスだけを起動できます。
+
+| 構成 | コマンド | 目安メモリ |
+|------|---------|-----------|
+| インフラのみ (DB/Kafka/Redis/Keycloak/Vault) | `docker compose --profile infra up -d` | ~2GB |
+| System Tier サービス追加 | `docker compose --profile infra --profile system up -d` | ~4GB |
+| 全サービス | `docker compose --profile infra --profile system --profile business up -d` | ~5GB+ |
+
+> **推奨**: 開発中のサービスに関連するprofileのみ起動してください。
 
 ### 1. クローン & インフラ起動
 
@@ -464,6 +514,16 @@ cargo build --release
 ---
 
 ## ドキュメント
+
+### 開発者向けガイド
+
+| ガイド | パス | 内容 |
+|--------|------|------|
+| オンボーディング | [`docs/onboarding/README.md`](docs/onboarding/README.md) | 開発参加のスタートガイド（Tier別） |
+| 貢献ガイド | [`CONTRIBUTING.md`](CONTRIBUTING.md) | ブランチ戦略・コミット規約・PRプロセス |
+| 開発環境セットアップ | [`docs/infrastructure/devenv/windows-quickstart.md`](docs/infrastructure/devenv/windows-quickstart.md) | Windows・WSL2・devcontainer のセットアップ |
+
+### 設計・仕様ドキュメント
 
 | カテゴリ | パス | 内容 |
 |----------|------|------|

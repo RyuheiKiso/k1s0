@@ -11,6 +11,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }} error rate > 0.2% (SLO target: < 0.1%)"
           description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です（SLO 目標の約 2 倍）"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
 
       - alert: ServiceHighErrorRate
         expr: |
@@ -21,6 +22,7 @@ groups:
           severity: critical
         annotations:
           summary: "{{ $labels.service }} error rate > 5%"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
 
       - alert: ServiceHighLatency
         expr: |
@@ -30,6 +32,7 @@ groups:
           severity: warning
         annotations:
           summary: "{{ $labels.service }} P99 latency > 1s"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
       # gRPC エラー率が 5% を超えた場合にアラートを発火する
       - alert: GrpcHighErrorRate
@@ -42,6 +45,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }}/{{ $labels.grpc_service }} gRPC error rate > 5%"
           description: "{{ $labels.service }} の gRPC エラー率が {{ $value | humanizePercentage }} です"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
       # DB コネクションプールの使用率が 90% を超えた場合にアラートを発火する
       - alert: DbPoolExhaustion
@@ -53,6 +57,7 @@ groups:
         annotations:
           summary: "{{ $labels.service }} DB pool usage > 90%"
           description: "{{ $labels.service }} の DB コネクションプール使用率が {{ $value | humanizePercentage }} です。プール枯渇の恐れがあります"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/db-pool-exhaustion.md"
 
       # Kafka コンシューマーラグが 1000 を超えた場合にアラートを発火する
       - alert: KafkaConsumerLagHigh
@@ -64,3 +69,4 @@ groups:
         annotations:
           summary: "Kafka consumer group {{ $labels.consumergroup }} lag > 1000"
           description: "コンシューマーグループ {{ $labels.consumergroup }} のラグが {{ $value }} メッセージです"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/kafka-consumer-lag.md"

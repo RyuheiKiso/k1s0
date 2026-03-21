@@ -42,11 +42,15 @@ fn json_to_order_items(items: Option<&serde_json::Value>) -> Vec<OrderItemEvent>
 /// 型変換なしで直接返せる。
 #[async_trait::async_trait]
 impl k1s0_outbox::OutboxEventFetcher for dyn OrderRepository {
-    async fn fetch_and_mark_events_published(
+    async fn fetch_unpublished_events(
         &self,
         limit: i64,
     ) -> anyhow::Result<Vec<k1s0_outbox::OutboxEvent>> {
-        OrderRepository::fetch_and_mark_events_published(self, limit).await
+        OrderRepository::fetch_unpublished_events(self, limit).await
+    }
+
+    async fn mark_events_published(&self, ids: &[uuid::Uuid]) -> anyhow::Result<()> {
+        OrderRepository::mark_events_published(self, ids).await
     }
 }
 
@@ -153,9 +157,8 @@ mod tests {
         let mut mock_repo = MockOrderRepository::new();
         let mock_publisher = MockOrderEventPublisher::new();
 
-        // fetch_and_mark_events_published が空リストを返す
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .returning(|_| Ok(vec![]));
 
         let _poller = new_outbox_poller(
@@ -174,7 +177,7 @@ mod tests {
 
         // シャットダウンまでの間、任意回数のポーリングを許可する
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .returning(|_| Ok(vec![]));
 
         let poller = Arc::new(new_outbox_poller(
@@ -209,9 +212,15 @@ mod tests {
         let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
+
+        // at-least-once: publish 成功後に mark が呼ばれることを確認する
+        mock_repo
+            .expect_mark_events_published()
+            .times(1)
+            .returning(|_| Ok(()));
 
         mock_publisher
             .expect_publish_order_created()
@@ -247,9 +256,15 @@ mod tests {
         let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
+
+        // at-least-once: publish 成功後に mark が呼ばれることを確認する
+        mock_repo
+            .expect_mark_events_published()
+            .times(1)
+            .returning(|_| Ok(()));
 
         mock_publisher
             .expect_publish_order_cancelled()
@@ -275,7 +290,8 @@ mod tests {
         handle.await.unwrap();
     }
 
-    // publish 失敗時もポーラー自体はエラーにならないことを確認する
+    // publish 失敗時もポーラー自体はエラーにならず、mark も呼ばれないことを確認する
+    // at-least-once: 失敗したイベントは mark されず、次回ポーリングでリトライされる
     #[tokio::test]
     async fn test_poll_and_publish_failure_logs_warning() {
         let event = sample_outbox_event("order.created");
@@ -285,9 +301,11 @@ mod tests {
         let mut mock_publisher = MockOrderEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
+
+        // publish 失敗時は mark_events_published が呼ばれない（at-least-once 保証）
 
         mock_publisher
             .expect_publish_order_created()

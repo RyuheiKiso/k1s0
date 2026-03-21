@@ -89,6 +89,10 @@ pub struct OpenSearchConfig {
     pub password: String,
     #[serde(default = "default_index_prefix")]
     pub index_prefix: String,
+    /// TLS 証明書検証を無効化するフラグ。本番環境では false を設定すること。
+    /// true にすると CertificateValidation::None になり、MITM 攻撃のリスクがある。
+    #[serde(default)]
+    pub tls_insecure: bool,
 }
 
 fn default_index_prefix() -> String {

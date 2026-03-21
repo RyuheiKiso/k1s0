@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
+use sqlx::{PgPool, QueryBuilder};
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -67,6 +67,13 @@ impl From<SearchDocumentRow> for SearchDocument {
             indexed_at: r.created_at,
         }
     }
+}
+
+/// ファセット集計クエリの結果 Row 型。
+#[derive(sqlx::FromRow)]
+struct FacetRow {
+    val: Option<String>,
+    cnt: i64,
 }
 
 #[async_trait]
@@ -139,85 +146,78 @@ impl SearchRepository for SearchPostgresRepository {
     }
 
     /// PostgreSQL 全文検索を使ってドキュメントを検索する。
-    /// tsquery の prefix マッチ (:*) と ts_rank による関連度順ソートをサポート。
+    /// - plainto_tsquery で任意のユーザー入力を安全に処理する（tsquery インジェクション防止）
+    /// - query.filters の各キー・バリューを JSONB フィールドフィルタ (content->>'key' = 'val') として適用する
+    /// - query.facets で指定されたフィールドの値ごとにドキュメント数を集計して返す
     async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
-        // ユーザークエリを tsquery に変換（各単語を prefix マッチで AND 結合）
-        let ts_query = query
-            .query
-            .split_whitespace()
-            .map(|w| format!("{}:*", w))
-            .collect::<Vec<_>>()
-            .join(" & ");
+        let has_text_query = !query.query.trim().is_empty();
 
-        // 空クエリの場合は全件返す
-        if ts_query.is_empty() {
-            let rows: Vec<SearchDocumentRow> = sqlx::query_as(
-                "SELECT d.id, d.document_id, d.content, d.created_at, i.name as index_name \
-                 FROM search.search_documents d \
-                 JOIN search.search_indices i ON i.id = d.index_id \
-                 WHERE i.name = $1 \
-                 ORDER BY d.created_at DESC \
-                 LIMIT $2 OFFSET $3",
-            )
-            .bind(&query.index_name)
-            .bind(query.size as i64)
-            .bind(query.from as i64)
-            .fetch_all(self.pool.as_ref())
-            .await?;
-
-            let count: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM search.search_documents d \
-                 JOIN search.search_indices i ON i.id = d.index_id \
-                 WHERE i.name = $1",
-            )
-            .bind(&query.index_name)
-            .fetch_one(self.pool.as_ref())
-            .await?;
-
-            let total = count.0.max(0) as u64;
-            let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
-            let page_size = query.size.max(1);
-            let page = (query.from / page_size) + 1;
-            let has_next = total > (query.from as u64 + hits.len() as u64);
-            return Ok(SearchResult {
-                total,
-                hits,
-                facets: HashMap::new(),
-                pagination: PaginationResult {
-                    total_count: total,
-                    page,
-                    page_size,
-                    has_next,
-                },
-            });
-        }
-
-        // 全文検索: tsquery マッチでランキング
-        let rows: Vec<SearchDocumentRow> = sqlx::query_as(
+        // --- メインクエリ: QueryBuilder で動的 WHERE 節を構築 ---
+        let mut qb: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
             "SELECT d.id, d.document_id, d.content, d.created_at, i.name as index_name \
              FROM search.search_documents d \
              JOIN search.search_indices i ON i.id = d.index_id \
-             WHERE i.name = $1 AND d.search_vector @@ to_tsquery('simple', $2) \
-             ORDER BY ts_rank(d.search_vector, to_tsquery('simple', $2)) DESC \
-             LIMIT $3 OFFSET $4",
-        )
-        .bind(&query.index_name)
-        .bind(&ts_query)
-        .bind(query.size as i64)
-        .bind(query.from as i64)
-        .fetch_all(self.pool.as_ref())
-        .await?;
+             WHERE i.name = ",
+        );
+        qb.push_bind(&query.index_name);
 
-        // トータルカウント
-        let count: (i64,) = sqlx::query_as(
+        // テキストクエリが存在する場合: plainto_tsquery でフルテキスト検索条件を追加
+        if has_text_query {
+            qb.push(" AND d.search_vector @@ plainto_tsquery('simple', ");
+            qb.push_bind(&query.query);
+            qb.push(")");
+        }
+
+        // フィルタ条件を追加: content->>'key' = 'value'
+        for (key, value) in &query.filters {
+            qb.push(" AND d.content->>");
+            qb.push_bind(key);
+            qb.push(" = ");
+            qb.push_bind(value);
+        }
+
+        // 全文検索時は ts_rank 降順、全件取得時は作成日時降順
+        if has_text_query {
+            qb.push(" ORDER BY ts_rank(d.search_vector, plainto_tsquery('simple', ");
+            qb.push_bind(&query.query);
+            qb.push(")) DESC");
+        } else {
+            qb.push(" ORDER BY d.created_at DESC");
+        }
+
+        qb.push(" LIMIT ");
+        qb.push_bind(query.size as i64);
+        qb.push(" OFFSET ");
+        qb.push_bind(query.from as i64);
+
+        let rows: Vec<SearchDocumentRow> =
+            qb.build_query_as().fetch_all(self.pool.as_ref()).await?;
+
+        // --- カウントクエリ: メインクエリと同一の WHERE 条件 ---
+        let mut count_qb: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
             "SELECT COUNT(*) FROM search.search_documents d \
              JOIN search.search_indices i ON i.id = d.index_id \
-             WHERE i.name = $1 AND d.search_vector @@ to_tsquery('simple', $2)",
-        )
-        .bind(&query.index_name)
-        .bind(&ts_query)
-        .fetch_one(self.pool.as_ref())
-        .await?;
+             WHERE i.name = ",
+        );
+        count_qb.push_bind(&query.index_name);
+
+        if has_text_query {
+            count_qb.push(" AND d.search_vector @@ plainto_tsquery('simple', ");
+            count_qb.push_bind(&query.query);
+            count_qb.push(")");
+        }
+
+        for (key, value) in &query.filters {
+            count_qb.push(" AND d.content->>");
+            count_qb.push_bind(key);
+            count_qb.push(" = ");
+            count_qb.push_bind(value);
+        }
+
+        let count: (i64,) = count_qb
+            .build_query_as()
+            .fetch_one(self.pool.as_ref())
+            .await?;
 
         let total = count.0.max(0) as u64;
         let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
@@ -225,10 +225,55 @@ impl SearchRepository for SearchPostgresRepository {
         let page = (query.from / page_size) + 1;
         let has_next = total > (query.from as u64 + hits.len() as u64);
 
+        // --- ファセット集計: query.facets で指定されたフィールドごとに GROUP BY ---
+        let mut facets: HashMap<String, HashMap<String, u64>> = HashMap::new();
+        for facet_field in &query.facets {
+            let mut facet_qb: QueryBuilder<sqlx::Postgres> =
+                QueryBuilder::new("SELECT d.content->>");
+            facet_qb.push_bind(facet_field);
+            facet_qb.push(
+                " AS val, COUNT(*) AS cnt \
+                 FROM search.search_documents d \
+                 JOIN search.search_indices i ON i.id = d.index_id \
+                 WHERE i.name = ",
+            );
+            facet_qb.push_bind(&query.index_name);
+
+            if has_text_query {
+                facet_qb.push(" AND d.search_vector @@ plainto_tsquery('simple', ");
+                facet_qb.push_bind(&query.query);
+                facet_qb.push(")");
+            }
+
+            for (key, value) in &query.filters {
+                facet_qb.push(" AND d.content->>");
+                facet_qb.push_bind(key);
+                facet_qb.push(" = ");
+                facet_qb.push_bind(value);
+            }
+
+            // NULL 値を除外し、SELECT 節の 1 列目 (val) でグループ化
+            facet_qb.push(" AND d.content->>");
+            facet_qb.push_bind(facet_field);
+            facet_qb.push(" IS NOT NULL GROUP BY 1");
+
+            let facet_rows: Vec<FacetRow> = facet_qb
+                .build_query_as()
+                .fetch_all(self.pool.as_ref())
+                .await?;
+
+            let field_counts: HashMap<String, u64> = facet_rows
+                .into_iter()
+                .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+                .collect();
+
+            facets.insert(facet_field.clone(), field_counts);
+        }
+
         Ok(SearchResult {
             total,
             hits,
-            facets: HashMap::new(),
+            facets,
             pagination: PaginationResult {
                 total_count: total,
                 page,
@@ -324,36 +369,28 @@ mod tests {
     }
 
     #[test]
-    fn test_tsquery_construction() {
-        // tsquery 変換ロジックの検証
-        let query_str = "Widget blue";
-        let ts_query = query_str
-            .split_whitespace()
-            .map(|w| format!("{}:*", w))
-            .collect::<Vec<_>>()
-            .join(" & ");
-        assert_eq!(ts_query, "Widget:* & blue:*");
+    fn test_has_text_query_detection() {
+        // 空白のみのクエリはテキスト検索なしとみなす
+        assert!(!("".trim().is_empty() == false));
+        assert!("  ".trim().is_empty());
+        assert!(!"hello".trim().is_empty());
     }
 
     #[test]
-    fn test_tsquery_single_word() {
-        let query_str = "Widget";
-        let ts_query = query_str
-            .split_whitespace()
-            .map(|w| format!("{}:*", w))
-            .collect::<Vec<_>>()
-            .join(" & ");
-        assert_eq!(ts_query, "Widget:*");
-    }
-
-    #[test]
-    fn test_tsquery_empty() {
-        let query_str = "";
-        let ts_query = query_str
-            .split_whitespace()
-            .map(|w| format!("{}:*", w))
-            .collect::<Vec<_>>()
-            .join(" & ");
-        assert_eq!(ts_query, "");
+    fn test_facet_row_to_map() {
+        // FacetRow の val が None の行はファセット集計から除外されることを確認
+        let rows = vec![
+            FacetRow { val: Some("electronics".to_string()), cnt: 5 },
+            FacetRow { val: None, cnt: 3 },
+            FacetRow { val: Some("books".to_string()), cnt: 2 },
+        ];
+        let map: HashMap<String, u64> = rows
+            .into_iter()
+            .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+            .collect();
+        assert_eq!(map.get("electronics"), Some(&5u64));
+        assert_eq!(map.get("books"), Some(&2u64));
+        // None の行は含まれない
+        assert_eq!(map.len(), 2);
     }
 }

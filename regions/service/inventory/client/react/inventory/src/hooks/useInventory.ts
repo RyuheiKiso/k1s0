@@ -13,7 +13,7 @@ export function useInventoryList() {
   return useQuery({
     queryKey: queryKeys.inventory,
     queryFn: async () => {
-      const { data } = await apiClient.get<{ items: InventoryItem[] }>('/list_inventory');
+      const { data } = await apiClient.get<{ items: InventoryItem[] }>('/inventory');
       return data.items;
     },
   });
@@ -24,7 +24,7 @@ export function useInventoryItem(id: string) {
   return useQuery({
     queryKey: queryKeys.inventoryItem(id),
     queryFn: async () => {
-      const { data } = await apiClient.get<InventoryItem>(`/get_inventory/${id}`);
+      const { data } = await apiClient.get<InventoryItem>(`/inventory/${id}`);
       return data;
     },
     enabled: !!id,
@@ -36,7 +36,7 @@ export function useReserveStock() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: StockOperation) => {
-      const { data } = await apiClient.post<InventoryItem>('/reserve_stock', input);
+      const { data } = await apiClient.post<InventoryItem>('/inventory/reserve', input);
       return data;
     },
     // 成功時に在庫一覧キャッシュを無効化
@@ -51,7 +51,7 @@ export function useReleaseStock() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: StockOperation) => {
-      const { data } = await apiClient.post<InventoryItem>('/release_stock', input);
+      const { data } = await apiClient.post<InventoryItem>('/inventory/release', input);
       return data;
     },
     // 成功時に在庫一覧キャッシュを無効化
@@ -66,7 +66,7 @@ export function useUpdateStock(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: UpdateStockInput) => {
-      const { data } = await apiClient.put<InventoryItem>(`/update_stock/${id}`, input);
+      const { data } = await apiClient.put<InventoryItem>(`/inventory/${id}/stock`, input);
       return data;
     },
     // 成功時に在庫一覧と個別在庫のキャッシュを無効化

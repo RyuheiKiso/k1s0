@@ -2,7 +2,6 @@ package buildingblocks
 
 import (
 	"context"
-	"log/slog"
 	"sync"
 	"time"
 )
@@ -143,15 +142,12 @@ func (p *KafkaPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 			ID:        env.Key,
 			Timestamp: time.Now(),
 		}
-		// チャネルが満杯の場合はメッセージをドロップして処理を継続する。
+		// コンテキストキャンセルまでチャネルへの送信をブロックする。
+		// default による無言ドロップを排除し、ctx.Done() でシャットダウンを検出する。
 		select {
 		case ch <- msg:
-		default:
-			// バッファが満杯のためメッセージをドロップした場合は警告ログを出力する
-			slog.Warn("Kafka メッセージドロップ: 受信バッファが満杯",
-				slog.String("topic", env.Topic),
-				slog.String("key", env.Key),
-			)
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 		return nil
 	}

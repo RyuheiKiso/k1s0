@@ -32,6 +32,13 @@ class StringConfigValue extends ConfigValue {
 
   @override
   dynamic toJson() => value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is StringConfigValue && other.value == value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// 数値型の設定値
@@ -41,6 +48,13 @@ class NumberConfigValue extends ConfigValue {
 
   @override
   dynamic toJson() => value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is NumberConfigValue && other.value == value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// 真偽値型の設定値
@@ -50,6 +64,13 @@ class BoolConfigValue extends ConfigValue {
 
   @override
   dynamic toJson() => value;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BoolConfigValue && other.value == value;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// リスト型の設定値
@@ -59,6 +80,19 @@ class ListConfigValue extends ConfigValue {
 
   @override
   dynamic toJson() => values.map((v) => v.toJson()).toList();
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! ListConfigValue) return false;
+    if (other.values.length != values.length) return false;
+    for (var i = 0; i < values.length; i++) {
+      if (values[i] != other.values[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hashAll(values);
 }
 
 /// マップ型の設定値
@@ -69,6 +103,20 @@ class MapConfigValue extends ConfigValue {
   @override
   dynamic toJson() =>
       entries.map((k, v) => MapEntry(k, v.toJson()));
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! MapConfigValue) return false;
+    if (other.entries.length != entries.length) return false;
+    for (final key in entries.keys) {
+      if (!other.entries.containsKey(key)) return false;
+      if (entries[key] != other.entries[key]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode => Object.hashAll(entries.entries.map((e) => Object.hash(e.key, e.value)));
 }
 
 /// 設定フィールドの型を表す列挙型

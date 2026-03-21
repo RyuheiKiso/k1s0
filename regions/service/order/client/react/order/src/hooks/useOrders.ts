@@ -16,7 +16,7 @@ export function useOrders(customerId?: string, status?: OrderStatus) {
       const params: Record<string, string> = {};
       if (customerId) params.customer_id = customerId;
       if (status) params.status = status;
-      const { data } = await apiClient.get<{ orders: Order[] }>('/list_orders', { params });
+      const { data } = await apiClient.get<{ orders: Order[] }>('/orders', { params });
       return data.orders;
     },
   });
@@ -27,7 +27,7 @@ export function useOrder(id: string) {
   return useQuery({
     queryKey: queryKeys.order(id),
     queryFn: async () => {
-      const { data } = await apiClient.get<Order>(`/get_order/${id}`);
+      const { data } = await apiClient.get<Order>(`/orders/${id}`);
       return data;
     },
     enabled: !!id,
@@ -39,7 +39,7 @@ export function useCreateOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateOrderInput) => {
-      const { data } = await apiClient.post<Order>('/create_order', input);
+      const { data } = await apiClient.post<Order>('/orders', input);
       return data;
     },
     // 成功時に注文一覧キャッシュを無効化
@@ -54,7 +54,7 @@ export function useUpdateOrderStatus(id: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: UpdateOrderStatusInput) => {
-      const { data } = await apiClient.put<Order>(`/update_order_status/${id}`, input);
+      const { data } = await apiClient.put<Order>(`/orders/${id}/status`, input);
       return data;
     },
     // 成功時に注文一覧と個別注文のキャッシュを無効化

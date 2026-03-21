@@ -69,38 +69,9 @@ fn classify_domain_error(message: &str) -> &'static str {
     }
 }
 
-/// Tier はロールチェックのスコープを表現する。
-/// k1s0_server_common::middleware::rbac::Tier と同等だが、axum バージョン差異のため
-/// GraphQL Gateway 内で再定義している。
-#[derive(Debug, Clone, Copy)]
-enum Tier {
-    /// System tier: sys_admin / sys_operator / sys_auditor
-    System,
-}
-
-/// ロールベースの権限チェック。Tier に応じてロールプレフィックスを切り替える。
-/// k1s0_server_common::middleware::rbac::check_permission と同等のロジック。
-fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
-    for role in roles {
-        match tier {
-            Tier::System => match role.as_str() {
-                "sys_admin" => return true,
-                "sys_operator" => {
-                    if matches!(action, "read" | "write") {
-                        return true;
-                    }
-                }
-                "sys_auditor" => {
-                    if action == "read" {
-                        return true;
-                    }
-                }
-                _ => {}
-            },
-        }
-    }
-    false
-}
+/// k1s0_server_common の RBAC ロジックを再利用する（P2-24）。
+/// ローカル重複定義を廃止し、server-common の Tier と check_permission を使用する。
+use k1s0_server_common::middleware::{check_permission, Tier};
 
 /// 読み取り操作の認可チェック。sys_admin / sys_operator / sys_auditor ロールが必要。
 fn ensure_read_permission(ctx: &Context<'_>) -> FieldResult<()> {
@@ -1703,26 +1674,40 @@ pub struct SubscriptionRoot {
 
 #[Subscription]
 impl SubscriptionRoot {
-    /// 設定変更イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
+    /// 設定変更イベントをストリームで購読する。
+    /// 接続失敗時は GraphQL エラーとして返し、ストリーム中のエラーはアイテムレベルで伝播する（P2-26）。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "configChanged")]
     async fn config_changed(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         #[graphql(default)] namespaces: Vec<String>,
-    ) -> async_graphql::Result<impl Stream<Item = ConfigEntry>> {
-        self.subscription
+    ) -> async_graphql::Result<impl Stream<Item = async_graphql::Result<ConfigEntry>>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
+        let stream = self
+            .subscription
             .watch_config(namespaces)
             .await
-            .map_err(|e| async_graphql::Error::new(e.to_string()))
+            .map_err(|e| async_graphql::Error::new(e.to_string()))?;
+
+        // tonic::Status エラーを async_graphql::Error に変換してサブスクライバーに伝播する
+        use async_graphql::futures_util::StreamExt;
+        Ok(stream.map(|item| {
+            item.map_err(|status| async_graphql::Error::new(format!("stream error: {status}")))
+        }))
     }
 
     /// テナント更新イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "tenantUpdated")]
     async fn tenant_updated(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         tenant_id: async_graphql::ID,
     ) -> async_graphql::Result<impl Stream<Item = Tenant>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
         self.subscription
             .watch_tenant_updated(tenant_id.to_string())
             .await
@@ -1730,12 +1715,15 @@ impl SubscriptionRoot {
     }
 
     /// フィーチャーフラグ変更イベントをストリームで購読する。gRPC 接続失敗時は GraphQL エラーとして返す。
+    /// 購読には読み取り権限（sys_admin / sys_operator / sys_auditor）が必要。
     #[graphql(name = "featureFlagChanged")]
     async fn feature_flag_changed(
         &self,
-        _ctx: &Context<'_>,
+        ctx: &Context<'_>,
         key: String,
     ) -> async_graphql::Result<impl Stream<Item = FeatureFlag>> {
+        // RBAC チェック: subscription にも read 権限を要求する（query と同等の保護）
+        ensure_read_permission(ctx)?;
         self.subscription
             .watch_feature_flag_changed(key)
             .await

@@ -342,6 +342,17 @@ spec:
 
 ![バックアップスケジュールタイムライン](images/k8s-backup-schedule-timeline.svg)
 
+### 環境別バックアップ方式
+
+バックアップの管理方式は環境によって異なる。
+
+| 環境 | 管理方式 | ソース of Truth |
+| --- | --- | --- |
+| **本番 (prod)** | Terraform による S3 オフロード方式 | `infra/terraform/modules/database/backup.tf` |
+| **dev / staging** | Kubernetes CronJob による PVC 保存方式 | `infra/kubernetes/backup/` |
+
+### dev / staging 環境バックアップ（K8s CronJob 方式）
+
 各コンポーネントのバックアップは CronJob として `k1s0-system` Namespace で実行する。実装ファイルは `infra/kubernetes/backup/` に格納されている。
 
 | CronJob 名          | 対象               | スケジュール         | 保持期間 | 実装ファイル                      |
@@ -362,6 +373,15 @@ spec:
   - S3 クレデンシャルは `backup-s3-credentials` Secret から環境変数で注入
   - バケット命名: `k1s0-backup-{component}-{environment}`
   - S3 アップロード失敗時はバックアップ自体は成功とし、アラート通知のみ実施
+
+### 本番環境バックアップ（Terraform S3 オフロード方式）
+
+本番環境のバックアップは `infra/terraform/modules/database/backup.tf` で Terraform 管理する。S3 互換ストレージ（Ceph RGW）へ直接アップロードする方式であり、PVC への中間保存は行わない。
+
+| コンポーネント | スケジュール | バケット | 実装ファイル |
+| --- | --- | --- | --- |
+| PostgreSQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/postgresql/` | `infra/terraform/modules/database/backup.tf` |
+| MySQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/mysql/` | `infra/terraform/modules/database/backup.tf` |
 
 ### PostgreSQL バックアップ対象 DB
 
@@ -606,6 +626,37 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 | `app.kubernetes.io/part-of`    | k1s0           | プロジェクト名       |
 | `app.kubernetes.io/managed-by` | helm           | 管理ツール           |
 | `tier`                         | service        | Tier 階層            |
+
+## Doc Sync (2026-03-21)
+
+### k1s0-operator ロールの secrets 権限削減 [技術品質監査 High 4-5]
+
+**背景・問題**
+
+`infra/kubernetes/rbac/cluster-roles.yaml` の `k1s0-operator` ロールが
+`secrets` リソースに対して `create, update, delete` を含む全書き込み操作を許可していた。
+運用者が誤ってシークレットを削除・上書きするリスクがあり、最小権限の原則に反していた。
+
+**対応内容**
+
+`secrets` リソースの権限を参照系のみ（`get, list, watch`）に限定した。
+
+```yaml
+# 変更前
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+
+# 変更後（secrets を分離して参照のみに限定）
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+```
+
+シークレットの書き込み操作が必要な場合は `k1s0-admin` ロールを使用すること。
 
 ## 関連ドキュメント
 

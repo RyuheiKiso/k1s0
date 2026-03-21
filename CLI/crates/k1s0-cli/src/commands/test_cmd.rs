@@ -105,6 +105,8 @@ fn step_test_kind() -> Result<Option<TestKind>> {
 }
 
 /// ステップ2: テスト対象選択（ユニット/統合テスト用）
+///
+/// 空選択の場合は再入力を促すループを使用する（再帰呼び出しを避ける）。
 fn step_select_test_targets() -> Result<Option<Vec<String>>> {
     let all_targets = scan_testable_targets();
     if all_targets.is_empty() {
@@ -116,23 +118,26 @@ fn step_select_test_targets() -> Result<Option<Vec<String>>> {
         items.push(t.as_str());
     }
 
-    let selected =
-        prompt::multi_select_prompt("テスト対象を選択してください（複数選択可）", &items)?;
+    loop {
+        let selected =
+            prompt::multi_select_prompt("テスト対象を選択してください（複数選択可）", &items)?;
 
-    match selected {
-        None => Ok(None),
-        Some(indices) => {
-            if indices.is_empty() {
-                println!("少なくとも1つの対象を選択してください。");
-                step_select_test_targets()
-            } else if indices.contains(&0) {
-                Ok(Some(all_targets))
-            } else {
-                let targets: Vec<String> = indices
-                    .iter()
-                    .map(|&i| all_targets[i - 1].clone())
-                    .collect();
-                Ok(Some(targets))
+        match selected {
+            // Esc が押された場合は前のステップに戻る
+            None => return Ok(None),
+            Some(indices) => {
+                if indices.is_empty() {
+                    // 未選択の場合は警告を出して再入力を促す
+                    println!("少なくとも1つの対象を選択してください。");
+                } else if indices.contains(&0) {
+                    return Ok(Some(all_targets));
+                } else {
+                    let targets: Vec<String> = indices
+                        .iter()
+                        .map(|&i| all_targets[i - 1].clone())
+                        .collect();
+                    return Ok(Some(targets));
+                }
             }
         }
     }

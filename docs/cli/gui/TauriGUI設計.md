@@ -239,6 +239,38 @@ GUI 単体で認証を再現できるよう、`Auth` ページに以下の要件
 - GUI で確定した OIDC 設定はローカル端末に保持し、次回起動時に再利用する
 - `K1S0_GUI_OIDC_DISCOVERY_URL`、`K1S0_GUI_OIDC_CLIENT_ID`、`K1S0_GUI_OIDC_SCOPE` は初期値上書き用途としてのみ扱い、GUI から確認できる状態にする
 
+## セキュリティ
+
+### IPC コマンドのパストラバーサル防止
+
+Tauri IPC 経由で受け取るパス文字列は信頼できない入力として扱い、ワークスペース外へのアクセスを防止する。
+
+#### resolve_workspace_path による検証
+
+`commands.rs` の多くのコマンドでは `resolve_workspace_path` 関数を使用して、受け取ったパスをワークスペースルート内に制限する。この関数は以下の検証を行う。
+
+1. パスに `..`（`ParentDir` コンポーネント）が含まれていないことを確認する
+2. 解決済みパスがワークスペースルートの配下に存在することを `canonicalize` + `starts_with` で検証する
+
+#### rollback 系コマンドの追加検証
+
+テンプレート移行の rollback 系コマンド（`list_template_migration_backups`、`execute_template_migration_rollback`）では、上記の `resolve_workspace_path` によるパス検証に加えて、`backup_id` に対する追加検証を行う。
+
+`backup_id` はバックアップディレクトリ名として `project_dir` と結合されるため、以下の文字を禁止する。
+
+| 禁止パターン | 理由                                     |
+| ------------ | ---------------------------------------- |
+| `..`         | 親ディレクトリへの相対参照を防止する     |
+| `/`          | Unix 系パス区切り文字によるトラバーサル防止 |
+| `\`          | Windows パス区切り文字によるトラバーサル防止 |
+
+```rust
+// backup_id のパストラバーサル防止: ディレクトリ区切り文字や .. を禁止する
+if backup_id.contains("..") || backup_id.contains('/') || backup_id.contains('\\') {
+    return Err(format!("Invalid backup_id: '{}'", backup_id));
+}
+```
+
 ## Flutter クライアントとの棲み分け
 
 Tauri GUI は **k1s0 開発ツールの GUI ラッパー** であり、service / business Tier にデプロイされるクライアントアプリケーションとは用途が異なる。

@@ -1,7 +1,55 @@
 use crate::domain::entity::column_definition::{ColumnDefinition, CreateColumnDefinition};
 use crate::domain::entity::table_definition::{CreateTableDefinition, TableDefinition};
 use crate::domain::entity::table_relationship::TableRelationship;
+use async_trait::async_trait;
 use sqlx::PgPool;
+use uuid::Uuid;
+
+/// SchemaManager はテーブル・カラム・リレーションシップの物理スキーマ操作を抽象化するトレイト。
+/// テスト時にスタブ実装で差し替えられるように定義する。
+#[async_trait]
+pub trait SchemaManager: Send + Sync {
+    /// テーブルを物理的に作成する。
+    async fn create_table(&self, input: &CreateTableDefinition) -> anyhow::Result<()>;
+    /// テーブルを物理的に削除する。
+    async fn delete_table(&self, table: &TableDefinition) -> anyhow::Result<()>;
+    /// カラムをテーブルに追加する。
+    async fn add_columns(
+        &self,
+        table: &TableDefinition,
+        columns: &[CreateColumnDefinition],
+    ) -> anyhow::Result<()>;
+    /// カラム定義を更新する。
+    async fn update_column(
+        &self,
+        table: &TableDefinition,
+        existing: &ColumnDefinition,
+        input: &CreateColumnDefinition,
+    ) -> anyhow::Result<()>;
+    /// カラムを削除する。
+    async fn delete_column(&self, table: &TableDefinition, column_name: &str)
+        -> anyhow::Result<()>;
+    /// テーブル間リレーションシップを作成する。
+    async fn create_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()>;
+    /// テーブル間リレーションシップを更新する。
+    async fn update_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()>;
+    /// テーブル間リレーションシップを削除する。
+    async fn delete_relationship(
+        &self,
+        source_table: &TableDefinition,
+        relationship_id: Uuid,
+    ) -> anyhow::Result<()>;
+}
 
 pub struct PhysicalSchemaManager {
     pool: PgPool,
@@ -221,6 +269,62 @@ impl PhysicalSchemaManager {
         );
         sqlx::query(&sql).execute(&self.pool).await?;
         Ok(())
+    }
+}
+
+/// PhysicalSchemaManager に SchemaManager トレイトを実装する。
+#[async_trait]
+impl SchemaManager for PhysicalSchemaManager {
+    async fn create_table(&self, input: &CreateTableDefinition) -> anyhow::Result<()> {
+        Self::create_table(self, input).await
+    }
+    async fn delete_table(&self, table: &TableDefinition) -> anyhow::Result<()> {
+        Self::delete_table(self, table).await
+    }
+    async fn add_columns(
+        &self,
+        table: &TableDefinition,
+        columns: &[CreateColumnDefinition],
+    ) -> anyhow::Result<()> {
+        Self::add_columns(self, table, columns).await
+    }
+    async fn update_column(
+        &self,
+        table: &TableDefinition,
+        existing: &ColumnDefinition,
+        input: &CreateColumnDefinition,
+    ) -> anyhow::Result<()> {
+        Self::update_column(self, table, existing, input).await
+    }
+    async fn delete_column(
+        &self,
+        table: &TableDefinition,
+        column_name: &str,
+    ) -> anyhow::Result<()> {
+        Self::delete_column(self, table, column_name).await
+    }
+    async fn create_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        Self::create_relationship(self, source_table, target_table, relationship).await
+    }
+    async fn update_relationship(
+        &self,
+        source_table: &TableDefinition,
+        target_table: &TableDefinition,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        Self::update_relationship(self, source_table, target_table, relationship).await
+    }
+    async fn delete_relationship(
+        &self,
+        source_table: &TableDefinition,
+        relationship_id: Uuid,
+    ) -> anyhow::Result<()> {
+        Self::delete_relationship(self, source_table, relationship_id).await
     }
 }
 

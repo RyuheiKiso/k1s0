@@ -16,6 +16,10 @@ graphql:
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
+  # JWT issuer 検証（省略時は検証をスキップ）
+  issuer: "k1s0"
+  # JWT audience 検証（省略時は検証をスキップ）
+  audience: "k1s0-system"
 
 backends:
   tenant:

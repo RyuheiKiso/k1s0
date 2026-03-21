@@ -12,6 +12,7 @@ use crate::usecase;
 use chrono::{DateTime, Utc};
 // カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
 use crate::proto::k1s0::system::common::v1::Timestamp;
+use k1s0_auth::{actor_from_claims, Claims};
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -51,6 +52,12 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<InitiatePaymentRequest>,
     ) -> Result<Response<InitiatePaymentResponse>, Status> {
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let _actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let input = crate::domain::entity::payment::InitiatePayment {
             order_id: req.order_id,
@@ -74,6 +81,11 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<GetPaymentRequest>,
     ) -> Result<Response<GetPaymentResponse>, Status> {
+        // 認証チェック（readも認証必須）
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let payment_id = parse_uuid(&request.get_ref().payment_id, "payment_id")?;
         let payment = self
             .get_payment_uc
@@ -90,6 +102,11 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<ListPaymentsRequest>,
     ) -> Result<Response<ListPaymentsResponse>, Status> {
+        // 認証チェック（readも認証必須）
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let req = request.into_inner();
         let status = req
             .status
@@ -123,7 +140,7 @@ impl PaymentService for PaymentGrpcService {
         Ok(Response::new(ListPaymentsResponse {
             payments: payments.into_iter().map(proto_payment).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,
@@ -135,6 +152,12 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<CompletePaymentRequest>,
     ) -> Result<Response<CompletePaymentResponse>, Status> {
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let _actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let payment_id = parse_uuid(&req.payment_id, "payment_id")?;
 
@@ -153,6 +176,12 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<FailPaymentRequest>,
     ) -> Result<Response<FailPaymentResponse>, Status> {
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let _actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let payment_id = parse_uuid(&req.payment_id, "payment_id")?;
 
@@ -172,6 +201,12 @@ impl PaymentService for PaymentGrpcService {
         &self,
         request: Request<RefundPaymentRequest>,
     ) -> Result<Response<RefundPaymentResponse>, Status> {
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let _actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let payment_id = parse_uuid(&req.payment_id, "payment_id")?;
 

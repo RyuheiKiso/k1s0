@@ -1370,3 +1370,103 @@ mod tests {
 
 ### ファイル整理
 - `regions/system/server/rust/graphql-gateway/src/handler/schema.rs` は stale ファイルとして削除済み。
+
+## Doc Sync (2026-03-21)
+
+### gRPC クライアント connect_lazy 化 [技術品質監査 Critical 1-2]
+
+**背景・問題**
+
+全 11 個の gRPC クライアント（`auth_client.rs` 等）が起動時に `Channel::connect().await?` を呼び出していた。
+これにより、いずれかのバックエンドサービスが起動していない場合、GraphQL Gateway 自体の起動が失敗する問題があった。
+マイクロサービスアーキテクチャにおいては、起動順序の依存が運用上の障害になる。
+
+**対応内容**
+
+全 11 クライアントの接続方式を `connect_lazy()` に変更した。
+
+- 変更前: `async fn connect(cfg)` → `Channel::from_shared(...).connect().await?`
+- 変更後: `fn new(cfg)` → `Channel::from_shared(...).connect_lazy()`
+
+`connect_lazy()` は実際の RPC 呼び出し時に初めて接続を確立するため、起動時のバックエンド依存が排除される。
+`startup.rs` 側では `XxxClient::connect(&cfg).await?` を `XxxClient::new(&cfg)?` に変更し、
+`init_clients()` 関数を `async fn` から同期 `fn` に変更した。
+
+**影響範囲**
+
+- `src/infrastructure/grpc/` 配下の全クライアントファイル（11ファイル）
+- `src/infrastructure/startup.rs`（クライアント初期化箇所）
+
+**設計上の注意**
+
+バックエンドが実際に到達不能の場合はRPC呼び出し時にエラーが発生する。
+`/readyz` エンドポイントは引き続き全バックエンドの疎通確認を行うため、
+ヘルスチェック経由で到達不能バックエンドを検出可能。
+
+### RBAC ロジック共通化 [P2-24]
+
+**背景・問題**
+
+`graphql_handler.rs` にローカルな `Tier` 列挙型と `check_permission` 関数が定義されており、
+他サーバーで同様のロジックを実装する際に重複が生じる問題があった。
+
+**対応内容**
+
+`graphql_handler.rs` からローカルの `Tier` 列挙型と `check_permission` 関数を削除し、
+`k1s0_server_common::middleware::rbac::{Tier, check_permission}` を使用するように変更した。
+
+- `Cargo.toml` の `k1s0-server-common` 依存に `auth` feature を追加
+- `graphql_handler.rs` の `use` 宣言を `k1s0_server_common::middleware::rbac` に更新
+
+**影響範囲**
+
+- `src/adapter/graphql_handler.rs`
+- `Cargo.toml`（`k1s0-server-common` の `auth` feature 有効化）
+
+### gRPC リトライポリシー [P2-25]
+
+**背景・問題**
+
+gRPC 呼び出しで `UNAVAILABLE` / `DEADLINE_EXCEEDED` が発生した場合、即座にエラーを返していた。
+一時的なネットワーク障害やポッド再起動時の呼び出し失敗を自動リカバリする仕組みが必要だった。
+
+**対応内容**
+
+`src/infrastructure/grpc_retry.rs` を新規追加した。
+`with_retry(operation_name, max_attempts, closure)` ヘルパー関数を実装し、
+`tonic::Code::Unavailable` および `tonic::Code::DeadlineExceeded` に対して指数バックオフ付きリトライを行う。
+`auth_client.rs` の `get_user` メソッドにて `with_retry` を適用済み。
+
+**影響範囲**
+
+- `src/infrastructure/grpc_retry.rs`（新規追加）
+- `src/infrastructure/grpc/auth_client.rs`（`get_user` へのリトライ適用）
+- `src/infrastructure/mod.rs`（`grpc_retry` モジュール公開）
+
+**ディレクトリ構成への反映**
+
+```
+│       └── grpc_retry.rs              # with_retry ヘルパー（指数バックオフ）
+```
+
+### Subscription ストリームエラー伝播 [P2-26]
+
+**背景・問題**
+
+`config_client.rs` の `watch_config` が返すストリームのアイテム型が `ConfigEntry` であり、
+ストリーム切断時のエラーがサブスクライバーに伝播されずサイレントに終了していた。
+
+**対応内容**
+
+`config_client.rs` の `watch_config` ストリームアイテム型を
+`ConfigEntry` から `Result<ConfigEntry, tonic::Status>` に変更した。
+ストリーム切断時のエラーが `Err(tonic::Status)` としてサブスクライバーに通知される。
+
+あわせて `graphql_handler.rs` の `config_changed` サブスクリプションリゾルバーで、
+`Err(status)` を `async_graphql::Error` に変換して返す処理を追加した。
+
+**影響範囲**
+
+- `src/infrastructure/grpc/config_client.rs`（ストリーム型変更）
+- `src/usecase/subscription.rs`（`watch_config` 戻り値型変更: `Stream<Item = ConfigEntry>` → `Stream<Item = Result<ConfigEntry, tonic::Status>>`）
+- `src/adapter/graphql_handler.rs`（`config_changed` でのエラー変換処理追加）

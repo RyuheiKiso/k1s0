@@ -15,6 +15,7 @@ use k1s0_server_common::middleware::auth_middleware::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 use k1s0_server_common::shutdown::shutdown_signal;
+use anyhow::Context;
 use tonic::transport::Server;
 
 pub async fn run() -> anyhow::Result<()> {
@@ -38,14 +39,10 @@ pub async fn run() -> anyhow::Result<()> {
         log_level: cfg.observability.log.level.clone(),
         log_format: cfg.observability.log.format.clone(),
     };
-    // テレメトリ初期化: 失敗してもサーバーは起動を続行する（graceful degrade）
-    match k1s0_telemetry::init_telemetry(&telemetry_cfg) {
-        Ok(()) => {}
-        Err(e) => {
-            // テレメトリが利用不可でもサービス自体は機能するため、警告ログのみ出力
-            tracing::warn!("telemetry initialization failed, continuing without telemetry: {}", e);
-        }
-    }
+    // テレメトリ初期化: 失敗時はサーバーを起動しない（R-04 対応）。
+    // オブザーバビリティは本番環境で必須のため、初期化失敗は即時エラーとして扱う。
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
 
     info!("starting {}", cfg.app.name);
 
@@ -55,13 +52,45 @@ pub async fn run() -> anyhow::Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("database configuration is required"))?;
     let db_pool = connect_database(db_cfg).await?;
-    // NOTE: マイグレーションはレプリカ間で競合する可能性がある。
-    // 本番環境では init container で advisory lock を取得して単一ポッドで実行することを推奨。
-    // 例: SELECT pg_advisory_lock(12345); MIGRATOR.run(...); SELECT pg_advisory_unlock(12345);
-    MIGRATOR.run(&db_pool).await?;
+    // R-05 対応: PostgreSQL advisory lock でマイグレーション競合を防止する。
+    // 複数のインスタンスが同時に起動した場合も、マイグレーションが重複して実行されないようにする。
+    // advisory lock はセッションレベルのため、接続終了時（クラッシュ含む）に自動解放される。
+    // ロック ID 1000000002 は order サービス専用（サービス間衝突防止のため固定値を使用）。
+    {
+        let mut migration_conn = db_pool.acquire().await
+            .context("advisory lock 取得用接続の確保に失敗")?;
+        sqlx::query("SELECT pg_advisory_lock(1000000002)")
+            .execute(&mut *migration_conn)
+            .await
+            .context("マイグレーション用 advisory lock の取得に失敗")?;
+        let migrate_result = MIGRATOR.run(&db_pool).await;
+        sqlx::query("SELECT pg_advisory_unlock(1000000002)")
+            .execute(&mut *migration_conn)
+            .await
+            .context("advisory lock の解放に失敗")?;
+        migrate_result.context("マイグレーションの実行に失敗")?;
+    }
+
+    // search_path が正しく設定されていることを起動時に検証する（fail-fast）。
+    // 接続 URL の options=-c search_path=<schema> が有効でない場合、
+    // runtime SQL が public スキーマを参照して全 CRUD が失敗するため、ここで即座に停止する。
+    let actual_search_path: String = sqlx::query_scalar("SHOW search_path")
+        .fetch_one(&db_pool)
+        .await
+        .context("failed to verify search_path")?;
+    if !actual_search_path.contains(db_cfg.schema.as_str()) {
+        anyhow::bail!(
+            "search_path mismatch: expected schema '{}' but got '{}'. \
+             Check DATABASE_URL options=-c search_path={}",
+            db_cfg.schema,
+            actual_search_path,
+            db_cfg.schema
+        );
+    }
     info!(
         schema = %db_cfg.schema,
-        "database connected and migrations applied"
+        search_path = %actual_search_path,
+        "database connected, migrations applied, search_path verified"
     );
 
     // 4. Metrics
@@ -130,6 +159,8 @@ pub async fn run() -> anyhow::Result<()> {
     } else {
         None
     };
+    // auth 設定必須チェック: 本番環境では auth_state が None の場合は起動を拒否する
+    let auth_state = k1s0_server_common::auth::require_auth_state("order", &cfg.app.environment, auth_state)?;
 
     // 10. AppState + Router
     let state = AppState {
@@ -141,7 +172,11 @@ pub async fn run() -> anyhow::Result<()> {
         auth_state: auth_state.clone(),
         db_pool: Some(db_pool.clone()),
     };
-    let app = handler::router(state);
+    // REST router に MetricsLayer と CorrelationLayer を追加する（R-01 対応）。
+    // file サーバーと同様にオブザーバビリティ・Correlation ID を全 REST エンドポイントで有効化する。
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // 11. gRPC Service
     let grpc_service = adapter::grpc::order_grpc::OrderGrpcService::new(

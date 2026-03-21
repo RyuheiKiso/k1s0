@@ -26,9 +26,12 @@ impl SubscriptionResolver {
     }
 
     /// WatchConfig ストリームを返す。設定変更が発生するたびに ConfigEntry を配信する。
-    /// 接続失敗時は anyhow::Error を返し、呼び出し元で適切にハンドリングする。
+    /// 接続失敗時は anyhow::Error を返し、ストリーム中の gRPC エラーは Result::Err で伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_config(&self, namespaces: Vec<String>) -> anyhow::Result<impl Stream<Item = ConfigEntry>> {
+    pub async fn watch_config(
+        &self,
+        namespaces: Vec<String>,
+    ) -> anyhow::Result<impl Stream<Item = Result<ConfigEntry, tonic::Status>>> {
         self.config_client.watch_config(namespaces).await
     }
 

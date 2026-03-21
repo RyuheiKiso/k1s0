@@ -103,11 +103,12 @@ impl FeatureFlagGrpcClient {
         }
     }
 
-    pub async fn connect(cfg: &BackendConfig) -> anyhow::Result<Self> {
+    /// バックエンド設定からクライアントを生成する。
+    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
-            .connect()
-            .await?;
+            .connect_lazy();
         Ok(Self {
             client: FeatureFlagServiceClient::new(channel),
         })

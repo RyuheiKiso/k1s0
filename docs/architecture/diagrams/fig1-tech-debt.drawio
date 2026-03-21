@@ -1,0 +1,226 @@
+<mxGraphModel pageWidth="820" pageHeight="540" grid="0" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- タイトル -->
+    <mxCell id="t1" value="技術的負債の蓄積による開発速度の変化" style="text;html=1;fontSize=17;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="60" y="14" width="700" height="30" as="geometry" />
+    </mxCell>
+
+    <!-- Y軸ラベル（縦書き代替） -->
+    <mxCell id="ya" value="開発速度（相対値）" style="text;html=1;fontSize=12;fontColor=#444444;align=center;rotation=-90;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="-10" y="220" width="130" height="20" as="geometry" />
+    </mxCell>
+
+    <!-- Y軸パーセントラベル -->
+    <mxCell id="y100" value="100%" style="text;html=1;fontSize=11;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="88" width="44" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="y80" value="80%" style="text;html=1;fontSize=11;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="154" width="44" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="y60" value="60%" style="text;html=1;fontSize=11;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="220" width="44" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="y40" value="40%" style="text;html=1;fontSize=11;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="286" width="44" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="y20" value="20%" style="text;html=1;fontSize=11;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="70" y="352" width="44" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- グリッドライン（横） -->
+    <mxCell id="g1" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#e0e0e0;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="97" as="sourcePoint" />
+        <mxPoint x="720" y="97" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="g2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#e0e0e0;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="163" as="sourcePoint" />
+        <mxPoint x="720" y="163" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="g3" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#e0e0e0;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="229" as="sourcePoint" />
+        <mxPoint x="720" y="229" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="g4" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#e0e0e0;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="295" as="sourcePoint" />
+        <mxPoint x="720" y="295" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="g5" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#e0e0e0;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="361" as="sourcePoint" />
+        <mxPoint x="720" y="361" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Y軸 -->
+    <mxCell id="yaxis" style="edgeStyle=none;html=1;endArrow=open;endFill=0;startArrow=none;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="430" as="sourcePoint" />
+        <mxPoint x="120" y="80" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- X軸 -->
+    <mxCell id="xaxis" style="edgeStyle=none;html=1;endArrow=open;endFill=0;startArrow=none;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="120" y="430" as="sourcePoint" />
+        <mxPoint x="740" y="430" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- X軸ラベル（年） -->
+    <mxCell id="x1" value="Year 1" style="text;html=1;fontSize=11;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="98" y="440" width="48" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="x2" value="Year 2" style="text;html=1;fontSize=11;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="243" y="440" width="48" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="x3" value="Year 3" style="text;html=1;fontSize=11;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="388" y="440" width="48" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="x4" value="Year 4" style="text;html=1;fontSize=11;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="533" y="440" width="48" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="x5" value="Year 5" style="text;html=1;fontSize=11;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="678" y="440" width="48" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- X軸目盛り縦線 -->
+    <mxCell id="xt1" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="122" y="425" as="sourcePoint" />
+        <mxPoint x="122" y="435" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="xt2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="267" y="425" as="sourcePoint" />
+        <mxPoint x="267" y="435" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="xt3" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="412" y="425" as="sourcePoint" />
+        <mxPoint x="412" y="435" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="xt4" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="557" y="425" as="sourcePoint" />
+        <mxPoint x="557" y="435" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="xt5" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#888888;strokeWidth=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="702" y="425" as="sourcePoint" />
+        <mxPoint x="702" y="435" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- モノリス折れ線（100→88→70→50→28） y=420-330*(pct/100) -->
+    <!-- Y1(122,97) Y2(267,138) Y3(412,197) Y4(557,255) Y5(702,327) -->
+    <mxCell id="mono" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#d79b00;strokeWidth=3;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="122" y="97" as="sourcePoint" />
+        <mxPoint x="702" y="327" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="267" y="138" />
+          <mxPoint x="412" y="197" />
+          <mxPoint x="557" y="255" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- k1s0折れ線（73→82→90→94→97） y=420-330*(pct/100) -->
+    <!-- Y1(122,179) Y2(267,150) Y3(412,123) Y4(557,110) Y5(702,100) -->
+    <mxCell id="k1s0" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#0070c0;strokeWidth=3;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="122" y="179" as="sourcePoint" />
+        <mxPoint x="702" y="100" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="267" y="150" />
+          <mxPoint x="412" y="123" />
+          <mxPoint x="557" y="110" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 交差点マーカー（Year2〜Year3の間、約x=300, y=144） -->
+    <mxCell id="cross" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FF0000;strokeColor=#FF0000;aspect=fixed;" vertex="1" parent="1">
+      <mxGeometry x="291" y="137" width="12" height="12" as="geometry" />
+    </mxCell>
+    <mxCell id="crosslabel" value="k1s0 が逆転&#xa;（約Year 2.3）" style="text;html=1;fontSize=11;fontColor=#CC0000;fontStyle=1;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="308" y="126" width="130" height="32" as="geometry" />
+    </mxCell>
+
+    <!-- 注釈: 導入初期コスト -->
+    <mxCell id="ann1" value="導入初期の学習コスト" style="text;html=1;fontSize=11;fontColor=#0070c0;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="130" y="186" width="130" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="ann1a" style="edgeStyle=none;html=1;endArrow=open;endFill=0;strokeColor=#0070c0;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="190" y="184" as="sourcePoint" />
+        <mxPoint x="160" y="179" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 注釈: 複雑性の壁 -->
+    <mxCell id="ann2box" value="複雑性の壁&#xa;変更が困難に" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontColor=#7a5a00;" vertex="1" parent="1">
+      <mxGeometry x="440" y="180" width="110" height="36" as="geometry" />
+    </mxCell>
+    <mxCell id="ann2a" style="edgeStyle=none;html=1;endArrow=open;endFill=0;strokeColor=#d6b656;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="460" y="180" as="sourcePoint" />
+        <mxPoint x="446" y="197" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 注釈: 大規模リファクタリング -->
+    <mxCell id="ann3box" value="大規模リファクタリング&#xa;必要（2,000万〜8,000万円）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontColor=#6a1c1c;" vertex="1" parent="1">
+      <mxGeometry x="550" y="320" width="180" height="36" as="geometry" />
+    </mxCell>
+    <mxCell id="ann3a" style="edgeStyle=none;html=1;endArrow=open;endFill=0;strokeColor=#b85450;strokeWidth=1;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="620" y="320" as="sourcePoint" />
+        <mxPoint x="660" y="327" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- 凡例 -->
+    <mxCell id="leg_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;" vertex="1" parent="1">
+      <mxGeometry x="130" y="350" width="230" height="64" as="geometry" />
+    </mxCell>
+    <mxCell id="leg1" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#d79b00;strokeWidth=3;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="144" y="371" as="sourcePoint" />
+        <mxPoint x="184" y="371" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg1t" value="モジュラーモノリス" style="text;html=1;fontSize=12;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="190" y="363" width="160" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="leg2" style="edgeStyle=none;html=1;endArrow=none;strokeColor=#0070c0;strokeWidth=3;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="144" y="397" as="sourcePoint" />
+        <mxPoint x="184" y="397" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="leg2t" value="k1s0 導入" style="text;html=1;fontSize=12;align=left;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="190" y="389" width="160" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- X軸タイトル -->
+    <mxCell id="xta" value="経過年数" style="text;html=1;fontSize=12;fontColor=#444444;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="360" y="466" width="100" height="18" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

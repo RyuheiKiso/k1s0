@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -82,26 +83,49 @@ func run() error {
 	// Redis接続を確認する。
 	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
 	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
-	// Redis接続が必須でない場合のみスキップを許可する
+	// ALLOW_REDIS_SKIP は dev/development/local 環境のみ有効。production/staging では無視してエラーで終了する。
 	if err := redisClient.Ping(ctx).Err(); err != nil {
-		if os.Getenv("ALLOW_REDIS_SKIP") == "true" {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします", slog.String("error", err.Error()))
+		env := cfg.App.Environment
+		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
+		if allowSkip {
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
 		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()))
+			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
 			return fmt.Errorf("Redis接続に失敗しました: %w", err)
 		}
 	}
 
 	// Initialize session store.
+	// SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
+	// 鍵は hex エンコードされた 32 バイト（AES-256）を期待する。
+	// 未設定の場合は暗号化なしの RedisStore を使用し、本番環境向け警告を出力する。
 	prefix := cfg.Session.Prefix
 	if prefix == "" {
 		prefix = "bff:session:"
 	}
-	sessionStore := session.NewRedisStore(redisClient, prefix)
+	var sessionStore session.Store
+	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
+		encKey, err := hex.DecodeString(encKeyHex)
+		if err != nil || len(encKey) != 32 {
+			return fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
+		}
+		encStore, err := session.NewEncryptedStore(redisClient, prefix, encKey)
+		if err != nil {
+			return fmt.Errorf("暗号化セッションストアの初期化に失敗: %w", err)
+		}
+		sessionStore = encStore
+		logger.Info("AES-GCM 暗号化セッションストアを使用します")
+	} else {
+		sessionStore = session.NewRedisStore(redisClient, prefix)
+		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
+	}
 	sessionTTL := config.ParseDuration(cfg.Session.TTL, 30*time.Minute)
 
-	// Initialize OIDC client.
+	// OIDC クライアントを初期化する。
+	// ctx（アプリケーションレベルのコンテキスト）を渡すことで、シャットダウン時に
+	// JWKS バックグラウンドフェッチがキャンセルされるようになる。
 	oauthClient := oauth.NewClient(
+		ctx,
 		cfg.Auth.DiscoveryURL,
 		cfg.Auth.ClientID,
 		cfg.Auth.ClientSecret,
@@ -131,8 +155,9 @@ func run() error {
 		}()
 	}
 
-	// Determine secure cookies based on environment.
-	secureCookie := cfg.App.Environment != "dev"
+	// 開発環境（dev/development/local）では secure フラグを外す。
+	// IsDevEnvironment で統一的に判定することで dev/development の不一致を防ぐ。
+	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 
 	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアントを渡す。
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient)
@@ -168,7 +193,20 @@ func run() error {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
+	// G-06 対応: リバースプロキシ信頼設定を明示的に行う。
+	// nil を指定することでプロキシを信頼せず、X-Forwarded-For 等のヘッダーを
+	// 直接の接続元 IP で上書きする。ロードバランサー配下では適切な CIDR に変更すること。
+	// 例: router.SetTrustedProxies([]string{"10.0.0.0/8"})
+	if err := router.SetTrustedProxies(nil); err != nil {
+		logger.Warn("SetTrustedProxies 設定に失敗しました", slog.String("error", err.Error()))
+	}
 	router.Use(gin.Recovery())
+	// G-02 対応: リクエストボディサイズを 64MB に制限する。
+	// 無制限のリクエストボディによる DoS 攻撃や OOM を防止する。
+	router.Use(func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024*1024)
+		c.Next()
+	})
 	// セキュリティレスポンスヘッダーを全リクエストに付与する
 	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.PrometheusMiddleware())
@@ -207,12 +245,15 @@ func run() error {
 	api.Any("/*path", proxyHandler.Handle)
 
 	// Start HTTP server.
+	// G-01 対応: タイムアウトをプロキシ用途に合わせて調整する。
+	// ReadTimeout=60s: 大きなリクエストボディやスロークライアントに対応する。
+	// WriteTimeout=120s: 上流サービスの応答時間（upstreamTimeout 30s + バッファ）を考慮する。
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      router,
-		ReadTimeout:  config.ParseDuration(cfg.Server.ReadTimeout, 10*time.Second),
-		WriteTimeout: config.ParseDuration(cfg.Server.WriteTimeout, 30*time.Second),
+		ReadTimeout:  config.ParseDuration(cfg.Server.ReadTimeout, 60*time.Second),
+		WriteTimeout: config.ParseDuration(cfg.Server.WriteTimeout, 120*time.Second),
 	}
 
 	// Start server in a goroutine.
@@ -330,13 +371,16 @@ func isProductionEnvironment(env string) bool {
 
 // retryOIDCDiscovery はOIDC discoveryが完了するまでバックグラウンドで再試行する。
 // 指数バックオフ（5s→10s→20s→最大60s）でリトライし、コンテキストがキャンセルされたら終了する。
+// G-05 対応: 最大リトライ回数を 20 回に制限し、無限リトライによる長時間待機を防止する。
 func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.Logger) {
 	// 初回リトライ間隔
 	interval := 5 * time.Second
 	// リトライ間隔の上限
 	maxInterval := 60 * time.Second
+	// G-05 対応: リトライ上限回数（20 回で諦めてバックグラウンドゴルーチンを終了する）
+	const maxRetries = 20
 
-	for {
+	for attempt := 1; attempt <= maxRetries; attempt++ {
 		select {
 		case <-ctx.Done():
 			logger.Info("OIDC discovery retry stopped due to context cancellation")
@@ -345,6 +389,8 @@ func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.
 			if _, err := client.Discover(ctx); err != nil {
 				logger.Warn("OIDC discovery retry failed",
 					slog.String("error", err.Error()),
+					slog.Int("attempt", attempt),
+					slog.Int("max_retries", maxRetries),
 					slog.Duration("next_retry_in", interval*2),
 				)
 				// 指数バックオフで次のリトライ間隔を計算する
@@ -354,8 +400,13 @@ func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.
 				}
 				continue
 			}
-			logger.Info("OIDC discovery succeeded after retry")
+			logger.Info("OIDC discovery succeeded after retry", slog.Int("attempt", attempt))
 			return
 		}
 	}
+	// G-05 対応: 最大リトライ回数に達した場合は警告を出してゴルーチンを終了する。
+	// サーバーは起動済みだが OIDC 未対応の状態となる。/healthz の readiness で検出できる。
+	logger.Error("OIDC discovery failed after maximum retries, giving up",
+		slog.Int("max_retries", maxRetries),
+	)
 }

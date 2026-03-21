@@ -932,7 +932,9 @@ pub fn execute_template_migration(plan: TemplateMigrationPlan) -> Result<(), Str
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn list_template_migration_backups(project_dir: String) -> Result<Vec<String>, String> {
-    let project_path = PathBuf::from(project_dir);
+    // project_dir のパストラバーサル防止: resolve_workspace_path でワークスペース外参照を拒否する
+    let workspace_root = resolve_workspace_root_from_option(None)?;
+    let project_path = resolve_workspace_path(&workspace_root, &project_dir)?;
     template_migrate_rollback::list_backups(&project_path).map_err(|error| error.to_string())
 }
 
@@ -943,7 +945,13 @@ pub fn execute_template_migration_rollback(
     backup_id: String,
 ) -> Result<(), String> {
     ensure_authenticated()?;
-    let project_path = PathBuf::from(project_dir);
+    // project_dir のパストラバーサル防止: resolve_workspace_path でワークスペース外参照を拒否する
+    let workspace_root = resolve_workspace_root_from_option(None)?;
+    let project_path = resolve_workspace_path(&workspace_root, &project_dir)?;
+    // backup_id のパストラバーサル防止: ディレクトリ区切り文字や .. を禁止する
+    if backup_id.contains("..") || backup_id.contains('/') || backup_id.contains('\\') {
+        return Err(format!("Invalid backup_id: '{}'", backup_id));
+    }
     let backup_dir = template_migrate_rollback::backup_dir(&project_path, &backup_id);
     template_migrate_rollback::rollback(&project_path, &backup_dir)
         .map_err(|error| error.to_string())

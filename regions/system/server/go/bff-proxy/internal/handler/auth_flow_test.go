@@ -23,11 +23,11 @@ import (
 // mockOAuthClient は OAuthClient インターフェースのテスト用モック。
 // 関数フィールドでメソッドの振る舞いを差し替える。
 type mockOAuthClient struct {
-	authCodeURLFn          func(state, codeChallenge string) (string, error)
-	exchangeCodeFn         func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-	extractSubjectFn       func(ctx context.Context, idToken string) (string, error)
-	logoutURLFn            func(idTokenHint, postLogoutRedirectURI string) (string, error)
-	discoveryCacheCleared  bool
+	authCodeURLFn         func(state, codeChallenge string) (string, error)
+	exchangeCodeFn        func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
+	extractClaimsFn       func(ctx context.Context, idToken string) (string, []string, error)
+	logoutURLFn           func(idTokenHint, postLogoutRedirectURI string) (string, error)
+	discoveryCacheCleared bool
 }
 
 // AuthCodeURL は認可コードフローの URL を構築するモック実装。
@@ -40,9 +40,9 @@ func (m *mockOAuthClient) ExchangeCode(ctx context.Context, code, codeVerifier s
 	return m.exchangeCodeFn(ctx, code, codeVerifier)
 }
 
-// ExtractSubject は ID トークンから subject を抽出するモック実装。
-func (m *mockOAuthClient) ExtractSubject(ctx context.Context, idToken string) (string, error) {
-	return m.extractSubjectFn(ctx, idToken)
+// ExtractClaims は JWKS 署名検証済み ID トークンから subject と realm roles を返すモック実装。
+func (m *mockOAuthClient) ExtractClaims(ctx context.Context, idToken string) (string, []string, error) {
+	return m.extractClaimsFn(ctx, idToken)
 }
 
 // LogoutURL は IdP のログアウト URL を返すモック実装。
@@ -174,8 +174,9 @@ func TestCallback_Success(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		extractSubjectFn: func(_ context.Context, idToken string) (string, error) {
-			return "user-sub-001", nil
+		// ExtractClaims は JWKS 署名検証済み ID トークンから subject と roles を返す
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "user-sub-001", []string{"user"}, nil
 		},
 	}
 
@@ -495,6 +496,41 @@ func TestLogin_RejectsDangerousSchemes(t *testing.T) {
 	}
 }
 
+// TestLogin_RejectsArbitraryCustomScheme は k1s0 以外の任意カスタムスキームを拒否するテスト。
+// allowlist が denylist ではなく許可リスト方式であることを確認する（Finding 6）。
+func TestLogin_RejectsArbitraryCustomScheme(t *testing.T) {
+	mock := &mockOAuthClient{
+		authCodeURLFn: func(state, codeChallenge string) (string, error) {
+			return "https://idp.example.com/auth?state=" + state, nil
+		},
+	}
+
+	// k1s0 以外の任意カスタムスキームはすべて拒否されること
+	arbitrarySchemes := []string{
+		"evilapp://callback",
+		"myapp://open",
+		"com.example.app://auth",
+		"k1s0evil://callback", // k1s0 プレフィックスを含む偽スキームも拒否
+	}
+
+	for _, rawURL := range arbitrarySchemes {
+		t.Run(rawURL, func(t *testing.T) {
+			h := newTestAuthHandler(mock, newMockSessionStore())
+			router := setupTestRouter(h)
+
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodGet, "/auth/login?redirect_to="+url.QueryEscape(rawURL), nil)
+			router.ServeHTTP(w, req)
+
+			cookies := w.Result().Cookies()
+			for _, c := range cookies {
+				assert.NotEqual(t, "k1s0_post_auth_redirect", c.Name,
+					"arbitrary custom scheme should be rejected: "+rawURL)
+			}
+		})
+	}
+}
+
 // TestCallback_MobileRedirect はモバイルリダイレクト付きの Callback テスト。
 // 認証成功後にカスタムスキームへ交換コード付きでリダイレクトされることを検証する。
 func TestCallback_MobileRedirect(t *testing.T) {
@@ -508,8 +544,9 @@ func TestCallback_MobileRedirect(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		extractSubjectFn: func(_ context.Context, idToken string) (string, error) {
-			return "mobile-user-001", nil
+		// ExtractClaims は JWKS 署名検証済み ID トークンから subject と roles を返す
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "mobile-user-001", []string{"user"}, nil
 		},
 	}
 

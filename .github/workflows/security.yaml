@@ -6,6 +6,9 @@ on:
     - cron: '0 2 * * *'    # 毎日 AM 2:00 (UTC)
   pull_request:
     branches: [main]
+  # main マージ後もイメージスキャンを実行する（push の後にイメージが存在するため）
+  push:
+    branches: [main]
 
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
@@ -112,11 +115,12 @@ jobs:
             exit 1
           fi
 
-  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行のみ）
+  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行 + main マージ後）
   # マトリクス戦略で system / business / service ティアの全サービスイメージをスキャン
   image-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    # PR 時はイメージが存在しないためスキップ。スケジュール実行と main マージ後のみ実行する
+    if: github.event_name == 'schedule' || github.event_name == 'push'
     # コンテナイメージの読み取りのみ必要
     permissions:
       contents: read
@@ -139,6 +143,48 @@ jobs:
             service: dlq-manager
           - tier: system
             service: graphql-gateway
+          - tier: system
+            service: search
+          - tier: system
+            service: vault
+          - tier: system
+            service: tenant
+          - tier: system
+            service: session
+          - tier: system
+            service: notification
+          - tier: system
+            service: navigation
+          - tier: system
+            service: master-maintenance
+          - tier: system
+            service: file
+          - tier: system
+            service: featureflag
+          - tier: system
+            service: scheduler
+          - tier: system
+            service: workflow
+          - tier: system
+            service: rule-engine
+          - tier: system
+            service: policy
+          - tier: system
+            service: quota
+          - tier: system
+            service: ratelimit
+          - tier: system
+            service: event-store
+          - tier: system
+            service: event-monitor
+          - tier: system
+            service: api-registry
+          - tier: system
+            service: ai-gateway
+          - tier: system
+            service: ai-agent
+          - tier: system
+            service: service-catalog
           # --- business ティア ---
           - tier: business
             service: domain-master
@@ -168,6 +214,8 @@ jobs:
           image-ref: harbor.internal.example.com/k1s0-${{ matrix.tier }}/${{ matrix.service }}:${{ steps.version.outputs.value }}
           severity: HIGH,CRITICAL
           format: table
+          # HIGH/CRITICAL 脆弱性検出時にジョブを失敗させる（他のスキャンと統一）
+          exit-code: 1
 
   # IaC（Infrastructure as Code）構成ミススキャン
   # Terraform / Kubernetes マニフェストの設定ミスを Trivy で検出
@@ -207,3 +255,89 @@ jobs:
           severity: HIGH,CRITICAL
           format: table
           exit-code: 1
+
+  # SAST（静的アプリケーションセキュリティテスト）
+  # Go: gosec、Rust: clippy security lints によるソースコード脆弱性検出
+  sast:
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      # Go ツールチェインのセットアップ
+      - name: Go セットアップ
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+        with:
+          go-version: '1.24.4'
+
+      # Rust ツールチェインのセットアップ
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Rust セットアップ
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          components: clippy
+
+      # ripgrep のインストール（ファイル探索に使用）
+      - name: ripgrep インストール
+        run: sudo apt-get install -y ripgrep
+
+      # Go の静的セキュリティ解析（gosec）
+      - name: gosec インストール
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Go SAST スキャン
+        id: gosec
+        continue-on-error: true
+        run: bash scripts/security/gosec-scan.sh
+
+      # Rust の静的セキュリティ解析（clippy security lints）
+      - name: Rust SAST スキャン
+        id: clippy-security
+        continue-on-error: true
+        run: bash scripts/security/clippy-security.sh
+
+      # いずれかのスキャンが失敗した場合にジョブ全体を失敗させる
+      - name: SAST 結果の集約
+        run: |
+          echo "Go gosec: ${{ steps.gosec.outcome }}"
+          echo "Rust clippy: ${{ steps.clippy-security.outcome }}"
+          if [ "${{ steps.gosec.outcome }}" = "failure" ] || \
+             [ "${{ steps.clippy-security.outcome }}" = "failure" ]; then
+            echo "::error::One or more SAST scans failed"
+            exit 1
+          fi
+
+  # 全セキュリティジョブの集約ゲート
+  # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
+  # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする
+  security-gate:
+    runs-on: ubuntu-latest
+    # 全セキュリティジョブが完了（成功・失敗問わず）してから実行する
+    needs:
+      - trivy-scan
+      - dependency-check
+      - iac-scan
+      - license-scan
+      - sast
+    # always() を使って前段ジョブが失敗しても本ジョブは必ず実行する
+    if: always()
+    permissions: {}
+    steps:
+      # 全ジョブの結果を検査し、failure があればゲートを閉じる
+      - name: セキュリティスキャン全体の合否判定
+        run: |
+          echo "trivy-scan:       ${{ needs.trivy-scan.result }}"
+          echo "dependency-check: ${{ needs.dependency-check.result }}"
+          echo "iac-scan:         ${{ needs.iac-scan.result }}"
+          echo "license-scan:     ${{ needs.license-scan.result }}"
+          echo "sast:             ${{ needs.sast.result }}"
+          if [ "${{ needs.trivy-scan.result }}"       = "failure" ] || \
+             [ "${{ needs.dependency-check.result }}" = "failure" ] || \
+             [ "${{ needs.iac-scan.result }}"         = "failure" ] || \
+             [ "${{ needs.license-scan.result }}"     = "failure" ] || \
+             [ "${{ needs.sast.result }}"             = "failure" ]; then
+            echo "::error::セキュリティスキャンに失敗したジョブがあります"
+            exit 1
+          fi
+          echo "OK: 全セキュリティスキャンがクリア（またはスキップ）されました"

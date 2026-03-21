@@ -33,3 +33,28 @@ impl std::fmt::Display for HealthState {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// HealthState の Display が小文字文字列を返す
+    #[test]
+    fn display_lowercase() {
+        assert_eq!(HealthState::Healthy.to_string(), "healthy");
+        assert_eq!(HealthState::Degraded.to_string(), "degraded");
+        assert_eq!(HealthState::Unhealthy.to_string(), "unhealthy");
+        assert_eq!(HealthState::Unknown.to_string(), "unknown");
+    }
+
+    /// serde で小文字にシリアライズ・デシリアライズできる
+    #[test]
+    fn serde_roundtrip() {
+        let state = HealthState::Degraded;
+        let json = serde_json::to_string(&state).unwrap();
+        assert_eq!(json, "\"degraded\"");
+        let decoded: HealthState = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, HealthState::Degraded);
+    }
+}

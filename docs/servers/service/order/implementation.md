@@ -98,7 +98,7 @@ tracing = "0.1"
 validator = { version = "0.18", features = ["derive"] }
 
 # Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # k1s0 internal libraries
 k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", features = ["full"] }
@@ -520,13 +520,122 @@ JWT Claims からアクター（操作者）を特定する優先順位:
 
 テストでは `MockOrderRepository` と `MockOrderEventPublisher`（mockall 生成）を使用し、外部依存なしで実行可能。
 
-### インテグレーションテスト
+### 実 DB 統合テスト（T-01/T-02）
 
-`db-tests` feature フラグで DB テストを有効化:
+`tests/integration_db_test.rs` に `#[ignore]` 属性付きの統合テストを配置する。
+通常の `cargo test` ではスキップされ、CI 環境（PostgreSQL サービスコンテナ）でのみ実行される。
 
 ```bash
-cargo test --features db-tests
+# ローカルで実行する場合（DATABASE_URL 要設定）
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/test_db \
+  cargo test --all -- --include-ignored
 ```
+
+| テスト | 内容 |
+| --- | --- |
+| `test_order_crud_with_real_db` | 基本 CRUD（create / find_by_id / find_items_by_order_id） |
+| `test_order_optimistic_lock_with_real_db` | 楽観ロック: 古い version での update_status がエラーになること |
+| `test_order_outbox_events_with_real_db` | Outbox: create 時の自動挿入 / fetch_unpublished / mark_published |
+
+CI では `order-ci.yaml` の `integration-test` ジョブが PostgreSQL 16 サービスコンテナを起動して実行する。
+
+---
+
+## Doc Sync (2026-03-21)
+
+### REST サーバーへの MetricsLayer/CorrelationLayer 追加 [技術品質監査 High R-01]
+
+`startup.rs` の REST router に `MetricsLayer` と `CorrelationLayer` を追加した（file サーバーと同様）。
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
+```
+
+`Cargo.toml` に `k1s0-correlation = { path = "...", features = ["tower-layer"] }` を追加した。
+
+---
+
+### gRPC ハンドラー 認証必須化 [技術品質監査 Critical 2-1]
+
+**背景・問題**
+
+`order_grpc.rs` の `create_order` および `update_order_status` ハンドラーで
+`actor_from_claims(request.extensions().get())` を直接呼び出していた。
+`actor_from_claims` は `None` を受け取ると "anonymous" を返すため、
+認証ミドルウェアが設定した Claims が存在しない場合でも処理が続行する問題があった。
+
+**対応内容**
+
+2つのハンドラーで Claims の存在チェックを明示的に行うよう変更した。
+
+```rust
+// 変更前（None の場合は anonymous として続行）
+let actor = actor_from_claims(request.extensions().get());
+
+// 変更後（Claims がなければ Unauthenticated エラーを返す）
+let claims: &Claims = request
+    .extensions()
+    .get()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+let actor = actor_from_claims(Some(claims));
+```
+
+**影響範囲**
+
+- `src/adapter/grpc/order_grpc.rs`（`create_order`・`update_order_status` ハンドラー）
+
+**設計上の注意**
+
+認証ミドルウェアが正しく設定されている場合、Claims は常に extensions に存在するはずである。
+このチェックは、認証ミドルウェアのバイパスや設定漏れを早期検出するためのフェイルセーフとして機能する。
+
+---
+
+### REST ハンドラー 全エンドポイント認証必須化 [技術品質監査 Critical 2-1 補完]
+
+**問題**
+
+`order_handler.rs` の REST ハンドラーで以下の認証不備が存在した：
+
+- `get_order`・`list_orders`：`Claims` パラメーター自体が欠落しており、未認証リクエストを無条件に受け入れていた
+- `create_order`・`update_order_status`：`Option<Extension<Claims>>` を受け取るが `None` 時の 401 返却がなかった
+
+**修正内容**
+
+全 4 ハンドラーに統一パターンを適用した：
+
+```rust
+// read 系（get_order / list_orders）
+claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+
+// write 系（create_order / update_order_status）
+let claims = claims
+    .ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+let actor = actor_from_claims(Some(&claims.0));
+tracing::info!(actor = %actor, "handler_name invoked");
+```
+
+**影響範囲**
+
+- `src/adapter/handler/order_handler.rs`（全 4 ハンドラー）
+
+---
+
+### テレメトリ初期化の fail-fast 化 [技術品質監査 Medium R-04]
+
+`startup.rs` のテレメトリ初期化を graceful degrade から fail-fast に変更した。
+
+```rust
+k1s0_telemetry::init_telemetry(&telemetry_cfg)
+    .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
+```
+
+### advisory lock によるマイグレーション保護 [技術品質監査 Medium R-05]
+
+`startup.rs` のマイグレーション実行前に PostgreSQL advisory lock を追加した。
+ロック ID: `1000000002`（order サービス専用）。
 
 ---
 

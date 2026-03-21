@@ -61,7 +61,7 @@ reqwest = {workspace = true, features = ["rustls-tls"]}
 axum = {workspace = true, optional = true}
 
 # workspace 未定義の依存はバージョンを直接指定する
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # 社内ライブラリ（path 依存はワークスペース管理外）
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
@@ -349,6 +349,72 @@ while let Some(result) = join_set.join_next().await {
 - **並列度制限**: バックプレッシャー制御のため、`concurrency` で同時実行数を制限
 - **冪等性保証**: `idempotency_key` により重複発行を防止（`ON CONFLICT DO NOTHING`）
 - **エラー伝播**: 個別タスクの失敗は次回のポーリングで再処理
+
+---
+
+## 環境別インフラフォールバック方針 {#環境別フォールバック}
+
+system tier の Rust サーバーでは、インフラ（PostgreSQL / Kafka / Redis / Storage）への接続失敗時の動作を **環境によって明確に切り替える**。これにより、本番環境でのサイレントな品質劣化（データが揮発 InMemory に格納されるなど）を防止する。
+
+### フォールバック許可条件
+
+`k1s0_server_common::allow_in_memory_infra(environment)` が `true` を返す場合のみ InMemory/Noop フォールバックが許可される。
+
+| 状況 | 判定条件 |
+|------|---------|
+| ビルドモード | `debug_assertions` が有効（`cargo build`）、または `dev-infra-bypass` feature が有効 |
+| 環境名 | `"dev"` / `"development"` / `"test"` / `"local"` のいずれか |
+| 環境変数 | `ALLOW_IN_MEMORY_INFRA=true` または `ALLOW_IN_MEMORY_INFRA=1` |
+
+上記 **3条件すべて** を満たす場合のみ InMemory/Noop が許可される。リリースビルドや `"production"` / `"staging"` 等では常に `false`。
+
+### ケース別の動作
+
+| ケース | dev/test | production / staging |
+|--------|----------|----------------------|
+| インフラ設定が **None**（YAML 未記載） | `require_infra()` → warn ログ + Ok(None) → InMemory/Noop 起動 | `require_infra()` → **`Err` を返してサーバー起動を中断** |
+| インフラ設定はあるが **接続に失敗** | `allow_in_memory_infra()` → warn ログ + InMemory/Noop 起動 | `allow_in_memory_infra()` → **`Err` を返してサーバー起動を中断** |
+| 接続 **成功** | 実インフラを使用 | 実インフラを使用 |
+
+### 実装パターン
+
+```rust
+// インフラ設定はあるが接続に失敗した場合の fail-fast パターン。
+// allow_in_memory_infra が false（本番/リリースビルド）の場合は即座にエラーを返す。
+Err(e) => {
+    if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
+        return Err(anyhow::anyhow!(
+            "PostgreSQL 接続に失敗しました。本番環境ではフォールバックは許可されていません: {}",
+            e
+        ));
+    }
+    tracing::warn!(
+        error = %e,
+        "dev/test 環境: インフラ接続失敗のため InMemory フォールバックで起動します"
+    );
+    Arc::new(InMemoryRepository::new())
+}
+
+// インフラ設定が未指定の場合の fail-fast パターン。
+// require_infra が None + 本番環境の場合はエラーを返す。
+} else {
+    k1s0_server_common::require_infra(
+        "service-name",
+        k1s0_server_common::InfraKind::Database,
+        &cfg.app.environment,
+        None::<String>,
+    )?;
+    info!("no database config, using InMemory (dev/test bypass)");
+    Arc::new(InMemoryRepository::new())
+};
+```
+
+### 適用済みサーバー
+
+| サーバー | 対象インフラ | 実装場所 |
+|---------|------------|---------|
+| quota | PostgreSQL（接続失敗）・Kafka（初期化失敗・設定なし） | `quota/src/infrastructure/startup.rs` |
+| file | Kafka（初期化失敗）・DB/Storage/Kafka（設定なし） | `file/src/infrastructure/startup.rs` |
 
 ---
 

@@ -11,11 +11,16 @@
 
 set -euo pipefail
 
-# 本番・ステージング環境では必須変数が設定されていることを検証する
-if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "staging" ]; then
-    : "${VAULT_ADDR:?VAULT_ADDR must be set in production/staging}"
-    : "${VAULT_TOKEN:?VAULT_TOKEN must be set in production/staging}"
-    : "${VAULT_INIT_KEY:?VAULT_INIT_KEY must be set in production/staging}"
+# ENVIRONMENT が未設定の場合は development をデフォルトにする。
+# これにより set -u で未設定変数エラーを防ぎつつ、環境を明示させる。
+ENVIRONMENT="${ENVIRONMENT:-development}"
+
+# development 以外の環境ではすべての必須変数が設定されていることを検証する。
+# production/staging に加え、未知の環境値でも安全側に倒す。
+if [ "$ENVIRONMENT" != "development" ]; then
+    : "${VAULT_ADDR:?VAULT_ADDR must be set in non-development environments}"
+    : "${VAULT_TOKEN:?VAULT_TOKEN must be set in non-development environments}"
+    : "${VAULT_INIT_KEY:?VAULT_INIT_KEY must be set in non-development environments}"
 fi
 
 # 環境変数から取得（未設定時はローカル開発用デフォルト値を使用）

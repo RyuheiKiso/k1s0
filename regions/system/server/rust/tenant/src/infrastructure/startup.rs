@@ -5,6 +5,10 @@ use std::sync::Arc;
 use tracing::info;
 use uuid::Uuid;
 
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::{
     default_conn_max_lifetime, default_max_connections, default_max_idle_conns,
     parse_pool_duration, Config,
@@ -325,6 +329,8 @@ pub async fn run() -> anyhow::Result<()> {
             .build()
             .context("HTTP client の作成に失敗")?,
     };
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, tenant_grpc_action);
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
@@ -340,6 +346,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(TenantServiceServer::new(tenant_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -375,6 +382,22 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// CreateTenant / UpdateTenant / DeleteTenant / SuspendTenant / ActivateTenant /
+/// AddMember / RemoveMember は write、それ以外は read。
+fn tenant_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateTenant"
+        | "UpdateTenant"
+        | "DeleteTenant"
+        | "SuspendTenant"
+        | "ActivateTenant"
+        | "AddMember"
+        | "RemoveMember" => "write",
+        _ => "read",
+    }
 }
 
 // --- InMemory Repository ---

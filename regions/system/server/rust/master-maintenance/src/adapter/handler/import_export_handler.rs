@@ -13,6 +13,7 @@ use crate::adapter::handler::error::AppError;
 use crate::adapter::handler::table_handler::DomainScopeQuery;
 use crate::adapter::handler::{actor_from_claims, publish_change_event, AppState};
 
+/// レコードインポートハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn import_records(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
@@ -20,7 +21,10 @@ pub async fn import_records(
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // Claims が存在しない（未認証）場合は 401 を返す（P0-2 対応）。
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     let job = state
         .import_export_uc
         .import_records(&name, &data, &actor, ds_query.domain_scope.as_deref())
@@ -42,6 +46,7 @@ pub async fn import_records(
     Ok((StatusCode::CREATED, Json(job)))
 }
 
+/// ファイルインポートハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn import_records_file(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
@@ -49,7 +54,10 @@ pub async fn import_records_file(
     Query(ds_query): Query<DomainScopeQuery>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // Claims が存在しない（未認証）場合は 401 を返す（P0-2 対応）。
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     let mut file_name: Option<String> = None;
     let mut file_content: Option<Vec<u8>> = None;
 
@@ -107,11 +115,15 @@ pub async fn import_records_file(
     Ok((StatusCode::CREATED, Json(job)))
 }
 
+/// エクスポートハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn export_records(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(query): Query<ExportQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // read 操作も認証が必要（P0-2 対応）。
+    let _guard = claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let result = state
         .import_export_uc
         .export_records(
@@ -154,10 +166,14 @@ pub async fn export_records(
     }
 }
 
+/// インポートジョブ取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_import_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<uuid::Uuid>,
 ) -> Result<impl IntoResponse, AppError> {
+    // read 操作も認証が必要（P0-2 対応）。
+    let _guard = claims.ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let job = state
         .import_export_uc
         .get_import_job(id)

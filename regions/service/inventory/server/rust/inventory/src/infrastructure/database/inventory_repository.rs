@@ -165,18 +165,22 @@ impl InventoryRepository for InventoryPostgresRepository {
             "reserved_at": now.to_rfc3339(),
         });
 
+        // idempotency_key に event_id を使用して冪等性を保証する
+        let event_id = Uuid::new_v4();
         sqlx::query(
             r#"
-            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (idempotency_key) DO NOTHING
             "#,
         )
-        .bind(Uuid::new_v4())
+        .bind(event_id)
         .bind("inventory")
         .bind(id.to_string())
         .bind("inventory.reserved")
         .bind(&outbox_payload)
         .bind(now)
+        .bind(event_id.to_string())
         .execute(&mut *tx)
         .await?;
 
@@ -253,18 +257,22 @@ impl InventoryRepository for InventoryPostgresRepository {
             "released_at": now.to_rfc3339(),
         });
 
+        // idempotency_key に event_id を使用して冪等性を保証する
+        let event_id = Uuid::new_v4();
         sqlx::query(
             r#"
-            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (idempotency_key) DO NOTHING
             "#,
         )
-        .bind(Uuid::new_v4())
+        .bind(event_id)
         .bind("inventory")
         .bind(id.to_string())
         .bind("inventory.released")
         .bind(&outbox_payload)
         .bind(now)
+        .bind(event_id.to_string())
         .execute(&mut *tx)
         .await?;
 
@@ -352,55 +360,64 @@ impl InventoryRepository for InventoryPostgresRepository {
         event_type: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()> {
+        // idempotency_key に event_id を使用して冪等性を保証する
+        let event_id = Uuid::new_v4();
         sqlx::query(
             r#"
-            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at)
-            VALUES ($1, $2, $3, $4, $5, NOW())
+            INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
+            VALUES ($1, $2, $3, $4, $5, NOW(), $6)
+            ON CONFLICT (idempotency_key) DO NOTHING
             "#,
         )
-        .bind(Uuid::new_v4())
+        .bind(event_id)
         .bind(aggregate_type)
         .bind(aggregate_id)
         .bind(event_type)
         .bind(payload)
+        .bind(event_id.to_string())
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
 
-    /// 単一トランザクション内で未パブリッシュイベントを取得し、即座にパブリッシュ済みとしてマークする。
-    /// FOR UPDATE SKIP LOCKED でロックを取得した行を同一トランザクション内で更新することで、
-    /// 並行ポーラーによる重複処理を確実に防止する。
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>> {
+    /// 未パブリッシュイベントを取得し、processing_at をセットしてクレームする。
+    /// at-least-once 配信のため、publish 成功後に mark_events_published を呼ぶこと。
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
         let mut tx = self.pool.begin().await?;
 
-        // 未パブリッシュイベントを FOR UPDATE SKIP LOCKED でロック付き取得する
+        // FOR UPDATE SKIP LOCKED で排他取得し、同一トランザクション内で processing_at をセット。
+        // これにより他のポーラーが同じイベントを取得することを防ぐ。
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
-            SELECT id, aggregate_type, aggregate_id, event_type, payload,
-                   created_at, published_at
-            FROM outbox_events
-            WHERE published_at IS NULL
-            ORDER BY created_at ASC
-            LIMIT $1
-            FOR UPDATE SKIP LOCKED
+            UPDATE outbox_events
+            SET processing_at = NOW()
+            WHERE id IN (
+                SELECT id FROM outbox_events
+                WHERE published_at IS NULL AND processing_at IS NULL
+                ORDER BY created_at ASC
+                LIMIT $1
+                FOR UPDATE SKIP LOCKED
+            )
+            RETURNING id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at
             "#,
         )
         .bind(limit)
         .fetch_all(&mut *tx)
         .await?;
 
-        if rows.is_empty() {
-            tx.commit().await?;
-            return Ok(vec![]);
-        }
+        // クレーム UPDATE をコミットし、ロックを解放する（processing_at が保護を継続）
+        tx.commit().await?;
 
-        // 取得したイベントのIDを収集し、一括でパブリッシュ済みにマークする
-        let event_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+        Ok(rows.into_iter().map(OutboxEvent::from).collect())
+    }
+
+    /// 指定した ID のイベントをパブリッシュ済みとしてマークする。
+    /// publish 成功後のみ呼び出すことで at-least-once セマンティクスを実現する。
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
         sqlx::query(
             r#"
             UPDATE outbox_events
@@ -408,13 +425,10 @@ impl InventoryRepository for InventoryPostgresRepository {
             WHERE id = ANY($1)
             "#,
         )
-        .bind(&event_ids)
-        .execute(&mut *tx)
+        .bind(ids)
+        .execute(&self.pool)
         .await?;
-
-        tx.commit().await?;
-
-        Ok(rows.into_iter().map(OutboxEvent::from).collect())
+        Ok(())
     }
 }
 
@@ -456,6 +470,9 @@ struct OutboxEventRow {
     payload: serde_json::Value,
     created_at: chrono::DateTime<Utc>,
     published_at: Option<chrono::DateTime<Utc>>,
+    // クレーム方式のポーラー制御用タイムスタンプ（他のポーラーが重複取得しないよう保護する）
+    #[allow(dead_code)]
+    processing_at: Option<chrono::DateTime<Utc>>,
 }
 
 impl From<OutboxEventRow> for OutboxEvent {

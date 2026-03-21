@@ -35,6 +35,8 @@ enum Step {
 /// プロンプトの入出力に失敗した場合、またはプロジェクト初期化に失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
     println!("\n--- プロジェクト初期化 ---\n");
+    // プロジェクトルートから実行していることを案内する
+    println!("  ヒント: このコマンドは k1s0 プロジェクトのルートディレクトリで実行してください。");
 
     let mut step = Step::ProjectName;
     let mut project_name = String::new();
@@ -148,26 +150,33 @@ fn step_git_init() -> Result<Option<bool>> {
 
 /// ステップ3: sparse-checkout
 fn step_sparse_checkout() -> Result<Option<bool>> {
+    // sparse-checkout の概念説明を表示する
+    println!("  sparse-checkout: 必要な Tier のファイルのみをローカルに取得します。");
+    println!("  大規模リポジトリでのクローン時間を短縮できます。");
     prompt::yes_no_prompt("sparse-checkout を有効にしますか？")
 }
 
 /// ステップ4: Tier選択
+///
+/// 空選択の場合は再入力を促すループを使用する（再帰呼び出しを避ける）。
 fn step_tier_selection() -> Result<Option<Vec<Tier>>> {
-    let selected = prompt::multi_select_prompt(
-        "チェックアウトするTierを選択してください（複数選択可）",
-        TIER_LABELS,
-    )?;
+    loop {
+        let selected = prompt::multi_select_prompt(
+            "チェックアウトするTierを選択してください（複数選択可）",
+            TIER_LABELS,
+        )?;
 
-    match selected {
-        None => Ok(None),
-        Some(indices) => {
-            if indices.is_empty() {
-                println!("少なくとも1つのTierを選択してください。");
-                // 再帰的にリトライ
-                step_tier_selection()
-            } else {
-                let tiers: Vec<Tier> = indices.iter().map(|&i| ALL_TIERS[i]).collect();
-                Ok(Some(tiers))
+        match selected {
+            // Esc が押された場合は前のステップに戻る
+            None => return Ok(None),
+            Some(indices) => {
+                if indices.is_empty() {
+                    // 未選択の場合は警告を出して再入力を促す
+                    println!("少なくとも1つのTierを選択してください。");
+                } else {
+                    let tiers: Vec<Tier> = indices.iter().map(|&i| ALL_TIERS[i]).collect();
+                    return Ok(Some(tiers));
+                }
             }
         }
     }

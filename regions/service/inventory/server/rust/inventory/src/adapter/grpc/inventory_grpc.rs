@@ -1,6 +1,7 @@
 use crate::domain::entity::inventory_item::InventoryFilter;
 use crate::domain::entity::inventory_item::InventoryItem as DomainInventoryItem;
 use crate::proto::k1s0::service::inventory::v1::inventory_service_server::InventoryService;
+use k1s0_auth::Claims;
 use crate::proto::k1s0::service::inventory::v1::{
     GetInventoryRequest, GetInventoryResponse, InventoryItem, ListInventoryRequest,
     ListInventoryResponse, ReleaseStockRequest, ReleaseStockResponse, ReserveStockRequest,
@@ -47,6 +48,11 @@ impl InventoryService for InventoryGrpcService {
         &self,
         request: Request<ReserveStockRequest>,
     ) -> Result<Response<ReserveStockResponse>, Status> {
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let req = request.into_inner();
         let item = self
             .reserve_stock_uc
@@ -68,6 +74,11 @@ impl InventoryService for InventoryGrpcService {
         &self,
         request: Request<ReleaseStockRequest>,
     ) -> Result<Response<ReleaseStockResponse>, Status> {
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let req = request.into_inner();
         let item = self
             .release_stock_uc
@@ -90,6 +101,11 @@ impl InventoryService for InventoryGrpcService {
         &self,
         request: Request<GetInventoryRequest>,
     ) -> Result<Response<GetInventoryResponse>, Status> {
+        // read 操作も認証必須（gRPC と REST の認証強度を統一する）。
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let inventory_id = parse_uuid(&request.get_ref().inventory_id, "inventory_id")?;
         let item = self
             .get_inventory_uc
@@ -106,6 +122,11 @@ impl InventoryService for InventoryGrpcService {
         &self,
         request: Request<ListInventoryRequest>,
     ) -> Result<Response<ListInventoryResponse>, Status> {
+        // read 操作も認証必須（gRPC と REST の認証強度を統一する）。
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let req = request.into_inner();
         let page = req.pagination.as_ref().map(|p| p.page).unwrap_or(1).max(1);
         let page_size = req
@@ -132,7 +153,7 @@ impl InventoryService for InventoryGrpcService {
         Ok(Response::new(ListInventoryResponse {
             items: items.into_iter().map(proto_inventory_item).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,
@@ -144,6 +165,11 @@ impl InventoryService for InventoryGrpcService {
         &self,
         request: Request<UpdateStockRequest>,
     ) -> Result<Response<UpdateStockResponse>, Status> {
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
         let req = request.into_inner();
         let inventory_id = parse_uuid(&req.inventory_id, "inventory_id")?;
         let item = self

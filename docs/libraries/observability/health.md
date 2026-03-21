@@ -117,7 +117,7 @@ mockall = { version = "0.13", optional = true }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"], optional = true }
 deadpool-redis = { version = "0.18", optional = true }
 reqwest = { version = "0.12", features = ["json"], optional = true }
-rdkafka = { version = "0.36", features = ["cmake-build"], optional = true }
+rdkafka = { version = "0.37", features = ["cmake-build"], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

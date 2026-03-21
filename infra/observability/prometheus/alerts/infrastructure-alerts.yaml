@@ -12,6 +12,7 @@ groups:
         annotations:
           summary: "TLS certificate expiring in {{ $value | humanizeDuration }}"
           description: "{{ $labels.instance }} の TLS 証明書が {{ $value | humanizeDuration }} 以内に期限切れになります"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
       # TLS 証明書の有効期限が 7 日以内に切れる場合に critical アラートを発火する
       - alert: CertificateExpiringCritical
@@ -22,6 +23,7 @@ groups:
         annotations:
           summary: "TLS certificate expiring in {{ $value | humanizeDuration }} (critical)"
           description: "{{ $labels.instance }} の TLS 証明書が {{ $value | humanizeDuration }} 以内に期限切れになります。早急に更新してください"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
       # cert-manager が管理する証明書の有効期限が 30 日（2592000 秒）以内の場合にアラートを発火する
       - alert: CertManagerCertExpiringSoon
@@ -32,6 +34,7 @@ groups:
         annotations:
           summary: "cert-manager certificate {{ $labels.name }} expiring soon"
           description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）の有効期限が 30 日以内です"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
       # cert-manager が管理する証明書の有効期限が 7 日以内の場合に critical アラートを発火する
       - alert: CertManagerCertExpiringCritical
@@ -42,6 +45,7 @@ groups:
         annotations:
           summary: "cert-manager certificate {{ $labels.name }} expiring in < 7 days (critical)"
           description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）の有効期限が 7 日以内です。早急に確認してください"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
       # cert-manager の証明書発行が Ready でない場合にアラートを発火する
       - alert: CertManagerCertNotReady
@@ -52,3 +56,4 @@ groups:
         annotations:
           summary: "cert-manager certificate {{ $labels.name }} is not ready"
           description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）が Ready 状態ではありません"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"

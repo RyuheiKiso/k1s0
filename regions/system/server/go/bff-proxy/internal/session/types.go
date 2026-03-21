@@ -22,6 +22,9 @@ type SessionData struct {
 	// Subject is the OIDC sub claim (user identifier).
 	Subject string `json:"sub"`
 
+	// Roles は Keycloak realm roles（admin 等の権限管理に使用）。
+	Roles []string `json:"roles,omitempty"`
+
 	// CreatedAt is when the session was created (Unix timestamp).
 	CreatedAt int64 `json:"created_at"`
 }

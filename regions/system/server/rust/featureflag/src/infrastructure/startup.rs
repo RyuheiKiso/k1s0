@@ -7,6 +7,9 @@ use std::time::Duration;
 use tracing::info;
 use uuid::Uuid;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use crate::adapter::grpc::FeatureFlagGrpcService;
 use crate::domain::entity::feature_flag::FeatureFlag;
@@ -273,6 +276,9 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, featureflag_grpc_action);
+
     // AppState for REST handlers
     let mut state = crate::adapter::handler::AppState {
         flag_repo: flag_repo.clone(),
@@ -304,6 +310,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(FeatureFlagServiceServer::new(featureflag_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -341,6 +348,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// フラグの作成・更新・削除・評価（副作用あり）は write、それ以外は read とする。
+fn featureflag_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateFlag" | "UpdateFlag" | "DeleteFlag" | "EvaluateFlag" => "write",
+        _ => "read",
+    }
 }
 
 // --- InMemoryFeatureFlagRepository ---

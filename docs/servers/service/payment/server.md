@@ -14,6 +14,8 @@ Rust で実装する。
 
 Tier: `Tier::Service`。JWKS ベースの JWT 認証と、`require_permission(Tier::Service, "payment", action)` による権限チェックを行う。
 
+> **認証必須チェック**: `startup.rs` で `k1s0_server_common::auth::require_auth_state("payment", env, auth_state)` を呼ぶことで、本番環境では `auth` 設定が未指定の場合に起動を即座に拒否する（S-01 対応）。
+
 service tier の決済管理サーバーは以下の機能を提供する。
 
 | 機能 | 説明 |
@@ -32,7 +34,7 @@ service tier の決済管理サーバーは以下の機能を提供する。
 
 | コンポーネント | Rust |
 | --- | --- |
-| Kafka クライアント | rdkafka v0.36 |
+| Kafka クライアント | rdkafka v0.37 |
 | gRPC | tonic v0.12 |
 
 ### 配置パス
@@ -294,6 +296,21 @@ service PaymentService {
 | `SVC_PAYMENT_INVALID_STATUS_TRANSITION` | 400 | 不正なステータス遷移 |
 | `SVC_PAYMENT_VERSION_CONFLICT` | 409 | 楽観的ロックによるバージョン競合 |
 | `SVC_PAYMENT_INTERNAL_ERROR` | 500 | 内部サーバーエラー |
+
+---
+
+## 冪等性保証
+
+### create の ON CONFLICT 方式
+
+`payment_repository.rs` の `create` メソッドは `ON CONFLICT (order_id) DO NOTHING` を使用して冪等な INSERT を実現する。同一 `order_id` で競合した場合は RETURNING が空になり、既存レコードをフォールバック SELECT で取得して返す。
+
+```
+INSERT INTO payments ... ON CONFLICT (order_id) DO NOTHING RETURNING *
+→ 競合時は None → SELECT で既存レコードを取得
+```
+
+`InitiatePaymentUseCase` は `find_by_order_id` による事前チェック + `create` の二段構成で、アプリケーション層とデータベース層の双方で重複防止を実現する（二重課金防止）。
 
 ---
 

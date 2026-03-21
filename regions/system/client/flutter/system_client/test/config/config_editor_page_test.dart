@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:system_client/system_client.dart';
@@ -113,11 +114,14 @@ void main() {
   });
 
   Future<void> pumpPage(WidgetTester tester) async {
+    // ConsumerStatefulWidget は Riverpod の ProviderScope が必要なためラップする
     await tester.pumpWidget(
-      MaterialApp(
-        home: ConfigEditorPage(
-          dio: mockDio,
-          serviceName: 'test-service',
+      ProviderScope(
+        child: MaterialApp(
+          home: ConfigEditorPage(
+            dio: mockDio,
+            serviceName: 'test-service',
+          ),
         ),
       ),
     );

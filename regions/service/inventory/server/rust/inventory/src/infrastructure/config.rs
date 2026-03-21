@@ -98,10 +98,12 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    /// 接続 URL を生成する。search_path を options に含め、スキーマを明示的に設定する。
+    /// これにより runtime SQL の bare table 名が正しいスキーマに解決される。
     pub fn connection_url(&self) -> String {
         format!(
-            "postgresql://{}:{}@{}:{}/{}?sslmode={}",
-            self.user, self.password, self.host, self.port, self.name, self.ssl_mode
+            "postgresql://{}:{}@{}:{}/{}?sslmode={}&options=-c search_path%3D{}",
+            self.user, self.password, self.host, self.port, self.name, self.ssl_mode, self.schema
         )
     }
 }

@@ -343,7 +343,7 @@ Tauri v2 デスクトップ GUI。React フロントエンドから `#[tauri::co
 
 ## 関連ドキュメント
 
-- [CLIフロー](../docs/CLIフロー.md) — CLI の対話フロー
-- [TauriGUI設計](../docs/TauriGUI設計.md) — GUI の設計仕様
-- [tier-architecture](../docs/tier-architecture.md) — 3 階層アーキテクチャ
-- [コンセプト](../docs/コンセプト.md) — 技術スタック・設計思想
+- [CLIフロー](../docs/cli/flow/CLIフロー.md) — CLI の対話フロー
+- [TauriGUI設計](../docs/cli/gui/TauriGUI設計.md) — GUI の設計仕様
+- [tier-architecture](../docs/architecture/overview/tier-architecture.md) — 3 階層アーキテクチャ
+- [コンセプト](../docs/architecture/overview/コンセプト.md) — 技術スタック・設計思想

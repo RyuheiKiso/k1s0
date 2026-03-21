@@ -6,6 +6,8 @@ use async_trait::async_trait;
 use crate::domain::entity::AgentDefinition;
 
 /// AgentRepository はエージェント定義の永続化を抽象化するトレイト
+// テスト時にmockallによるモック自動生成を有効にする
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AgentRepository: Send + Sync {
     /// IDでエージェント定義を検索する

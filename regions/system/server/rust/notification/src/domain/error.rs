@@ -82,3 +82,56 @@ impl From<NotificationError> for ServiceError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn not_found_to_service_error() {
+        let err = NotificationError::NotFound("notif-123".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+    }
+
+    /// ChannelNotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn channel_not_found_to_service_error() {
+        let err = NotificationError::ChannelNotFound("email-ch".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+    }
+
+    /// AlreadySent エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn already_sent_to_conflict() {
+        let err = NotificationError::AlreadySent("notif-123".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// ChannelDisabled エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn channel_disabled_to_bad_request() {
+        let err = NotificationError::ChannelDisabled("email-ch".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+
+    /// SendFailed エラーが ServiceError::Internal に変換される
+    #[test]
+    fn send_failed_to_internal() {
+        let err = NotificationError::SendFailed("connection timeout".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+
+    /// ValidationFailed エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn validation_failed_to_bad_request() {
+        let err = NotificationError::ValidationFailed("recipient is required".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+}

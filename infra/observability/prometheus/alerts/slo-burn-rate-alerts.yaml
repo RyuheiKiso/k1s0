@@ -1,8 +1,8 @@
 groups:
   - name: slo-burn-rate-alerts
     rules:
-      # system Tier (SLO 99.95%, error_budget = 0.0005)
-      - alert: SLOBurnRateCritical
+      # System Tier (SLO 99.95%, error_budget = 0.0005): エラーバジェット消費速度が 14.4 倍超の場合に Critical アラートを発火する
+      - alert: SystemSLOBurnRateCritical
         expr: |
           (
             (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[1h])) by (service)
@@ -22,8 +22,10 @@ groups:
         annotations:
           summary: "System Tier SLO burn rate critical: {{ $labels.service }}"
           description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-critical.md"
 
-      - alert: SLOBurnRateWarning
+      # System Tier (SLO 99.95%, error_budget = 0.0005): エラーバジェット消費速度が 6 倍超の場合に Warning アラートを発火する
+      - alert: SystemSLOBurnRateWarning
         expr: |
           (
             (1 - (sum(rate(http_requests_total{namespace="k1s0-system", status!~"5.."}[6h])) by (service)
@@ -43,9 +45,10 @@ groups:
         annotations:
           summary: "System Tier SLO burn rate warning: {{ $labels.service }}"
           description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-warning.md"
 
-      # business / service Tier (SLO 99.9%, error_budget = 0.001)
-      - alert: SLOBurnRateCritical
+      # Business / Service Tier (SLO 99.9%, error_budget = 0.001): エラーバジェット消費速度が 14.4 倍超の場合に Critical アラートを発火する
+      - alert: ServiceSLOBurnRateCritical
         expr: |
           (
             (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[1h])) by (service)
@@ -61,11 +64,14 @@ groups:
         for: 2m
         labels:
           severity: critical
+          tier: service
         annotations:
           summary: "{{ $labels.service }} SLO burn rate critical"
           description: "エラーバジェットの消費速度が 14.4 倍を超えています。約 2 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-critical.md"
 
-      - alert: SLOBurnRateWarning
+      # Business / Service Tier (SLO 99.9%, error_budget = 0.001): エラーバジェット消費速度が 6 倍超の場合に Warning アラートを発火する
+      - alert: ServiceSLOBurnRateWarning
         expr: |
           (
             (1 - (sum(rate(http_requests_total{namespace=~"k1s0-business|k1s0-service", status!~"5.."}[6h])) by (service)
@@ -81,6 +87,8 @@ groups:
         for: 5m
         labels:
           severity: warning
+          tier: service
         annotations:
           summary: "{{ $labels.service }} SLO burn rate warning"
           description: "エラーバジェットの消費速度が 6 倍を超えています。約 5 日でバジェットを使い切ります。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/slo-burn-rate-warning.md"

@@ -66,7 +66,8 @@ func (s *PostgresEventStore) Close() error {
 }
 
 func (s *PostgresEventStore) Append(ctx context.Context, streamID StreamId, events []*EventEnvelope, expectedVersion *uint64) (uint64, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	// REPEATABLE READ で楽観的ロックのバージョンチェックをファントムリードから保護する。
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead})
 	if err != nil {
 		return 0, &EventStoreError{Code: "TX_ERROR", Message: err.Error()}
 	}
@@ -96,14 +97,9 @@ func (s *PostgresEventStore) Append(ctx context.Context, streamID StreamId, even
 	version := cv
 	for _, event := range events {
 		version++
-		payload, err := json.Marshal(json.RawMessage(event.Payload))
-		if err != nil {
-			return 0, &EventStoreError{Code: "SERIALIZATION_ERROR", Message: err.Error()}
-		}
-		metadata, err := json.Marshal(json.RawMessage(event.Metadata))
-		if err != nil {
-			return 0, &EventStoreError{Code: "SERIALIZATION_ERROR", Message: err.Error()}
-		}
+		// json.RawMessage はすでに valid JSON バイト列のため json.Marshal での二重エンコードを避ける。
+		payload := []byte(event.Payload)
+		metadata := []byte(event.Metadata)
 
 		_, err = tx.ExecContext(ctx,
 			`INSERT INTO events (event_id, stream_id, version, event_type, payload, metadata, recorded_at)
@@ -158,11 +154,13 @@ func (s *PostgresEventStore) LoadWithLimit(ctx context.Context, streamID StreamI
 }
 
 func (s *PostgresEventStore) LoadFrom(ctx context.Context, streamID StreamId, fromVersion uint64) ([]*EventEnvelope, error) {
+	// defaultLoadLimit で無制限クエリによるメモリ枯渇を防止する（Load() と同一安全策）。
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT event_id, stream_id, version, event_type, payload, metadata, recorded_at
-		 FROM events WHERE stream_id = $1 AND version >= $2 ORDER BY version ASC`,
+		 FROM events WHERE stream_id = $1 AND version >= $2 ORDER BY version ASC LIMIT $3`,
 		streamID.String(),
 		int64(fromVersion),
+		defaultLoadLimit,
 	)
 	if err != nil {
 		return nil, &EventStoreError{Code: "QUERY_ERROR", Message: err.Error()}

@@ -4,6 +4,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use crate::adapter;
 use crate::domain;
 use crate::infrastructure;
@@ -142,6 +146,8 @@ pub async fn run() -> anyhow::Result<()> {
         workflow_repo.clone() as Arc<dyn domain::repository::WorkflowRepository>,
         execute_saga_uc.clone(),
     ));
+    // グレースフルシャットダウン用に task_tracker を AppState へのムーブ前に取得する
+    let task_tracker = start_saga_uc.task_tracker().clone();
 
     let get_saga_uc = Arc::new(usecase::GetSagaUseCase::new(saga_repo.clone()));
     let list_sagas_uc = Arc::new(usecase::ListSagasUseCase::new(saga_repo.clone()));
@@ -187,6 +193,9 @@ pub async fn run() -> anyhow::Result<()> {
             })
             .transpose()?,
     )?;
+
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, saga_grpc_action);
 
     // AppState (REST handler用)
     let mut state = AppState {
@@ -235,6 +244,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SagaServiceServer::new(saga_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -254,6 +264,8 @@ pub async fn run() -> anyhow::Result<()> {
         let _ = k1s0_server_common::shutdown::shutdown_signal().await;
     });
 
+    // task_tracker は start_saga_uc 作成直後（AppState へのムーブ前）に取得済み
+
     // Run REST and gRPC concurrently.
     tokio::select! {
         result = rest_future => {
@@ -268,10 +280,32 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
+    // サーバーが終了した後、実行中の Saga タスクが完了するまで最大 30 秒待機する。
+    // 超過した場合でもタスクは Tokio ランタイムのシャットダウンで強制終了される。
+    let active = task_tracker.active_count();
+    if active > 0 {
+        info!(active_tasks = active, "waiting for in-progress saga tasks to complete (max 30s)");
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            task_tracker.wait_for_completion(),
+        )
+        .await;
+        info!("saga task drain complete");
+    }
+
     // テレメトリのシャットダウン処理
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// StartSaga / CancelSaga / CompensateSaga / RegisterWorkflow は write、それ以外は read。
+fn saga_grpc_action(method: &str) -> &'static str {
+    match method {
+        "StartSaga" | "CancelSaga" | "CompensateSaga" | "RegisterWorkflow" => "write",
+        _ => "read",
+    }
 }
 
 // --- In-memory Saga Repository for dev mode ---

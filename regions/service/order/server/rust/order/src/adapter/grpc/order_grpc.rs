@@ -10,7 +10,7 @@ use crate::proto::k1s0::service::order::v1::{
 use crate::proto::k1s0::system::common::v1::PaginationResult;
 use crate::usecase;
 use chrono::{DateTime, Utc};
-use k1s0_auth::actor_from_claims;
+use k1s0_auth::{actor_from_claims, Claims};
 // カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
 use crate::proto::k1s0::system::common::v1::Timestamp;
 use std::sync::Arc;
@@ -46,7 +46,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<CreateOrderRequest>,
     ) -> Result<Response<CreateOrderResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let input = CreateOrder {
             customer_id: req.customer_id,
@@ -78,6 +83,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<GetOrderRequest>,
     ) -> Result<Response<GetOrderResponse>, Status> {
+        // 多層防御: ミドルウェアを通過しても Claims がなければ認証エラーを返す（defense-in-depth）
+        request
+            .extensions()
+            .get::<Claims>()
+            .cloned()
+            .ok_or_else(|| Status::unauthenticated("Claims not found"))?;
         let order_id = parse_uuid(&request.get_ref().order_id, "order_id")?;
         let (order, items) = self
             .get_order_uc
@@ -94,6 +105,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<ListOrdersRequest>,
     ) -> Result<Response<ListOrdersResponse>, Status> {
+        // 多層防御: ミドルウェアを通過しても Claims がなければ認証エラーを返す（defense-in-depth）
+        request
+            .extensions()
+            .get::<Claims>()
+            .cloned()
+            .ok_or_else(|| Status::unauthenticated("Claims not found"))?;
         let req = request.into_inner();
         let status = req
             .status
@@ -126,7 +143,7 @@ impl OrderService for OrderGrpcService {
         Ok(Response::new(ListOrdersResponse {
             orders: orders.into_iter().map(|o| proto_order(o, vec![])).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,
@@ -138,7 +155,12 @@ impl OrderService for OrderGrpcService {
         &self,
         request: Request<UpdateOrderStatusRequest>,
     ) -> Result<Response<UpdateOrderStatusResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // 認証ミドルウェアが設定したClaimsがない場合は認証エラーを返す
+        let claims: &Claims = request
+            .extensions()
+            .get()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let order_id = parse_uuid(&req.order_id, "order_id")?;
         let new_status: OrderStatus = req

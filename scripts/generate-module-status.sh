@@ -14,6 +14,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MODULES_YAML="${REPO_ROOT}/modules.yaml"
 OUTPUT=""
 
 # 引数パース
@@ -30,13 +31,45 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# A-02 対応: modules.yaml から指定パスの maturity 値を取得する。
+# modules.yaml に明示的に maturity が設定されている場合はそれを優先し、
+# 未設定の場合はファイル構造から自動判定する（後方互換性を維持）。
+get_maturity_from_yaml() {
+  local rel_dir="$1"
+  if command -v python3 >/dev/null 2>&1 && [ -f "$MODULES_YAML" ]; then
+    python3 - "$MODULES_YAML" "$rel_dir" <<'PYEOF' 2>/dev/null || true
+import sys, yaml
+modules_yaml = sys.argv[1]
+target_path = sys.argv[2]
+with open(modules_yaml) as f:
+    data = yaml.safe_load(f)
+for mod in data.get('modules', []):
+    if mod.get('path') == target_path and 'maturity' in mod:
+        print(mod['maturity'])
+        sys.exit(0)
+PYEOF
+  fi
+}
+
 # キーファイルの存在をチェックし、成熟度を判定する関数
+# A-02 対応: modules.yaml に maturity が設定されている場合はそれを使用する。
+# 未設定の場合はファイル構造から自動判定する:
 # template-only: Cargo.toml/go.mod のみ
 # experimental: ソースコードあり、テストなし
 # beta: ソースコード + テスト + Dockerfile のいずれかが存在
 # production: (手動昇格のため自動判定なし)
 check_maturity() {
   local dir="$1"
+  # modules.yaml の相対パスを算出してオーバーライドを確認する
+  local rel_dir
+  rel_dir=$(realpath --relative-to="$REPO_ROOT" "$dir" 2>/dev/null || echo "${dir#"$REPO_ROOT/"}")
+  local yaml_maturity
+  yaml_maturity=$(get_maturity_from_yaml "$rel_dir")
+  if [ -n "$yaml_maturity" ]; then
+    echo "$yaml_maturity"
+    return
+  fi
+
   local has_tests=false
   local has_src=false
   local has_dockerfile=false

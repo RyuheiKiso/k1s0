@@ -265,8 +265,9 @@ k1s0 はモノリポのため、全てのコードをダウンロードすると
 ### k1s0 CLI を使う方法（推奨）
 
 ```bash
-# k1s0 CLI が自動で sparse-checkout を設定してくれる
-k1s0 checkout --region business/accounting
+# k1s0 CLI の対話式ウィザードで sparse-checkout を設定する
+k1s0 init
+# または: k1s0 → よく使う操作 > プロジェクト初期化
 ```
 
 ### 手動で設定する方法

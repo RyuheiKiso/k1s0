@@ -49,7 +49,8 @@ tracing-subscriber = {workspace = true}
 
 # 内部ライブラリ
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["shutdown"] }
+# auth フィーチャーで RBAC ロジック（Tier, check_permission）を利用可能にする（P2-24）
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["shutdown", "auth"] }
 # Correlation ID伝播ライブラリ
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 # サーキットブレーカー: 外部サービス呼び出しの障害伝播を防止する

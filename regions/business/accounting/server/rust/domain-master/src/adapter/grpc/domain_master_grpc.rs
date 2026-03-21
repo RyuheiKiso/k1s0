@@ -25,7 +25,7 @@ use crate::proto::k1s0::business::accounting::domainmaster::v1::{
 use crate::proto::k1s0::system::common::v1::{Pagination, PaginationResult};
 use crate::usecase;
 use chrono::{DateTime, Utc};
-use k1s0_auth::actor_from_claims;
+use k1s0_auth::{actor_from_claims, Claims};
 use prost_types::{value::Kind, ListValue, Struct, Value};
 // カスタム Timestamp 型（k1s0.system.common.v1.Timestamp）を使用
 use crate::proto::k1s0::system::common::v1::Timestamp;
@@ -100,7 +100,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<CreateCategoryRequest>,
     ) -> Result<Response<CreateCategoryResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let input = CreateMasterCategory {
             code: req.code,
@@ -125,7 +130,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<UpdateCategoryRequest>,
     ) -> Result<Response<UpdateCategoryResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let category_id = parse_uuid(&req.category_id, "category_id")?;
         let input = UpdateMasterCategory {
@@ -150,7 +160,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<DeleteCategoryRequest>,
     ) -> Result<Response<DeleteCategoryResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let category_id = parse_uuid(&request.get_ref().category_id, "category_id")?;
         self.manage_categories_uc
             .delete_category_by_id(category_id, &actor)
@@ -196,11 +211,17 @@ impl DomainMasterService for DomainMasterGrpcService {
         }))
     }
 
+    #[allow(clippy::result_large_err)]
     async fn create_item(
         &self,
         request: Request<CreateItemRequest>,
     ) -> Result<Response<CreateItemResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let category_id = parse_uuid(&req.category_id, "category_id")?;
         let input = CreateMasterItem {
@@ -229,11 +250,17 @@ impl DomainMasterService for DomainMasterGrpcService {
         }))
     }
 
+    #[allow(clippy::result_large_err)]
     async fn update_item(
         &self,
         request: Request<UpdateItemRequest>,
     ) -> Result<Response<UpdateItemResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let item_id = parse_uuid(&req.item_id, "item_id")?;
         let input = UpdateMasterItem {
@@ -265,7 +292,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<DeleteItemRequest>,
     ) -> Result<Response<DeleteItemResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let item_id = parse_uuid(&request.get_ref().item_id, "item_id")?;
         self.manage_items_uc
             .delete_item_by_id(item_id, &actor)
@@ -320,7 +352,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<UpsertTenantExtensionRequest>,
     ) -> Result<Response<UpsertTenantExtensionResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let item_id = parse_uuid(&req.item_id, "item_id")?;
         let input = UpsertTenantMasterExtension {
@@ -343,7 +380,12 @@ impl DomainMasterService for DomainMasterGrpcService {
         &self,
         request: Request<DeleteTenantExtensionRequest>,
     ) -> Result<Response<DeleteTenantExtensionResponse>, Status> {
-        let actor = actor_from_claims(request.extensions().get());
+        // Claims が存在しない（未認証）場合は Unauthenticated を返す（P0-2 対応）。
+        let claims: &Claims = request
+            .extensions()
+            .get::<Claims>()
+            .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+        let actor = actor_from_claims(Some(claims));
         let req = request.into_inner();
         let item_id = parse_uuid(&req.item_id, "item_id")?;
         self.manage_tenant_extensions_uc

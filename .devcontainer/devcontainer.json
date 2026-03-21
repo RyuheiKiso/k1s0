@@ -39,7 +39,8 @@
         "42Crunch.vscode-openapi",
         "zxh404.vscode-proto3",
         "GraphQL.vscode-graphql",
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        "DavidAnson.vscode-markdownlint"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -94,5 +95,7 @@
   },
 
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  // devcontainer 起動後にインフラ（postgres/redis/kafka/keycloak等）を自動起動する
+  "postStartCommand": "docker compose --profile infra up -d",
   "remoteUser": "vscode"
 }

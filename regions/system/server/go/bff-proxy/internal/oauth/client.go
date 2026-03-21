@@ -43,6 +43,9 @@ type Client struct {
 	redirectURI  string
 	scopes       []string
 	httpClient   *http.Client
+	// ctx はアプリケーションレベルのコンテキスト。シャットダウン時にJWKSフェッチを含む
+	// バックグラウンド操作がキャンセルされるようにするために保持する。
+	ctx context.Context
 	// mu はoidcConfigとverifierへの並行アクセスを保護するRWMutex。
 	// Discover/ClearDiscoveryCacheは書き込みロック、読み取り系メソッドは読み取りロックを使用する。
 	mu         sync.RWMutex
@@ -53,9 +56,24 @@ type Client struct {
 	verifier *oidc.IDTokenVerifier
 }
 
+// ClientOption は NewClient に渡せるオプション関数型。
+type ClientOption func(*Client)
+
+// WithHTTPTimeout は OAuth HTTP クライアントのタイムアウトを設定するオプション。
+// デフォルト値は 10 秒。テストや低レイテンシ環境での上書きに使用する。
+func WithHTTPTimeout(d time.Duration) ClientOption {
+	return func(c *Client) {
+		c.httpClient = &http.Client{Timeout: d}
+	}
+}
+
 // NewClient creates an OIDC client for the BFF proxy.
-func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes []string) *Client {
-	return &Client{
+// ctx はアプリケーションレベルのコンテキストで、シャットダウン時に JWKS フェッチを
+// キャンセルできるようにするために必要。オプション関数を渡すことで HTTP タイムアウト等の
+// 動作をカスタマイズできる。
+func NewClient(ctx context.Context, discoveryURL, clientID, clientSecret, redirectURI string, scopes []string, opts ...ClientOption) *Client {
+	c := &Client{
+		ctx:          ctx,
 		discoveryURL: discoveryURL,
 		clientID:     clientID,
 		clientSecret: clientSecret,
@@ -63,6 +81,10 @@ func NewClient(discoveryURL, clientID, clientSecret, redirectURI string, scopes 
 		scopes:       scopes,
 		httpClient:   &http.Client{Timeout: 10 * time.Second},
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // Discover fetches the OIDC discovery document and caches the endpoints.
@@ -90,27 +112,27 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, wellKnown, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create discovery request: %w", err)
+		return nil, fmt.Errorf("discovery リクエストの作成に失敗しました: %w", err)
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("OIDC discovery request failed: %w", err)
+		return nil, fmt.Errorf("OIDC discovery リクエストが失敗しました: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("OIDC discovery returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("OIDC discovery がステータス %d を返しました", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read discovery response: %w", err)
+		return nil, fmt.Errorf("discovery レスポンスの読み込みに失敗しました: %w", err)
 	}
 
 	var cfg OIDCConfig
 	if err := json.Unmarshal(body, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse discovery response: %w", err)
+		return nil, fmt.Errorf("discovery レスポンスの解析に失敗しました: %w", err)
 	}
 
 	c.oidcConfig = &cfg
@@ -212,28 +234,28 @@ func (c *Client) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, e
 func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Values) (*TokenResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(data.Encode()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create token request: %w", err)
+		return nil, fmt.Errorf("トークンリクエストの作成に失敗しました: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("token request failed: %w", err)
+		return nil, fmt.Errorf("トークンリクエストが失敗しました: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read token response: %w", err)
+		return nil, fmt.Errorf("トークンレスポンスの読み込みに失敗しました: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token endpoint returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("トークンエンドポイントがステータス %d を返しました: %s", resp.StatusCode, string(body))
 	}
 
 	var tokenResp TokenResponse
 	if err := json.Unmarshal(body, &tokenResp); err != nil {
-		return nil, fmt.Errorf("failed to parse token response: %w", err)
+		return nil, fmt.Errorf("トークンレスポンスの解析に失敗しました: %w", err)
 	}
 
 	return &tokenResp, nil
@@ -261,20 +283,50 @@ func (c *Client) ensureDiscovered() (*OIDCConfig, error) {
 }
 
 // ExtractSubject はIDトークンをJWKSで署名検証し、subクレームを返す。
-// verifierはキャッシュし、JWKS公開鍵の再取得はライブラリ内部のキャッシュに委ねる。
+// ロール取得も必要な場合は ExtractClaims を使用すること。
 func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, error) {
+	subject, _, err := c.ExtractClaims(ctx, idToken)
+	return subject, err
+}
+
+// keycloakIDTokenClaims は Keycloak ID トークンから subject と roles を取得するための claims 構造体。
+// JWKS 署名検証済みのトークンに対して使用する。
+type keycloakIDTokenClaims struct {
+	// RealmAccess は Keycloak realm レベルのロール情報を保持する。
+	RealmAccess struct {
+		Roles []string `json:"roles"`
+	} `json:"realm_access"`
+}
+
+// ExtractClaims は ID トークンを JWKS で署名検証し、subject と realm roles を返す。
+// アクセストークンの署名未検証によるロール改ざんリスクを排除するため、
+// 必ず JWKS 検証済みの ID トークンから roles を取得する。
+// 解析に失敗した場合は空スライスを返す（roles 取得失敗でログインを妨げない）。
+func (c *Client) ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error) {
 	v, err := c.ensureVerifier()
 	if err != nil {
-		return "", err
+		return "", []string{}, err
 	}
 
+	// JWKS による署名検証を行う
 	token, err := v.Verify(ctx, idToken)
 	if err != nil {
-		return "", fmt.Errorf("ID token signature verification failed: %w", err)
+		return "", []string{}, fmt.Errorf("ID トークンの署名検証に失敗しました: %w", err)
 	}
 
-	return token.Subject, nil
+	// 署名検証済みトークンの claims から roles を取得する
+	var claims keycloakIDTokenClaims
+	if claimsErr := token.Claims(&claims); claimsErr != nil {
+		// claims の取得に失敗しても subject は返す（roles は空スライス）
+		return token.Subject, []string{}, nil
+	}
+
+	if claims.RealmAccess.Roles == nil {
+		return token.Subject, []string{}, nil
+	}
+	return token.Subject, claims.RealmAccess.Roles, nil
 }
+
 
 // ensureVerifier はverifierを初期化してキャッシュする。
 // RemoteKeySetはcontext.Backgroundで生成し、JWKS鍵のHTTPフェッチを
@@ -300,16 +352,18 @@ func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
 	}
 
 	if c.oidcConfig == nil {
-		return nil, fmt.Errorf("OIDC not discovered: OIDC discovery not performed; call Discover() first")
+		return nil, fmt.Errorf("OIDC discovery が未完了です。Discover() を先に呼び出してください")
 	}
 
 	cfg := c.oidcConfig
 	if cfg.JwksURI == "" {
-		return nil, fmt.Errorf("jwks_uri not available in OIDC discovery document")
+		return nil, fmt.Errorf("OIDC discovery ドキュメントに jwks_uri が含まれていません")
 	}
 
-	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う
-	keySet := oidc.NewRemoteKeySet(context.Background(), cfg.JwksURI)
+	// JWKSエンドポイントから公開鍵を取得してトークン検証を行う。
+	// c.ctx（アプリケーションレベルのコンテキスト）を使用することで、
+	// シャットダウン時に JWKS のバックグラウンドフェッチがキャンセルされる。
+	keySet := oidc.NewRemoteKeySet(c.ctx, cfg.JwksURI)
 	c.verifier = oidc.NewVerifier(cfg.Issuer, keySet, &oidc.Config{ClientID: c.clientID})
 	return c.verifier, nil
 }

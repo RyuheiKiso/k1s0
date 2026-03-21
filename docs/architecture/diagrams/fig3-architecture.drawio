@@ -1,0 +1,115 @@
+<mxGraphModel pageWidth="820" pageHeight="580" grid="0" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- タイトル -->
+    <mxCell id="t1" value="k1s0 3ティアアーキテクチャ（依存方向の制約）" style="text;html=1;fontSize=17;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="60" y="14" width="700" height="30" as="geometry" />
+    </mxCell>
+
+    <!-- Service Tier コンテナ -->
+    <mxCell id="s_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="68" width="680" height="118" as="geometry" />
+    </mxCell>
+    <mxCell id="s_title" value="Tier 3: Service（個別業務サービス）" style="text;html=1;fontSize=14;fontStyle=1;align=left;strokeColor=none;fillColor=none;fontColor=#1e4d78;" vertex="1" parent="1">
+      <mxGeometry x="72" y="72" width="380" height="22" as="geometry" />
+    </mxCell>
+    <mxCell id="s_ns" value="Namespace: k1s0-service" style="text;html=1;fontSize=10;fontColor=#6c8ebf;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="568" y="72" width="162" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="s1" value="order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="104" width="110" height="68" as="geometry" />
+    </mxCell>
+    <mxCell id="s2" value="inventory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="210" y="104" width="110" height="68" as="geometry" />
+    </mxCell>
+    <mxCell id="s3" value="payment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="340" y="104" width="110" height="68" as="geometry" />
+    </mxCell>
+    <mxCell id="s4" value="（その他&#xa;業務サービス）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;fontSize=11;fontColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="470" y="104" width="110" height="68" as="geometry" />
+    </mxCell>
+
+    <!-- Arrow Service → Business -->
+    <mxCell id="arr1" value="依存（使用可）" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#333333;fontColor=#333333;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s_bg" target="b_bg">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Business Tier コンテナ -->
+    <mxCell id="b_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="240" width="680" height="118" as="geometry" />
+    </mxCell>
+    <mxCell id="b_title" value="Tier 2: Business（業務領域共通）" style="text;html=1;fontSize=14;fontStyle=1;align=left;strokeColor=none;fillColor=none;fontColor=#2d6a2d;" vertex="1" parent="1">
+      <mxGeometry x="72" y="244" width="380" height="22" as="geometry" />
+    </mxCell>
+    <mxCell id="b_ns" value="Namespace: k1s0-business" style="text;html=1;fontSize=10;fontColor=#82b366;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="554" y="244" width="176" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="b1" value="accounting&#xa;（会計）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="276" width="110" height="68" as="geometry" />
+    </mxCell>
+    <mxCell id="b2" value="（業務ドメイン&#xa;共通処理 etc.）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=11;fontColor=#888888;" vertex="1" parent="1">
+      <mxGeometry x="210" y="276" width="110" height="68" as="geometry" />
+    </mxCell>
+
+    <!-- Arrow Business → System -->
+    <mxCell id="arr2" value="依存（使用可）" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#333333;fontColor=#333333;fontSize=11;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="b_bg" target="sys_bg">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- System Tier コンテナ -->
+    <mxCell id="sys_bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d6b656;strokeWidth=2;arcSize=4;" vertex="1" parent="1">
+      <mxGeometry x="60" y="412" width="680" height="118" as="geometry" />
+    </mxCell>
+    <mxCell id="sys_title" value="Tier 1: System（共通基盤 — 28サービス）" style="text;html=1;fontSize=14;fontStyle=1;align=left;strokeColor=none;fillColor=none;fontColor=#7a4700;" vertex="1" parent="1">
+      <mxGeometry x="72" y="416" width="420" height="22" as="geometry" />
+    </mxCell>
+    <mxCell id="sys_ns" value="Namespace: k1s0-system" style="text;html=1;fontSize=10;fontColor=#d6b656;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="558" y="416" width="172" height="16" as="geometry" />
+    </mxCell>
+    <mxCell id="sys1" value="auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="80" y="448" width="80" height="66" as="geometry" />
+    </mxCell>
+    <mxCell id="sys2" value="config" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="172" y="448" width="80" height="66" as="geometry" />
+    </mxCell>
+    <mxCell id="sys3" value="vault" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="264" y="448" width="80" height="66" as="geometry" />
+    </mxCell>
+    <mxCell id="sys4" value="workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="356" y="448" width="80" height="66" as="geometry" />
+    </mxCell>
+    <mxCell id="sys5" value="notify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="448" y="448" width="80" height="66" as="geometry" />
+    </mxCell>
+    <mxCell id="sys6" value="... +23" style="text;html=1;fontSize=13;fontColor=#aaaaaa;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="542" y="472" width="80" height="22" as="geometry" />
+    </mxCell>
+
+    <!-- 逆依存禁止の注釈ボックス -->
+    <mxCell id="forbid" value="&lt;b&gt;逆依存は禁止&lt;/b&gt;&#xa;System → Service 等の上位参照は&#xa;CI で自動検出・ブロック" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontColor=#6a1c1c;align=left;spacingLeft=6;" vertex="1" parent="1">
+      <mxGeometry x="634" y="280" width="176" height="56" as="geometry" />
+    </mxCell>
+
+    <!-- 禁止矢印（右側、System→Serviceの方向に上向き点線） -->
+    <mxCell id="forbid_arr" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;endFill=0;strokeColor=#b85450;strokeWidth=2;dashed=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="754" y="412" as="sourcePoint" />
+        <mxPoint x="754" y="186" as="targetPoint" />
+        <Array as="points">
+          <mxPoint x="754" y="356" />
+          <mxPoint x="754" y="186" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="forbid_x" value="✕" style="text;html=1;fontSize=20;fontColor=#b85450;fontStyle=1;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="744" y="280" width="24" height="24" as="geometry" />
+    </mxCell>
+
+    <!-- 依存方向ガイド文 -->
+    <mxCell id="guide" value="依存は下方向（上位→下位）のみ許可" style="text;html=1;fontSize=12;fontColor=#555555;fontStyle=2;align=center;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+      <mxGeometry x="160" y="544" width="500" height="20" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

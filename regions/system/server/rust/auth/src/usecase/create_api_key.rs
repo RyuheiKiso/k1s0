@@ -99,13 +99,18 @@ fn generate_random_key() -> String {
 /// HMAC-SHA256 を使用して API キーをハッシュ化する。
 /// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
 fn hash_key(raw_key: &str) -> String {
-    use hmac::{Hmac, Mac};
-    use sha2::Sha256;
-    type HmacSha256 = Hmac<Sha256>;
-
     // サーバー側ペッパーを環境変数から取得（未設定時は開発用デフォルト）
     let pepper = std::env::var("API_KEY_PEPPER")
         .unwrap_or_else(|_| "k1s0-dev-pepper-do-not-use-in-production".to_string());
+    compute_hmac_hex(raw_key, &pepper)
+}
+
+/// HMAC-SHA256 ハッシュ計算の内部実装。
+/// テストから環境変数に依存せず直接呼び出せるよう分離する。
+fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
 
     let mut mac = HmacSha256::new_from_slice(pepper.as_bytes())
         .expect("HMAC accepts any key length");
@@ -189,41 +194,33 @@ mod tests {
         }
     }
 
-    /// 同一入力に対して hash_key が決定的な結果を返すことを確認する。
+    /// 同一入力に対して compute_hmac_hex が決定的な結果を返すことを確認する。
+    /// 環境変数を使わず compute_hmac_hex を直接呼び出してテスト間の競合を回避する。
     #[test]
     fn test_hash_key_deterministic() {
-        // 環境変数を固定してテスト間の競合を防ぐ
-        std::env::set_var("API_KEY_PEPPER", "test-pepper-deterministic");
+        let pepper = "test-pepper-deterministic";
         let key = "k1s0_test_deterministic_key";
-        let h1 = hash_key(key);
-        let h2 = hash_key(key);
+        let h1 = compute_hmac_hex(key, pepper);
+        let h2 = compute_hmac_hex(key, pepper);
         assert_eq!(h1, h2, "同一入力に対するハッシュは一致すべき");
     }
 
-    /// 異なる入力に対して hash_key が異なるハッシュを返すことを確認する。
+    /// 異なる入力に対して compute_hmac_hex が異なるハッシュを返すことを確認する。
     #[test]
     fn test_hash_key_different_inputs() {
-        let h1 = hash_key("k1s0_key_alpha");
-        let h2 = hash_key("k1s0_key_beta");
+        let pepper = "test-pepper-inputs";
+        let h1 = compute_hmac_hex("k1s0_key_alpha", pepper);
+        let h2 = compute_hmac_hex("k1s0_key_beta", pepper);
         assert_ne!(h1, h2, "異なる入力に対するハッシュは異なるべき");
     }
 
     /// ペッパーが変わるとハッシュ値も変わることを確認する。
+    /// 環境変数を使わず compute_hmac_hex を直接呼び出してテスト間の競合を回避する。
     #[test]
     fn test_hash_key_pepper_changes_output() {
         let key = "k1s0_pepper_test_key_12345";
-
-        // デフォルトペッパーでハッシュ生成
-        std::env::remove_var("API_KEY_PEPPER");
-        let h_default = hash_key(key);
-
-        // カスタムペッパーでハッシュ生成
-        std::env::set_var("API_KEY_PEPPER", "custom-test-pepper");
-        let h_custom = hash_key(key);
-
-        // テスト後に環境変数をクリーンアップ
-        std::env::remove_var("API_KEY_PEPPER");
-
+        let h_default = compute_hmac_hex(key, "k1s0-dev-pepper-do-not-use-in-production");
+        let h_custom = compute_hmac_hex(key, "custom-test-pepper");
         assert_ne!(
             h_default, h_custom,
             "ペッパーが異なればハッシュも異なるべき"

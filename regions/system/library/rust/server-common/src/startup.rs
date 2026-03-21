@@ -8,7 +8,7 @@
 //! ```rust,ignore
 //! use k1s0_server_common::startup::ServerBuilder;
 //!
-//! let builder = ServerBuilder::new("k1s0-notification-server", "0.1.0");
+//! let builder = ServerBuilder::new("k1s0-notification-server", "0.1.0", "system");
 //! builder.init_telemetry(&cfg.app.environment, &cfg.observability)?;
 //! let pool = builder.init_db_pool_from_config(&cfg.database).await?;
 //! let jwks = builder.init_jwks_verifier(&cfg.auth)?;
@@ -34,20 +34,18 @@ pub struct ServerBuilder {
 
 impl ServerBuilder {
     /// 新しい ServerBuilder を生成する。
-    /// service_name と version は全初期化処理で共有される識別子。
-    pub fn new(service_name: impl Into<String>, version: impl Into<String>) -> Self {
+    /// service_name・version・tier は全初期化処理で共有される識別子。
+    /// tier は "system" / "business" / "service" のいずれかを指定する（デフォルト値なし）。
+    pub fn new(
+        service_name: impl Into<String>,
+        version: impl Into<String>,
+        tier: impl Into<String>,
+    ) -> Self {
         Self {
             service_name: service_name.into(),
             version: version.into(),
-            tier: "system".to_string(),
+            tier: tier.into(),
         }
-    }
-
-    /// サービス階層を設定する（デフォルト: "system"）。
-    /// business 層のサーバーでは "business" を指定する。
-    pub fn tier(mut self, tier: impl Into<String>) -> Self {
-        self.tier = tier.into();
-        self
     }
 
     /// サービス名を取得する。
@@ -293,25 +291,25 @@ pub fn parse_pool_duration(raw: &str) -> Option<std::time::Duration> {
 mod tests {
     use super::*;
 
-    /// ServerBuilder のデフォルト tier が "system" であることを確認する。
+    /// ServerBuilder に tier を必須引数として渡せることを確認する（P2-34）。
     #[test]
-    fn test_server_builder_default_tier() {
-        let builder = ServerBuilder::new("test-server", "0.1.0");
+    fn test_server_builder_with_tier() {
+        let builder = ServerBuilder::new("test-server", "0.1.0", "system");
         assert_eq!(builder.service_name(), "test-server");
         assert_eq!(builder.tier, "system");
     }
 
-    /// tier() で階層を変更できることを確認する。
+    /// business tier を指定した ServerBuilder を作成できることを確認する。
     #[test]
-    fn test_server_builder_custom_tier() {
-        let builder = ServerBuilder::new("test-server", "0.1.0").tier("business");
+    fn test_server_builder_business_tier() {
+        let builder = ServerBuilder::new("test-server", "0.1.0", "business");
         assert_eq!(builder.tier, "business");
     }
 
     /// create_metrics() がサービス名付きの Metrics を返すことを確認する。
     #[test]
     fn test_create_metrics() {
-        let builder = ServerBuilder::new("test-server", "0.1.0");
+        let builder = ServerBuilder::new("test-server", "0.1.0", "system");
         let metrics = builder.create_metrics();
         // Metrics が生成されていることを確認（内部の service_name は非公開だが生成自体を検証）
         drop(metrics);

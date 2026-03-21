@@ -7,6 +7,8 @@ use crate::domain::entity::usage_record::UsageRecord;
 
 /// 使用量リポジトリのインターフェース。
 /// 使用量レコードの永続化とテナント別検索を提供する。
+// テスト時にmockallによるモック自動生成を有効にする
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait UsageRepository: Send + Sync {
     /// 使用量レコードを保存する。

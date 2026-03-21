@@ -5,6 +5,10 @@ use std::sync::Arc;
 
 use tracing::info;
 
+// gRPC 認証レイヤー
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::cache::IndexCache;
 use super::config::Config;
 use super::kafka_producer::{KafkaSearchProducer, NoopSearchEventPublisher, SearchEventPublisher};
@@ -54,6 +58,7 @@ pub async fn run() -> anyhow::Result<()> {
             &os_cfg.username,
             &os_cfg.password,
             &os_cfg.index_prefix,
+            os_cfg.tls_insecure,
         )?;
         Arc::new(repo)
     } else {
@@ -186,6 +191,8 @@ pub async fn run() -> anyhow::Result<()> {
         metrics: metrics.clone(),
         auth_state: None,
     };
+    // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, search_grpc_action);
     if let Some(auth_st) = auth_state {
         handler_state = handler_state.with_auth(auth_st);
     }
@@ -312,6 +319,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(SearchServiceServer::new(search_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -348,6 +356,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名から必要な RBAC アクション文字列を返す。
+/// CreateIndex / IndexDocument / DeleteDocument は write、それ以外は read。
+fn search_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateIndex" | "IndexDocument" | "DeleteDocument" => "write",
+        _ => "read",
+    }
 }
 
 async fn metrics_handler(

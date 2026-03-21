@@ -5,6 +5,9 @@ use std::time::Duration;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::in_memory::{InMemoryFileMetadataRepository, InMemoryFileStorageRepository};
 use super::kafka_producer::{FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher};
@@ -125,7 +128,18 @@ pub async fn run() -> anyhow::Result<()> {
                 Arc::new(p)
             }
             Err(e) => {
-                tracing::warn!("Failed to create Kafka publisher, using noop: {}", e);
+                // 環境に応じてフォールバックの許否を判断する。
+                // dev/test 以外では Kafka 初期化失敗時に即座にサーバー起動を中断する。
+                if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
+                    return Err(anyhow::anyhow!(
+                        "Kafka パブリッシャーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {}",
+                        e
+                    ));
+                }
+                tracing::warn!(
+                    error = %e,
+                    "dev/test 環境: Kafka 初期化失敗のため NoopFileEventPublisher で起動します"
+                );
                 Arc::new(NoopFileEventPublisher)
             }
         }
@@ -191,6 +205,9 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, file_grpc_action);
+
     // REST app state
     let mut state = crate::adapter::handler::AppState {
         list_files_uc: list_files_uc.clone(),
@@ -234,6 +251,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(FileServiceServer::new(tonic_svc))
             .serve_with_shutdown(grpc_addr, async move {
@@ -271,4 +289,13 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// アップロード URL 生成・アップロード完了・ファイル削除・タグ更新は write、それ以外は read とする。
+fn file_grpc_action(method: &str) -> &'static str {
+    match method {
+        "GenerateUploadUrl" | "CompleteUpload" | "DeleteFile" | "UpdateFileTags" => "write",
+        _ => "read",
+    }
 }

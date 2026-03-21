@@ -58,3 +58,52 @@ impl From<WorkflowError> for ServiceError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn not_found_to_service_error() {
+        let err = WorkflowError::NotFound("wf-123".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+    }
+
+    /// AlreadyExists エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn already_exists_to_conflict() {
+        let err = WorkflowError::AlreadyExists("approval-flow".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// InvalidStatusTransition エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn invalid_status_transition_to_bad_request() {
+        let err = WorkflowError::InvalidStatusTransition {
+            from: "pending".to_string(),
+            to: "completed".to_string(),
+        };
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+        assert!(svc.to_string().contains("pending"));
+    }
+
+    /// ValidationFailed エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn validation_failed_to_bad_request() {
+        let err = WorkflowError::ValidationFailed("steps cannot be empty".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+
+    /// Internal エラーが ServiceError::Internal に変換される
+    #[test]
+    fn internal_to_internal() {
+        let err = WorkflowError::Internal("db error".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+}

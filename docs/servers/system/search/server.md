@@ -550,6 +550,7 @@ opensearch:
   username: "app"
   password: ""
   index_prefix: "k1s0-"
+  tls_insecure: false  # 本番環境では必ず false。true にすると TLS 証明書検証が無効化される（開発環境のみ使用可）
 
 kafka:
   brokers:

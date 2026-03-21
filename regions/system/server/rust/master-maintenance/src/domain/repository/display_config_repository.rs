@@ -2,6 +2,7 @@ use crate::domain::entity::display_config::DisplayConfig;
 use async_trait::async_trait;
 use uuid::Uuid;
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DisplayConfigRepository: Send + Sync {
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<DisplayConfig>>;

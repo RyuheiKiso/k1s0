@@ -126,6 +126,10 @@ pub struct JwksVerifier {
     issuer: String,
     audience: String,
     cache_ttl: Duration,
+    /// JWKS 取得失敗時に stale キャッシュを使用できる最大期間。
+    /// この期間を超えると stale キャッシュを返さずエラーを伝播する。
+    /// デフォルト: 1時間。
+    max_stale_duration: Duration,
     cache: Arc<RwLock<Option<JwksCache>>>,
     fetcher: Arc<dyn JwksFetcher>,
 }
@@ -133,6 +137,7 @@ pub struct JwksVerifier {
 impl JwksVerifier {
     /// 新しい JwksVerifier を生成する。
     /// DefaultJwksFetcher の HTTP クライアント構築に失敗した場合はエラーを返す。
+    /// max_stale_duration: JWKS 取得失敗時に stale キャッシュを許容する最大期間（デフォルト: 1時間）。
     pub fn new(
         jwks_url: &str,
         issuer: &str,
@@ -144,6 +149,8 @@ impl JwksVerifier {
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
+            // stale キャッシュは最大 1時間まで許容する
+            max_stale_duration: Duration::from_secs(3600),
             cache: Arc::new(RwLock::new(None)),
             fetcher: Arc::new(DefaultJwksFetcher::new()?),
         })
@@ -162,9 +169,18 @@ impl JwksVerifier {
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
+            max_stale_duration: Duration::from_secs(3600),
             cache: Arc::new(RwLock::new(None)),
             fetcher,
         }
+    }
+
+    /// max_stale_duration を上書きする（テスト用ビルダー）。
+    /// JWKS 取得失敗時に stale キャッシュを許容する最大期間を変更する。
+    #[cfg(test)]
+    pub fn with_max_stale_duration(mut self, max_stale_duration: Duration) -> Self {
+        self.max_stale_duration = max_stale_duration;
+        self
     }
 
     /// JWT トークン文字列を検証し、Claims を返す。
@@ -231,9 +247,21 @@ impl JwksVerifier {
                 Ok(keys_arc)
             }
             Err(err) => {
-                // fetch 失敗時、stale キャッシュがあればそれを返す（Go 実装と同等）
+                // fetch 失敗時、max_stale_duration 以内の stale キャッシュがあれば返す。
+                // max_stale_duration を超えた stale キャッシュは使用せずエラーを伝播する。
                 if let Some(ref c) = *cache {
-                    return Ok(Arc::clone(&c.keys));
+                    if c.fetched_at.elapsed() < self.max_stale_duration {
+                        tracing::warn!(
+                            elapsed_secs = c.fetched_at.elapsed().as_secs(),
+                            max_stale_secs = self.max_stale_duration.as_secs(),
+                            "JWKS fetch failed, using stale cache"
+                        );
+                        return Ok(Arc::clone(&c.keys));
+                    }
+                    tracing::error!(
+                        elapsed_secs = c.fetched_at.elapsed().as_secs(),
+                        "JWKS stale cache exceeded max_stale_duration, rejecting"
+                    );
                 }
                 Err(err)
             }

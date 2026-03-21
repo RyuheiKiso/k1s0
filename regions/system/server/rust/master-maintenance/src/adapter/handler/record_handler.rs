@@ -23,11 +23,16 @@ pub struct ListRecordsQuery {
     pub domain_scope: Option<String>,
 }
 
+/// レコード一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_records(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(name): Path<String>,
     Query(query): Query<ListRecordsQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _guard = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let result = state
         .crud_records_uc
         .list_records(
@@ -56,11 +61,16 @@ pub async fn list_records(
     })))
 }
 
+/// レコード取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_record(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    // 認証トークンが存在しない場合は 401 を返す
+    let _guard = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
     let record = state
         .crud_records_uc
         .get_record(&name, &id, ds_query.domain_scope.as_deref())
@@ -69,6 +79,7 @@ pub async fn get_record(
     Ok(Json(record))
 }
 
+/// レコード作成ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn create_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
@@ -76,7 +87,10 @@ pub async fn create_record(
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // 認証トークンが存在しない場合は 401 を返す
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     let result = state
         .crud_records_uc
         .create_record(
@@ -110,6 +124,7 @@ pub async fn create_record(
     ))
 }
 
+/// レコード更新ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn update_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
@@ -117,7 +132,10 @@ pub async fn update_record(
     Query(ds_query): Query<DomainScopeQuery>,
     Json(data): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // 認証トークンが存在しない場合は 401 を返す
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     let result = state
         .crud_records_uc
         .update_record(
@@ -149,13 +167,17 @@ pub async fn update_record(
     })))
 }
 
+/// レコード削除ハンドラー。書き込み操作のため認証必須（P0-2 対応）。
 pub async fn delete_record(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path((name, id)): Path<(String, String)>,
     Query(ds_query): Query<DomainScopeQuery>,
 ) -> Result<StatusCode, AppError> {
-    let actor = actor_from_claims(claims.as_ref().map(|Extension(claims)| claims));
+    // 認証トークンが存在しない場合は 401 を返す
+    let claims_ext = claims
+        .ok_or_else(|| AppError::unauthorized("SYS_MM_AUTH_REQUIRED", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims_ext.0));
     state
         .crud_records_uc
         .delete_record(

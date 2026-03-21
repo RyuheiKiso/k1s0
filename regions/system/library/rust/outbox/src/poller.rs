@@ -3,19 +3,23 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use tokio::time;
+use uuid::Uuid;
 
 use crate::event::OutboxEvent;
 
 /// OutboxEventSource はアウトボックスイベントの取得元インターフェース。
 ///
 /// 各サービスのリポジトリトレイトがこのトレイトを実装する。
-/// 単一トランザクション内で fetch + mark を実行し、並行ポーラー間の重複処理を防止する。
+/// fetch と mark を分離することで、at-least-once（最低1回）配信を実現する。
 #[async_trait]
 pub trait OutboxEventSource: Send + Sync {
-    /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
+    /// 未パブリッシュのイベントを取得する（mark は行わない）。
     /// FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
-    async fn fetch_and_mark_events_published(&self, limit: i64)
-        -> anyhow::Result<Vec<OutboxEvent>>;
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>>;
+
+    /// 指定した ID のイベントをパブリッシュ済みとしてマークする。
+    /// publish 成功後のみ呼び出すことで at-least-once セマンティクスを実現する。
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
 }
 
 /// OutboxEventHandler はイベント種別ごとの変換・パブリッシュロジックを抽象化する。
@@ -28,16 +32,18 @@ pub trait OutboxEventHandler: Send + Sync {
     async fn handle_event(&self, event: &OutboxEvent) -> anyhow::Result<bool>;
 }
 
-/// OutboxEventFetcher はリポジトリ層の fetch_and_mark_events_published を抽象化するトレイト。
+/// OutboxEventFetcher はリポジトリ層の outbox 操作を抽象化するトレイト。
 ///
 /// 各サービスのリポジトリトレイトには他のメソッド（find_by_id 等）も含まれるため、
 /// OutboxEventSource を直接実装するのは困難。
 /// このトレイトを使えば、リポジトリを OutboxEventSource として簡単にラップできる。
 #[async_trait]
 pub trait OutboxEventFetcher: Send + Sync {
-    /// 未パブリッシュのイベントを取得しパブリッシュ済みとしてマークする。
-    async fn fetch_and_mark_events_published(&self, limit: i64)
-        -> anyhow::Result<Vec<OutboxEvent>>;
+    /// 未パブリッシュのイベントを取得する（mark は行わない）。
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>>;
+
+    /// 指定した ID のイベントをパブリッシュ済みとしてマークする。
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
 }
 
 /// RepositoryOutboxSource は OutboxEventFetcher を OutboxEventSource にアダプトする。
@@ -59,12 +65,14 @@ impl<R: OutboxEventFetcher + ?Sized> RepositoryOutboxSource<R> {
 
 #[async_trait]
 impl<R: OutboxEventFetcher + ?Sized + 'static> OutboxEventSource for RepositoryOutboxSource<R> {
-    /// リポジトリの fetch_and_mark_events_published に委譲する
-    async fn fetch_and_mark_events_published(
-        &self,
-        limit: i64,
-    ) -> anyhow::Result<Vec<OutboxEvent>> {
-        self.repo.fetch_and_mark_events_published(limit).await
+    /// リポジトリの fetch_unpublished_events に委譲する
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
+        self.repo.fetch_unpublished_events(limit).await
+    }
+
+    /// リポジトリの mark_events_published に委譲する
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()> {
+        self.repo.mark_events_published(ids).await
     }
 }
 
@@ -140,37 +148,26 @@ impl OutboxEventPoller {
 
     /// 未パブリッシュイベントを取得し、ハンドラに委譲してパブリッシュする。
     ///
-    /// # At-Most-Once 配信セマンティクス
+    /// # At-Least-Once 配信セマンティクス
     ///
-    /// このメソッドは意図的に at-most-once（最大1回）配信を採用している。
-    /// イベントはディスパッチ（Kafka publish）の **前に** パブリッシュ済みとしてマークされる。
+    /// このメソッドは at-least-once（最低1回）配信を採用している。
+    /// イベントはディスパッチ（Kafka publish）の **成功後に** パブリッシュ済みとしてマークされる。
     /// これにより、以下の動作となる：
     ///
-    /// - ディスパッチ成功時：イベントは正確に1回配信される
-    /// - ディスパッチ失敗時：イベントはリトライされない（イベントロストの可能性）
-    ///
-    /// ## なぜ at-most-once を選択したか
-    ///
-    /// at-least-once（最低1回）を採用すると、ディスパッチ失敗時にイベントが未マークのまま残り、
-    /// 次回ポーリングで再取得・再送信される。これはコンシューマー側での重複イベント処理
-    /// （冪等性の実装）が必要となり、システム全体の複雑性が増す。
-    /// at-most-once は重複イベントを完全に防止し、コンシューマーの実装をシンプルに保つ。
+    /// - ディスパッチ成功時：イベントはマークされ、次回ポーリングでスキップされる
+    /// - ディスパッチ失敗時：イベントはマークされず、次回ポーリングでリトライされる
     ///
     /// ## トレードオフ
     ///
-    /// - メリット：重複イベントが発生しない。コンシューマーに冪等性が不要
-    /// - デメリット：Kafka 障害時にイベントが失われる可能性がある
+    /// - メリット：Kafka 障害時にイベントが失われない（少なくとも1回配信）
+    /// - デメリット：重複イベントが発生する可能性がある（コンシューマー側での冪等性が必要）
     ///
-    /// 将来 at-least-once が必要になった場合は、マークをディスパッチ後に移動し、
-    /// コンシューマー側に冪等性チェックを追加する必要がある。
+    /// コンシューマーは outbox の `id` または `idempotency_key` を使って重複排除すること。
     async fn poll_and_publish(&self) -> anyhow::Result<()> {
-        // アトミック fetch-and-mark パターン：
-        // 単一トランザクション内で「未パブリッシュイベントの取得」と「パブリッシュ済みマーク」を
-        // 同時に実行する。FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
-        // マークがディスパッチ前に完了するため、at-most-once セマンティクスとなる。
+        // fetch のみ（mark はここでは行わない）
         let events = self
             .source
-            .fetch_and_mark_events_published(self.batch_size)
+            .fetch_unpublished_events(self.batch_size)
             .await?;
 
         if events.is_empty() {
@@ -178,6 +175,8 @@ impl OutboxEventPoller {
         }
 
         tracing::debug!(count = events.len(), "processing outbox events");
+
+        let mut published_ids: Vec<Uuid> = Vec::new();
 
         for event in &events {
             // ハンドラにイベント変換・パブリッシュを委譲する
@@ -188,27 +187,35 @@ impl OutboxEventPoller {
                         event_type = %event.event_type,
                         "outbox event published successfully"
                     );
+                    // publish 成功のみ mark 対象に追加する
+                    published_ids.push(event.id);
                 }
                 Ok(false) => {
                     // ハンドラが処理をスキップした場合（未知のイベント種別など）
+                    // スキップしたイベントも mark して再処理しないようにする
                     tracing::warn!(
                         event_type = %event.event_type,
                         event_id = %event.id,
                         "unknown outbox event type, skipping"
                     );
+                    published_ids.push(event.id);
                 }
                 Err(err) => {
-                    // publish 失敗時：マークは既にトランザクション内で完了済みのため、
-                    // このイベントはリトライされない（at-most-once 保証）。
-                    // これは意図的な設計であり、重複イベント処理を防ぐためのトレードオフ。
+                    // publish 失敗時：mark しないことで次回ポーリングにてリトライされる。
+                    // これは at-least-once 保証のためのトレードオフ（重複配信の可能性）。
                     tracing::warn!(
                         error = %err,
                         event_id = %event.id,
                         event_type = %event.event_type,
-                        "failed to publish outbox event (already marked as published)"
+                        "failed to publish outbox event, will retry on next poll"
                     );
                 }
             }
+        }
+
+        // publish 成功したイベントのみを一括で mark する
+        if !published_ids.is_empty() {
+            self.source.mark_events_published(&published_ids).await?;
         }
 
         Ok(())
@@ -227,11 +234,12 @@ mod tests {
 
     #[async_trait]
     impl OutboxEventSource for EmptySource {
-        async fn fetch_and_mark_events_published(
-            &self,
-            _limit: i64,
-        ) -> anyhow::Result<Vec<OutboxEvent>> {
+        async fn fetch_unpublished_events(&self, _limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
             Ok(vec![])
+        }
+
+        async fn mark_events_published(&self, _ids: &[Uuid]) -> anyhow::Result<()> {
+            Ok(())
         }
     }
 
@@ -242,11 +250,12 @@ mod tests {
 
     #[async_trait]
     impl OutboxEventSource for FixedSource {
-        async fn fetch_and_mark_events_published(
-            &self,
-            _limit: i64,
-        ) -> anyhow::Result<Vec<OutboxEvent>> {
+        async fn fetch_unpublished_events(&self, _limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
             Ok(self.events.clone())
+        }
+
+        async fn mark_events_published(&self, _ids: &[Uuid]) -> anyhow::Result<()> {
+            Ok(())
         }
     }
 
@@ -339,6 +348,7 @@ mod tests {
     }
 
     // パブリッシュ失敗時もポーラー自体はエラーにならないことを確認する。
+    // at-least-once: 失敗したイベントは mark されず、次回ポーリングでリトライされる。
     #[tokio::test]
     async fn test_poll_and_publish_failure_does_not_fail_poller() {
         let source = FixedSource {
@@ -383,11 +393,12 @@ mod tests {
 
     #[async_trait]
     impl OutboxEventFetcher for EmptyFetcher {
-        async fn fetch_and_mark_events_published(
-            &self,
-            _limit: i64,
-        ) -> anyhow::Result<Vec<OutboxEvent>> {
+        async fn fetch_unpublished_events(&self, _limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
             Ok(vec![])
+        }
+
+        async fn mark_events_published(&self, _ids: &[Uuid]) -> anyhow::Result<()> {
+            Ok(())
         }
     }
 
@@ -398,11 +409,12 @@ mod tests {
 
     #[async_trait]
     impl OutboxEventFetcher for FixedFetcher {
-        async fn fetch_and_mark_events_published(
-            &self,
-            _limit: i64,
-        ) -> anyhow::Result<Vec<OutboxEvent>> {
+        async fn fetch_unpublished_events(&self, _limit: i64) -> anyhow::Result<Vec<OutboxEvent>> {
             Ok(self.events.clone())
+        }
+
+        async fn mark_events_published(&self, _ids: &[Uuid]) -> anyhow::Result<()> {
+            Ok(())
         }
     }
 
@@ -410,7 +422,7 @@ mod tests {
     #[tokio::test]
     async fn test_repository_outbox_source_empty() {
         let source = RepositoryOutboxSource::new(Arc::new(EmptyFetcher));
-        let events = source.fetch_and_mark_events_published(10).await.unwrap();
+        let events = source.fetch_unpublished_events(10).await.unwrap();
         assert!(events.is_empty());
     }
 
@@ -421,7 +433,7 @@ mod tests {
             events: vec![sample_event("test.created")],
         };
         let source = RepositoryOutboxSource::new(Arc::new(fetcher));
-        let events = source.fetch_and_mark_events_published(10).await.unwrap();
+        let events = source.fetch_unpublished_events(10).await.unwrap();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].event_type, "test.created");
     }

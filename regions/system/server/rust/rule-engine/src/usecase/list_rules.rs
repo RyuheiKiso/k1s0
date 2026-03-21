@@ -59,3 +59,83 @@ impl ListRulesUseCase {
         })
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::rule::Rule;
+    use crate::domain::repository::rule_repository::MockRuleRepository;
+
+    fn sample_rule(name: &str) -> Rule {
+        Rule::new(
+            name.to_string(),
+            "desc".to_string(),
+            1,
+            serde_json::json!({"field": "x", "operator": "eq", "value": "y"}),
+            serde_json::json!({}),
+        )
+    }
+
+    /// ルールが存在する場合にページネーション付きで返される
+    #[tokio::test]
+    async fn returns_rules_with_pagination() {
+        let mut mock = MockRuleRepository::new();
+        mock.expect_find_all_paginated().returning(|_, _, _, _| {
+            Ok((vec![sample_rule("r1"), sample_rule("r2")], 5))
+        });
+
+        let uc = ListRulesUseCase::new(Arc::new(mock));
+        let input = ListRulesInput {
+            page: 1,
+            page_size: 2,
+            rule_set_id: None,
+            domain: None,
+        };
+        let output = uc.execute(&input).await.unwrap();
+        assert_eq!(output.rules.len(), 2);
+        assert_eq!(output.total_count, 5);
+        assert_eq!(output.page, 1);
+        assert_eq!(output.page_size, 2);
+    }
+
+    /// has_next が正しく計算される（次ページあり）
+    #[tokio::test]
+    async fn has_next_true_when_more_items() {
+        let mut mock = MockRuleRepository::new();
+        mock.expect_find_all_paginated().returning(|_, _, _, _| {
+            Ok((vec![sample_rule("r1")], 10))
+        });
+
+        let uc = ListRulesUseCase::new(Arc::new(mock));
+        let input = ListRulesInput {
+            page: 1,
+            page_size: 5,
+            rule_set_id: None,
+            domain: None,
+        };
+        let output = uc.execute(&input).await.unwrap();
+        // page=1, page_size=5 -> 5 < 10 -> has_next=true
+        assert!(output.has_next);
+    }
+
+    /// has_next が正しく計算される（次ページなし）
+    #[tokio::test]
+    async fn has_next_false_when_last_page() {
+        let mut mock = MockRuleRepository::new();
+        mock.expect_find_all_paginated().returning(|_, _, _, _| {
+            Ok((vec![sample_rule("r1")], 3))
+        });
+
+        let uc = ListRulesUseCase::new(Arc::new(mock));
+        let input = ListRulesInput {
+            page: 1,
+            page_size: 5,
+            rule_set_id: None,
+            domain: None,
+        };
+        let output = uc.execute(&input).await.unwrap();
+        // page=1, page_size=5 -> 5 >= 3 -> has_next=false
+        assert!(!output.has_next);
+    }
+}

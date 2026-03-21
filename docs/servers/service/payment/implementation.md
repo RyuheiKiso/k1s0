@@ -83,7 +83,7 @@ anyhow = "1"
 thiserror = "2"
 async-trait = "0.1"
 tracing = "0.1"
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", features = ["full"] }
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
 k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum"] }
@@ -219,6 +219,119 @@ impl InitiatePaymentUseCase {
 | CompletePaymentUseCase | 正常完了、不正な遷移（failed → completed） |
 | FailPaymentUseCase | 正常失敗、不正な遷移（completed → failed） |
 | RefundPaymentUseCase | 正常返金、不正な遷移（initiated → refunded） |
+
+### 実 DB 統合テスト（T-01/T-02/R-03）
+
+`tests/integration_db_test.rs` に `#[ignore]` 属性付きの統合テストを配置する。
+通常の `cargo test` ではスキップされ、CI 環境（PostgreSQL サービスコンテナ）でのみ実行される。
+
+```bash
+# ローカルで実行する場合（DATABASE_URL 要設定）
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/test_db \
+  cargo test --all -- --include-ignored
+```
+
+| テスト | 内容 |
+| --- | --- |
+| `test_payment_crud_with_real_db` | 基本 CRUD（create / find_by_id / find_by_order_id） |
+| `test_payment_optimistic_lock_with_real_db` | 楽観ロック: 古い version での complete がエラーになること |
+| `test_payment_idempotency_with_real_db` | 冪等性: 同一 order_id の重複 create が既存決済を返すこと（UNIQUE 制約 + ON CONFLICT DO NOTHING） |
+| `test_payment_outbox_events_with_real_db` | Outbox: create 時の自動挿入 / fetch_unpublished / mark_published |
+
+CI では `payment-ci.yaml` の `integration-test` ジョブが PostgreSQL 16 サービスコンテナを起動して実行する。
+
+---
+
+## Doc Sync (2026-03-21)
+
+### REST サーバーへの MetricsLayer/CorrelationLayer 追加 [技術品質監査 High R-01]
+
+`startup.rs` の REST router に `MetricsLayer` と `CorrelationLayer` を追加した（file サーバーと同様）。
+
+```rust
+let app = handler::router(state)
+    .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+    .layer(k1s0_correlation::layer::CorrelationLayer::new());
+```
+
+`Cargo.toml` に `k1s0-correlation = { path = "...", features = ["tower-layer"] }` を追加した。
+
+---
+
+### gRPC 全ハンドラー 認証チェック追加 [技術品質監査 Critical 2-1]
+
+**背景・問題**
+
+`payment_grpc.rs` の全 6 ハンドラーで認証チェックが未実装であった。
+Claims を取得せずに処理を続行していたため、未認証リクエストを受け入れる可能性があった。
+
+また `payment_handler.rs` の REST ハンドラーでは `let _actor` と変数名にアンダースコアを付けており、
+actor 情報をログ出力に使用していなかった。
+
+**対応内容**
+
+**gRPC ハンドラー（`payment_grpc.rs`）:**
+
+全 6 ハンドラー（`initiate_payment`, `get_payment`, `list_payments`, `complete_payment`, `fail_payment`, `refund_payment`）に認証チェックを追加。
+
+```rust
+// 書き込み系ハンドラー（initiate / complete / fail / refund）
+let claims: &Claims = request
+    .extensions()
+    .get()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+let _actor = actor_from_claims(Some(claims));
+
+// 読み取り系ハンドラー（get / list）
+request
+    .extensions()
+    .get::<Claims>()
+    .ok_or_else(|| Status::unauthenticated("認証情報が見つかりません"))?;
+```
+
+**REST ハンドラー（`payment_handler.rs`）:**
+
+全 6 ハンドラーで認証不備を修正した：
+
+- `get_payment`・`list_payments`：`Claims` パラメーター自体が欠落していたため追加した
+- 全 6 ハンドラー：`Option<Extension<Claims>>` に対して `.ok_or_else(|| ServiceError::unauthorized(...))?` を適用し、
+  未認証時に確実に 401 を返すよう変更した
+
+```rust
+// write 系
+let claims = claims
+    .ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+let actor = actor_from_claims(Some(&claims.0));
+tracing::info!(actor = %actor, "initiate_payment invoked");
+
+// read 系（get_payment / list_payments）
+claims.ok_or_else(|| ServiceError::unauthorized("PAYMENT", "authentication required"))?;
+```
+
+**影響範囲**
+
+- `src/adapter/grpc/payment_grpc.rs`（全 6 ハンドラー）
+- `src/adapter/handler/payment_handler.rs`（全 6 ハンドラー）
+
+---
+
+### テレメトリ初期化の fail-fast 化 [技術品質監査 Medium R-04]
+
+`startup.rs` のテレメトリ初期化を graceful degrade から fail-fast に変更した。
+
+```rust
+k1s0_telemetry::init_telemetry(&telemetry_cfg)
+    .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗しました: {}", e))?;
+```
+
+### advisory lock によるマイグレーション保護 [技術品質監査 Medium R-05]
+
+`startup.rs` のマイグレーション実行前に PostgreSQL advisory lock を追加した。
+ロック ID: `1000000003`（payment サービス専用）。
+
+### テレメトリ グレースフルシャットダウン [技術品質監査 Medium R-06]
+
+`startup.rs` のシャットダウン処理に `k1s0_telemetry::shutdown()` を追加した。
 
 ---
 

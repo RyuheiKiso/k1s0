@@ -44,13 +44,15 @@ tier_dependencies:
 # ライブラリ言語パリティ表
 # ============================================================
 # 各ライブラリがどの言語で実装されているかを明示する。
-# scope: all = 4言語全て (rust, go, ts, dart)
-#        rust-only = Rust のみ（ビルドツールや Rust 固有の抽象）
-#        server = サーバーサイド言語のみ (rust, go)
-#        partial = 一部言語のみ（詳細は languages フィールドを参照）
+# 3カテゴリ分類:
+#   core   = 全言語 (rust, go, ts, dart) — 基盤的なクロスプラットフォームライブラリ
+#   server = サーバーサイドのみ (rust, go) — バックエンド固有の実装
+#   client = クライアントサイドのみ (ts, dart) — フロントエンド固有の実装
+# 補足:
+#   lang_specific = 特定言語固有（ビルドツール、proc-macro等）
 library_parity:
-  # 4言語全てで実装済み（43ライブラリ）
-  all:
+  # Core: 4言語全てで実装済み（全プラットフォーム共通ライブラリ）
+  core:
     - app-updater
     - audit-client
     - auth
@@ -98,23 +100,32 @@ library_parity:
     - webhook-client
     - websocket
 
-  # Rust のみ（ビルドツール・Rust 固有の抽象層）
-  rust_only:
-    - proto-build        # tonic-build ラッパー（Rust ビルド専用）
-    - bb-core            # Building Blocks コア抽象（Rust 専用）
-    - telemetry-macros   # proc-macro による計装マクロ（Rust 専用）
-
-  # サーバーサイド言語のみ (rust, go)
-  server_only:
+  # Server: サーバーサイド言語のみ (rust, go)
+  # 注意: Dart は binding/pubsub/secretstore/statestore を単一の
+  # building_blocks パッケージに統合実装している（lang_specific.dart 参照）。
+  server:
     # Rust では bb- prefix、Go では prefix なしの命名
     - binding            # rust: bb-binding, go: binding
     - pubsub             # rust: bb-pubsub, go: pubsub
     - secretstore        # rust: bb-secretstore, go: secret-store
     - statestore         # rust: bb-statestore, go: statestore
 
-  # Go のみ
-  go_only:
-    - telemetry-macros   # Go 版テレメトリマクロ（go generate ベース）
+  # Client: クライアントサイドのみ (ts, dart) — 現在該当なし
+  client: []
+
+  # lang_specific: 特定言語固有のビルドツール・言語抽象（3分類外）
+  lang_specific:
+    rust:
+      - proto-build        # tonic-build ラッパー（Rust ビルド専用）
+      - bb-core            # Building Blocks コア抽象（Rust 専用）
+      - telemetry-macros   # proc-macro による計装マクロ（Rust 専用）
+    go:
+      - telemetry-macros   # Go 版テレメトリマクロ（go generate ベース）
+    dart:
+      # Dart は server 層の binding/pubsub/secretstore/statestore を
+      # 単一の building_blocks パッケージに統合している（A-04 対応）。
+      # 各コンポーネントは building_blocks/lib/src/{binding,pubsub,secretstore,statestore}.dart で実装。
+      - building_blocks    # binding + pubsub + secretstore + statestore の統合パッケージ
 
 modules:
   # ============================================================
@@ -124,6 +135,7 @@ modules:
     lang: rust
     status: stable
     type: workspace
+    maturity: template-only
     skip-ci: true
 
   # Business 層ワークスペース（accounting 配下の Rust プロジェクトを管理）
@@ -131,6 +143,7 @@ modules:
     lang: rust
     status: stable
     type: workspace
+    maturity: template-only
     skip-ci: true
 
   # Service 層ワークスペース（order, inventory, payment 配下の Rust プロジェクトを管理）
@@ -138,18 +151,21 @@ modules:
     lang: rust
     status: stable
     type: workspace
+    maturity: template-only
     skip-ci: true
 
   - path: CLI
     lang: rust
     status: stable
     type: workspace
+    maturity: template-only
     skip-ci: true
 
   - path: CLI/crates/k1s0-gui
     lang: rust
     status: stable
     type: workspace
+    maturity: template-only
     skip-ci: true
 
   # k1s0-gui 内の fixture/テンプレート用 Go auth サーバー（CI スキップ）
@@ -157,6 +173,7 @@ modules:
     lang: go
     status: stable
     type: server
+    maturity: beta
     skip-ci: true
 
   # ============================================================
@@ -166,18 +183,21 @@ modules:
     lang: rust
     status: stable
     type: cli
+    maturity: beta
     workspace: CLI
 
   - path: CLI/crates/k1s0-core
     lang: rust
     status: stable
     type: cli
+    maturity: beta
     workspace: CLI
 
   - path: CLI/crates/k1s0-gui/ui
     lang: ts
     status: stable
     type: cli
+    maturity: beta
 
   # ============================================================
   # Proto / API
@@ -186,6 +206,7 @@ modules:
     lang: go
     status: stable
     type: proto
+    maturity: template-only
     skip-ci: true
 
   # ============================================================
@@ -195,12 +216,14 @@ modules:
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/app-registry
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/auth
@@ -214,132 +237,154 @@ modules:
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/dlq-manager
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/event-monitor
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/event-store
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/featureflag
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/file
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/graphql-gateway
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/master-maintenance
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/navigation
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/notification
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/policy
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/quota
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/ratelimit
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/rule-engine
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/saga
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/scheduler
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/search
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/service-catalog
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/session
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/tenant
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/vault
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/workflow
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/system
 
   # Rust サーバー — experimental（CI は continue-on-error で実行）
@@ -347,12 +392,14 @@ modules:
     lang: rust
     status: experimental
     type: server
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/server/rust/ai-gateway
     lang: rust
     status: experimental
     type: server
+    maturity: beta
     workspace: regions/system
 
   # ============================================================
@@ -371,6 +418,7 @@ modules:
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/business
 
   # ============================================================
@@ -380,18 +428,21 @@ modules:
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/service
 
   - path: regions/service/order/server/rust/order
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/service
 
   - path: regions/service/payment/server/rust/payment
     lang: rust
     status: stable
     type: server
+    maturity: beta
     workspace: regions/service
 
   # ============================================================
@@ -401,30 +452,35 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/audit-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/auth
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/bb-ai-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/bb-binding
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust, go]  # Go 側は "binding"
 
@@ -432,6 +488,7 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust]  # Rust 固有の Building Blocks コア抽象
 
@@ -439,6 +496,7 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust, go]  # Go 側は "pubsub"
 
@@ -446,6 +504,7 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust, go]  # Go 側は "secret-store"
 
@@ -453,6 +512,7 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust, go]  # Go 側は "statestore"
 
@@ -460,144 +520,168 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/bulkhead
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/cache
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/circuit-breaker
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/codegen
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/config
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/correlation
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/distributed-lock
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/dlq-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/encryption
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/event-bus
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/eventstore
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/featureflag
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/file-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/graphql-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/health
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/idempotency
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/kafka
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/messaging
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/migration
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/notification-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/outbox
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/pagination
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/proto-build
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust]  # tonic-build ラッパー（Rust ビルド専用）
 
@@ -605,78 +689,91 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/ratelimit-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/resiliency
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/retry
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/saga
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/scheduler-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/schemaregistry
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/search-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/server-common
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/serviceauth
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/session-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/telemetry
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/telemetry-macros
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
     language_scope: [rust]  # proc-macro による計装マクロ（Rust 専用）
 
@@ -684,42 +781,49 @@ modules:
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/test-helper
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/tracing
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/validation
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/vault-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/webhook-client
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   - path: regions/system/library/rust/websocket
     lang: rust
     status: stable
     type: library
+    maturity: beta
     workspace: regions/system
 
   # ============================================================
@@ -729,52 +833,62 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/audit-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/auth
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/bb-ai-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/binding
     lang: go
     status: stable
     type: library
+    maturity: beta
     language_scope: [rust, go]  # Rust 側は "bb-binding"
 
   - path: regions/system/library/go/building-blocks
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/bulkhead
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/cache
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/circuit-breaker
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/codegen
     lang: go
     status: experimental
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/config
     lang: go
@@ -786,112 +900,134 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/distributed-lock
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/dlq-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/encryption
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/event-bus
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/eventstore
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/featureflag
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/file-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/graphql-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/health
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/idempotency
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/kafka
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/messaging
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/migration
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/notification-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/outbox
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/pagination
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/pubsub
     lang: go
     status: stable
     type: library
+    maturity: beta
     language_scope: [rust, go]  # Rust 側は "bb-pubsub"
 
   - path: regions/system/library/go/quota-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/ratelimit-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/resiliency
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/retry
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/saga
     lang: go
@@ -903,89 +1039,106 @@ modules:
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/schemaregistry
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/search-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/secret-store
     lang: go
     status: stable
     type: library
+    maturity: beta
     language_scope: [rust, go]  # Rust 側は "bb-secretstore"
 
   - path: regions/system/library/go/server-common
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/serviceauth
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/session-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/statestore
     lang: go
     status: stable
     type: library
+    maturity: beta
     language_scope: [rust, go]  # Rust 側は "bb-statestore"
 
   - path: regions/system/library/go/telemetry
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/telemetry-macros
     lang: go
     status: stable
     type: library
+    maturity: beta
     language_scope: [rust, go]  # Rust 側は "telemetry-macros"
 
   - path: regions/system/library/go/tenant-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/test-helper
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/tracing
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/validation
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/vault-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/webhook-client
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/go/websocket
     lang: go
     status: stable
     type: library
+    maturity: beta
 
   # ============================================================
   # TypeScript ライブラリ — system tier
@@ -994,232 +1147,278 @@ modules:
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/audit-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/auth
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/bb-ai-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/building-blocks
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/bulkhead
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/cache
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/circuit-breaker
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/codegen
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/config
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/correlation
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/distributed-lock
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/dlq-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/encryption
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/event-bus
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/eventstore
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/featureflag
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/file-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/graphql-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/health
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/idempotency
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/kafka
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/messaging
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/migration
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/notification-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/outbox
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/pagination
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/quota-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/ratelimit-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/resiliency
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/retry
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/saga
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/scheduler-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/schemaregistry
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/search-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/server-common
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/serviceauth
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/session-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/telemetry
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   # テナントクライアント（TypeScript版）
   - path: regions/system/library/typescript/tenant-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/test-helper
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/tracing
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/validation
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/vault-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/webhook-client
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/typescript/websocket
     lang: ts
     status: stable
     type: library
+    maturity: beta
 
   # ============================================================
   # Dart ライブラリ — system tier
@@ -1228,233 +1427,279 @@ modules:
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/audit_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/auth
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/bb-ai-client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/building_blocks
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/bulkhead
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/cache
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/circuit_breaker
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/codegen
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/config
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/correlation
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/distributed_lock
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/dlq_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/encryption
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/event_bus
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/eventstore
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/featureflag
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/file_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/graphql_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/health
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/idempotency
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/kafka
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/messaging
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/migration
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/notification_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/outbox
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/pagination
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/quota_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/ratelimit_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/resiliency
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/retry
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/saga
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/scheduler_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   # スキーマレジストリクライアント（Dart版）
   - path: regions/system/library/dart/schemaregistry
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/search_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/server_common
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/serviceauth
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/session_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/telemetry
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   # テナントクライアント（Dart版）
   - path: regions/system/library/dart/tenant_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/test_helper
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/tracing
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/validation
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/vault_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/webhook_client
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   - path: regions/system/library/dart/websocket
     lang: dart
     status: stable
     type: library
+    maturity: beta
 
   # ============================================================
   # クライアント — React (TypeScript)
@@ -1463,36 +1708,43 @@ modules:
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/system/client/react/app-catalog
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/system/server/rust/master-maintenance/client/react/app
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/business/accounting/client/react/domain-master
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/inventory/client/react/inventory
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/order/client/react/order
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/payment/client/react/payment
     lang: ts
     status: stable
     type: client
+    maturity: beta
 
   # ============================================================
   # クライアント — Flutter (Dart)
@@ -1501,26 +1753,31 @@ modules:
     lang: dart
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/business/accounting/client/flutter/domain_master
     lang: dart
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/inventory/client/flutter/inventory
     lang: dart
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/order/client/flutter/order
     lang: dart
     status: stable
     type: client
+    maturity: beta
 
   - path: regions/service/payment/client/flutter/payment
     lang: dart
     status: stable
     type: client
+    maturity: beta
 
   # ============================================================
   # データベースマイグレーション — system tier
@@ -1530,138 +1787,161 @@ modules:
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/app-registry-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/auth-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/config-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/dlq-manager-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/event-monitor-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/event-store-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/featureflag-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/file-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/master-maintenance-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/notification-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/policy-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/quota-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/ratelimit-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/rule-engine-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/saga-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/scheduler-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/search-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/service-catalog-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/session-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/tenant-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/vault-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   - path: regions/system/database/workflow-db
     lang: rust
     status: stable
     type: database
+    maturity: template-only
     workspace: regions/system
 
   # ============================================================
@@ -1672,6 +1952,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # デモ環境構築用スクリプト・設定
@@ -1679,6 +1960,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Docker ベースイメージ・ローカル開発用コンテナ定義
@@ -1686,6 +1968,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Helm チャート（Kubernetes パッケージ管理）
@@ -1693,6 +1976,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Istio サービスメッシュ設定
@@ -1700,6 +1984,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Keycloak 認証・認可サーバー設定
@@ -1707,6 +1992,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Kong API ゲートウェイ設定
@@ -1714,6 +2000,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Kubernetes マニフェスト（デプロイメント・サービス等）
@@ -1721,6 +2008,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # ローカル開発環境構築（docker-compose 等）
@@ -1728,6 +2016,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # メッセージングインフラ（Kafka・スキーマレジストリ等）
@@ -1735,6 +2024,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # 可観測性インフラ（Prometheus・Grafana・Loki 等）
@@ -1742,6 +2032,7 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # Terraform によるクラウドリソース管理（IaC）
@@ -1749,6 +2040,7 @@ modules:
     lang: hcl
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true
 
   # HashiCorp Vault シークレット管理インフラ
@@ -1756,4 +2048,5 @@ modules:
     lang: yaml
     status: stable
     type: infra
+    maturity: template-only
     skip-ci: true

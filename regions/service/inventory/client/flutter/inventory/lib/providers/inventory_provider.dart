@@ -1,17 +1,25 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:system_client/system_client.dart';
 
 import '../config/config_provider.dart';
 import '../models/inventory.dart';
 import '../repositories/inventory_repository.dart';
-import '../utils/dio_client.dart';
 
 /// DioインスタンスのProvider
-/// YAML設定ファイルから読み込んだベースURLを使用してHTTPクライアントを生成する
+/// system_client の ApiClient.create() を使用して CSRF 契約を正しく実装する
+/// authProvider から CSRF トークンを取得してインターセプターに渡す
 final dioProvider = Provider<Dio>((ref) {
-  /// 設定プロバイダーからAPI設定を取得する
   final config = ref.watch(appConfigProvider);
-  return DioClient.create(baseUrl: config.api.baseUrl);
+  final authNotifier = ref.read(authProvider.notifier);
+  final sessionInterceptor = kIsWeb ? null : SessionCookieInterceptor();
+  return ApiClient.create(
+    baseUrl: config.api.baseUrl,
+    // authProvider が /auth/session JSON から取得した CSRF トークンを注入する
+    csrfTokenProvider: () async => authNotifier.csrfToken,
+    sessionCookieInterceptor: sessionInterceptor,
+  );
 });
 
 /// リポジトリのProvider

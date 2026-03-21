@@ -279,3 +279,53 @@ pub struct ReassignTaskRequest {
 pub(crate) fn error_json(code: &str, message: &str) -> ErrorResponse {
     ErrorResponse::new(code, message)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// default_true がtrueを返す
+    #[test]
+    fn default_true_returns_true() {
+        assert!(default_true());
+    }
+
+    /// default_false がfalseを返す
+    #[test]
+    fn default_false_returns_false() {
+        assert!(!default_false());
+    }
+
+    /// default_page が1を返す
+    #[test]
+    fn default_page_returns_1() {
+        assert_eq!(default_page(), 1);
+    }
+
+    /// default_page_size が20を返す
+    #[test]
+    fn default_page_size_returns_20() {
+        assert_eq!(default_page_size(), 20);
+    }
+
+    /// to_step_response が WorkflowStep から StepResponse を正しく変換する
+    #[test]
+    fn to_step_response_converts_correctly() {
+        let step = crate::domain::entity::workflow_step::WorkflowStep {
+            step_id: "step-1".to_string(),
+            name: "Review".to_string(),
+            step_type: "approval".to_string(),
+            assignee_role: Some("manager".to_string()),
+            timeout_hours: Some(24),
+            on_approve: Some("step-2".to_string()),
+            on_reject: Some("end".to_string()),
+        };
+        let resp = to_step_response(&step);
+        assert_eq!(resp.step_id, "step-1");
+        assert_eq!(resp.name, "Review");
+        assert_eq!(resp.assignee_role.as_deref(), Some("manager"));
+        assert_eq!(resp.timeout_hours, Some(24));
+        assert_eq!(resp.on_approve.as_deref(), Some("step-2"));
+        assert_eq!(resp.on_reject.as_deref(), Some("end"));
+    }
+}

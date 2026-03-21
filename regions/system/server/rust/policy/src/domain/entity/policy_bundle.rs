@@ -31,3 +31,32 @@ impl PolicyBundle {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// PolicyBundle::new が指定した policy_ids を保持する
+    #[test]
+    fn new_with_policy_ids() {
+        let ids = vec![Uuid::new_v4(), Uuid::new_v4()];
+        let bundle = PolicyBundle::new(
+            "auth-bundle".to_string(),
+            Some("Authentication policies".to_string()),
+            true,
+            ids.clone(),
+        );
+        assert_eq!(bundle.name, "auth-bundle");
+        assert!(bundle.enabled);
+        assert_eq!(bundle.policy_ids.len(), 2);
+        assert_eq!(bundle.policy_ids, ids);
+    }
+
+    /// description が None の場合も正常に生成される
+    #[test]
+    fn new_without_description() {
+        let bundle = PolicyBundle::new("b".to_string(), None, false, vec![]);
+        assert!(bundle.description.is_none());
+        assert!(!bundle.enabled);
+    }
+}

@@ -1,3 +1,6 @@
+# このバックアップモジュールは本番環境用です（S3 オフロード方式）。
+# dev/staging 環境のバックアップは infra/kubernetes/backup/ の CronJob で管理します。
+
 # PostgreSQL バックアップ CronJob
 resource "kubernetes_cron_job_v1" "postgresql_backup" {
   count = var.enable_postgresql ? 1 : 0
@@ -8,7 +11,7 @@ resource "kubernetes_cron_job_v1" "postgresql_backup" {
   }
 
   spec {
-    schedule = "0 2 * * *"   # 毎日 02:00 JST
+    schedule = "0 3 * * *"   # 毎日 03:00 UTC
 
     job_template {
       spec {
@@ -82,7 +85,7 @@ resource "kubernetes_cron_job_v1" "mysql_backup" {
   }
 
   spec {
-    schedule = "0 2 * * *"   # 毎日 02:00 JST
+    schedule = "0 3 * * *"   # 毎日 03:00 UTC
 
     job_template {
       spec {

@@ -46,14 +46,20 @@ jobs:
           #   system:   regions/system/server/{lang}/{service}/...
           #   business: regions/business/{domain}/server/{lang}/{service}/...
           #   service:  regions/service/{service}/server/{lang}/...
+          # infra/helm/services/ 変更時は対応するサービスを逆引きしてデプロイ対象に含める
           CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
-            grep -E '^regions/' | \
-            sed 's|^regions/||' | \
+            (grep -E '^(regions/|infra/helm/services/)' || true) | \
+            sed 's|^infra/helm/services/||; s|^regions/||' | \
             while IFS= read -r path; do
               case "$path" in
                 system/server/*/*/*)       echo "$path" | cut -d'/' -f1-4 ;;
                 business/*/server/*/*/*)   echo "$path" | cut -d'/' -f1-5 ;;
                 service/*/server/*/*/*)    echo "$path" | cut -d'/' -f1-5 ;;
+                # infra/helm/services/{tier}/{service}/** → {tier}/server/ へのマッピング
+                # Helm chart 変更は該当 tier のサービス名で検知する
+                system/*/Chart.yaml|system/*/*.yaml)   echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
+                business/*/*/Chart.yaml|business/*/*.yaml) echo "business/$(echo "$path" | cut -d'/' -f2)/server" ;;
+                service/*/Chart.yaml|service/*/*.yaml) echo "service/$(echo "$path" | cut -d'/' -f2)/server" ;;
               esac
             done | sort -u | head -20)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"

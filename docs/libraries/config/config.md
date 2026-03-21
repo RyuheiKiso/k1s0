@@ -1421,32 +1421,71 @@ type ConfigChangeEvent struct {
 // WatchConfigClient は ConfigService.WatchConfig RPC のクライアントラッパー。
 type WatchConfigClient struct { /* grpc.ClientConn + ConfigServiceClient */ }
 
-// NewWatchConfigClient は target への gRPC 接続を確立してクライアントを返す。
+// NewWatchConfigClient は TLS 必須で target への gRPC 接続を確立してクライアントを返す（本番用）。
+// カスタム証明書を使う場合は opts に grpc.WithTransportCredentials を渡す。
 func NewWatchConfigClient(ctx context.Context, target string, opts ...grpc.DialOption) (*WatchConfigClient, error)
 
-// Watch は指定 namespace の変更を受信するチャンネルを返す。
+// NewInsecureWatchConfigClient は TLS なしで接続する（開発・テスト環境専用）。
+// 本番環境では使用しないこと。
+func NewInsecureWatchConfigClient(ctx context.Context, target string, opts ...grpc.DialOption) (*WatchConfigClient, error)
+
+// Watch は指定 namespace の変更を受信するチャンネルとエラーチャンネルを返す。
 // ctx キャンセルまたはストリーム終了でチャンネルが閉じられる。
-func (w *WatchConfigClient) Watch(ctx context.Context, namespaces []string) (<-chan ConfigChangeEvent, error)
+// ストリームエラー（EOF / ctx キャンセル以外）はエラーチャンネルで伝播する。
+// チャネル送信時に ctx キャンセルを select で監視しバックプレッシャーを制御する。
+func (w *WatchConfigClient) Watch(ctx context.Context, namespaces []string) (<-chan ConfigChangeEvent, <-chan error, error)
 
 // Close は gRPC 接続を閉じる。
 func (w *WatchConfigClient) Close() error
 ```
 
-**使用例**:
+> **TLS ポリシー**: `NewWatchConfigClient` はデフォルトで TLS を要求する。
+> 開発・テスト環境では `NewInsecureWatchConfigClient` を使うこと。
+
+**使用例（本番）**:
 
 ```go
-client, err := config.NewWatchConfigClient(ctx, "config-server:50051")
+// TLS 証明書を使って接続する（本番環境）
+creds, err := credentials.NewClientTLSFromFile("ca.crt", "")
+if err != nil {
+    log.Fatal(err)
+}
+client, err := config.NewWatchConfigClient(ctx, "config-server:50051",
+    grpc.WithTransportCredentials(creds),
+)
 if err != nil {
     log.Fatal(err)
 }
 defer client.Close()
 
-ch, err := client.Watch(ctx, []string{"system.auth", "system.database"})
+ch, errCh, err := client.Watch(ctx, []string{"system.auth", "system.database"})
 if err != nil {
     log.Fatal(err)
 }
-for event := range ch {
-    log.Printf("[%s] %s/%s changed (%s)", event.ChangeType, event.Namespace, event.Key, event.NewValue)
+// イベントループ: ctx キャンセルで select がブロックを解除し goroutine リークを防ぐ
+for {
+    select {
+    case event, ok := <-ch:
+        if !ok {
+            return // ストリーム終了
+        }
+        log.Printf("[%s] %s/%s changed (%s)", event.ChangeType, event.Namespace, event.Key, event.NewValue)
+    case streamErr, ok := <-errCh:
+        if ok && streamErr != nil {
+            log.Printf("watch stream error: %v", streamErr)
+        }
+        return
+    }
+}
+```
+
+**使用例（開発・テスト）**:
+
+```go
+// TLS なしで接続する（開発・テスト環境のみ）
+client, err := config.NewInsecureWatchConfigClient(ctx, "localhost:50051")
+if err != nil {
+    log.Fatal(err)
 }
 ```
 

@@ -57,3 +57,49 @@ impl From<RuleEngineError> for ServiceError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// NotFound エラーが ServiceError::NotFound に変換される
+    #[test]
+    fn not_found_converts_to_service_not_found() {
+        let err = RuleEngineError::NotFound("rule-123".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::NotFound { .. }));
+        assert!(svc.to_string().contains("rule-123"));
+    }
+
+    /// AlreadyExists エラーが ServiceError::Conflict に変換される
+    #[test]
+    fn already_exists_converts_to_conflict() {
+        let err = RuleEngineError::AlreadyExists("duplicate-rule".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Conflict { .. }));
+    }
+
+    /// ValidationFailed エラーが ServiceError::BadRequest に変換される
+    #[test]
+    fn validation_failed_converts_to_bad_request() {
+        let err = RuleEngineError::ValidationFailed("name is required".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::BadRequest { .. }));
+    }
+
+    /// EvaluationFailed エラーが ServiceError::Internal に変換される
+    #[test]
+    fn evaluation_failed_converts_to_internal() {
+        let err = RuleEngineError::EvaluationFailed("parser error".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+
+    /// Internal エラーが ServiceError::Internal に変換される
+    #[test]
+    fn internal_converts_to_internal() {
+        let err = RuleEngineError::Internal("db error".to_string());
+        let svc: ServiceError = err.into();
+        assert!(matches!(svc, ServiceError::Internal { .. }));
+    }
+}

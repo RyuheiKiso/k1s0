@@ -3,6 +3,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
+  // T-05 対応: テスト実行前にサービスの準備完了を確認するグローバルセットアップ。
+  // BFF プロキシと Keycloak のヘルスチェックエンドポイントをポーリングして待機する。
+  globalSetup: "./global-setup.ts",
+
   // テストファイルの配置ディレクトリ
   testDir: "./specs",
 

@@ -1,3 +1,5 @@
+# このバックアップ CronJob は dev/staging 環境用です。
+# 本番環境のバックアップは infra/terraform/modules/database/backup.tf で管理します。
 apiVersion: batch/v1
 kind: CronJob
 metadata:

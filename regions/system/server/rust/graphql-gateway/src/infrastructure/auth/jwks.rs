@@ -11,11 +11,16 @@ use crate::adapter::middleware::auth_middleware::Claims;
 
 /// JwksVerifier は JWKS エンドポイントから公開鍵を取得し、JWT の署名を検証する。
 /// 公開鍵は内部にキャッシュし、TTL 経過後に再取得する。
+/// issuer/audience が設定されている場合は JWT のクレームを検証し、不一致時はエラーを返す。
 pub struct JwksVerifier {
     jwks_url: String,
     http_client: Client,
     cache: Arc<RwLock<Option<CachedJwks>>>,
     cache_ttl: Duration,
+    // JWT issuer 検証用（None の場合は検証をスキップ）
+    issuer: Option<String>,
+    // JWT audience 検証用（None の場合は検証をスキップ）
+    audience: Option<String>,
 }
 
 struct CachedJwks {
@@ -40,6 +45,7 @@ struct Jwk {
 
 impl JwksVerifier {
     /// 新しい JwksVerifier を生成する。
+    /// issuer/audience は AuthConfig から取得し、設定値がある場合のみ JWT クレームを検証する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(jwks_url: String) -> anyhow::Result<Self> {
         // HTTPクライアントを構築する（タイムアウト10秒）
@@ -53,7 +59,21 @@ impl JwksVerifier {
             http_client,
             cache: Arc::new(RwLock::new(None)),
             cache_ttl: Duration::from_secs(600), // 10分
+            issuer: None,
+            audience: None,
         })
+    }
+
+    /// issuer/audience 検証を設定する。
+    /// AuthConfig の値を渡すことで JWT クレームの厳密な検証が有効になる。
+    pub fn with_issuer_audience(
+        mut self,
+        issuer: Option<String>,
+        audience: Option<String>,
+    ) -> Self {
+        self.issuer = issuer;
+        self.audience = audience;
+        self
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -84,6 +104,21 @@ impl JwksVerifier {
 
         let mut validation = Validation::new(Algorithm::RS256);
         validation.validate_exp = true;
+
+        // issuer が設定されている場合は JWT の iss クレームを検証する。
+        // None のままにすれば jsonwebtoken は iss を検証しない（後方互換性）。
+        if let Some(ref iss) = self.issuer {
+            validation.set_issuer(&[iss]);
+        }
+
+        // audience が設定されている場合は JWT の aud クレームを検証する。
+        // None の場合は validate_aud を false にしてスキップする（後方互換性）。
+        if let Some(ref aud) = self.audience {
+            validation.set_audience(&[aud]);
+        } else {
+            // audience 未設定時は検証をスキップする（後方互換性）
+            validation.validate_aud = false;
+        }
 
         let token_data = decode::<Claims>(token, &decoding_key, &validation)
             .map_err(|e| anyhow::anyhow!("JWT verification failed: {}", e))?;

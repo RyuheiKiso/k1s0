@@ -102,6 +102,7 @@ regions/service/{service_name}/client/react/
     "@hookform/resolvers": "^3.9.0",
     "zod": "^3.24.0",
     "axios": "^1.7.0",
+    "@k1s0/system-client": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
     "@radix-ui/react-label": "^2.1.0",
@@ -362,34 +363,31 @@ export function App() {
 
 `CLI/templates/client/react/src/lib/api-client.ts.tera`
 
-BFF + HttpOnly Cookie 認証に対応した axios インスタンス。トークンは BFF がサーバーサイドで管理するため、クライアントから直接扱わない（[認証認可設計](../../architecture/auth/認証認可設計.md) D-013 参照）。
+BFF + HttpOnly Cookie 認証に対応した axios インスタンス。`@k1s0/system-client` の `createApiClient` を使用することで、BFF の CSRF 契約（`X-CSRF-Token` ヘッダー）に準拠する。
+
+> **重要:** サービス独自の `api-client.ts` で CSRF トークンを Cookie から取得してはならない。BFF は CSRF トークンを `/auth/session` の JSON レスポンスボディで返す。Cookie 方式（`XSRF-TOKEN` → `X-XSRF-TOKEN`）は誤りであり、CSRF ミドルウェアの検証を通過しない。
 
 ```typescript
-import { createApiClient } from 'system-client';
+// system-client の createApiClient を使用して BFF の CSRF 契約に準拠する
+// X-XSRF-TOKEN (Cookie) ではなく X-CSRF-Token (/auth/session JSON) を使用する
+import { createApiClient, setCsrfToken } from '@k1s0/system-client';
 
-/**
- * API クライアント
- *
- * - baseURL: BFF のプロキシエンドポイント
- * - withCredentials: Cookie を自動送信（BFF + HttpOnly Cookie 方式）
- * - CSRF トークン: BFF が発行する X-CSRF-Token をリクエストヘッダーに付与
- * - onUnauthorized: 401 エラー時のコールバック（テスト時に window.location 依存を排除可能）
- */
-import { navigateTo } from '../auth/navigation';
+// BFF /auth/session から取得した CSRF トークンを保持する
+// setCsrfToken() で外部から注入する（AuthProvider が /auth/session 後に呼び出す）
+export { setCsrfToken };
 
-const apiClient = createApiClient({
-  baseURL: '/api',
+// BFF API クライアント: CSRF トークン管理と 401 リダイレクトを自動処理する
+export const apiClient = createApiClient({
+  baseURL: '/bff/api/v1',
   onUnauthorized: () => {
-    navigateTo('/auth/login');
+    window.location.href = '/login';
   },
 });
-
-export { apiClient };
 ```
 
-> **Note:** `createApiClient` は system-client パッケージが提供する Axios ファクトリ関数。
-> `onUnauthorized` コールバックにより、401 エラー時の動作を呼び出し側で制御でき、テスト時は spy/mock に差し替え可能。
-> `navigateTo` はナビゲーション抽象化ヘルパーで、テスト時に `window.location` への直接依存を排除しテスタビリティを向上させる。
+> **Note:** `createApiClient` は `@k1s0/system-client` パッケージが提供する Axios ファクトリ関数。
+> CSRF トークンは `setCsrfToken()` で `AuthProvider` から注入される。
+> `pnpm-workspace.yaml` がリポジトリルートに存在することで `workspace:*` 依存が解決される。
 
 ### src/lib/query-client.ts
 

@@ -1,0 +1,8 @@
+# pnpm ワークスペース設定
+# モノリポ内の全 React クライアントパッケージを統一管理する
+# workspace:* 依存が正しく解決されるようにパッケージパスを列挙する
+packages:
+  - 'regions/system/client/react/system-client'
+  - 'regions/system/client/react/app-catalog'
+  - 'regions/service/*/client/react/*'
+  - 'regions/business/*/client/react/*'

@@ -831,7 +831,7 @@ prost = "0.13"
 prost-types = "0.13"
 
 # Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 [build-dependencies]
 tonic-build = "0.12"

@@ -26,11 +26,15 @@ fn json_to_event_metadata(metadata: &serde_json::Value) -> EventMetadata {
 /// 型変換なしで直接返せる。
 #[async_trait::async_trait]
 impl k1s0_outbox::OutboxEventFetcher for dyn InventoryRepository {
-    async fn fetch_and_mark_events_published(
+    async fn fetch_unpublished_events(
         &self,
         limit: i64,
     ) -> anyhow::Result<Vec<k1s0_outbox::OutboxEvent>> {
-        InventoryRepository::fetch_and_mark_events_published(self, limit).await
+        InventoryRepository::fetch_unpublished_events(self, limit).await
+    }
+
+    async fn mark_events_published(&self, ids: &[uuid::Uuid]) -> anyhow::Result<()> {
+        InventoryRepository::mark_events_published(self, ids).await
     }
 }
 
@@ -129,7 +133,7 @@ mod tests {
         let mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .returning(|_| Ok(vec![]));
 
         let _poller = new_outbox_poller(
@@ -150,9 +154,15 @@ mod tests {
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
+
+        // at-least-once: publish 成功後に mark が呼ばれることを確認する
+        mock_repo
+            .expect_mark_events_published()
+            .times(1)
+            .returning(|_| Ok(()));
 
         mock_publisher
             .expect_publish_inventory_reserved()
@@ -188,9 +198,15 @@ mod tests {
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
+
+        // at-least-once: publish 成功後に mark が呼ばれることを確認する
+        mock_repo
+            .expect_mark_events_published()
+            .times(1)
+            .returning(|_| Ok(()));
 
         mock_publisher
             .expect_publish_inventory_released()
@@ -216,7 +232,8 @@ mod tests {
         handle.await.unwrap();
     }
 
-    // publish 失敗時もポーラー自体はエラーにならないことを確認する
+    // publish 失敗時もポーラー自体はエラーにならず、mark も呼ばれないことを確認する
+    // at-least-once: 失敗したイベントは mark されず、次回ポーリングでリトライされる
     #[tokio::test]
     async fn test_poll_and_publish_failure_logs_warning() {
         let event = sample_outbox_event("inventory.reserved");
@@ -226,7 +243,7 @@ mod tests {
         let mut mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .times(1)
             .returning(move |_| Ok(events.clone()));
 
@@ -261,7 +278,7 @@ mod tests {
         let mock_publisher = MockInventoryEventPublisher::new();
 
         mock_repo
-            .expect_fetch_and_mark_events_published()
+            .expect_fetch_unpublished_events()
             .returning(|_| Ok(vec![]));
 
         let poller = Arc::new(new_outbox_poller(

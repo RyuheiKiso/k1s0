@@ -133,9 +133,10 @@ pub async fn run() -> anyhow::Result<()> {
     // 7. Rule Engine
     let rule_engine =
         Arc::new(infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new());
-    let schema_manager = Arc::new(infrastructure::schema::PhysicalSchemaManager::new(
-        db_pool.clone(),
-    ));
+    let schema_manager: Arc<dyn crate::infrastructure::schema::SchemaManager> =
+        Arc::new(infrastructure::schema::PhysicalSchemaManager::new(
+            db_pool.clone(),
+        ));
 
     // 8. Use Cases
     let manage_tables_uc = Arc::new(

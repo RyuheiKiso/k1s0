@@ -7,6 +7,9 @@ use chrono::{DateTime, Utc};
 use tracing::info;
 use uuid::Uuid;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::dlq_client::{DlqManagerClient, NoopDlqClient};
 use crate::adapter::grpc::EventMonitorGrpcService;
@@ -194,6 +197,9 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_monitor_grpc_action);
+
     let mut state = crate::adapter::handler::AppState {
         list_events_uc,
         trace_by_correlation_uc,
@@ -237,6 +243,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(EventMonitorServiceServer::new(grpc_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -310,6 +317,15 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// フロー定義の作成・更新・削除とリプレイ実行は write、それ以外は read とする。
+fn event_monitor_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateFlow" | "UpdateFlow" | "DeleteFlow" | "ExecuteReplay" => "write",
+        _ => "read",
+    }
 }
 
 // --- InMemory Repositories ---

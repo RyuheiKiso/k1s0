@@ -176,6 +176,8 @@ fn step_operation() -> Result<Option<DevOperation>> {
 }
 
 /// ステップ: サービス選択。
+///
+/// 空選択の場合は再入力を促すループを使用する（再帰呼び出しを避ける）。
 fn step_service_select() -> Result<Option<(Vec<String>, Vec<String>)>> {
     let targets = detect::scan_dev_targets(std::path::Path::new("."));
     if targets.is_empty() {
@@ -188,26 +190,31 @@ fn step_service_select() -> Result<Option<(Vec<String>, Vec<String>)>> {
         items.push(name.as_str());
     }
 
-    let selected =
-        prompt::multi_select_prompt("開発対象のサービスを選択してください（複数選択可）", &items)?;
+    loop {
+        let selected = prompt::multi_select_prompt(
+            "開発対象のサービスを選択してください（複数選択可）",
+            &items,
+        )?;
 
-    match selected {
-        None => Ok(None),
-        Some(indices) => {
-            if indices.is_empty() {
-                println!("少なくとも1つのサービスを選択してください。");
-                step_service_select()
-            } else if indices.contains(&0) {
-                // 「すべて」が選択された
-                let names: Vec<String> = targets.iter().map(|(n, _)| n.clone()).collect();
-                let paths: Vec<String> = targets.iter().map(|(_, p)| p.clone()).collect();
-                Ok(Some((names, paths)))
-            } else {
-                let names: Vec<String> =
-                    indices.iter().map(|&i| targets[i - 1].0.clone()).collect();
-                let paths: Vec<String> =
-                    indices.iter().map(|&i| targets[i - 1].1.clone()).collect();
-                Ok(Some((names, paths)))
+        match selected {
+            // Esc が押された場合は前のステップに戻る
+            None => return Ok(None),
+            Some(indices) => {
+                if indices.is_empty() {
+                    // 未選択の場合は警告を出して再入力を促す
+                    println!("少なくとも1つのサービスを選択してください。");
+                } else if indices.contains(&0) {
+                    // 「すべて」が選択された
+                    let names: Vec<String> = targets.iter().map(|(n, _)| n.clone()).collect();
+                    let paths: Vec<String> = targets.iter().map(|(_, p)| p.clone()).collect();
+                    return Ok(Some((names, paths)));
+                } else {
+                    let names: Vec<String> =
+                        indices.iter().map(|&i| targets[i - 1].0.clone()).collect();
+                    let paths: Vec<String> =
+                        indices.iter().map(|&i| targets[i - 1].1.clone()).collect();
+                    return Ok(Some((names, paths)));
+                }
             }
         }
     }

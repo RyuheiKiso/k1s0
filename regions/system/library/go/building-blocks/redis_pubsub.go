@@ -2,6 +2,7 @@ package buildingblocks
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -33,16 +34,34 @@ type RedisPubSub struct {
 	client RedisPubSubClient
 	// status はコンポーネントの現在の状態を表す。
 	status ComponentStatus
+	// onDropped はメッセージをドロップした際に呼び出すコールバック（G-04 対応）。
+	// nil の場合はログのみ出力する。Prometheus カウンターのインクリメント等に使用できる。
+	onDropped func(topic string)
+}
+
+// RedisPubSubOption は RedisPubSub の生成オプション。
+type RedisPubSubOption func(*RedisPubSub)
+
+// WithDroppedMessageCallback はメッセージドロップ時に呼び出すコールバックを設定する（G-04 対応）。
+// Prometheus カウンター等のメトリクス収集に使用する。
+// 例: WithDroppedMessageCallback(func(topic string) { droppedCounter.WithLabelValues(topic).Inc() })
+func WithDroppedMessageCallback(fn func(topic string)) RedisPubSubOption {
+	return func(p *RedisPubSub) { p.onDropped = fn }
 }
 
 // NewRedisPubSub は新しい RedisPubSub を生成して返す。
 // name はコンポーネント識別子、client は Redis Pub/Sub 操作を担うクライアント実装。
-func NewRedisPubSub(name string, client RedisPubSubClient) *RedisPubSub {
-	return &RedisPubSub{
+// opts により追加設定（ドロップコールバック等）を注入できる。
+func NewRedisPubSub(name string, client RedisPubSubClient, opts ...RedisPubSubOption) *RedisPubSub {
+	p := &RedisPubSub{
 		name:   name,
 		client: client,
 		status: StatusUninitialized,
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
 // Name はコンポーネント識別子を返す。
@@ -89,6 +108,7 @@ func (p *RedisPubSub) Publish(ctx context.Context, msg *Message) error {
 
 // Subscribe は指定した Redis トピックのメッセージを受信するチャネルを返す。
 // チャネルのバッファサイズは64で、バッファが満杯の場合はメッセージをドロップする。
+// backpressure 対策として、コンシューマが追いつかない場合はブロックせずにドロップする。
 func (p *RedisPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Message, error) {
 	// バッファ付きチャネルを作成し、受信側の処理が遅れてもブロックを防ぐ。
 	ch := make(chan *Message, 64)
@@ -99,10 +119,24 @@ func (p *RedisPubSub) Subscribe(ctx context.Context, topic string) (<-chan *Mess
 			Data:      payload,
 			Timestamp: time.Now(),
 		}
-		// チャネルが満杯の場合はメッセージをドロップして処理を継続する。
+		// バッファ満杯時はメッセージをドロップして配信ループの継続を優先する。
+		// コンテキストキャンセル時はエラーを返してシャットダウンを伝播する。
 		select {
 		case ch <- msg:
+		case <-ctx.Done():
+			return ctx.Err()
 		default:
+			// バッファが満杯のためメッセージをドロップする。
+			// コンシューマが追いつかない場合の backpressure 対策として、
+			// ブロックせずにドロップして配信ループの継続を優先する。
+			slog.Warn("PubSub メッセージをドロップしました: バッファ満杯",
+				slog.String("topic", topic),
+				slog.Int("buffer_cap", cap(ch)),
+			)
+			// G-04 対応: ドロップイベントをコールバックで通知する（Prometheus カウンター等に使用）。
+			if p.onDropped != nil {
+				p.onDropped(topic)
+			}
 		}
 		return nil
 	}

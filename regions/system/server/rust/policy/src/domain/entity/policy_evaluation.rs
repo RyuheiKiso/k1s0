@@ -38,3 +38,42 @@ impl PolicyEvaluation {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// PolicyEvaluation::new が allowed=true の評価結果を生成する
+    #[test]
+    fn new_allowed() {
+        let eval = PolicyEvaluation::new(
+            Some(Uuid::new_v4()),
+            "data.rbac.allow".to_string(),
+            serde_json::json!({"user": "alice", "action": "read"}),
+            true,
+            None,
+            "dec-001".to_string(),
+            false,
+        );
+        assert!(eval.allowed);
+        assert!(!eval.cached);
+        assert_eq!(eval.decision_id, "dec-001");
+    }
+
+    /// PolicyEvaluation::new が denied の評価結果を生成する
+    #[test]
+    fn new_denied_with_reason() {
+        let eval = PolicyEvaluation::new(
+            None,
+            "data.rbac.allow".to_string(),
+            serde_json::json!({}),
+            false,
+            Some("insufficient permissions".to_string()),
+            "dec-002".to_string(),
+            true,
+        );
+        assert!(!eval.allowed);
+        assert!(eval.cached);
+        assert_eq!(eval.reason.as_deref(), Some("insufficient permissions"));
+    }
+}

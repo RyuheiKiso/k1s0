@@ -36,3 +36,29 @@ impl std::fmt::Display for DocType {
         }
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// DocType の Display が小文字文字列を返す
+    #[test]
+    fn display_lowercase() {
+        assert_eq!(DocType::Runbook.to_string(), "runbook");
+        assert_eq!(DocType::ApiSpec.to_string(), "apispec");
+        assert_eq!(DocType::Architecture.to_string(), "architecture");
+        assert_eq!(DocType::UserGuide.to_string(), "userguide");
+        assert_eq!(DocType::Other.to_string(), "other");
+    }
+
+    /// serde で小文字にシリアライズ・デシリアライズできる
+    #[test]
+    fn serde_roundtrip() {
+        let dt = DocType::ApiSpec;
+        let json = serde_json::to_string(&dt).unwrap();
+        assert_eq!(json, "\"apispec\"");
+        let decoded: DocType = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, DocType::ApiSpec);
+    }
+}

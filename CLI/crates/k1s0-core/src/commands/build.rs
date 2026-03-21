@@ -214,11 +214,12 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<String>) {
         || path.join("package.json").exists()
         || path.join("pubspec.yaml").exists();
 
+    // buildable なディレクトリを見つけてもネストされた子アプリも探索を継続する
     if is_buildable {
         if let Some(path_str) = path.to_str() {
             targets.push(path_str.to_string());
         }
-        return;
+        // return を削除: ネストされたアプリも検出するため再帰を継続する
     }
 
     if let Ok(entries) = fs::read_dir(path) {
@@ -384,5 +385,35 @@ mod tests {
 
         let args = resolve_node_build_args(tmp.path(), BuildMode::Development).unwrap();
         assert_eq!(args, vec!["run", "build:dev"]);
+    }
+
+    #[test]
+    fn test_scan_buildable_targets_detects_nested_apps() {
+        // 親が buildable でその配下に子も buildable なネスト構造を検出できることを検証する
+        let tmp = TempDir::new().unwrap();
+
+        // 親: Rust サーバー
+        let parent_path = tmp
+            .path()
+            .join("regions/business/accounting/server/rust/ledger");
+        fs::create_dir_all(&parent_path).unwrap();
+        fs::write(parent_path.join("Cargo.toml"), "[package]\n").unwrap();
+
+        // 子: React クライアント（Rust サーバー配下）
+        let child_path = parent_path.join("client/react");
+        fs::create_dir_all(&child_path).unwrap();
+        fs::write(
+            child_path.join("package.json"),
+            r#"{"scripts":{"build":"vite build"}}"#,
+        )
+        .unwrap();
+
+        let targets = scan_buildable_targets_at(tmp.path());
+        // 親と子の両方が検出される必要がある
+        assert_eq!(
+            targets.len(),
+            2,
+            "ネストされた親と子の両方が検出される必要がある: {targets:?}"
+        );
     }
 }

@@ -54,9 +54,20 @@ pub async fn spiffe_auth_middleware(
         .filter(|p| p.matches_path(path))
         .collect();
 
-    // 一致するポリシーがなければ許可
+    // パスに一致するポリシーがない場合はデフォルト拒否（fail-closed）。
+    // シークレット Vault はポリシーで明示的に許可されたパスのみアクセスを許可する。
     if matching_policies.is_empty() {
-        return next.run(request).await;
+        tracing::warn!(path = %raw_path, "No SPIFFE policy matches path — denying by default (fail-closed)");
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": {
+                    "code": "SPIFFE_NO_MATCHING_POLICY",
+                    "message": "No SPIFFE policy matches this path — access denied by default"
+                }
+            })),
+        )
+            .into_response();
     }
 
     // auth ミドルウェアが格納した Claims から sub (SPIFFE ID) を取得
@@ -155,8 +166,9 @@ mod tests {
         assert_eq!(json["error"]["code"], "SPIFFE_NO_POLICIES");
     }
 
+    /// パスに一致するポリシーがない場合は fail-closed（403）であることを検証
     #[tokio::test]
-    async fn test_no_matching_policy_allows() {
+    async fn test_no_matching_policy_denies() {
         let app = build_app(vec![make_policy(
             "other/path/*",
             &["spiffe://cluster/ns/default/sa/svc"],
@@ -166,7 +178,13 @@ mod tests {
             .body(Body::empty())
             .unwrap();
         let resp = app.oneshot(req).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["error"]["code"], "SPIFFE_NO_MATCHING_POLICY");
     }
 
     #[tokio::test]

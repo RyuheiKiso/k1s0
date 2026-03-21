@@ -28,7 +28,7 @@ class OrderRepository {
     if (status != null) queryParameters['status'] = status.name;
 
     final response = await _dio.get(
-      '/api/v1/list_orders',
+      '/api/v1/orders',
       queryParameters: queryParameters,
     );
     final List<dynamic> data = (response.data as Map<String, dynamic>)['orders'] as List<dynamic>;
@@ -39,7 +39,7 @@ class OrderRepository {
 
   /// 指定IDの注文を取得する
   Future<Order> getOrder(String id) async {
-    final response = await _dio.get('/api/v1/get_order/$id');
+    final response = await _dio.get('/api/v1/orders/$id');
     return Order.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -47,7 +47,7 @@ class OrderRepository {
   /// 作成された注文をレスポンスから返す
   Future<Order> createOrder(CreateOrderInput input) async {
     final response = await _dio.post(
-      '/api/v1/create_order',
+      '/api/v1/orders',
       data: input.toJson(),
     );
     return Order.fromJson(response.data as Map<String, dynamic>);
@@ -59,7 +59,7 @@ class OrderRepository {
     UpdateOrderStatusInput input,
   ) async {
     final response = await _dio.put(
-      '/api/v1/update_order_status/$id',
+      '/api/v1/orders/$id/status',
       data: input.toJson(),
     );
     return Order.fromJson(response.data as Map<String, dynamic>);

@@ -195,3 +195,142 @@ mod hex {
         super::hex_encode(bytes.as_ref())
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::rule::{EvaluationMode, Rule, RuleSet};
+    use crate::domain::repository::{
+        evaluation_log_repository::MockEvaluationLogRepository,
+        rule_repository::MockRuleRepository, rule_set_repository::MockRuleSetRepository,
+    };
+
+    fn make_rule_set(mode: EvaluationMode) -> RuleSet {
+        let mut rs = RuleSet::new(
+            "discount".to_string(),
+            "Discount rules".to_string(),
+            "sales".to_string(),
+            mode,
+            serde_json::json!({"discount": 0}),
+            vec![],
+        );
+        rs.current_version = 1;
+        rs
+    }
+
+    fn make_rule(name: &str, priority: i32, condition: serde_json::Value, result: serde_json::Value) -> Rule {
+        Rule::new(name.to_string(), "desc".to_string(), priority, condition, result)
+    }
+
+    fn make_uc(
+        rule_set_repo: MockRuleSetRepository,
+        rule_repo: MockRuleRepository,
+        log_repo: MockEvaluationLogRepository,
+    ) -> EvaluateUseCase {
+        EvaluateUseCase::new(
+            Arc::new(rule_set_repo),
+            Arc::new(rule_repo),
+            Arc::new(log_repo),
+        )
+    }
+
+    /// "{domain}.{name}" 形式でないと EvaluationError を返す
+    #[tokio::test]
+    async fn invalid_rule_set_ref_format() {
+        let uc = make_uc(
+            MockRuleSetRepository::new(),
+            MockRuleRepository::new(),
+            MockEvaluationLogRepository::new(),
+        );
+        let result = uc.execute(&EvaluateInput {
+            rule_set: "no-dot-here".to_string(),
+            input: serde_json::json!({}),
+            context: serde_json::json!({}),
+            dry_run: true,
+        }).await;
+        assert!(matches!(result, Err(EvaluateError::EvaluationError(_))));
+    }
+
+    /// RuleSet が存在しない場合は RuleSetNotFound を返す
+    #[tokio::test]
+    async fn rule_set_not_found() {
+        let mut rs_mock = MockRuleSetRepository::new();
+        rs_mock.expect_find_by_domain_and_name().returning(|_, _| Ok(None));
+        let uc = make_uc(rs_mock, MockRuleRepository::new(), MockEvaluationLogRepository::new());
+        let result = uc.execute(&EvaluateInput {
+            rule_set: "sales.discount".to_string(),
+            input: serde_json::json!({}),
+            context: serde_json::json!({}),
+            dry_run: true,
+        }).await;
+        assert!(matches!(result, Err(EvaluateError::RuleSetNotFound(_))));
+    }
+
+    /// FirstMatch モードで最初にマッチしたルール結果を返す
+    #[tokio::test]
+    async fn first_match_returns_first_rule_result() {
+        let rule = make_rule(
+            "high-value",
+            1,
+            serde_json::json!({"field": "amount", "operator": "gte", "value": 100}),
+            serde_json::json!({"discount": 20}),
+        );
+        let rule_id = rule.id;
+        let mut rs = make_rule_set(EvaluationMode::FirstMatch);
+        rs.rule_ids = vec![rule_id];
+
+        let mut rs_mock = MockRuleSetRepository::new();
+        rs_mock.expect_find_by_domain_and_name().returning(move |_, _| Ok(Some(rs.clone())));
+
+        let mut r_mock = MockRuleRepository::new();
+        r_mock.expect_find_by_ids().returning(move |_| Ok(vec![rule.clone()]));
+
+        let mut log_mock = MockEvaluationLogRepository::new();
+        log_mock.expect_create().returning(|_| Ok(()));
+
+        let uc = make_uc(rs_mock, r_mock, log_mock);
+        let output = uc.execute(&EvaluateInput {
+            rule_set: "sales.discount".to_string(),
+            input: serde_json::json!({"amount": 150}),
+            context: serde_json::json!({}),
+            dry_run: false,
+        }).await.unwrap();
+
+        assert_eq!(output.matched_rules.len(), 1);
+        assert_eq!(output.result, serde_json::json!({"discount": 20}));
+        assert!(!output.default_applied);
+    }
+
+    /// マッチするルールがない場合はデフォルト結果を返す
+    #[tokio::test]
+    async fn no_match_returns_default_result() {
+        let rule = make_rule(
+            "high-value",
+            1,
+            serde_json::json!({"field": "amount", "operator": "gte", "value": 100}),
+            serde_json::json!({"discount": 20}),
+        );
+        let rule_id = rule.id;
+        let mut rs = make_rule_set(EvaluationMode::FirstMatch);
+        rs.rule_ids = vec![rule_id];
+
+        let mut rs_mock = MockRuleSetRepository::new();
+        rs_mock.expect_find_by_domain_and_name().returning(move |_, _| Ok(Some(rs.clone())));
+
+        let mut r_mock = MockRuleRepository::new();
+        r_mock.expect_find_by_ids().returning(move |_| Ok(vec![rule.clone()]));
+
+        let uc = make_uc(rs_mock, r_mock, MockEvaluationLogRepository::new());
+        let output = uc.execute(&EvaluateInput {
+            rule_set: "sales.discount".to_string(),
+            input: serde_json::json!({"amount": 50}),  // 100未満なのでマッチしない
+            context: serde_json::json!({}),
+            dry_run: true,
+        }).await.unwrap();
+
+        assert!(output.matched_rules.is_empty());
+        assert_eq!(output.result, serde_json::json!({"discount": 0}));
+        assert!(output.default_applied);
+    }
+}

@@ -45,12 +45,18 @@ pub struct ListOrdersQuery {
     pub offset: Option<i64>,
 }
 
+/// 注文作成ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn create_order(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Json(body): Json<CreateOrderRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    // Claims が存在しない（未認証）場合は 401 を返す。actor_from_claims は None 時に
+    // "anonymous" を返すため、明示的な認証チェックが必要（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "create_order invoked");
 
     let input = CreateOrder {
         customer_id: body.customer_id,
@@ -78,10 +84,14 @@ pub async fn create_order(
     Ok((StatusCode::CREATED, Json(response)))
 }
 
+/// 注文取得ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn get_order(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(order_id): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
     let id = parse_uuid(&order_id)?;
 
     let (order, items) = state
@@ -94,13 +104,18 @@ pub async fn get_order(
     Ok(Json(response))
 }
 
+/// 注文ステータス更新ハンドラー。Claims が存在しない場合は 401 Unauthorized を返す。
 pub async fn update_order_status(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
     Path(order_id): Path<String>,
     Json(body): Json<UpdateOrderStatusRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    let actor = actor_from_claims(claims.as_ref().map(|c| &c.0));
+    // Claims が存在しない（未認証）場合は 401 を返す（P0-2 対応）。
+    let claims = claims
+        .ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+    let actor = actor_from_claims(Some(&claims.0));
+    tracing::info!(actor = %actor, "update_order_status invoked");
     let id = parse_uuid(&order_id)?;
 
     let new_status = body
@@ -135,10 +150,14 @@ pub async fn update_order_status(
     Ok(Json(response))
 }
 
+/// 注文一覧ハンドラー。read 操作も認証必須（P0-2 対応）。
 pub async fn list_orders(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListOrdersQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
     let status = match &query.status {
         Some(s) => Some(
             s.parse::<OrderStatus>()

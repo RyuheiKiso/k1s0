@@ -40,8 +40,10 @@ type OAuthClient interface {
 	AuthCodeURL(state, codeChallenge string) (string, error)
 	// ExchangeCode は認可コードをトークンに交換する。
 	ExchangeCode(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-	// ExtractSubject は ID トークンから subject を抽出する。
-	ExtractSubject(ctx context.Context, idToken string) (string, error)
+	// ExtractClaims は JWKS 署名検証済みの ID トークンから subject と realm roles を返す。
+	// アクセストークンの署名未検証によるロール改ざんリスクを排除するため、
+	// 必ず ID トークン（検証済み）から roles を取得する。
+	ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error)
 	// LogoutURL は IdP のログアウト URL を返す。
 	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
 	// ClearDiscoveryCache はキャッシュ済みの OIDC discovery 結果をクリアする。
@@ -124,6 +126,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Callback handles the OIDC callback, exchanges the code, and creates a session.
 func (h *AuthHandler) Callback(c *gin.Context) {
+	// セッション固定化攻撃を防止するため、認証完了前に既存セッションを破棄する。
+	// 攻撃者が認証前のセッション ID を認証後に再利用できないよう削除する（S-03 対応）。
+	if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && existingSessionID != "" {
+		if delErr := h.sessionStore.Delete(c.Request.Context(), existingSessionID); delErr != nil {
+			h.logger.Warn("既存セッションの削除に失敗", slog.String("session_id", existingSessionID), slog.String("error", delErr.Error()))
+		}
+	}
+
 	// Verify state parameter.
 	state, err := c.Cookie(stateCookieName)
 	if err != nil || state == "" {
@@ -172,10 +182,12 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	// JWKSによる署名検証付きでsubjectを取得する
-	subject, err := h.oauthClient.ExtractSubject(c.Request.Context(), tokenResp.IDToken)
+	// JWKS 署名検証付きで ID トークンから subject と realm roles を一括取得する。
+	// アクセストークンからロールを取得する方式（署名未検証）を廃止し、
+	// 必ず検証済みの ID トークンから取得することでロール改ざんリスクを排除する。
+	subject, roles, err := h.oauthClient.ExtractClaims(c.Request.Context(), tokenResp.IDToken)
 	if err != nil {
-		h.logger.Error("failed to extract subject from id_token", slog.String("error", err.Error()))
+		h.logger.Error("ID トークンの検証とクレーム取得に失敗", slog.String("error", err.Error()))
 		respondError(c, http.StatusUnauthorized, "BFF_AUTH_ID_TOKEN_INVALID")
 		return
 	}
@@ -196,6 +208,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
 		CSRFToken:    csrfToken,
 		Subject:      subject,
+		Roles:        roles,
 	}
 
 	sessionID, err := h.sessionStore.Create(c.Request.Context(), sessData, h.sessionTTL)
@@ -231,8 +244,13 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 			return
 		}
 
-		// リダイレクト先 URL に交換コードを付与する
-		redirectURL, _ := url.Parse(postAuthRedirect)
+		// リダイレクト先 URL に交換コードを付与する（S-05 対応: url.Parse のエラーを検証する）
+		redirectURL, err := url.Parse(postAuthRedirect)
+		if err != nil {
+			h.logger.Error("リダイレクト先 URL のパースに失敗", slog.String("url", postAuthRedirect), slog.String("error", err.Error()))
+			respondError(c, http.StatusBadRequest, "BFF_AUTH_REDIRECT_URL_INVALID")
+			return
+		}
 		q := redirectURL.Query()
 		q.Set("code", exchangeCode)
 		redirectURL.RawQuery = q.Encode()
@@ -312,11 +330,18 @@ func (h *AuthHandler) Session(c *gin.Context) {
 		return
 	}
 
-	// 有効なセッション情報を返す
+	// roles が nil の場合は空スライスを返す（JSON で null ではなく [] になる）
+	roles := sess.Roles
+	if roles == nil {
+		roles = []string{}
+	}
+
+	// 有効なセッション情報を返す（roles はフロントエンドの /admin ルート認可に使用する）
 	c.JSON(http.StatusOK, gin.H{
 		"id":            sess.Subject,
 		"authenticated": true,
 		"csrf_token":    sess.CSRFToken,
+		"roles":         roles,
 	})
 }
 
@@ -373,25 +398,20 @@ func (h *AuthHandler) Exchange(c *gin.Context) {
 }
 
 // isAllowedRedirectScheme はモバイルリダイレクト先 URL のスキームを検証する。
-// オープンリダイレクト攻撃と XSS を防止するため、以下を許可しない:
-//   - http / https（オープンリダイレクト攻撃）
-//   - javascript / data / vbscript（XSS 攻撃）
-//   - 空スキームまたはパース不可能な URL
-//
-// アプリ固有のカスタムスキーム（例: k1s0://, myapp://）のみ許可する。
+// allowlist 方式: k1s0:// スキームのみ許可する。
+// denylist ではなく allowlist を使用することで、未知の危険スキームを漏れなくブロックする。
 func isAllowedRedirectScheme(rawURL string) bool {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil || parsedURL.Scheme == "" {
 		return false
 	}
 
-	// 危険なスキームを明示的にブロックする
-	switch parsedURL.Scheme {
-	case "http", "https", "javascript", "data", "vbscript", "file":
+	// allowlist: k1s0 カスタムスキームのみ許可する
+	if parsedURL.Scheme != "k1s0" {
 		return false
 	}
 
-	// Host が空でないことを確認する（スキーム://host の形式であること）
+	// Host が空でないことを確認する（k1s0://host の形式であること）
 	if parsedURL.Host == "" {
 		return false
 	}

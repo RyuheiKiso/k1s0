@@ -5,6 +5,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::kafka_producer::{
     KafkaSessionProducer, NoopSessionEventPublisher, SessionEventPublisher,
@@ -171,6 +174,9 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // gRPC 認証レイヤー（未認証アクセスを middleware レベルでブロック）
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, session_grpc_action);
+
     // Redis が構成されているかを health エンドポイントで判定するために記録
     let redis_configured = cfg.redis.is_some();
 
@@ -293,6 +299,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .layer(grpc_auth_layer)
             .add_service(SessionServiceServer::new(session_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;
@@ -327,6 +334,14 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名からアクション種別へのマッパー（RBAC 判定に使用）。
+fn session_grpc_action(method: &str) -> &'static str {
+    match method {
+        "CreateSession" | "RefreshSession" | "RevokeSession" | "RevokeAllSessions" => "write",
+        _ => "read",
+    }
 }
 
 async fn metrics_handler(

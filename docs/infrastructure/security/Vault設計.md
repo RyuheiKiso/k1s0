@@ -467,6 +467,55 @@ spec:
 
 ---
 
+## Doc Sync (2026-03-21)
+
+### init-vault.sh 環境変数ガード強化 [技術品質監査 Critical 4-1]
+
+**背景・問題**
+
+`infra/docker/vault/init-vault.sh` が `ENVIRONMENT` 変数の未設定時に `set -u` によりスクリプト自体が異常終了する問題があった。
+また production/staging の明示的な列挙によるホワイトリスト方式では、新しい環境（`staging2` 等）が未定義の場合に
+本番相当の環境でもガードが機能しない恐れがあった。
+
+**対応内容**
+
+- `ENVIRONMENT` 未設定時のデフォルト値を `development` に設定（`set -u` によるエラーを防止）
+- 環境ガードの判定を「development 以外は全て本番相当」に変更（ホワイトリスト → ブラックリスト反転）
+
+```bash
+# 変更前: ENVIRONMENT が未設定のまま production/staging を明示チェック
+if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "staging" ]; then ...
+
+# 変更後: ENVIRONMENT のデフォルト設定 + development 以外は全て必須チェック
+ENVIRONMENT="${ENVIRONMENT:-development}"
+if [ "$ENVIRONMENT" != "development" ]; then
+    : "${VAULT_ADDR:?VAULT_ADDR must be set in non-development environments}"
+    : "${VAULT_TOKEN:?VAULT_TOKEN must be set in non-development environments}"
+    : "${VAULT_INIT_KEY:?VAULT_INIT_KEY must be set in non-development environments}"
+fi
+```
+
+**ローカル開発での使い方**
+
+```bash
+# ENVIRONMENT 未設定 = development として動作（変更なし）
+bash infra/docker/vault/init-vault.sh
+
+# 明示的に development を指定しても同じ
+ENVIRONMENT=development bash infra/docker/vault/init-vault.sh
+```
+
+**staging / production での実行**
+
+CI/CD パイプライン経由で実行する場合は以下の環境変数を必ず設定すること:
+
+- `ENVIRONMENT=staging` または `ENVIRONMENT=production`
+- `VAULT_ADDR` — Vault サーバーアドレス
+- `VAULT_TOKEN` — 有効な Vault トークン
+- `VAULT_INIT_KEY` — Vault 初期化キー
+
+---
+
 ## 関連ドキュメント
 
 - [認証認可設計.md](../../architecture/auth/認証認可設計.md) -- 基本方針・技術スタック

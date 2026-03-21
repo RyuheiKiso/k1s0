@@ -283,7 +283,7 @@ async-graphql-axum = "7"
 sqlx = {workspace = true, features = ["migrate"]}
 {% endif %}
 {% if has_kafka %}
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 {% endif %}
 {% if has_redis %}
 redis = { version = "0.27", features = ["tokio-comp"] }

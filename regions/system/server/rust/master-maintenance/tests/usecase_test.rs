@@ -26,6 +26,12 @@ use k1s0_master_maintenance_server::domain::repository::table_definition_reposit
 use k1s0_master_maintenance_server::domain::service::rule_engine_service::RuleEngineService;
 use k1s0_master_maintenance_server::domain::value_object::domain_filter::DomainFilter;
 use k1s0_master_maintenance_server::domain::value_object::rule_result::RuleResult;
+use k1s0_master_maintenance_server::domain::entity::import_job::ImportJob;
+use k1s0_master_maintenance_server::domain::entity::table_relationship::TableRelationship;
+use k1s0_master_maintenance_server::domain::repository::import_job_repository::ImportJobRepository;
+use k1s0_master_maintenance_server::domain::repository::table_relationship_repository::TableRelationshipRepository;
+use k1s0_master_maintenance_server::domain::value_object::relationship_type::RelationshipType;
+use k1s0_master_maintenance_server::infrastructure::schema::SchemaManager;
 
 // ---------------------------------------------------------------------------
 // In-memory stub: TableDefinitionRepository
@@ -813,6 +819,185 @@ impl RuleEngineService for StubRuleEngineService {
         } else {
             Ok(RuleResult::fail(rule.error_message_template.clone()))
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// In-memory stub: SchemaManager（物理スキーマ操作のno-opスタブ）
+// ---------------------------------------------------------------------------
+
+struct StubSchemaManager;
+
+#[async_trait]
+impl SchemaManager for StubSchemaManager {
+    async fn create_table(
+        &self,
+        _input: &k1s0_master_maintenance_server::domain::entity::table_definition::CreateTableDefinition,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn delete_table(&self, _table: &TableDefinition) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn add_columns(
+        &self,
+        _table: &TableDefinition,
+        _columns: &[CreateColumnDefinition],
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn update_column(
+        &self,
+        _table: &TableDefinition,
+        _existing: &ColumnDefinition,
+        _input: &CreateColumnDefinition,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn delete_column(
+        &self,
+        _table: &TableDefinition,
+        _column_name: &str,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn create_relationship(
+        &self,
+        _source_table: &TableDefinition,
+        _target_table: &TableDefinition,
+        _relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn update_relationship(
+        &self,
+        _source_table: &TableDefinition,
+        _target_table: &TableDefinition,
+        _relationship: &TableRelationship,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn delete_relationship(
+        &self,
+        _source_table: &TableDefinition,
+        _relationship_id: Uuid,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// In-memory stub: TableRelationshipRepository
+// ---------------------------------------------------------------------------
+
+struct StubTableRelationshipRepository {
+    relationships: RwLock<Vec<TableRelationship>>,
+}
+
+impl StubTableRelationshipRepository {
+    fn new() -> Self {
+        Self {
+            relationships: RwLock::new(Vec::new()),
+        }
+    }
+
+    fn with_relationships(rels: Vec<TableRelationship>) -> Self {
+        Self {
+            relationships: RwLock::new(rels),
+        }
+    }
+}
+
+#[async_trait]
+impl TableRelationshipRepository for StubTableRelationshipRepository {
+    async fn find_all(&self) -> anyhow::Result<Vec<TableRelationship>> {
+        Ok(self.relationships.read().await.clone())
+    }
+
+    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableRelationship>> {
+        Ok(self
+            .relationships
+            .read()
+            .await
+            .iter()
+            .find(|r| r.id == id)
+            .cloned())
+    }
+
+    async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<TableRelationship>> {
+        Ok(self
+            .relationships
+            .read()
+            .await
+            .iter()
+            .filter(|r| r.source_table_id == table_id || r.target_table_id == table_id)
+            .cloned()
+            .collect())
+    }
+
+    async fn create(&self, relationship: &TableRelationship) -> anyhow::Result<TableRelationship> {
+        self.relationships.write().await.push(relationship.clone());
+        Ok(relationship.clone())
+    }
+
+    async fn update(
+        &self,
+        id: Uuid,
+        relationship: &TableRelationship,
+    ) -> anyhow::Result<TableRelationship> {
+        let mut rels = self.relationships.write().await;
+        if let Some(existing) = rels.iter_mut().find(|r| r.id == id) {
+            *existing = relationship.clone();
+        }
+        Ok(relationship.clone())
+    }
+
+    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+        self.relationships.write().await.retain(|r| r.id != id);
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// In-memory stub: ImportJobRepository
+// ---------------------------------------------------------------------------
+
+struct StubImportJobRepository {
+    jobs: RwLock<Vec<ImportJob>>,
+}
+
+impl StubImportJobRepository {
+    fn new() -> Self {
+        Self {
+            jobs: RwLock::new(Vec::new()),
+        }
+    }
+}
+
+#[async_trait]
+impl ImportJobRepository for StubImportJobRepository {
+    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ImportJob>> {
+        Ok(self.jobs.read().await.iter().find(|j| j.id == id).cloned())
+    }
+
+    async fn create(&self, job: &ImportJob) -> anyhow::Result<ImportJob> {
+        self.jobs.write().await.push(job.clone());
+        Ok(job.clone())
+    }
+
+    async fn update(&self, id: Uuid, job: &ImportJob) -> anyhow::Result<ImportJob> {
+        let mut jobs = self.jobs.write().await;
+        if let Some(existing) = jobs.iter_mut().find(|j| j.id == id) {
+            *existing = job.clone();
+        }
+        Ok(job.clone())
     }
 }
 
@@ -1942,5 +2127,672 @@ mod lifecycle {
             .await
             .unwrap();
         assert!(remaining_configs.is_empty());
+    }
+}
+
+// ---------------------------------------------------------------------------
+// リレーションシップ生成ヘルパー
+// ---------------------------------------------------------------------------
+
+fn make_relationship(
+    source_table_id: Uuid,
+    source_col: &str,
+    target_table_id: Uuid,
+    target_col: &str,
+) -> TableRelationship {
+    TableRelationship {
+        id: Uuid::new_v4(),
+        source_table_id,
+        source_column: source_col.to_string(),
+        target_table_id,
+        target_column: target_col.to_string(),
+        relationship_type: RelationshipType::OneToMany,
+        display_name: None,
+        is_cascade_delete: false,
+        created_at: Utc::now(),
+    }
+}
+
+// ===========================================================================
+// ManageTableDefinitionsUseCase tests
+// ===========================================================================
+
+mod manage_table_definitions {
+    use super::*;
+    use k1s0_master_maintenance_server::domain::entity::table_definition::{
+        CreateTableDefinition, UpdateTableDefinition,
+    };
+    use k1s0_master_maintenance_server::usecase::manage_table_definitions::ManageTableDefinitionsUseCase;
+
+    /// テーブル一覧取得: 全テーブルを返す
+    #[tokio::test]
+    async fn list_tables_returns_all() {
+        let t1 = make_table("orders");
+        let t2 = make_table("products");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            t1.clone(),
+            t2.clone(),
+        ]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc
+            .list_tables(None, false, &DomainFilter::All)
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    /// テーブル取得: 存在するテーブルはSomeを返す
+    #[tokio::test]
+    async fn get_table_found() {
+        let table = make_table("customers");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.get_table("customers", None).await.unwrap();
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().name, "customers");
+    }
+
+    /// テーブル取得: 存在しないテーブルはNoneを返す
+    #[tokio::test]
+    async fn get_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.get_table("nonexistent", None).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    /// テーブル作成: スキーマ作成とリポジトリ保存が完了する
+    #[tokio::test]
+    async fn create_table_success() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(
+            table_repo.clone(),
+            column_repo,
+            schema_manager,
+        );
+
+        let input = CreateTableDefinition {
+            name: "inventory".to_string(),
+            schema_name: "public".to_string(),
+            database_name: None,
+            display_name: "Inventory".to_string(),
+            description: None,
+            category: None,
+            allow_create: Some(true),
+            allow_update: Some(true),
+            allow_delete: Some(true),
+            read_roles: None,
+            write_roles: None,
+            admin_roles: None,
+            sort_order: None,
+            domain_scope: None,
+        };
+        let table = uc.create_table(&input, "admin").await.unwrap();
+        assert_eq!(table.name, "inventory");
+
+        // リポジトリに格納されていることを確認
+        let found = uc.get_table("inventory", None).await.unwrap();
+        assert!(found.is_some());
+    }
+
+    /// テーブル削除: 存在するテーブルを削除できる
+    #[tokio::test]
+    async fn delete_table_success() {
+        let table = make_table("temp_table");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(
+            table_repo.clone(),
+            column_repo,
+            schema_manager,
+        );
+
+        uc.delete_table("temp_table", None).await.unwrap();
+        let found = uc.get_table("temp_table", None).await.unwrap();
+        assert!(found.is_none());
+    }
+
+    /// テーブル削除: 存在しないテーブルはエラーを返す
+    #[tokio::test]
+    async fn delete_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.delete_table("ghost_table", None).await;
+        assert!(result.is_err());
+    }
+
+    /// テーブル更新: 表示名を変更できる
+    #[tokio::test]
+    async fn update_table_display_name() {
+        let table = make_table("products");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let update = UpdateTableDefinition {
+            display_name: Some("商品マスタ".to_string()),
+            description: None,
+            category: None,
+            is_active: None,
+            allow_create: None,
+            allow_update: None,
+            allow_delete: None,
+            read_roles: None,
+            write_roles: None,
+            admin_roles: None,
+            sort_order: None,
+        };
+        let updated = uc.update_table("products", &update, None).await.unwrap();
+        assert_eq!(updated.display_name, "商品マスタ");
+    }
+
+    /// ドメイン一覧取得: ドメインリストを返す
+    #[tokio::test]
+    async fn list_domains_returns_domain() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.list_domains().await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "default");
+    }
+}
+
+// ===========================================================================
+// ManageColumnDefinitionsUseCase tests
+// ===========================================================================
+
+mod manage_column_definitions {
+    use super::*;
+    use k1s0_master_maintenance_server::usecase::manage_column_definitions::ManageColumnDefinitionsUseCase;
+
+    /// カラム一覧取得: テーブルが存在すれば対応するカラムを返す
+    #[tokio::test]
+    async fn list_columns_success() {
+        let table = make_table("employees");
+        let col = make_column(table.id, "name", false, true, true);
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![col.clone()]));
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageColumnDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.list_columns("employees", None).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].column_name, "name");
+    }
+
+    /// カラム一覧取得: テーブルが存在しない場合はエラーを返す
+    #[tokio::test]
+    async fn list_columns_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageColumnDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let result = uc.list_columns("nonexistent", None).await;
+        assert!(result.is_err());
+    }
+
+    /// カラム追加: テーブルに新しいカラムを追加できる
+    #[tokio::test]
+    async fn create_columns_success() {
+        let table = make_table("items");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageColumnDefinitionsUseCase::new(
+            table_repo,
+            column_repo.clone(),
+            schema_manager,
+        );
+
+        let input = serde_json::json!({
+            "columns": [{
+                "column_name": "price",
+                "display_name": "価格",
+                "data_type": "integer"
+            }]
+        });
+        let result = uc.create_columns("items", &input, None).await.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].column_name, "price");
+    }
+
+    /// カラム削除: 既存カラムを削除できる
+    #[tokio::test]
+    async fn delete_column_success() {
+        let table = make_table("orders");
+        let col = make_column(table.id, "notes", false, true, true);
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![col.clone()]));
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageColumnDefinitionsUseCase::new(
+            table_repo,
+            column_repo.clone(),
+            schema_manager,
+        );
+
+        uc.delete_column("orders", "notes", None).await.unwrap();
+
+        // カラムが削除されていることを確認
+        let remaining = uc.list_columns("orders", None).await.unwrap();
+        assert!(remaining.iter().all(|c| c.column_name != "notes"));
+    }
+
+    /// カラム更新: テーブルが存在しない場合はエラーを返す
+    #[tokio::test]
+    async fn update_column_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageColumnDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
+
+        let input = serde_json::json!({
+            "column_name": "price",
+            "display_name": "価格",
+            "data_type": "integer"
+        });
+        let result = uc.update_column("nonexistent", "price", &input, None).await;
+        assert!(result.is_err());
+    }
+}
+
+// ===========================================================================
+// CheckConsistencyUseCase tests
+// ===========================================================================
+
+mod check_consistency {
+    use super::*;
+    use k1s0_master_maintenance_server::usecase::check_consistency::CheckConsistencyUseCase;
+
+    /// ルール実行: 存在しないルールIDはエラーを返す
+    #[tokio::test]
+    async fn execute_rule_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        let uc = CheckConsistencyUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            rule_engine,
+        );
+
+        let result = uc.execute_rule(Uuid::new_v4(), None).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Rule not found"));
+    }
+
+    /// 全ルールチェック: テーブルが存在しない場合はエラーを返す
+    #[tokio::test]
+    async fn check_all_rules_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        let uc = CheckConsistencyUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            rule_engine,
+        );
+
+        let result = uc.check_all_rules("ghost_table", None).await;
+        assert!(result.is_err());
+    }
+
+    /// 全ルールチェック: ルールが0件の場合は pass を返す
+    #[tokio::test]
+    async fn check_all_rules_no_rules_returns_pass() {
+        let table = make_table("suppliers");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        let uc = CheckConsistencyUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            rule_engine,
+        );
+
+        let results = uc.check_all_rules("suppliers", None).await.unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results[0].passed);
+    }
+
+    /// ルール実行: レコードが0件の場合でもルール処理が完了し pass を返す
+    #[tokio::test]
+    async fn execute_rule_with_no_records_returns_pass() {
+        let table = make_table("warehouses");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let rule = make_rule("test-rule", table.id, "field_presence");
+        let rule_id = rule.id;
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::with_rules(vec![rule]));
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        let uc = CheckConsistencyUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            rule_engine,
+        );
+
+        let results = uc.execute_rule(rule_id, None).await.unwrap();
+        // レコードがないので pass 結果が1件返る
+        assert!(!results.is_empty());
+        assert!(results[0].passed);
+    }
+
+    /// ルール絞り込みチェック: 指定したrule_idのみ評価される
+    #[tokio::test]
+    async fn check_rules_with_specific_ids() {
+        let table = make_table("vendors");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let rule1 = make_rule("rule-a", table.id, "field_presence");
+        let rule1_id = rule1.id.to_string();
+        let rule2 = make_rule("rule-b", table.id, "field_presence");
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::with_rules(vec![
+            rule1.clone(),
+            rule2.clone(),
+        ]));
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        let uc = CheckConsistencyUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            rule_engine,
+        );
+
+        // rule-a だけを対象に実行（レコードなしなのでpass）
+        let results = uc
+            .check_rules("vendors", &[rule1_id], None)
+            .await
+            .unwrap();
+        assert!(!results.is_empty());
+        assert!(results.iter().all(|r| r.passed));
+    }
+}
+
+// ===========================================================================
+// ManageRelationshipsUseCase tests
+// ===========================================================================
+
+mod manage_relationships {
+    use super::*;
+    use k1s0_master_maintenance_server::usecase::manage_relationships::ManageRelationshipsUseCase;
+
+    /// リレーションシップ一覧取得: 空の場合は空ベクを返す
+    #[tokio::test]
+    async fn list_relationships_empty() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let rel_repo = Arc::new(StubTableRelationshipRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageRelationshipsUseCase::new(
+            table_repo,
+            rel_repo,
+            record_repo,
+            column_repo,
+            schema_manager,
+        );
+
+        let result = uc.list_relationships().await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    /// リレーションシップ一覧取得: データがあれば全件返す
+    #[tokio::test]
+    async fn list_relationships_with_data() {
+        let t1 = make_table("orders");
+        let t2 = make_table("customers");
+        let rel = make_relationship(t1.id, "customer_id", t2.id, "id");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            t1.clone(),
+            t2.clone(),
+        ]));
+        let rel_repo = Arc::new(StubTableRelationshipRepository::with_relationships(vec![rel]));
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageRelationshipsUseCase::new(
+            table_repo,
+            rel_repo,
+            record_repo,
+            column_repo,
+            schema_manager,
+        );
+
+        let result = uc.list_relationships().await.unwrap();
+        assert_eq!(result.len(), 1);
+    }
+
+    /// リレーションシップ作成: ソーステーブルが存在しない場合はエラーを返す
+    #[tokio::test]
+    async fn create_relationship_source_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let rel_repo = Arc::new(StubTableRelationshipRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageRelationshipsUseCase::new(
+            table_repo,
+            rel_repo,
+            record_repo,
+            column_repo,
+            schema_manager,
+        );
+
+        let input = serde_json::json!({
+            "source_table": "nonexistent",
+            "source_column": "id",
+            "target_table": "customers",
+            "target_column": "id",
+            "relationship_type": "many_to_one"
+        });
+        let result = uc.create_relationship(&input, "admin", None).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    /// リレーションシップ作成: ソース・ターゲットテーブルとカラムが存在する場合は成功する
+    #[tokio::test]
+    async fn create_relationship_success() {
+        let t_orders = make_table("orders_rel");
+        let t_customers = make_table("customers_rel");
+        let col_orders = make_column(t_orders.id, "customer_id", false, true, true);
+        let col_customers = make_column(t_customers.id, "id", true, true, true);
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            t_orders.clone(),
+            t_customers.clone(),
+        ]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![
+            col_orders,
+            col_customers,
+        ]));
+        let rel_repo = Arc::new(StubTableRelationshipRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageRelationshipsUseCase::new(
+            table_repo,
+            rel_repo.clone(),
+            record_repo,
+            column_repo,
+            schema_manager,
+        );
+
+        let input = serde_json::json!({
+            "source_table": "orders_rel",
+            "source_column": "customer_id",
+            "target_table": "customers_rel",
+            "target_column": "id",
+            "relationship_type": "many_to_one"
+        });
+        let rel = uc.create_relationship(&input, "admin", None).await.unwrap();
+        assert_eq!(rel.source_column, "customer_id");
+        assert_eq!(rel.target_column, "id");
+
+        // リポジトリに格納されていることを確認
+        let all = uc.list_relationships().await.unwrap();
+        assert_eq!(all.len(), 1);
+    }
+
+    /// リレーションシップ削除: 存在しないIDはエラーを返す
+    #[tokio::test]
+    async fn delete_relationship_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let rel_repo = Arc::new(StubTableRelationshipRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let schema_manager = Arc::new(StubSchemaManager);
+        let uc = ManageRelationshipsUseCase::new(
+            table_repo,
+            rel_repo,
+            record_repo,
+            column_repo,
+            schema_manager,
+        );
+
+        let result = uc.delete_relationship(Uuid::new_v4()).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+}
+
+// ===========================================================================
+// ImportExportUseCase tests
+// ===========================================================================
+
+mod import_export {
+    use super::*;
+    use k1s0_master_maintenance_server::usecase::crud_records::CrudRecordsUseCase;
+    use k1s0_master_maintenance_server::usecase::import_export::ImportExportUseCase;
+
+    /// CrudRecordsUseCase をスタブで構築するヘルパー
+    fn build_crud_uc(
+        table_repo: Arc<StubTableDefinitionRepository>,
+        column_repo: Arc<StubColumnDefinitionRepository>,
+    ) -> Arc<CrudRecordsUseCase> {
+        let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
+        let record_repo = Arc::new(StubDynamicRecordRepository::new());
+        let change_log_repo = Arc::new(StubChangeLogRepository::new());
+        let rule_engine = Arc::new(StubRuleEngineService::passing());
+        Arc::new(CrudRecordsUseCase::new(
+            table_repo,
+            column_repo,
+            rule_repo,
+            record_repo,
+            change_log_repo,
+            rule_engine,
+        ))
+    }
+
+    /// テーブルが存在しない場合はエラーを返す
+    #[tokio::test]
+    async fn import_records_table_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
+        let import_job_repo = Arc::new(StubImportJobRepository::new());
+        let uc = ImportExportUseCase::new(table_repo, column_repo, import_job_repo, crud_uc);
+
+        let data = serde_json::json!({"records": [{"name": "test"}]});
+        let result = uc.import_records("ghost_table", &data, "admin", None).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    /// レコードを正常にインポートし、importJobのstatusがcompletedになる
+    #[tokio::test]
+    async fn import_records_success() {
+        let table = make_table("parts");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
+        let import_job_repo = Arc::new(StubImportJobRepository::new());
+        let uc = ImportExportUseCase::new(
+            table_repo,
+            column_repo,
+            import_job_repo,
+            crud_uc,
+        );
+
+        let data = serde_json::json!({
+            "records": [
+                {"name": "bolt"},
+                {"name": "nut"}
+            ]
+        });
+        let job = uc
+            .import_records("parts", &data, "admin", None)
+            .await
+            .unwrap();
+        assert_eq!(job.status, "completed");
+        assert_eq!(job.total_rows, 2);
+        assert_eq!(job.processed_rows, 2);
+        assert_eq!(job.error_rows, 0);
+    }
+
+    /// インポートジョブが見つからない場合はNoneを返す
+    #[tokio::test]
+    async fn get_import_job_not_found() {
+        let table_repo = Arc::new(StubTableDefinitionRepository::new());
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
+        let import_job_repo = Arc::new(StubImportJobRepository::new());
+        let uc = ImportExportUseCase::new(table_repo, column_repo, import_job_repo, crud_uc);
+
+        let result = uc.get_import_job(Uuid::new_v4()).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    /// エクスポート: テーブルのレコードが0件でも正常に完了する
+    #[tokio::test]
+    async fn export_records_empty_table() {
+        let table = make_table("archived_orders");
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::new());
+        let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
+        let import_job_repo = Arc::new(StubImportJobRepository::new());
+        let uc = ImportExportUseCase::new(table_repo, column_repo, import_job_repo, crud_uc);
+
+        let result = uc
+            .export_records("archived_orders", Some("json"), None)
+            .await
+            .unwrap();
+        assert_eq!(result.table, "archived_orders");
+        assert_eq!(result.total, 0);
+        assert!(result.records.is_empty());
     }
 }

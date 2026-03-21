@@ -4,6 +4,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
+
 use super::config::Config;
 use super::in_memory::{
     InMemoryEventRepository, InMemoryEventStreamRepository, InMemorySnapshotRepository,
@@ -186,6 +189,9 @@ pub async fn run() -> anyhow::Result<()> {
             })
             .transpose()?,
     )?;
+    // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_store_grpc_action);
+
     let grpc_auth_state =
         auth_state
             .as_ref()
@@ -232,6 +238,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(EventStoreServiceServer::new(event_store_tonic))
             .serve_with_shutdown(grpc_addr, async move {
@@ -269,4 +276,13 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::shutdown();
 
     Ok(())
+}
+
+/// gRPC メソッド名を RBAC アクション（read/write）にマッピングする。
+/// イベントの追記（AppendEvent/AppendEvents）は write、それ以外は read とする。
+fn event_store_grpc_action(method: &str) -> &'static str {
+    match method {
+        "AppendEvent" | "AppendEvents" => "write",
+        _ => "read",
+    }
 }

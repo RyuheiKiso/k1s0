@@ -328,7 +328,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
 
         let mut col_names: Vec<String> = Vec::new();
         let mut placeholders: Vec<String> = Vec::new();
-        let mut values: Vec<String> = Vec::new();
+        // NULL 値は Option::None として保持し、SQL NULL でバインドする
+        let mut values: Vec<Option<String>> = Vec::new();
         let mut param_idx = 1u32;
 
         for col in columns {
@@ -336,13 +337,12 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                 continue;
             }
             if let Some(val) = obj.get(&col.column_name) {
-                if !val.is_null() {
-                    validate_identifier(&col.column_name)?;
-                    col_names.push(quote_identifier(&col.column_name));
-                    placeholders.push(typed_placeholder(col, param_idx)?);
-                    values.push(json_value_to_string(val));
-                    param_idx += 1;
-                }
+                // NULL でも明示的に指定された場合はカラムに含める（SQL NULL を挿入）
+                validate_identifier(&col.column_name)?;
+                col_names.push(quote_identifier(&col.column_name));
+                placeholders.push(typed_placeholder(col, param_idx)?);
+                values.push(json_value_to_string(val));
+                param_idx += 1;
             }
         }
 
@@ -388,7 +388,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             .ok_or_else(|| anyhow::anyhow!("Data must be a JSON object"))?;
 
         let mut set_clauses: Vec<String> = Vec::new();
-        let mut values: Vec<String> = Vec::new();
+        // NULL 値は Option::None として保持し、SQL NULL でバインドする
+        let mut values: Vec<Option<String>> = Vec::new();
         let mut param_idx = 1u32;
 
         for col in columns {
@@ -402,6 +403,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     quote_identifier(&col.column_name),
                     typed_placeholder(col, param_idx)?
                 ));
+                // json_value_to_string が None を返す場合は SQL NULL としてバインドする
                 values.push(json_value_to_string(val));
                 param_idx += 1;
             }
@@ -425,7 +427,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
             postgres_cast_type(&pk_col.data_type)?,
             returning_cols.join(", ")
         );
-        values.push(record_id.to_string());
+        // WHERE 句のプレースホルダー用に record_id を Option でラップしてバインドリストへ追加する
+        values.push(Some(record_id.to_string()));
 
         let mut q = sqlx::query(&sql);
         for val in &values {
@@ -475,14 +478,15 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
     }
 }
 
-/// Convert a serde_json::Value to a string for binding.
-fn json_value_to_string(val: &Value) -> String {
+/// JSON 値を SQL バインド用の文字列に変換する。
+/// Value::Null の場合は None を返し、呼び出し元が SQL NULL としてバインドする。
+fn json_value_to_string(val: &Value) -> Option<String> {
     match val {
-        Value::String(s) => s.clone(),
-        Value::Null => String::new(),
-        Value::Bool(b) => b.to_string(),
-        Value::Number(n) => n.to_string(),
-        // For arrays and objects, serialize to JSON string
-        _ => val.to_string(),
+        Value::Null => None,
+        Value::String(s) => Some(s.clone()),
+        Value::Bool(b) => Some(b.to_string()),
+        Value::Number(n) => Some(n.to_string()),
+        // 配列・オブジェクトは JSON 文字列として扱う
+        _ => Some(val.to_string()),
     }
 }

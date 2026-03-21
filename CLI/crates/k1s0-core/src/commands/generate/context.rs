@@ -1,7 +1,7 @@
 // GenerateConfig から TemplateContext への変換を担当するモジュール。
 // 生成設定を、テンプレートエンジンが理解する形式に変換する。
 
-use super::types::{ApiStyle, Framework, GenerateConfig, Kind, LangFw, Rdbms};
+use super::types::{ApiStyle, Framework, GenerateConfig, Kind, LangFw, Rdbms, Tier};
 use crate::config::CliConfig;
 use crate::template::context::{TemplateContext, TemplateContextBuilder};
 
@@ -77,6 +77,13 @@ pub(crate) fn build_template_context(
         .api_styles(api_styles_strs)
         .docker_registry(&cli_config.docker_registry)
         .go_module_base(&cli_config.go_module_base);
+
+    // business tier ではドメイン名（業務領域）が必須。placement から取得する。
+    if matches!(config.tier, Tier::Business) {
+        if let Some(ref domain) = config.placement {
+            builder = builder.domain(domain);
+        }
+    }
 
     // オプション: データベース接続
     if let Some(ref db) = config.detail.db {

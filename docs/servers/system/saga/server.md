@@ -1134,7 +1134,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 
 # Kafka
-rdkafka = { version = "0.36", features = ["cmake-build"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
 
 # 内部ライブラリ
 k1s0-auth = { path = "../../../library/rust/auth" }

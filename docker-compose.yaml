@@ -874,10 +874,11 @@ services:
     healthcheck: *rust-healthcheck
 
   ai-gateway-rust:
+    # 実験的AIサービス: 通常の system 起動には含まれない。experimental-ai プロファイルで起動する。
     build:
       context: ./regions/system
       dockerfile: ./server/rust/ai-gateway/Dockerfile
-    profiles: [system]
+    profiles: [experimental-ai]
     <<: *app-service-defaults
     ports:
       - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
@@ -893,10 +894,11 @@ services:
     healthcheck: *rust-healthcheck
 
   ai-agent-rust:
+    # 実験的AIサービス: 通常の system 起動には含まれない。experimental-ai プロファイルで起動する。
     build:
       context: ./regions/system
       dockerfile: ./server/rust/ai-agent/Dockerfile
-    profiles: [system]
+    profiles: [experimental-ai]
     <<: *app-service-defaults
     ports:
       - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"

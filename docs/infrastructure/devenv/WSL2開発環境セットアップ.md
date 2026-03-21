@@ -190,6 +190,12 @@ docker compose --profile infra --profile observability up -d
 
 Dev Container を使わず、WSL2 内にネイティブで全ツールをインストールする方法。環境の自由度は高いが、バージョン管理は開発者自身で行う必要がある。
 
+> **自動セットアップ**: `scripts/setup-wsl.sh` を使うと以下の B-1〜B-8 の手順を自動化できる。
+> ```bash
+> bash scripts/setup-wsl.sh
+> ```
+> 冪等設計のため、既にインストール済みのツールはスキップされる。
+
 ### B-1. 基本パッケージ
 
 ```bash
@@ -198,11 +204,15 @@ sudo apt-get install -y \
   build-essential \
   pkg-config \
   libssl-dev \
+  libsasl2-dev \
+  libz-dev \
+  cmake \
   protobuf-compiler \
   curl \
   wget \
   unzip \
-  git
+  git \
+  patch
 ```
 
 ### B-2. Rust 1.93
@@ -219,6 +229,9 @@ rustup default 1.93
 # 必要なコンポーネント
 rustup component add clippy rustfmt
 
+# sqlx-cli（データベースマイグレーション管理ツール）
+cargo install sqlx-cli --no-default-features --features postgres
+
 # Tauri CLI（GUI 開発に必要）
 cargo install tauri-cli --locked
 
@@ -230,26 +243,26 @@ sudo apt-get install -y \
   librsvg2-dev
 ```
 
-### B-3. Go 1.24
+### B-3. Go 1.24.0
 
 ```bash
 # Go をダウンロード・インストール
-GO_VERSION="1.24"
-wget "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+GO_VERSION="1.24.0"
+curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o "/tmp/go${GO_VERSION}.linux-amd64.tar.gz"
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
-rm "go${GO_VERSION}.linux-amd64.tar.gz"
+sudo tar -C /usr/local -xzf "/tmp/go${GO_VERSION}.linux-amd64.tar.gz"
+rm "/tmp/go${GO_VERSION}.linux-amd64.tar.gz"
 
 # PATH を設定
-echo 'export PATH="/usr/local/go/bin:$HOME/go/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
 source ~/.bashrc
 
-# Go ツールをインストール
-go install golang.org/x/tools/cmd/goimports@latest
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
+# Go ツールをインストール（バージョン固定: devcontainer の post-create.sh と同期）
+go install golang.org/x/tools/cmd/goimports@v0.31.0
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.3
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 ```
 
 ### B-4. Node.js 22
@@ -303,7 +316,17 @@ curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -
 just --version
 ```
 
-### B-8. Docker Engine（方法 A-1 と同じ）
+### B-8. pnpm（TypeScript ワークスペース管理）
+
+```bash
+# Node.js に同梱の corepack で pnpm を有効化
+sudo corepack enable pnpm
+
+# 動作確認
+pnpm --version
+```
+
+### B-9. Docker Engine（方法 A-1 と同じ）
 
 方法 B でもインフラサービス（PostgreSQL, Redis, Kafka 等）の起動に Docker が必要。[方法 A-1](#a-1-docker-engine-のインストール) の手順で Docker Engine をインストールする。
 

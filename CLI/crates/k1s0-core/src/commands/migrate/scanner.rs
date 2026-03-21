@@ -56,10 +56,10 @@ fn scan_targets_recursive(path: &Path, targets: &mut Vec<MigrateTarget>) {
         return; // migrations/ があるならこれ以上深くは潜らない
     }
 
-    // サブディレクトリを走査
+    // サブディレクトリを走査（シンボリックリンクはリポジトリ外を指す可能性があるため除外）
     if let Ok(entries) = fs::read_dir(path) {
         for entry in entries.flatten() {
-            if entry.path().is_dir() {
+            if !entry.path().is_symlink() && entry.path().is_dir() {
                 scan_targets_recursive(&entry.path(), targets);
             }
         }
