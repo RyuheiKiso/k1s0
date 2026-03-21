@@ -74,7 +74,9 @@ jobs:
             docker:
               - 'regions/**/Dockerfile'
             shell:
-              - 'scripts/**/*.sh'
+              - 'scripts/**'
+              - 'modules.yaml'
+              - 'justfile'
 
   # モジュール単位の変更検出ジョブ（各言語ジョブで影響範囲を絞り込むために使用）
   # 検出失敗は即座に可視化されるべきため continue-on-error は設定しない

@@ -54,7 +54,7 @@
 - `CheckPermission` は `sys_admin` を最優先で許可し、その後 `realm_access` / `resource_access` を評価する。
 - `AuthError` には `MissingToken` と `InvalidAuthHeader` を含む。
 - `JWKSFetcher` インターフェースと `NewJWKSVerifierWithFetcher` を提供する（テスト差し替え用途）。
-- `getKeySet` はダブルチェックロックでキャッシュを更新し、取得失敗時は stale cache をフォールバックとして返す。
+- `getKeySet` はダブルチェックロックでキャッシュを更新し、取得失敗時は **max_stale_duration 以内の** stale cache をフォールバックとして返す。Rust 実装では `max_stale_duration`（デフォルト 1時間）を超えた stale cache は使用せずエラーを伝播する。これにより侵害された鍵が長期間キャッシュされることを防ぐ。
 - gRPC 向けに `UnaryServerInterceptor` / `StreamServerInterceptor` を公開する。
 - `DeviceCodeResponse` は `VerificationURIComplete` を含む。
 

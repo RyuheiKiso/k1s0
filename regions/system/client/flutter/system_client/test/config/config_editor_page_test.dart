@@ -113,11 +113,14 @@ void main() {
   });
 
   Future<void> pumpPage(WidgetTester tester) async {
+    // ConsumerStatefulWidget は Riverpod の ProviderScope が必要なためラップする
     await tester.pumpWidget(
-      MaterialApp(
-        home: ConfigEditorPage(
-          dio: mockDio,
-          serviceName: 'test-service',
+      ProviderScope(
+        child: MaterialApp(
+          home: ConfigEditorPage(
+            dio: mockDio,
+            serviceName: 'test-service',
+          ),
         ),
       ),
     );

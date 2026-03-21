@@ -92,6 +92,8 @@ func TestSessionMiddleware_ValidSession(t *testing.T) {
 	store.sessions["valid-session"] = &session.SessionData{
 		AccessToken: "token-123",
 		CSRFToken:   "csrf-abc",
+		// ExpiresAt を未来に設定して IsExpired() が false を返すようにする
+		ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
 	}
 
 	router := gin.New()
@@ -116,9 +118,36 @@ func TestSessionMiddleware_ValidSession(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+// TestSessionMiddleware_ExpiredSession はアクセストークン期限切れセッションが 401 を返すことを確認する。
+// Finding 11: ExpiresAt が過去の場合はミドルウェアで拒否する（Redis TTL のみに依存しない）。
+func TestSessionMiddleware_ExpiredSession(t *testing.T) {
+	store := newTestStore()
+	store.sessions["expired-session"] = &session.SessionData{
+		AccessToken: "expired-token",
+		ExpiresAt:   time.Now().Add(-1 * time.Hour).Unix(),
+	}
+
+	router := gin.New()
+	router.Use(SessionMiddleware(store, "session", 30*time.Minute, false))
+	router.GET("/test", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "expired-session"})
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
 func TestSessionMiddleware_SlidingTTL(t *testing.T) {
 	store := newTestStore()
-	store.sessions["sliding-session"] = &session.SessionData{AccessToken: "token"}
+	store.sessions["sliding-session"] = &session.SessionData{
+		AccessToken: "token",
+		// ExpiresAt を未来に設定して IsExpired() が false を返すようにする
+		ExpiresAt: time.Now().Add(1 * time.Hour).Unix(),
+	}
 
 	ttl := 30 * time.Minute
 	router := gin.New()

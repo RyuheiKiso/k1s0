@@ -1,40 +1,15 @@
-import axios from 'axios';
+// system-client の createApiClient を使用して BFF の CSRF 契約に準拠する
+// X-XSRF-TOKEN (Cookie) ではなく X-CSRF-Token (/auth/session JSON) を使用する
+import { createApiClient, setCsrfToken } from '@k1s0/system-client';
 
-// BFF経由でAPIにアクセスするaxiosインスタンス
-// HttpOnly Cookieを使用するため withCredentials: true を設定
-export const apiClient = axios.create({
+// BFF /auth/session から取得した CSRF トークンを保持する
+// setCsrfToken() で外部から注入する（AuthProvider が /auth/session 後に呼び出す）
+export { setCsrfToken };
+
+// BFF API クライアント: CSRF トークン管理と 401 リダイレクトを自動処理する
+export const apiClient = createApiClient({
   baseURL: '/bff/api/v1',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
+  onUnauthorized: () => {
+    window.location.href = '/login';
   },
 });
-
-// CookieからXSRF-TOKENを取得するヘルパー関数
-// サーバーが Set-Cookie で XSRF-TOKEN を設定している前提
-function getCsrfToken(): string | null {
-  const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-// CSRF対策: リクエスト送信前にCookieからCSRFトークンを読み取りヘッダに付与する
-// これによりサーバー側でDouble Submit Cookie パターンによるCSRF検証が可能になる
-apiClient.interceptors.request.use((config) => {
-  const token = getCsrfToken();
-  if (token) {
-    config.headers['X-XSRF-TOKEN'] = token;
-  }
-  return config;
-});
-
-// 認証エラーハンドリング: 401レスポンス時にログインページへリダイレクトする
-// セッション切れやトークン失効時にユーザーを適切に誘導する
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);

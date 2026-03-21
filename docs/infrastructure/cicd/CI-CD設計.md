@@ -32,7 +32,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | **Go サービス CI (reusable)** | `_go-service-ci.yaml` | `workflow_call` | Go サービスの共通 lint → test → build |
 | **サービス Deploy (reusable)** | `_service-deploy.yaml` | `workflow_call` | サービスの共通 build-push → deploy (dev→staging→prod) |
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking（ci.yaml の lint-proto ジョブでも実行） |
-| Security Scan     | `security.yaml`   | 日次 + PR 時                | 脆弱性スキャン           |
+| Security Scan     | `security.yaml`   | 日次 + PR 時 + main マージ後 | 脆弱性スキャン。image-scan は schedule/push 時のみ実行（PR 時はイメージ未存在）。全ティアのサービスイメージをマトリクスでスキャン |
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 | Tauri GUI Build   | `tauri-build.yaml` | PR 時 + main マージ時 (`CLI/crates/k1s0-gui/**` 変更) | GUI クロスプラットフォームビルド（[TauriGUI設計](../../cli/gui/TauriGUI設計.md) 参照） |
@@ -41,12 +41,12 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | config CI         | `config-ci.yaml`  | PR 時 (`regions/system/server/rust/config/**`) | `_rust-service-ci.yaml` 呼び出し |
 | saga CI           | `saga-ci.yaml`    | PR 時 (`regions/system/server/rust/saga/**`) | `_rust-service-ci.yaml` 呼び出し |
 | dlq-manager CI    | `dlq-manager-ci.yaml` | PR 時 (`regions/system/server/rust/dlq-manager/**`) | `_rust-service-ci.yaml` 呼び出し |
-| order CI          | `order-ci.yaml`   | PR 時 (`regions/service/order/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
-| inventory CI      | `inventory-ci.yaml` | PR 時 (`regions/service/inventory/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
-| payment CI        | `payment-ci.yaml` | PR 時 (`regions/service/payment/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
+| order CI          | `order-ci.yaml`   | PR 時 (`regions/service/order/server/**`, `regions/service/order/client/**`) | `_rust-service-ci.yaml` 呼び出し (standalone)。クライアント変更時もサーバーCI起動し契約整合性を確認する |
+| inventory CI      | `inventory-ci.yaml` | PR 時 (`regions/service/inventory/server/**`, `regions/service/inventory/client/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
+| payment CI        | `payment-ci.yaml` | PR 時 (`regions/service/payment/server/**`, `regions/service/payment/client/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | domain-master CI  | `domain-master-ci.yaml` | PR 時 (`regions/business/accounting/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | `_go-service-ci.yaml` 呼び出し |
-| Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/{server,library}/rust/**`, `Cargo.{toml,lock}`) | postgres:17 + kafka:3.8.0 起動、system tier サーバー自動検出・パッケージ単位並列統合テスト（test-utils feature 自動検出） |
+| Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/{server,library}/rust/**`, `regions/business/*/server/rust/**`, `regions/service/*/server/rust/**`, `Cargo.{toml,lock}`, `regions/**/database/postgres/migrations/**`, `scripts/ci-list-integration-servers.sh`, `scripts/list-modules.sh`) | postgres:17 + kafka:3.8.0 起動、system/business/service 全ティア対応。`ci-list-integration-servers.sh [system\|business\|service]` でティア別サーバー自動検出・パッケージ単位並列統合テスト（test-utils feature 自動検出）。DB migration 変更・CI スクリプト変更時も起動する |
 | Golden Path Compile | `golden-path-compile.yaml` | PR 時 (`CLI/crates/k1s0-codegen/**`, `CLI/templates/**`) | CLI テンプレートからサーバーを生成し `cargo check` でコンパイル検証 |
 | auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | `_service-deploy.yaml` 呼び出し |
 | app-registry Deploy | `app-registry-deploy.yaml` | main マージ時 (`regions/system/server/rust/app-registry/**`) | `_service-deploy.yaml` 呼び出し |

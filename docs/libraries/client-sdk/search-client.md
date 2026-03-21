@@ -353,18 +353,17 @@ func (c *InMemorySearchClient) Search(ctx context.Context, index string, query S
 func (c *InMemorySearchClient) DeleteDocument(ctx context.Context, index, id string) error
 func (c *InMemorySearchClient) DocumentCount(index string) int
 
-// GrpcSearchClient（gRPC実装）
-// 注記: 名称はGrpcだが現状はHTTP REST実装。将来gRPCに移行予定。
-type GrpcSearchClient struct{ /* ... */ }
+// HttpSearchClient（HTTP REST 実装）
+type HttpSearchClient struct{ /* ... */ }
 
-func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error)
-func NewGrpcSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcSearchClient, error)
-func (c *GrpcSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error)
-func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error)
-func (c *GrpcSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
-func (c *GrpcSearchClient) DeleteDocument(ctx context.Context, index, id string) error
-func (c *GrpcSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error
-func (c *GrpcSearchClient) Close()
+func NewHttpSearchClient(addr string) (*HttpSearchClient, error)
+func NewHttpSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*HttpSearchClient, error)
+func (c *HttpSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error)
+func (c *HttpSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error)
+func (c *HttpSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error)
+func (c *HttpSearchClient) DeleteDocument(ctx context.Context, index, id string) error
+func (c *HttpSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error
+func (c *HttpSearchClient) Close()
 ```
 
 **使用例**:
@@ -847,16 +846,16 @@ async fn test_product_service_indexes_on_create() {
 | Dart | `int documentCount(String index)` |
 | Rust | `document_count(index: &str) -> usize`（`feature = "test-utils"`） |
 
-### `GrpcSearchClient` 言語別実装状況
+### HTTP クライアント実装 言語別実装状況
 
 現状は HTTP REST 実装（将来 gRPC 移行予定）。
 
-| 言語 | 実装状況 | コンストラクタ |
-|------|---------|----------------|
-| TypeScript | あり | `new GrpcSearchClient(serverUrl: string)` |
-| Dart | あり | `GrpcSearchClient(String serverUrl)` |
-| Go | あり | `NewGrpcSearchClient(addr string)` |
-| Rust | あり（feature = "grpc" で HTTP/REST 実装） | `GrpcSearchClient::new(addr)` |
+| 言語 | 実装状況 | クラス名 | コンストラクタ |
+|------|---------|---------|----------------|
+| TypeScript | あり | `GrpcSearchClient`（後方互換のため維持） | `new GrpcSearchClient(serverUrl: string)` |
+| Dart | あり | `GrpcSearchClient`（後方互換のため維持） | `GrpcSearchClient(String serverUrl)` |
+| Go | あり | `HttpSearchClient`（HTTP を明示するため改名） | `NewHttpSearchClient(addr string)` |
+| Rust | あり（feature = "grpc" で HTTP/REST 実装） | `GrpcSearchClient`（後方互換のため維持） | `GrpcSearchClient::new(addr)` |
 
 ---
 

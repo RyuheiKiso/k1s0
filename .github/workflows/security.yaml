@@ -6,6 +6,9 @@ on:
     - cron: '0 2 * * *'    # 毎日 AM 2:00 (UTC)
   pull_request:
     branches: [main]
+  # main マージ後もイメージスキャンを実行する（push の後にイメージが存在するため）
+  push:
+    branches: [main]
 
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}
@@ -112,11 +115,12 @@ jobs:
             exit 1
           fi
 
-  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行のみ）
+  # 全ティアのコンテナイメージ脆弱性スキャン（定期実行 + main マージ後）
   # マトリクス戦略で system / business / service ティアの全サービスイメージをスキャン
   image-scan:
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    # PR 時はイメージが存在しないためスキップ。スケジュール実行と main マージ後のみ実行する
+    if: github.event_name == 'schedule' || github.event_name == 'push'
     # コンテナイメージの読み取りのみ必要
     permissions:
       contents: read
@@ -139,6 +143,48 @@ jobs:
             service: dlq-manager
           - tier: system
             service: graphql-gateway
+          - tier: system
+            service: search
+          - tier: system
+            service: vault
+          - tier: system
+            service: tenant
+          - tier: system
+            service: session
+          - tier: system
+            service: notification
+          - tier: system
+            service: navigation
+          - tier: system
+            service: master-maintenance
+          - tier: system
+            service: file
+          - tier: system
+            service: featureflag
+          - tier: system
+            service: scheduler
+          - tier: system
+            service: workflow
+          - tier: system
+            service: rule-engine
+          - tier: system
+            service: policy
+          - tier: system
+            service: quota
+          - tier: system
+            service: ratelimit
+          - tier: system
+            service: event-store
+          - tier: system
+            service: event-monitor
+          - tier: system
+            service: api-registry
+          - tier: system
+            service: ai-gateway
+          - tier: system
+            service: ai-agent
+          - tier: system
+            service: service-catalog
           # --- business ティア ---
           - tier: business
             service: domain-master

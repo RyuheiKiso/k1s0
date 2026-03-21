@@ -30,7 +30,7 @@ class PaymentRepository {
     if (status != null) queryParameters['status'] = status.name;
 
     final response = await _dio.get(
-      '/api/v1/list_payments',
+      '/api/v1/payments',
       queryParameters: queryParameters,
     );
     final List<dynamic> data = (response.data as Map<String, dynamic>)['payments'] as List<dynamic>;
@@ -41,7 +41,7 @@ class PaymentRepository {
 
   /// 指定IDの決済を取得する
   Future<Payment> getPayment(String id) async {
-    final response = await _dio.get('/api/v1/get_payment/$id');
+    final response = await _dio.get('/api/v1/payments/$id');
     return Payment.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -53,7 +53,7 @@ class PaymentRepository {
   /// 決済開始入力データをサーバーに送信し、作成された決済を返す
   Future<Payment> initiatePayment(InitiatePaymentInput input) async {
     final response = await _dio.post(
-      '/api/v1/initiate_payment',
+      '/api/v1/payments',
       data: input.toJson(),
     );
     return Payment.fromJson(response.data as Map<String, dynamic>);
@@ -61,19 +61,19 @@ class PaymentRepository {
 
   /// 指定IDの決済を完了する
   Future<Payment> completePayment(String id) async {
-    final response = await _dio.post('/api/v1/complete_payment/$id');
+    final response = await _dio.put('/api/v1/payments/$id/complete');
     return Payment.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// 指定IDの決済を失敗にする
   Future<Payment> failPayment(String id) async {
-    final response = await _dio.post('/api/v1/fail_payment/$id');
+    final response = await _dio.put('/api/v1/payments/$id/fail');
     return Payment.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// 指定IDの決済を返金する
   Future<Payment> refundPayment(String id) async {
-    final response = await _dio.post('/api/v1/refund_payment/$id');
+    final response = await _dio.put('/api/v1/payments/$id/refund');
     return Payment.fromJson(response.data as Map<String, dynamic>);
   }
 }

@@ -55,10 +55,23 @@ system tier の Vault Server は以下の機能を提供する。
 | 実装言語 | Rust |
 | ストレージ | HashiCorp Vault 連携（KV v2） |
 | バージョン管理 | シークレット更新時にバージョンが自動インクリメント（KV v2 互換） |
-| アクセス制御 | SPIFFE ID ベースの認可 |
+| アクセス制御 | SPIFFE ID ベースの認可（fail-closed: ポリシー未設定時・パス不一致時は拒否） |
 | キャッシュ | moka キャッシュ |
 | Kafka | アクセス監査 + ローテーション通知 |
 | 監査ログ | PostgreSQL に記録 |
+
+### SPIFFE アクセス制御方針（fail-closed）
+
+SPIFFE ミドルウェアは **fail-closed** ポリシーを採用する。
+
+| 状態 | 動作 |
+| --- | --- |
+| ポリシーが1件も設定されていない | 全リクエストを 403 FORBIDDEN で拒否（`SPIFFE_NO_POLICIES`） |
+| リクエストパスに一致するポリシーがない | 403 FORBIDDEN で拒否（`SPIFFE_NO_MATCHING_POLICY`） |
+| パスに一致するポリシーがあり SPIFFE ID が許可リストに含まれる | 通過（200） |
+| パスに一致するポリシーがあり SPIFFE ID が許可リストに含まれない | 403 FORBIDDEN で拒否（`SPIFFE_ACCESS_DENIED`） |
+
+シークレット Vault は機密性の高い情報を扱うため、明示的にポリシーで許可されたパスのみアクセスを許可する。
 
 ---
 

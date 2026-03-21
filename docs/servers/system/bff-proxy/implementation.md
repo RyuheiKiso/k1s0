@@ -57,9 +57,22 @@ internal/
 4. `ANY /api/*path` でセッション検証し、Bearer トークンを付与して上流へ転送。
 5. 期限切れ時は refresh token で自動更新。失敗時は `BFF_PROXY_TOKEN_EXPIRED`。
 
+### セキュリティ設計
+
+#### redirect_to スキーム検証（allowlist 方式）
+
+`redirect_to` クエリパラメータは **allowlist 方式** で検証する。`k1s0://` スキームのみを許可し、それ以外はすべて拒否する。
+denylist 方式（特定スキームだけをブロック）は未知の危険スキームが通過するリスクがあるため採用しない。
+
+#### セッション期限切れチェック（ミドルウェア）
+
+`SessionMiddleware` は Redis からセッションを取得後、`SessionData.IsExpired()` でアクセストークンの有効期限を確認する。
+Redis TTL のみに依存すると、アクセストークンが失効してもスライディング TTL 延長により Redis キーが残存する場合がある。
+`ExpiresAt` フィールドが過去の場合は 401 `BFF_SESSION_EXPIRED` を返す。
+
 ### モバイルフロー（Flutter）
 
-1. `GET /auth/login?redirect_to=k1s0://auth/callback` でログイン開始（カスタムスキームのみ許可）。
+1. `GET /auth/login?redirect_to=k1s0://auth/callback` でログイン開始（`k1s0://` スキームのみ許可）。
 2. `GET /auth/callback` でセッション作成後、ワンタイム交換コード（60秒 TTL）を生成し `k1s0://auth/callback?code=...` にリダイレクト。
 3. `GET /auth/exchange?code=...` で交換コードを検証し、セッション Cookie を発行。モバイル HTTP クライアント（Dio）が Set-Cookie を保持。
 4. 以降のフローはブラウザフローと同一。

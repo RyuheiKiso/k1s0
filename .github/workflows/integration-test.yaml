@@ -15,6 +15,11 @@ on:
       - 'regions/business/*/server/rust/**'
       # service tier: 各サービスのサーバー変更を検出
       - 'regions/service/*/server/rust/**'
+      # DB migration 変更は結合テストで検証が必要なため起動する
+      - 'regions/**/database/postgres/migrations/**'
+      # CI スクリプト変更は結合テストの挙動に影響するため起動する
+      - 'scripts/ci-list-integration-servers.sh'
+      - 'scripts/list-modules.sh'
 
 concurrency:
   group: integration-${{ github.ref }}
@@ -44,7 +49,8 @@ jobs:
         id: detect
         run: |
           chmod +x scripts/ci-list-integration-servers.sh
-          matrix=$(scripts/ci-list-integration-servers.sh)
+          # system 引数を明示して system tier サーバーのみを検出する
+          matrix=$(scripts/ci-list-integration-servers.sh system)
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "Detected system servers: $matrix"
 

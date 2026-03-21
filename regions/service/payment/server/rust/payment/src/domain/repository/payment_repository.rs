@@ -55,10 +55,12 @@ pub trait PaymentRepository: Send + Sync {
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
 
-    /// 未パブリッシュの Outbox イベントを単一トランザクション内で取得し、
-    /// パブリッシュ済みとしてマークする。
-    /// FOR UPDATE SKIP LOCKED によるロックと mark を同一トランザクションで実行することで、
-    /// 並行ポーラー間での重複処理を防止する。
-    async fn fetch_and_mark_events_published(&self, limit: i64)
-        -> anyhow::Result<Vec<OutboxEvent>>;
+    /// 未パブリッシュの Outbox イベントを取得する（mark は行わない）。
+    /// FOR UPDATE SKIP LOCKED により並行ポーラー間の排他を保証する。
+    /// at-least-once 配信のため、publish 成功後に mark_events_published を呼ぶこと。
+    async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>>;
+
+    /// 指定した ID のイベントをパブリッシュ済みとしてマークする。
+    /// publish 成功後のみ呼び出すことで at-least-once セマンティクスを実現する。
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
 }

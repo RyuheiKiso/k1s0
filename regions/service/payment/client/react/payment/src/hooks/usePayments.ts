@@ -18,7 +18,7 @@ export function usePayments(orderId?: string, customerId?: string, status?: Paym
       if (orderId) params.order_id = orderId;
       if (customerId) params.customer_id = customerId;
       if (status) params.status = status;
-      const { data } = await apiClient.get<{ payments: Payment[] }>('/list_payments', {
+      const { data } = await apiClient.get<{ payments: Payment[] }>('/payments', {
         params,
       });
       return data.payments;
@@ -31,7 +31,7 @@ export function usePayment(id: string) {
   return useQuery({
     queryKey: queryKeys.payment(id),
     queryFn: async () => {
-      const { data } = await apiClient.get<Payment>(`/get_payment/${id}`);
+      const { data } = await apiClient.get<Payment>(`/payments/${id}`);
       return data;
     },
     enabled: !!id,
@@ -43,7 +43,7 @@ export function useInitiatePayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: InitiatePaymentInput) => {
-      const { data } = await apiClient.post<Payment>('/initiate_payment', input);
+      const { data } = await apiClient.post<Payment>('/payments', input);
       return data;
     },
     // 成功時に決済一覧キャッシュを無効化
@@ -58,7 +58,7 @@ export function useCompletePayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, transaction_id }: { id: string; transaction_id: string }) => {
-      const { data } = await apiClient.post<Payment>(`/complete_payment/${id}`, { transaction_id });
+      const { data } = await apiClient.put<Payment>(`/payments/${id}/complete`, { transaction_id });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化
@@ -74,7 +74,7 @@ export function useFailPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, error_code, error_message }: { id: string; error_code: string; error_message: string }) => {
-      const { data } = await apiClient.post<Payment>(`/fail_payment/${id}`, { error_code, error_message });
+      const { data } = await apiClient.put<Payment>(`/payments/${id}/fail`, { error_code, error_message });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化
@@ -90,7 +90,7 @@ export function useRefundPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const { data } = await apiClient.post<Payment>(`/refund_payment/${id}`, { reason });
+      const { data } = await apiClient.put<Payment>(`/payments/${id}/refund`, { reason });
       return data;
     },
     // 成功時に決済一覧と個別決済のキャッシュを無効化

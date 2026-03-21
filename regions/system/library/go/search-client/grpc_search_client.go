@@ -11,47 +11,47 @@ import (
 	"time"
 )
 
-// GrpcSearchClient は search-server への HTTP クライアント実装。
-// 名称は gRPC クライアントだが、HTTP/JSON API 経由で search-server と通信する。
-type GrpcSearchClient struct {
+// HttpSearchClient は search-server への HTTP REST クライアント実装。
+// HTTP/JSON API 経由で search-server と通信する。
+type HttpSearchClient struct {
 	endpoint   string
 	httpClient *http.Client
 }
 
-// NewGrpcSearchClient は新しい GrpcSearchClient を生成する。
+// NewHttpSearchClient は新しい HttpSearchClient を生成する。
 // addr は "host:port" または "http://host:port" 形式。
-func NewGrpcSearchClient(addr string) (*GrpcSearchClient, error) {
+func NewHttpSearchClient(addr string) (*HttpSearchClient, error) {
 	endpoint := addr
 	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
 		endpoint = "http://" + endpoint
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	return &GrpcSearchClient{
+	return &HttpSearchClient{
 		endpoint:   endpoint,
 		// 無限待ちを防止するため30秒のタイムアウトを設定
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 
-// NewGrpcSearchClientWithHTTPClient はカスタム http.Client を使う GrpcSearchClient を生成する（テスト用）。
-func NewGrpcSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcSearchClient, error) {
+// NewHttpSearchClientWithHTTPClient はカスタム http.Client を使う HttpSearchClient を生成する（テスト用）。
+func NewHttpSearchClientWithHTTPClient(addr string, httpClient *http.Client) (*HttpSearchClient, error) {
 	endpoint := addr
 	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
 		endpoint = "http://" + endpoint
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
-	return &GrpcSearchClient{
+	return &HttpSearchClient{
 		endpoint:   endpoint,
 		httpClient: httpClient,
 	}, nil
 }
 
 // Close はクライアントのリソースを解放する。
-func (c *GrpcSearchClient) Close() {}
+func (c *HttpSearchClient) Close() {}
 
 // CreateIndex は指定名とマッピングでインデックスを作成する。
 // PUT /api/v1/indexes/:name
-func (c *GrpcSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error {
+func (c *HttpSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error {
 	body, err := json.Marshal(map[string]interface{}{
 		"name":    name,
 		"mapping": mapping,
@@ -83,7 +83,7 @@ func (c *GrpcSearchClient) CreateIndex(ctx context.Context, name string, mapping
 
 // IndexDocument はドキュメントをインデックスに登録する。
 // POST /api/v1/indexes/:index/documents
-func (c *GrpcSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error) {
+func (c *HttpSearchClient) IndexDocument(ctx context.Context, index string, doc IndexDocument) (IndexResult, error) {
 	body, err := json.Marshal(doc)
 	if err != nil {
 		return IndexResult{}, fmt.Errorf("search: index_document marshal: %w", err)
@@ -117,7 +117,7 @@ func (c *GrpcSearchClient) IndexDocument(ctx context.Context, index string, doc 
 
 // BulkIndex は複数ドキュメントをまとめてインデックス登録する。
 // POST /api/v1/indexes/:index/documents/_bulk
-func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error) {
+func (c *HttpSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error) {
 	body, err := json.Marshal(map[string]interface{}{"documents": docs})
 	if err != nil {
 		return BulkResult{}, fmt.Errorf("search: bulk_index marshal: %w", err)
@@ -151,7 +151,7 @@ func (c *GrpcSearchClient) BulkIndex(ctx context.Context, index string, docs []I
 
 // Search はインデックスに対して検索を実行する。
 // POST /api/v1/indexes/:index/_search
-func (c *GrpcSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error) {
+func (c *HttpSearchClient) Search(ctx context.Context, index string, query SearchQuery) (SearchResult, error) {
 	body, err := json.Marshal(query)
 	if err != nil {
 		return SearchResult{}, fmt.Errorf("search: search marshal: %w", err)
@@ -185,7 +185,7 @@ func (c *GrpcSearchClient) Search(ctx context.Context, index string, query Searc
 
 // DeleteDocument は指定ドキュメントをインデックスから削除する。
 // DELETE /api/v1/indexes/:index/documents/:id
-func (c *GrpcSearchClient) DeleteDocument(ctx context.Context, index, id string) error {
+func (c *HttpSearchClient) DeleteDocument(ctx context.Context, index, id string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
 		fmt.Sprintf("%s/api/v1/indexes/%s/documents/%s", c.endpoint, index, id),
 		nil)

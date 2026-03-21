@@ -54,6 +54,7 @@ pub async fn run() -> anyhow::Result<()> {
             &os_cfg.username,
             &os_cfg.password,
             &os_cfg.index_prefix,
+            os_cfg.tls_insecure,
         )?;
         Arc::new(repo)
     } else {

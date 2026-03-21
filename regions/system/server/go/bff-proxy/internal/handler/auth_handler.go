@@ -373,25 +373,20 @@ func (h *AuthHandler) Exchange(c *gin.Context) {
 }
 
 // isAllowedRedirectScheme はモバイルリダイレクト先 URL のスキームを検証する。
-// オープンリダイレクト攻撃と XSS を防止するため、以下を許可しない:
-//   - http / https（オープンリダイレクト攻撃）
-//   - javascript / data / vbscript（XSS 攻撃）
-//   - 空スキームまたはパース不可能な URL
-//
-// アプリ固有のカスタムスキーム（例: k1s0://, myapp://）のみ許可する。
+// allowlist 方式: k1s0:// スキームのみ許可する。
+// denylist ではなく allowlist を使用することで、未知の危険スキームを漏れなくブロックする。
 func isAllowedRedirectScheme(rawURL string) bool {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil || parsedURL.Scheme == "" {
 		return false
 	}
 
-	// 危険なスキームを明示的にブロックする
-	switch parsedURL.Scheme {
-	case "http", "https", "javascript", "data", "vbscript", "file":
+	// allowlist: k1s0 カスタムスキームのみ許可する
+	if parsedURL.Scheme != "k1s0" {
 		return false
 	}
 
-	// Host が空でないことを確認する（スキーム://host の形式であること）
+	// Host が空でないことを確認する（k1s0://host の形式であること）
 	if parsedURL.Host == "" {
 		return false
 	}

@@ -8,7 +8,11 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'regions/service/inventory/**'
+      - 'regions/service/inventory/server/**'
+      # クライアントコード変更時もサーバーCIを起動し、契約整合性を確認する
+      - 'regions/service/inventory/client/**'
+      # DB migration 変更はサーバーコードとの整合性確認が必要なため起動する
+      - 'regions/service/inventory/database/**'
 
 concurrency:
   group: inventory-ci-${{ github.ref }}

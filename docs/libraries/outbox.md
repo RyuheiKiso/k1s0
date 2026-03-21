@@ -5,95 +5,101 @@
 Outbox ライブラリは、Transactional Outbox パターンを実装する Rust クレートである。
 ドメインイベントをデータベーストランザクション内で永続化し、非同期でメッセージブローカー（Kafka）へ配信する。
 
-## 配信セマンティクス：At-Most-Once（最大1回）
+## 配信セマンティクス：At-Least-Once（最低1回）
 
 ### 設計方針
 
-本ライブラリは **at-most-once（最大1回）配信** を採用している。
-イベントはメッセージブローカーへのディスパッチ **前に** パブリッシュ済みとしてマークされる。
+本ライブラリは **at-least-once（最低1回）配信** を採用している。
+イベントはメッセージブローカーへのディスパッチ **成功後に** パブリッシュ済みとしてマークされる。
 
 ```
-1. トランザクション開始
-2. 未パブリッシュイベントを SELECT ... FOR UPDATE SKIP LOCKED で取得
-3. 取得したイベントを published_at = NOW() でマーク
-4. トランザクション COMMIT
-5. イベントを Kafka へ publish（ここで失敗してもリトライしない）
+1. 未パブリッシュイベントを SELECT ... FOR UPDATE SKIP LOCKED で取得
+2. イベントを Kafka へ publish
+3. publish 成功したイベントのみを published_at = NOW() でマーク
+4. publish 失敗したイベントは mark されず、次回ポーリングでリトライ
 ```
 
-### なぜ at-most-once を選択したか
+### セマンティクス比較
 
-| 観点 | At-Most-Once（現在の実装） | At-Least-Once |
-|------|---------------------------|---------------|
-| 重複イベント | 発生しない | 発生しうる |
+| 観点 | At-Most-Once（旧実装） | At-Least-Once（現在の実装） |
+|------|------------------------|----------------------------|
+| 重複イベント | 発生しない | 発生しうる（Kafka 障害後のリトライ時） |
 | イベントロスト | Kafka 障害時に発生しうる | 発生しない |
-| コンシューマーの要件 | 冪等性不要 | 冪等性の実装が必須 |
-| 実装の複雑性 | シンプル | リトライ機構 + 冪等性チェックが必要 |
+| コンシューマーの要件 | 冪等性不要 | 冪等性の実装を推奨 |
+| 実装の複雑性 | シンプル | やや複雑（fetch と mark が分離） |
 
-at-most-once を採用した主な理由：
+at-least-once を採用した主な理由：
 
-1. **コンシューマーのシンプルさ**: 重複イベントが発生しないため、コンシューマー側で冪等性を実装する必要がない
-2. **リトライによる副作用の回避**: 失敗したイベントを再送すると、タイミングによっては古いイベントが遅延配信され、データの整合性に問題を起こす可能性がある
-3. **システム全体の複雑性低減**: リトライキュー、デッドレターキュー、冪等性キーの管理が不要
+1. **イベントロストの防止**: Kafka 障害・ネットワーク断でもイベントが失われない
+2. **at-least-once の重複は `idempotency_key` で排除可能**: outbox の `id` または `idempotency_key` による冪等性チェックで重複排除できる
+3. **projection / saga / billing への安全性**: イベント欠損によるデータ不整合を防ぐ
 
 ### トレードオフ
 
-- **メリット**: 重複イベントが完全に防止される。コンシューマーの実装がシンプルになる
-- **デメリット**: Kafka 障害やネットワーク断が発生した場合、イベントが失われる可能性がある
+- **メリット**: Kafka 障害でもイベントが失われない。at-least-once の信頼性
+- **デメリット**: 重複イベントが発生しうる。コンシューマーに冪等性の考慮が必要
 
-## アトミック Fetch-and-Mark パターン
+## Fetch-Then-Mark パターン
 
-イベントの取得とマークは単一のデータベーストランザクション内でアトミックに実行される。
+イベントの取得と mark を分離することで、publish 成功後のみ mark するフローを実現する。
 
 ### 動作の詳細
 
-1. `SELECT ... FOR UPDATE SKIP LOCKED` で未パブリッシュイベントを排他的に取得する
-2. 同一トランザクション内で `published_at` を現在時刻に更新する
-3. トランザクションをコミットする
+1. `SELECT ... FOR UPDATE SKIP LOCKED` で未パブリッシュイベントを排他的に取得する（mark は行わない）
+2. 取得したイベントを Kafka へ publish する
+3. publish 成功したイベントの ID を収集する
+4. 成功した ID に対してのみ `UPDATE outbox_events SET published_at = NOW()` を実行する
+5. publish 失敗したイベントは `published_at` が NULL のまま残り、次回ポーリングで自動リトライ
 
 `FOR UPDATE SKIP LOCKED` により、複数のポーラーが同時に動作しても、同じイベントが二重に取得されることはない。
-ロック待ちも発生しないため、ポーラー間のスループットが最大化される。
 
 ### コード上の実装箇所
 
-- `OutboxEventSource::fetch_and_mark_events_published` — イベントの取得+マークのインターフェース
-- `OutboxEventPoller::poll_and_publish` — ポーリングループの本体。fetch 後にハンドラへ委譲
+- `OutboxEventSource::fetch_unpublished_events` — イベントの取得インターフェース（mark なし）
+- `OutboxEventSource::mark_events_published` — publish 成功後の mark インターフェース
+- `OutboxEventPoller::poll_and_publish` — ポーリングループの本体。fetch → dispatch → mark のフロー
 - `OutboxEventHandler::handle_event` — イベント種別ごとの変換・Kafka publish ロジック
 
-## 将来の At-Least-Once への移行方法
+## idempotency_key による冪等性保証
 
-将来的にイベントロストが許容できなくなった場合、以下の手順で at-least-once に移行できる。
+outbox_events テーブルには `idempotency_key` カラム（NOT NULL, UNIQUE）が設定されている。
 
-### 1. マークのタイミングを変更する
+### INSERT 時の動作
 
-現在の実装ではディスパッチ前にマークしているが、これをディスパッチ成功後に変更する。
+各サービスの repository は outbox 行を INSERT する際に `ON CONFLICT (idempotency_key) DO NOTHING` を指定する。
 
-```rust
-// 現在（at-most-once）:
-// 1. fetch + mark（トランザクション内）
-// 2. dispatch
-
-// 変更後（at-least-once）:
-// 1. fetch（トランザクション内、ロック取得のみ）
-// 2. dispatch
-// 3. mark（ディスパッチ成功後にのみマーク）
+```sql
+INSERT INTO outbox_events (id, ..., idempotency_key)
+VALUES ($1, ..., $7)
+ON CONFLICT (idempotency_key) DO NOTHING
 ```
 
-### 2. コンシューマーに冪等性を追加する
+`idempotency_key` には `event_id`（UUID）を文字列化したものを使用する。
 
-at-least-once ではディスパッチ失敗時にリトライが発生するため、コンシューマー側で重複イベントを検知・無視する仕組みが必要になる。
+### コンシューマーの冪等性
 
-- イベント ID をキーとした冪等性チェック（処理済みイベント ID のテーブル or キャッシュ）
+at-least-once では同一イベントが複数回配信される可能性がある（Kafka 障害後のリトライ時）。
+コンシューマーは以下のいずれかで冪等性を担保すること：
+
+- イベント ID をキーとした処理済み判定（処理済みイベント ID テーブル or キャッシュ）
 - または、イベントのバージョン番号による楽観的ロック
 
-### 3. リトライ機構を追加する
+## スキーマ要件
 
-ディスパッチ失敗時にイベントを再取得できるよう、以下のいずれかを実装する。
+### search_path の設定
 
-- `published_at` が NULL のまま残るため、次回ポーリングで自動的にリトライされる
-- オプションとして、リトライ回数の上限とデッドレターキューを導入する
+service 系サーバーの DB 接続は、接続 URL に `options=-c search_path%3D{schema}` を指定して、
+runtime SQL が正しいスキーマのテーブルを参照するようにすること。
 
-### 4. 注意事項
+```rust
+// config.rs の connection_url() の実装例
+format!(
+    "postgresql://{}:{}@{}:{}/{}?sslmode={}&options=-c search_path%3D{}",
+    user, password, host, port, name, ssl_mode, schema
+)
+```
 
-- 移行時は、既にマーク済みのイベントが再送されないよう注意する
-- コンシューマーの冪等性実装を先にデプロイしてから、ポーラーのマークタイミングを変更する
-- イベントの順序保証が必要な場合は、パーティションキーの設計も見直す
+各サービスのデフォルトスキーマ：
+- order-server: `order_service`
+- inventory-server: `inventory_service`
+- payment-server: `payment_service`

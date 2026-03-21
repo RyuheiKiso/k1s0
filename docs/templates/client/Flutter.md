@@ -88,6 +88,9 @@ dependencies:
   json_annotation: ^4.9.0
   dio: ^5.7.0
   yaml: ^3.1.2
+  # システム共通クライアント SDK（認証・API クライアント・CSRF 管理）
+  system_client:
+    path: ../../../../../system/client/flutter/system_client
 
 dev_dependencies:
   flutter_test:
@@ -270,74 +273,43 @@ class NotFoundScreen extends StatelessWidget {
 
 `CLI/templates/client/flutter/lib/utils/dio_client.dart.tera`
 
+> **重要:** CSRF トークンをレスポンスヘッダー（`x-csrf-token`）から取得してはならない。
+> BFF は CSRF トークンを `/auth/session` の JSON ボディで返す。
+> `system_client` の `ApiClient.create()` と `authProvider` 経由で正しく実装すること。
+
 ```dart
+// system_client の ApiClient を使用して BFF の CSRF 契約に準拠する
+// 旧 DioClient は x-csrf-token レスポンスヘッダーを読んでいたが誤りだった
+// 本ファイルは後方互換のために DioClient.create を ApiClient.create へ委譲する
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:system_client/system_client.dart';
 
-/// API クライアント
-///
-/// Dio を使用した HTTP クライアント。
-/// BFF 経由でバックエンドと通信する。
-/// Cookie ベースの認証に対応（Web の場合は withCredentials で自動送信）。
+/// DioClient は非推奨。直接 ApiClient.create() を使用すること。
+/// 既存コードとの互換性のために残しているが、内部は ApiClient.create() に委譲する。
 class DioClient {
-  DioClient._();
-
   /// 指定されたベースURLでDioインスタンスを生成する
-  static Dio create({required String baseUrl}) {
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 30),
-        sendTimeout: const Duration(seconds: 30),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        // Web 環境では Cookie を自動送信（BFF + HttpOnly Cookie 方式）
-        extra: {
-          'withCredentials': true,
-        },
-      ),
+  /// system_client の ApiClient.create() に委譲し、CSRF 契約を正しく実装する
+  static Dio create({required String baseUrl, CsrfTokenProvider? csrfTokenProvider}) {
+    return ApiClient.create(
+      baseUrl: baseUrl,
+      csrfTokenProvider: csrfTokenProvider,
     );
-
-    // ログインターセプター（デバッグモードのみ）
-    if (kDebugMode) {
-      dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          logPrint: (obj) => debugPrint(obj.toString()),
-        ),
-      );
-    }
-
-    // エラーハンドリングインターセプター
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onError: (DioException error, ErrorInterceptorHandler handler) {
-          switch (error.response?.statusCode) {
-            case 401:
-              // 認証エラー: 再ログインが必要
-              debugPrint('認証エラー: 再ログインが必要です');
-              break;
-            case 403:
-              // 権限エラー: アクセス拒否
-              debugPrint('アクセスが拒否されました');
-              break;
-            case 500:
-              // サーバーエラー
-              debugPrint('サーバーエラーが発生しました');
-              break;
-          }
-          handler.next(error);
-        },
-      ),
-    );
-
-    return dio;
   }
 }
+```
+
+Provider では `authProvider.notifier.csrfToken` を `csrfTokenProvider` に渡す:
+
+```dart
+final dioProvider = Provider<Dio>((ref) {
+  final config = ref.watch(appConfigProvider);
+  final authNotifier = ref.read(authProvider.notifier);
+  return ApiClient.create(
+    baseUrl: config.api.baseUrl,
+    csrfTokenProvider: () async => authNotifier.csrfToken,
+    sessionCookieInterceptor: kIsWeb ? null : SessionCookieInterceptor(),
+  );
+});
 ```
 
 ### test/widget_test.dart

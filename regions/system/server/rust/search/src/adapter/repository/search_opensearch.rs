@@ -23,11 +23,25 @@ pub struct SearchOpenSearchRepository {
 }
 
 impl SearchOpenSearchRepository {
-    pub fn new(url: &str, username: &str, password: &str, prefix: &str) -> anyhow::Result<Self> {
+    /// SearchOpenSearchRepository を構築する。
+    /// tls_insecure が false（デフォルト）の場合、TLS 証明書を完全検証する。
+    /// 開発環境のみ tls_insecure = true を使用すること。
+    pub fn new(
+        url: &str,
+        username: &str,
+        password: &str,
+        prefix: &str,
+        tls_insecure: bool,
+    ) -> anyhow::Result<Self> {
         let url = Url::parse(url)?;
         let conn_pool = SingleNodeConnectionPool::new(url);
-        let mut builder =
-            TransportBuilder::new(conn_pool).cert_validation(CertificateValidation::None);
+        // tls_insecure フラグに基づいて TLS 証明書検証モードを設定する
+        let cert_validation = if tls_insecure {
+            CertificateValidation::None
+        } else {
+            CertificateValidation::Full
+        };
+        let mut builder = TransportBuilder::new(conn_pool).cert_validation(cert_validation);
 
         if !username.is_empty() && !password.is_empty() {
             builder = builder.auth(Credentials::Basic(

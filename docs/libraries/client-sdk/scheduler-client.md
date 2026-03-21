@@ -181,7 +181,7 @@ for exec in &executions {
 
 > **注意**: 上記ヘルパーは `SchedulerClient` インターフェースに含まれないため、テストコード以外では使用しないこと。
 
-### close() メソッド（GrpcSchedulerClient）
+### close() メソッド（HTTP クライアント実装）
 
 HTTP クライアントのリソースを解放するメソッド。言語による差異は以下のとおり。
 
@@ -285,24 +285,23 @@ func (c *InMemoryClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job,
 func (c *InMemoryClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error)
 func (c *InMemoryClient) Jobs() map[string]Job // テスト用ヘルパー（SchedulerClient インターフェース外）
 
-// GrpcSchedulerClient は HTTP REST で scheduler-server に接続する実装。
-// クラス名は後方互換のため Grpc のままとしている。
-type GrpcSchedulerClient struct{ /* ... */ }
+// HttpSchedulerClient は HTTP REST で scheduler-server に接続する実装。
+type HttpSchedulerClient struct{ /* ... */ }
 
-func NewGrpcSchedulerClient(addr string) (*GrpcSchedulerClient, error)
-func (c *GrpcSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Job, error)
-func (c *GrpcSchedulerClient) CancelJob(ctx context.Context, jobID string) error
-func (c *GrpcSchedulerClient) PauseJob(ctx context.Context, jobID string) error
-func (c *GrpcSchedulerClient) ResumeJob(ctx context.Context, jobID string) error
-func (c *GrpcSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, error)
-func (c *GrpcSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job, error)
-func (c *GrpcSchedulerClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error)
+func NewHttpSchedulerClient(addr string) (*HttpSchedulerClient, error)
+func (c *HttpSchedulerClient) CreateJob(ctx context.Context, req JobRequest) (Job, error)
+func (c *HttpSchedulerClient) CancelJob(ctx context.Context, jobID string) error
+func (c *HttpSchedulerClient) PauseJob(ctx context.Context, jobID string) error
+func (c *HttpSchedulerClient) ResumeJob(ctx context.Context, jobID string) error
+func (c *HttpSchedulerClient) GetJob(ctx context.Context, jobID string) (Job, error)
+func (c *HttpSchedulerClient) ListJobs(ctx context.Context, filter JobFilter) ([]Job, error)
+func (c *HttpSchedulerClient) GetExecutions(ctx context.Context, jobID string) ([]JobExecution, error)
 ```
 
 **使用例**:
 
 ```go
-client, err := NewGrpcSchedulerClient("scheduler-server:8080")
+client, err := NewHttpSchedulerClient("scheduler-server:8080")
 if err != nil {
     log.Fatal(err)
 }

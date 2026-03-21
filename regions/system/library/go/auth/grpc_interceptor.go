@@ -14,7 +14,7 @@ import (
 // Authorization メタデータから Bearer トークンを取得し、JWKS 検証を行う。
 // 検証成功時は Claims をコンテキストに格納する。
 func UnaryServerInterceptor(verifier *JWKSVerifier) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		claims, err := extractAndVerifyGRPCToken(ctx, verifier)
 		if err != nil {
 			return nil, err
@@ -28,7 +28,7 @@ func UnaryServerInterceptor(verifier *JWKSVerifier) grpc.UnaryServerInterceptor 
 // Authorization メタデータから Bearer トークンを取得し、JWKS 検証を行う。
 // 検証成功時は Claims をコンテキストに格納する。
 func StreamServerInterceptor(verifier *JWKSVerifier) grpc.StreamServerInterceptor {
-	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		claims, err := extractAndVerifyGRPCToken(ss.Context(), verifier)
 		if err != nil {
 			return err
@@ -53,11 +53,12 @@ func extractAndVerifyGRPCToken(ctx context.Context, verifier *JWKSVerifier) (*Cl
 	}
 
 	raw := values[0]
-	trimmed := strings.TrimPrefix(raw, "Bearer ")
-	if trimmed == raw {
+	// "Bearer " プレフィックスを大文字小文字を区別せずに確認する（RFC 7235 準拠）
+	const bearerPrefix = "bearer "
+	if len(raw) < len(bearerPrefix) || !strings.EqualFold(raw[:len(bearerPrefix)], bearerPrefix) {
 		return nil, status.Error(codes.Unauthenticated, "Bearer トークンが必要です")
 	}
-	tokenString := strings.TrimSpace(trimmed)
+	tokenString := strings.TrimSpace(raw[len(bearerPrefix):])
 	if tokenString == "" {
 		return nil, status.Error(codes.Unauthenticated, "認証が必要です")
 	}

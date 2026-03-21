@@ -42,6 +42,18 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 			return
 		}
 
+		// アクセストークンの有効期限を確認する。
+		// Redis TTL に依存するだけでは不十分: ExpiresAt フィールドが示す
+		// アクセストークン期限切れセッションを拒否する必要がある。
+		if sess.IsExpired() {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":      "BFF_SESSION_EXPIRED",
+				"message":    "Session token has expired",
+				"request_id": GetRequestID(c),
+			})
+			return
+		}
+
 		c.Set(SessionDataKey, sess)
 		c.Set(SessionIDKey, sessionID)
 

@@ -105,17 +105,20 @@ void main() {
       final advanced = data.categories.firstWhere((category) => category.schema.id == 'advanced');
 
       expect(general.fields.single.id, equals('test.general::timeout'));
-      expect(general.fields.single.value, equals(60));
+      // value は ConfigValue 型: 数値は NumberConfigValue でラップされる
+      expect(general.fields.single.value, equals(const NumberConfigValue(60)));
       expect(general.fields.single.version, equals(3));
       expect(general.fields.single.originalVersion, equals(3));
 
       expect(advanced.fields.first.id, equals('test.advanced::timeout'));
-      expect(advanced.fields.first.value, equals(2.75));
+      // value は ConfigValue 型: 浮動小数点も NumberConfigValue でラップされる
+      expect(advanced.fields.first.value, equals(const NumberConfigValue(2.75)));
       expect(advanced.fields.first.version, equals(9));
-      expect(advanced.fields.first.originalValue, equals(2.75));
+      expect(advanced.fields.first.originalValue, equals(const NumberConfigValue(2.75)));
 
       final metadata = advanced.fields.firstWhere((field) => field.key == 'metadata');
-      expect(metadata.value, equals({'owner': 'system'}));
+      // デフォルト値がない場合はデフォルト値（スキーマの default）が使用される
+      expect(metadata.value, equals(MapConfigValue({'owner': const StringConfigValue('system')})));
       expect(metadata.version, equals(0));
       expect(metadata.error, isNull);
     });

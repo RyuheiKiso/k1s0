@@ -36,6 +36,9 @@ class AuthNotifier extends Notifier<AuthState> {
   /// CSRF トークン（/auth/session または /auth/exchange のレスポンスから取得）
   String? _csrfToken;
 
+  /// 現在保持している CSRF トークンを返す（サービスクライアントが csrfTokenProvider として使用）
+  String? get csrfToken => _csrfToken;
+
   @override
   AuthState build() {
     _baseUrl = ref.read(authApiBaseUrlProvider);

@@ -237,6 +237,63 @@ describe('tauri-commands', () => {
     expect(mockInvoke).toHaveBeenNthCalledWith(3, 'start_device_authorization', { settings });
   });
 
+  it('propagates rejection from scanBuildableTargets', async () => {
+    // ワークスペースが見つからない場合のエラーを呼び出し元に伝播することを確認する
+    mockInvoke.mockRejectedValueOnce(new Error('workspace not found'));
+
+    await expect(scanBuildableTargets('/nonexistent')).rejects.toThrow('workspace not found');
+    expect(mockInvoke).toHaveBeenCalledWith('scan_buildable_targets', { baseDir: '/nonexistent' });
+  });
+
+  it('propagates rejection from executeGenerateAt', async () => {
+    // コード生成失敗時のエラーを呼び出し元に伝播することを確認する
+    mockInvoke.mockRejectedValueOnce(new Error('template not found'));
+
+    await expect(
+      executeGenerateAt(
+        {
+          kind: 'Server',
+          tier: 'System',
+          placement: null,
+          lang_fw: { Language: 'Rust' },
+          detail: {
+            name: 'auth',
+            api_styles: ['Rest'],
+            db: null,
+            kafka: false,
+            redis: false,
+            bff_language: null,
+          },
+        },
+        '/repo',
+      ),
+    ).rejects.toThrow('template not found');
+  });
+
+  it('propagates rejection from executeBuildWithProgress', async () => {
+    // ビルド失敗時のエラーを呼び出し元に伝播することを確認する
+    mockInvoke.mockRejectedValueOnce(new Error('docker not found'));
+    const onEvent = vi.fn();
+
+    await expect(
+      executeBuildWithProgress({ targets: ['target-1'], mode: 'Production' }, onEvent),
+    ).rejects.toThrow('docker not found');
+  });
+
+  it('propagates rejection from detectWorkspaceRoot when outside a repo', async () => {
+    // リポジトリ外で実行された場合のエラーを呼び出し元に伝播することを確認する
+    mockInvoke.mockRejectedValueOnce(new Error('not a git repository'));
+
+    await expect(detectWorkspaceRoot()).rejects.toThrow('not a git repository');
+    expect(mockInvoke).toHaveBeenCalledWith('detect_workspace_root');
+  });
+
+  it('propagates rejection from auth session commands', async () => {
+    mockInvoke.mockRejectedValueOnce(new Error('no session'));
+
+    await expect(getAuthSession()).rejects.toThrow('no session');
+  });
+
   it('wraps auth session commands', async () => {
     const session = {
       issuer: 'https://issuer.example.com',
