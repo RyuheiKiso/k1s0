@@ -10,5 +10,12 @@ pub mod k1s0 {
                 include!("k1s0.system.eventmonitor.v1.rs");
             }
         }
+        // DLQ Manager サービスの gRPC クライアントコードを提供するモジュール。
+        // build.rs で dlq.proto から生成される。
+        pub mod dlq {
+            pub mod v1 {
+                include!("k1s0.system.dlq.v1.rs");
+            }
+        }
     }
 }

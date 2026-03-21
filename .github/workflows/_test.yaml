@@ -112,7 +112,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # Rust ユニットテスト
   test-rust:
@@ -228,7 +229,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # コード生成テンプレートのコンパイル検証（golden path compile test）
   golden-path-compile:
@@ -342,7 +344,8 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true
 
   # Dart/Flutter ユニットテスト + カバレッジ
   test-dart:
@@ -465,4 +468,5 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          fail_ci_if_error: false
+          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
+          fail_ci_if_error: true

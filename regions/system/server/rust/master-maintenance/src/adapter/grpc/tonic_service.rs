@@ -220,21 +220,48 @@ fn domain_warning_to_proto(
     }
 }
 
-fn status_from_anyhow(err: anyhow::Error) -> Status {
-    if let Some(validation) =
-        err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
-    {
-        return Status::invalid_argument(
+/// MasterMaintenanceError を gRPC Status に型安全に変換する関数（C-04対応）。
+/// 文字列マッチングを廃止し、enum の各バリアントに対して正確な gRPC ステータスコードを割り当てる。
+fn status_from_domain_error(err: crate::domain::error::MasterMaintenanceError) -> Status {
+    use crate::domain::error::MasterMaintenanceError;
+    match &err {
+        // Not Found 系バリアントは gRPC not_found に変換する
+        MasterMaintenanceError::TableNotFound(_)
+        | MasterMaintenanceError::RecordNotFound(_)
+        | MasterMaintenanceError::RuleNotFound(_)
+        | MasterMaintenanceError::DisplayConfigNotFound(_)
+        | MasterMaintenanceError::ImportJobNotFound(_)
+        | MasterMaintenanceError::RelationshipNotFound(_)
+        | MasterMaintenanceError::ColumnNotFound(_) => Status::not_found(err.to_string()),
+
+        // 操作権限なしは gRPC permission_denied に変換する
+        MasterMaintenanceError::OperationNotAllowed { .. } => {
+            Status::permission_denied(err.to_string())
+        }
+
+        // バリデーション系バリアントは gRPC invalid_argument に変換する
+        MasterMaintenanceError::RecordValidation(validation) => Status::invalid_argument(
             serde_json::json!({
                 "message": "validation failed",
                 "errors": validation.errors,
                 "warnings": validation.warnings,
             })
             .to_string(),
-        );
-    }
+        ),
+        MasterMaintenanceError::ValidationFailed(_)
+        | MasterMaintenanceError::InvalidRule(_)
+        | MasterMaintenanceError::ImportFailed(_) => Status::invalid_argument(err.to_string()),
 
-    Status::internal(err.to_string())
+        // 重複・競合系バリアントは gRPC already_exists に変換する
+        MasterMaintenanceError::DuplicateTable(_)
+        | MasterMaintenanceError::DuplicateColumn(_)
+        | MasterMaintenanceError::VersionConflict(_) => Status::already_exists(err.to_string()),
+
+        // 内部エラー系バリアントは gRPC internal に変換する
+        MasterMaintenanceError::SqlBuildError(_) | MasterMaintenanceError::Internal(_) => {
+            Status::internal(err.to_string())
+        }
+    }
 }
 
 // --- MasterMaintenanceService 実装 ---
@@ -578,7 +605,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 current_trace_id(),
             )
             .await
-            .map_err(status_from_anyhow)?;
+            .map_err(status_from_domain_error)?;
 
         Ok(Response::new(CreateRecordResponse {
             data: json_to_struct(&result.record),
@@ -625,7 +652,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 current_trace_id(),
             )
             .await
-            .map_err(status_from_anyhow)?;
+            .map_err(status_from_domain_error)?;
 
         Ok(Response::new(UpdateRecordResponse {
             data: json_to_struct(&result.record),
@@ -659,7 +686,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 current_trace_id(),
             )
             .await
-            .map_err(|e| Status::internal(e.to_string()))?;
+            .map_err(status_from_domain_error)?;
 
         Ok(Response::new(DeleteRecordResponse { success: true }))
     }
@@ -881,18 +908,12 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             return Err(Status::invalid_argument("table_name is required"));
         }
 
+        // 型安全な status_from_domain_error で変換することで文字列マッチングを廃止する（C-04対応）
         let schema = self
             .manage_tables_uc
             .get_table_schema(&req.table_name, None)
             .await
-            .map_err(|e| {
-                let msg = e.to_string();
-                if msg.contains("not found") {
-                    Status::not_found(msg)
-                } else {
-                    Status::internal(msg)
-                }
-            })?;
+            .map_err(status_from_domain_error)?;
 
         let json_schema =
             serde_json::to_string(&schema).map_err(|e| Status::internal(e.to_string()))?;

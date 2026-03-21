@@ -144,11 +144,11 @@ pub trait InventoryRepository: Send + Sync {
     ) -> anyhow::Result<Option<InventoryItem>>;
     async fn find_all(&self, filter: &InventoryFilter) -> anyhow::Result<Vec<InventoryItem>>;
     async fn count(&self, filter: &InventoryFilter) -> anyhow::Result<i64>;
-    async fn reserve(
-        &self, product_id: &str, warehouse_id: &str, quantity: i32,
+    async fn reserve_stock(
+        &self, id: Uuid, quantity: i32, expected_version: i32, order_id: &str,
     ) -> anyhow::Result<InventoryItem>;
-    async fn release(
-        &self, product_id: &str, warehouse_id: &str, quantity: i32,
+    async fn release_stock(
+        &self, id: Uuid, quantity: i32, expected_version: i32, order_id: &str, reason: &str,
     ) -> anyhow::Result<InventoryItem>;
     async fn update_stock(
         &self, id: Uuid, qty_available: i32, expected_version: i32,
@@ -158,9 +158,25 @@ pub trait InventoryRepository: Send + Sync {
         event_type: &str, payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
     async fn fetch_unpublished_events(&self, limit: i64) -> anyhow::Result<Vec<OutboxEvent>>;
-    async fn mark_event_published(&self, event_id: Uuid) -> anyhow::Result<()>;
+    async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
+    /// Saga 補償: 注文IDに紐づく予約中の在庫予約レコードを取得する
+    async fn find_reservations_by_order_id(&self, order_id: &str) -> anyhow::Result<Vec<InventoryReservation>>;
+    /// Saga 補償: order_id に紐づく全予約を単一トランザクションで解放する
+    async fn compensate_order_reservations(&self, order_id: &str, reason: &str) -> anyhow::Result<Vec<InventoryItem>>;
 }
 ```
+
+### Saga 補償フロー（order.cancelled）
+
+`order.cancelled` イベントを受信すると、`HandleOrderEventUseCase::handle_cancelled` が以下の流れで在庫を解放する:
+
+1. `compensate_order_reservations(order_id, reason)` を呼び出す
+2. リポジトリは単一トランザクション内で:
+   - `inventory_reservations` テーブルから `status='reserved'` の予約を `FOR UPDATE` でロック取得
+   - 各予約について `inventory_items` の `qty_available +N / qty_reserved -N` を更新
+   - 各予約について `outbox_events` に `inventory.released` イベントを挿入
+   - 全予約の `status` を `'released'` に更新
+3. 予約が存在しない場合は冪等に空リストを返す（再実行安全）
 
 ---
 

@@ -528,7 +528,7 @@ cargo build --release
 | カテゴリ | パス | 内容 |
 |----------|------|------|
 | アーキテクチャ | `docs/architecture/` | 全体設計・規約・認証・API・メッセージング・可観測性 |
-| サーバー設計書 | `docs/servers/` | 28 サーバーの API 仕様・DB スキーマ・デプロイ設定 |
+| サーバー設計書 | `docs/servers/` | 31 サーバーの API 仕様・DB スキーマ・デプロイ設定（System 28 + Business 1 + Service 3）|
 | ライブラリ設計書 | `docs/libraries/` | 50+ ライブラリの設計・インターフェース仕様 |
 | インフラ設計 | `docs/infrastructure/` | Kubernetes・ネットワーク・ストレージ・IaC・監視 |
 | CLI 仕様 | `docs/cli/` | CLI フロー・設定・テンプレート仕様 |

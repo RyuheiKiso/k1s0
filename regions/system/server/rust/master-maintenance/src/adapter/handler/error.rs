@@ -103,6 +103,16 @@ impl IntoResponse for AppError {
     }
 }
 
+/// anyhow::Error を AppError に変換する実装。
+/// MasterMaintenanceError に変換できない anyhow::Error を Internal としてフォールバックする。
+/// 文字列マッチングは行わず、型安全な変換を介して処理する。
+impl From<anyhow::Error> for AppError {
+    fn from(err: anyhow::Error) -> Self {
+        // anyhow::Error を MasterMaintenanceError に変換してから AppError に変換する
+        Self::from(MasterMaintenanceError::from(err))
+    }
+}
+
 /// MasterMaintenanceError を AppError に型安全に変換する実装（C-04対応）。
 /// 文字列マッチングを廃止し、enum の各バリアントに対して正確な HTTP ステータスコードとエラーコードを割り当てる。
 impl From<MasterMaintenanceError> for AppError {

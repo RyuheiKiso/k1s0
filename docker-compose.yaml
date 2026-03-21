@@ -35,6 +35,9 @@ x-rust-healthcheck: &rust-healthcheck
   interval: 10s
   timeout: 5s
   retries: 5
+  # Rust サービス初回起動（DBマイグレーション含む）に時間がかかるため、
+  # start_period 内の失敗はカウントせず、起動完了後から retries を適用する（M-22対応）
+  start_period: 30s
 
 services:
   # ============================================================

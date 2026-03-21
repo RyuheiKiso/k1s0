@@ -17,28 +17,16 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+/// RecordValidationError は domain 層で定義されているが、後方互換性のため usecase からも公開する。
+/// 既存のコードが `usecase::crud_records::RecordValidationError` で参照できるようにする。
+pub use crate::domain::error::RecordValidationError;
+
 /// レコード変更操作の出力型。変更後のレコードとバリデーション警告を含む。
 #[derive(Debug, Clone)]
 pub struct RecordMutationOutput {
     pub record: Value,
     pub warnings: Vec<RuleResult>,
 }
-
-/// レコードバリデーションエラー。ルール評価で失敗した errors と警告 warnings を保持する。
-/// MasterMaintenanceError::RecordValidation に内包されて使用される。
-#[derive(Debug)]
-pub struct RecordValidationError {
-    pub errors: Vec<RuleResult>,
-    pub warnings: Vec<RuleResult>,
-}
-
-impl std::fmt::Display for RecordValidationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "validation failed")
-    }
-}
-
-impl std::error::Error for RecordValidationError {}
 
 /// レコード CRUD 操作を提供する usecase 構造体。
 pub struct CrudRecordsUseCase {

@@ -11,7 +11,7 @@ use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 
 use super::config::Config;
-use super::dlq_client::{DlqManagerClient, NoopDlqClient};
+use super::dlq_client::{DlqManagerClient, GrpcDlqClient, NoopDlqClient};
 use crate::adapter::grpc::EventMonitorGrpcService;
 use crate::adapter::repository::event_record_postgres::EventRecordPostgresRepository;
 use crate::adapter::repository::flow_definition_postgres::FlowDefinitionPostgresRepository;

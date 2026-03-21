@@ -2,8 +2,25 @@
 //!
 //! 文字列マッチングではなく、型安全な分類で HTTP ステータスコードを決定する（C-04対応）。
 
-use crate::usecase::crud_records::RecordValidationError;
+use crate::domain::value_object::rule_result::RuleResult;
 use k1s0_server_common::error::{ErrorCode, ServiceError};
+
+/// レコードバリデーションエラー。ルール評価で失敗した errors と警告 warnings を保持する。
+/// MasterMaintenanceError::RecordValidation に内包されて使用される。
+/// domain 層に定義することで usecase → domain の循環参照を防ぐ。
+#[derive(Debug)]
+pub struct RecordValidationError {
+    pub errors: Vec<RuleResult>,
+    pub warnings: Vec<RuleResult>,
+}
+
+impl std::fmt::Display for RecordValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "validation failed")
+    }
+}
+
+impl std::error::Error for RecordValidationError {}
 
 /// master-maintenance ドメインのエラー型。
 /// 型安全なエラー分類によりエラーメッセージの文字列マッチングを不要にする（C-04対応）。
@@ -66,7 +83,7 @@ pub enum MasterMaintenanceError {
     ValidationFailed(String),
 
     /// レコードバリデーションエラー（ルール評価結果付き）
-    // RecordValidationError の機能を統合。errors/warnings フィールドは既存の型を使用する。
+    /// RecordValidationError を内包することで errors/warnings の詳細情報を保持する。
     #[error("record validation failed")]
     RecordValidation(Box<RecordValidationError>),
 
@@ -83,13 +100,6 @@ pub enum MasterMaintenanceError {
 /// 型変換が未対応の usecase から上がってきたエラーを Internal にフォールバックする（暫定対応）。
 impl From<anyhow::Error> for MasterMaintenanceError {
     fn from(err: anyhow::Error) -> Self {
-        // RecordValidationError を内包する anyhow::Error を型安全に変換する
-        if let Some(validation) =
-            err.downcast_ref::<crate::usecase::crud_records::RecordValidationError>()
-        {
-            // RecordValidationError は Clone を実装していないため、to_string() 経由で保存する
-            return Self::ValidationFailed(validation.to_string());
-        }
         Self::Internal(err.to_string())
     }
 }
