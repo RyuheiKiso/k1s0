@@ -2128,6 +2128,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "etcetera"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26c7b13d0780cb82722fd59f6f57f925e143427e4a75313a6c77243bf5326ae6"
+dependencies = [
+ "cfg-if",
+ "home",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "event-listener"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3358,7 +3369,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
@@ -3446,7 +3457,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
@@ -4096,7 +4107,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
@@ -4386,7 +4397,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
@@ -4862,7 +4873,7 @@ dependencies = [
  "jsonwebtoken",
  "serde",
  "serde_json",
- "testcontainers",
+ "testcontainers 0.24.0",
  "testcontainers-modules",
  "tokio",
  "uuid",
@@ -7467,7 +7478,7 @@ dependencies = [
  "chrono",
  "crc",
  "dotenvy",
- "etcetera",
+ "etcetera 0.8.0",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -7776,7 +7787,36 @@ dependencies = [
  "bytes",
  "docker_credential",
  "either",
- "etcetera",
+ "etcetera 0.8.0",
+ "futures",
+ "log",
+ "memchr",
+ "parse-display",
+ "pin-project-lite",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+ "tokio-tar",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "testcontainers"
+version = "0.24.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23bb7577dca13ad86a78e8271ef5d322f37229ec83b8d98da6d996c588a1ddb1"
+dependencies = [
+ "async-trait",
+ "bollard",
+ "bollard-stubs",
+ "bytes",
+ "docker_credential",
+ "either",
+ "etcetera 0.10.0",
  "futures",
  "log",
  "memchr",
@@ -7799,7 +7839,7 @@ version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d43ed4e8f58424c3a2c6c56dbea6643c3c23e8666a34df13c54f0a184e6c707"
 dependencies = [
- "testcontainers",
+ "testcontainers 0.23.3",
 ]
 
 [[package]]
