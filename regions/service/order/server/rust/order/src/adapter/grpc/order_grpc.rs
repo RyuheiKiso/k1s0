@@ -143,7 +143,7 @@ impl OrderService for OrderGrpcService {
         Ok(Response::new(ListOrdersResponse {
             orders: orders.into_iter().map(|o| proto_order(o, vec![])).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,

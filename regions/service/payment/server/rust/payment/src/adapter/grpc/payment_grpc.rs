@@ -140,7 +140,7 @@ impl PaymentService for PaymentGrpcService {
         Ok(Response::new(ListPaymentsResponse {
             payments: payments.into_iter().map(proto_payment).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,

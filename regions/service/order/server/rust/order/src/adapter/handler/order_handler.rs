@@ -91,7 +91,7 @@ pub async fn get_order(
     Path(order_id): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
     let id = parse_uuid(&order_id)?;
 
     let (order, items) = state
@@ -157,7 +157,7 @@ pub async fn list_orders(
     Query(query): Query<ListOrdersQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("ORDER", "authentication required"))?;
     let status = match &query.status {
         Some(s) => Some(
             s.parse::<OrderStatus>()

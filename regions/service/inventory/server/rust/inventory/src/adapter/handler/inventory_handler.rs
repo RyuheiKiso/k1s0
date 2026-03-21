@@ -113,7 +113,7 @@ pub async fn get_inventory(
     Path(inventory_id): Path<String>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
     let id = parse_uuid(&inventory_id)?;
 
     let item = state
@@ -133,7 +133,7 @@ pub async fn list_inventory(
     Query(query): Query<ListInventoryQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
     // read 操作も認証が必要（gRPC ハンドラーと同等の認証強度を維持する）
-    claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
+    let _guard = claims.ok_or_else(|| ServiceError::unauthorized("INVENTORY", "authentication required"))?;
     let filter = InventoryFilter {
         product_id: query.product_id,
         warehouse_id: query.warehouse_id,

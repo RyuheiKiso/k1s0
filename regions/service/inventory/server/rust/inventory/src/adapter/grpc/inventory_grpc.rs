@@ -153,7 +153,7 @@ impl InventoryService for InventoryGrpcService {
         Ok(Response::new(ListInventoryResponse {
             items: items.into_iter().map(proto_inventory_item).collect(),
             pagination: Some(PaginationResult {
-                total_count: total_count as i64,
+                total_count,
                 page,
                 page_size,
                 has_next,
