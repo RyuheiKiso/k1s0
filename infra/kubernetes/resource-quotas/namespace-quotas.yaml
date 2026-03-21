@@ -1,6 +1,27 @@
+# Kubernetes ResourceQuota 環境別設定
+# M-09対応: 環境（dev/staging/prod）ごとに異なるクォータを設定し、
+# 環境間のリソース競合とコスト超過を防止する。
+#
+# スケール比率:
+#   dev:     1x（基準値）
+#   staging: 2x（本番相当の負荷試験を可能にする）
+#   prod:    4x（本番の最大負荷・冗長性を考慮した上限）
+#
+# 適用方法:
+#   kubectl apply -f namespace-quotas.yaml --namespace=<namespace>
+#   または kustomize overlays/{dev,staging,prod} で環境別に適用すること。
+#
+# 現在適用中の設定: dev 相当（1x）
+# staging/prod への適用は infra/kubernetes/overlays/{staging,prod}/ を参照すること。
+
+# ============================================================
+# dev 環境 (1x) - 現在適用中
+# ============================================================
+
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  # k1s0-system 名前空間: system tier の共通基盤サービス群
   name: namespace-quota
   namespace: k1s0-system
 spec:
@@ -15,6 +36,7 @@ spec:
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  # k1s0-business 名前空間: business tier のドメインサービス群
   name: namespace-quota
   namespace: k1s0-business
 spec:
@@ -29,6 +51,7 @@ spec:
 apiVersion: v1
 kind: ResourceQuota
 metadata:
+  # k1s0-service 名前空間: service tier の個別サービス群
   name: namespace-quota
   namespace: k1s0-service
 spec:
@@ -39,3 +62,95 @@ spec:
     limits.memory: 32Gi
     pods: "50"
     persistentvolumeclaims: "20"
+
+# ============================================================
+# staging 環境 (2x) - infra/kubernetes/overlays/staging/ で適用
+# ============================================================
+#
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-system
+# spec:
+#   hard:
+#     requests.cpu: "16"
+#     requests.memory: 32Gi
+#     limits.cpu: "32"
+#     limits.memory: 64Gi
+#     pods: "100"
+#     persistentvolumeclaims: "40"
+# ---
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-business
+# spec:
+#   hard:
+#     requests.cpu: "32"
+#     requests.memory: 64Gi
+#     limits.cpu: "64"
+#     limits.memory: 128Gi
+#     pods: "200"
+#     persistentvolumeclaims: "80"
+# ---
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-service
+# spec:
+#   hard:
+#     requests.cpu: "16"
+#     requests.memory: 32Gi
+#     limits.cpu: "32"
+#     limits.memory: 64Gi
+#     pods: "100"
+#     persistentvolumeclaims: "40"
+
+# ============================================================
+# prod 環境 (4x) - infra/kubernetes/overlays/prod/ で適用
+# ============================================================
+#
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-system
+# spec:
+#   hard:
+#     requests.cpu: "32"
+#     requests.memory: 64Gi
+#     limits.cpu: "64"
+#     limits.memory: 128Gi
+#     pods: "200"
+#     persistentvolumeclaims: "80"
+# ---
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-business
+# spec:
+#   hard:
+#     requests.cpu: "64"
+#     requests.memory: 128Gi
+#     limits.cpu: "128"
+#     limits.memory: 256Gi
+#     pods: "400"
+#     persistentvolumeclaims: "160"
+# ---
+# apiVersion: v1
+# kind: ResourceQuota
+# metadata:
+#   name: namespace-quota
+#   namespace: k1s0-service
+# spec:
+#   hard:
+#     requests.cpu: "32"
+#     requests.memory: 64Gi
+#     limits.cpu: "64"
+#     limits.memory: 128Gi
+#     pods: "200"
+#     persistentvolumeclaims: "80"
