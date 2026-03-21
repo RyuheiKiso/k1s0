@@ -185,6 +185,27 @@ impl InventoryRepository for InventoryPostgresRepository {
         .execute(&mut *tx)
         .await?;
 
+        // 在庫予約レコードを挿入する（冪等性保証: ON CONFLICT DO NOTHING で二重予約を防止）
+        let reservation_id = Uuid::new_v4();
+        sqlx::query(
+            r#"
+            INSERT INTO inventory_reservations
+                (id, order_id, inventory_item_id, product_id, warehouse_id, quantity, status, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, 'reserved', $7, $8)
+            ON CONFLICT (order_id, inventory_item_id) DO NOTHING
+            "#,
+        )
+        .bind(reservation_id)
+        .bind(order_id)
+        .bind(item.id)
+        .bind(&item.product_id)
+        .bind(&item.warehouse_id)
+        .bind(quantity)
+        .bind(now)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
         tx.commit().await?;
         Ok(item)
     }
@@ -433,6 +454,149 @@ impl InventoryRepository for InventoryPostgresRepository {
         .execute(&self.pool)
         .await?;
         Ok(())
+    }
+
+    /// 注文IDに紐づく予約中（status='reserved'）の在庫予約レコードを取得する。
+    /// 補償トランザクション実行前に解放対象を確認するために使用する。
+    async fn find_reservations_by_order_id(
+        &self,
+        order_id: &str,
+    ) -> anyhow::Result<Vec<InventoryReservation>> {
+        let rows = sqlx::query_as::<_, InventoryReservation>(
+            r#"
+            SELECT id, order_id, inventory_item_id, product_id, warehouse_id,
+                   quantity, status, created_at, updated_at
+            FROM inventory_reservations
+            WHERE order_id = $1 AND status = 'reserved'
+            "#,
+        )
+        .bind(order_id)
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
+    /// order_id に紐づく全在庫予約を解放する（Saga 補償トランザクション）。
+    /// FOR UPDATE で予約レコードをロックしてから、inventory_items の在庫数量を復元し、
+    /// outbox_events に inventory.released イベントを挿入した後、予約ステータスを released に更新する。
+    /// fetch + update + outbox_events INSERT を単一トランザクション内で実行することで原子性を保証する。
+    async fn compensate_order_reservations(
+        &self,
+        order_id: &str,
+        reason: &str,
+    ) -> anyhow::Result<Vec<InventoryItem>> {
+        let mut tx = self.pool.begin().await?;
+        let now = Utc::now();
+
+        // 対象予約レコードを FOR UPDATE でロックして取得する（他トランザクションとの競合を防止）
+        let reservations = sqlx::query_as::<_, InventoryReservation>(
+            r#"
+            SELECT id, order_id, inventory_item_id, product_id, warehouse_id,
+                   quantity, status, created_at, updated_at
+            FROM inventory_reservations
+            WHERE order_id = $1 AND status = 'reserved'
+            FOR UPDATE
+            "#,
+        )
+        .bind(order_id)
+        .fetch_all(&mut *tx)
+        .await?;
+
+        // 予約が存在しない場合は冪等に成功を返す
+        if reservations.is_empty() {
+            tx.commit().await?;
+            return Ok(vec![]);
+        }
+
+        let mut released_items = Vec::with_capacity(reservations.len());
+
+        for reservation in &reservations {
+            // inventory_items の qty_available を増加、qty_reserved を減少して在庫を復元する
+            let row = sqlx::query_as::<_, InventoryItemRow>(
+                r#"
+                UPDATE inventory_items
+                SET qty_available = qty_available + $2,
+                    qty_reserved = qty_reserved - $2,
+                    version = version + 1,
+                    updated_at = $3
+                WHERE id = $1
+                RETURNING id, product_id, warehouse_id, qty_available, qty_reserved,
+                          version, created_at, updated_at
+                "#,
+            )
+            .bind(reservation.inventory_item_id)
+            .bind(reservation.quantity)
+            .bind(now)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            let item = match row {
+                Some(r) => InventoryItem::from(r),
+                None => {
+                    return Err(InventoryError::NotFound(
+                        reservation.inventory_item_id.to_string(),
+                    )
+                    .into());
+                }
+            };
+
+            // Outbox イベントを同一トランザクション内に挿入して、Kafka への配信を保証する
+            let outbox_payload = serde_json::json!({
+                "metadata": {
+                    "event_id": Uuid::new_v4().to_string(),
+                    "event_type": "inventory.released",
+                    "source": "inventory-server",
+                    "timestamp": now.timestamp_millis(),
+                    "trace_id": "",
+                    "correlation_id": order_id,
+                    "schema_version": 1
+                },
+                "order_id": order_id,
+                "product_id": reservation.product_id,
+                "quantity": reservation.quantity,
+                "warehouse_id": reservation.warehouse_id,
+                "reason": reason,
+                "released_at": now.to_rfc3339(),
+            });
+
+            // idempotency_key に event_id を使用して冪等性を保証する
+            let event_id = Uuid::new_v4();
+            sqlx::query(
+                r#"
+                INSERT INTO outbox_events (id, aggregate_type, aggregate_id, event_type, payload, created_at, idempotency_key)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                ON CONFLICT (idempotency_key) DO NOTHING
+                "#,
+            )
+            .bind(event_id)
+            .bind("inventory")
+            .bind(reservation.inventory_item_id.to_string())
+            .bind("inventory.released")
+            .bind(&outbox_payload)
+            .bind(now)
+            .bind(event_id.to_string())
+            .execute(&mut *tx)
+            .await?;
+
+            released_items.push(item);
+        }
+
+        // 全予約レコードのステータスを 'released' に一括更新する
+        let reservation_ids: Vec<Uuid> = reservations.iter().map(|r| r.id).collect();
+        sqlx::query(
+            r#"
+            UPDATE inventory_reservations
+            SET status = 'released', updated_at = $2
+            WHERE id = ANY($1)
+            "#,
+        )
+        .bind(&reservation_ids)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+        Ok(released_items)
     }
 }
 
