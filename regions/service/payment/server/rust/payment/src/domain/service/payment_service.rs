@@ -129,6 +129,64 @@ mod tests {
         assert!(result.unwrap_err().to_string().contains("currency"));
     }
 
+    // amount が上限（i64::MAX / 100）を超える場合にエラーを返すことを確認する。
+    #[test]
+    fn test_validate_initiate_payment_amount_exceeds_max() {
+        let mut input = valid_initiate_payment();
+        input.amount = i64::MAX / 100 + 1;
+        let result = PaymentDomainService::validate_initiate_payment(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("amount"));
+    }
+
+    // amount が上限（i64::MAX / 100）ちょうどの場合は成功することを確認する。
+    #[test]
+    fn test_validate_initiate_payment_amount_at_max_boundary() {
+        let mut input = valid_initiate_payment();
+        input.amount = i64::MAX / 100;
+        assert!(PaymentDomainService::validate_initiate_payment(&input).is_ok());
+    }
+
+    // currency が3文字の大文字アルファベット以外（小文字）の場合にエラーを返すことを確認する。
+    #[test]
+    fn test_validate_initiate_payment_currency_lowercase() {
+        let mut input = valid_initiate_payment();
+        input.currency = "jpy".to_string();
+        let result = PaymentDomainService::validate_initiate_payment(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("currency"));
+    }
+
+    // currency が3文字より長い場合にエラーを返すことを確認する。
+    #[test]
+    fn test_validate_initiate_payment_currency_too_long() {
+        let mut input = valid_initiate_payment();
+        input.currency = "JPYY".to_string();
+        let result = PaymentDomainService::validate_initiate_payment(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("currency"));
+    }
+
+    // currency が3文字より短い場合にエラーを返すことを確認する。
+    #[test]
+    fn test_validate_initiate_payment_currency_too_short() {
+        let mut input = valid_initiate_payment();
+        input.currency = "JP".to_string();
+        let result = PaymentDomainService::validate_initiate_payment(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("currency"));
+    }
+
+    // currency が数字を含む場合にエラーを返すことを確認する。
+    #[test]
+    fn test_validate_initiate_payment_currency_with_digit() {
+        let mut input = valid_initiate_payment();
+        input.currency = "JP1".to_string();
+        let result = PaymentDomainService::validate_initiate_payment(&input);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("currency"));
+    }
+
     #[test]
     fn test_valid_status_transition() {
         assert!(PaymentDomainService::validate_status_transition(
