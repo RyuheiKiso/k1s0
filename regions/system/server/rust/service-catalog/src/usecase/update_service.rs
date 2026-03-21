@@ -97,10 +97,92 @@ impl UpdateServiceUseCase {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::repository::service_repository::MockServiceRepository;
+    use chrono::Utc;
 
+    /// テスト用 Service ヘルパー
+    fn make_service(id: Uuid) -> Service {
+        Service {
+            id,
+            name: "original-name".to_string(),
+            description: None,
+            team_id: Uuid::new_v4(),
+            tier: ServiceTier::Standard,
+            lifecycle: ServiceLifecycle::Development,
+            repository_url: None,
+            api_endpoint: None,
+            healthcheck_url: None,
+            tags: vec![],
+            metadata: serde_json::json!({}),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// 正常に名前と説明を更新できる
+    #[tokio::test]
+    async fn test_update_service_success() {
+        let id = Uuid::new_v4();
+        let svc = make_service(id);
+        let svc_clone = svc.clone();
+        let mut mock = MockServiceRepository::new();
+        mock.expect_find_by_id().returning(move |_| Ok(Some(svc_clone.clone())));
+        mock.expect_update().returning(|svc| Ok(svc.clone()));
+
+        let uc = UpdateServiceUseCase::new(Arc::new(mock));
+        let result = uc
+            .execute(
+                id,
+                UpdateServiceInput {
+                    name: Some("updated-name".to_string()),
+                    description: Some("new desc".to_string()),
+                    tier: None,
+                    lifecycle: None,
+                    repository_url: None,
+                    api_endpoint: None,
+                    healthcheck_url: None,
+                    tags: None,
+                    metadata: None,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(result.name, "updated-name");
+        assert_eq!(result.description.as_deref(), Some("new desc"));
+    }
+
+    /// 空の名前は InvalidInput エラーを返す
+    #[tokio::test]
+    async fn test_update_service_empty_name() {
+        let id = Uuid::new_v4();
+        let svc = make_service(id);
+        let mut mock = MockServiceRepository::new();
+        mock.expect_find_by_id().returning(move |_| Ok(Some(svc.clone())));
+
+        let uc = UpdateServiceUseCase::new(Arc::new(mock));
+        let result = uc
+            .execute(
+                id,
+                UpdateServiceInput {
+                    name: Some("  ".to_string()),
+                    description: None,
+                    tier: None,
+                    lifecycle: None,
+                    repository_url: None,
+                    api_endpoint: None,
+                    healthcheck_url: None,
+                    tags: None,
+                    metadata: None,
+                },
+            )
+            .await;
+        assert!(matches!(result, Err(UpdateServiceError::InvalidInput(_))));
+    }
+
+    /// 存在しないサービスは NotFound エラーを返す
     #[tokio::test]
     async fn test_update_service_not_found() {
         let mut mock = MockServiceRepository::new();
