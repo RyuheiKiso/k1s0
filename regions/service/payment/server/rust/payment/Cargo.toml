@@ -73,6 +73,8 @@ rdkafka = { workspace = true }
 [build-dependencies]
 # gRPC プロトコルバッファのコード生成
 k1s0-proto-build = { path = "../../../../../system/library/rust/proto-build" }
+# クロスサービスイベント proto のコンパイル（Saga Consumer 用）
+tonic-build = { workspace = true }
 
 [features]
 db-tests = []

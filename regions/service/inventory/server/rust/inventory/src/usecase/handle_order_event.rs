@@ -18,6 +18,8 @@ use tracing::{info, warn};
 /// HandleOrderEventUseCase は order イベントに応じた在庫操作を担う。
 pub struct HandleOrderEventUseCase {
     reserve_stock_uc: Arc<ReserveStockUseCase>,
+    // TODO(C-001): find_reserved_by_order_id 実装後に handle_cancelled で使用する
+    #[allow(dead_code)]
     release_stock_uc: Arc<ReleaseStockUseCase>,
 }
 

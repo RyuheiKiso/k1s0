@@ -105,7 +105,7 @@ impl OrderRepository for OrderPostgresRepository {
     ) -> anyhow::Result<(Order, Vec<OrderItem>)> {
         let mut tx = self.pool.begin().await?;
 
-        let total_amount = OrderDomainService::calculate_total(&input.items);
+        let total_amount = OrderDomainService::calculate_total(input);
         let order_id = Uuid::new_v4();
         let now = Utc::now();
 
