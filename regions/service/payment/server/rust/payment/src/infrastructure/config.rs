@@ -121,6 +121,10 @@ pub struct KafkaConfig {
     // 注文作成と同時に決済を開始し、失敗時は Saga 補償で注文をキャンセルする
     #[serde(default = "default_order_created_topic")]
     pub order_created_topic: String,
+    // Saga: order.cancelled を受信して進行中の決済を中断する（M-20）
+    // 注文キャンセル時に Initiated 状態の決済を Failed に遷移させる
+    #[serde(default = "default_order_cancelled_topic")]
+    pub order_cancelled_topic: String,
     #[serde(default = "default_payment_consumer_group_id")]
     pub consumer_group_id: String,
 }
