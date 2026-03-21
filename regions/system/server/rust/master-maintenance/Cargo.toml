@@ -55,7 +55,7 @@ tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 
 # Validation
-validator = { version = "0.18", features = ["derive"] }
+validator = { version = "0.20", features = ["derive"] }
 
 # Telemetry library
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
