@@ -10,6 +10,31 @@ use k1s0_server_common::middleware::rbac::{require_permission, Tier};
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 
+/// auth_state が None のとき（テスト・開発環境）、バイパス用 Claims を注入するミドルウェア。
+/// 本番環境では auth_state = Some(...) が設定されるため、このミドルウェアは呼ばれない。
+async fn bypass_auth_middleware(
+    mut req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    req.extensions_mut().insert(k1s0_auth::Claims {
+        sub: "test-bypass".to_string(),
+        iss: "test".to_string(),
+        aud: Default::default(),
+        exp: u64::MAX,
+        iat: 0,
+        jti: None,
+        typ: None,
+        azp: None,
+        scope: None,
+        preferred_username: Some("test-bypass".to_string()),
+        email: None,
+        realm_access: None,
+        resource_access: None,
+        tier_access: None,
+    });
+    next.run(req).await
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub reserve_stock_uc: Arc<usecase::reserve_stock::ReserveStockUseCase>,
@@ -80,6 +105,7 @@ pub fn router(state: AppState) -> Router {
                 "/api/v1/inventory/{inventory_id}/stock",
                 put(inventory_handler::update_stock),
             )
+            .layer(axum::middleware::from_fn(bypass_auth_middleware))
     };
 
     public_routes
