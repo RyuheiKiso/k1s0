@@ -152,6 +152,7 @@ mod tests {
     use crate::domain::entity::payment::{Payment, PaymentStatus};
     use crate::domain::repository::payment_repository::MockPaymentRepository;
     use crate::proto::k1s0::event::service::order::v1::OrderItem;
+    use crate::usecase::fail_payment::FailPaymentUseCase;
     use crate::usecase::initiate_payment::InitiatePaymentUseCase;
     use chrono::Utc;
     use prost::Message;
@@ -177,9 +178,15 @@ mod tests {
     }
 
     // テスト用の HandleOrderEventUseCase をモックリポジトリから構築するヘルパー
-    fn make_uc(mock_repo: MockPaymentRepository) -> HandleOrderEventUseCase {
-        let initiate_uc = Arc::new(InitiatePaymentUseCase::new(Arc::new(mock_repo)));
-        HandleOrderEventUseCase::new(initiate_uc)
+    // initiate 用、fail 用、search 用の 3 つのモックリポジトリを分けて渡す
+    fn make_uc(
+        initiate_repo: MockPaymentRepository,
+        fail_repo: MockPaymentRepository,
+        search_repo: MockPaymentRepository,
+    ) -> HandleOrderEventUseCase {
+        let initiate_uc = Arc::new(InitiatePaymentUseCase::new(Arc::new(initiate_repo)));
+        let fail_uc = Arc::new(FailPaymentUseCase::new(Arc::new(fail_repo)));
+        HandleOrderEventUseCase::new(initiate_uc, fail_uc, Arc::new(search_repo))
     }
 
     // テスト用の OrderCreatedEvent を Protobuf バイト列にエンコードするヘルパー
@@ -199,6 +206,17 @@ mod tests {
         event.encode_to_vec()
     }
 
+    // テスト用の OrderCancelledEvent を Protobuf バイト列にエンコードするヘルパー
+    fn encode_order_cancelled(order_id: &str) -> Vec<u8> {
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: order_id.to_string(),
+            user_id: "USER-001".to_string(),
+            reason: "customer request".to_string(),
+        };
+        event.encode_to_vec()
+    }
+
     // order.created を受信して決済が開始されることを確認する
     #[tokio::test]
     async fn test_dispatch_order_created_initiates_payment() {
@@ -206,38 +224,39 @@ mod tests {
         let payment = sample_payment(order_id);
         let payment_clone = payment.clone();
 
-        let mut mock_repo = MockPaymentRepository::new();
-        // 冪等性チェック: 既存決済なし
-        mock_repo
+        // initiate_uc 用モック: 冪等性チェックなし → create 呼び出し
+        let mut initiate_repo = MockPaymentRepository::new();
+        initiate_repo
             .expect_find_by_order_id()
             .times(1)
             .returning(|_| Ok(None));
-        mock_repo
+        initiate_repo
             .expect_create()
             .times(1)
             .returning(move |_| Ok(payment_clone.clone()));
 
-        let uc = make_uc(mock_repo);
+        let fail_repo = MockPaymentRepository::new();
+        let search_repo = MockPaymentRepository::new();
+
+        let uc = make_uc(initiate_repo, fail_repo, search_repo);
         let payload = encode_order_created(order_id);
-        let result = dispatch_message(&uc, "order.created", "order.created", &payload).await;
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &payload).await;
         assert!(result.is_ok());
     }
 
     // 未知のトピックを受信した場合はスキップして Ok を返すことを確認する
     #[tokio::test]
     async fn test_dispatch_unknown_topic_returns_ok() {
-        let mock_repo = MockPaymentRepository::new();
-        let uc = make_uc(mock_repo);
-        let result = dispatch_message(&uc, "order.created", "unknown.topic", b"dummy").await;
+        let uc = make_uc(MockPaymentRepository::new(), MockPaymentRepository::new(), MockPaymentRepository::new());
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "unknown.topic", b"dummy").await;
         assert!(result.is_ok());
     }
 
     // order.created トピックに不正なバイト列を受信した場合はデシリアライズエラーを返すことを確認する
     #[tokio::test]
     async fn test_dispatch_order_created_invalid_protobuf() {
-        let mock_repo = MockPaymentRepository::new();
-        let uc = make_uc(mock_repo);
-        let result = dispatch_message(&uc, "order.created", "order.created", b"\xff\xfe").await;
+        let uc = make_uc(MockPaymentRepository::new(), MockPaymentRepository::new(), MockPaymentRepository::new());
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", b"\xff\xfe").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("デシリアライズに失敗"));
     }
@@ -245,15 +264,15 @@ mod tests {
     // UseCase がエラーを返した場合にエラーが伝播することを確認する
     #[tokio::test]
     async fn test_dispatch_order_created_usecase_error_propagates() {
-        let mut mock_repo = MockPaymentRepository::new();
-        mock_repo
+        let mut initiate_repo = MockPaymentRepository::new();
+        initiate_repo
             .expect_find_by_order_id()
             .times(1)
             .returning(|_| Err(anyhow::anyhow!("DB接続エラー")));
 
-        let uc = make_uc(mock_repo);
+        let uc = make_uc(initiate_repo, MockPaymentRepository::new(), MockPaymentRepository::new());
         let payload = encode_order_created("ORD-001");
-        let result = dispatch_message(&uc, "order.created", "order.created", &payload).await;
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &payload).await;
         assert!(result.is_err());
     }
 
