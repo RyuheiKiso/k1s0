@@ -93,31 +93,197 @@ impl InventoryKafkaConsumer {
 
     /// 受信したメッセージをトピックに応じてディスパッチする。
     async fn process_message(&self, topic: &str, payload: &[u8]) -> anyhow::Result<()> {
-        if topic == self.order_created_topic {
-            // order.created: 注文明細ごとに在庫を確保する（Saga 正常フロー）
-            let event = OrderCreatedEvent::decode(payload)
-                .context("OrderCreatedEvent のデシリアライズに失敗")?;
-            info!(order_id = %event.order_id, "order created received, reserving stock");
-            self.handle_order_event_uc
-                .handle_created(&event)
-                .await
-                .context("order created 処理に失敗")?;
-        } else if topic == self.order_cancelled_topic {
-            // order.cancelled: 在庫を解放する（Saga 補償トランザクション）
-            let event = OrderCancelledEvent::decode(payload)
-                .context("OrderCancelledEvent のデシリアライズに失敗")?;
-            warn!(
-                order_id = %event.order_id,
-                reason = %event.reason,
-                "order cancelled received, releasing stock for saga compensation"
-            );
-            self.handle_order_event_uc
-                .handle_cancelled(&event)
-                .await
-                .context("order cancelled 処理に失敗")?;
-        } else {
-            warn!(topic, "inventory consumer: unknown topic, skipping");
+        dispatch_message(
+            &self.handle_order_event_uc,
+            &self.order_created_topic,
+            &self.order_cancelled_topic,
+            topic,
+            payload,
+        )
+        .await
+    }
+}
+
+/// topic と payload を受け取ってディスパッチするコアロジック。
+/// テスタビリティのため InventoryKafkaConsumer 構造体から分離する。
+async fn dispatch_message(
+    uc: &HandleOrderEventUseCase,
+    order_created_topic: &str,
+    order_cancelled_topic: &str,
+    topic: &str,
+    payload: &[u8],
+) -> anyhow::Result<()> {
+    if topic == order_created_topic {
+        // order.created: 注文明細ごとに在庫を確保する（Saga 正常フロー）
+        let event = OrderCreatedEvent::decode(payload)
+            .context("OrderCreatedEvent のデシリアライズに失敗")?;
+        info!(order_id = %event.order_id, "order created received, reserving stock");
+        uc.handle_created(&event)
+            .await
+            .context("order created 処理に失敗")?;
+    } else if topic == order_cancelled_topic {
+        // order.cancelled: 在庫を解放する（Saga 補償トランザクション）
+        let event = OrderCancelledEvent::decode(payload)
+            .context("OrderCancelledEvent のデシリアライズに失敗")?;
+        warn!(
+            order_id = %event.order_id,
+            reason = %event.reason,
+            "order cancelled received, releasing stock for saga compensation"
+        );
+        uc.handle_cancelled(&event)
+            .await
+            .context("order cancelled 処理に失敗")?;
+    } else {
+        warn!(topic, "inventory consumer: unknown topic, skipping");
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::domain::entity::inventory_item::InventoryItem;
+    use crate::domain::repository::inventory_repository::MockInventoryRepository;
+    use crate::proto::k1s0::event::service::order::v1::OrderItem;
+    use chrono::Utc;
+    use prost::Message;
+    use uuid::Uuid;
+
+    // テスト用の在庫エンティティを生成するヘルパー
+    fn sample_inventory_item() -> InventoryItem {
+        InventoryItem {
+            id: Uuid::new_v4(),
+            product_id: "PROD-001".to_string(),
+            warehouse_id: "WH-DEFAULT".to_string(),
+            qty_available: 100,
+            qty_reserved: 0,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
-        Ok(())
+    }
+
+    // テスト用の OrderCreatedEvent を Protobuf バイト列にエンコードするヘルパー
+    fn encode_order_created(order_id: &str) -> Vec<u8> {
+        let event = OrderCreatedEvent {
+            metadata: None,
+            order_id: order_id.to_string(),
+            customer_id: "CUST-001".to_string(),
+            items: vec![OrderItem {
+                product_id: "PROD-001".to_string(),
+                quantity: 5,
+                unit_price: 1000,
+            }],
+            total_amount: 5000,
+            currency: "JPY".to_string(),
+        };
+        event.encode_to_vec()
+    }
+
+    // テスト用の OrderCancelledEvent を Protobuf バイト列にエンコードするヘルパー
+    fn encode_order_cancelled(order_id: &str) -> Vec<u8> {
+        let event = OrderCancelledEvent {
+            metadata: None,
+            order_id: order_id.to_string(),
+            user_id: "saga-consumer".to_string(),
+            reason: "payment failed".to_string(),
+        };
+        event.encode_to_vec()
+    }
+
+    // order.created を受信して在庫が確保されることを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_created_reserves_stock() {
+        let item = sample_inventory_item();
+        let item_id = item.id;
+        let item_clone = item.clone();
+        let mut reserved = item.clone();
+        reserved.qty_available = 95;
+        reserved.qty_reserved = 5;
+        reserved.version = 2;
+        let reserved_clone = reserved.clone();
+
+        let mut mock_repo = MockInventoryRepository::new();
+        mock_repo
+            .expect_find_by_product_and_warehouse()
+            .times(1)
+            .returning(move |_, _| Ok(Some(item_clone.clone())));
+        mock_repo
+            .expect_reserve_stock()
+            .withf(move |id, qty, ver, _| *id == item_id && *qty == 5 && *ver == 1)
+            .times(1)
+            .returning(move |_, _, _, _| Ok(reserved_clone.clone()));
+
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let payload = encode_order_created("ORD-001");
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &payload).await;
+        assert!(result.is_ok());
+    }
+
+    // order.cancelled を受信して在庫解放処理（現在は警告ログのみ）が Ok を返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_cancelled_releases_stock() {
+        // handle_cancelled は現在 NOP（TODO 実装待ち）のためリポジトリ呼び出しなし
+        let mock_repo = MockInventoryRepository::new();
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let payload = encode_order_cancelled("ORD-001");
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.cancelled", &payload).await;
+        assert!(result.is_ok());
+    }
+
+    // 未知のトピックを受信した場合はスキップして Ok を返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_unknown_topic_returns_ok() {
+        let mock_repo = MockInventoryRepository::new();
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "unknown.topic", b"dummy").await;
+        assert!(result.is_ok());
+    }
+
+    // order.created トピックに不正なバイト列を受信した場合はデシリアライズエラーを返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_created_invalid_protobuf() {
+        let mock_repo = MockInventoryRepository::new();
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", b"\xff\xfe").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("デシリアライズに失敗"));
+    }
+
+    // order.cancelled トピックに不正なバイト列を受信した場合はデシリアライズエラーを返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_cancelled_invalid_protobuf() {
+        let mock_repo = MockInventoryRepository::new();
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.cancelled", b"\xff\xfe").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("デシリアライズに失敗"));
+    }
+
+    // UseCase がエラーを返した場合にエラーが伝播することを確認する
+    #[tokio::test]
+    async fn test_dispatch_order_created_usecase_error_propagates() {
+        let mut mock_repo = MockInventoryRepository::new();
+        mock_repo
+            .expect_find_by_product_and_warehouse()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("DB接続エラー")));
+
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let payload = encode_order_created("ORD-001");
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &payload).await;
+        assert!(result.is_err());
+    }
+
+    // 空の payload を受信した場合、Protobuf のデフォルト値（空 items）で handle_created が Ok を返すことを確認する
+    #[tokio::test]
+    async fn test_dispatch_empty_payload_order_created() {
+        // 空バイト列は Protobuf デコード成功（全フィールドがデフォルト値、items = []）
+        // handle_created はアイテムを反復しないため、リポジトリ呼び出しなしで Ok を返す
+        let mock_repo = MockInventoryRepository::new();
+        let uc = HandleOrderEventUseCase::new(Arc::new(mock_repo));
+        let result = dispatch_message(&uc, "order.created", "order.cancelled", "order.created", &[]).await;
+        assert!(result.is_ok());
     }
 }
