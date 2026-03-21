@@ -1,76 +1,30 @@
-use crate::domain::entity::order::{CreateOrder, OrderStatus};
+use crate::domain::entity::order::{CreateOrder, Order, OrderStatus};
 use crate::domain::error::OrderError;
 
-/// 注文ドメインサービス — ドメインルールのバリデーションを担当。
+/// 注文ドメインサービス — 複数エンティティにまたがるドメインルールを担当。
+/// 単一エンティティ内で完結するバリデーション・計算は Order / CreateOrder メソッドに委譲する（H-005 / M-001）。
 pub struct OrderDomainService;
 
 impl OrderDomainService {
     /// 注文作成入力を検証する。
+    /// 実装は CreateOrder::validate() に委譲する（ドメインルールのエンティティへの集約）。
     pub fn validate_create_order(input: &CreateOrder) -> Result<(), OrderError> {
-        if input.customer_id.trim().is_empty() {
-            return Err(OrderError::ValidationFailed(
-                "customer_id must not be empty".to_string(),
-            ));
-        }
-        if input.currency.trim().is_empty() {
-            return Err(OrderError::ValidationFailed(
-                "currency must not be empty".to_string(),
-            ));
-        }
-        if input.items.is_empty() {
-            return Err(OrderError::ValidationFailed(
-                "order must contain at least one item".to_string(),
-            ));
-        }
-        for (i, item) in input.items.iter().enumerate() {
-            if item.product_id.trim().is_empty() {
-                return Err(OrderError::ValidationFailed(format!(
-                    "items[{}].product_id must not be empty",
-                    i
-                )));
-            }
-            if item.product_name.trim().is_empty() {
-                return Err(OrderError::ValidationFailed(format!(
-                    "items[{}].product_name must not be empty",
-                    i
-                )));
-            }
-            if item.quantity <= 0 {
-                return Err(OrderError::ValidationFailed(format!(
-                    "items[{}].quantity must be greater than zero",
-                    i
-                )));
-            }
-            if item.unit_price < 0 {
-                return Err(OrderError::ValidationFailed(format!(
-                    "items[{}].unit_price must not be negative",
-                    i
-                )));
-            }
-        }
-        Ok(())
+        input.validate()
     }
 
     /// ステータス遷移を検証する。
+    /// 実装は Order::transition_to() に委譲する（ドメインルールのエンティティへの集約）。
     pub fn validate_status_transition(
-        current: &OrderStatus,
+        order: &Order,
         next: &OrderStatus,
     ) -> Result<(), OrderError> {
-        if !current.can_transition_to(next) {
-            return Err(OrderError::InvalidStatusTransition {
-                from: current.to_string(),
-                to: next.to_string(),
-            });
-        }
-        Ok(())
+        order.transition_to(next.clone()).map(|_| ())
     }
 
     /// 注文明細から合計金額を計算する。
-    pub fn calculate_total(items: &[crate::domain::entity::order::CreateOrderItem]) -> i64 {
-        items
-            .iter()
-            .map(|item| item.quantity as i64 * item.unit_price)
-            .sum()
+    /// 実装は CreateOrder::calculate_total() に委譲する（ドメインルールのエンティティへの集約）。
+    pub fn calculate_total(input: &CreateOrder) -> i64 {
+        input.calculate_total()
     }
 }
 
@@ -78,6 +32,8 @@ impl OrderDomainService {
 mod tests {
     use super::*;
     use crate::domain::entity::order::{CreateOrder, CreateOrderItem};
+    use chrono::Utc;
+    use uuid::Uuid;
 
     fn valid_create_order() -> CreateOrder {
         CreateOrder {
@@ -90,6 +46,22 @@ mod tests {
                 quantity: 2,
                 unit_price: 500,
             }],
+        }
+    }
+
+    fn sample_order(status: OrderStatus) -> Order {
+        Order {
+            id: Uuid::new_v4(),
+            customer_id: "CUST-001".to_string(),
+            status,
+            total_amount: 1000,
+            currency: "JPY".to_string(),
+            notes: None,
+            created_by: "admin".to_string(),
+            updated_by: None,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         }
     }
 
@@ -131,38 +103,43 @@ mod tests {
 
     #[test]
     fn test_calculate_total() {
-        let items = vec![
-            CreateOrderItem {
-                product_id: "A".to_string(),
-                product_name: "A".to_string(),
-                quantity: 2,
-                unit_price: 1000,
-            },
-            CreateOrderItem {
-                product_id: "B".to_string(),
-                product_name: "B".to_string(),
-                quantity: 3,
-                unit_price: 500,
-            },
-        ];
-        assert_eq!(OrderDomainService::calculate_total(&items), 3500);
+        // CreateOrder::calculate_total() への委譲を確認する
+        let input = CreateOrder {
+            customer_id: "CUST-001".to_string(),
+            currency: "JPY".to_string(),
+            notes: None,
+            items: vec![
+                CreateOrderItem {
+                    product_id: "A".to_string(),
+                    product_name: "A".to_string(),
+                    quantity: 2,
+                    unit_price: 1000,
+                },
+                CreateOrderItem {
+                    product_id: "B".to_string(),
+                    product_name: "B".to_string(),
+                    quantity: 3,
+                    unit_price: 500,
+                },
+            ],
+        };
+        assert_eq!(OrderDomainService::calculate_total(&input), 3500);
     }
 
     #[test]
     fn test_valid_status_transition() {
-        assert!(OrderDomainService::validate_status_transition(
-            &OrderStatus::Pending,
-            &OrderStatus::Confirmed,
-        )
-        .is_ok());
+        let order = sample_order(OrderStatus::Pending);
+        assert!(
+            OrderDomainService::validate_status_transition(&order, &OrderStatus::Confirmed)
+                .is_ok()
+        );
     }
 
     #[test]
     fn test_invalid_status_transition() {
-        let result = OrderDomainService::validate_status_transition(
-            &OrderStatus::Delivered,
-            &OrderStatus::Pending,
-        );
+        let order = sample_order(OrderStatus::Delivered);
+        let result =
+            OrderDomainService::validate_status_transition(&order, &OrderStatus::Pending);
         assert!(result.is_err());
         assert!(result
             .unwrap_err()

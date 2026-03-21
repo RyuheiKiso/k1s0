@@ -96,6 +96,19 @@ type RedisSessionConfig struct {
 	Password   string `yaml:"password"`
 	DB         int    `yaml:"db"`
 	MasterName string `yaml:"master_name"`
+	// コネクションプール設定（M-011）
+	// PoolSize: 最大コネクション数（デフォルト: CPU数 * 10）
+	PoolSize int `yaml:"pool_size"`
+	// MinIdleConns: アイドル状態で維持する最小コネクション数
+	MinIdleConns int `yaml:"min_idle_conns"`
+	// MaxRetries: コマンド失敗時の最大リトライ回数（デフォルト: 3）
+	MaxRetries int `yaml:"max_retries"`
+	// DialTimeout: 接続タイムアウト（例: "5s"）
+	DialTimeout string `yaml:"dial_timeout"`
+	// ReadTimeout: 読み込みタイムアウト（例: "3s"）
+	ReadTimeout string `yaml:"read_timeout"`
+	// WriteTimeout: 書き込みタイムアウト（例: "3s"）
+	WriteTimeout string `yaml:"write_timeout"`
 }
 
 // CSRFConfig holds CSRF protection settings.

@@ -117,12 +117,24 @@ pub struct KafkaConfig {
     pub payment_refunded_topic: String,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
+    // Saga: order.created を受信して決済を開始する（C-001）
+    // 注文作成と同時に決済を開始し、失敗時は Saga 補償で注文をキャンセルする
+    #[serde(default = "default_order_created_topic")]
+    pub order_created_topic: String,
+    #[serde(default = "default_payment_consumer_group_id")]
+    pub consumer_group_id: String,
 }
 
 /// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
+}
+fn default_order_created_topic() -> String {
+    "k1s0.event.service.order.created.v1".to_string()
+}
+fn default_payment_consumer_group_id() -> String {
+    "k1s0-payment-consumer".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]

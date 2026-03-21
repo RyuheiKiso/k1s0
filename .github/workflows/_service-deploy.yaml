@@ -70,7 +70,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -160,7 +161,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -203,7 +205,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -250,7 +253,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |

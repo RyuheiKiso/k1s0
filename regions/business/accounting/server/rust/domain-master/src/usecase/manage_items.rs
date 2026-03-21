@@ -2,12 +2,29 @@ use crate::domain::entity::master_item::{CreateMasterItem, MasterItem, UpdateMas
 use crate::domain::repository::category_repository::CategoryRepository;
 use crate::domain::repository::item_repository::ItemRepository;
 use crate::domain::repository::version_repository::VersionRepository;
-use crate::domain::service::item_domain_service::ItemDomainService;
+use crate::domain::service::item_domain_service::{ItemDomainService, ParentChainResolver};
 use crate::domain::service::validation_service::ValidationService;
 use crate::usecase::event_publisher::DomainMasterEventPublisher;
 use chrono::Utc;
 use std::sync::Arc;
 use uuid::Uuid;
+
+/// ItemRepository を ParentChainResolver として使用するアダプタ（M-004）。
+/// ドメインサービスが ItemRepository に直接依存しないよう、
+/// ユースケース層で変換を担う。
+struct ItemRepoParentResolver {
+    item_repo: Arc<dyn ItemRepository>,
+}
+
+#[async_trait::async_trait]
+impl ParentChainResolver for ItemRepoParentResolver {
+    async fn find_parent_id(&self, id: Uuid) -> anyhow::Result<Option<Uuid>> {
+        match self.item_repo.find_by_id(id).await? {
+            None => Ok(None),
+            Some(item) => Ok(item.parent_item_id),
+        }
+    }
+}
 
 pub struct ManageItemsUseCase {
     category_repo: Arc<dyn CategoryRepository>,
@@ -109,8 +126,10 @@ impl ManageItemsUseCase {
             // 新規アイテムはまだIDが無いため仮UUIDで循環チェックを行う。
             // 実質的には parent_item_id の親チェーンの整合性を検証する。
             let temp_id = Uuid::new_v4();
-            ItemDomainService::check_circular_parent(&self.item_repo, temp_id, parent_item_id)
-                .await?;
+            let resolver = ItemRepoParentResolver {
+                item_repo: Arc::clone(&self.item_repo),
+            };
+            ItemDomainService::check_circular_parent(&resolver, temp_id, parent_item_id).await?;
         }
 
         let item = self
@@ -174,7 +193,10 @@ impl ManageItemsUseCase {
             })?;
 
         if let Some(parent_item_id) = input.parent_item_id {
-            ItemDomainService::check_circular_parent(&self.item_repo, existing.id, parent_item_id)
+            let resolver = ItemRepoParentResolver {
+                item_repo: Arc::clone(&self.item_repo),
+            };
+            ItemDomainService::check_circular_parent(&resolver, existing.id, parent_item_id)
                 .await?;
         }
 

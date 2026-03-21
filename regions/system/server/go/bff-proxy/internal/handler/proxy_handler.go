@@ -65,7 +65,8 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// SessionMiddleware が session_needs_refresh フラグを立てた場合のみ silent refresh を試みる。
 	// フラグは「期限切れ かつ refresh token あり」の場合のみ middleware が設定する。
 	needsRefresh, _ := c.Get(middleware.SessionNeedsRefreshKey)
-	if needsRefresh != nil && needsRefresh.(bool) {
+	// 型アサーションの安全化: comma-ok パターンで bool 型を確認する（H-009）
+	if refresh, ok := needsRefresh.(bool); ok && refresh {
 		// G-03 対応: singleflight でセッション単位のリフレッシュ重複を排除する。
 		// 同一 sessionID に対して並行リクエストが殺到した場合、1 件のみ実際にリフレッシュし
 		// 残りは同じ結果を共有する。これにより RefreshToken のレート制限エラーを防ぐ。
@@ -80,9 +81,16 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 			return &refreshResult{tokenResp: resp}, nil
 		})
 		if err != nil {
-			h.logger.Warn("token refresh failed, session expired",
+			h.logger.Warn("トークンリフレッシュに失敗しました。セッションを削除します",
 				slog.String("error", err.Error()),
 			)
+			// リフレッシュ失敗時に無効なセッションを削除し、再利用を防止する（H-003）
+			if delErr := h.sessionStore.Delete(c.Request.Context(), sessionID); delErr != nil {
+				h.logger.Error("期限切れセッションの削除に失敗しました",
+					slog.String("error", delErr.Error()),
+					slog.String("session_id", sessionID),
+				)
+			}
 			abortErrorWithMessage(c, http.StatusUnauthorized, "BFF_PROXY_TOKEN_EXPIRED", "セッションが期限切れです。再認証してください")
 			return
 		}

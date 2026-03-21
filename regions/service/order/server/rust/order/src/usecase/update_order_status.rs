@@ -26,8 +26,8 @@ impl UpdateOrderStatusUseCase {
             .await?
             .ok_or_else(|| OrderError::NotFound(order_id.to_string()))?;
 
-        // ステータス遷移バリデーション
-        OrderDomainService::validate_status_transition(&existing.status, new_status)?;
+        // ステータス遷移バリデーション（Order エンティティに委譲）
+        OrderDomainService::validate_status_transition(&existing, new_status)?;
 
         // ステータス更新（Outbox イベントも同一トランザクション内で挿入される）
         let updated = self

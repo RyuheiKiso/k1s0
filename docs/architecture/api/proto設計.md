@@ -46,6 +46,11 @@ k1s0.{tier}.{domain}.v{major}
 | Go | `protoc-gen-go` + `protoc-gen-go-grpc` | Go サーバー・クライアント |
 | Rust | `tonic-build` | Rust サーバー・クライアント |
 | TypeScript | `ts-proto` | TypeScript ライブラリ・BFF |
+| Dart | `protoc-gen-dart`（`protobuf` パッケージ付属） | Flutter クライアント |
+
+> **注記（C-002）**: Dart コード生成は `buf.gen.yaml` に設定済みだが、CI 環境での `protoc-gen-dart` セットアップが未完了のため、
+> 生成ファイルが欠損している。CI 対応完了まで `api/gen/dart/` の生成ファイルは手動管理とする。
+> 対応は Phase 4 にて実施予定。
 
 ---
 
@@ -4909,6 +4914,38 @@ message Example {
 }
 ```
 
+### deprecated フィールドの管理ポリシー [技術品質監査 M-006]
+
+フィールドを廃止する際は、即削除ではなく段階的廃止（deprecation） を行う。
+
+**手順**:
+1. `[deprecated = true]` オプションを付与し、コメントで代替フィールドを明示する
+2. 全クライアントが代替フィールドに移行したことを確認する（最短で次のメジャーリリースまで待機）
+3. deprecated フィールドを削除し、`reserved` で番号を予約する
+
+```protobuf
+// 廃止例: status フィールドを enum 型の status_enum に移行
+message Order {
+  string id = 1;
+  // Deprecated: status_enum を使用すること。
+  string status = 3 [deprecated = true];
+  OrderStatus status_enum = 13;
+}
+
+// 最終削除時（全クライアント移行完了後）:
+message Order {
+  string id = 1;
+  reserved 3;
+  reserved "status";
+  OrderStatus status_enum = 13;
+}
+```
+
+**注意事項**:
+- deprecated フィールドは後方互換性のためにワイヤーフォーマット上は維持される
+- gRPC の場合、deprecated フィールドへの読み書きはコンパイラ警告が出るが動作は継続する
+- 実際の廃止期限は SLA・クライアントのリリースサイクルに応じて設定する
+
 ### buf breaking による自動検証
 
 CI パイプラインで `buf breaking` を実行し、意図しない破壊的変更を検出する。
@@ -4919,6 +4956,38 @@ buf breaking api/proto --against '.git#branch=main'
 ```
 
 破壊的変更が検出された場合は CI が失敗する。意図的な変更であれば新しいバージョンパッケージ（`v2`）として作成する。
+
+### フィールド削除の運用ルール [技術品質監査 M-020]
+
+フィールドを削除する場合は以下の手順に従い、フィールド番号の再利用を防ぐ:
+
+1. `[deprecated = true]` を付与してビルドを継続する（警告は出るが動作は継続）
+2. 全クライアント（Go/Rust/TypeScript/Dart）の移行を確認する（最低1リリースサイクル待機）
+3. フィールドを削除し、`reserved` で番号と名前を宣言する:
+
+```protobuf
+// 削除前:
+message Order {
+  // Deprecated: status_enum を使用すること。
+  string status = 3 [deprecated = true];
+  OrderStatus status_enum = 13;
+}
+
+// 削除後（全クライアント移行完了後）:
+message Order {
+  reserved 3;
+  reserved "status";
+  OrderStatus status_enum = 13;
+}
+```
+
+**なぜ `reserved` が必要か**: フィールド番号 `3` を将来の開発者が別の型で再利用すると、
+古いクライアントが新しいフィールドを誤った型として解釈し、データ破損が発生する。
+`reserved` によりコンパイル時エラーでこれを防止する。
+
+- 番号の予約: `reserved 3, 5;`（複数可）
+- 名前の予約: `reserved "old_field", "another";`（同一メッセージ内での同名再利用を防ぐ）
+- 範囲の予約: `reserved 100 to 199;`（一括予約）
 
 ---
 

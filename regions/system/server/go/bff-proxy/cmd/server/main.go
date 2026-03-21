@@ -64,19 +64,37 @@ func run() error {
 	logger := newLogger(cfg.Observability.Log)
 
 	// Initialize Redis client.
+	// コネクションプール設定を適用する（M-011）。
+	// PoolSize=0 の場合は redis/go-redis のデフォルト値（CPU数 * 10）が使われる。
+	redisCfg := cfg.Session.Redis
+	redisDialTimeout := config.ParseDuration(redisCfg.DialTimeout, 5*time.Second)
+	redisReadTimeout := config.ParseDuration(redisCfg.ReadTimeout, 3*time.Second)
+	redisWriteTimeout := config.ParseDuration(redisCfg.WriteTimeout, 3*time.Second)
 	var redisClient redis.Cmdable
-	if cfg.Session.Redis.MasterName != "" {
+	if redisCfg.MasterName != "" {
 		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    cfg.Session.Redis.MasterName,
-			SentinelAddrs: []string{cfg.Session.Redis.Addr},
-			Password:      cfg.Session.Redis.Password,
-			DB:            cfg.Session.Redis.DB,
+			MasterName:    redisCfg.MasterName,
+			SentinelAddrs: []string{redisCfg.Addr},
+			Password:      redisCfg.Password,
+			DB:            redisCfg.DB,
+			PoolSize:      redisCfg.PoolSize,
+			MinIdleConns:  redisCfg.MinIdleConns,
+			MaxRetries:    redisCfg.MaxRetries,
+			DialTimeout:   redisDialTimeout,
+			ReadTimeout:   redisReadTimeout,
+			WriteTimeout:  redisWriteTimeout,
 		})
 	} else {
 		redisClient = redis.NewClient(&redis.Options{
-			Addr:     cfg.Session.Redis.Addr,
-			Password: cfg.Session.Redis.Password,
-			DB:       cfg.Session.Redis.DB,
+			Addr:         redisCfg.Addr,
+			Password:     redisCfg.Password,
+			DB:           redisCfg.DB,
+			PoolSize:     redisCfg.PoolSize,
+			MinIdleConns: redisCfg.MinIdleConns,
+			MaxRetries:   redisCfg.MaxRetries,
+			DialTimeout:  redisDialTimeout,
+			ReadTimeout:  redisReadTimeout,
+			WriteTimeout: redisWriteTimeout,
 		})
 	}
 
@@ -178,11 +196,13 @@ func run() error {
 	// Initialize OpenTelemetry tracer provider.
 	tp, err := initTracerProvider(ctx, cfg.Observability.Trace, cfg.App)
 	if err != nil {
-		logger.Warn("Failed to initialize OTel tracer provider", slog.String("error", err.Error()))
+		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました", slog.String("error", err.Error()))
 	} else if tp != nil {
 		defer func() {
-			// トレーサープロバイダーのシャットダウンエラーをログ出力する（M-4）
-			if err := tp.Shutdown(context.Background()); err != nil {
+			// タイムアウト付きコンテキストでシャットダウンし、OTel Collector 無応答時の無限ブロックを防ぐ（H-004）
+			shutdownTraceCtx, cancelTrace := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelTrace()
+			if err := tp.Shutdown(shutdownTraceCtx); err != nil {
 				logger.Warn("トレーサープロバイダーのシャットダウンに失敗", slog.String("error", err.Error()))
 			}
 		}()
@@ -268,7 +288,7 @@ func run() error {
 	// Wait for shutdown signal.
 	select {
 	case <-ctx.Done():
-		logger.Info("Shutdown signal received")
+		logger.Info("シャットダウンシグナルを受信しました")
 	case err := <-errCh:
 		return fmt.Errorf("server error: %w", err)
 	}

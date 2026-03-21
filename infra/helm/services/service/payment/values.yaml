@@ -106,3 +106,14 @@ kafka:
 redis:
   enabled: false
   host: ""
+
+# Istio VirtualService リトライ設定（M-013）
+# payment サービスの決済操作は冪等性が保証されていないため、
+# Istio の自動リトライを無効化する。リトライによる二重課金を防止する。
+# Saga 補償トランザクション（order キャンセル → inventory 解放）でエラーハンドリングを行う。
+istio:
+  enabled: false
+  virtualService:
+    enabled: false
+    retries:
+      attempts: 0

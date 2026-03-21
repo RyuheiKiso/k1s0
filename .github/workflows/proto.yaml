@@ -24,6 +24,15 @@ jobs:
       - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
+      # Dart Proto コード生成に必要な Dart SDK + protoc_plugin をインストールする（C-002）
+      # protoc-gen-dart は buf.gen.yaml の `local: protoc-gen-dart` で参照される
+      - uses: dart-lang/setup-dart@e630b99d28a3ae479d3857b5de7a6d24f33fcba4 # v1
+        with:
+          sdk: stable
+      - name: Install protoc-gen-dart
+        run: |
+          dart pub global activate protoc_plugin
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
       - name: Lint
         run: buf lint api/proto
       - name: Breaking change detection

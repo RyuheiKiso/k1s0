@@ -57,11 +57,15 @@ spec:
                     echo "Backup completed: ${BACKUP_FILE} ($(du -h ${BACKUP_FILE} | cut -f1))"
                   done
 
-                  # 30日より古いバックアップを削除
-                  find "${BACKUP_DIR}" -name "*.dump" -mtime +30 -delete
+                  # BACKUP_RETENTION_DAYS 日より古いバックアップを削除する（デフォルト: 30日）
+                  # 保持期間を変更する場合は BACKUP_RETENTION_DAYS 環境変数を設定する（L-006）
+                  find "${BACKUP_DIR}" -name "*.dump" -mtime +"${BACKUP_RETENTION_DAYS:-30}" -delete
 
                   echo "All PostgreSQL backups completed."
               env:
+                # バックアップ保持期間（日数）。ConfigMap または Helm values で上書き可能（L-006）
+                - name: BACKUP_RETENTION_DAYS
+                  value: "30"
                 - name: PGHOST
                   value: "postgresql.k1s0-system.svc.cluster.local"
                 - name: PGUSER

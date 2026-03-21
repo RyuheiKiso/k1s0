@@ -45,7 +45,11 @@ export interface StartSagaRequest {
   initiatedBy?: string;
 }
 
-/** Saga 開始レスポンス。 */
+/** Saga 開始レスポンス。
+ *  status フィールドを含め、Go/Rust 実装との型定義を統一する（M-002）。
+ */
 export interface StartSagaResponse {
   sagaId: string;
+  /** Saga の開始直後ステータス（通常 'STARTED'）。 */
+  status: SagaStatus;
 }

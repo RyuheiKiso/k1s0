@@ -439,6 +439,23 @@ resource "vault_audit" "file" {
 | TLS 証明書             | 90 日              | Vault PKI エンジン自動     |
 | JWT 署名鍵             | 90 日              | Keycloak の鍵ローテーション |
 
+### TLS 検証スキップの本番禁止（H-012）
+
+`vault.tlsSkipVerify` を `true` に設定すると Vault Agent が TLS 証明書を検証しなくなり、
+中間者攻撃（MITM）のリスクがある。
+
+**ポリシー:**
+- `production` / `staging` 環境では `vault.tlsSkipVerify: true` を禁止（Helm テンプレートで fail エラー）
+- 開発環境（dev/local）では自己署名証明書のために許容
+- 本番環境では `vault.tlsCACert` で CA 証明書を設定すること
+
+```yaml
+# 本番での正しい設定
+vault:
+  tlsSkipVerify: false  # デフォルト。明示不要
+  tlsCACert: "/etc/vault/tls/ca.crt"  # Vault サーバーの CA 証明書
+```
+
 ### Vault Agent Injector パターン
 
 [helm設計.md](../kubernetes/helm設計.md) の Vault Agent Injector と連携して Pod にシークレットを注入する。

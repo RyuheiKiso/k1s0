@@ -9,6 +9,9 @@
 | [ADR-0001](./0001-template.md) | テンプレート | — |
 | [ADR-0002](./0002-monorepo.md) | モノリポ採用 | 承認済み |
 | [ADR-0003](./0003-four-languages.md) | 4 言語（Go / Rust / TypeScript / Dart）採用 | 承認済み |
+| [ADR-0004](./0004-timestamp-migration.md) | カスタム Timestamp 型から google.protobuf.Timestamp への移行計画 | 提案 |
+| [ADR-0005](./0005-error-response-format.md) | エラーレスポンス体系の統一 | 承認済み |
+| [ADR-0006](./0006-proto-versioning.md) | Protobuf バージョニング戦略 | 承認済み |
 
 ## ADR の追加方法
 

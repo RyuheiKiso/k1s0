@@ -25,6 +25,22 @@
 
 ![Kubernetes Namespace 階層と NetworkPolicy](images/k8s-namespace-hierarchy.svg)
 
+## Pod Security Standards（H-008）
+
+各 Namespace に Pod Security Standards ラベルを設定し、特権コンテナや危険な設定を防止する。
+
+| Namespace | enforce レベル | 説明 |
+|---|---|---|
+| k1s0-system, k1s0-business, k1s0-service | `restricted` | アプリワークロードは最も厳格なセキュリティ要件を適用 |
+| observability, messaging, ingress, service-mesh, cert-manager, harbor | `baseline` | インフラ系は baseline（restricted が適用困難な場合あり） |
+
+```yaml
+# アプリ Namespace の設定例
+pod-security.kubernetes.io/enforce: restricted
+pod-security.kubernetes.io/audit: restricted
+pod-security.kubernetes.io/warn: restricted
+```
+
 ## NetworkPolicy
 
 ![Tier依存方向の強制](images/k8s-tier-dependency-enforcement.svg)

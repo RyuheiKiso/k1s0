@@ -350,6 +350,32 @@ while let Some(result) = join_set.join_next().await {
 - **冪等性保証**: `idempotency_key` により重複発行を防止（`ON CONFLICT DO NOTHING`）
 - **エラー伝播**: 個別タスクの失敗は次回のポーリングで再処理
 
+### Outbox タイムアウト検出（スタックメッセージ対策）[技術品質監査 H-001]
+
+Outbox ポーラーがクラッシュした場合、`processing_at` が設定されたまま `published_at` が NULL のメッセージが
+残存し、次回のポーリングで取得されなくなる（スタック）問題を防止するため、取得クエリに時間窓チェックを追加する。
+
+```sql
+-- 未発行かつ処理中でないメッセージを取得（スタック検出付き）
+-- processing_at が NULL（未処理）または 5分以上経過（タイムアウト）したものを対象にする
+WHERE published_at IS NULL
+  AND (processing_at IS NULL OR processing_at < NOW() - INTERVAL '5 minutes')
+ORDER BY created_at ASC
+LIMIT $1
+FOR UPDATE SKIP LOCKED
+```
+
+**設計上の注意点**:
+- `5 minutes` のタイムアウト値はサービスのシャットダウン猶予時間（通常30秒〜2分）より十分大きく設定する
+- 正常系の処理時間が5分を超える場合はタイムアウト値の調整が必要
+- クエリ効率化のため `(published_at, processing_at)` の複合部分インデックスを推奨:
+  ```sql
+  CREATE INDEX CONCURRENTLY idx_outbox_unprocessed
+    ON outbox_messages (created_at ASC)
+    WHERE published_at IS NULL;
+  ```
+- 3サービス（order, inventory, payment）すべての `fetch_pending_messages` メソッドに適用済み
+
 ---
 
 ## 環境別インフラフォールバック方針 {#環境別フォールバック}

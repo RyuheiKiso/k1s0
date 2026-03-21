@@ -83,7 +83,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -187,7 +188,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -259,7 +261,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -336,7 +339,8 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
@@ -398,6 +402,9 @@ jobs:
           # サービスの言語を matrix.service パスから判定する:
           # system/server/go/* は Go サービス（distroless のため /busybox が存在しない）
           # それ以外（rust 等）は busybox の wget を使用する
+          # 注意（M-008）: matrix.service の値は deploy.yaml 内の detect-services ジョブが生成するため、
+          # 外部入力による任意コマンド実行リスクは低い。ただし、外部 PR からのトリガーや
+          # 信頼できないソースからの matrix 値が混入しないよう、トリガー条件（push to main 等）を維持すること。
           LANG=$(echo "${{ matrix.service }}" | awk -F'/' '{for(i=1;i<=NF;i++) if ($i=="server") {print $(i+1); exit}}')
           if [ "$LANG" = "go" ]; then
             # Go サービスは distroless イメージを使用するため busybox が存在しない。

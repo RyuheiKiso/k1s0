@@ -335,13 +335,16 @@ impl OrderRepository for OrderPostgresRepository {
 
         // FOR UPDATE SKIP LOCKED で排他取得し、同一トランザクション内で processing_at をセット。
         // これにより他のポーラーが同じイベントを取得することを防ぐ。
+        // タイムアウト条件: processing_at が 5 分以上経過したイベントも再取得し、
+        // ポーラークラッシュによるスタックイベントをリカバリする（H-001）。
         let rows = sqlx::query_as::<_, OutboxEventRow>(
             r#"
             UPDATE outbox_events
             SET processing_at = NOW()
             WHERE id IN (
                 SELECT id FROM outbox_events
-                WHERE published_at IS NULL AND processing_at IS NULL
+                WHERE published_at IS NULL
+                  AND (processing_at IS NULL OR processing_at < NOW() - INTERVAL '5 minutes')
                 ORDER BY created_at ASC
                 LIMIT $1
                 FOR UPDATE SKIP LOCKED

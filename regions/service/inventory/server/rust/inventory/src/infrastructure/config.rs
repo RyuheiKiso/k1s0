@@ -115,12 +115,28 @@ pub struct KafkaConfig {
     pub inventory_released_topic: String,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
+    // Saga 正常/補償: order.created → 在庫確保、order.cancelled → 在庫解放（C-001）
+    #[serde(default = "default_order_created_topic")]
+    pub order_created_topic: String,
+    #[serde(default = "default_order_cancelled_topic")]
+    pub order_cancelled_topic: String,
+    #[serde(default = "default_inventory_consumer_group_id")]
+    pub consumer_group_id: String,
 }
 
 /// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
+}
+fn default_order_created_topic() -> String {
+    "k1s0.event.service.order.created.v1".to_string()
+}
+fn default_order_cancelled_topic() -> String {
+    "k1s0.event.service.order.cancelled.v1".to_string()
+}
+fn default_inventory_consumer_group_id() -> String {
+    "k1s0-inventory-consumer".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]

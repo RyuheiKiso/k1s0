@@ -40,6 +40,10 @@ func PrometheusMiddleware() gin.HandlerFunc {
 		c.Next()
 
 		duration := time.Since(start).Seconds()
+		// c.FullPath() は Gin のルートテンプレート（例: /api/v1/users/:id）を返すため
+		// カーディナリティは低く保たれる。ただし未登録パス（"unknown"）が大量に来た場合は
+		// 別途アラートで検知すること（H-002）。
+		// 改善案: status を "2xx"/"4xx"/"5xx" バケットにすると cardinality をさらに削減できる。
 		status := fmt.Sprintf("%d", c.Writer.Status())
 		path := c.FullPath()
 		if path == "" {
