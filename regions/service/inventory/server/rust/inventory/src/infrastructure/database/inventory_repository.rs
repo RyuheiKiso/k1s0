@@ -1,4 +1,5 @@
 use crate::domain::entity::inventory_item::{InventoryFilter, InventoryItem};
+use crate::domain::entity::inventory_reservation::InventoryReservation;
 use crate::domain::entity::outbox::OutboxEvent;
 use crate::domain::error::InventoryError;
 use crate::domain::repository::inventory_repository::InventoryRepository;

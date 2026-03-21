@@ -151,6 +151,8 @@ jobs:
       dart: ${{ needs.detect-changes.outputs.dart }}
       go_modules: ${{ needs.detect-modules.outputs.go_modules }}
       rust_modules: ${{ needs.detect-modules.outputs.rust_modules }}
+      ts_modules: ${{ needs.detect-modules.outputs.ts_modules }}
+      dart_modules: ${{ needs.detect-modules.outputs.dart_modules }}
 
   # ---------- Step 4: Build（test 完了後に実行） ----------
   build:

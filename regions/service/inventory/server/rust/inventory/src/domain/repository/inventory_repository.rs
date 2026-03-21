@@ -1,4 +1,5 @@
 use crate::domain::entity::inventory_item::{InventoryFilter, InventoryItem};
+use crate::domain::entity::inventory_reservation::InventoryReservation;
 use crate::domain::entity::outbox::OutboxEvent;
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -74,4 +75,19 @@ pub trait InventoryRepository: Send + Sync {
     /// 指定した ID のイベントをパブリッシュ済みとしてマークする。
     /// publish 成功後のみ呼び出すことで at-least-once セマンティクスを実現する。
     async fn mark_events_published(&self, ids: &[Uuid]) -> anyhow::Result<()>;
+
+    /// 注文IDに紐づく予約中（status='reserved'）の在庫予約レコードを取得する。
+    /// Saga 補償トランザクションで解放対象を特定するために使用する。
+    async fn find_reservations_by_order_id(
+        &self,
+        order_id: &str,
+    ) -> anyhow::Result<Vec<InventoryReservation>>;
+
+    /// order_id に紐づく全在庫予約を解放する（Saga 補償トランザクション）。
+    /// fetch + update + outbox_events INSERT を単一トランザクション内で実行する。
+    async fn compensate_order_reservations(
+        &self,
+        order_id: &str,
+        reason: &str,
+    ) -> anyhow::Result<Vec<InventoryItem>>;
 }
