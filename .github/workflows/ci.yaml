@@ -1,16 +1,14 @@
 # .github/workflows/ci.yaml
+# CI オーケストレーター — detect → lint → test → build の順序で再利用可能ワークフローを呼び出す
+# 各ステップの実装は _lint.yaml / _test.yaml / _build.yaml / _validate.yaml に分割されている
 name: CI
 
 # 個別サービス CI ワークフロー (*-ci.yaml) がカバーするパスを除外し、CI の重複実行を防止する
-# 個別 CI が存在しないパス（ライブラリ、クライアント等）の変更のみで全体 CI を起動する
 on:
   pull_request:
     branches: [main]
     paths-ignore:
-      # 個別 CI ワークフローがカバーするサービスパス（重複実行の回避）
-      # C-06 対応: 死角解消のため対象パスを個別 CI の trigger paths に合わせて限定する。
-      # 広すぎる除外（例: regions/service/order/**）は、対象サービスの docs や設定変更が
-      # 個別 CI にも ci.yaml にも掛からない死角を生む。サブディレクトリを明示的に除外する。
+      # C-06 対応: サブディレクトリを明示的に除外する（広すぎる除外は死角を生む）
       - 'regions/system/server/rust/auth/**'
       - 'regions/system/server/rust/app-registry/**'
       - 'regions/system/server/rust/config/**'
@@ -36,6 +34,7 @@ concurrency:
 permissions: {}
 
 jobs:
+  # ---------- Step 1: 変更検出 ----------
   # ファイル変更の検出（言語ごとのフィルタリング）
   detect-changes:
     runs-on: ubuntu-latest
@@ -124,15 +123,56 @@ jobs:
           echo "Affected TS modules: $ts_mods"
           echo "Affected Dart modules: $dart_mods"
 
-  # Go コードの静的解析
-  lint-go:
+  # ---------- Step 2: Lint（検出結果を _lint.yaml へ渡す） ----------
+  # lint は detect-changes/detect-modules の出力を inputs として受け取り、変更言語のみ処理する
+  lint:
     needs: [detect-changes, detect-modules]
-    if: needs.detect-changes.outputs.go == 'true'
-    runs-on: ubuntu-latest
-    # コードの読み取りのみ必要
-    permissions:
-      contents: read
-    steps:
+    uses: ./.github/workflows/_lint.yaml
+    with:
+      go: ${{ needs.detect-changes.outputs.go }}
+      rust: ${{ needs.detect-changes.outputs.rust }}
+      ts: ${{ needs.detect-changes.outputs.ts }}
+      dart: ${{ needs.detect-changes.outputs.dart }}
+      proto: ${{ needs.detect-changes.outputs.proto }}
+      shell: ${{ needs.detect-changes.outputs.shell }}
+      go_modules: ${{ needs.detect-modules.outputs.go_modules }}
+      rust_modules: ${{ needs.detect-modules.outputs.rust_modules }}
+      ts_modules: ${{ needs.detect-modules.outputs.ts_modules }}
+      dart_modules: ${{ needs.detect-modules.outputs.dart_modules }}
+
+  # ---------- Step 3: Test（lint 完了後に実行） ----------
+  test:
+    needs: [lint, detect-changes, detect-modules]
+    uses: ./.github/workflows/_test.yaml
+    with:
+      go: ${{ needs.detect-changes.outputs.go }}
+      rust: ${{ needs.detect-changes.outputs.rust }}
+      ts: ${{ needs.detect-changes.outputs.ts }}
+      dart: ${{ needs.detect-changes.outputs.dart }}
+      go_modules: ${{ needs.detect-modules.outputs.go_modules }}
+      rust_modules: ${{ needs.detect-modules.outputs.rust_modules }}
+
+  # ---------- Step 4: Build（test 完了後に実行） ----------
+  build:
+    needs: [test, detect-changes]
+    uses: ./.github/workflows/_build.yaml
+    with:
+      go: ${{ needs.detect-changes.outputs.go }}
+      rust: ${{ needs.detect-changes.outputs.rust }}
+      ts: ${{ needs.detect-changes.outputs.ts }}
+      docker: ${{ needs.detect-changes.outputs.docker }}
+
+  # ---------- Step 5: Validate（detect 完了後に lint/test/build と並行実行） ----------
+  # セキュリティ・整合性・設定の検証は言語変更に依存しないため並行実行できる
+  validate:
+    needs: [detect-changes]
+    uses: ./.github/workflows/_validate.yaml
+    with:
+      helm: ${{ needs.detect-changes.outputs.helm }}
+
+  # ダミーの無効化ジョブ（旧構造との互換性維持のためのプレースホルダー）
+  # NOTE: 旧記法
+  lint-go:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:

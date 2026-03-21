@@ -17,47 +17,50 @@ auth:
   jwks_url: "http://auth-rust:8080/jwks"
 
 backends:
+  # 認証クリティカルパス: タイムアウトを短めに設定してレイテンシ悪化を素早く検出する
+  auth:
+    address: "http://auth-rust:50051"
+    timeout_ms: 2000
+  # セッション確認はほぼ全リクエストで実行されるため短いタイムアウトを設定する
+  session:
+    address: "http://session-rust:50051"
+    timeout_ms: 2000
+  # テナント情報はキャッシュ効果が高いため標準タイムアウト
   tenant:
     address: "http://tenant-rust:50051"
     timeout_ms: 3000
+  # フィーチャーフラグはキャッシュ効果が高いため標準タイムアウト
   featureflag:
     address: "http://featureflag-rust:50051"
     timeout_ms: 3000
+  # 設定値はキャッシュ効果が高いため標準タイムアウト
   config:
     address: "http://config-rust:50051"
     timeout_ms: 3000
-  # ナビゲーションサービスのgRPC接続先
+  # ナビゲーション: 静的データが多いため標準タイムアウト
   navigation:
     address: "http://navigation-rust:50051"
     timeout_ms: 3000
-  # サービスカタログのgRPC接続先
+  # サービスカタログ: 静的データが多いため標準タイムアウト
   service-catalog:
     address: "http://service-catalog-rust:50051"
     timeout_ms: 3000
-  # 認証サービスのgRPC接続先
-  auth:
-    address: "http://auth-rust:50051"
-    timeout_ms: 3000
-  # セッション管理サービスのgRPC接続先
-  session:
-    address: "http://session-rust:50051"
-    timeout_ms: 3000
-  # シークレット管理サービスのgRPC接続先
+  # Vault: シークレット取得は暗号処理を伴うため長めのタイムアウト
   vault:
     address: "http://vault-rust:50051"
-    timeout_ms: 3000
-  # スケジューラサービスのgRPC接続先
-  scheduler:
-    address: "http://scheduler-rust:50051"
-    timeout_ms: 3000
-  # 通知サービスのgRPC接続先
-  notification:
-    address: "http://notification-rust:50051"
-    timeout_ms: 3000
-  # ワークフローサービスのgRPC接続先
+    timeout_ms: 5000
+  # ワークフロー: DB 処理が重い場合があるため長めのタイムアウト
   workflow:
     address: "http://workflow-rust:50051"
-    timeout_ms: 3000
+    timeout_ms: 5000
+  # スケジューラ: 非クリティカル、タイムアウトを短くして他クエリへの波及を防ぐ
+  scheduler:
+    address: "http://scheduler-rust:50051"
+    timeout_ms: 2000
+  # 通知: 非クリティカル、タイムアウトを短くして他クエリへの波及を防ぐ
+  notification:
+    address: "http://notification-rust:50051"
+    timeout_ms: 2000
 
 # レート制限: ratelimit gRPC サービスと連携してリクエストレートを制御する
 ratelimit:
