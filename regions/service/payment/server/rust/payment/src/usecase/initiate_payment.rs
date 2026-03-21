@@ -206,7 +206,7 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Idempotency violation"));
+            .contains("冪等性違反"));
     }
 
     // 同一 order_id・同一金額・同一通貨の場合は既存決済を返す（正常な冪等性）ことを確認する。
