@@ -135,14 +135,19 @@ pub async fn run() -> anyhow::Result<()> {
     });
     info!("outbox poller started");
 
-    // 7-b. Saga Consumer — order.created を購読して決済を開始する（C-001）
+    // 7-b. Saga Consumer — order.created と order.cancelled を購読して決済を開始・中断する（C-001 / M-20）
     let initiate_payment_uc_for_consumer = Arc::new(usecase::initiate_payment::InitiatePaymentUseCase::new(
+        payment_repo.clone(),
+    ));
+    let fail_payment_uc_for_consumer = Arc::new(usecase::fail_payment::FailPaymentUseCase::new(
         payment_repo.clone(),
     ));
     let consumer_handle = if let Some(ref kafka_cfg) = cfg.kafka {
         let handle_order_event_uc = Arc::new(
             usecase::handle_order_event::HandleOrderEventUseCase::new(
                 initiate_payment_uc_for_consumer,
+                fail_payment_uc_for_consumer,
+                payment_repo.clone(),
             ),
         );
         match infrastructure::kafka::payment_consumer::PaymentKafkaConsumer::new(
