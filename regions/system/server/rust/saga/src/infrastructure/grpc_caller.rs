@@ -234,12 +234,12 @@ mod tests {
     #[test]
     fn test_build_grpc_path() {
         assert_eq!(
-            TonicGrpcCaller::build_grpc_path("InventoryService.Reserve").unwrap(),
-            "/InventoryService/Reserve"
+            TonicGrpcCaller::build_grpc_path("BoardService.IncrementColumn").unwrap(),
+            "/BoardService/IncrementColumn"
         );
         assert_eq!(
-            TonicGrpcCaller::build_grpc_path("PaymentService.Charge").unwrap(),
-            "/PaymentService/Charge"
+            TonicGrpcCaller::build_grpc_path("ActivityService.CreateActivity").unwrap(),
+            "/ActivityService/CreateActivity"
         );
     }
 
@@ -256,9 +256,9 @@ mod tests {
 
         let result = mock
             .call_step(
-                "inventory-service",
-                "InventoryService.Reserve",
-                &serde_json::json!({"item_id": "abc"}),
+                "board-server",
+                "BoardService.IncrementColumn",
+                &serde_json::json!({"column_id": "abc"}),
             )
             .await;
         assert!(result.is_ok());
