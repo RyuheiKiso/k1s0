@@ -29,7 +29,7 @@ async-graphql = { version = "7", features = ["dataloader"] }
 async-graphql-axum = "7"
 
 # JWT 検証
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 reqwest = {workspace = true, features = ["rustls-tls"]}
 
 # シリアライゼーション

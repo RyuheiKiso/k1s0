@@ -30,7 +30,7 @@ serde_json = {workspace = true}
 serde_yaml = {workspace = true}
 
 # JWT
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 
 # DB
 sqlx = {workspace = true}

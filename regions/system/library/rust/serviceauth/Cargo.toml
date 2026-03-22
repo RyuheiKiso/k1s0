@@ -14,7 +14,7 @@ thiserror = {workspace = true}
 tokio = {workspace = true}
 tracing = {workspace = true}
 reqwest = {workspace = true}
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 chrono = {workspace = true}
 mockall = {workspace = true, optional = true}
 
