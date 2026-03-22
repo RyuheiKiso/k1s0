@@ -11,7 +11,7 @@ dependencies:
   # S-06 対応: SecureTokenStore が flutter_secure_storage を使ってトークンを安全に永続化する。
   # Flutter アプリ（iOS/Android/macOS/Windows/Linux）で使用する。
   # Pure Dart CLI 環境では SecureTokenStore を使用せず MemoryTokenStore を使うこと。
-  flutter_secure_storage: ^9.2.0
+  flutter_secure_storage: ">=9.2.0 <11.0.0"
 
 dev_dependencies:
   test: ^1.25.0
