@@ -37,8 +37,8 @@ services:
   activity-server:
     host: "activity.k1s0-service.svc.cluster.local"
     port: 50051
-  shipping-service:
-    host: "shipping.k1s0-business.svc.cluster.local"
+  task-server:
+    host: "task.k1s0-service.svc.cluster.local"
     port: 50051
 
 saga:
