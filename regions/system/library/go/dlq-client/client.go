@@ -52,7 +52,12 @@ func (c *DlqClient) ListMessages(ctx context.Context, req *ListDlqMessagesReques
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			// レスポンスボディの読み取りに失敗した場合はエラーを返す
+			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+		}
 		return nil, &DlqError{
 			Op:         "list_messages",
 			StatusCode: resp.StatusCode,
@@ -85,7 +90,12 @@ func (c *DlqClient) GetMessage(ctx context.Context, messageID string) (*DlqMessa
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			// レスポンスボディの読み取りに失敗した場合はエラーを返す
+			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+		}
 		return nil, &DlqError{
 			Op:         "get_message",
 			StatusCode: resp.StatusCode,
@@ -119,7 +129,12 @@ func (c *DlqClient) RetryMessage(ctx context.Context, messageID string) (*RetryD
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			// レスポンスボディの読み取りに失敗した場合はエラーを返す
+			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+		}
 		return nil, &DlqError{
 			Op:         "retry_message",
 			StatusCode: resp.StatusCode,
@@ -152,7 +167,12 @@ func (c *DlqClient) DeleteMessage(ctx context.Context, messageID string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			// レスポンスボディの読み取りに失敗した場合はエラーを返す
+			return fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+		}
 		return &DlqError{
 			Op:         "delete_message",
 			StatusCode: resp.StatusCode,
@@ -181,7 +201,12 @@ func (c *DlqClient) RetryAll(ctx context.Context, topic string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		respBody, _ := io.ReadAll(resp.Body)
+		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
+		respBody, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			// レスポンスボディの読み取りに失敗した場合はエラーを返す
+			return fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+		}
 		return &DlqError{
 			Op:         "retry_all",
 			StatusCode: resp.StatusCode,

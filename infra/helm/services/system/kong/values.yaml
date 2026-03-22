@@ -32,11 +32,14 @@ proxy:
 admin:
   enabled: true
   type: ClusterIP
+  # C-04監査対応: Admin APIへのHTTP平文アクセスを無効化し、TLSのみを許可する
+  # Admin APIはクラスタ設定全体を管理する高権限エンドポイントであるため、
+  # 通信経路の暗号化は必須。ClusterIP内通信であっても盗聴リスクを排除する
   http:
-    enabled: true
+    enabled: false
     containerPort: 8001
   tls:
-    enabled: false
+    enabled: true
 
 ingressController:
   enabled: false    # Ingress Controller は使わず Admin API で管理

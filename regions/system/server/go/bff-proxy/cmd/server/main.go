@@ -151,9 +151,18 @@ func run() error {
 		cfg.Auth.Scopes,
 	)
 
-	// OIDC discovery URL が TLS を使用していない場合に警告を出力する。
-	// 本番環境では IdP との通信に https を使用すべき。
+	// OIDC DiscoveryURL が HTTPS でない場合は環境に応じて処理を分岐する。
+	// 本番環境では IdP との通信に TLS が必須のため、非 HTTPS 設定を即時終了で拒否する（M-11 対応）。
 	if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
+		// 本番環境では HTTPS が必須のため即座に終了する
+		if isProductionEnvironment(cfg.App.Environment) {
+			logger.Error("OIDC discovery_url が TLS (https) を使用していません。本番環境では https が必須です",
+				slog.String("discovery_url", cfg.Auth.DiscoveryURL),
+				slog.String("environment", cfg.App.Environment),
+			)
+			os.Exit(1)
+		}
+		// 開発・ステージング環境では警告のみ
 		logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
 			slog.String("discovery_url", cfg.Auth.DiscoveryURL),
 			slog.String("environment", cfg.App.Environment),

@@ -1,3 +1,7 @@
+// graphql-gateway ビルドスクリプト。
+// proto ファイルから gRPC クライアントコードを生成する。
+// tonic-build v0.12 の configure() API は v0.14 で削除されたため、
+// tonic_build::Builder::new() を使用して同等の設定を行う。
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // すべての proto ファイルを api/proto/k1s0/system/ から参照する（統一された canonical 位置）
     let tenant_proto = "../../../../../api/proto/k1s0/system/tenant/v1/tenant.proto";
@@ -30,6 +34,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         && std::path::Path::new(workflow_proto).exists();
 
     if protos_exist {
+        // tonic-build v0.14 の Builder API を使用してクライアントコードのみを生成する。
+        // build_server(false) でサーバースタブを生成しない（gateway はクライアントとしてのみ動作）。
         match tonic_build::configure()
             .build_server(false)
             .build_client(true)

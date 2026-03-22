@@ -383,12 +383,32 @@ spec:
 
 - `concurrencyPolicy: Forbid`（多重実行禁止）
 - `successfulJobsHistoryLimit: 3` / `failedJobsHistoryLimit: 3`
-- `serviceAccountName: backup-operator`
+- **ServiceAccount**: 最小権限の原則に基づき、各 CronJob に専用の ServiceAccount を付与する（L-07 監査対応）。定義は `infra/kubernetes/backup/service-accounts.yaml` を参照。
+  - `vault-backup` → `vault-backup-sa`
+  - `postgres-backup` → `postgres-backup-sa`
+  - `etcd-backup` → `etcd-backup-sa`
+  - `harbor-backup` → `harbor-backup-sa`
+  - `ceph-rbd-snapshot` → `ceph-backup-sa`
 - バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
 - **S3 オフサイト保存**: etcd および Vault のバックアップは PVC 保存後に S3 互換ストレージへアップロードする（DR 対策）
   - S3 クレデンシャルは `backup-s3-credentials` Secret から環境変数で注入
   - バケット命名: `k1s0-backup-{component}-{environment}`
   - S3 アップロード失敗時はバックアップ自体は成功とし、アラート通知のみ実施
+
+### リストア手順・定期テスト
+
+障害発生時のリストア手順および定期リストアテスト（四半期に1回以上）の手順は以下を参照すること。
+
+- **手順書**: [`バックアップリストア手順書.md`](バックアップリストア手順書.md)
+  - Vault Raft スナップショット リストア（`-force` フラグの使用について含む）
+  - etcd スナップショット リストア（全 Master ノードでの実施手順）
+  - PostgreSQL ダンプ リストア（dev/staging および prod）
+  - Harbor DB リストア
+  - Consul State リストア
+  - 定期リストアテスト手順（7章）
+- **リストアテストスクリプト**: `infra/kubernetes/backup/restore-test/`
+  - `vault-restore-test.sh`: S3 から最新スナップショットを取得して整合性検証
+  - `postgres-restore-test.sh`: pg_restore --list によるダンプ構造検証 + 実リストアテスト
 
 ### 本番環境バックアップ（Terraform S3 オフロード方式）
 
@@ -673,6 +693,90 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 ```
 
 シークレットの書き込み操作が必要な場合は `k1s0-admin` ロールを使用すること。
+
+## Doc Sync (2026-03-22)
+
+### DNS Egress ルールの kube-system 限定化（M-07）
+
+`infra/kubernetes/network-policies/system.yaml` の `restrict-egress` ポリシーにおいて、DNS（port 53）宛の Egress ルールを修正した。
+
+**変更前**: `namespaceSelector: {}` — 全 Namespace への egress を許可していた
+
+**変更後**: `kubernetes.io/metadata.name: kube-system` ラベルを持つ Namespace のみに制限
+
+```yaml
+# 変更前（全 Namespace へのDNS egress を許可）
+- to:
+    - namespaceSelector: {}
+  ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+# 変更後（CoreDNS が存在する kube-system ネームスペースのみに制限）
+- to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+  ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+```
+
+`namespaceSelector: {}` は空のセレクター（全 Namespace にマッチ）を意味するため、DNS 通信を装った意図しない egress 経路を開いてしまう。CoreDNS は `kube-system` Namespace に配置されているため、DNS 名前解決の機能を維持しつつ、攻撃対象を最小化する。
+
+## Kubernetes etcd at-rest 暗号化（H-10 監査対応）
+
+etcd にはクラスタの全シークレット（Secret リソース）が保存されており、CA 秘密鍵・Vault 設定・各種認証情報等の機密データを含む。`EncryptionConfiguration` が有効でない場合、これらのデータが etcd 上に平文で保存されるリスクがある。
+
+### リスクの背景
+
+k1s0 は Vault をシークレット管理の中心として採用しているが、Kubernetes Secret（`KUBECONFIG`・ServiceAccount トークン・Vault の Unseal Key 等）は依然として etcd に格納される。etcd への物理アクセスまたはバックアップデータへの不正アクセスが発生した場合、暗号化されていない etcd では機密情報が平文で漏洩する。
+
+### 確認手順
+
+```bash
+# 暗号化設定が有効か確認する（kube-controller-manager の ConfigMap を参照）
+kubectl get cm -n kube-system kube-controller-manager -o yaml | grep encryption
+
+# セルフホスト Kubernetes の場合: kube-apiserver のオプションを確認する
+# --encryption-provider-config オプションが設定されているか確認する
+kubectl get pod -n kube-system kube-apiserver-<node-name> -o yaml | grep encryption-provider-config
+```
+
+### 環境別の対応状況
+
+| 環境 | 対応方法 |
+|------|---------|
+| **マネージド Kubernetes（EKS / GKE / AKS）** | プロバイダーがデフォルトで etcd at-rest 暗号化を有効化している場合が多い。各プロバイダーのドキュメントで確認すること |
+| **セルフホスト Kubernetes（本番 on-premises）** | kube-apiserver 起動オプション `--encryption-provider-config` に `EncryptionConfiguration` マニフェストを指定すること |
+
+### EncryptionConfiguration 設定例（セルフホスト向け）
+
+```yaml
+# /etc/kubernetes/encryption-config.yaml（kube-apiserver に --encryption-provider-config で指定する）
+# AES-CBC による etcd at-rest 暗号化を有効化する
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      # AES-GCM（推奨）: 認証付き暗号化で改ざん検知も可能
+      - aesgcm:
+          keys:
+            - name: key1
+              secret: <base64-encoded-32-byte-key>
+      # 暗号化なし（フォールバック読み取り用）
+      - identity: {}
+```
+
+> **注意**: 暗号化キーは Vault 等の外部シークレットマネージャーで管理し、コードや ConfigMap にハードコードしないこと。キーローテーション手順は [Vault設計.md](../security/Vault設計.md) を参照。
+
+---
 
 ## 関連ドキュメント
 

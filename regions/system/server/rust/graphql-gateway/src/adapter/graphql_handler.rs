@@ -17,6 +17,8 @@ use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
+// ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
+use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 use crate::domain::model::{
     ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
@@ -1802,21 +1804,26 @@ pub fn router(
     let schema = builder.finish();
 
     let query_timeout = std::time::Duration::from_secs(graphql_cfg.query_timeout_seconds as u64);
+    // 各 gRPC クライアントをポートトレイトオブジェクトにキャストし、DataLoader に渡す。
+    // これにより domain 層はインフラ層の具象型に依存せず抽象に依存できる。
+    let tenant_port: Arc<dyn TenantPort> = clients.tenant.clone();
+    let feature_flag_port: Arc<dyn FeatureFlagPort> = clients.feature_flag.clone();
+    let config_port: Arc<dyn ConfigPort> = clients.config.clone();
     let tenant_loader = Arc::new(DataLoader::new(
         TenantLoader {
-            client: clients.tenant.clone(),
+            client: tenant_port,
         },
         tokio::spawn,
     ));
     let flag_loader = Arc::new(DataLoader::new(
         FeatureFlagLoader {
-            client: clients.feature_flag.clone(),
+            client: feature_flag_port,
         },
         tokio::spawn,
     ));
     let config_loader = Arc::new(DataLoader::new(
         ConfigLoader {
-            client: clients.config.clone(),
+            client: config_port,
         },
         tokio::spawn,
     ));

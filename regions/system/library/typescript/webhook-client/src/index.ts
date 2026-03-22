@@ -20,10 +20,15 @@ export function verifySignature(secret: string, body: string, signature: string)
   return timingSafeEqual(a, b);
 }
 
+// ログ出力のコールバック型定義（呼び出し側がロガーを注入可能にする）
+export type WebhookLogger = (level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>) => void;
+
 export interface WebhookConfig {
   maxRetries?: number;
   initialBackoffMs?: number;
   maxBackoffMs?: number;
+  // ログ出力コールバック（省略時はログを出力しない）
+  logger?: WebhookLogger;
 }
 
 export type WebhookErrorCode = 'SEND_FAILED' | 'MAX_RETRIES_EXCEEDED';
@@ -48,6 +53,8 @@ export class HttpWebhookClient implements WebhookClient {
   private readonly initialBackoffMs: number;
   private readonly maxBackoffMs: number;
   private readonly fetchFn: typeof fetch;
+  // loggerが設定されている場合のみログを出力する
+  private readonly logger: WebhookLogger;
 
   constructor(
     config: WebhookConfig & { secret?: string } = {},
@@ -58,6 +65,8 @@ export class HttpWebhookClient implements WebhookClient {
     this.initialBackoffMs = config.initialBackoffMs ?? 1000;
     this.maxBackoffMs = config.maxBackoffMs ?? 30000;
     this.fetchFn = fetchFn ?? globalThis.fetch;
+    // loggerが未設定の場合はno-opにしてconsole汚染を防ぐ
+    this.logger = config.logger ?? (() => {});
   }
 
   async send(url: string, payload: WebhookPayload): Promise<number> {
@@ -84,16 +93,24 @@ export class HttpWebhookClient implements WebhookClient {
         );
         const jitter = Math.random() * backoff;
         const delay = backoff + jitter;
-        console.log(
-          `[webhook-client] Retry attempt ${attempt}/${this.maxRetries} for ${url} after ${Math.round(delay)}ms`,
-        );
+        // リトライ前のバックオフ待機をログに記録する
+        this.logger('info', `[webhook-client] Retry attempt ${attempt}/${this.maxRetries} for ${url} after ${Math.round(delay)}ms`, {
+          attempt,
+          maxRetries: this.maxRetries,
+          url,
+          delayMs: Math.round(delay),
+        });
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
       try {
-        console.log(
-          `[webhook-client] Sending webhook to ${url} (attempt ${attempt + 1}/${this.maxRetries + 1}, idempotency-key=${idempotencyKey})`,
-        );
+        // Webhook送信試行をログに記録する
+        this.logger('info', `[webhook-client] Sending webhook to ${url} (attempt ${attempt + 1}/${this.maxRetries + 1}, idempotency-key=${idempotencyKey})`, {
+          url,
+          attempt: attempt + 1,
+          maxAttempts: this.maxRetries + 1,
+          idempotencyKey,
+        });
 
         const response = await this.fetchFn(url, {
           method: 'POST',
@@ -104,9 +121,11 @@ export class HttpWebhookClient implements WebhookClient {
         lastStatus = response.status;
 
         if (this.isRetryable(lastStatus)) {
-          console.log(
-            `[webhook-client] Retryable status ${lastStatus} from ${url}`,
-          );
+          // リトライ可能なHTTPステータスを受信した場合に記録する
+          this.logger('warn', `[webhook-client] Retryable status ${lastStatus} from ${url}`, {
+            status: lastStatus,
+            url,
+          });
           lastError = new WebhookError(
             `Webhook request to ${url} returned status ${lastStatus}`,
             'SEND_FAILED',
@@ -120,9 +139,13 @@ export class HttpWebhookClient implements WebhookClient {
           err instanceof Error
             ? err
             : new Error(String(err));
-        console.log(
-          `[webhook-client] Network error on attempt ${attempt + 1}/${this.maxRetries + 1} for ${url}: ${lastError.message}`,
-        );
+        // ネットワークエラー発生時に記録する
+        this.logger('error', `[webhook-client] Network error on attempt ${attempt + 1}/${this.maxRetries + 1} for ${url}: ${lastError.message}`, {
+          url,
+          attempt: attempt + 1,
+          maxAttempts: this.maxRetries + 1,
+          error: lastError.message,
+        });
       }
     }
 

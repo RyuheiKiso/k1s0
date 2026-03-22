@@ -21,7 +21,8 @@ spec:
             app: ceph-rbd-snapshot
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、Ceph専用ServiceAccountを使用する
+          serviceAccountName: ceph-backup-sa
           containers:
             - name: ceph-snapshot
               image: quay.io/ceph/ceph:v18

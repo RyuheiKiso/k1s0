@@ -21,7 +21,8 @@ spec:
             app: vault-backup
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、Vault専用ServiceAccountを使用する
+          serviceAccountName: vault-backup-sa
           containers:
             - name: vault-backup
               # AWS CLI 付きイメージを使用: バックアップスクリプトで aws s3 cp を実行するため、
@@ -60,10 +61,13 @@ spec:
                   echo "Vault backup completed."
 
                   # S3オフサイトバックアップ: 災害復旧のためリモートストレージにコピー
+                  # --sse aws:kms: C-03監査対応。保存データをAWS KMSで暗号化し、
+                  # バックアップファイルの機密性を保護する（平文保存禁止ポリシー準拠）
                   echo "Uploading Vault backup to S3..."
                   aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap" \
                     --endpoint-url "${S3_ENDPOINT}" \
-                    --no-progress
+                    --no-progress \
+                    --sse aws:kms
                   echo "S3 upload completed: s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap"
               env:
                 - name: VAULT_ADDR

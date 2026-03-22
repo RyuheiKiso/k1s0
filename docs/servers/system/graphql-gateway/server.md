@@ -607,13 +607,16 @@ type WorkflowTask {
 | レイヤー | モジュール | 責務 |
 | --- | --- | --- |
 | domain/model | GraphQL 出力型（`Tenant`, `FeatureFlag`, `ConfigEntry`, `User`, `Session`, `SecretMetadata`, `Job`, `NotificationLog`, `WorkflowDefinition` 等） | GraphQL スキーマ型定義 |
-| domain/loader | DataLoader インターフェース | バッチ取得トレイト |
+| domain/port | ポートトレイト（`TenantPort`, `FeatureFlagPort`, `ConfigPort`） | 依存性逆転（DIP）によるインフラ層抽象化 |
+| domain/loader | DataLoader 実装（`TenantLoader`, `FeatureFlagLoader`, `ConfigLoader`） | バッチ取得（ポートトレイト経由） |
 | usecase | `TenantQueryResolver`, `FeatureFlagQueryResolver`, `ConfigQueryResolver`, `TenantMutationResolver`, `AuthQueryResolver`, `SessionQueryResolver`, `VaultQueryResolver`, `SchedulerQueryResolver`, `NotificationQueryResolver`, `WorkflowQueryResolver`, `SubscriptionResolver` | クエリ・ミューテーション・サブスクリプション解決 |
 | adapter/graphql | async-graphql の Query / Mutation / Subscription 実装 | GraphQL レイヤー |
 | adapter/middleware | JWT 検証ミドルウェア（axum layer） | 認証処理 |
 | infra/config | Config ローダー | config.yaml の読み込み |
-| infra/grpc | `TenantGrpcClient`, `FeatureFlagGrpcClient`, `ConfigGrpcClient`, `AuthGrpcClient`, `SessionGrpcClient`, `VaultGrpcClient`, `SchedulerGrpcClient`, `NotificationGrpcClient`, `WorkflowGrpcClient` | tonic gRPC クライアント |
+| infra/grpc | `TenantGrpcClient`, `FeatureFlagGrpcClient`, `ConfigGrpcClient`, `AuthGrpcClient`, `SessionGrpcClient`, `VaultGrpcClient`, `SchedulerGrpcClient`, `NotificationGrpcClient`, `WorkflowGrpcClient`（各 Port トレイトを実装） | tonic gRPC クライアント |
 | infra/auth | JWT 検証実装 | JWKS 取得・署名検証 |
+
+> **監査 C-05 対応（2026-03-22）**: `graphql_context.rs` が `use crate::infrastructure::grpc::{...}` で infrastructure 層に直接依存していた問題を修正。`domain/port.rs` にポートトレイトを定義し、各 gRPC クライアントがこれを実装する形で依存性を逆転させた（クリーンアーキテクチャ DIP 準拠）。
 
 ### ドメインモデル
 

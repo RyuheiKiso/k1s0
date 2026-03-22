@@ -350,6 +350,84 @@ VS Code の `settings.json` に Docker ソケットのパスを明示する:
 
 ---
 
+## 9. Redis dump.rdb パーミッションエラー（M-06 監査対応）
+
+### 症状
+
+`docker compose up` 時に Redis が起動失敗し、以下のエラーが発生する:
+
+```
+redis | Fatal error, can't open config file '/data/dump.rdb': Permission denied
+```
+
+または:
+
+```
+redis | FATAL CONFIG FILE ERROR (Redis 7.x.x)
+redis | Can't open the log file: /data/dump.rdb: Permission denied
+```
+
+### 原因
+
+`docker compose down`（`-v` なし）後に再起動すると、前回のコンテナが残した `dump.rdb` ファイルのオーナーが現ユーザーと異なる場合がある。具体的には以下の状況で発生する:
+
+- コンテナ内の Redis プロセスが `redis` ユーザー（UID 999 等）で `dump.rdb` を作成した
+- `docker compose down` 時に `-v` フラグを付けなかったため、Docker volume（またはバインドマウントディレクトリ）が残留した
+- 再起動時にホスト側ユーザーと `dump.rdb` のオーナーが一致せず、Permission denied が発生する
+
+### 対処方法
+
+**方法 1: ボリュームを含めて完全削除してから再起動する（推奨）**
+
+Redis の永続化データが不要な場合（開発環境では通常不要）は、ボリュームごと削除して起動し直す。
+
+```bash
+# ボリュームを含めて全コンテナを削除してから再起動する
+docker compose down -v
+docker compose up -d
+```
+
+**方法 2: Redis ボリュームのみを削除して再起動する**
+
+他のサービスのボリュームを維持したまま Redis のみリセットする場合:
+
+```bash
+# Redis コンテナを停止する
+docker compose stop redis
+
+# Redis ボリュームのみを削除する
+docker volume rm $(docker volume ls -q | grep redis)
+
+# Redis コンテナを再起動する
+docker compose up -d redis
+```
+
+**方法 3: パーミッションを手動で修正する（データを保持したい場合）**
+
+Redis のデータを残したまま修正する場合（本番データのバックアップ等）:
+
+```bash
+# dump.rdb のオーナーを確認する
+ls -la $(docker volume inspect --format '{{ .Mountpoint }}' $(docker volume ls -q | grep redis))
+
+# オーナーを現ユーザーに変更する（UID 999 は Redis コンテナ内のユーザー）
+sudo chown -R 999:999 $(docker volume inspect --format '{{ .Mountpoint }}' $(docker volume ls -q | grep redis))
+
+# Redis を再起動する
+docker compose up -d redis
+```
+
+### 再発防止
+
+開発環境ではデータの永続化が不要な場合が多いため、作業終了時は常に `-v` フラグ付きで停止することを推奨する:
+
+```bash
+# 作業終了時の停止コマンド（ボリューム含む）
+docker compose down -v
+```
+
+---
+
 ## 関連ドキュメント
 
 - [Windows クイックスタート](./windows-quickstart.md) — 3 つのセットアップ方法と手順

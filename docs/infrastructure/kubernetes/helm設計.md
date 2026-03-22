@@ -321,6 +321,34 @@ postgresql:
 replicaCount: 2
 ```
 
+#### Kong Admin API TLS 設定方針（C-04 監査対応）
+
+Kong Admin API はクラスタ全体のルーティング・プラグイン設定を管理する高権限エンドポイントである。
+以下のセキュリティポリシーを必須とする。
+
+| 項目 | 設定値 | 理由 |
+|------|--------|------|
+| `admin.http.enabled` | `false` | HTTP平文アクセスを禁止。盗聴・改ざんリスクを排除する |
+| `admin.tls.enabled` | `true` | TLS暗号化通信のみを許可する |
+| `admin.type` | `ClusterIP` | クラスタ内部にのみ公開。外部からのアクセスを遮断する |
+
+**開発環境（docker-compose）での注意事項:**
+
+- Admin API のホストポートバインドは `0.0.0.0` ではなく `127.0.0.1` に制限すること
+- `KONG_ADMIN_HOST_PORT` 環境変数を使用する場合も `127.0.0.1:${KONG_ADMIN_HOST_PORT:-8001}:8001` 形式で指定すること
+- `0.0.0.0:8001` バインドは開発機が同一ネットワーク上の別端末から不正操作されるリスクがある
+
+```yaml
+# infra/helm/services/system/kong/values.yaml — Admin API セキュリティ設定
+admin:
+  enabled: true
+  type: ClusterIP
+  http:
+    enabled: false    # HTTP平文アクセス禁止（C-04監査対応）
+  tls:
+    enabled: true     # TLSのみ許可
+```
+
 ## Chart.yaml
 
 ```yaml
