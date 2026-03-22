@@ -97,10 +97,10 @@
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="svc-order" value="task/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;task.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=80;" vertex="1" parent="1">
+        <mxCell id="svc-task" value="task/v1/&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;task.proto&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;opacity=80;" vertex="1" parent="1">
           <mxGeometry x="640" y="280" width="120" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="e-svc-order" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="svc" target="svc-order" parent="1">
+        <mxCell id="e-svc-task" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;" edge="1" source="svc" target="svc-task" parent="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 

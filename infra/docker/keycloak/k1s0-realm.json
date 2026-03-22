@@ -298,7 +298,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
-      "secret": "${KC_BFF_CLIENT_SECRET:-dev-bff-secret}",
+      "secret": "dev-bff-secret",
       "redirectUris": [
         "https://app.k1s0.internal.example.com/callback",
         "http://localhost:3000/callback"
@@ -341,7 +341,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",
-      "secret": "${KC_SERVICE_CLIENT_SECRET:-dev-service-secret}",
+      "secret": "dev-service-secret",
       "defaultClientScopes": [
         "openid"
       ],
@@ -506,7 +506,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${KC_TEST_ADMIN_PASSWORD:-admin123}",
+          "value": "admin123",
           "temporary": false
         }
       ],
@@ -525,7 +525,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${KC_TEST_USER_PASSWORD:-user123}",
+          "value": "user123",
           "temporary": false
         }
       ],

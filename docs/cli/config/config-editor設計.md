@@ -497,7 +497,7 @@ enum SslMode { disable, require, verifyCa, verifyFull }
 Checking config-schema.yaml...
 
   ✅ JSON Schema バリデーション OK
-  ✅ namespace prefix 整合性 OK（全 namespaces が service.order で始まる）
+  ✅ namespace prefix 整合性 OK（全 namespaces が service.task で始まる）
   ✅ field key の重複なし
   ❌ category 'database' の field 'max_retry' に type が未指定
        → type を指定してください (string | integer | float | boolean | enum | object | array)

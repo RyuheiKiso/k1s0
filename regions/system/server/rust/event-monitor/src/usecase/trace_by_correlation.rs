@@ -177,7 +177,7 @@ mod tests {
                 },
                 FlowStep {
                     event_type: "BoardColumnIncremented".to_string(),
-                    source: "shipping-service".to_string(),
+                    source: "board-server".to_string(),
                     source_filter: None,
                     timeout_seconds: 120,
                     description: "step 2".to_string(),
