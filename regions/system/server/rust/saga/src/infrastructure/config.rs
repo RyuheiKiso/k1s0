@@ -134,7 +134,7 @@ server:
   port: 8080
   grpc_port: 50051
 services:
-  inventory-service:
+  board-server:
     host: "localhost"
     port: 50051
 saga:
