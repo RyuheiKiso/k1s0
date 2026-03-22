@@ -28,7 +28,7 @@ serde_yaml = {workspace = true}
 sqlx = {workspace = true, features = ["migrate"]}
 
 # Rule Engine
-zen-engine = "0.20"
+zen-engine = "0.55"
 
 # Utilities
 uuid = {workspace = true}
