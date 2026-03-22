@@ -64,7 +64,7 @@ tonic-build = {workspace = true}
 [dev-dependencies]
 mockall = {workspace = true}
 tokio-test = {workspace = true}
-axum-test = { version = "17", default-features = false }
+axum-test = { version = "19", default-features = false }
 
 [lints]
 workspace = true

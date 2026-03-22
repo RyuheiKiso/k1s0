@@ -42,7 +42,7 @@ croner = "2"
 [dev-dependencies]
 mockall = {workspace = true}
 tokio-test = {workspace = true}
-axum-test = "17"
+axum-test = "19"
 tower = {workspace = true}
 
 [build-dependencies]

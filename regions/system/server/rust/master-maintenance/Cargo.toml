@@ -91,7 +91,7 @@ mockall = {workspace = true}
 tokio-test = {workspace = true}
 tower = {workspace = true}
 testcontainers = "0.24"
-axum-test = "17"
+axum-test = "19"
 
 [lints]
 workspace = true
