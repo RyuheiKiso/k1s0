@@ -7,14 +7,14 @@
 # Database Secret Backend Connections
 # ============================================================
 
-# Order service database connection (service Tier)
-resource "vault_database_secret_backend_connection" "order_db" {
+# Task service database connection (service Tier)
+resource "vault_database_secret_backend_connection" "task_db" {
   backend       = "database"
-  name          = "service-order"
-  allowed_roles = ["service-order-rw", "service-order-ro"]
+  name          = "service-task"
+  allowed_roles = ["service-task-rw", "service-task-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgresql.k1s0-service.svc.cluster.local:5432/order_db"
+    connection_url = "postgresql://{{username}}:{{password}}@postgresql.k1s0-service.svc.cluster.local:5432/task_db"
   }
 }
 
@@ -33,11 +33,11 @@ resource "vault_database_secret_backend_connection" "auth_db" {
 # Database Secret Backend Roles
 # ============================================================
 
-# Order service - Read/Write role
-resource "vault_database_secret_backend_role" "order_rw" {
+# Task service - Read/Write role
+resource "vault_database_secret_backend_role" "task_rw" {
   backend             = "database"
-  name                = "service-order-rw"
-  db_name             = vault_database_secret_backend_connection.order_db.name
+  name                = "service-task-rw"
+  db_name             = vault_database_secret_backend_connection.task_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
   # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
   revocation_statements = [
@@ -50,11 +50,11 @@ resource "vault_database_secret_backend_role" "order_rw" {
   max_ttl             = 172800 # 48 hours
 }
 
-# Order service - Read-Only role
-resource "vault_database_secret_backend_role" "order_ro" {
+# Task service - Read-Only role
+resource "vault_database_secret_backend_role" "task_ro" {
   backend             = "database"
-  name                = "service-order-ro"
-  db_name             = vault_database_secret_backend_connection.order_db.name
+  name                = "service-task-ro"
+  db_name             = vault_database_secret_backend_connection.task_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
   # 動的クレデンシャルのリース失効時にロールと権限を確実に削除する
   revocation_statements = [

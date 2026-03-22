@@ -194,11 +194,11 @@ mod tests {
         std::fs::create_dir_all(&config_dir).unwrap();
         std::fs::write(
             config_dir.join("config.yaml"),
-            "database:\n  name: order_db\n",
+            "database:\n  name: task_db\n",
         )
         .unwrap();
 
-        assert_eq!(detect_db_name(tmp.path()), Some("order_db".to_string()));
+        assert_eq!(detect_db_name(tmp.path()), Some("task_db".to_string()));
     }
 
     /// config.yaml がない場合は None を返す。
