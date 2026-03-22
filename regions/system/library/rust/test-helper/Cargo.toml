@@ -19,7 +19,7 @@ testcontainers = { version = "0.24", optional = true }
 testcontainers-modules = { version = "0.11", features = ["postgres", "redis", "kafka"], optional = true }
 jsonwebtoken = { version = "9", optional = true }
 wiremock = { version = "0.6", optional = true }
-fake = { version = "2.10", features = ["derive", "chrono"], optional = true }
+fake = { version = "5.1", features = ["derive", "chrono"], optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}
