@@ -395,7 +395,6 @@ impl MutationRoot {
 pub struct Task {
     pub id: ID,
     pub title: String,
-    pub status: String,
     pub status: TaskStatus,
     pub assigned_to: String,
 }
