@@ -32,7 +32,7 @@ jobs:
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # check-library-parity.sh が PyYAML に依存するためインストールする
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: '3.12'
       - name: PyYAML インストール
