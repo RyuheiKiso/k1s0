@@ -59,20 +59,20 @@ async fn test_exists_true_after_append() {
 #[tokio::test]
 async fn test_load_from_version() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-200");
+    let stream_id = StreamId::new("task-200");
 
     let events = vec![
-        make_event(&stream_id, "OrderCreated"),
-        make_event(&stream_id, "OrderConfirmed"),
-        make_event(&stream_id, "OrderShipped"),
+        make_event(&stream_id, "TaskCreated"),
+        make_event(&stream_id, "TaskUpdated"),
+        make_event(&stream_id, "TaskStatusChanged"),
     ];
     store.append(&stream_id, events, None).await.unwrap();
 
     let loaded = store.load_from(&stream_id, 2).await.unwrap();
     assert_eq!(loaded.len(), 2);
-    assert_eq!(loaded[0].event_type, "OrderConfirmed");
+    assert_eq!(loaded[0].event_type, "TaskUpdated");
     assert_eq!(loaded[0].version, 2);
-    assert_eq!(loaded[1].event_type, "OrderShipped");
+    assert_eq!(loaded[1].event_type, "TaskStatusChanged");
     assert_eq!(loaded[1].version, 3);
 }
 
@@ -80,12 +80,12 @@ async fn test_load_from_version() {
 #[tokio::test]
 async fn test_version_conflict_on_wrong_expected() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-300");
+    let stream_id = StreamId::new("task-300");
 
-    let events = vec![make_event(&stream_id, "OrderCreated")];
+    let events = vec![make_event(&stream_id, "TaskCreated")];
     store.append(&stream_id, events, None).await.unwrap();
 
-    let events2 = vec![make_event(&stream_id, "OrderConfirmed")];
+    let events2 = vec![make_event(&stream_id, "TaskUpdated")];
     let result = store.append(&stream_id, events2, Some(0)).await;
 
     assert!(result.is_err());
