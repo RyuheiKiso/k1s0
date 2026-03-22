@@ -120,17 +120,17 @@ async fn test_version_conflict_not_raised_with_correct_version() {
 #[tokio::test]
 async fn test_current_version_after_appends() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-500");
+    let stream_id = StreamId::new("task-500");
 
     assert_eq!(store.current_version(&stream_id).await.unwrap(), 0);
 
-    let events = vec![make_event(&stream_id, "OrderCreated")];
+    let events = vec![make_event(&stream_id, "TaskCreated")];
     store.append(&stream_id, events, None).await.unwrap();
     assert_eq!(store.current_version(&stream_id).await.unwrap(), 1);
 
     let events2 = vec![
-        make_event(&stream_id, "OrderConfirmed"),
-        make_event(&stream_id, "OrderShipped"),
+        make_event(&stream_id, "TaskUpdated"),
+        make_event(&stream_id, "TaskStatusChanged"),
     ];
     store.append(&stream_id, events2, Some(1)).await.unwrap();
     assert_eq!(store.current_version(&stream_id).await.unwrap(), 3);
@@ -140,7 +140,7 @@ async fn test_current_version_after_appends() {
 #[tokio::test]
 async fn test_snapshot_save_and_load() {
     let store = InMemorySnapshotStore::new();
-    let stream_id = StreamId::new("order-600");
+    let stream_id = StreamId::new("task-600");
 
     let snapshot = Snapshot {
         stream_id: stream_id.to_string(),
