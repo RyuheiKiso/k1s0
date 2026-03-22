@@ -38,7 +38,7 @@ async fn test_append_and_load_events() {
 #[tokio::test]
 async fn test_exists_false_before_append() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-999");
+    let stream_id = StreamId::new("task-999");
 
     assert!(!store.exists(&stream_id).await.unwrap());
 }
@@ -47,9 +47,9 @@ async fn test_exists_false_before_append() {
 #[tokio::test]
 async fn test_exists_true_after_append() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-100");
+    let stream_id = StreamId::new("task-100");
 
-    let events = vec![make_event(&stream_id, "OrderCreated")];
+    let events = vec![make_event(&stream_id, "TaskCreated")];
     store.append(&stream_id, events, None).await.unwrap();
 
     assert!(store.exists(&stream_id).await.unwrap());
