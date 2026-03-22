@@ -122,7 +122,7 @@ let stats = decorator.metrics(); // Arc<ResiliencyMetrics> を取得
 // ホットリロード対応（hot-reload feature 有効時のみ）
 // featureflag の variant value に JSON 形式でポリシーを格納:
 // {"retry":{"max_attempts":3},"circuit_breaker":{"failure_threshold":5,"timeout_ms":30000},"timeout_ms":10000}
-let policy = ResiliencyPolicy::from_featureflag("payment-service-policy", &ff_client).await?;
+let policy = ResiliencyPolicy::from_featureflag("activity-server-policy", &ff_client).await?;
 ```
 
 ## Go 実装

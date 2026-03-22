@@ -94,12 +94,12 @@ describe('InMemoryEventStore', () => {
 
   it('複数イベントでバージョンが連続増加する', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-700';
+    const sid: StreamId = 'task-700';
     const events = [
-      makeEvent(sid, 'OrderCreated'),
+      makeEvent(sid, 'TaskCreated'),
       makeEvent(sid, 'ItemAdded'),
       makeEvent(sid, 'ItemAdded'),
-      makeEvent(sid, 'OrderConfirmed'),
+      makeEvent(sid, 'TaskUpdated'),
     ];
 
     const finalVersion = await store.append(sid, events);
@@ -114,8 +114,8 @@ describe('InMemoryEventStore', () => {
 
   it('VersionConflictErrorにexpectedとactualが含まれる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-800';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-800';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
     try {
       await store.append(sid, [makeEvent(sid, 'Fail')], 5);
