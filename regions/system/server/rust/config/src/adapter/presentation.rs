@@ -477,12 +477,12 @@ mod tests {
     fn pb_schema_roundtrip_uses_shared_conversion() {
         let pb_schema = pb::ConfigEditorSchema {
             service_name: "task-server".to_string(),
-            namespace_prefix: "service.order".to_string(),
+            namespace_prefix: "service.task".to_string(),
             categories: vec![pb::ConfigCategorySchema {
                 id: "database".to_string(),
                 label: "Database".to_string(),
                 icon: "storage".to_string(),
-                namespaces: vec!["service.order.database".to_string()],
+                namespaces: vec!["service.task.database".to_string()],
                 fields: vec![pb::ConfigFieldSchema {
                     key: "timeout".to_string(),
                     label: "Timeout".to_string(),
