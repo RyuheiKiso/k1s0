@@ -378,13 +378,13 @@ mod tests {
         let bus = EventBus::new(EventBusConfig::default());
         let count = Arc::new(AtomicUsize::new(0));
         let handler = TestHandler {
-            event_type: "order.created".to_string(),
+            event_type: "task.created".to_string(),
             call_count: count.clone(),
         };
 
         let _sub = bus.subscribe(Arc::new(handler)).await;
 
-        let event = Event::new("order.created".to_string(), serde_json::json!({}));
+        let event = Event::new("task.created".to_string(), serde_json::json!({}));
         bus.publish(event).await.unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 1);
     }
@@ -394,7 +394,7 @@ mod tests {
         let bus = EventBus::new(EventBusConfig::default());
         let count = Arc::new(AtomicUsize::new(0));
         let handler = TestHandler {
-            event_type: "order.created".to_string(),
+            event_type: "task.created".to_string(),
             call_count: count.clone(),
         };
 
@@ -404,7 +404,7 @@ mod tests {
         }
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-        let event = Event::new("order.created".to_string(), serde_json::json!({}));
+        let event = Event::new("task.created".to_string(), serde_json::json!({}));
         bus.publish(event).await.unwrap();
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
