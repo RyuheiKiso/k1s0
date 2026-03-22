@@ -134,9 +134,9 @@ impl StoredEvent {
         // デフォルト: ペイロードをそのまま返す。
         // 具体的なマイグレーションルールは各イベントタイプの進化に応じて追加する。
         // 例:
-        //   "OrderCreated" version 1 → 2: payload["currency"] のデフォルト値を "JPY" に設定
+        //   "TaskCreated" version 1 → 2: payload["currency"] のデフォルト値を "JPY" に設定
         //   match (event_type, from_version) {
-        //       ("OrderCreated", 1) => { let mut p = payload.clone(); p["currency"] = "JPY".into(); p }
+        //       ("TaskCreated", 1) => { let mut p = payload.clone(); p["currency"] = "JPY".into(); p }
         //       _ => payload.clone(),
         //   }
         payload.clone()
@@ -176,9 +176,9 @@ mod tests {
 
     #[test]
     fn event_stream_new() {
-        let stream = EventStream::new("order-001".to_string(), "Order".to_string());
-        assert_eq!(stream.id, "order-001");
-        assert_eq!(stream.aggregate_type, "Order");
+        let stream = EventStream::new("task-001".to_string(), "Task".to_string());
+        assert_eq!(stream.id, "task-001");
+        assert_eq!(stream.aggregate_type, "Task");
         assert_eq!(stream.current_version, 0);
         assert!(stream.created_at <= Utc::now());
     }
@@ -187,47 +187,47 @@ mod tests {
     fn stored_event_new() {
         let meta = EventMetadata::new(Some("user-001".to_string()), None, None);
         let event = StoredEvent::new(
-            "order-001".to_string(),
+            "task-001".to_string(),
             1,
-            "OrderPlaced".to_string(),
+            "TaskCreated".to_string(),
             1,
-            serde_json::json!({"order_id": "o-1"}),
+            serde_json::json!({"task_id": "t-1"}),
             meta,
         );
-        assert_eq!(event.stream_id, "order-001");
+        assert_eq!(event.stream_id, "task-001");
         assert_eq!(event.sequence, 1);
-        assert_eq!(event.event_type, "OrderPlaced");
+        assert_eq!(event.event_type, "TaskCreated");
         assert_eq!(event.version, 1);
-        assert_eq!(event.payload["order_id"], "o-1");
+        assert_eq!(event.payload["task_id"], "t-1");
     }
 
     #[test]
     fn snapshot_new() {
         let snap = Snapshot::new(
             "snap-001".to_string(),
-            "order-001".to_string(),
+            "task-001".to_string(),
             5,
-            "Order".to_string(),
+            "Task".to_string(),
             serde_json::json!({"status": "completed"}),
         );
         assert_eq!(snap.id, "snap-001");
-        assert_eq!(snap.stream_id, "order-001");
+        assert_eq!(snap.stream_id, "task-001");
         assert_eq!(snap.snapshot_version, 5);
-        assert_eq!(snap.aggregate_type, "Order");
+        assert_eq!(snap.aggregate_type, "Task");
         assert_eq!(snap.state["status"], "completed");
     }
 
     #[test]
     fn event_data_serialization() {
         let data = EventData {
-            event_type: "OrderPlaced".to_string(),
+            event_type: "TaskCreated".to_string(),
             payload: serde_json::json!({"total": 3000}),
             metadata: EventMetadata::new(Some("user-001".to_string()), None, None),
         };
         let json = serde_json::to_string(&data).expect("test serialization should succeed");
         let parsed: EventData =
             serde_json::from_str(&json).expect("test serialization should succeed");
-        assert_eq!(parsed.event_type, "OrderPlaced");
+        assert_eq!(parsed.event_type, "TaskCreated");
         assert_eq!(parsed.payload["total"], 3000);
     }
 
@@ -250,16 +250,16 @@ mod tests {
     fn stored_event_upcast() {
         let meta = EventMetadata::new(Some("user-001".to_string()), None, None);
         let event = StoredEvent::new(
-            "order-001".to_string(),
+            "task-001".to_string(),
             1,
-            "OrderCreated".to_string(),
+            "TaskCreated".to_string(),
             1,
-            serde_json::json!({"order_id": "o-1"}),
+            serde_json::json!({"task_id": "t-1"}),
             meta,
         );
         let upcasted = event.upcast(3);
         assert_eq!(upcasted.version, 3);
-        assert_eq!(upcasted.payload["order_id"], "o-1");
+        assert_eq!(upcasted.payload["task_id"], "t-1");
     }
 
     // upcast で既にターゲットバージョン以上の場合はそのまま返すことを確認する

@@ -1583,7 +1583,7 @@ async fn test_get_kpi_summary_internal_error() {
 #[tokio::test]
 async fn test_get_kpi_summary_slo_violations() {
     let flow_id = Uuid::new_v4();
-    let flow = make_flow_with_id(flow_id, "order_flow", "service.order");
+    let flow = make_flow_with_id(flow_id, "task_flow", "service.task");
     let flow_def_repo = Arc::new(StubFlowDefinitionRepository::with_flows(vec![flow]));
 
     // 90% success rate violates 99% SLO target
@@ -2096,19 +2096,19 @@ async fn test_multiple_flows_kpi_summary_isolation() {
     let result = uc.execute("24h").await.unwrap();
     assert_eq!(result.total_flows, 2);
 
-    let order_flow = result
+    let task_flow = result
         .flows
         .iter()
-        .find(|f| f.flow_name == "order_flow")
+        .find(|f| f.flow_name == "task_flow")
         .unwrap();
-    assert!((order_flow.completion_rate - 1.0).abs() < f64::EPSILON);
-    assert!(!order_flow.slo_violated);
+    assert!((task_flow.completion_rate - 1.0).abs() < f64::EPSILON);
+    assert!(!task_flow.slo_violated);
 
-    let payment_flow = result
+    let activity_flow = result
         .flows
         .iter()
-        .find(|f| f.flow_name == "payment_flow")
+        .find(|f| f.flow_name == "activity_flow")
         .unwrap();
-    assert!((payment_flow.completion_rate - 0.5).abs() < f64::EPSILON);
-    assert!(payment_flow.slo_violated);
+    assert!((activity_flow.completion_rate - 0.5).abs() < f64::EPSILON);
+    assert!(activity_flow.slo_violated);
 }

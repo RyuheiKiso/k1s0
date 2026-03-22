@@ -14,14 +14,14 @@ function makeEvent(streamId: StreamId, eventType: string) {
 describe('InMemoryEventStore', () => {
   it('append/loadでイベントを保存・取得できる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-123';
-    const events = [makeEvent(sid, 'OrderCreated'), makeEvent(sid, 'OrderConfirmed')];
+    const sid: StreamId = 'task-123';
+    const events = [makeEvent(sid, 'TaskCreated'), makeEvent(sid, 'TaskUpdated')];
 
     await store.append(sid, events);
     const loaded = await store.load(sid);
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].eventType).toBe('OrderCreated');
-    expect(loaded[1].eventType).toBe('OrderConfirmed');
+    expect(loaded[0].eventType).toBe('TaskCreated');
+    expect(loaded[1].eventType).toBe('TaskUpdated');
     expect(loaded[0].version).toBe(1);
     expect(loaded[1].version).toBe(2);
   });

@@ -31,11 +31,11 @@ kafka:
     subscribe: []
 
 services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
+  board-server:
+    host: "board.k1s0-service.svc.cluster.local"
     port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
+  activity-server:
+    host: "activity.k1s0-service.svc.cluster.local"
     port: 50051
   shipping-service:
     host: "shipping.k1s0-business.svc.cluster.local"

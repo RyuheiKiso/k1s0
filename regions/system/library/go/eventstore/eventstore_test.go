@@ -14,9 +14,9 @@ import (
 func TestAppendAndLoad(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
-	event := es.NewEventEnvelope(sid, 0, "OrderCreated", json.RawMessage(`{"item":"widget"}`))
+	event := es.NewEventEnvelope(sid, 0, "TaskCreated", json.RawMessage(`{"item":"widget"}`))
 	version, err := store.Append(ctx, sid, []*es.EventEnvelope{event}, nil)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(1), version)
@@ -24,7 +24,7 @@ func TestAppendAndLoad(t *testing.T) {
 	events, err := store.Load(ctx, sid)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	assert.Equal(t, "OrderCreated", events[0].EventType)
+	assert.Equal(t, "TaskCreated", events[0].EventType)
 	assert.Equal(t, uint64(1), events[0].Version)
 }
 
@@ -32,12 +32,12 @@ func TestAppendAndLoad(t *testing.T) {
 func TestAppend_VersionConflict(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
-	event1 := es.NewEventEnvelope(sid, 0, "OrderCreated", json.RawMessage(`{}`))
+	event1 := es.NewEventEnvelope(sid, 0, "TaskCreated", json.RawMessage(`{}`))
 	_, _ = store.Append(ctx, sid, []*es.EventEnvelope{event1}, nil)
 
-	event2 := es.NewEventEnvelope(sid, 0, "OrderUpdated", json.RawMessage(`{}`))
+	event2 := es.NewEventEnvelope(sid, 0, "TaskUpdated", json.RawMessage(`{}`))
 	wrongVersion := uint64(0) // current is 1
 	_, err := store.Append(ctx, sid, []*es.EventEnvelope{event2}, &wrongVersion)
 	require.Error(t, err)
@@ -48,12 +48,12 @@ func TestAppend_VersionConflict(t *testing.T) {
 func TestAppend_WithExpectedVersion(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
-	event1 := es.NewEventEnvelope(sid, 0, "OrderCreated", json.RawMessage(`{}`))
+	event1 := es.NewEventEnvelope(sid, 0, "TaskCreated", json.RawMessage(`{}`))
 	_, _ = store.Append(ctx, sid, []*es.EventEnvelope{event1}, nil)
 
-	event2 := es.NewEventEnvelope(sid, 0, "OrderUpdated", json.RawMessage(`{}`))
+	event2 := es.NewEventEnvelope(sid, 0, "TaskUpdated", json.RawMessage(`{}`))
 	correctVersion := uint64(1)
 	version, err := store.Append(ctx, sid, []*es.EventEnvelope{event2}, &correctVersion)
 	require.NoError(t, err)
@@ -64,7 +64,7 @@ func TestAppend_WithExpectedVersion(t *testing.T) {
 func TestLoadFrom(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
 	for i := 0; i < 5; i++ {
 		event := es.NewEventEnvelope(sid, 0, "Event", json.RawMessage(`{}`))
@@ -92,12 +92,12 @@ func TestLoad_EmptyStream(t *testing.T) {
 func TestExists(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
 	exists, _ := store.Exists(ctx, sid)
 	assert.False(t, exists)
 
-	event := es.NewEventEnvelope(sid, 0, "OrderCreated", json.RawMessage(`{}`))
+	event := es.NewEventEnvelope(sid, 0, "TaskCreated", json.RawMessage(`{}`))
 	_, _ = store.Append(ctx, sid, []*es.EventEnvelope{event}, nil)
 
 	exists, _ = store.Exists(ctx, sid)
@@ -108,12 +108,12 @@ func TestExists(t *testing.T) {
 func TestCurrentVersion(t *testing.T) {
 	store := es.NewInMemoryEventStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
 	version, _ := store.CurrentVersion(ctx, sid)
 	assert.Equal(t, uint64(0), version)
 
-	event := es.NewEventEnvelope(sid, 0, "OrderCreated", json.RawMessage(`{}`))
+	event := es.NewEventEnvelope(sid, 0, "TaskCreated", json.RawMessage(`{}`))
 	_, _ = store.Append(ctx, sid, []*es.EventEnvelope{event}, nil)
 
 	version, _ = store.CurrentVersion(ctx, sid)
@@ -124,7 +124,7 @@ func TestCurrentVersion(t *testing.T) {
 func TestSnapshot_SaveAndLoad(t *testing.T) {
 	store := es.NewInMemorySnapshotStore()
 	ctx := context.Background()
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 
 	snap := &es.Snapshot{
 		StreamID: sid.String(),
@@ -143,16 +143,16 @@ func TestSnapshot_SaveAndLoad(t *testing.T) {
 
 // WithMetadataオプションを指定してNewEventEnvelopeを呼び出すとMetadataが設定されることを確認する。
 func TestNewEventEnvelope_WithMetadata(t *testing.T) {
-	sid := es.NewStreamId("order-123")
+	sid := es.NewStreamId("task-123")
 	meta := json.RawMessage(`{"correlation_id":"req-abc"}`)
-	event := es.NewEventEnvelope(sid, 1, "OrderCreated", json.RawMessage(`{}`), es.WithMetadata(meta))
+	event := es.NewEventEnvelope(sid, 1, "TaskCreated", json.RawMessage(`{}`), es.WithMetadata(meta))
 	assert.Equal(t, string(meta), string(event.Metadata))
 }
 
 // WithMetadataオプションなしで呼び出した場合はMetadataがデフォルト値（空オブジェクト）になることを確認する。
 func TestNewEventEnvelope_DefaultMetadata(t *testing.T) {
-	sid := es.NewStreamId("order-123")
-	event := es.NewEventEnvelope(sid, 1, "OrderCreated", json.RawMessage(`{}`))
+	sid := es.NewStreamId("task-123")
+	event := es.NewEventEnvelope(sid, 1, "TaskCreated", json.RawMessage(`{}`))
 	assert.Equal(t, "{}", string(event.Metadata))
 }
 

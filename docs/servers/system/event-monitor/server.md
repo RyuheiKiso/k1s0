@@ -58,7 +58,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | dlq-manager との違い | dlq-manager は DLQ メッセージの管理・再処理に特化する。event-monitor は正常フロー含む全イベントフローの業務視点モニタリングに特化する |
 | 可観測性スタックとの違い | Prometheus/Jaeger はインフラメトリクス・技術トレースを提供する。event-monitor は「注文→出荷→請求のフロー全体で今どこが詰まっているか」を業務担当者が確認する手段を提供する |
 | イベント集約方式 | Kafka コンシューマーが `k1s0.*.*.*.v1` パターンの全ドメインイベントを購読し、メタデータ（correlation_id, event_type, timestamp）を抽出して DB に永続化。ペイロード本体は保存しない（容量節約） |
-| フロー定義 | 業務フロー（期待されるイベントチェーン）を JSON で定義。例: `OrderCreated → InventoryReserved → PaymentProcessed → OrderCompleted` |
+| フロー定義 | 業務フロー（期待されるイベントチェーン）を JSON で定義。例: `TaskCreated → BoardReserved → ActivityProcessed → TaskCompleted` |
 | SLO 定義 | フロー別に「完了までの目標時間」「許容エラー率」を定義。バーンレート計算で違反を早期検出 |
 | correlation-id | k1s0-correlation ライブラリの correlation_id をキーとして、フロー横断のイベントチェーンを構築 |
 | DB スキーマ | PostgreSQL の `event_monitor` スキーマ（event_records, flow_definitions, flow_instances, flow_slos テーブル） |

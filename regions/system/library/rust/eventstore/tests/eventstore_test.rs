@@ -17,19 +17,19 @@ fn make_event(stream_id: &StreamId, event_type: &str) -> EventEnvelope {
 #[tokio::test]
 async fn test_append_and_load_events() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-123");
+    let stream_id = StreamId::new("task-123");
 
     let events = vec![
-        make_event(&stream_id, "OrderCreated"),
-        make_event(&stream_id, "OrderConfirmed"),
+        make_event(&stream_id, "TaskCreated"),
+        make_event(&stream_id, "TaskUpdated"),
     ];
 
     store.append(&stream_id, events, None).await.unwrap();
 
     let loaded = store.load(&stream_id).await.unwrap();
     assert_eq!(loaded.len(), 2);
-    assert_eq!(loaded[0].event_type, "OrderCreated");
-    assert_eq!(loaded[1].event_type, "OrderConfirmed");
+    assert_eq!(loaded[0].event_type, "TaskCreated");
+    assert_eq!(loaded[1].event_type, "TaskUpdated");
     assert_eq!(loaded[0].version, 1);
     assert_eq!(loaded[1].version, 2);
 }
