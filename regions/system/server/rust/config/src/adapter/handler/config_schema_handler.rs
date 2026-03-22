@@ -229,12 +229,12 @@ mod tests {
         ConfigSchema {
             id: Uuid::new_v4(),
             service_name: "task-server".to_string(),
-            namespace_prefix: "service.order".to_string(),
+            namespace_prefix: "service.task".to_string(),
             schema_json: serde_json::json!({
                 "categories": [{
                     "id": "database",
                     "label": "Database",
-                    "namespaces": ["service.order.database"],
+                    "namespaces": ["service.task.database"],
                     "fields": [{
                         "key": "timeout",
                         "label": "Timeout",
@@ -300,11 +300,11 @@ mod tests {
                     .header("content-type", "application/json")
                     .body(Body::from(
                         serde_json::json!({
-                            "namespace_prefix": "service.order",
+                            "namespace_prefix": "service.task",
                             "categories": [{
                                 "id": "database",
                                 "label": "Database",
-                                "namespaces": ["service.order.database"],
+                                "namespaces": ["service.task.database"],
                                 "fields": [{
                                     "key": "timeout",
                                     "label": "Timeout",
