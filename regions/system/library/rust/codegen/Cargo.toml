@@ -8,7 +8,7 @@ serde = {workspace = true}
 tera = "1"
 thiserror = {workspace = true}
 regex = { version = "1", optional = true }
-toml_edit = { version = "0.22", optional = true }
+toml_edit = { version = "0.25", optional = true }
 serde_yaml = {workspace = true, optional = true}
 
 [features]
