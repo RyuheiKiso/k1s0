@@ -196,7 +196,7 @@ mod tests {
     fn make_registry() -> ServiceRegistry {
         let mut services = HashMap::new();
         services.insert(
-            "inventory-service".to_string(),
+            "board-server".to_string(),
             ServiceEndpoint {
                 host: "localhost".to_string(),
                 port: 50051,
@@ -216,7 +216,7 @@ mod tests {
     fn test_service_registry_resolve() {
         let registry = make_registry();
         assert_eq!(
-            registry.resolve("inventory-service").unwrap(),
+            registry.resolve("board-server").unwrap(),
             "http://localhost:50051"
         );
         assert_eq!(

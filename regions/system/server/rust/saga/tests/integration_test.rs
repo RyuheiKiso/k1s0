@@ -18,19 +18,19 @@ use k1s0_saga_server::test_support::{make_test_app_state, InMemorySagaRepository
 
 /// テスト用ワークフローYAML
 const TEST_WORKFLOW_YAML: &str = r#"
-name: order-workflow
+name: task-assignment-workflow
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
+    compensate: BoardService.DecrementColumn
     timeout_secs: 5
     retry:
       max_attempts: 1
       initial_interval_ms: 100
-  - name: charge-payment
+  - name: log-activity
     service: activity-server
-    method: ActivityService.DeleteActivity
+    method: ActivityService.CreateActivity
     compensate: ActivityService.DeleteActivity
     timeout_secs: 5
     retry:
@@ -136,7 +136,7 @@ async fn test_register_and_list_workflows() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["name"], "order-workflow");
+    assert_eq!(json["name"], "task-assignment-workflow");
     assert_eq!(json["step_count"], 2);
 
     // List workflows
@@ -159,7 +159,7 @@ async fn test_register_and_list_workflows() {
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let workflows = json["workflows"].as_array().unwrap();
     assert_eq!(workflows.len(), 1);
-    assert_eq!(workflows[0]["name"], "order-workflow");
+    assert_eq!(workflows[0]["name"], "task-assignment-workflow");
 }
 
 // ---------------------------------------------------------------------------
@@ -191,8 +191,8 @@ async fn test_start_saga() {
     // Saga 開始
     let app2 = rebuild_app(saga_repo, workflow_repo);
     let start_body = serde_json::json!({
-        "workflow_name": "order-workflow",
-        "payload": {"order_id": "order-123"},
+        "workflow_name": "task-assignment-workflow",
+        "payload": {"task_id": "task-123"},
         "correlation_id": "corr-001",
         "initiated_by": "test-user",
     });
@@ -245,8 +245,8 @@ async fn test_list_sagas() {
     // Saga 開始
     let app2 = rebuild_app(saga_repo.clone(), workflow_repo.clone());
     let start_body = serde_json::json!({
-        "workflow_name": "order-workflow",
-        "payload": {"order_id": "order-456"},
+        "workflow_name": "task-assignment-workflow",
+        "payload": {"task_id": "task-456"},
     });
     let response = app2
         .oneshot(
@@ -313,7 +313,7 @@ async fn test_get_saga_by_id() {
     // Saga 開始
     let app2 = rebuild_app(saga_repo.clone(), workflow_repo.clone());
     let start_body = serde_json::json!({
-        "workflow_name": "order-workflow",
+        "workflow_name": "task-assignment-workflow",
         "payload": {},
     });
     let response = app2
@@ -357,7 +357,7 @@ async fn test_get_saga_by_id() {
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
     assert_eq!(json["saga"]["saga_id"], saga_id);
-    assert_eq!(json["saga"]["workflow_name"], "order-workflow");
+    assert_eq!(json["saga"]["workflow_name"], "task-assignment-workflow");
 }
 
 // ---------------------------------------------------------------------------
@@ -408,7 +408,7 @@ async fn test_cancel_saga() {
     // Saga 開始
     let app2 = rebuild_app(saga_repo.clone(), workflow_repo.clone());
     let start_body = serde_json::json!({
-        "workflow_name": "order-workflow",
+        "workflow_name": "task-assignment-workflow",
         "payload": {},
     });
     let response = app2
@@ -468,12 +468,12 @@ async fn test_get_compensating_saga_returns_compensating_status() {
 
     // COMPENSATING 状態の Saga を直接リポジトリに挿入
     let mut saga = SagaState::new(
-        "order-workflow".to_string(),
-        serde_json::json!({"order_id": "order-999"}),
+        "task-assignment-workflow".to_string(),
+        serde_json::json!({"task_id": "task-999"}),
         Some("corr-comp-001".to_string()),
         Some("test-user".to_string()),
     );
-    saga.start_compensation("reserve-inventory step failed".to_string());
+    saga.start_compensation("increment-board-column step failed".to_string());
     let saga_id = saga.saga_id;
     saga_repo.create(&saga).await.unwrap();
 
@@ -498,7 +498,7 @@ async fn test_get_compensating_saga_returns_compensating_status() {
     assert_eq!(json["saga"]["status"], "COMPENSATING");
     assert_eq!(
         json["saga"]["error_message"],
-        "reserve-inventory step failed"
+        "increment-board-column step failed"
     );
 }
 
@@ -509,7 +509,7 @@ async fn test_get_failed_saga_returns_error_message() {
 
     // FAILED 状態の Saga を直接リポジトリに挿入
     let mut saga = SagaState::new(
-        "order-workflow".to_string(),
+        "task-assignment-workflow".to_string(),
         serde_json::json!({}),
         None,
         None,
@@ -551,7 +551,7 @@ async fn test_get_saga_step_logs_include_compensate_action() {
 
     // COMPENSATING 状態の Saga を作成
     let mut saga = SagaState::new(
-        "order-workflow".to_string(),
+        "task-assignment-workflow".to_string(),
         serde_json::json!({}),
         None,
         None,
@@ -564,7 +564,7 @@ async fn test_get_saga_step_logs_include_compensate_action() {
     let mut execute_log = SagaStepLog::new_execute(
         saga_id,
         0,
-        "reserve-inventory".to_string(),
+        "increment-board-column".to_string(),
         Some(serde_json::json!({"item_id": "abc"})),
     );
     execute_log.mark_failed("service timeout".to_string());
@@ -575,7 +575,7 @@ async fn test_get_saga_step_logs_include_compensate_action() {
 
     // 補償ログ (COMPENSATE, SUCCESS)
     let mut compensate_log =
-        SagaStepLog::new_compensate(saga_id, 0, "reserve-inventory".to_string(), None);
+        SagaStepLog::new_compensate(saga_id, 0, "increment-board-column".to_string(), None);
     compensate_log.mark_success(Some(serde_json::json!({"released": true})));
     saga_repo
         .update_with_step_log(&saga, &compensate_log)
