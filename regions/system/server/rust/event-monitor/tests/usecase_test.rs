@@ -809,7 +809,7 @@ async fn test_update_flow_success_steps_and_slo() {
     let new_steps = vec![
         make_flow_step("TaskCreated", "task-server"),
         make_flow_step("ActivityCreated", "activity-server"),
-        make_flow_step("BoardColumnIncremented", "shipping-service"),
+        make_flow_step("BoardColumnIncremented", "board-server"),
     ];
     let new_slo = FlowSlo {
         target_completion_seconds: 300,
