@@ -104,7 +104,7 @@ describe('gRPC Interceptor', () => {
 
       await expect(
         interceptor(
-          '/test.OrderService/CreateOrder',
+          '/test.TaskService/CreateTask',
           {},
           async () => { throw error; },
         ),

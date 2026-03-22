@@ -37,7 +37,7 @@ describe('Metrics', () => {
     it('gRPC リクエストカウンタを増加できる', () => {
       metrics.recordGRPCRequest('UserService', 'GetUser', 'OK');
       metrics.recordGRPCRequest('UserService', 'GetUser', 'NOT_FOUND');
-      metrics.recordGRPCRequest('OrderService', 'CreateOrder', 'OK');
+      metrics.recordGRPCRequest('TaskService', 'CreateTask', 'OK');
 
       const output = metrics.getMetrics();
       expect(output).toContain('grpc_server_handled_total');
@@ -63,7 +63,7 @@ describe('Metrics', () => {
   describe('gRPC レイテンシヒストグラム', () => {
     it('gRPC レイテンシを記録できる', () => {
       metrics.recordGRPCDuration('UserService', 'GetUser', 0.03);
-      metrics.recordGRPCDuration('OrderService', 'CreateOrder', 0.12);
+      metrics.recordGRPCDuration('TaskService', 'CreateTask', 0.12);
 
       const output = metrics.getMetrics();
       expect(output).toContain('grpc_server_handling_seconds_bucket');

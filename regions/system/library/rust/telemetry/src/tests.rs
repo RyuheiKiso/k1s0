@@ -89,7 +89,7 @@ mod tests {
     // trace_grpc_call! マクロがブロックの戻り値をそのまま返すことを確認する。
     #[test]
     fn test_trace_grpc_call_macro() {
-        let result = trace_grpc_call!("OrderService.CreateOrder", { "ok" });
+        let result = trace_grpc_call!("TaskService.CreateTask", { "ok" });
         assert_eq!(result, "ok");
     }
 
@@ -119,9 +119,9 @@ mod tests {
     fn test_record_http_request() {
         let m = Metrics::new("test-http");
         // パニックせずにカウンタが増加すること
-        m.record_http_request("GET", "/api/v1/orders", "200");
-        m.record_http_request("POST", "/api/v1/orders", "201");
-        m.record_http_request("GET", "/api/v1/orders", "500");
+        m.record_http_request("GET", "/api/v1/tasks", "200");
+        m.record_http_request("POST", "/api/v1/tasks", "201");
+        m.record_http_request("GET", "/api/v1/tasks", "500");
     }
 
     // record_grpc_request がパニックなしに gRPC リクエストカウンタを記録することを確認する。
@@ -129,8 +129,8 @@ mod tests {
     fn test_record_grpc_request() {
         let m = Metrics::new("test-grpc");
         // パニックせずに gRPC カウンタが増加すること
-        m.record_grpc_request("OrderService", "CreateOrder", "OK");
-        m.record_grpc_request("OrderService", "GetOrder", "NOT_FOUND");
+        m.record_grpc_request("TaskService", "CreateTask", "OK");
+        m.record_grpc_request("TaskService", "GetTask", "NOT_FOUND");
     }
 
     // record_http_duration がパニックなしに HTTP レイテンシヒストグラムを記録することを確認する。
@@ -138,16 +138,16 @@ mod tests {
     fn test_record_http_duration() {
         let m = Metrics::new("test-duration");
         // パニックせずにヒストグラムが記録されること
-        m.record_http_duration("GET", "/api/v1/orders", 0.05);
-        m.record_http_duration("POST", "/api/v1/orders", 1.2);
+        m.record_http_duration("GET", "/api/v1/tasks", 0.05);
+        m.record_http_duration("POST", "/api/v1/tasks", 1.2);
     }
 
     // record_grpc_duration がパニックなしに gRPC レイテンシヒストグラムを記録することを確認する。
     #[test]
     fn test_record_grpc_duration() {
         let m = Metrics::new("test-grpc-duration");
-        m.record_grpc_duration("OrderService", "CreateOrder", 0.01);
-        m.record_grpc_duration("OrderService", "GetOrder", 0.5);
+        m.record_grpc_duration("TaskService", "CreateTask", 0.01);
+        m.record_grpc_duration("TaskService", "GetTask", 0.5);
     }
 
     // エラーステータスの HTTP/gRPC リクエスト記録がパニックなしに動作することを確認する。
@@ -155,11 +155,11 @@ mod tests {
     fn test_record_error_counter() {
         let m = Metrics::new("test-errors");
         // エラーステータスの HTTP リクエストを記録
-        m.record_http_request("GET", "/api/v1/orders", "500");
-        m.record_http_request("POST", "/api/v1/orders", "503");
+        m.record_http_request("GET", "/api/v1/tasks", "500");
+        m.record_http_request("POST", "/api/v1/tasks", "503");
         // エラーコードの gRPC リクエストを記録
-        m.record_grpc_request("OrderService", "CreateOrder", "INTERNAL");
-        m.record_grpc_request("OrderService", "CreateOrder", "UNAVAILABLE");
+        m.record_grpc_request("TaskService", "CreateTask", "INTERNAL");
+        m.record_grpc_request("TaskService", "CreateTask", "UNAVAILABLE");
     }
 
     // gather_metrics が Prometheus テキスト形式を含む文字列を返すことを確認する。
@@ -192,8 +192,8 @@ mod tests {
         let metrics = Arc::new(Metrics::new("test-mw-record"));
         let mw = TelemetryMiddleware::new(metrics);
         // middleware 経由でメトリクス記録ができること
-        mw.on_request("GET", "/api/v1/orders");
-        mw.on_response("GET", "/api/v1/orders", 200, 0.05);
+        mw.on_request("GET", "/api/v1/tasks");
+        mw.on_response("GET", "/api/v1/tasks", 200, 0.05);
 
         let output = mw.metrics.gather_metrics();
         assert!(output.contains("http_requests_total"));
@@ -205,7 +205,7 @@ mod tests {
     fn test_telemetry_middleware_error_status() {
         let metrics = Arc::new(Metrics::new("test-mw-err"));
         let mw = TelemetryMiddleware::new(metrics);
-        mw.on_response("POST", "/api/v1/orders", 500, 1.2);
+        mw.on_response("POST", "/api/v1/tasks", 500, 1.2);
 
         let output = mw.metrics.gather_metrics();
         assert!(output.contains("500"));
@@ -224,7 +224,7 @@ mod tests {
     fn test_grpc_interceptor_record_call() {
         let metrics = Arc::new(Metrics::new("test-grpc-call"));
         let interceptor = GrpcInterceptor::new(metrics);
-        interceptor.on_response("OrderService", "CreateOrder", "OK", 0.01);
+        interceptor.on_response("TaskService", "CreateTask", "OK", 0.01);
 
         let output = interceptor.metrics.gather_metrics();
         assert!(output.contains("grpc_server_handled_total"));
@@ -236,7 +236,7 @@ mod tests {
     fn test_grpc_interceptor_error_call() {
         let metrics = Arc::new(Metrics::new("test-grpc-err"));
         let interceptor = GrpcInterceptor::new(metrics);
-        interceptor.on_response("OrderService", "CreateOrder", "INTERNAL", 0.5);
+        interceptor.on_response("TaskService", "CreateTask", "INTERNAL", 0.5);
 
         let output = interceptor.metrics.gather_metrics();
         assert!(output.contains("INTERNAL"));
