@@ -1,7 +1,15 @@
+// サービスカタログのサービスエンティティ。サービスの重要度・ライフサイクルを定義する。
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+/// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("Invalid value: {0}")]
+    InvalidValue(String),
+}
 
 /// Service はサービスカタログに登録されたサービスを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -40,15 +48,16 @@ impl std::fmt::Display for ServiceTier {
     }
 }
 
+// ServiceTier の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for ServiceTier {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "critical" => Ok(ServiceTier::Critical),
             "standard" => Ok(ServiceTier::Standard),
             "internal" => Ok(ServiceTier::Internal),
-            _ => Err(format!("invalid service tier: {}", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid service tier: {}", s))),
         }
     }
 }
@@ -76,8 +85,9 @@ impl std::fmt::Display for ServiceLifecycle {
     }
 }
 
+// ServiceLifecycle の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for ServiceLifecycle {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
@@ -86,7 +96,7 @@ impl std::str::FromStr for ServiceLifecycle {
             "production" => Ok(ServiceLifecycle::Production),
             "deprecated" => Ok(ServiceLifecycle::Deprecated),
             "decommissioned" => Ok(ServiceLifecycle::Decommissioned),
-            _ => Err(format!("invalid service lifecycle: {}", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid service lifecycle: {}", s))),
         }
     }
 }

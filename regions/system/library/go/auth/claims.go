@@ -118,10 +118,10 @@ func extractClaims(token jwt.Token) (*Claims, error) {
 	return claims, nil
 }
 
-// parseRealmAccess は realm_access の値を RealmAccess に変換する。
-func parseRealmAccess(v interface{}) RealmAccess {
+// parseRealmAccess は realm_access の値を RealmAccess に変換する（any: Go 1.18+ 推奨エイリアスを使用する）。
+func parseRealmAccess(v any) RealmAccess {
 	ra := RealmAccess{}
-	m, ok := v.(map[string]interface{})
+	m, ok := v.(map[string]any)
 	if !ok {
 		return ra
 	}
@@ -129,16 +129,16 @@ func parseRealmAccess(v interface{}) RealmAccess {
 	return ra
 }
 
-// parseResourceAccess は resource_access の値を map[string]RoleSet に変換する。
-func parseResourceAccess(v interface{}) map[string]RoleSet {
+// parseResourceAccess は resource_access の値を map[string]RoleSet に変換する（any: Go 1.18+ 推奨エイリアスを使用する）。
+func parseResourceAccess(v any) map[string]RoleSet {
 	result := make(map[string]RoleSet)
-	m, ok := v.(map[string]interface{})
+	m, ok := v.(map[string]any)
 	if !ok {
 		return result
 	}
 	for key, val := range m {
 		access := RoleSet{}
-		if am, ok := val.(map[string]interface{}); ok {
+		if am, ok := val.(map[string]any); ok {
 			access.Roles = parseStringSlice(am["roles"])
 		}
 		result[key] = access
@@ -146,12 +146,12 @@ func parseResourceAccess(v interface{}) map[string]RoleSet {
 	return result
 }
 
-// parseStringSlice はインターフェースを []string に変換する。
-func parseStringSlice(v interface{}) []string {
+// parseStringSlice はインターフェースを []string に変換する（any: Go 1.18+ 推奨エイリアスを使用する）。
+func parseStringSlice(v any) []string {
 	if v == nil {
 		return nil
 	}
-	arr, ok := v.([]interface{})
+	arr, ok := v.([]any)
 	if !ok {
 		return nil
 	}

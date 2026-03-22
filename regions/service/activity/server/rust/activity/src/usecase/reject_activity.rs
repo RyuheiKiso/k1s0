@@ -13,6 +13,8 @@ impl RejectActivityUseCase {
         Self { repo }
     }
 
+    // アクティビティ却下の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, id: Uuid, rejector_id: &str, _reason: &str) -> anyhow::Result<Activity> {
         let activity = self
             .repo
@@ -20,6 +22,6 @@ impl RejectActivityUseCase {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
         activity.transition_to(ActivityStatus::Rejected)?;
-        self.repo.update_status(id, "rejected", Some(rejector_id)).await
+        self.repo.update_status(id, "rejected", Some(rejector_id.to_string())).await
     }
 }

@@ -1,4 +1,5 @@
 // タスク REST ハンドラー。
+// Claims 拡張から認証ユーザー ID を取得してユースケースに渡す。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::task::{CreateTask, TaskFilter, UpdateTaskStatus};
 use axum::{
@@ -7,6 +8,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use k1s0_auth::claims::actor_from_claims;
+use k1s0_auth::Claims;
 use k1s0_server_common::ServiceError;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -58,26 +61,34 @@ pub async fn get_task(
     Ok(Json(task))
 }
 
+// タスク作成: リクエスト拡張から Claims を取得し、actor を created_by として使用する
 pub async fn create_task(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Json(input): Json<CreateTask>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let task = state
         .create_task_uc
-        .execute(&input, "anonymous")
+        .execute(&input, &actor)
         .await
         .map_err(map_err)?;
     Ok((StatusCode::CREATED, Json(task)))
 }
 
+// タスクステータス更新: リクエスト拡張から Claims を取得し、actor を updated_by として使用する
 pub async fn update_task_status(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateTaskStatus>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let task = state
         .update_task_status_uc
-        .execute(id, &input, "anonymous")
+        .execute(id, &input, &actor)
         .await
         .map_err(map_err)?;
     Ok(Json(task))

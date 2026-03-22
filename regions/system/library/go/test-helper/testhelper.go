@@ -300,7 +300,7 @@ type AssertionHelper struct{}
 
 // JSONContains は actual が expected の全キーを含んでいるか検証する。
 func (AssertionHelper) JSONContains(actual, expected string) error {
-	var actualMap, expectedMap map[string]interface{}
+	var actualMap, expectedMap map[string]any
 	if err := json.Unmarshal([]byte(actual), &actualMap); err != nil {
 		return fmt.Errorf("actual is not valid JSON: %w", err)
 	}
@@ -314,7 +314,7 @@ func (AssertionHelper) JSONContains(actual, expected string) error {
 }
 
 // EventEmitted はイベント一覧に指定タイプのイベントが含まれるか検証する。
-func (AssertionHelper) EventEmitted(events []map[string]interface{}, eventType string) error {
+func (AssertionHelper) EventEmitted(events []map[string]any, eventType string) error {
 	for _, e := range events {
 		if t, ok := e["type"].(string); ok && t == eventType {
 			return nil
@@ -323,15 +323,15 @@ func (AssertionHelper) EventEmitted(events []map[string]interface{}, eventType s
 	return fmt.Errorf("event '%s' not found in events", eventType)
 }
 
-func jsonContains(actual, expected map[string]interface{}) bool {
+func jsonContains(actual, expected map[string]any) bool {
 	for k, ev := range expected {
 		av, ok := actual[k]
 		if !ok {
 			return false
 		}
 		switch evTyped := ev.(type) {
-		case map[string]interface{}:
-			avMap, ok := av.(map[string]interface{})
+		case map[string]any:
+			avMap, ok := av.(map[string]any)
 			if !ok || !jsonContains(avMap, evTyped) {
 				return false
 			}

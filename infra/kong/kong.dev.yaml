@@ -210,6 +210,8 @@ plugins:
 
   # JWT Plugin - Keycloak JWKS 連携（ローカル開発用）
   # 本番では infra/kong/plugins/auth.yaml で管理
+  # iss クレームを検証することでトークンの発行元（Keycloak レルム）を確認し、
+  # 他のシステムで発行されたトークンによる不正アクセスを防止する
   - name: jwt
     config:
       uri_param_names: []
@@ -217,6 +219,7 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
+        - iss  # 発行元検証: consumer の key（http://keycloak:8080/realms/k1s0）と一致することを確認
       maximum_expiration: 900           # 15分（Access Token のライフタイム）
       header_names:
         - Authorization
@@ -237,6 +240,15 @@ plugins:
             kong.service.request.set_header("X-User-Roles", roles)
             kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
           end
+
+  # セキュリティレスポンスヘッダー（開発環境でも本番と同一のヘッダーを確認できるようにする）
+  - name: response-transformer
+    config:
+      add:
+        headers:
+          - X-Content-Type-Options:nosniff
+          - X-Frame-Options:DENY
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
 
   - name: prometheus
     config:

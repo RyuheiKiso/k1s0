@@ -12,6 +12,8 @@ impl DecrementColumnUseCase {
         Self { repo }
     }
 
+    // カラムタスク数減少の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, req: &DecrementColumnRequest) -> anyhow::Result<BoardColumn> {
         self.repo.decrement(req).await
     }

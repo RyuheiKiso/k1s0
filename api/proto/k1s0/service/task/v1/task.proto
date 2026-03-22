@@ -119,9 +119,13 @@ message ListTasksResponse {
   k1s0.system.common.v1.PaginationResult pagination = 3;
 }
 
+// UpdateTaskStatusRequest はタスクステータス更新リクエスト。
+// expected_version により楽観的ロックを実現し、同時更新による競合を検出する。
 message UpdateTaskStatusRequest {
   string task_id = 1;
   TaskStatus status = 2;
+  // 楽観的ロックのバージョン番号。クライアントが保持しているバージョンと一致しない場合はエラーを返す。
+  int32 expected_version = 3;
 }
 
 message UpdateTaskStatusResponse {

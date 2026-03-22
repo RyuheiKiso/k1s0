@@ -148,7 +148,7 @@ func TestHttpVaultClientGetSecret(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v1/secrets/system/db" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			json.NewEncoder(w).Encode(map[string]any{
 				"path":       "system/db",
 				"data":       map[string]string{"password": "s3cr3t"},
 				"version":    1,
@@ -202,7 +202,7 @@ func TestHttpVaultClientPermissionDenied(t *testing.T) {
 func TestHttpVaultClientGetSecretValue(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"path":       "system/db",
 			"data":       map[string]string{"password": "s3cr3t", "username": "admin"},
 			"version":    1,
@@ -246,7 +246,7 @@ func TestHttpVaultClientCache(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"path":       "system/db",
 			"data":       map[string]string{"password": "s3cr3t"},
 			"version":    1,

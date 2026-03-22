@@ -168,7 +168,7 @@ func TestAssertionHelper_JSONContainsNested(t *testing.T) {
 // AssertionHelperのEventEmittedが指定したイベントタイプの存在有無を正しく検証することを確認する。
 func TestAssertionHelper_EventEmitted(t *testing.T) {
 	ah := testhelper.AssertionHelper{}
-	events := []map[string]interface{}{
+	events := []map[string]any{
 		{"type": "created", "id": "1"},
 		{"type": "updated", "id": "2"},
 	}

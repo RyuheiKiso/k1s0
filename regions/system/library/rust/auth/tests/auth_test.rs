@@ -182,12 +182,14 @@ fn check_permission_sys_admin_grants_all() {
     assert!(check_permission(&claims, "another-resource", "admin"));
 }
 
-// realm の admin ロールを持つユーザーはすべてのリソースへのアクセスが許可されることを確認する。
+// realm_access の admin ロールは全権限を付与しないことを確認する（最小権限原則）。
+// Go 版 CheckPermission と同一ロジック: realm admin は通常ロールとして扱い、全権限を持たない。
+// resource_access に admin を付与した場合のみそのリソースへの全操作を許可する。
 #[test]
 fn check_permission_realm_admin_grants_all() {
     let claims = build_claims("admin-2", vec!["admin"], vec![], vec![]);
-    assert!(check_permission(&claims, "task-server", "read"));
-    assert!(check_permission(&claims, "user-service", "write"));
+    assert!(!check_permission(&claims, "task-server", "read"));
+    assert!(!check_permission(&claims, "user-service", "write"));
 }
 
 // リソース admin ロールを持つ場合はそのリソースへのすべての操作が許可されることを確認する。

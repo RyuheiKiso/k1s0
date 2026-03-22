@@ -1,3 +1,5 @@
+// アクティビティ REST ハンドラー。
+// Claims 拡張から認証ユーザー ID を取得してユースケースに渡す。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::activity::{ActivityFilter, CreateActivity};
 use axum::{
@@ -6,6 +8,8 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use k1s0_auth::claims::actor_from_claims;
+use k1s0_auth::Claims;
 use k1s0_server_common::ServiceError;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -57,49 +61,65 @@ pub async fn get_activity(
     Ok(Json(activity))
 }
 
+// アクティビティ作成: リクエスト拡張から Claims を取得し、actor_id として使用する
 pub async fn create_activity(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Json(input): Json<CreateActivity>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let activity = state
         .create_activity_uc
-        .execute(&input, "anonymous")
+        .execute(&input, &actor)
         .await
         .map_err(map_err)?;
     Ok((StatusCode::CREATED, Json(activity)))
 }
 
+// アクティビティ提出: リクエスト拡張から Claims を取得し、actor_id として使用する（Active → Submitted）
 pub async fn submit_activity(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let activity = state
         .submit_activity_uc
-        .execute(id, "anonymous")
+        .execute(id, &actor)
         .await
         .map_err(map_err)?;
     Ok(Json(activity))
 }
 
+// アクティビティ承認: リクエスト拡張から Claims を取得し、approver_id として使用する（Submitted → Approved）
 pub async fn approve_activity(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let activity = state
         .approve_activity_uc
-        .execute(id, "anonymous")
+        .execute(id, &actor)
         .await
         .map_err(map_err)?;
     Ok(Json(activity))
 }
 
+// アクティビティ却下: リクエスト拡張から Claims を取得し、rejector_id として使用する（Submitted → Rejected）
 pub async fn reject_activity(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
     let activity = state
         .reject_activity_uc
-        .execute(id, "anonymous", "no reason provided")
+        .execute(id, &actor, "no reason provided")
         .await
         .map_err(map_err)?;
     Ok(Json(activity))

@@ -13,6 +13,8 @@ impl GetActivityUseCase {
         Self { repo }
     }
 
+    // アクティビティ取得の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, id: Uuid) -> anyhow::Result<Option<Activity>> {
         self.repo.find_by_id(id).await
     }

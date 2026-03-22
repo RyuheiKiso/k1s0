@@ -12,6 +12,8 @@ impl ListBoardColumnsUseCase {
         Self { repo }
     }
 
+    // ボードカラム一覧取得の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(
         &self,
         filter: &BoardColumnFilter,

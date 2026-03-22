@@ -7,13 +7,22 @@ Rust で実装する。
 
 ### RBAC対応表
 
-| ロール名 | リソース/アクション |
-|---------|-----------------|
-| activity:read | アクティビティ一覧取得・単体取得 |
-| activity:write | アクティビティ作成・提出 |
-| activity:approve | アクティビティ承認・却下 |
+service tier のロールに基づいてアクセス制御する。
 
-Tier: `Tier::Service`。JWKS ベースの JWT 認証と、`require_permission(Tier::Service, "activity", action)` による権限チェックを行う。
+| ロール | read | write | admin |
+|--------|------|-------|-------|
+| `sys_admin` | ✅ | ✅ | ✅ |
+| `svc_admin` | ✅ | ✅ | ✅ |
+| `svc_operator` | ✅ | ✅ | ❌ |
+| `svc_viewer` | ✅ | ❌ | ❌ |
+
+| アクション | 対象エンドポイント |
+|-----------|-----------------|
+| `read` | GET（アクティビティ一覧・詳細取得） |
+| `write` | POST / PUT（作成・提出） |
+| `admin` | PUT（承認・却下：`/approve`・`/reject`） |
+
+実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 
 service tier のアクティビティ管理サーバーは以下の機能を提供する。
 

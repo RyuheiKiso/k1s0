@@ -51,8 +51,8 @@ type EventEnvelope struct {
 	Topic string
 	// Key はパーティショニングキー。例: user_id 等。
 	Key string
-	// Payload はイベントのペイロード（シリアライズ前のデータ）。
-	Payload interface{}
+	// Payload はイベントのペイロード（シリアライズ前のデータ、interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
+	Payload any
 	// Headers は Kafka メッセージヘッダー。追跡情報等を格納する。
 	Headers map[string]string
 }

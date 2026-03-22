@@ -119,10 +119,16 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // Use cases
-    let append_events_uc = Arc::new(usecase::AppendEventsUseCase::new(
-        stream_repo.clone(),
-        event_repo.clone(),
-    ));
+    // PgPool がある場合は REPEATABLE READ トランザクションで原子性を保証する
+    let append_events_uc = Arc::new(if let Some(ref pool) = db_pool {
+        usecase::AppendEventsUseCase::new_with_pool(
+            stream_repo.clone(),
+            event_repo.clone(),
+            pool.clone(),
+        )
+    } else {
+        usecase::AppendEventsUseCase::new(stream_repo.clone(), event_repo.clone())
+    });
     let read_events_uc = Arc::new(usecase::ReadEventsUseCase::new(
         stream_repo.clone(),
         event_repo.clone(),

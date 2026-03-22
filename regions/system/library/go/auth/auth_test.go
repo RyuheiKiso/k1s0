@@ -74,15 +74,16 @@ func generateTestToken(t *testing.T, privKey *rsa.PrivateKey, opts ...func(jwt.T
 	require.NoError(t, token.Set("scope", "openid profile email"))
 	require.NoError(t, token.Set("preferred_username", "taro.yamada"))
 	require.NoError(t, token.Set("email", "taro.yamada@example.com"))
-	require.NoError(t, token.Set("realm_access", map[string]interface{}{
-		"roles": []interface{}{"user", "order_manager"},
+	// JWT クレームにロール情報を設定する（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）
+	require.NoError(t, token.Set("realm_access", map[string]any{
+		"roles": []any{"user", "order_manager"},
 	}))
-	require.NoError(t, token.Set("resource_access", map[string]interface{}{
-		"task-server": map[string]interface{}{
-			"roles": []interface{}{"read", "write"},
+	require.NoError(t, token.Set("resource_access", map[string]any{
+		"task-server": map[string]any{
+			"roles": []any{"read", "write"},
 		},
 	}))
-	require.NoError(t, token.Set("tier_access", []interface{}{"system", "business", "service"}))
+	require.NoError(t, token.Set("tier_access", []any{"system", "business", "service"}))
 
 	for _, opt := range opts {
 		opt(token)
@@ -760,7 +761,8 @@ func TestRequireTierAccess_Forbidden(t *testing.T) {
 	privKey, keySet := testKeyPair(t)
 	// service ティアのみを持つユーザーのトークンを生成
 	tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
-		_ = token.Set("tier_access", []interface{}{"service"})
+		// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+		_ = token.Set("tier_access", []any{"service"})
 	})
 
 	verifier := NewJWKSVerifierWithFetcher(

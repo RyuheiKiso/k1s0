@@ -13,6 +13,8 @@ impl SubmitActivityUseCase {
         Self { repo }
     }
 
+    // アクティビティ提出の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, id: Uuid, actor_id: &str) -> anyhow::Result<Activity> {
         let activity = self
             .repo
@@ -20,6 +22,6 @@ impl SubmitActivityUseCase {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
         activity.transition_to(ActivityStatus::Submitted)?;
-        self.repo.update_status(id, "submitted", Some(actor_id)).await
+        self.repo.update_status(id, "submitted", Some(actor_id.to_string())).await
     }
 }

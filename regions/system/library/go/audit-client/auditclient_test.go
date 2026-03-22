@@ -71,7 +71,8 @@ func TestRecord_PreservesFields(t *testing.T) {
 		Action:       "delete",
 		ResourceType: "file",
 		ResourceID:   "f-1",
-		Metadata:     map[string]interface{}{"key": "value"},
+		// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+		Metadata:     map[string]any{"key": "value"},
 		Timestamp:    time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 	_ = c.Record(ctx, event)

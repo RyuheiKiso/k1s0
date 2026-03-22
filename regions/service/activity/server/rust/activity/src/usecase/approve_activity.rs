@@ -13,6 +13,8 @@ impl ApproveActivityUseCase {
         Self { repo }
     }
 
+    // アクティビティ承認の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, id: Uuid, approver_id: &str) -> anyhow::Result<Activity> {
         let activity = self
             .repo
@@ -20,6 +22,6 @@ impl ApproveActivityUseCase {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
         activity.transition_to(ActivityStatus::Approved)?;
-        self.repo.update_status(id, "approved", Some(approver_id)).await
+        self.repo.update_status(id, "approved", Some(approver_id.to_string())).await
     }
 }

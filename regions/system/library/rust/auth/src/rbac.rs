@@ -15,19 +15,18 @@ pub fn has_resource_role(claims: &Claims, resource: &str, role: &str) -> bool {
 /// Claims に指定の権限があるかを判定する。
 ///
 /// realm_access と resource_access の両方をチェックする。
-/// admin ロール（sys_admin, admin, リソース admin）を持つ場合は全権限を付与する。
+/// sys_admin のみ全リソース全アクションの権限を持つ（最小権限原則）。
+/// admin ロールは realm_access に存在しても全権限を付与しない（Go 版と同一ロジック）。
+/// resource_access に admin ロールがある場合はそのリソース内の全アクションを許可する。
 pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
-    // sys_admin は全権限
+    // sys_admin のみ全権限を付与する（スーパーユーザー）。
+    // realm_access の admin ロールは通常ロールとして扱い、全権限を付与しない。
     if has_role(claims, "sys_admin") {
         return true;
     }
 
-    // realm_access に admin ロールがある場合
-    if has_role(claims, "admin") {
-        return true;
-    }
-
-    // resource_access のチェック
+    // resource_access のチェック（指定リソースのロールを確認）。
+    // resource_access に admin ロールがある場合はそのリソース内の全アクションを許可する。
     if let Some(ref resource_access) = claims.resource_access {
         if let Some(access) = resource_access.get(resource) {
             for role in &access.roles {
@@ -194,6 +193,18 @@ mod tests {
         assert!(check_permission(&claims, "any-resource", "read"));
         assert!(check_permission(&claims, "any-resource", "write"));
         assert!(check_permission(&claims, "any-resource", "delete"));
+    }
+
+    // realm_access の admin ロールは全権限を付与しないことを確認する（最小権限原則）。
+    // Go 版 CheckPermission と同一ロジック: admin は resource_access のみで有効。
+    #[test]
+    fn test_check_permission_realm_admin_does_not_grant_all() {
+        // realm_access に admin ロールがあっても全権限にはならない
+        let claims = make_claims(vec!["admin"], HashMap::new(), vec![]);
+
+        assert!(!check_permission(&claims, "task-server", "read"));
+        assert!(!check_permission(&claims, "task-server", "write"));
+        assert!(!check_permission(&claims, "any-resource", "delete"));
     }
 
     // リソース admin ロールを持つ場合はそのリソースへの全操作が許可されることを確認する。

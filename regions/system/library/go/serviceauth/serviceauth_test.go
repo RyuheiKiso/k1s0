@@ -21,7 +21,7 @@ func newTokenServer(t *testing.T, token string, expiresIn int) (*httptest.Server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"access_token": token,
 			"token_type":   "Bearer",
 			"expires_in":   expiresIn,
@@ -150,7 +150,7 @@ func TestGetCachedToken_CachesToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"access_token": "cached-token",
 			"token_type":   "Bearer",
 			"expires_in":   3600,
@@ -182,7 +182,7 @@ func TestGetCachedToken_Concurrent(t *testing.T) {
 		// 少し遅延を入れてコンカレンシーを再現
 		time.Sleep(10 * time.Millisecond)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"access_token": "concurrent-token",
 			"token_type":   "Bearer",
 			"expires_in":   3600,
@@ -282,7 +282,7 @@ func TestGetToken_WithAudience(t *testing.T) {
 		r.ParseForm()
 		capturedBody = r.Form.Get("audience")
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"access_token": "tok",
 			"token_type":   "Bearer",
 			"expires_in":   3600,
@@ -308,7 +308,7 @@ func TestGetCachedToken_RefreshesExpiredToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount.Add(1)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"access_token": "new-token",
 			"token_type":   "Bearer",
 			"expires_in":   3600,

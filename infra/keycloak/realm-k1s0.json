@@ -32,6 +32,7 @@
   "oauth2DeviceCodeLifespan": 600,
   "oauth2DevicePollingInterval": 5,
   "defaultSignatureAlgorithm": "RS256",
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and specialChars(1) and digits(1) and notUsername",
   "roles": {
     "realm": [
       {
@@ -187,7 +188,7 @@
           "protocolMapper": "oidc-hardcoded-claim-mapper",
           "config": {
             "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "claim.value": "[\"service\"]",
             "jsonType.label": "JSON",
             "id.token.claim": "true",
             "access.token.claim": "true",
@@ -247,7 +248,7 @@
           "protocolMapper": "oidc-hardcoded-claim-mapper",
           "config": {
             "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "claim.value": "[\"service\"]",
             "jsonType.label": "JSON",
             "id.token.claim": "true",
             "access.token.claim": "true",
@@ -345,7 +346,7 @@
           "protocolMapper": "oidc-hardcoded-claim-mapper",
           "config": {
             "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "claim.value": "[\"service\"]",
             "jsonType.label": "JSON",
             "id.token.claim": "true",
             "access.token.claim": "true",
@@ -522,7 +523,7 @@
         "name": "rsa-generated",
         "providerId": "rsa-generated",
         "config": {
-          "keySize": ["2048"],
+          "keySize": ["3072"],
           "algorithm": ["RS256"],
           "priority": ["100"]
         }

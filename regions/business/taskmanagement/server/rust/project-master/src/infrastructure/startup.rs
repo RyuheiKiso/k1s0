@@ -1,10 +1,12 @@
 // サーバー起動処理。
-// DB 接続・マイグレーション・ユースケース・ルーター構築・サーバー起動を行う。
+// DB 接続・マイグレーション・認証初期化・ユースケース・ルーター構築・サーバー起動を行う。
 use std::sync::Arc;
 use tracing::info;
+use anyhow::Context;
 
 use crate::adapter::handler::{AppState, router};
-use crate::infrastructure::config::{Config, KafkaConfig};
+use crate::adapter::middleware::auth::AuthState;
+use crate::infrastructure::config::Config;
 use crate::usecase::{
     event_publisher::NoopProjectMasterEventPublisher,
     get_status_definition_versions::GetStatusDefinitionVersionsUseCase,
@@ -12,6 +14,7 @@ use crate::usecase::{
     manage_status_definitions::ManageStatusDefinitionsUseCase,
     manage_tenant_extensions::ManageTenantExtensionsUseCase,
 };
+use k1s0_server_common::require_auth_state;
 
 pub async fn run() -> anyhow::Result<()> {
     // 設定読み込み
@@ -20,10 +23,16 @@ pub async fn run() -> anyhow::Result<()> {
     let cfg = Config::load(&config_path)?;
     info!(service = "project-master", "starting server");
 
-    // テレメトリ初期化
+    // テレメトリ初期化（サービス名・バージョン・tier・環境を明示的に設定する）
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: cfg.app.name.clone(),
-        ..Default::default()
+        version: "0.1.0".to_string(),
+        tier: "business".to_string(),
+        environment: cfg.app.environment.clone(),
+        trace_endpoint: None,
+        sample_rate: 1.0,
+        log_level: "info".to_string(),
+        log_format: "json".to_string(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
         .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {}", e))?;
@@ -96,6 +105,31 @@ pub async fn run() -> anyhow::Result<()> {
         event_publisher,
     ));
 
+    // 認証状態の初期化（auth 設定がある場合は JWKS 検証器を生成する）
+    let auth_state_opt = cfg.auth
+        .as_ref()
+        .map(|auth_cfg| -> anyhow::Result<AuthState> {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for project-master");
+            let verifier = Arc::new(
+                k1s0_auth::JwksVerifier::new(
+                    &auth_cfg.jwks_url,
+                    &auth_cfg.issuer,
+                    &auth_cfg.audience,
+                    std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                )
+                .context("JWKS 検証器の作成に失敗")?,
+            );
+            Ok(AuthState { verifier })
+        })
+        .transpose()?;
+
+    // 認証設定が未指定の場合は dev/test 環境かつ ALLOW_INSECURE_NO_AUTH=true のみ許可する
+    let auth_state = require_auth_state(
+        "project-master",
+        &cfg.app.environment,
+        auth_state_opt,
+    )?;
+
     // AppState + ルーター
     let state = AppState {
         manage_project_types_uc,
@@ -103,7 +137,7 @@ pub async fn run() -> anyhow::Result<()> {
         get_versions_uc,
         manage_tenant_extensions_uc,
         metrics: metrics.clone(),
-        auth_state: None, // TODO: 認証設定
+        auth_state,
     };
     let app = router(state);
 

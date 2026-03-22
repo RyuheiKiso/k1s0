@@ -1,4 +1,5 @@
 // ボードサーバーの起動処理。
+// DB 接続・マイグレーション・認証初期化・ユースケース構築・REST/gRPC サーバー起動を行う。
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,9 +14,11 @@ use crate::MIGRATOR;
 
 use super::config::{Config, DatabaseConfig};
 use crate::adapter::handler::{self, AppState};
+use crate::adapter::middleware::auth::AuthState;
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 use k1s0_server_common::shutdown::shutdown_signal;
+use k1s0_server_common::require_auth_state;
 
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
@@ -83,6 +86,31 @@ pub async fn run() -> anyhow::Result<()> {
         }
     }
 
+    // 認証状態の初期化（auth 設定がある場合は JWKS 検証器を生成する）
+    let auth_state_opt = cfg.auth
+        .as_ref()
+        .map(|auth_cfg| -> anyhow::Result<AuthState> {
+            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for board-server");
+            let verifier = Arc::new(
+                k1s0_auth::JwksVerifier::new(
+                    &auth_cfg.jwks_url,
+                    &auth_cfg.issuer,
+                    &auth_cfg.audience,
+                    std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
+                )
+                .context("JWKS 検証器の作成に失敗")?,
+            );
+            Ok(AuthState { verifier })
+        })
+        .transpose()?;
+
+    // 認証設定が未指定の場合は dev/test 環境かつ ALLOW_INSECURE_NO_AUTH=true のみ許可する
+    let auth_state = require_auth_state(
+        "board-server",
+        &cfg.app.environment,
+        auth_state_opt,
+    )?;
+
     let state = AppState {
         increment_column_uc: increment_column_uc.clone(),
         decrement_column_uc: decrement_column_uc.clone(),
@@ -90,6 +118,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_board_columns_uc: list_board_columns_uc.clone(),
         update_wip_limit_uc: update_wip_limit_uc.clone(),
         metrics: metrics.clone(),
+        auth_state: auth_state.clone(),
     };
     let app = handler::router(state);
 
@@ -98,7 +127,8 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
-    let grpc_auth_layer = GrpcAuthLayer::new(None, Tier::Service, required_action);
+    // gRPC 認証レイヤーに auth_state を渡す（REST と同じ認証設定を共有する）
+    let grpc_auth_layer = GrpcAuthLayer::new(auth_state, Tier::Service, required_action);
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let mut rest_shutdown_rx = shutdown_rx.clone();

@@ -17,8 +17,15 @@ import (
 
 // sharedTestMetrics はテストバイナリ内で1度だけ NewMetrics を呼び出す。
 // prometheus グローバルレジストリは同一メトリクス名の重複登録を許可しないため、
-// テスト関数ごとに NewMetrics を呼ぶとパニックする。
-var sharedTestMetrics = NewMetrics("test-telemetry-service")
+// テスト関数ごとに NewMetrics を呼ぶと AlreadyRegisteredError が発生する。
+// NewMetrics はエラーを返すため、テスト初期化で panic によりエラーを伝播させる。
+var sharedTestMetrics = func() *Metrics {
+	m, err := NewMetrics("test-telemetry-service")
+	if err != nil {
+		panic(err)
+	}
+	return m
+}()
 
 // TestNewMetrics_FieldsInitialized は NewMetrics が4つのメトリクスフィールドを全て初期化することを確認する。
 func TestNewMetrics_FieldsInitialized(t *testing.T) {

@@ -1,4 +1,6 @@
 // Outbox ポーラー。未送信イベントを定期的に Kafka へ発行する。
+// FOR UPDATE SKIP LOCKED により複数インスタンスが同一レコードを重複処理しないようにする。
+// Kafka 送信失敗時はログを記録してスキップし、他のイベントの処理を継続する。
 use crate::infrastructure::kafka::task_producer::TaskKafkaProducer;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -25,21 +27,54 @@ impl OutboxPoller {
         }
     }
 
+    /// 未送信イベントを取得してKafkaへ発行し、published フラグを更新する。
+    /// SELECT と UPDATE を同一トランザクション内で実行する。
+    /// FOR UPDATE SKIP LOCKED により複数インスタンスの重複処理を防止する。
     async fn poll_once(&self) -> anyhow::Result<()> {
+        // トランザクションを開始して SELECT と UPDATE を原子的に実行する
+        let mut tx = self.pool.begin().await?;
+
+        // FOR UPDATE SKIP LOCKED で他インスタンスが処理中のレコードをスキップする
         let rows: Vec<(Uuid, String, serde_json::Value)> = sqlx::query_as(
-            "SELECT id, event_type, payload FROM task.outbox_events WHERE published = false ORDER BY created_at LIMIT 100",
+            "SELECT id, event_type, payload FROM task.outbox_events WHERE published = false ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
 
         for (id, event_type, payload) in rows {
-            let bytes = serde_json::to_vec(&payload)?;
-            self.producer.publish(&event_type, &bytes).await?;
+            // ペイロードをバイト列にシリアライズしてKafkaへ送信する
+            let bytes = match serde_json::to_vec(&payload) {
+                Ok(b) => b,
+                Err(e) => {
+                    // シリアライズ失敗時はログを記録して次のイベントへ継続する
+                    tracing::error!(error = %e, event_id = %id, "failed to serialize outbox payload, skipping");
+                    continue;
+                }
+            };
+
+            // ペイロードから task_id を取得してパーティションキーとして使用する。
+            // task_id が取得できない場合はイベント ID の文字列をフォールバックキーとして使用する。
+            let task_id_str = payload
+                .get("task_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| id.to_string());
+
+            // Kafka 送信失敗時はログを記録して残りのイベント処理を継続する
+            if let Err(e) = self.producer.publish(&event_type, &bytes, &task_id_str).await {
+                tracing::error!(error = %e, event_id = %id, event_type = %event_type, "failed to publish outbox event to kafka, skipping");
+                continue;
+            }
+
+            // 送信成功したイベントのみ published = true に更新する
             sqlx::query("UPDATE task.outbox_events SET published = true WHERE id = $1")
                 .bind(id)
-                .execute(&self.pool)
+                .execute(&mut *tx)
                 .await?;
         }
+
+        // 全処理完了後にトランザクションをコミットする
+        tx.commit().await?;
         Ok(())
     }
 }

@@ -13,6 +13,8 @@ impl CreateTaskUseCase {
         Self { task_repo }
     }
 
+    // タスク作成の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, input: &CreateTask, created_by: &str) -> anyhow::Result<Task> {
         TaskService::validate_title(&input.title)?;
         self.task_repo.create(input, created_by).await
@@ -37,7 +39,9 @@ mod tests {
             status: TaskStatus::Open,
             priority: TaskPriority::Medium,
             assignee_id: None,
+            reporter_id: None,
             due_date: None,
+            labels: vec![],
             created_by: "user1".to_string(),
             updated_by: None,
             version: 1,
@@ -65,6 +69,7 @@ mod tests {
             priority: TaskPriority::Medium,
             assignee_id: None,
             due_date: None,
+            labels: vec![],
             checklist: vec![],
         };
         let result = uc.execute(&input, "user1").await;
@@ -83,6 +88,7 @@ mod tests {
             priority: TaskPriority::Medium,
             assignee_id: None,
             due_date: None,
+            labels: vec![],
             checklist: vec![],
         };
         let result = uc.execute(&input, "user1").await;

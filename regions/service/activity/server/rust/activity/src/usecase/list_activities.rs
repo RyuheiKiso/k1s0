@@ -12,6 +12,8 @@ impl ListActivitiesUseCase {
         Self { repo }
     }
 
+    // アクティビティ一覧取得の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, filter: &ActivityFilter) -> anyhow::Result<(Vec<Activity>, i64)> {
         let items = self.repo.find_all(filter).await?;
         let count = self.repo.count(filter).await?;

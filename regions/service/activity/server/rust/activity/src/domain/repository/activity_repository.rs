@@ -11,10 +11,11 @@ pub trait ActivityRepository: Send + Sync {
     async fn find_all(&self, filter: &ActivityFilter) -> anyhow::Result<Vec<Activity>>;
     async fn count(&self, filter: &ActivityFilter) -> anyhow::Result<i64>;
     async fn create(&self, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity>;
+    // updated_by を Option<String> に変更して mockall の lifetime 制約エラーを回避する
     async fn update_status(
         &self,
         id: Uuid,
         status: &str,
-        updated_by: Option<&str>,
+        updated_by: Option<String>,
     ) -> anyhow::Result<Activity>;
 }

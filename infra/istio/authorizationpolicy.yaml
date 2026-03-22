@@ -2,6 +2,35 @@
 # Works in conjunction with kubernetes設計.md NetworkPolicy (L3/L4 control).
 # NetworkPolicy handles L3/L4 level control; AuthorizationPolicy handles L7 level control.
 ---
+# デフォルト DENY ポリシー: k1s0-system namespace（ゼロトラストの基本）
+# 明示的な ALLOW ポリシーにマッチしないリクエストを全て拒否する
+# Istio の仕様により、同一 namespace 内に ALLOW ポリシーが存在する場合、
+# マッチしないトラフィックは自動的に拒否される（この空 spec が明示的にそれを宣言する）
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: k1s0-system
+spec: {}
+---
+# デフォルト DENY ポリシー: k1s0-business namespace（ゼロトラストの基本）
+# 明示的な ALLOW ポリシーにマッチしないリクエストを全て拒否する
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: k1s0-business
+spec: {}
+---
+# デフォルト DENY ポリシー: k1s0-service namespace（ゼロトラストの基本）
+# 明示的な ALLOW ポリシーにマッチしないリクエストを全て拒否する
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: k1s0-service
+spec: {}
+---
 # system Tier: Allow access from business, service, and same tier (system)
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy

@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,8 +19,11 @@ type Metrics struct {
 
 // NewMetrics は Prometheus メトリクスを初期化して返す。
 // serviceName はメトリクスの service ラベルに使用される。
-func NewMetrics(serviceName string) *Metrics {
+// MustRegister の代わりに Register を使用し、AlreadyRegisteredError を無視することで
+// テストの並列実行時やサービス再起動時の二重登録によるパニックを防止する。
+func NewMetrics(serviceName string) (*Metrics, error) {
 	m := &Metrics{
+		// HTTP リクエスト数カウンター: method/path/status ラベルで分類
 		HTTPRequestsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name:        "http_requests_total",
@@ -28,6 +32,7 @@ func NewMetrics(serviceName string) *Metrics {
 			},
 			[]string{"method", "path", "status"},
 		),
+		// HTTP リクエスト処理時間ヒストグラム: レイテンシ分布を計測
 		HTTPRequestDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:        "http_request_duration_seconds",
@@ -37,6 +42,7 @@ func NewMetrics(serviceName string) *Metrics {
 			},
 			[]string{"method", "path"},
 		),
+		// gRPC 処理済みリクエスト数カウンター: service/method/status_code ラベルで分類
 		GRPCHandledTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name:        "grpc_server_handled_total",
@@ -45,6 +51,7 @@ func NewMetrics(serviceName string) *Metrics {
 			},
 			[]string{"grpc_service", "grpc_method", "grpc_code"},
 		),
+		// gRPC 処理時間ヒストグラム: レスポンスレイテンシ分布を計測
 		GRPCHandlingDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:        "grpc_server_handling_seconds",
@@ -56,12 +63,24 @@ func NewMetrics(serviceName string) *Metrics {
 		),
 	}
 
-	prometheus.MustRegister(m.HTTPRequestsTotal)
-	prometheus.MustRegister(m.HTTPRequestDuration)
-	prometheus.MustRegister(m.GRPCHandledTotal)
-	prometheus.MustRegister(m.GRPCHandlingDuration)
+	// 各メトリクスを登録する。既に登録済みの場合はエラーを無視する（テスト並列実行対策）
+	// AlreadyRegisteredError 以外のエラー（例: メトリクス定義の競合）は伝播させる
+	collectors := []prometheus.Collector{
+		m.HTTPRequestsTotal,
+		m.HTTPRequestDuration,
+		m.GRPCHandledTotal,
+		m.GRPCHandlingDuration,
+	}
+	for _, c := range collectors {
+		if err := prometheus.Register(c); err != nil {
+			// 既存メトリクスが登録済みの場合はエラーを無視する（テスト並列実行対策）
+			if _, ok := err.(prometheus.AlreadyRegisteredError); !ok {
+				return nil, fmt.Errorf("prometheus.Register failed: %w", err)
+			}
+		}
+	}
 
-	return m
+	return m, nil
 }
 
 // MetricsHandler は /metrics エンドポイント用の HTTP ハンドラを返す。

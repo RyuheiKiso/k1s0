@@ -13,6 +13,8 @@ impl UpdateWipLimitUseCase {
         Self { repo }
     }
 
+    // WIP 制限更新の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, req: &UpdateWipLimitRequest) -> anyhow::Result<BoardColumn> {
         BoardService::validate_wip_limit(req.wip_limit)?;
         self.repo.update_wip_limit(req).await
