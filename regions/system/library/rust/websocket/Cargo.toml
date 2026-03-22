@@ -15,7 +15,7 @@ serde = {workspace = true}
 thiserror = {workspace = true}
 tokio = {workspace = true}
 mockall = {workspace = true, optional = true}
-tokio-tungstenite = { version = "0.26", optional = true, features = ["native-tls"] }
+tokio-tungstenite = { version = "0.28", optional = true, features = ["native-tls"] }
 futures-util = { version = "0.3", optional = true }
 
 [dev-dependencies]
