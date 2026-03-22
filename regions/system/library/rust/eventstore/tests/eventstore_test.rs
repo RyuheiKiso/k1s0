@@ -172,13 +172,13 @@ async fn test_load_nonexistent_stream_returns_empty() {
 #[tokio::test]
 async fn test_append_multiple_events_increments_version() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-700");
+    let stream_id = StreamId::new("task-700");
 
     let events = vec![
-        make_event(&stream_id, "OrderCreated"),
+        make_event(&stream_id, "TaskCreated"),
         make_event(&stream_id, "ItemAdded"),
         make_event(&stream_id, "ItemAdded"),
-        make_event(&stream_id, "OrderConfirmed"),
+        make_event(&stream_id, "TaskUpdated"),
     ];
 
     let final_version = store.append(&stream_id, events, None).await.unwrap();
