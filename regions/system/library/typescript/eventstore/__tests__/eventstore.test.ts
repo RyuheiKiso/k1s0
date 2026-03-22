@@ -40,49 +40,49 @@ describe('InMemoryEventStore', () => {
 
   it('loadFromで指定バージョン以降のみ取得できる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-200';
+    const sid: StreamId = 'task-200';
     await store.append(sid, [
-      makeEvent(sid, 'OrderCreated'),
-      makeEvent(sid, 'OrderConfirmed'),
-      makeEvent(sid, 'OrderShipped'),
+      makeEvent(sid, 'TaskCreated'),
+      makeEvent(sid, 'TaskUpdated'),
+      makeEvent(sid, 'TaskStatusChanged'),
     ]);
 
     const loaded = await store.loadFrom(sid, 2);
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].eventType).toBe('OrderConfirmed');
+    expect(loaded[0].eventType).toBe('TaskUpdated');
     expect(loaded[0].version).toBe(2);
-    expect(loaded[1].eventType).toBe('OrderShipped');
+    expect(loaded[1].eventType).toBe('TaskStatusChanged');
     expect(loaded[1].version).toBe(3);
   });
 
   it('間違ったexpectedVersionでVersionConflictErrorを投げる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-300';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-300';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
     await expect(
-      store.append(sid, [makeEvent(sid, 'OrderConfirmed')], 0),
+      store.append(sid, [makeEvent(sid, 'TaskUpdated')], 0),
     ).rejects.toThrow(VersionConflictError);
   });
 
   it('正しいexpectedVersionで成功する', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-400';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-400';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
-    const version = await store.append(sid, [makeEvent(sid, 'OrderConfirmed')], 1);
+    const version = await store.append(sid, [makeEvent(sid, 'TaskUpdated')], 1);
     expect(version).toBe(2);
   });
 
   it('currentVersionが正しく更新される', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-500';
+    const sid: StreamId = 'task-500';
     expect(await store.currentVersion(sid)).toBe(0);
 
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
     expect(await store.currentVersion(sid)).toBe(1);
 
-    await store.append(sid, [makeEvent(sid, 'OrderConfirmed'), makeEvent(sid, 'OrderShipped')], 1);
+    await store.append(sid, [makeEvent(sid, 'TaskUpdated'), makeEvent(sid, 'TaskStatusChanged')], 1);
     expect(await store.currentVersion(sid)).toBe(3);
   });
 
