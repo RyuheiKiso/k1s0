@@ -28,13 +28,13 @@ describe('InMemoryEventStore', () => {
 
   it('append前はexistsがfalseを返す', async () => {
     const store = new InMemoryEventStore();
-    expect(await store.exists('order-999')).toBe(false);
+    expect(await store.exists('task-999')).toBe(false);
   });
 
   it('append後はexistsがtrueを返す', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-100';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-100';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
     expect(await store.exists(sid)).toBe(true);
   });
 
