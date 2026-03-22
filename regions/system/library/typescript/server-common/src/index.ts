@@ -14,6 +14,6 @@ export {
   file,
   scheduler,
   notification,
-  order,
+  task,
   featureflag,
 } from './well-known.js';

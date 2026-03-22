@@ -107,7 +107,7 @@
         <mxCell id="res_users" value="users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="970" y="210" width="120" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="res_orders" value="orders" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="res_orders" value="tasks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="970" y="270" width="120" height="35" as="geometry"/>
         </mxCell>
         <mxCell id="res_ledger" value="ledger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=12;fontStyle=1;" vertex="1" parent="1">

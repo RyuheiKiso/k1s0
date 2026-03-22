@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       app_id:
-        description: 'Application ID (e.g., order-client)'
+        description: 'Application ID (e.g., task-client)'
         required: true
         type: string
       version:
@@ -35,8 +35,6 @@ permissions: {}
 
 env:
   REGISTRY_URL: https://app-registry.internal.example.com
-  CEPH_ENDPOINT: https://ceph-rgw.internal.example.com
-  CEPH_BUCKET: k1s0-apps
 
 jobs:
   # ---------- ビルド・署名・SBOM 生成 ----------
@@ -134,11 +132,10 @@ jobs:
   # ---------- 承認ゲート付きパブリッシュ ----------
   # IMPORTANT: GitHub リポジトリ設定で production 環境に Required reviewers を設定すること。
   # Settings → Environments → production → Required reviewers
-  # これにより、ビルド完了後に手動承認がなければ Ceph S3 へのアップロードおよび
-  # App Registry への登録が実行されないようになる。
+  # これにより、ビルド完了後に手動承認がなければ App Registry への登録が実行されないようになる。
   publish:
     needs: build
-    # コードの読み取りのみ必要（Ceph S3 / App Registry は secrets 経由でアクセス）
+    # コードの読み取りのみ必要（App Registry は secrets 経由でアクセス）
     permissions:
       contents: read
     strategy:
@@ -167,27 +164,16 @@ jobs:
           name: app-${{ matrix.platform }}-${{ matrix.arch }}
           path: ./dist
 
-      # 承認済みビルド成果物を Ceph S3 オブジェクトストレージにアップロード
-      - name: Upload to Ceph S3
-        # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-        uses: jakejarvis/s3-sync-action@7ed8b112447abb09f1da74f3466e4194fc7a6311 # master
-        with:
-          args: --acl private
-        env:
-          AWS_S3_ENDPOINT: ${{ env.CEPH_ENDPOINT }}
-          AWS_S3_BUCKET: ${{ env.CEPH_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_ACCESS_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_SECRET_KEY }}
-          SOURCE_DIR: ./dist
-          DEST_DIR: ${{ inputs.app_id }}/${{ inputs.version }}/${{ matrix.platform }}-${{ matrix.arch }}
-
-      # App Registry にバージョン情報を登録し、クライアントが新バージョンを検出できるようにする
+      # App Registry にビルド成果物をアップロードしてバージョン情報を登録する
+      # app-registry サーバーが直接ファイルを保存・配信するため、外部ストレージは不要
       - name: Register version in App Registry
         shell: bash
         run: |
           ARTIFACT_PATH="./dist/${{ inputs.app_id }}.${{ matrix.extension }}"
           SIZE=$(stat -c%s "${ARTIFACT_PATH}" 2>/dev/null || stat -f%z "${ARTIFACT_PATH}")
           CHECKSUM=$(sha256sum "${ARTIFACT_PATH}" | awk '{print $1}')
+          # storage_key: app-registry サーバー上のファイル保存パス
+          STORAGE_KEY="${{ inputs.app_id }}/${{ inputs.version }}/${{ matrix.platform }}-${{ matrix.arch }}/${{ inputs.app_id }}.${{ matrix.extension }}"
           curl -sf -X POST "${{ env.REGISTRY_URL }}/api/v1/apps/${{ inputs.app_id }}/versions" \
             -H "Authorization: Bearer ${{ secrets.APP_REGISTRY_TOKEN }}" \
             -H "Content-Type: application/json" \
@@ -197,7 +183,7 @@ jobs:
               \"arch\": \"${{ matrix.arch }}\",
               \"size_bytes\": $SIZE,
               \"checksum_sha256\": \"${CHECKSUM}\",
-              \"s3_key\": \"${{ inputs.app_id }}/${{ inputs.version }}/${{ matrix.platform }}-${{ matrix.arch }}/${{ inputs.app_id }}.${{ matrix.extension }}\",
+              \"storage_key\": \"${STORAGE_KEY}\",
               \"release_notes\": \"${{ inputs.release_notes }}\",
               \"mandatory\": ${{ inputs.mandatory }}
             }"

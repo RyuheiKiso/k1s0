@@ -3,11 +3,11 @@
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server-fault
+  name: task-server-fault
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server
+    - task-server
   http:
     - fault:
         delay:
@@ -16,4 +16,4 @@ spec:
           fixedDelay: 500ms
       route:
         - destination:
-            host: order-server
+            host: task-server

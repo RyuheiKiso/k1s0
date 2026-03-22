@@ -1,0 +1,44 @@
+// k1s0 タスクサービスイベント定義。
+// タスク作成・更新・キャンセルイベントを提供する。
+syntax = "proto3";
+package k1s0.event.service.task.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/service/task/v1;taskeventv1";
+
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// タスク作成イベント
+message TaskCreatedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string task_id = 2;
+  string project_id = 3;
+  string title = 4;
+  optional string assignee_id = 5;
+  string priority = 6;
+  repeated TaskChecklistItem checklist = 7;
+}
+
+// タスクチェックリスト項目（イベント内埋め込み用）
+message TaskChecklistItem {
+  string id = 1;
+  string title = 2;
+  bool is_completed = 3;
+  int32 sort_order = 4;
+}
+
+// タスク更新イベント
+message TaskUpdatedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string task_id = 2;
+  string project_id = 3;
+  string status = 4;
+  optional string assignee_id = 5;
+}
+
+// タスクキャンセルイベント
+message TaskCancelledEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string task_id = 2;
+  string project_id = 3;
+  string reason = 4;
+}

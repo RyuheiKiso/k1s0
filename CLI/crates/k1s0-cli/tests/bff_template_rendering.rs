@@ -22,7 +22,7 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-api", "service", lang, "bff")
+    let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -71,7 +71,7 @@ fn test_go_bff_resolver_has_query_mutation() {
         "Go BFF resolver should have MutationResolver type"
     );
     assert!(
-        content.contains("OrderApi"),
+        content.contains("TaskApi"),
         "Go BFF resolver should use PascalCase service name"
     );
 }
@@ -170,7 +170,7 @@ fn test_rust_bff_has_async_graphql_schema() {
         "Rust BFF should have build_schema function"
     );
     assert!(
-        content.contains("OrderApiBffSchema"),
+        content.contains("TaskApiBffSchema"),
         "Rust BFF should have typed schema alias"
     );
 }
@@ -301,11 +301,11 @@ fn test_go_bff_schema_has_query_mutation() {
         "Go BFF schema should have Mutation type"
     );
     assert!(
-        content.contains("OrderApi"),
+        content.contains("TaskApi"),
         "Go BFF schema should use PascalCase service name"
     );
     assert!(
-        content.contains("CreateOrderApiInput"),
+        content.contains("CreateTaskApiInput"),
         "Go BFF schema should have create input type"
     );
 }

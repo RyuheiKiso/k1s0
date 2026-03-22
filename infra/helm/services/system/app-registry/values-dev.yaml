@@ -17,11 +17,6 @@ pdb:
 vault:
   enabled: false
 
-ceph:
-  endpoint: http://ceph-rgw.k1s0-system.svc.cluster.local:8080
-  bucket: app-registry-dev
-  region: us-east-1
-
 config:
   data:
     config.yaml: |
@@ -30,10 +25,8 @@ config:
       database:
         host: postgresql.k1s0-system.svc.cluster.local
         ssl_mode: disable
-      ceph:
-        endpoint: http://ceph-rgw.k1s0-system.svc.cluster.local:8080
-        bucket: app-registry-dev
-        region: us-east-1
+      storage:
+        path: /data/apps
       observability:
         log:
           level: debug

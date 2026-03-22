@@ -1,10 +1,10 @@
-# Flagger-managed canary for order-server.
+# Flagger-managed canary for task-server.
 # The rollout weights and rollback thresholds mirror the design doc.
 # Analysis windows match the service-mesh design doc.
 apiVersion: flagger.app/v1beta1
 kind: Canary
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
   labels:
     app.kubernetes.io/part-of: k1s0-demo
@@ -12,12 +12,12 @@ spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: order-server
+    name: task-server
   service:
     port: 80
     targetPort: 8080
     hosts:
-      - order-server.k1s0-service.svc.cluster.local
+      - task-server.k1s0-service.svc.cluster.local
     gateways:
       - mesh
     timeout: 10s

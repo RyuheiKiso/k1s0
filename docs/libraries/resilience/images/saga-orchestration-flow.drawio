@@ -43,8 +43,8 @@
           <mxGeometry x="40" y="180" width="130" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- RUNNING Step 1: reserve-inventory -->
-        <mxCell id="running1" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 1&lt;br&gt;reserve-inventory" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <!-- RUNNING Step 1: create-board-card -->
+        <mxCell id="running1" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 1&lt;br&gt;create-board-card" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="230" y="175" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -53,8 +53,8 @@
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- RUNNING Step 2: process-payment -->
-        <mxCell id="running2" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 2&lt;br&gt;process-payment" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <!-- RUNNING Step 2: record-activity -->
+        <mxCell id="running2" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 2&lt;br&gt;record-activity" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="450" y="175" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -63,8 +63,8 @@
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- RUNNING Step 3: arrange-shipping -->
-        <mxCell id="running3" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 3&lt;br&gt;arrange-shipping" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <!-- RUNNING Step 3: send-notification -->
+        <mxCell id="running3" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br&gt;Step 3&lt;br&gt;send-notification" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="670" y="175" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -133,8 +133,8 @@
           </mxGeometry>
         </mxCell>
 
-        <!-- COMPENSATING Step: cancel-shipment -->
-        <mxCell id="comp1" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;cancel-shipment&lt;br&gt;出荷取消" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
+        <!-- COMPENSATING Step: cancel-notification -->
+        <mxCell id="comp1" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;cancel-notification&lt;br&gt;通知取消" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="250" y="355" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -143,8 +143,8 @@
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <!-- COMPENSATING Step: refund -->
-        <mxCell id="comp2" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;refund&lt;br&gt;返金処理" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
+        <!-- COMPENSATING Step: undo-activity -->
+        <mxCell id="comp2" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;undo-activity&lt;br&gt;アクティビティ取消" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="470" y="355" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -154,7 +154,7 @@
         </mxCell>
 
         <!-- COMPENSATING Step: release-inventory -->
-        <mxCell id="comp3" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;release-inventory&lt;br&gt;在庫解放" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
+        <mxCell id="comp3" value="&lt;b&gt;COMPENSATING&lt;/b&gt;&lt;br&gt;remove-board-card&lt;br&gt;カード削除" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=11;verticalAlign=middle;arcSize=15;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="690" y="355" width="160" height="70" as="geometry"/>
         </mxCell>
 
@@ -194,22 +194,22 @@
         </mxCell>
 
         <!-- Inventory Service -->
-        <mxCell id="svc_inventory" value="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <mxCell id="svc_board" value="&lt;b&gt;Board&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="250" y="500" width="120" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Payment Service -->
-        <mxCell id="svc_payment" value="&lt;b&gt;Payment&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <mxCell id="svc_payment" value="&lt;b&gt;Activity&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="470" y="500" width="120" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Shipping Service -->
-        <mxCell id="svc_shipping" value="&lt;b&gt;Shipping&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
+        <mxCell id="svc_shipping" value="&lt;b&gt;Notification&lt;/b&gt;&lt;br&gt;Service" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;verticalAlign=middle;arcSize=15;" vertex="1" parent="1">
           <mxGeometry x="690" y="500" width="120" height="40" as="geometry"/>
         </mxCell>
 
         <!-- gRPC connections from RUNNING steps to services -->
-        <mxCell id="r1_to_svc" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#9673A6;dashed=1;dashPattern=2 2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="running1" target="svc_inventory" parent="1">
+        <mxCell id="r1_to_svc" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#9673A6;dashed=1;dashPattern=2 2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="running1" target="svc_board" parent="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
         <mxCell id="r2_to_svc" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1;strokeColor=#9673A6;dashed=1;dashPattern=2 2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="running2" target="svc_payment" parent="1">

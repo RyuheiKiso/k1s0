@@ -53,7 +53,6 @@ module "database" {
   mysql_chart_version      = var.mysql_chart_version
   postgresql_version       = var.postgresql_version
   mysql_version            = var.mysql_version
-  backup_bucket            = var.backup_bucket
 
   depends_on = [module.kubernetes_base, module.kubernetes_storage]
 }
@@ -111,7 +110,6 @@ module "consul_backup" {
   consul_version           = var.consul_version
   consul_http_addr         = var.consul_http_addr
   consul_token_secret_name = var.consul_token_secret_name
-  backup_bucket            = var.backup_bucket
   backup_pvc_name          = var.consul_backup_pvc_name
   retention_count          = var.consul_backup_retention_count
 

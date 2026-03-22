@@ -99,7 +99,7 @@ mod tests {
             id: Uuid::new_v4(),
             name: "test_flow".to_string(),
             description: String::new(),
-            domain: "service.order".to_string(),
+            domain: "service.task".to_string(),
             steps: steps
                 .into_iter()
                 .map(|(et, src, timeout)| FlowStep {
@@ -137,8 +137,8 @@ mod tests {
     #[test]
     fn test_no_timeout() {
         let flow = make_flow(vec![
-            ("OrderCreated", "order-service", 0),
-            ("PaymentProcessed", "payment-service", 60),
+            ("TaskCreated", "task-server", 0),
+            ("ActivityCreated", "activity-server", 60),
         ]);
         let instance = make_instance(flow.id, 0, 10); // 10 seconds ago, timeout is 60
         let results = TimeoutDetectionService::detect_timeouts(&[instance], &[flow]);
@@ -148,8 +148,8 @@ mod tests {
     #[test]
     fn test_timeout_detected() {
         let flow = make_flow(vec![
-            ("OrderCreated", "order-service", 0),
-            ("PaymentProcessed", "payment-service", 30),
+            ("TaskCreated", "task-server", 0),
+            ("ActivityCreated", "activity-server", 30),
         ]);
         let instance = make_instance(flow.id, 0, 60); // 60 seconds ago, timeout is 30
         let results = TimeoutDetectionService::detect_timeouts(&[instance], &[flow]);
@@ -160,8 +160,8 @@ mod tests {
     #[test]
     fn test_completed_instance_skipped() {
         let flow = make_flow(vec![
-            ("OrderCreated", "order-service", 0),
-            ("PaymentProcessed", "payment-service", 30),
+            ("TaskCreated", "task-server", 0),
+            ("ActivityCreated", "activity-server", 30),
         ]);
         let mut instance = make_instance(flow.id, 0, 60);
         instance.status = FlowInstanceStatus::Completed;
@@ -172,8 +172,8 @@ mod tests {
     #[test]
     fn test_disabled_flow_skipped() {
         let mut flow = make_flow(vec![
-            ("OrderCreated", "order-service", 0),
-            ("PaymentProcessed", "payment-service", 30),
+            ("TaskCreated", "task-server", 0),
+            ("ActivityCreated", "activity-server", 30),
         ]);
         flow.enabled = false;
         let instance = make_instance(flow.id, 0, 60);

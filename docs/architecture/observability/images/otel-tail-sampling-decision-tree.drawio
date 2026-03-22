@@ -91,7 +91,7 @@
         </mxCell>
 
         <!-- 重要サービスの説明ノート -->
-        <mxCell id="note2" value="&lt;b&gt;重要サービス:&lt;/b&gt;&lt;br&gt;・auth-server&lt;br&gt;・payment-server&lt;br&gt;・order-server" style="shape=note;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;shadow=1;size=15;" vertex="1" parent="1">
+        <mxCell id="note2" value="&lt;b&gt;重要サービス:&lt;/b&gt;&lt;br&gt;・auth-server&lt;br&gt;・activity-server&lt;br&gt;・task-server" style="shape=note;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;shadow=1;size=15;" vertex="1" parent="1">
           <mxGeometry x="40" y="420" width="160" height="70" as="geometry"/>
         </mxCell>
 

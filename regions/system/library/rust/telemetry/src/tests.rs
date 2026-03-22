@@ -33,7 +33,7 @@ mod tests {
     #[test]
     fn test_telemetry_config_with_trace_endpoint() {
         let cfg = TelemetryConfig {
-            service_name: "order-server".to_string(),
+            service_name: "task-server".to_string(),
             version: "2.0.0".to_string(),
             tier: "service".to_string(),
             environment: "prod".to_string(),
@@ -43,7 +43,7 @@ mod tests {
             log_format: "text".to_string(),
         };
 
-        assert_eq!(cfg.service_name, "order-server");
+        assert_eq!(cfg.service_name, "task-server");
         assert_eq!(cfg.trace_endpoint, Some("otel-collector:4317".to_string()));
         assert_eq!(cfg.sample_rate, 0.1);
     }

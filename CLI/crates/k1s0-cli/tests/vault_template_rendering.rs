@@ -63,7 +63,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_vault_file_list() {
-    let Some((_, names)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((_, names)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -82,21 +82,21 @@ fn test_vault_file_list() {
 
 #[test]
 fn test_vault_has_service_name() {
-    let Some((tmp, _)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Vault config should contain service name\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_vault_has_namespace() {
-    let Some((tmp, _)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -110,7 +110,7 @@ fn test_vault_has_namespace() {
 
 #[test]
 fn test_vault_with_database() {
-    let Some((tmp, _)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -124,7 +124,7 @@ fn test_vault_with_database() {
 
 #[test]
 fn test_vault_without_database() {
-    let Some((tmp, _)) = render_vault("order-api", "service", false, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", false, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -138,7 +138,7 @@ fn test_vault_without_database() {
 
 #[test]
 fn test_vault_with_kafka() {
-    let Some((tmp, _)) = render_vault("order-api", "service", false, true, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", false, true, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -152,7 +152,7 @@ fn test_vault_with_kafka() {
 
 #[test]
 fn test_vault_with_redis() {
-    let Some((tmp, _)) = render_vault("order-api", "service", false, false, true) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", false, false, true) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -166,14 +166,14 @@ fn test_vault_with_redis() {
 
 #[test]
 fn test_vault_secret_path_uses_tier() {
-    let Some((tmp, _)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "secret-provider-class.yaml");
     assert!(
-        content.contains("secret/data/k1s0/service/order-api"),
+        content.contains("secret/data/k1s0/service/task-api"),
         "Secret path should include tier and service name\n--- secret-provider-class.yaml ---\n{content}"
     );
 }
@@ -194,7 +194,7 @@ fn test_vault_policy_system_shared() {
 
 #[test]
 fn test_vault_policy_service_no_shared() {
-    let Some((tmp, _)) = render_vault("order-api", "service", true, false, false) else {
+    let Some((tmp, _)) = render_vault("task-api", "service", true, false, false) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };
@@ -208,7 +208,7 @@ fn test_vault_policy_service_no_shared() {
 
 #[test]
 fn test_vault_no_tera_syntax() {
-    let Some((tmp, names)) = render_vault("order-api", "service", true, true, true) else {
+    let Some((tmp, names)) = render_vault("task-api", "service", true, true, true) else {
         eprintln!("SKIP: vault テンプレートディレクトリが未作成");
         return;
     };

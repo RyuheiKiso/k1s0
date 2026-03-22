@@ -95,12 +95,12 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
-            "order_flow".to_string(),
+            "task_flow".to_string(),
             "test".to_string(),
-            "service.order".to_string(),
+            "service.task".to_string(),
             vec![FlowStep {
-                event_type: "OrderCreated".to_string(),
-                source: "order-service".to_string(),
+                event_type: "TaskCreated".to_string(),
+                source: "task-server".to_string(),
                 source_filter: None,
                 timeout_seconds: 30,
                 description: String::new(),

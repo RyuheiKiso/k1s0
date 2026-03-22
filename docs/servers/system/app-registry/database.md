@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS app_registry.app_versions (
     arch            VARCHAR(20)  NOT NULL,
     size_bytes      BIGINT       NOT NULL,
     checksum_sha256 VARCHAR(64)  NOT NULL,
-    s3_key          TEXT         NOT NULL,
+    storage_key     TEXT         NOT NULL,
     release_notes   TEXT,
     mandatory       BOOLEAN      NOT NULL DEFAULT false,
     published_at    TIMESTAMPTZ,
@@ -103,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_app_versions_published_at ON app_registry.app_ver
 | arch | VARCHAR(20) | UNIQUE(app_id, version, platform, arch), NOT NULL | アーキテクチャ |
 | size_bytes | BIGINT | NOT NULL | ファイルサイズ（バイト） |
 | checksum_sha256 | VARCHAR(64) | NOT NULL | SHA-256 チェックサム |
-| s3_key | TEXT | NOT NULL | S3 オブジェクトキー |
+| storage_key | TEXT | NOT NULL | サーバー上のファイル保存パス（例: `app-id/1.0.0/windows-x64/app.exe`） |
 | release_notes | TEXT | | リリースノート |
 | mandatory | BOOLEAN | NOT NULL, DEFAULT false | 強制アップデートフラグ |
 | published_at | TIMESTAMPTZ | | 公開日時 |
@@ -158,6 +158,8 @@ CREATE INDEX IF NOT EXISTS idx_download_stats_user_id ON app_registry.download_s
 | `004_create_download_stats.down.sql` | テーブル削除 |
 | `005_seed_initial_data.up.sql` | 初期アプリデータ投入 |
 | `005_seed_initial_data.down.sql` | 初期データ削除 |
+| `006_rename_s3_key_to_storage_key.up.sql` | `s3_key` → `storage_key` カラムリネーム |
+| `006_rename_s3_key_to_storage_key.down.sql` | `storage_key` → `s3_key` ロールバック |
 
 ---
 

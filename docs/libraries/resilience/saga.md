@@ -69,10 +69,10 @@ let client = SagaClient::new("http://saga-server:8080");
 
 // Saga 開始
 let request = StartSagaRequest {
-    workflow_name: "order-fulfillment".to_string(),
-    payload: serde_json::json!({ "order_id": "ord-123" }),
+    workflow_name: "task-assignment".to_string(),
+    payload: serde_json::json!({ "task_id": "task-123" }),
     correlation_id: Some("corr-001".to_string()),
-    initiated_by: Some("order-service".to_string()),
+    initiated_by: Some("task-service".to_string()),
 };
 let response = client.start_saga(&request).await?;
 

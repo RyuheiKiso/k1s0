@@ -18,13 +18,13 @@
     <mxCell id="s_ns" value="Namespace: k1s0-service" style="text;html=1;fontSize=10;fontColor=#6c8ebf;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
       <mxGeometry x="568" y="72" width="162" height="16" as="geometry" />
     </mxCell>
-    <mxCell id="s1" value="order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="s1" value="task" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="80" y="104" width="110" height="68" as="geometry" />
     </mxCell>
-    <mxCell id="s2" value="inventory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="s2" value="board" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="210" y="104" width="110" height="68" as="geometry" />
     </mxCell>
-    <mxCell id="s3" value="payment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="s3" value="activity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="340" y="104" width="110" height="68" as="geometry" />
     </mxCell>
     <mxCell id="s4" value="（その他&#xa;業務サービス）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#6c8ebf;fontSize=11;fontColor=#888888;" vertex="1" parent="1">
@@ -46,7 +46,7 @@
     <mxCell id="b_ns" value="Namespace: k1s0-business" style="text;html=1;fontSize=10;fontColor=#82b366;align=right;strokeColor=none;fillColor=none;" vertex="1" parent="1">
       <mxGeometry x="554" y="244" width="176" height="16" as="geometry" />
     </mxCell>
-    <mxCell id="b1" value="accounting&#xa;（会計）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="b1" value="taskmanagement&#xa;（タスク管理）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="80" y="276" width="110" height="68" as="geometry" />
     </mxCell>
     <mxCell id="b2" value="（業務ドメイン&#xa;共通処理 etc.）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fff0;strokeColor=#82b366;fontSize=11;fontColor=#888888;" vertex="1" parent="1">

@@ -85,7 +85,7 @@ mod tests {
                 roles: vec!["user".to_string(), "sys_admin".to_string()],
             }),
             resource_access: Some(HashMap::from([(
-                "order-service".to_string(),
+                "task-server".to_string(),
                 k1s0_auth::claims::Access {
                     roles: vec!["read".to_string(), "write".to_string()],
                 },
@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(
             server_claims
                 .resource_access
-                .get("order-service")
+                .get("task-server")
                 .unwrap()
                 .roles,
             vec!["read".to_string(), "write".to_string()]

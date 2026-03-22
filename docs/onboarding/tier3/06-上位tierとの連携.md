@@ -25,13 +25,13 @@ use k1s0_auth::{JwtValidator, Claims};
 
 // axum ミドルウェアとして組み込み
 let app = Router::new()
-    .route("/api/v1/orders", get(list_orders))
+    .route("/api/v1/tasks", get(list_tasks))
     .layer(k1s0_auth::jwt_layer(jwks_client));
 
 // ハンドラーで認証情報を取得
-async fn list_orders(
+async fn list_tasks(
     claims: Claims,  // ミドルウェアが自動抽出
-) -> Result<Json<Vec<Order>>, AppError> {
+) -> Result<Json<Vec<Task>>, AppError> {
     let user_id = claims.sub;  // 認証済みユーザーID
     let tenant_id = claims.tenant_id;  // テナントID
     // ...
@@ -115,13 +115,13 @@ use k1s0_telemetry::{init_telemetry, TelemetryConfig};
 
 // サーバー起動時に初期化
 init_telemetry(TelemetryConfig {
-    service_name: "order-service".into(),
+    service_name: "task-service".into(),
     otlp_endpoint: config.telemetry.otlp_endpoint.clone(),
     log_level: config.telemetry.log_level.clone(),
 })?;
 
 // 構造化ログ
-tracing::info!(order_id = %id, "注文を作成しました");
+tracing::info!(task_id = %id, "タスクを作成しました");
 ```
 
 #### messaging（Kafka イベント発行）
@@ -132,14 +132,14 @@ use k1s0_messaging::{EventProducer, EventEnvelope};
 let producer = EventProducer::new(&config.kafka).await?;
 
 let event = EventEnvelope::new(
-    "order.created",
-    OrderCreatedEvent {
-        order_id: order.id,
-        customer_id: order.customer_id,
-        total: order.total,
+    "task.created",
+    TaskCreatedEvent {
+        task_id: task.id,
+        project_id: task.project_id,
+        assignee_id: task.assignee_id,
     },
 );
-producer.publish("service.order.events", event).await?;
+producer.publish("k1s0.service.task.created.v1", event).await?;
 ```
 
 #### cache（Redis 分散キャッシュ）
@@ -150,8 +150,8 @@ use k1s0_cache::CacheClient;
 let cache = CacheClient::new(&config.redis).await?;
 
 // キャッシュの読み書き
-cache.set("order:order-1", &order, Duration::from_secs(300)).await?;
-let cached: Option<Order> = cache.get("order:order-1").await?;
+cache.set("task:task-1", &task, Duration::from_secs(300)).await?;
+let cached: Option<Task> = cache.get("task:task-1").await?;
 ```
 
 #### health（ヘルスチェック）
@@ -199,7 +199,7 @@ let user = auth_client
 // 設定取得
 let config_client = ConfigServiceClient::new(&config.upstream.config_grpc).await?;
 let feature_flags = config_client
-    .get_features(GetFeaturesRequest { service: "order-service".into() })
+    .get_features(GetFeaturesRequest { service: "task-service".into() })
     .await?;
 ```
 
@@ -209,17 +209,19 @@ let feature_flags = config_client
 
 ### 領域共通サーバー API
 
-所属する業務領域（例: accounting）の共通サーバーが提供する API を利用する。
+所属する業務領域（例: taskmanagement）の共通サーバーが提供する API を利用する。
 
 ```rust
 // business tier の領域共通サーバーへの gRPC 呼び出し
-let accounting_client = AccountingServiceClient::new(
+let project_master_client = ProjectMasterServiceClient::new(
     &config.upstream.business_api
 ).await?;
 
-// 領域共通のマスタデータ取得
-let tax_rates = accounting_client
-    .get_tax_rates(GetTaxRatesRequest { country: "JP".into() })
+// 領域共通のマスタデータ取得（プロジェクトタイプ・ステータス定義）
+let status_definitions = project_master_client
+    .list_status_definitions(ListStatusDefinitionsRequest {
+        project_type_code: "software-dev".into()
+    })
     .await?;
 ```
 
@@ -231,18 +233,18 @@ business tier のクライアントパッケージが提供する領域共通の
 
 ```typescript
 import {
-  AccountingLayout,       // 領域共通レイアウト
-  CurrencyInput,          // 通貨入力フィールド
-  TaxCalculator,          // 税計算コンポーネント
-  InvoiceTable,           // 請求書テーブル
-} from "business-accounting-client";
+  TaskManagementLayout,   // 領域共通レイアウト
+  StatusBadge,            // ステータスバッジ
+  ProjectTypeSelector,    // プロジェクトタイプセレクター
+  BoardColumn,            // ボードカラムコンポーネント
+} from "business-taskmanagement-client";
 
-function OrderSummary({ order }: { order: Order }) {
+function TaskDetail({ task }: { task: Task }) {
   return (
-    <AccountingLayout>
-      <InvoiceTable items={order.items} />
-      <CurrencyInput value={order.total} currency="JPY" readOnly />
-    </AccountingLayout>
+    <TaskManagementLayout>
+      <StatusBadge status={task.status} />
+      <ProjectTypeSelector value={task.projectType} readOnly />
+    </TaskManagementLayout>
   );
 }
 ```
@@ -250,16 +252,16 @@ function OrderSummary({ order }: { order: Order }) {
 #### Flutter
 
 ```dart
-import 'package:business_accounting_client/widgets.dart';
+import 'package:business_taskmanagement_client/widgets.dart';
 
-class OrderSummaryScreen extends StatelessWidget {
+class TaskDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return AccountingScaffold(
+    return TaskManagementScaffold(
       child: Column(
         children: [
-          InvoiceTable(items: order.items),
-          CurrencyDisplay(amount: order.total, currency: 'JPY'),
+          StatusBadge(status: task.status),
+          ProjectTypeDisplay(projectType: task.projectType),
         ],
       ),
     );
@@ -273,17 +275,17 @@ business tier のライブラリが提供する領域共通のドメインロジ
 
 ```rust
 // Rust サーバーでの利用
-use accounting_common::{TaxCalculator, Currency, RoundingMode};
+use taskmanagement_common::{StatusTransitionValidator, ProjectType};
 
-let tax = TaxCalculator::new(Currency::JPY, RoundingMode::HalfUp);
-let total_with_tax = tax.calculate(subtotal, tax_rate);
+let validator = StatusTransitionValidator::new(&status_definitions);
+let result = validator.can_transition(current_status, next_status);
 ```
 
 ```go
 // Go BFF での利用
-import accounting "github.com/k1s0/business/accounting/library/go"
+import taskmanagement "github.com/k1s0/business/taskmanagement/library/go"
 
-total := accounting.CalculateTax(subtotal, taxRate, accounting.CurrencyJPY)
+allowed := taskmanagement.CanTransitionStatus(currentStatus, nextStatus, statusDefs)
 ```
 
 ---
@@ -313,7 +315,7 @@ use k1s0_correlation::CorrelationLayer;
 init_telemetry(config.telemetry.clone())?;
 
 let app = Router::new()
-    .route("/api/v1/orders", get(list_orders))
+    .route("/api/v1/tasks", get(list_tasks))
     // トレースコンテキストの自動抽出・注入
     .layer(trace_layer())
     // 相関 ID の自動伝播
@@ -339,8 +341,8 @@ let client = AuthServiceClient::with_interceptor(
 use k1s0_telemetry::metrics;
 
 // カスタムメトリクスの記録
-metrics::counter!("orders_created_total", "status" => "success").increment(1);
-metrics::histogram!("order_processing_duration_seconds").record(duration.as_secs_f64());
+metrics::counter!("tasks_created_total", "status" => "success").increment(1);
+metrics::histogram!("task_processing_duration_seconds").record(duration.as_secs_f64());
 ```
 
 ### ログ
@@ -350,24 +352,24 @@ metrics::histogram!("order_processing_duration_seconds").record(duration.as_secs
 ```rust
 // k1s0_telemetry が自動的にトレース情報を付与
 tracing::info!(
-    order_id = %order.id,
-    customer_id = %order.customer_id,
-    total = %order.total,
-    "注文を作成しました"
+    task_id = %task.id,
+    project_id = %task.project_id,
+    assignee_id = %task.assignee_id,
+    "タスクを作成しました"
 );
 
 // 出力例:
 // {
 //   "timestamp": "2025-01-15T10:30:00Z",
 //   "level": "INFO",
-//   "message": "注文を作成しました",
-//   "order_id": "order-1",
-//   "customer_id": "customer-1",
-//   "total": "1000",
+//   "message": "タスクを作成しました",
+//   "task_id": "task-1",
+//   "project_id": "project-1",
+//   "assignee_id": "user-1",
 //   "trace_id": "abc123...",
 //   "span_id": "def456...",
 //   "correlation_id": "ghi789...",
-//   "service": "order-service"
+//   "service": "task-service"
 // }
 ```
 
@@ -385,15 +387,15 @@ use k1s0_outbox::OutboxPublisher;
 
 // 方法1: 直接発行
 let producer = EventProducer::new(&config.kafka).await?;
-producer.publish("service.order.events", event).await?;
+producer.publish("k1s0.service.task.created.v1", event).await?;
 
 // 方法2: トランザクショナルアウトボックス（推奨）
 // DB トランザクションとイベント発行の一貫性を保証
 let outbox = OutboxPublisher::new(pool.clone(), producer);
 
 let mut tx = pool.begin().await?;
-sqlx::query!("INSERT INTO orders ...").execute(&mut *tx).await?;
-outbox.enqueue(&mut tx, "service.order.events", &event).await?;
+sqlx::query!("INSERT INTO tasks ...").execute(&mut *tx).await?;
+outbox.enqueue(&mut tx, "k1s0.service.task.created.v1", &event).await?;
 tx.commit().await?;
 // outbox がバックグラウンドで Kafka に発行
 ```
@@ -403,19 +405,20 @@ tx.commit().await?;
 ```rust
 use k1s0_messaging::{EventConsumer, EventHandler};
 
-let consumer = EventConsumer::new(&config.kafka, "order-service").await?;
+let consumer = EventConsumer::new(&config.kafka, "activity-service").await?;
 
-consumer.subscribe("service.inventory.events", |event: EventEnvelope| async move {
+// task.created イベントを受信して activity ログを記録する例
+consumer.subscribe("k1s0.service.task.created.v1", |event: EventEnvelope| async move {
     match event.event_type.as_str() {
-        "inventory.reserved" => {
-            let payload: InventoryReservedEvent = event.deserialize()?;
-            // 在庫確保完了 → 注文ステータス更新
-            order_usecase.confirm_order(payload.order_id).await?;
+        "task.created" => {
+            let payload: TaskCreatedEvent = event.deserialize()?;
+            // タスク作成 → アクティビティログ記録
+            activity_usecase.log_task_created(payload.task_id).await?;
         }
-        "inventory.insufficient" => {
-            let payload: InventoryInsufficientEvent = event.deserialize()?;
-            // 在庫不足 → 注文キャンセル
-            order_usecase.cancel_order(payload.order_id, "在庫不足").await?;
+        "task.status_updated" => {
+            let payload: TaskStatusUpdatedEvent = event.deserialize()?;
+            // ステータス変更 → アクティビティログ記録 + ボードWIPカウント更新
+            activity_usecase.log_status_change(payload.task_id, payload.new_status).await?;
         }
         _ => {}
     }
@@ -426,14 +429,16 @@ consumer.subscribe("service.inventory.events", |event: EventEnvelope| async move
 ### トピック命名規則
 
 ```
-{tier}.{サービス名}.{イベントカテゴリ}
+k1s0.{tier}.{domain}.{event-type}.{version}
 ```
 
 | 例 | 説明 |
 | --- | --- |
-| `service.order.events` | order サービスのドメインイベント |
-| `service.order.commands` | order サービスへのコマンド |
-| `business.accounting.events` | accounting 領域の共通イベント |
+| `k1s0.service.task.created.v1` | task サービスのタスク作成イベント |
+| `k1s0.service.task.status_updated.v1` | タスクのステータス変更イベント |
+| `k1s0.service.board.column_updated.v1` | ボードカラム更新イベント |
+| `k1s0.service.activity.created.v1` | アクティビティ記録イベント |
+| `k1s0.business.taskmanagement.projecttype_changed.v1` | プロジェクトタイプ変更イベント |
 
 ### DLQ（Dead Letter Queue）
 
@@ -445,10 +450,10 @@ use k1s0_dlq_client::DlqClient;
 let dlq = DlqClient::new(&config.dlq_server_url);
 
 // DLQ メッセージの確認
-let failed_messages = dlq.list("service.order.events").await?;
+let failed_messages = dlq.list("k1s0.service.task.created.v1").await?;
 
 // 再処理
-dlq.retry("service.order.events", message_id).await?;
+dlq.retry("k1s0.service.task.created.v1", message_id).await?;
 ```
 
 ## 関連ドキュメント

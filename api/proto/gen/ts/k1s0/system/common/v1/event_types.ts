@@ -47,73 +47,73 @@ export enum EventType {
      */
     CONFIG_CHANGED = 200,
     /**
-     * === 会計系イベント (300-399) ===
-     * 仕訳エントリ作成イベント
+     * === タスク管理系イベント (300-399) ===
+     * プロジェクトタイプ変更イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_ACCOUNTING_ENTRY_CREATED = 300;
+     * @generated from protobuf enum value: EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED = 300;
      */
-    ACCOUNTING_ENTRY_CREATED = 300,
+    TASKMANAGEMENT_PROJECT_TYPE_CHANGED = 300,
     /**
-     * 仕訳エントリ承認イベント
+     * ステータス定義変更イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED = 301;
+     * @generated from protobuf enum value: EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED = 301;
      */
-    ACCOUNTING_ENTRY_APPROVED = 301,
+    TASKMANAGEMENT_STATUS_DEFINITION_CHANGED = 301,
     /**
-     * === 注文系イベント (400-499) ===
-     * 注文作成イベント
+     * === タスク系イベント (400-499) ===
+     * タスク作成イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_ORDER_CREATED = 400;
+     * @generated from protobuf enum value: EVENT_TYPE_TASK_CREATED = 400;
      */
-    ORDER_CREATED = 400,
+    TASK_CREATED = 400,
     /**
-     * 注文更新イベント
+     * タスクステータス変更イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_ORDER_UPDATED = 401;
+     * @generated from protobuf enum value: EVENT_TYPE_TASK_STATUS_CHANGED = 401;
      */
-    ORDER_UPDATED = 401,
+    TASK_STATUS_CHANGED = 401,
     /**
-     * 注文キャンセルイベント
+     * タスクキャンセルイベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_ORDER_CANCELLED = 402;
+     * @generated from protobuf enum value: EVENT_TYPE_TASK_CANCELLED = 402;
      */
-    ORDER_CANCELLED = 402,
+    TASK_CANCELLED = 402,
     /**
-     * === 在庫系イベント (500-599) ===
-     * 在庫予約イベント
+     * === ボード系イベント (500-599) ===
+     * ボードカラムインクリメントイベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_INVENTORY_RESERVED = 500;
+     * @generated from protobuf enum value: EVENT_TYPE_BOARD_COLUMN_INCREMENTED = 500;
      */
-    INVENTORY_RESERVED = 500,
+    BOARD_COLUMN_INCREMENTED = 500,
     /**
-     * 在庫解放イベント
+     * ボードカラムデクリメントイベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_INVENTORY_RELEASED = 501;
+     * @generated from protobuf enum value: EVENT_TYPE_BOARD_COLUMN_DECREMENTED = 501;
      */
-    INVENTORY_RELEASED = 501,
+    BOARD_COLUMN_DECREMENTED = 501,
     /**
-     * === 決済系イベント (600-699) ===
-     * 決済開始イベント
+     * === アクティビティ系イベント (600-699) ===
+     * アクティビティ作成イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_PAYMENT_INITIATED = 600;
+     * @generated from protobuf enum value: EVENT_TYPE_ACTIVITY_CREATED = 600;
      */
-    PAYMENT_INITIATED = 600,
+    ACTIVITY_CREATED = 600,
     /**
-     * 決済完了イベント
+     * アクティビティ承認イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_PAYMENT_COMPLETED = 601;
+     * @generated from protobuf enum value: EVENT_TYPE_ACTIVITY_APPROVED = 601;
      */
-    PAYMENT_COMPLETED = 601,
+    ACTIVITY_APPROVED = 601,
     /**
-     * 決済失敗イベント
+     * アクティビティ却下イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_PAYMENT_FAILED = 602;
+     * @generated from protobuf enum value: EVENT_TYPE_ACTIVITY_REJECTED = 602;
      */
-    PAYMENT_FAILED = 602,
+    ACTIVITY_REJECTED = 602,
     /**
-     * 返金イベント
+     * アクティビティ削除イベント
      *
-     * @generated from protobuf enum value: EVENT_TYPE_PAYMENT_REFUNDED = 603;
+     * @generated from protobuf enum value: EVENT_TYPE_ACTIVITY_DELETED = 603;
      */
-    PAYMENT_REFUNDED = 603
+    ACTIVITY_DELETED = 603
 }

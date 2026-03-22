@@ -3,12 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::download_stat::DownloadStat;
 use crate::domain::entity::platform::Platform;
 use crate::domain::repository::{AppRepository, DownloadStatsRepository, VersionRepository};
-use crate::infrastructure::s3_client::S3Client;
+use crate::infrastructure::file_storage::FileStorage;
 use crate::usecase::version_selection::{resolve_version, VersionSelectionError};
 
-const PRESIGNED_URL_EXPIRES_IN_SECS: u64 = 3600;
-
-/// GenerateDownloadUrlError はダウンロード URL 生成に関するエラーを表す。
+/// GenerateDownloadUrlError はダウンロード処理に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GenerateDownloadUrlError {
     #[error("app not found: {0}")]
@@ -24,22 +22,30 @@ pub enum GenerateDownloadUrlError {
     Internal(String),
 }
 
-/// DownloadUrlResult はダウンロード URL 生成結果を表す。
+/// DownloadUrlResult はファイルの直接配信に必要な情報を表す。
+/// S3 presigned URL の代わりに、ファイルのバイト列とメタデータを保持する。
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 pub struct DownloadUrlResult {
-    pub download_url: String,
-    pub expires_in: u64,
+    /// ファイルのバイト列。HTTP レスポンスのボディとして使用する。
+    #[serde(skip)]
+    pub file_bytes: Vec<u8>,
+    /// ファイルのコンテンツタイプ（拡張子から推定）。
+    pub content_type: String,
+    /// ファイルの SHA-256 チェックサム。
     pub checksum_sha256: String,
+    /// ファイルのバイトサイズ。
     pub size_bytes: Option<i64>,
+    /// ファイル名（Content-Disposition ヘッダー用）。
+    pub filename: String,
 }
 
-/// GenerateDownloadUrlUseCase はダウンロード URL 生成ユースケース。
-/// バージョン情報を取得し、S3 の署名付き URL を生成する。
+/// GenerateDownloadUrlUseCase はアプリバイナリのダウンロードユースケース。
+/// バージョン情報を取得し、ローカルFS からファイルを読み取って直接配信する。
 pub struct GenerateDownloadUrlUseCase {
     app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,
     download_stats_repo: Arc<dyn DownloadStatsRepository>,
-    s3_client: Arc<S3Client>,
+    file_storage: Arc<FileStorage>,
 }
 
 impl GenerateDownloadUrlUseCase {
@@ -47,13 +53,13 @@ impl GenerateDownloadUrlUseCase {
         app_repo: Arc<dyn AppRepository>,
         version_repo: Arc<dyn VersionRepository>,
         download_stats_repo: Arc<dyn DownloadStatsRepository>,
-        s3_client: Arc<S3Client>,
+        file_storage: Arc<FileStorage>,
     ) -> Self {
         Self {
             app_repo,
             version_repo,
             download_stats_repo,
-            s3_client,
+            file_storage,
         }
     }
 
@@ -75,7 +81,7 @@ impl GenerateDownloadUrlUseCase {
             return Err(GenerateDownloadUrlError::AppNotFound(app_id.to_string()));
         }
 
-        // バージョンを検索
+        // バージョンを検索してプラットフォーム・アーキテクチャで絞り込む
         let versions = self
             .version_repo
             .list_by_app(app_id)
@@ -93,14 +99,24 @@ impl GenerateDownloadUrlUseCase {
                 ),
             })?;
 
-        // 署名付き URL を生成 (有効期限: 1時間)
-        let download_url = self
-            .s3_client
-            .generate_presigned_url(&app_version.s3_key, PRESIGNED_URL_EXPIRES_IN_SECS)
+        // ローカルFS からファイルを読み取る
+        let file_bytes = self
+            .file_storage
+            .read_file(&app_version.storage_key)
             .await
             .map_err(|e| GenerateDownloadUrlError::Internal(e.to_string()))?;
 
-        // ダウンロード統計を記録 (非同期、エラーは無視)
+        // ファイル名をストレージキーの末尾部分から取得する
+        let filename = std::path::Path::new(&app_version.storage_key)
+            .file_name()
+            .and_then(|f| f.to_str())
+            .unwrap_or("download")
+            .to_string();
+
+        // 拡張子からコンテンツタイプを推定する
+        let content_type = guess_content_type(&filename);
+
+        // ダウンロード統計を記録（非同期、エラーは無視）
         let stat = DownloadStat {
             id: uuid::Uuid::new_v4(),
             app_id: app_id.to_string(),
@@ -114,10 +130,31 @@ impl GenerateDownloadUrlUseCase {
         }
 
         Ok(DownloadUrlResult {
-            download_url,
-            expires_in: PRESIGNED_URL_EXPIRES_IN_SECS,
+            file_bytes,
+            content_type,
             checksum_sha256: app_version.checksum_sha256,
             size_bytes: app_version.size_bytes,
+            filename,
         })
     }
+}
+
+/// ファイル名の拡張子からコンテンツタイプを推定する。
+fn guess_content_type(filename: &str) -> String {
+    let ext = std::path::Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    match ext {
+        "exe" => "application/octet-stream",
+        "dmg" => "application/x-apple-diskimage",
+        "AppImage" | "appimage" => "application/x-executable",
+        "deb" => "application/vnd.debian.binary-package",
+        "rpm" => "application/x-rpm",
+        "zip" => "application/zip",
+        "tar" => "application/x-tar",
+        "gz" | "tgz" => "application/gzip",
+        _ => "application/octet-stream",
+    }
+    .to_string()
 }

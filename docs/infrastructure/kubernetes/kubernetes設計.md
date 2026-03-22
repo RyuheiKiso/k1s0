@@ -292,13 +292,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: order-server
+    name: task-server
   minReplicas: 2       # staging 環境の値。prod では 3（環境別 HPA 設定を参照）
   maxReplicas: 5        # staging 環境の値。prod では 10（環境別 HPA 設定を参照）
   metrics:
@@ -345,13 +345,13 @@ prod 環境ではメンテナンス時の可用性を保証する。
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: order-server
+      app: task-server
 ```
 
 ## バックアップ
@@ -390,10 +390,7 @@ spec:
   - `harbor-backup` → `harbor-backup-sa`
   - `ceph-rbd-snapshot` → `ceph-backup-sa`
 - バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
-- **S3 オフサイト保存**: etcd および Vault のバックアップは PVC 保存後に S3 互換ストレージへアップロードする（DR 対策）
-  - S3 クレデンシャルは `backup-s3-credentials` Secret から環境変数で注入
-  - バケット命名: `k1s0-backup-{component}-{environment}`
-  - S3 アップロード失敗時はバックアップ自体は成功とし、アラート通知のみ実施
+- **オフサイト保存**: PVC ローカル保存のみ。外部オブジェクトストレージ（S3/Ceph RGW）は使用しない
 
 ### リストア手順・定期テスト
 
@@ -407,17 +404,17 @@ spec:
   - Consul State リストア
   - 定期リストアテスト手順（7章）
 - **リストアテストスクリプト**: `infra/kubernetes/backup/restore-test/`
-  - `vault-restore-test.sh`: S3 から最新スナップショットを取得して整合性検証
+  - `vault-restore-test.sh`: PVC から最新スナップショットを取得して整合性検証
   - `postgres-restore-test.sh`: pg_restore --list によるダンプ構造検証 + 実リストアテスト
 
-### 本番環境バックアップ（Terraform S3 オフロード方式）
+### 本番環境バックアップ（Terraform PVC ローカル保存方式）
 
-本番環境のバックアップは `infra/terraform/modules/database/backup.tf` で Terraform 管理する。S3 互換ストレージ（Ceph RGW）へ直接アップロードする方式であり、PVC への中間保存は行わない。
+本番環境のバックアップは `infra/terraform/modules/database/backup.tf` で Terraform 管理する。PVC（PersistentVolumeClaim）にローカル保存する方式であり、外部オブジェクトストレージ（S3/Ceph RGW）は使用しない。
 
-| コンポーネント | スケジュール | バケット | 実装ファイル |
+| コンポーネント | スケジュール | 保存先 | 実装ファイル |
 | --- | --- | --- | --- |
-| PostgreSQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/postgresql/` | `infra/terraform/modules/database/backup.tf` |
-| MySQL | 毎日 03:00 UTC | `k1s0-db-backup-prod/mysql/` | `infra/terraform/modules/database/backup.tf` |
+| PostgreSQL | 毎日 03:00 UTC | PVC `/backup/postgresql/` | `infra/terraform/modules/database/backup.tf` |
+| MySQL | 毎日 03:00 UTC | PVC `/backup/mysql/` | `infra/terraform/modules/database/backup.tf` |
 
 ### PostgreSQL バックアップ対象 DB
 
@@ -656,7 +653,7 @@ Kubernetes 上では以下の 3 種類の StorageClass を使用する。
 
 | ラベル                         | 値の例         | 用途                 |
 | ------------------------------ | -------------- | -------------------- |
-| `app.kubernetes.io/name`       | order-server   | アプリケーション名   |
+| `app.kubernetes.io/name`       | task-server    | アプリケーション名   |
 | `app.kubernetes.io/version`    | 1.2.3          | バージョン           |
 | `app.kubernetes.io/component`  | server         | コンポーネント種別   |
 | `app.kubernetes.io/part-of`    | k1s0           | プロジェクト名       |

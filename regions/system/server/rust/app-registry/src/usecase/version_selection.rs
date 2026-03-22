@@ -76,7 +76,7 @@ mod tests {
             arch: arch.to_string(),
             size_bytes: Some(1),
             checksum_sha256: "checksum".to_string(),
-            s3_key: "key".to_string(),
+            storage_key: "key".to_string(),
             release_notes: None,
             mandatory: false,
             published_at: DateTime::parse_from_rfc3339(published_at)

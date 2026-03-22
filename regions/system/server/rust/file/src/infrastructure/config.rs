@@ -100,18 +100,18 @@ fn default_jwks_cache_ttl() -> u64 {
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct StorageConfig {
+    /// ストレージバックエンドの種別。"local"（ローカルFS）または "memory"（テスト用）。
     #[serde(default = "default_backend")]
     pub backend: String,
-    pub bucket: Option<String>,
-    pub region: Option<String>,
-    pub endpoint: Option<String>,
+    /// ローカルFS バックエンド時のルートディレクトリパス。
+    pub path: Option<String>,
+    /// base_url: ファイルの upload/download URL 生成に使う file-server のベース URL。
+    pub base_url: Option<String>,
     pub max_file_size_bytes: Option<u64>,
-    pub access_key_id: Option<String>,
-    pub secret_access_key: Option<String>,
 }
 
 fn default_backend() -> String {
-    "memory".to_string()
+    "local".to_string()
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -271,15 +271,14 @@ app:
 server:
   port: 8098
 storage:
-  backend: "s3"
-  bucket: "k1s0-files"
-  region: "ap-northeast-1"
+  backend: "local"
+  path: "/data/files"
 "#;
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.storage.is_some());
         let storage = config.storage.unwrap();
-        assert_eq!(storage.backend, "s3");
-        assert_eq!(storage.bucket.unwrap(), "k1s0-files");
+        assert_eq!(storage.backend, "local");
+        assert_eq!(storage.path.unwrap(), "/data/files");
     }
 
     #[test]

@@ -29,9 +29,9 @@ steps:
       max_attempts: 1
       initial_interval_ms: 100
   - name: charge-payment
-    service: payment-service
-    method: PaymentService.Charge
-    compensate: PaymentService.Refund
+    service: activity-server
+    method: ActivityService.DeleteActivity
+    compensate: ActivityService.DeleteActivity
     timeout_secs: 5
     retry:
       max_attempts: 1

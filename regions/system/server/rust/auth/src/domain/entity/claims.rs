@@ -96,7 +96,7 @@ mod tests {
                 roles: vec!["user".to_string(), "sys_auditor".to_string()],
             },
             resource_access: HashMap::from([(
-                "order-service".to_string(),
+                "task-server".to_string(),
                 ResourceAccess {
                     roles: vec!["read".to_string(), "write".to_string()],
                 },
@@ -120,9 +120,9 @@ mod tests {
     #[test]
     fn test_claims_has_client_role() {
         let claims = sample_claims();
-        assert!(claims.has_client_role("order-service", "read"));
-        assert!(claims.has_client_role("order-service", "write"));
-        assert!(!claims.has_client_role("order-service", "delete"));
+        assert!(claims.has_client_role("task-server", "read"));
+        assert!(claims.has_client_role("task-server", "write"));
+        assert!(!claims.has_client_role("task-server", "delete"));
         assert!(!claims.has_client_role("unknown-service", "read"));
     }
 

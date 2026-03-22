@@ -296,15 +296,15 @@ mod tests {
                     path: std::path::PathBuf::from("regions/system/server/rust/auth"),
                 },
                 ServiceInfo {
-                    name: "order-server".to_string(),
+                    name: "task-server".to_string(),
                     tier: "service".to_string(),
-                    domain: Some("order".to_string()),
+                    domain: Some("task".to_string()),
                     language: "rust".to_string(),
-                    path: std::path::PathBuf::from("regions/service/order/server/rust"),
+                    path: std::path::PathBuf::from("regions/service/task/server/rust"),
                 },
             ],
             dependencies: vec![Dependency {
-                source: "order-server".to_string(),
+                source: "task-server".to_string(),
                 source_tier: "service".to_string(),
                 target: "auth-server".to_string(),
                 target_tier: "system".to_string(),
@@ -326,7 +326,7 @@ mod tests {
         assert!(mermaid.contains("System Tier"));
         assert!(mermaid.contains("Service Tier"));
         assert!(mermaid.contains("auth_server[auth]"));
-        assert!(mermaid.contains("order_server[order]"));
+        assert!(mermaid.contains("task_server[task]"));
         assert!(mermaid.contains("-->|gRPC|"));
     }
 
@@ -335,13 +335,13 @@ mod tests {
         let result = DepsResult {
             services: vec![],
             dependencies: vec![Dependency {
-                source: "order-server".to_string(),
+                source: "task-server".to_string(),
                 source_tier: "service".to_string(),
-                target: "payment-server".to_string(),
+                target: "activity-server".to_string(),
                 target_tier: "service".to_string(),
                 dep_type: DependencyType::Kafka,
                 locations: vec![],
-                detail: Some("k1s0.service.order.created.v1".to_string()),
+                detail: Some("k1s0.service.task.created.v1".to_string()),
             }],
             violations: vec![],
         };
@@ -356,7 +356,7 @@ mod tests {
         result.dependencies.push(Dependency {
             source: "auth-server".to_string(),
             source_tier: "system".to_string(),
-            target: "order-server".to_string(),
+            target: "task-server".to_string(),
             target_tier: "service".to_string(),
             dep_type: DependencyType::Grpc,
             locations: vec![],
@@ -366,7 +366,7 @@ mod tests {
             severity: Severity::Error,
             source: "auth-server".to_string(),
             source_tier: "system".to_string(),
-            target: "order-server".to_string(),
+            target: "task-server".to_string(),
             target_tier: "service".to_string(),
             dep_type: DependencyType::Grpc,
             message: "上位 tier から下位 tier への依存です".to_string(),

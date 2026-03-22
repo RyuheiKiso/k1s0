@@ -148,9 +148,9 @@ mod tests {
     fn make_event_with_flow(corr_id: &str, flow_id: Uuid, step_index: i32) -> EventRecord {
         let mut event = EventRecord::new(
             corr_id.to_string(),
-            "OrderCreated".to_string(),
-            "order-service".to_string(),
-            "service.order".to_string(),
+            "TaskCreated".to_string(),
+            "task-server".to_string(),
+            "service.task".to_string(),
             "trace-123".to_string(),
             Utc::now(),
         );
@@ -161,12 +161,12 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
-            "order_flow".to_string(),
+            "task_flow".to_string(),
             "test".to_string(),
-            "service.order".to_string(),
+            "service.task".to_string(),
             vec![FlowStep {
-                event_type: "OrderCreated".to_string(),
-                source: "order-service".to_string(),
+                event_type: "TaskCreated".to_string(),
+                source: "task-server".to_string(),
                 source_filter: None,
                 timeout_seconds: 30,
                 description: String::new(),
@@ -204,7 +204,7 @@ mod tests {
         dlq_mock.expect_preview_replay().returning(|_| {
             Ok(ReplayPreviewResponse {
                 total_events_to_replay: 2,
-                affected_services: vec!["order-service".to_string()],
+                affected_services: vec!["task-server".to_string()],
                 dlq_messages_found: 1,
                 estimated_duration_seconds: 10,
             })
@@ -223,7 +223,7 @@ mod tests {
         assert_eq!(output.total_events_to_replay, 2);
         assert_eq!(output.dlq_messages_found, 1);
         assert_eq!(output.affected_flows.len(), 1);
-        assert_eq!(output.affected_flows[0].flow_name, "order_flow");
+        assert_eq!(output.affected_flows[0].flow_name, "task_flow");
     }
 
     #[tokio::test]

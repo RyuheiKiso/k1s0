@@ -54,13 +54,17 @@ data:
           { "name": "sys_admin",              "description": "System administrator - full access",              "composite": false },
           { "name": "sys_operator",           "description": "System operator - monitoring and configuration",  "composite": false },
           { "name": "sys_auditor",            "description": "System auditor - read-only access",               "composite": false },
-          { "name": "biz_accounting_admin",   "description": "Accounting domain administrator",                 "composite": false },
-          { "name": "biz_accounting_manager", "description": "Accounting domain manager",                       "composite": false },
-          { "name": "biz_accounting_viewer",  "description": "Accounting domain viewer",                        "composite": false },
-          { "name": "svc_order_admin",        "description": "Order service administrator",                     "composite": false },
-          { "name": "svc_order_user",         "description": "Order service user",                              "composite": false },
-          { "name": "svc_order_viewer",       "description": "Order service viewer",                            "composite": false },
-          { "name": "order_manager",          "description": "Order manager - manages orders",                  "composite": false },
+          { "name": "biz_taskmanagement_admin",   "description": "Task management domain administrator",           "composite": false },
+          { "name": "biz_taskmanagement_manager", "description": "Task management domain manager",               "composite": false },
+          { "name": "biz_taskmanagement_viewer",  "description": "Task management domain viewer",                "composite": false },
+          { "name": "svc_task_admin",          "description": "Task service administrator",                     "composite": false },
+          { "name": "svc_task_user",           "description": "Task service user",                              "composite": false },
+          { "name": "svc_task_viewer",         "description": "Task service viewer",                            "composite": false },
+          { "name": "svc_board_admin",         "description": "Board service administrator",                    "composite": false },
+          { "name": "svc_board_user",          "description": "Board service user",                             "composite": false },
+          { "name": "svc_activity_admin",      "description": "Activity service administrator",                 "composite": false },
+          { "name": "svc_activity_user",       "description": "Activity service user",                         "composite": false },
+          { "name": "svc_activity_viewer",     "description": "Activity service viewer",                       "composite": false },
           { "name": "svc_internal",           "description": "Service-to-service internal role",                "composite": false }
         ]
       },
@@ -410,16 +414,6 @@ data:
           "credentials": [{ "type": "password", "value": "user123", "temporary": false }],
           "realmRoles": ["user"]
         },
-        {
-          "username": "test-order-manager",
-          "email": "order-manager@k1s0.dev",
-          "firstName": "Test",
-          "lastName": "OrderManager",
-          "enabled": true,
-          "emailVerified": true,
-          "credentials": [{ "type": "password", "value": "order123", "temporary": false }],
-          "realmRoles": ["user", "order_manager", "svc_order_user"]
-        }
       ],
       "components": {
         "org.keycloak.keys.KeyProvider": [

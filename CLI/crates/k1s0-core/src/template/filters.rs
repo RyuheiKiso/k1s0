@@ -30,42 +30,42 @@ fn extract_str<'a>(value: &'a Value, filter_name: &str) -> Result<&'a str> {
 }
 
 /// スネークケースに変換するフィルタ。
-/// 例: "order-api" -> "`order_api`"
+/// 例: "task-api" -> "`task_api`"
 fn to_snake_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "snake_case")?;
     Ok(Value::String(s.to_snake_case()))
 }
 
 /// パスカルケースに変換するフィルタ。
-/// 例: "order-api" -> "`OrderApi`"
+/// 例: "task-api" -> "`TaskApi`"
 fn to_pascal_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "pascal_case")?;
     Ok(Value::String(s.to_pascal_case()))
 }
 
 /// キャメルケースに変換するフィルタ。
-/// 例: "order-api" -> "orderApi"
+/// 例: "task-api" -> "taskApi"
 fn to_camel_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "camel_case")?;
     Ok(Value::String(s.to_lower_camel_case()))
 }
 
 /// ケバブケースに変換するフィルタ。
-/// 例: "`order_api`" -> "order-api"
+/// 例: "`task_api`" -> "task-api"
 fn to_kebab_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "kebab_case")?;
     Ok(Value::String(s.to_kebab_case()))
 }
 
 /// 全て大文字に変換するフィルタ。
-/// 例: "order-api" -> "ORDER-API"
+/// 例: "task-api" -> "TASK-API"
 fn to_upper_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "upper_case")?;
     Ok(Value::String(s.to_uppercase()))
 }
 
 /// 全て小文字に変換するフィルタ。
-/// 例: "`OrderApi`" -> "orderapi"
+/// 例: "`TaskApi`" -> "taskapi"
 fn to_lower_case(value: &Value, _args: &HashMap<String, Value>) -> Result<Value> {
     let s = extract_str(value, "lower_case")?;
     Ok(Value::String(s.to_lowercase()))
@@ -83,9 +83,9 @@ mod tests {
 
     #[test]
     fn test_snake_case_from_kebab() {
-        let value = Value::String("order-api".to_string());
+        let value = Value::String("task-api".to_string());
         let result = to_snake_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("order_api".to_string()));
+        assert_eq!(result, Value::String("task_api".to_string()));
     }
 
     #[test]
@@ -97,9 +97,9 @@ mod tests {
 
     #[test]
     fn test_snake_case_single_word() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_snake_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("inventory".to_string()));
+        assert_eq!(result, Value::String("board".to_string()));
     }
 
     #[test]
@@ -115,9 +115,9 @@ mod tests {
 
     #[test]
     fn test_pascal_case_from_kebab() {
-        let value = Value::String("order-api".to_string());
+        let value = Value::String("task-api".to_string());
         let result = to_pascal_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("OrderApi".to_string()));
+        assert_eq!(result, Value::String("TaskApi".to_string()));
     }
 
     #[test]
@@ -129,9 +129,9 @@ mod tests {
 
     #[test]
     fn test_pascal_case_single_word() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_pascal_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("Inventory".to_string()));
+        assert_eq!(result, Value::String("Board".to_string()));
     }
 
     #[test]
@@ -147,9 +147,9 @@ mod tests {
 
     #[test]
     fn test_camel_case_from_kebab() {
-        let value = Value::String("order-api".to_string());
+        let value = Value::String("task-api".to_string());
         let result = to_camel_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("orderApi".to_string()));
+        assert_eq!(result, Value::String("taskApi".to_string()));
     }
 
     #[test]
@@ -161,9 +161,9 @@ mod tests {
 
     #[test]
     fn test_camel_case_single_word() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_camel_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("inventory".to_string()));
+        assert_eq!(result, Value::String("board".to_string()));
     }
 
     #[test]
@@ -179,9 +179,9 @@ mod tests {
 
     #[test]
     fn test_kebab_case_from_snake() {
-        let value = Value::String("order_api".to_string());
+        let value = Value::String("task_api".to_string());
         let result = to_kebab_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("order-api".to_string()));
+        assert_eq!(result, Value::String("task-api".to_string()));
     }
 
     #[test]
@@ -193,16 +193,16 @@ mod tests {
 
     #[test]
     fn test_kebab_case_single_word() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_kebab_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("inventory".to_string()));
+        assert_eq!(result, Value::String("board".to_string()));
     }
 
     #[test]
     fn test_kebab_case_from_camel() {
-        let value = Value::String("orderApi".to_string());
+        let value = Value::String("taskApi".to_string());
         let result = to_kebab_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("order-api".to_string()));
+        assert_eq!(result, Value::String("task-api".to_string()));
     }
 
     // =========================================================================
@@ -211,30 +211,30 @@ mod tests {
 
     #[test]
     fn test_upper_case_from_kebab() {
-        let value = Value::String("order-api".to_string());
+        let value = Value::String("task-api".to_string());
         let result = to_upper_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("ORDER-API".to_string()));
+        assert_eq!(result, Value::String("TASK-API".to_string()));
     }
 
     #[test]
     fn test_upper_case_from_snake() {
-        let value = Value::String("order_api".to_string());
+        let value = Value::String("task_api".to_string());
         let result = to_upper_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("ORDER_API".to_string()));
+        assert_eq!(result, Value::String("TASK_API".to_string()));
     }
 
     #[test]
     fn test_upper_case_single_word() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_upper_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("INVENTORY".to_string()));
+        assert_eq!(result, Value::String("BOARD".to_string()));
     }
 
     #[test]
     fn test_upper_case_from_mixed() {
-        let value = Value::String("OrderApi".to_string());
+        let value = Value::String("TaskApi".to_string());
         let result = to_upper_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("ORDERAPI".to_string()));
+        assert_eq!(result, Value::String("TASKAPI".to_string()));
     }
 
     // =========================================================================
@@ -243,30 +243,30 @@ mod tests {
 
     #[test]
     fn test_lower_case_from_pascal() {
-        let value = Value::String("OrderApi".to_string());
+        let value = Value::String("TaskApi".to_string());
         let result = to_lower_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("orderapi".to_string()));
+        assert_eq!(result, Value::String("taskapi".to_string()));
     }
 
     #[test]
     fn test_lower_case_from_upper() {
-        let value = Value::String("ORDER-API".to_string());
+        let value = Value::String("TASK-API".to_string());
         let result = to_lower_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("order-api".to_string()));
+        assert_eq!(result, Value::String("task-api".to_string()));
     }
 
     #[test]
     fn test_lower_case_already_lower() {
-        let value = Value::String("inventory".to_string());
+        let value = Value::String("board".to_string());
         let result = to_lower_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("inventory".to_string()));
+        assert_eq!(result, Value::String("board".to_string()));
     }
 
     #[test]
     fn test_lower_case_from_screaming_snake() {
-        let value = Value::String("ORDER_API".to_string());
+        let value = Value::String("TASK_API".to_string());
         let result = to_lower_case(&value, &HashMap::new()).unwrap();
-        assert_eq!(result, Value::String("order_api".to_string()));
+        assert_eq!(result, Value::String("task_api".to_string()));
     }
 
     // =========================================================================
@@ -328,41 +328,41 @@ mod tests {
         tera.add_raw_template("test_snake", "{{ val | snake_case }}")
             .unwrap();
         let mut ctx = tera::Context::new();
-        ctx.insert("val", "order-api");
+        ctx.insert("val", "task-api");
         let result = tera.render("test_snake", &ctx).unwrap();
-        assert_eq!(result, "order_api");
+        assert_eq!(result, "task_api");
 
         // pascal_case フィルタが登録されていることを検証
         tera.add_raw_template("test_pascal", "{{ val | pascal_case }}")
             .unwrap();
         let result = tera.render("test_pascal", &ctx).unwrap();
-        assert_eq!(result, "OrderApi");
+        assert_eq!(result, "TaskApi");
 
         // camel_case フィルタが登録されていることを検証
         tera.add_raw_template("test_camel", "{{ val | camel_case }}")
             .unwrap();
         let result = tera.render("test_camel", &ctx).unwrap();
-        assert_eq!(result, "orderApi");
+        assert_eq!(result, "taskApi");
 
         // kebab_case フィルタが登録されていることを検証
         tera.add_raw_template("test_kebab", "{{ val | kebab_case }}")
             .unwrap();
-        ctx.insert("val", "order_api");
+        ctx.insert("val", "task_api");
         let result = tera.render("test_kebab", &ctx).unwrap();
-        assert_eq!(result, "order-api");
+        assert_eq!(result, "task-api");
 
         // upper_case フィルタが登録されていることを検証
         tera.add_raw_template("test_upper", "{{ val | upper_case }}")
             .unwrap();
-        ctx.insert("val", "order-api");
+        ctx.insert("val", "task-api");
         let result = tera.render("test_upper", &ctx).unwrap();
-        assert_eq!(result, "ORDER-API");
+        assert_eq!(result, "TASK-API");
 
         // lower_case フィルタが登録されていることを検証
         tera.add_raw_template("test_lower", "{{ val | lower_case }}")
             .unwrap();
-        ctx.insert("val", "OrderApi");
+        ctx.insert("val", "TaskApi");
         let result = tera.render("test_lower", &ctx).unwrap();
-        assert_eq!(result, "orderapi");
+        assert_eq!(result, "taskapi");
     }
 }

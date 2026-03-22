@@ -17,6 +17,7 @@ system-app-registry-server（アプリケーションレジストリサーバー
 | `003_create_app_versions.up.sql` | app_versions テーブル・ユニーク制約・インデックス作成 |
 | `004_create_download_stats.up.sql` | download_stats テーブル・インデックス作成 |
 | `005_seed_initial_data.up.sql` | 初期アプリデータ投入 |
+| `006_rename_s3_key_to_storage_key.up.sql` | `s3_key` → `storage_key` カラムリネーム |
 
 ```sql
 -- migrations/001_create_schema.up.sql
@@ -44,7 +45,7 @@ $$ LANGUAGE plpgsql;
 | usecase | 単体テスト（モック） | `mockall` |
 | adapter/handler | 統合テスト（HTTP） | `axum::test` + `tokio::test` |
 | infrastructure/repository | 統合テスト（DB） | `testcontainers` |
-| infrastructure/s3_client | 統合テスト | `mockall` + モック S3 |
+| infrastructure/file_storage | 統合テスト | `tempfile` クレートによる一時ディレクトリ |
 
 ### ユースケース単体テスト（mockall）
 
@@ -62,7 +63,7 @@ mod tests {
             .expect_get_by_version()
             .returning(|_, _, _, _| {
                 Ok(Some(AppVersion {
-                    s3_key: "apps/cli/1.0.0/windows/amd64/cli.exe".to_string(),
+                    storage_key: "apps/cli/1.0.0/windows/amd64/cli.exe".to_string(),
                     ..Default::default()
                 }))
             });
@@ -72,7 +73,7 @@ mod tests {
             .expect_record()
             .returning(|_| Ok(()));
 
-        // S3Client のモックでURL生成を検証
+        // FileStorage のモックでダウンロード配信を検証
         // ...
     }
 
@@ -201,7 +202,6 @@ podAnnotations:
   vault.hashicorp.com/agent-inject: "true"
   vault.hashicorp.com/role: "system"
   vault.hashicorp.com/agent-inject-secret-db-password: "secret/data/k1s0/system/app-registry/database"
-  vault.hashicorp.com/agent-inject-secret-s3: "secret/data/k1s0/system/app-registry/s3"
 
 # ヘルスチェック
 livenessProbe:

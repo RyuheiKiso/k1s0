@@ -35,7 +35,7 @@ mod tests {
         std::fs::create_dir_all(root.join("regions")).unwrap();
         std::fs::create_dir_all(root.join("infra/helm/services")).unwrap();
 
-        let nested = root.join("regions/service/order");
+        let nested = root.join("regions/service/task");
         std::fs::create_dir_all(&nested).unwrap();
 
         let result = find_workspace_root(&nested);

@@ -138,7 +138,7 @@ modules:
     maturity: template-only
     skip-ci: true
 
-  # Business 層ワークスペース（accounting 配下の Rust プロジェクトを管理）
+  # Business 層ワークスペース（taskmanagement 配下の Rust プロジェクトを管理）
   - path: regions/business
     lang: rust
     status: stable
@@ -146,7 +146,7 @@ modules:
     maturity: template-only
     skip-ci: true
 
-  # Service 層ワークスペース（order, inventory, payment 配下の Rust プロジェクトを管理）
+  # Service 層ワークスペース（task, board, activity 配下の Rust プロジェクトを管理）
   - path: regions/service
     lang: rust
     status: stable
@@ -416,7 +416,7 @@ modules:
   # ============================================================
   # Rust サーバー — business tier
   # ============================================================
-  - path: regions/business/accounting/server/rust/domain-master
+  - path: regions/business/taskmanagement/server/rust/project-master
     lang: rust
     status: stable
     type: server
@@ -426,21 +426,21 @@ modules:
   # ============================================================
   # Rust サーバー — service tier
   # ============================================================
-  - path: regions/service/inventory/server/rust/inventory
+  - path: regions/service/task/server/rust/task
     lang: rust
     status: stable
     type: server
     maturity: beta
     workspace: regions/service
 
-  - path: regions/service/order/server/rust/order
+  - path: regions/service/board/server/rust/board
     lang: rust
     status: stable
     type: server
     maturity: beta
     workspace: regions/service
 
-  - path: regions/service/payment/server/rust/payment
+  - path: regions/service/activity/server/rust/activity
     lang: rust
     status: stable
     type: server
@@ -1724,25 +1724,25 @@ modules:
     type: client
     maturity: beta
 
-  - path: regions/business/accounting/client/react/domain-master
+  - path: regions/business/taskmanagement/client/react/project-master
     lang: ts
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/inventory/client/react/inventory
+  - path: regions/service/task/client/react/task
     lang: ts
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/order/client/react/order
+  - path: regions/service/board/client/react/board
     lang: ts
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/payment/client/react/payment
+  - path: regions/service/activity/client/react/activity
     lang: ts
     status: stable
     type: client
@@ -1757,25 +1757,25 @@ modules:
     type: client
     maturity: beta
 
-  - path: regions/business/accounting/client/flutter/domain_master
+  - path: regions/business/taskmanagement/client/flutter/project_master
     lang: dart
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/inventory/client/flutter/inventory
+  - path: regions/service/task/client/flutter/task
     lang: dart
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/order/client/flutter/order
+  - path: regions/service/board/client/flutter/board
     lang: dart
     status: stable
     type: client
     maturity: beta
 
-  - path: regions/service/payment/client/flutter/payment
+  - path: regions/service/activity/client/flutter/activity
     lang: dart
     status: stable
     type: client

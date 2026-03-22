@@ -102,27 +102,27 @@ mod tests {
 
     const SAMPLE_PROTO: &str = r#"
 syntax = "proto3";
-package k1s0.business.accounting.v1;
+package k1s0.business.taskmanagement.v1;
 
-service AccountingService {
-  rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
-  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+service ProjectMasterService {
+  rpc CreateProjectType(CreateProjectTypeRequest) returns (CreateProjectTypeResponse);
+  rpc GetProjectType(GetProjectTypeRequest) returns (GetProjectTypeResponse);
 }
 
-message CreateAccountRequest {
+message CreateProjectTypeRequest {
   string name = 1;
   string email = 2;
 }
 
-message CreateAccountResponse {
+message CreateProjectTypeResponse {
   string id = 1;
 }
 
-message GetAccountRequest {
+message GetProjectTypeRequest {
   string id = 1;
 }
 
-message GetAccountResponse {
+message GetProjectTypeResponse {
   string id = 1;
   string name = 2;
   string email = 3;
@@ -133,14 +133,14 @@ message GetAccountResponse {
     #[test]
     fn parse_package() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
-        assert_eq!(svc.package, "k1s0.business.accounting.v1");
+        assert_eq!(svc.package, "k1s0.business.taskmanagement.v1");
     }
 
     // proto ファイルからサービス名が正しく解析されることを確認する。
     #[test]
     fn parse_service_name() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
-        assert_eq!(svc.service_name, "AccountingService");
+        assert_eq!(svc.service_name, "ProjectMasterService");
     }
 
     // proto ファイルから RPC メソッドの一覧が正しく解析されることを確認する。
@@ -148,10 +148,10 @@ message GetAccountResponse {
     fn parse_methods() {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
         assert_eq!(svc.methods.len(), 2);
-        assert_eq!(svc.methods[0].name, "CreateAccount");
-        assert_eq!(svc.methods[0].input_type, "CreateAccountRequest");
-        assert_eq!(svc.methods[0].output_type, "CreateAccountResponse");
-        assert_eq!(svc.methods[1].name, "GetAccount");
+        assert_eq!(svc.methods[0].name, "CreateProjectType");
+        assert_eq!(svc.methods[0].input_type, "CreateProjectTypeRequest");
+        assert_eq!(svc.methods[0].output_type, "CreateProjectTypeResponse");
+        assert_eq!(svc.methods[1].name, "GetProjectType");
     }
 
     // proto ファイルからメッセージ定義とフィールドが正しく解析されることを確認する。
@@ -160,7 +160,7 @@ message GetAccountResponse {
         let svc = parse_proto_content(SAMPLE_PROTO).unwrap();
         assert_eq!(svc.messages.len(), 4);
         let create_req = &svc.messages[0];
-        assert_eq!(create_req.name, "CreateAccountRequest");
+        assert_eq!(create_req.name, "CreateProjectTypeRequest");
         assert_eq!(create_req.fields.len(), 2);
         assert_eq!(create_req.fields[0].name, "name");
         assert_eq!(create_req.fields[0].field_type, "string");

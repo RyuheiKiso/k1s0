@@ -90,13 +90,13 @@ describe('tauri-commands', () => {
 
   it('wraps template migration commands', async () => {
     const target = {
-      path: '/repo/regions/service/order/server/rust',
+      path: '/repo/regions/service/task/server/rust',
       available_version: '1.5.0',
       manifest: {
         apiVersion: 'k1s0/v1',
         kind: 'TemplateInstance',
         metadata: {
-          name: 'order-server',
+          name: 'task-server',
           generatedAt: '2026-03-12T00:00:00Z',
           generatedBy: 'k1s0-cli@0.1.0',
         },

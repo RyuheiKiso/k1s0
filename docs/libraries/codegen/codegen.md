@@ -127,16 +127,16 @@ k1s0-codegen = { path = "...", features = ["proto"] }
 
 ```rust
 pub struct ProtoService {
-    pub package: String,        // e.g., "k1s0.business.accounting.v1"
-    pub service_name: String,   // e.g., "AccountingService"
+    pub package: String,        // e.g., "k1s0.business.taskmanagement.v1"
+    pub service_name: String,   // e.g., "TaskService"
     pub methods: Vec<ProtoMethod>,
     pub messages: Vec<ProtoMessage>,
 }
 
 pub struct ProtoMethod {
-    pub name: String,           // e.g., "CreateAccount"
-    pub input_type: String,     // e.g., "CreateAccountRequest"
-    pub output_type: String,    // e.g., "CreateAccountResponse"
+    pub name: String,           // e.g., "CreateTask"
+    pub input_type: String,     // e.g., "CreateTaskRequest"
+    pub output_type: String,    // e.g., "CreateTaskResponse"
 }
 
 pub struct ProtoMessage {
@@ -159,7 +159,7 @@ pub fn parse_proto_content(content: &str) -> Result<ProtoService, CodegenError>;
 ```rust
 use k1s0_codegen::proto_parser::parse_proto;
 
-let service = parse_proto(Path::new("api/proto/accounting.proto"))?;
+let service = parse_proto(Path::new("api/proto/taskmanagement.proto"))?;
 println!("Service: {} ({} methods)", service.service_name, service.methods.len());
 ```
 

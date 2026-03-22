@@ -684,9 +684,9 @@ mod tests {
     fn test_register_url_with_complex_subject() {
         let config = SchemaRegistryConfig::new("http://localhost:8081");
         let client = HttpSchemaRegistryClient::new(config).unwrap();
-        let subject = "k1s0.business.accounting.invoice-issued.v2-value";
+        let subject = "k1s0.business.taskmanagement.project-type-changed.v1-value";
         let url = format!("{}/subjects/{}/versions", client.base_url(), subject);
-        assert!(url.contains("k1s0.business.accounting.invoice-issued.v2-value"));
+        assert!(url.contains("k1s0.business.taskmanagement.project-type-changed.v1-value"));
     }
 
     // モックを使ってスキーマIDによる取得が正しく動作することを確認する。

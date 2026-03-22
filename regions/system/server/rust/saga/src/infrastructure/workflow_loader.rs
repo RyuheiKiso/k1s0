@@ -88,25 +88,25 @@ mod tests {
     }
 
     const VALID_YAML: &str = r#"
-name: order-fulfillment
+name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+    compensate: TaskService.CancelTask
     timeout_secs: 30
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
     timeout_secs: 60
 "#;
 
     const ANOTHER_VALID_YAML: &str = r#"
 name: refund-workflow
 steps:
-  - name: reverse-payment
-    service: payment-service
-    method: PaymentService.Refund
+  - name: delete-activity
+    service: activity-server
+    method: ActivityService.DeleteActivity
     timeout_secs: 30
 "#;
 
@@ -120,16 +120,16 @@ steps: []
     #[tokio::test]
     async fn test_load_file_success() {
         let dir = make_temp_dir();
-        let file_path = dir.path().join("order.yaml");
+        let file_path = dir.path().join("task.yaml");
         fs::write(&file_path, VALID_YAML).unwrap();
 
         let loader = WorkflowLoader::new(dir.path());
         let wf = loader.load_file(&file_path).await.unwrap();
 
-        assert_eq!(wf.name, "order-fulfillment");
+        assert_eq!(wf.name, "task-assignment");
         assert_eq!(wf.steps.len(), 2);
-        assert_eq!(wf.steps[0].name, "reserve-inventory");
-        assert_eq!(wf.steps[1].name, "process-payment");
+        assert_eq!(wf.steps[0].name, "create-task");
+        assert_eq!(wf.steps[1].name, "increment-board-column");
     }
 
     #[tokio::test]
@@ -184,19 +184,19 @@ steps: []
     #[tokio::test]
     async fn test_load_all_single_yaml() {
         let dir = make_temp_dir();
-        fs::write(dir.path().join("order.yaml"), VALID_YAML).unwrap();
+        fs::write(dir.path().join("task.yaml"), VALID_YAML).unwrap();
 
         let loader = WorkflowLoader::new(dir.path());
         let workflows = loader.load_all().await.unwrap();
 
         assert_eq!(workflows.len(), 1);
-        assert_eq!(workflows[0].name, "order-fulfillment");
+        assert_eq!(workflows[0].name, "task-assignment");
     }
 
     #[tokio::test]
     async fn test_load_all_multiple_yaml_files() {
         let dir = make_temp_dir();
-        fs::write(dir.path().join("order.yaml"), VALID_YAML).unwrap();
+        fs::write(dir.path().join("task.yaml"), VALID_YAML).unwrap();
         fs::write(dir.path().join("refund.yml"), ANOTHER_VALID_YAML).unwrap();
 
         let loader = WorkflowLoader::new(dir.path());
@@ -205,14 +205,14 @@ steps: []
 
         assert_eq!(workflows.len(), 2);
         let names: Vec<&str> = workflows.iter().map(|w| w.name.as_str()).collect();
-        assert!(names.contains(&"order-fulfillment"));
+        assert!(names.contains(&"task-assignment"));
         assert!(names.contains(&"refund-workflow"));
     }
 
     #[tokio::test]
     async fn test_load_all_ignores_non_yaml_files() {
         let dir = make_temp_dir();
-        fs::write(dir.path().join("order.yaml"), VALID_YAML).unwrap();
+        fs::write(dir.path().join("task.yaml"), VALID_YAML).unwrap();
         fs::write(dir.path().join("readme.txt"), "some text").unwrap();
         fs::write(dir.path().join("data.json"), r#"{"key": "value"}"#).unwrap();
 
@@ -220,7 +220,7 @@ steps: []
         let workflows = loader.load_all().await.unwrap();
 
         assert_eq!(workflows.len(), 1);
-        assert_eq!(workflows[0].name, "order-fulfillment");
+        assert_eq!(workflows[0].name, "task-assignment");
     }
 
     #[tokio::test]
@@ -235,7 +235,7 @@ steps: []
 
         // 有効な1件だけロードされる
         assert_eq!(workflows.len(), 1);
-        assert_eq!(workflows[0].name, "order-fulfillment");
+        assert_eq!(workflows[0].name, "task-assignment");
     }
 
     #[tokio::test]

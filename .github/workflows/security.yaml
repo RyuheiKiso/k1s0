@@ -188,14 +188,14 @@ jobs:
             service: service-catalog
           # --- business ティア ---
           - tier: business
-            service: domain-master
+            service: project-master
           # --- service ティア ---
           - tier: service
-            service: order
+            service: task
           - tier: service
-            service: payment
+            service: activity
           - tier: service
-            service: inventory
+            service: board
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:

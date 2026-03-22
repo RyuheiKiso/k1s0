@@ -157,27 +157,27 @@ class SessionErrors {
       const ErrorCode('SYS_SESSION_INTERNAL_ERROR');
 }
 
-/// Order サービスの既知エラーコード（サービス層）。
-class OrderErrors {
-  OrderErrors._();
+/// Task サービスの既知エラーコード（サービス層）。
+class TaskErrors {
+  TaskErrors._();
 
-  /// 注文が見つからないエラー
+  /// タスクが見つからないエラー
   static ErrorCode notFound() =>
-      const ErrorCode('SVC_ORDER_NOT_FOUND');
+      const ErrorCode('SVC_TASK_NOT_FOUND');
 
   /// バリデーション失敗エラー
   static ErrorCode validationFailed() =>
-      const ErrorCode('SVC_ORDER_VALIDATION_FAILED');
+      const ErrorCode('SVC_TASK_VALIDATION_FAILED');
 
   /// 無効なステータス遷移エラー
   static ErrorCode invalidStatusTransition() =>
-      const ErrorCode('SVC_ORDER_INVALID_STATUS_TRANSITION');
+      const ErrorCode('SVC_TASK_INVALID_STATUS_TRANSITION');
 
   /// バージョン競合エラー
   static ErrorCode versionConflict() =>
-      const ErrorCode('SVC_ORDER_VERSION_CONFLICT');
+      const ErrorCode('SVC_TASK_VERSION_CONFLICT');
 
   /// 内部エラー
   static ErrorCode internalError() =>
-      const ErrorCode('SVC_ORDER_INTERNAL_ERROR');
+      const ErrorCode('SVC_TASK_INTERNAL_ERROR');
 }

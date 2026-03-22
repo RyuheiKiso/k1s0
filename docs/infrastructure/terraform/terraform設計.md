@@ -55,7 +55,7 @@ infra/terraform/
     ├── harbor/                  # Harbor プロジェクト設定
     ├── keycloak/                # Keycloak Realm プロビジョニング
     ├── service-mesh/            # Istio 設定
-    └── ceph/                    # Ceph RGW バケット設定（アプリ配布用 S3 バケット等）
+    └── ceph/                    # 削除済み（S3/Ceph 依存を除去、PV ベースに移行）
 ```
 
 ### 環境への統合方針
@@ -104,7 +104,7 @@ terraform {
 | --- | --- | --- |
 | 通信経路 | TLS（Consul の `scheme = "https"`） | State の転送時暗号化 |
 | 保存時 | Consul の暗号化設定（`encrypt` キー） | Raft ログ・スナップショットの暗号化 |
-| バックアップ | Ceph RGW の SSE-S3 | スナップショットの保存時暗号化 |
+| バックアップ | PVC ボリュームの暗号化設定 | スナップショットの保存時暗号化（PVC ローカル保存） |
 
 ### State ロック
 
@@ -507,7 +507,7 @@ resource "kubernetes_cron_job_v1" "postgresql_backup" {
               image   = "bitnami/postgresql:${var.postgresql_version}"
               command = ["/bin/sh", "-c"]
               args    = [
-                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz && s3cmd put /backup/pg-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/postgresql/"
+                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz"
               ]
 
               env_from {
@@ -545,7 +545,7 @@ resource "kubernetes_cron_job_v1" "mysql_backup" {
               image   = "bitnami/mysql:${var.mysql_version}"
               command = ["/bin/sh", "-c"]
               args    = [
-                "mysqldump -h mysql -u $MYSQL_USER -p$MYSQL_PASSWORD --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz && s3cmd put /backup/mysql-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/mysql/"
+                "mysqldump -h mysql -u $MYSQL_USER -p$MYSQL_PASSWORD --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz"
               ]
 
               env_from {
@@ -922,15 +922,14 @@ resource "vault_pki_secret_backend_role" "system" {
 
 ### consul-backup
 
-Consul State のスナップショットを毎日取得し Ceph オブジェクトストレージに保存する CronJob を管理する専用モジュール。
+Consul State のスナップショットを毎日取得し PVC に保存する CronJob を管理する専用モジュール。
 
 主要リソース:
 - `kubernetes_cron_job_v1.consul_backup`: `consul snapshot save` を実行する CronJob（スケジュールは `var.schedule` で設定）
 
 動作:
 1. `consul snapshot save` でスナップショットを PVC に保存
-2. `s3cmd put` で `s3://${var.backup_bucket}/consul/` にアップロード
-3. ローカルの古いスナップショットを削除（`var.retention_count` 世代保持、デフォルト 7）
+2. ローカルの古いスナップショットを削除（`var.retention_count` 世代保持、デフォルト 7）
 
 `CONSUL_HTTP_TOKEN` は `var.consul_token_secret_name` が参照する Kubernetes Secret から注入する。environments/main.tf から呼び出す。
 
@@ -953,7 +952,7 @@ resource "kubernetes_cron_job_v1" "consul_backup" {
     successful_jobs_history_limit = var.retention_count
     failed_jobs_history_limit     = 3
     concurrency_policy            = "Forbid"
-    # ...（job_template: consul snapshot save → s3cmd put）
+    # ...（job_template: consul snapshot save → PVC 保存 → 古いスナップショット削除）
   }
 }
 ```

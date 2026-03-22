@@ -35,11 +35,6 @@ variable "consul_token_secret_name" {
   default     = "consul-acl-token"
 }
 
-variable "backup_bucket" {
-  description = "S3 bucket name for storing Consul snapshots"
-  type        = string
-}
-
 variable "backup_pvc_name" {
   description = "PersistentVolumeClaim name for local backup storage"
   type        = string

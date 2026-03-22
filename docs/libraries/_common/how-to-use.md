@@ -122,7 +122,7 @@ func main() {
     )
 
     // HTTP ハンドラでトークンを検証してクレームを取得する
-    http.HandleFunc("/api/v1/orders", func(w http.ResponseWriter, r *http.Request) {
+    http.HandleFunc("/api/v1/tasks", func(w http.ResponseWriter, r *http.Request) {
         // Bearer トークンを取得する
         tokenString := r.Header.Get("Authorization")
         // "Bearer " プレフィックスを除去する
@@ -140,8 +140,8 @@ func main() {
         userID := claims.Sub
         username := claims.Username
 
-        // RBAC チェック: "orders" リソースに対して "read" アクションを許可するか確認する
-        if !authlib.CheckPermission(claims, "orders", "read") {
+        // RBAC チェック: "tasks" リソースに対して "read" アクションを許可するか確認する
+        if !authlib.CheckPermission(claims, "tasks", "read") {
             http.Error(w, "Forbidden", http.StatusForbidden)
             return
         }
@@ -164,7 +164,7 @@ import (
 router.Use(authlib.AuthMiddleware(verifier))
 
 // ハンドラ内でコンテキストからクレームを取得する
-func OrderHandler(c *gin.Context) {
+func TaskHandler(c *gin.Context) {
     claims := authlib.GetClaimsFromContext(c)
     if claims == nil {
         c.AbortWithStatus(http.StatusUnauthorized)
@@ -200,8 +200,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user_id = &claims.sub;
     let username = claims.preferred_username.as_deref().unwrap_or("unknown");
 
-    // RBAC チェック: "orders" リソースに対して "read" アクションを確認する
-    if !check_permission(&claims, "orders", "read") {
+    // RBAC チェック: "tasks" リソースに対して "read" アクションを確認する
+    if !check_permission(&claims, "tasks", "read") {
         return Err(AuthError::PermissionDenied.into());
     }
 
@@ -220,7 +220,7 @@ use std::sync::Arc;
 let verifier = Arc::new(JwksVerifier::new(/* ... */)?);
 
 let app = Router::new()
-    .route("/api/v1/orders", get(order_handler))
+    .route("/api/v1/tasks", get(task_handler))
     // 認証ミドルウェアを追加する
     .layer(middleware::from_fn_with_state(verifier, auth_middleware));
 ```
@@ -419,7 +419,7 @@ func main() {
 
     // OpenTelemetry プロバイダーとロガーを初期化する
     provider, err := telemetry.InitTelemetry(ctx, telemetry.TelemetryConfig{
-        ServiceName:   "order-server",
+        ServiceName:   "task-server",
         Version:       "1.0.0",
         Tier:          "business",
         Environment:   "dev",
@@ -440,15 +440,15 @@ func main() {
     // HTTP ハンドラ内でトレース ID をログに付与する
     // （span context がある場合は trace_id / span_id が自動付与される）
     tracedLogger := telemetry.LogWithTrace(ctx, logger)
-    tracedLogger.Info("注文リクエストを処理中", slog.String("order_id", "ord-123"))
+    tracedLogger.Info("タスクリクエストを処理中", slog.String("task_id", "tsk-123"))
 
     // Prometheus メトリクスを記録する
-    m := telemetry.NewMetrics("order-server")
+    m := telemetry.NewMetrics("task-server")
     m.HTTPRequestsTotal.With(map[string]string{
-        "method": "GET", "path": "/api/v1/orders", "status": "200",
+        "method": "GET", "path": "/api/v1/tasks", "status": "200",
     }).Inc()
     m.HTTPRequestDuration.With(map[string]string{
-        "method": "GET", "path": "/api/v1/orders",
+        "method": "GET", "path": "/api/v1/tasks",
     }).Observe(0.045)
 }
 ```
@@ -461,7 +461,7 @@ use k1s0_telemetry::{TelemetryConfig, init_telemetry, shutdown, Metrics};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // OpenTelemetry とロガーを初期化する（tracing-subscriber が設定される）
     init_telemetry(&TelemetryConfig {
-        service_name: "order-server".to_string(),
+        service_name: "task-server".to_string(),
         version: "1.0.0".to_string(),
         tier: "business".to_string(),
         environment: "dev".to_string(),
@@ -472,15 +472,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })?;
 
     // tracing マクロでログを出力する（trace_id は自動付与される）
-    tracing::info!(order_id = "ord-123", "注文リクエストを処理中");
+    tracing::info!(task_id = "tsk-123", "タスクリクエストを処理中");
 
     // Prometheus メトリクスを記録する
-    let metrics = Metrics::new("order-server");
-    metrics.record_http_request("GET", "/api/v1/orders", "200");
-    metrics.record_http_duration("GET", "/api/v1/orders", 0.045);
+    let metrics = Metrics::new("task-server");
+    metrics.record_http_request("GET", "/api/v1/tasks", "200");
+    metrics.record_http_duration("GET", "/api/v1/tasks", 0.045);
 
     // DB クエリ時間を記録する（Rust 拡張メトリクス）
-    metrics.record_db_query_duration("find_order", "orders", 0.012);
+    metrics.record_db_query_duration("find_task", "tasks", 0.012);
 
     // アプリケーション終了時にシャットダウンする
     shutdown();
@@ -495,9 +495,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 use k1s0_telemetry::middleware::MetricsLayer;
 use axum::Router;
 
-let metrics = Metrics::new("order-server");
+let metrics = Metrics::new("task-server");
 let app = Router::new()
-    .route("/api/v1/orders", get(order_handler))
+    .route("/api/v1/tasks", get(task_handler))
     // HTTP メトリクスを自動計測する Tower Layer を追加する
     .layer(MetricsLayer::new(metrics));
 ```
@@ -509,7 +509,7 @@ import { initTelemetry, shutdown, createLogger } from '@k1s0/telemetry';
 
 // OpenTelemetry SDK を初期化する
 initTelemetry({
-  serviceName: 'order-server',
+  serviceName: 'task-server',
   version: '1.0.0',
   tier: 'business',
   environment: 'dev',
@@ -522,14 +522,14 @@ initTelemetry({
 // pino ロガーを生成する
 // アクティブなスパンがある場合は trace_id / span_id が自動付与される（mixin）
 const logger = createLogger({
-  serviceName: 'order-server',
+  serviceName: 'task-server',
   version: '1.0.0',
   tier: 'business',
   environment: 'dev',
   logLevel: 'info',
 });
 
-logger.info({ orderId: 'ord-123' }, '注文リクエストを処理中');
+logger.info({ taskId: 'tsk-123' }, 'タスクリクエストを処理中');
 
 // アプリケーション終了時にシャットダウンする
 process.on('SIGTERM', async () => {
@@ -547,7 +547,7 @@ import 'package:logging/logging.dart';
 void main() {
     // テレメトリーを初期化する（ログ設定 + OpenTelemetry トレース）
     initTelemetry(TelemetryConfig(
-        serviceName: 'order-client',
+        serviceName: 'task-client',
         version: '1.0.0',
         tier: 'service',
         environment: 'dev',
@@ -558,8 +558,8 @@ void main() {
     ));
 
     // Logger でログを出力する（JSON 形式で標準出力に出力される）
-    final logger = Logger('order-client');
-    logger.info('注文クライアントを起動中');
+    final logger = Logger('task-client');
+    logger.info('タスククライアントを起動中');
 
     // アプリケーション終了時にシャットダウンする
     shutdown();
@@ -582,7 +582,7 @@ import (
     "github.com/k1s0-platform/system-library-go-pagination"
 )
 
-func ListOrdersHandler(w http.ResponseWriter, r *http.Request) {
+func ListTasksHandler(w http.ResponseWriter, r *http.Request) {
     // クエリパラメータからページネーション情報を取得する
     pageStr := r.URL.Query().Get("page")
     perPageStr := r.URL.Query().Get("per_page")
@@ -608,15 +608,15 @@ func ListOrdersHandler(w http.ResponseWriter, r *http.Request) {
     req := pagination.NewPageRequest(page, perPage)
 
     // DB からデータを取得する（Offset() でオフセット値を取得する）
-    orders, err := db.FetchOrders(ctx, req.Offset(), req.PerPage)
+    tasks, err := db.FetchTasks(ctx, req.Offset(), req.PerPage)
     if err != nil {
         http.Error(w, "Internal Server Error", http.StatusInternalServerError)
         return
     }
-    total, _ := db.CountOrders(ctx)
+    total, _ := db.CountTasks(ctx)
 
     // PageResponse を生成する（TotalPages は自動計算される）
-    resp := pagination.NewPageResponse(orders, total, req)
+    resp := pagination.NewPageResponse(tasks, total, req)
     meta := resp.Meta()
 
     json.NewEncoder(w).Encode(map[string]any{
@@ -633,7 +633,7 @@ func ListOrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // カーソルをエンコードする（sort_key と id の 2 引数）
-cursor := pagination.EncodeCursor("2024-01-15T10:30:00Z", "order-456")
+cursor := pagination.EncodeCursor("2024-01-15T10:30:00Z", "task-456")
 
 // カーソルをデコードする
 sortKey, id, err := pagination.DecodeCursor(cursor)
@@ -650,7 +650,7 @@ _ = id
 ```rust
 use k1s0_pagination::{PageRequest, PageResponse, validate_per_page, encode_cursor, decode_cursor};
 
-async fn list_orders(page: u64, per_page: u64) -> Result<PageResponse<Order>, AppError> {
+async fn list_tasks(page: u64, per_page: u64) -> Result<PageResponse<Task>, AppError> {
     // per_page バリデーション（1〜100 の範囲）
     validate_per_page(per_page as u32)?;
 
@@ -659,11 +659,11 @@ async fn list_orders(page: u64, per_page: u64) -> Result<PageResponse<Order>, Ap
 
     // DB からデータを取得する
     let offset = req.offset(); // (page - 1) * per_page
-    let orders = db.fetch_orders(offset, req.per_page).await?;
-    let total = db.count_orders().await?;
+    let tasks = db.fetch_tasks(offset, req.per_page).await?;
+    let total = db.count_tasks().await?;
 
     // PageResponse を生成する（total_pages は自動計算される）
-    let response = PageResponse::new(orders, total, &req);
+    let response = PageResponse::new(tasks, total, &req);
     let meta = response.meta(); // PaginationMeta
 
     println!("page={}/{}", meta.page, meta.total_pages);
@@ -675,7 +675,7 @@ async fn list_orders(page: u64, per_page: u64) -> Result<PageResponse<Order>, Ap
 
 ```rust
 // カーソルをエンコードする（sort_key と id の 2 引数; base64url 形式）
-let cursor = encode_cursor("2024-01-15T10:30:00Z", "order-456");
+let cursor = encode_cursor("2024-01-15T10:30:00Z", "task-456");
 
 // カーソルをデコードする
 let (sort_key, id) = decode_cursor(&cursor)?;
@@ -694,7 +694,7 @@ import {
   pageOffset,
 } from '@k1s0/pagination';  // パッケージ名は実装を確認して記載
 
-async function listOrders(page: number, perPage: number) {
+async function listTasks(page: number, perPage: number) {
   // per_page バリデーション（範囲外は PerPageValidationError をスロー）
   validatePerPage(perPage);
 
@@ -703,11 +703,11 @@ async function listOrders(page: number, perPage: number) {
   const offset = pageOffset(req); // (page - 1) * perPage
 
   // DB からデータを取得する
-  const orders = await db.fetchOrders(offset, perPage);
-  const total = await db.countOrders();
+  const tasks = await db.fetchTasks(offset, perPage);
+  const total = await db.countTasks();
 
   // PageResponse を生成する
-  const resp = createPageResponse(orders, total, req);
+  const resp = createPageResponse(tasks, total, req);
   const meta = resp.meta();
 
   return {
@@ -726,7 +726,7 @@ async function listOrders(page: number, perPage: number) {
 import { encodeCursor, decodeCursor } from '@k1s0/pagination';
 
 // カーソルをエンコードする（base64url 形式）
-const cursor = encodeCursor('2024-01-15T10:30:00Z', 'order-456');
+const cursor = encodeCursor('2024-01-15T10:30:00Z', 'task-456');
 
 // カーソルをデコードする
 const { sortKey, id } = decodeCursor(cursor);
@@ -737,7 +737,7 @@ const { sortKey, id } = decodeCursor(cursor);
 ```dart
 import 'package:k1s0_pagination/k1s0_pagination.dart';
 
-Future<Map<String, dynamic>> listOrders(int page, int perPage) async {
+Future<Map<String, dynamic>> listTasks(int page, int perPage) async {
     // per_page バリデーション（範囲外は PerPageValidationException をスロー）
     validatePerPage(perPage);
 
@@ -746,11 +746,11 @@ Future<Map<String, dynamic>> listOrders(int page, int perPage) async {
     final offset = req.offset; // (page - 1) * perPage
 
     // DB からデータを取得する
-    final orders = await db.fetchOrders(offset, perPage);
-    final total = await db.countOrders();
+    final tasks = await db.fetchTasks(offset, perPage);
+    final total = await db.countTasks();
 
     // PageResponse を生成する
-    final resp = PageResponse.create(orders, total, req);
+    final resp = PageResponse.create(tasks, total, req);
     final meta = resp.meta;
 
     return {
@@ -767,7 +767,7 @@ Future<Map<String, dynamic>> listOrders(int page, int perPage) async {
 
 ```dart
 // カーソルをエンコードする（base64url 形式）
-final cursor = encodeCursor('2024-01-15T10:30:00Z', 'order-456');
+final cursor = encodeCursor('2024-01-15T10:30:00Z', 'task-456');
 
 // カーソルをデコードする（Record 型で返す）
 final (:sortKey, :id) = decodeCursor(cursor);

@@ -100,6 +100,6 @@ format!(
 ```
 
 各サービスのデフォルトスキーマ：
-- order-server: `order_service`
-- inventory-server: `inventory_service`
-- payment-server: `payment_service`
+- task-server: `task_service`
+- board-server: `board_service`
+- activity-server: `activity_service`

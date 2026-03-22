@@ -101,8 +101,8 @@ infra/helm/
     │       ├── values-prod.yaml
     │       └── templates/
     ├── business/
-    │   └── accounting/
-    │       └── ledger/
+    │   └── taskmanagement/
+    │       └── project-master/
     │           ├── Chart.yaml
     │           ├── values.yaml
     │           ├── values-dev.yaml
@@ -110,7 +110,7 @@ infra/helm/
     │           ├── values-prod.yaml
     │           └── templates/
     └── service/
-        └── order/
+        └── task/
             ├── Chart.yaml
             ├── values.yaml
             ├── values-dev.yaml
@@ -132,7 +132,7 @@ system tier には以下の 14 つの Chart が存在する。全て `k1s0-commo
 | bff-proxy | BFF プロキシ（OIDC 認証、セッション管理、リバースプロキシ） | Go | - | - | ✓ | OIDC client secret, Redis パスワード |
 | graphql-gateway | GraphQL Gateway（フェデレーション、クエリルーティング） | Rust | - | - | - | JWKS 署名鍵 |
 | kong | API Gateway（DB-backed PostgreSQL モード） | - | - | - | - | DB パスワード（SecretKeyRef） |
-| app-registry | アプリバイナリメタデータ管理・Presigned URL 生成（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md)） | Rust | - | - | - | DB パスワード, Ceph RGW クレデンシャル |
+| app-registry | アプリバイナリメタデータ管理・直接配信（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md)） | Rust | - | - | - | DB パスワード |
 | featureflag | 動的フィーチャーフラグ管理（フラグ評価・ルール配信） | Go | 50056 | ✓ | - | DB パスワード |
 | ratelimit | レート制限（ルールベースのスロットリング） | Go | 50057 | ✓ | - | DB パスワード |
 | tenant | テナント管理（マルチテナント設定・プロビジョニング） | Go | 50058 | ✓ | - | DB パスワード |
@@ -146,7 +146,7 @@ business tier には以下の Chart が存在する。全て `k1s0-common` Libra
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Vault secrets |
 | --- | --- | --- | --- | --- | --- |
-| domain-master | ドメインマスタ管理（品目・区分・コードマスタ） | Go | 9210 | ✓ | DB パスワード |
+| project-master | プロジェクトマスタ管理（プロジェクト・種別・コードマスタ） | Go | 9210 | ✓ | DB パスワード |
 
 ## Service Tier Chart 一覧
 
@@ -154,8 +154,8 @@ service tier には以下の Chart が存在する。全て `k1s0-common` Librar
 
 | Chart | 説明 | 言語 | gRPC | Kafka | Vault secrets |
 | --- | --- | --- | --- | --- | --- |
-| inventory | 在庫管理（在庫照会・引当・調整） | Go | - | ✓ | DB パスワード |
-| payment | 決済処理（支払・返金・決済状態管理） | Go | - | ✓ | DB パスワード |
+| board | ボード管理（ボード照会・レーン・カード管理） | Go | - | ✓ | DB パスワード |
+| activity | アクティビティ処理（操作ログ・通知・状態管理） | Go | - | ✓ | DB パスワード |
 | service-catalog | サービスカタログ（提供サービス定義・価格管理） | Go | - | - | DB パスワード |
 
 ### 実ファイル配置
@@ -178,9 +178,9 @@ service tier には以下の Chart が存在する。全て `k1s0-common` Librar
 | system | vault | `infra/helm/services/system/vault/Chart.yaml` | `infra/helm/services/system/vault/values.yaml` |
 | system | ai-gateway | `infra/helm/services/system/ai-gateway/Chart.yaml` | `infra/helm/services/system/ai-gateway/values.yaml` |
 | system | ai-agent | `infra/helm/services/system/ai-agent/Chart.yaml` | `infra/helm/services/system/ai-agent/values.yaml` |
-| business | domain-master | `infra/helm/services/business/domain-master/Chart.yaml` | `infra/helm/services/business/domain-master/values.yaml` |
-| service | inventory | `infra/helm/services/service/inventory/Chart.yaml` | `infra/helm/services/service/inventory/values.yaml` |
-| service | payment | `infra/helm/services/service/payment/Chart.yaml` | `infra/helm/services/service/payment/values.yaml` |
+| business | project-master | `infra/helm/services/business/project-master/Chart.yaml` | `infra/helm/services/business/project-master/values.yaml` |
+| service | board | `infra/helm/services/service/board/Chart.yaml` | `infra/helm/services/service/board/values.yaml` |
+| service | activity | `infra/helm/services/service/activity/Chart.yaml` | `infra/helm/services/service/activity/values.yaml` |
 | service | service-catalog | `infra/helm/services/service/service-catalog/Chart.yaml` | `infra/helm/services/service/service-catalog/values.yaml` |
 
 全 Chart は `k1s0-common` Library Chart に依存し、`appVersion: "0.1.0"`（kong は `"3.8.0"`）。
@@ -209,8 +209,8 @@ service tier には以下の Chart が存在する。全て `k1s0-common` Librar
 
 ### Business / Service Tier Chart の values.yaml 重要フィールド差分
 
-| フィールド | domain-master | inventory | payment | service-catalog |
-|-----------|---------------|-----------|---------|-----------------|
+| フィールド | project-master | board | activity | service-catalog |
+|-----------|----------------|-------|----------|-----------------|
 | `container.port` | 8210 | 8311 | 8312 | 8313 |
 | `container.grpcPort` | 9210 | 0 | 0 | 0 |
 | `kafka.enabled` | true | true | true | false |

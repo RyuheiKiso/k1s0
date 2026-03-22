@@ -4,9 +4,9 @@
 -- postgres_store.rs が参照する outbox スキーマ・テーブルの初期化SQL。
 
 -- ============================================================
--- k1s0_order データベースに outbox スキーマを作成
+-- k1s0_task データベースに outbox スキーマを作成
 -- ============================================================
-\c k1s0_order;
+\c k1s0_task;
 
 -- UUID生成のための拡張機能
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

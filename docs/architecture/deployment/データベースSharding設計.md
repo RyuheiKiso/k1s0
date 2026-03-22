@@ -9,8 +9,8 @@
 
 ### データベース構成（2026年3月時点）
 - **System Tier**: 22スキーマが `k1s0_system` データベースに同居
-- **Business Tier**: `k1s0_business` データベース（domain-master スキーマ）
-- **Service Tier**: 3スキーマ（inventory/order/payment）が `k1s0_service` に同居
+- **Business Tier**: `k1s0_business` データベース（project-master スキーマ）
+- **Service Tier**: 3スキーマ（board/task/activity）が `k1s0_service` に同居
 - 全て単一 PostgreSQL 17.2 インスタンスで稼働
 
 ### 課題

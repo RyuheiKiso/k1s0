@@ -217,26 +217,26 @@ mod tests {
     fn sample_config() -> EventConfig {
         parse_event_config_str(
             r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    description: "マスタアイテムが作成された時に発行されるイベント"
-    partition_key: item_id
+    description: "プロジェクトタイプが変更された時に発行されるイベント"
+    partition_key: project_type_id
     outbox: true
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
-          description: "アイテムID"
+          description: "プロジェクトタイプID"
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_project_type_changed
 "#,
         )
         .unwrap()
@@ -246,17 +246,17 @@ events:
     fn types_output() {
         let config = sample_config();
         let types = generate_types(&config);
-        assert!(types.contains("pub struct MasterItemCreated {"));
-        assert!(types.contains("pub item_id: String,"));
+        assert!(types.contains("pub struct ProjectTypeChanged {"));
+        assert!(types.contains("pub project_type_id: String,"));
     }
 
     #[test]
     fn producer_output() {
         let config = sample_config();
         let producer = generate_producer(&config);
-        assert!(producer.contains("pub async fn publish_master_item_created("));
-        assert!(producer.contains("pub async fn publish_master_item_created_via_outbox("));
-        assert!(producer.contains("k1s0.business.accounting.master-item-created.v1"));
+        assert!(producer.contains("pub async fn publish_project_type_changed("));
+        assert!(producer.contains("pub async fn publish_project_type_changed_via_outbox("));
+        assert!(producer.contains("k1s0.business.taskmanagement.project-type-changed.v1"));
     }
 
     #[test]
@@ -264,8 +264,8 @@ events:
         let config = sample_config();
         let event = &config.events[0];
         let handler = generate_consumer_handler(&config, event, &event.consumers[0].handler);
-        assert!(handler.contains("pub async fn on_accounting_master_item_created("));
-        assert!(handler.contains("MasterItemCreated"));
+        assert!(handler.contains("pub async fn on_taskmanagement_project_type_changed("));
+        assert!(handler.contains("ProjectTypeChanged"));
     }
 
     #[test]
@@ -281,16 +281,16 @@ events:
     fn consumers_mod_output() {
         let config = sample_config();
         let mod_rs = generate_consumers_mod(&config);
-        assert!(mod_rs.contains("pub mod on_accounting_master_item_created;"));
+        assert!(mod_rs.contains("pub mod on_taskmanagement_project_type_changed;"));
     }
 
     #[test]
     fn schema_registry_output() {
         let config = sample_config();
         let yaml = generate_schema_registry_config(&config);
-        assert!(yaml.contains("subject: \"k1s0.business.accounting.master-item-created.v1-value\""));
+        assert!(yaml.contains("subject: \"k1s0.business.taskmanagement.project-type-changed.v1-value\""));
         assert!(yaml.contains("type: PROTOBUF"));
-        assert!(yaml.contains("message: \"MasterItemCreated\""));
+        assert!(yaml.contains("message: \"ProjectTypeChanged\""));
     }
 
     #[test]

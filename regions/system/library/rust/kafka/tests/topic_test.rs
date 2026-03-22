@@ -50,7 +50,7 @@ fn valid_topic_name_business_tier() {
 #[test]
 fn valid_topic_name_service_tier() {
     let cfg = TopicConfig {
-        name: "k1s0.service.payment.completed.v2".to_string(),
+        name: "k1s0.service.activity.approved.v2".to_string(),
         partitions: 3,
         replication_factor: 3,
         retention_ms: 604_800_000,

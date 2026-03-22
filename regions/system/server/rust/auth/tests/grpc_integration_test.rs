@@ -132,7 +132,7 @@ impl UserRepository for GrpcTestUserRepository {
                     },
                 ],
                 client_roles: HashMap::from([(
-                    "order-service".to_string(),
+                    "task-server".to_string(),
                     vec![Role {
                         id: "role-3".to_string(),
                         name: "read".to_string(),
@@ -484,16 +484,16 @@ async fn test_get_user_roles_grpc_success() {
         "grpc-user-1 はクライアントロールを 1 件持つため長さが 1 でなければならない"
     );
     assert!(
-        resp.client_roles.contains_key("order-service"),
-        "クライアントロールに 'order-service' エントリが存在しなければならない"
+        resp.client_roles.contains_key("task-server"),
+        "クライアントロールに 'task-server' エントリが存在しなければならない"
     );
     assert_eq!(
-        resp.client_roles["order-service"].roles.len(),
+        resp.client_roles["task-server"].roles.len(),
         1,
-        "'order-service' クライアントのロール数が 1 でなければならない"
+        "'task-server' クライアントのロール数が 1 でなければならない"
     );
     assert_eq!(
-        resp.client_roles["order-service"].roles[0].name, "read",
-        "'order-service' クライアントのロール名が 'read' でなければならない"
+        resp.client_roles["task-server"].roles[0].name, "read",
+        "'task-server' クライアントのロール名が 'read' でなければならない"
     );
 }

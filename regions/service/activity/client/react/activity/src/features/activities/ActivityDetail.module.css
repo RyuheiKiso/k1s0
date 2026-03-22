@@ -1,0 +1,65 @@
+/* セクションコンテナ */
+.section {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* 情報テーブルのヘッダーセル */
+.infoTh {
+  padding: 6px 16px 6px 0;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+/* 情報テーブルのデータセル */
+.infoTd {
+  padding: 6px 0;
+}
+
+/* ステータスバッジの共通スタイル */
+.statusBadge {
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+
+/* 各ステータスの背景色 */
+.statusActive {
+  background-color: #28a745;
+}
+
+.statusSubmitted {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.statusApproved {
+  background-color: #17a2b8;
+}
+
+.statusRejected {
+  background-color: #dc3545;
+}
+
+/* 承認フローアクションのコントロール */
+.actionControls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* 却下理由入力欄 */
+.rejectReasonInput {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* エラーメッセージ */
+.error {
+  color: red;
+  font-size: 0.85em;
+}

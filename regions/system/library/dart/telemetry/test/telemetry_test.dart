@@ -24,7 +24,7 @@ void main() {
 
     test('全フィールドで設定が作成されること', () {
       final cfg = TelemetryConfig(
-        serviceName: 'order-server',
+        serviceName: 'task-server',
         version: '2.0.0',
         tier: 'service',
         environment: 'prod',
@@ -33,7 +33,7 @@ void main() {
         logLevel: 'warn',
       );
 
-      expect(cfg.serviceName, 'order-server');
+      expect(cfg.serviceName, 'task-server');
       expect(cfg.version, '2.0.0');
       expect(cfg.tier, 'service');
       expect(cfg.environment, 'prod');

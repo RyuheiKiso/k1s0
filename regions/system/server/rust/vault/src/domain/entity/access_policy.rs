@@ -129,12 +129,12 @@ mod tests {
         let policy = make_policy(
             "secrets/production/*",
             &[
-                "spiffe://cluster/ns/default/sa/payment-service",
-                "spiffe://cluster/ns/default/sa/order-service",
+                "spiffe://cluster/ns/default/sa/activity-server",
+                "spiffe://cluster/ns/default/sa/task-server",
             ],
         );
-        assert!(policy.is_allowed("spiffe://cluster/ns/default/sa/payment-service"));
-        assert!(policy.is_allowed("spiffe://cluster/ns/default/sa/order-service"));
+        assert!(policy.is_allowed("spiffe://cluster/ns/default/sa/activity-server"));
+        assert!(policy.is_allowed("spiffe://cluster/ns/default/sa/task-server"));
         assert!(!policy.is_allowed("spiffe://cluster/ns/default/sa/unknown-service"));
     }
 

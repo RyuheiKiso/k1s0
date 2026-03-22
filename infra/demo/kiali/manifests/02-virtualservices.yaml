@@ -66,14 +66,14 @@ metadata:
   namespace: k1s0-business
 spec:
   hosts:
-    - accounting-server.k1s0-business.svc.cluster.local
+    - project-master-server.k1s0-business.svc.cluster.local
   http:
     - match:
         - authority:
-            exact: accounting-server.k1s0-business.svc.cluster.local
+            exact: project-master-server.k1s0-business.svc.cluster.local
       route:
         - destination:
-            host: accounting-server.k1s0-business.svc.cluster.local
+            host: project-master-server.k1s0-business.svc.cluster.local
       timeout: 10s
       retries:
         attempts: 3
@@ -87,14 +87,14 @@ metadata:
   namespace: k1s0-service
 spec:
   hosts:
-    - order-bff.k1s0-service.svc.cluster.local
+    - task-bff.k1s0-service.svc.cluster.local
   http:
     - match:
         - authority:
-            exact: order-bff.k1s0-service.svc.cluster.local
+            exact: task-bff.k1s0-service.svc.cluster.local
       route:
         - destination:
-            host: order-bff.k1s0-service.svc.cluster.local
+            host: task-bff.k1s0-service.svc.cluster.local
       timeout: 15s
       retries:
         attempts: 2

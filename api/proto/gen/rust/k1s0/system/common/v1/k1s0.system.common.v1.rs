@@ -133,32 +133,32 @@ pub enum EventType {
     /// === 設定管理系イベント (200-299) ===
     /// 設定値変更イベント
     ConfigChanged = 200,
-    /// === 会計系イベント (300-399) ===
-    /// 仕訳エントリ作成イベント
-    AccountingEntryCreated = 300,
-    /// 仕訳エントリ承認イベント
-    AccountingEntryApproved = 301,
-    /// === 注文系イベント (400-499) ===
-    /// 注文作成イベント
-    OrderCreated = 400,
-    /// 注文更新イベント
-    OrderUpdated = 401,
-    /// 注文キャンセルイベント
-    OrderCancelled = 402,
-    /// === 在庫系イベント (500-599) ===
-    /// 在庫予約イベント
-    InventoryReserved = 500,
-    /// 在庫解放イベント
-    InventoryReleased = 501,
-    /// === 決済系イベント (600-699) ===
-    /// 決済開始イベント
-    PaymentInitiated = 600,
-    /// 決済完了イベント
-    PaymentCompleted = 601,
-    /// 決済失敗イベント
-    PaymentFailed = 602,
-    /// 返金イベント
-    PaymentRefunded = 603,
+    /// === タスク管理系イベント (300-399) ===
+    /// プロジェクトタイプ変更イベント
+    TaskmanagementProjectTypeChanged = 300,
+    /// ステータス定義変更イベント
+    TaskmanagementStatusDefinitionChanged = 301,
+    /// === タスク系イベント (400-499) ===
+    /// タスク作成イベント
+    TaskCreated = 400,
+    /// タスクステータス変更イベント
+    TaskStatusChanged = 401,
+    /// タスクキャンセルイベント
+    TaskCancelled = 402,
+    /// === ボード系イベント (500-599) ===
+    /// ボードカラムインクリメントイベント
+    BoardColumnIncremented = 500,
+    /// ボードカラムデクリメントイベント
+    BoardColumnDecremented = 501,
+    /// === アクティビティ系イベント (600-699) ===
+    /// アクティビティ作成イベント
+    ActivityCreated = 600,
+    /// アクティビティ承認イベント
+    ActivityApproved = 601,
+    /// アクティビティ却下イベント
+    ActivityRejected = 602,
+    /// アクティビティ削除イベント
+    ActivityDeleted = 603,
 }
 impl EventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -173,17 +173,17 @@ impl EventType {
             Self::AuthPermissionCheck => "EVENT_TYPE_AUTH_PERMISSION_CHECK",
             Self::AuthAuditLogRecorded => "EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED",
             Self::ConfigChanged => "EVENT_TYPE_CONFIG_CHANGED",
-            Self::AccountingEntryCreated => "EVENT_TYPE_ACCOUNTING_ENTRY_CREATED",
-            Self::AccountingEntryApproved => "EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED",
-            Self::OrderCreated => "EVENT_TYPE_ORDER_CREATED",
-            Self::OrderUpdated => "EVENT_TYPE_ORDER_UPDATED",
-            Self::OrderCancelled => "EVENT_TYPE_ORDER_CANCELLED",
-            Self::InventoryReserved => "EVENT_TYPE_INVENTORY_RESERVED",
-            Self::InventoryReleased => "EVENT_TYPE_INVENTORY_RELEASED",
-            Self::PaymentInitiated => "EVENT_TYPE_PAYMENT_INITIATED",
-            Self::PaymentCompleted => "EVENT_TYPE_PAYMENT_COMPLETED",
-            Self::PaymentFailed => "EVENT_TYPE_PAYMENT_FAILED",
-            Self::PaymentRefunded => "EVENT_TYPE_PAYMENT_REFUNDED",
+            Self::TaskmanagementProjectTypeChanged => "EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED",
+            Self::TaskmanagementStatusDefinitionChanged => "EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED",
+            Self::TaskCreated => "EVENT_TYPE_TASK_CREATED",
+            Self::TaskStatusChanged => "EVENT_TYPE_TASK_STATUS_CHANGED",
+            Self::TaskCancelled => "EVENT_TYPE_TASK_CANCELLED",
+            Self::BoardColumnIncremented => "EVENT_TYPE_BOARD_COLUMN_INCREMENTED",
+            Self::BoardColumnDecremented => "EVENT_TYPE_BOARD_COLUMN_DECREMENTED",
+            Self::ActivityCreated => "EVENT_TYPE_ACTIVITY_CREATED",
+            Self::ActivityApproved => "EVENT_TYPE_ACTIVITY_APPROVED",
+            Self::ActivityRejected => "EVENT_TYPE_ACTIVITY_REJECTED",
+            Self::ActivityDeleted => "EVENT_TYPE_ACTIVITY_DELETED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -195,17 +195,17 @@ impl EventType {
             "EVENT_TYPE_AUTH_PERMISSION_CHECK" => Some(Self::AuthPermissionCheck),
             "EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED" => Some(Self::AuthAuditLogRecorded),
             "EVENT_TYPE_CONFIG_CHANGED" => Some(Self::ConfigChanged),
-            "EVENT_TYPE_ACCOUNTING_ENTRY_CREATED" => Some(Self::AccountingEntryCreated),
-            "EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED" => Some(Self::AccountingEntryApproved),
-            "EVENT_TYPE_ORDER_CREATED" => Some(Self::OrderCreated),
-            "EVENT_TYPE_ORDER_UPDATED" => Some(Self::OrderUpdated),
-            "EVENT_TYPE_ORDER_CANCELLED" => Some(Self::OrderCancelled),
-            "EVENT_TYPE_INVENTORY_RESERVED" => Some(Self::InventoryReserved),
-            "EVENT_TYPE_INVENTORY_RELEASED" => Some(Self::InventoryReleased),
-            "EVENT_TYPE_PAYMENT_INITIATED" => Some(Self::PaymentInitiated),
-            "EVENT_TYPE_PAYMENT_COMPLETED" => Some(Self::PaymentCompleted),
-            "EVENT_TYPE_PAYMENT_FAILED" => Some(Self::PaymentFailed),
-            "EVENT_TYPE_PAYMENT_REFUNDED" => Some(Self::PaymentRefunded),
+            "EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED" => Some(Self::TaskmanagementProjectTypeChanged),
+            "EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED" => Some(Self::TaskmanagementStatusDefinitionChanged),
+            "EVENT_TYPE_TASK_CREATED" => Some(Self::TaskCreated),
+            "EVENT_TYPE_TASK_STATUS_CHANGED" => Some(Self::TaskStatusChanged),
+            "EVENT_TYPE_TASK_CANCELLED" => Some(Self::TaskCancelled),
+            "EVENT_TYPE_BOARD_COLUMN_INCREMENTED" => Some(Self::BoardColumnIncremented),
+            "EVENT_TYPE_BOARD_COLUMN_DECREMENTED" => Some(Self::BoardColumnDecremented),
+            "EVENT_TYPE_ACTIVITY_CREATED" => Some(Self::ActivityCreated),
+            "EVENT_TYPE_ACTIVITY_APPROVED" => Some(Self::ActivityApproved),
+            "EVENT_TYPE_ACTIVITY_REJECTED" => Some(Self::ActivityRejected),
+            "EVENT_TYPE_ACTIVITY_DELETED" => Some(Self::ActivityDeleted),
             _ => None,
         }
     }

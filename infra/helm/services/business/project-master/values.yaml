@@ -1,0 +1,33 @@
+# k1s0-common からのデフォルトを継承し、project-master サービス固有の値のみ上書きする
+# 共通デフォルト値は infra/helm/charts/k1s0-common/values.yaml を参照
+
+image:
+  repository: k1s0-business/project-master
+
+container:
+  port: 8210
+  grpcPort: 9210
+
+service:
+  grpcPort: 9210
+
+vault:
+  enabled: true
+  role: "business"
+  secrets:
+    - path: "secret/data/k1s0/business/project-master/database"
+      key: "password"
+      mountPath: "/vault/secrets/db-password"
+
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+serviceAccount:
+  name: "project-master-rust"
+
+labels:
+  tier: business
+
+kafka:
+  enabled: true
+
+redis:
+  enabled: false

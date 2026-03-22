@@ -310,13 +310,13 @@ Kong の設定は Admin API を通じて管理する。直接の Admin API 呼�
 ```bash
 # Service の作成例
 curl -X POST http://kong-admin:8001/services \
-  -d name=order-v1 \
-  -d url=http://order-server.k1s0-service.svc.cluster.local:80
+  -d name=task-v1 \
+  -d url=http://task-server.k1s0-service.svc.cluster.local:80
 
 # Route の作成例
-curl -X POST http://kong-admin:8001/services/order-v1/routes \
-  -d name=order-v1-route \
-  -d 'paths[]=/api/v1/orders' \
+curl -X POST http://kong-admin:8001/services/task-v1/routes \
+  -d name=task-v1-route \
+  -d 'paths[]=/api/v1/tasks' \
   -d strip_path=false
 ```
 
@@ -475,8 +475,8 @@ services:
   # ============================================================
   # business Tier (rate-limiting: 1000/min, 40/sec)
   # ============================================================
-  - name: accounting-ledger-v1
-    url: http://ledger-server.k1s0-business.svc.cluster.local:80
+  - name: taskmanagement-board-v1
+    url: http://board-server.k1s0-business.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:
@@ -489,13 +489,13 @@ services:
           fault_tolerant: true
           hide_client_headers: false
     routes:
-      - name: ledger-v1-route
+      - name: board-v1-route
         paths:
-          - /api/v1/accounting/ledger
+          - /api/v1/taskmanagement/board
         strip_path: false
 
-  - name: accounts-v1
-    url: http://accounts-server.k1s0-business.svc.cluster.local:80
+  - name: projects-v1
+    url: http://projects-server.k1s0-business.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:
@@ -508,16 +508,16 @@ services:
           fault_tolerant: true
           hide_client_headers: false
     routes:
-      - name: accounts-v1-route
+      - name: projects-v1-route
         paths:
-          - /api/v1/accounts
+          - /api/v1/projects
         strip_path: false
 
   # ============================================================
   # service Tier (rate-limiting: 500/min, 20/sec = global default)
   # ============================================================
-  - name: order-v1
-    url: http://order-server.k1s0-service.svc.cluster.local:80
+  - name: task-v1
+    url: http://task-server.k1s0-service.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:
@@ -530,9 +530,9 @@ services:
           fault_tolerant: true
           hide_client_headers: false
     routes:
-      - name: order-v1-route
+      - name: task-v1-route
         paths:
-          - /api/v1/orders
+          - /api/v1/tasks
         strip_path: false
 
   - name: dashboard-v1
@@ -688,9 +688,9 @@ services:
           policy: redis
           redis_host: redis.k1s0-system.svc.cluster.local
 
-# business Tier のオーバーライド例（accounting-ledger）
+# business Tier のオーバーライド例（taskmanagement-board）
 services:
-  - name: accounting-ledger-v1
+  - name: taskmanagement-board-v1
     plugins:
       - name: rate-limiting
         config:

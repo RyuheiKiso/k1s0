@@ -418,7 +418,7 @@ k1s0 を採用すると、インフラ構築・セキュリティスキャン・
 
 ```bash
 $ k1s0 generate server
-? サーバー名を入力してください: inventory-alert
+? サーバー名を入力してください: board-alert
 ? 配置先ティアを選択してください: ❯ Service
 ? 使用言語を選択してください: ❯ Rust
 ? 通信方式を選択してください: ❯ REST (Axum)
@@ -426,7 +426,7 @@ $ k1s0 generate server
 ? イベント駆動を使用しますか？: ❯ Yes (Kafka)
 
 ✓ プロジェクト構造を生成中 ............. 完了
-  regions/service/inventory-alert/server/rust/inventory-alert/
+  regions/service/board-alert/server/rust/board-alert/
   ├── Cargo.toml                         # 依存ライブラリ定義済み
   ├── src/
   │   ├── domain/                        # DDD ドメイン層（エンティティ・値オブジェクト）
@@ -439,11 +439,11 @@ $ k1s0 generate server
   │       └── config.rs                  # 環境変数バインディング
   ├── tests/                             # テスト基盤（モック・DB テスト）
   └── Dockerfile                         # マルチステージビルド（distroless イメージ）
-  .github/workflows/inventory-alert-ci.yaml  # lint/test/build/セキュリティスキャン
-  docs/servers/service/inventory-alert/
+  .github/workflows/board-alert-ci.yaml  # lint/test/build/セキュリティスキャン
+  docs/servers/service/board-alert/
   ├── server.md                          # サーバー設計書テンプレート
   └── implementation.md                  # 実装設計書テンプレート
-  helm/inventory-alert/                  # Helm Chart（liveness/readiness プローブ設定済み）
+  helm/board-alert/                  # Helm Chart（liveness/readiness プローブ設定済み）
 
 ✓ 生成完了 (1.8秒)
 
@@ -760,7 +760,7 @@ spec:
 | 条件 | モノリス | k1s0（Kubernetes HPA） |
 |------|---------|----------------------|
 | 通常時 | 8vCPU / 16GB × 2台（最低） | 1 Pod（2vCPU / 4GB）× 各サービス |
-| ピーク時（order サービスのみ負荷） | 8vCPU / 16GB × 4台（全体スケール） | order だけ 8 Pod にスケール（他は変化なし） |
+| ピーク時（task サービスのみ負荷） | 8vCPU / 16GB × 4台（全体スケール） | task だけ 8 Pod にスケール（他は変化なし） |
 | 夜間・週末 | 通常通り稼働 | 自動縮退（30〜70%リソース削減） |
 
 **CNCF のデータによる補足:**

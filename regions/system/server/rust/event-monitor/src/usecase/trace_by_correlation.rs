@@ -147,9 +147,9 @@ mod tests {
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
             corr_id.to_string(),
-            "OrderCreated".to_string(),
-            "order-service".to_string(),
-            "service.order".to_string(),
+            "TaskCreated".to_string(),
+            "task-server".to_string(),
+            "service.task".to_string(),
             "trace-123".to_string(),
             Utc::now(),
         )
@@ -157,26 +157,26 @@ mod tests {
 
     fn make_flow_with_steps(flow_id: Uuid) -> FlowDefinition {
         let mut flow = FlowDefinition::new(
-            "order_flow".to_string(),
+            "task_flow".to_string(),
             "test".to_string(),
-            "service.order".to_string(),
+            "service.task".to_string(),
             vec![
                 FlowStep {
-                    event_type: "OrderCreated".to_string(),
-                    source: "order-service".to_string(),
+                    event_type: "TaskCreated".to_string(),
+                    source: "task-server".to_string(),
                     source_filter: None,
                     timeout_seconds: 30,
                     description: "step 0".to_string(),
                 },
                 FlowStep {
-                    event_type: "PaymentProcessed".to_string(),
-                    source: "payment-service".to_string(),
+                    event_type: "ActivityCreated".to_string(),
+                    source: "activity-server".to_string(),
                     source_filter: None,
                     timeout_seconds: 60,
                     description: "step 1".to_string(),
                 },
                 FlowStep {
-                    event_type: "OrderShipped".to_string(),
+                    event_type: "BoardColumnIncremented".to_string(),
                     source: "shipping-service".to_string(),
                     source_filter: None,
                     timeout_seconds: 120,
@@ -226,10 +226,10 @@ mod tests {
         assert_eq!(output.correlation_id, "corr-123");
         assert_eq!(output.events.len(), 1);
         assert!(output.flow_instance.is_some());
-        assert_eq!(output.flow_name, Some("order_flow".to_string()));
+        assert_eq!(output.flow_name, Some("task_flow".to_string()));
         assert_eq!(output.pending_steps.len(), 2);
-        assert_eq!(output.pending_steps[0].event_type, "PaymentProcessed");
-        assert_eq!(output.pending_steps[1].event_type, "OrderShipped");
+        assert_eq!(output.pending_steps[0].event_type, "ActivityCreated");
+        assert_eq!(output.pending_steps[1].event_type, "BoardColumnIncremented");
     }
 
     #[tokio::test]

@@ -6,7 +6,7 @@
 
 ## 概要
 
-Binding Building Block ライブラリ。外部リソースへの入出力を統一インターフェースで抽象化する。InputBinding（外部からのイベント受信）と OutputBinding（外部への操作実行）の 2 つのトレイトを提供し、PostgreSQL・S3・HTTP 等のリソースを同一の API で扱える。
+Binding Building Block ライブラリ。外部リソースへの入出力を統一インターフェースで抽象化する。InputBinding（外部からのイベント受信）と OutputBinding（外部への操作実行）の 2 つのトレイトを提供し、PostgreSQL・HTTP 等のリソースを同一の API で扱える。
 
 **配置先**: `regions/system/library/rust/bb-binding/`
 
@@ -141,11 +141,11 @@ let request = BindingRequest {
 let response = binding.invoke(&request).await?;
 println!("result: {:?}", response.data);
 
-// S3 アップロード
+// HTTP POST
 let request = BindingRequest {
-    operation: "put".to_string(),
-    data: serde_json::json!({"key": "uploads/file.pdf", "content": "base64data..."}),
-    metadata: [("bucket".to_string(), "my-bucket".to_string())].into(),
+    operation: "POST".to_string(),
+    data: serde_json::json!({"payload": "hello"}),
+    metadata: [("url".to_string(), "https://api.example.com/hook".to_string())].into(),
 };
 let response = binding.invoke(&request).await?;
 ```
@@ -378,16 +378,13 @@ mod tests {
         assert!(postgres.operations().contains(&"query"));
         assert!(postgres.operations().contains(&"exec"));
 
-        let s3 = S3Binding::new();
-        assert!(s3.operations().contains(&"put"));
-        assert!(s3.operations().contains(&"get"));
     }
 }
 ```
 
 ### 統合テスト
 
-- testcontainers で PostgreSQL・MinIO（S3 互換）を起動し、実装の動作を検証
+- testcontainers で PostgreSQL を起動し、実装の動作を検証
 - 大容量ファイルアップロード・ダウンロードのパフォーマンスを計測
 - HTTP バインディングの各メソッド（GET/POST/PUT/DELETE）を wiremock で検証
 

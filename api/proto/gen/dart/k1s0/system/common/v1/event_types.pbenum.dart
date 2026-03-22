@@ -43,53 +43,53 @@ class EventType extends $pb.ProtobufEnum {
   static const EventType EVENT_TYPE_CONFIG_CHANGED =
       EventType._(200, _omitEnumNames ? '' : 'EVENT_TYPE_CONFIG_CHANGED');
 
-  /// === 会計系イベント (300-399) ===
-  /// 仕訳エントリ作成イベント
-  static const EventType EVENT_TYPE_ACCOUNTING_ENTRY_CREATED = EventType._(
-      300, _omitEnumNames ? '' : 'EVENT_TYPE_ACCOUNTING_ENTRY_CREATED');
+  /// === タスク管理系イベント (300-399) ===
+  /// プロジェクトタイプ変更イベント
+  static const EventType EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED = EventType._(
+      300, _omitEnumNames ? '' : 'EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED');
 
-  /// 仕訳エントリ承認イベント
-  static const EventType EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED = EventType._(
-      301, _omitEnumNames ? '' : 'EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED');
+  /// ステータス定義変更イベント
+  static const EventType EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED = EventType._(
+      301, _omitEnumNames ? '' : 'EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED');
 
-  /// === 注文系イベント (400-499) ===
-  /// 注文作成イベント
-  static const EventType EVENT_TYPE_ORDER_CREATED =
-      EventType._(400, _omitEnumNames ? '' : 'EVENT_TYPE_ORDER_CREATED');
+  /// === タスク系イベント (400-499) ===
+  /// タスク作成イベント
+  static const EventType EVENT_TYPE_TASK_CREATED =
+      EventType._(400, _omitEnumNames ? '' : 'EVENT_TYPE_TASK_CREATED');
 
-  /// 注文更新イベント
-  static const EventType EVENT_TYPE_ORDER_UPDATED =
-      EventType._(401, _omitEnumNames ? '' : 'EVENT_TYPE_ORDER_UPDATED');
+  /// タスクステータス変更イベント
+  static const EventType EVENT_TYPE_TASK_STATUS_CHANGED =
+      EventType._(401, _omitEnumNames ? '' : 'EVENT_TYPE_TASK_STATUS_CHANGED');
 
-  /// 注文キャンセルイベント
-  static const EventType EVENT_TYPE_ORDER_CANCELLED =
-      EventType._(402, _omitEnumNames ? '' : 'EVENT_TYPE_ORDER_CANCELLED');
+  /// タスクキャンセルイベント
+  static const EventType EVENT_TYPE_TASK_CANCELLED =
+      EventType._(402, _omitEnumNames ? '' : 'EVENT_TYPE_TASK_CANCELLED');
 
-  /// === 在庫系イベント (500-599) ===
-  /// 在庫予約イベント
-  static const EventType EVENT_TYPE_INVENTORY_RESERVED =
-      EventType._(500, _omitEnumNames ? '' : 'EVENT_TYPE_INVENTORY_RESERVED');
+  /// === ボード系イベント (500-599) ===
+  /// ボードカラムインクリメントイベント
+  static const EventType EVENT_TYPE_BOARD_COLUMN_INCREMENTED =
+      EventType._(500, _omitEnumNames ? '' : 'EVENT_TYPE_BOARD_COLUMN_INCREMENTED');
 
-  /// 在庫解放イベント
-  static const EventType EVENT_TYPE_INVENTORY_RELEASED =
-      EventType._(501, _omitEnumNames ? '' : 'EVENT_TYPE_INVENTORY_RELEASED');
+  /// ボードカラムデクリメントイベント
+  static const EventType EVENT_TYPE_BOARD_COLUMN_DECREMENTED =
+      EventType._(501, _omitEnumNames ? '' : 'EVENT_TYPE_BOARD_COLUMN_DECREMENTED');
 
-  /// === 決済系イベント (600-699) ===
-  /// 決済開始イベント
-  static const EventType EVENT_TYPE_PAYMENT_INITIATED =
-      EventType._(600, _omitEnumNames ? '' : 'EVENT_TYPE_PAYMENT_INITIATED');
+  /// === アクティビティ系イベント (600-699) ===
+  /// アクティビティ作成イベント
+  static const EventType EVENT_TYPE_ACTIVITY_CREATED =
+      EventType._(600, _omitEnumNames ? '' : 'EVENT_TYPE_ACTIVITY_CREATED');
 
-  /// 決済完了イベント
-  static const EventType EVENT_TYPE_PAYMENT_COMPLETED =
-      EventType._(601, _omitEnumNames ? '' : 'EVENT_TYPE_PAYMENT_COMPLETED');
+  /// アクティビティ承認イベント
+  static const EventType EVENT_TYPE_ACTIVITY_APPROVED =
+      EventType._(601, _omitEnumNames ? '' : 'EVENT_TYPE_ACTIVITY_APPROVED');
 
-  /// 決済失敗イベント
-  static const EventType EVENT_TYPE_PAYMENT_FAILED =
-      EventType._(602, _omitEnumNames ? '' : 'EVENT_TYPE_PAYMENT_FAILED');
+  /// アクティビティ却下イベント
+  static const EventType EVENT_TYPE_ACTIVITY_REJECTED =
+      EventType._(602, _omitEnumNames ? '' : 'EVENT_TYPE_ACTIVITY_REJECTED');
 
-  /// 返金イベント
-  static const EventType EVENT_TYPE_PAYMENT_REFUNDED =
-      EventType._(603, _omitEnumNames ? '' : 'EVENT_TYPE_PAYMENT_REFUNDED');
+  /// アクティビティ削除イベント
+  static const EventType EVENT_TYPE_ACTIVITY_DELETED =
+      EventType._(603, _omitEnumNames ? '' : 'EVENT_TYPE_ACTIVITY_DELETED');
 
   static const $core.List<EventType> values = <EventType>[
     EVENT_TYPE_UNSPECIFIED,
@@ -98,17 +98,17 @@ class EventType extends $pb.ProtobufEnum {
     EVENT_TYPE_AUTH_PERMISSION_CHECK,
     EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED,
     EVENT_TYPE_CONFIG_CHANGED,
-    EVENT_TYPE_ACCOUNTING_ENTRY_CREATED,
-    EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED,
-    EVENT_TYPE_ORDER_CREATED,
-    EVENT_TYPE_ORDER_UPDATED,
-    EVENT_TYPE_ORDER_CANCELLED,
-    EVENT_TYPE_INVENTORY_RESERVED,
-    EVENT_TYPE_INVENTORY_RELEASED,
-    EVENT_TYPE_PAYMENT_INITIATED,
-    EVENT_TYPE_PAYMENT_COMPLETED,
-    EVENT_TYPE_PAYMENT_FAILED,
-    EVENT_TYPE_PAYMENT_REFUNDED,
+    EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED,
+    EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED,
+    EVENT_TYPE_TASK_CREATED,
+    EVENT_TYPE_TASK_STATUS_CHANGED,
+    EVENT_TYPE_TASK_CANCELLED,
+    EVENT_TYPE_BOARD_COLUMN_INCREMENTED,
+    EVENT_TYPE_BOARD_COLUMN_DECREMENTED,
+    EVENT_TYPE_ACTIVITY_CREATED,
+    EVENT_TYPE_ACTIVITY_APPROVED,
+    EVENT_TYPE_ACTIVITY_REJECTED,
+    EVENT_TYPE_ACTIVITY_DELETED,
   ];
 
   static final $core.Map<$core.int, EventType> _byValue =

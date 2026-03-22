@@ -1,0 +1,46 @@
+app:
+  name: k1s0-task-server
+  version: "0.1.0"
+  environment: development
+
+server:
+  host: "0.0.0.0"
+  port: 8310
+  grpc_port: 9310
+
+database:
+  host: localhost
+  port: 5432
+  name: k1s0_task
+  schema: task
+  user: k1s0
+  password: ""
+  ssl_mode: disable
+  max_connections: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300
+
+observability:
+  log:
+    level: info
+    format: json
+  trace:
+    enabled: true
+    endpoint: "http://jaeger:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: /metrics
+
+kafka:
+  brokers:
+    - "kafka:9092"
+  task_created_topic: "k1s0.service.task.created"
+  task_updated_topic: "k1s0.service.task.updated"
+  task_cancelled_topic: "k1s0.service.task.cancelled"
+
+auth:
+  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://keycloak:8080/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300

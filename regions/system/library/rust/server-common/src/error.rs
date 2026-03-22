@@ -892,28 +892,28 @@ pub mod notification {
     }
 }
 
-/// Well-known error codes for the Order service (service tier).
-pub mod order {
+/// Well-known error codes for the Task service (service tier).
+pub mod task {
     use super::ErrorCode;
 
     pub fn not_found() -> ErrorCode {
-        ErrorCode::new("SVC_ORDER_NOT_FOUND")
+        ErrorCode::new("SVC_TASK_NOT_FOUND")
     }
 
     pub fn validation_failed() -> ErrorCode {
-        ErrorCode::new("SVC_ORDER_VALIDATION_FAILED")
+        ErrorCode::new("SVC_TASK_VALIDATION_FAILED")
     }
 
     pub fn invalid_status_transition() -> ErrorCode {
-        ErrorCode::new("SVC_ORDER_INVALID_STATUS_TRANSITION")
+        ErrorCode::new("SVC_TASK_INVALID_STATUS_TRANSITION")
     }
 
     pub fn version_conflict() -> ErrorCode {
-        ErrorCode::new("SVC_ORDER_VERSION_CONFLICT")
+        ErrorCode::new("SVC_TASK_VERSION_CONFLICT")
     }
 
     pub fn internal_error() -> ErrorCode {
-        ErrorCode::new("SVC_ORDER_INTERNAL_ERROR")
+        ErrorCode::new("SVC_TASK_INTERNAL_ERROR")
     }
 }
 

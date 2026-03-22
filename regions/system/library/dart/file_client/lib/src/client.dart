@@ -102,29 +102,16 @@ class InMemoryFileClient implements FileClient {
 // FileClientConfig — バックエンド設定
 // ---------------------------------------------------------------------------
 
-/// ファイルクライアントの設定。
+/// ファイルクライアントの設定。S3/AWS SDK 依存を除去し、file-server 経由のみをサポートする。
 class FileClientConfig {
   /// file-server モードのエンドポイント URL。
   final String? serverUrl;
-
-  /// S3 互換ストレージの直接エンドポイント。
-  final String? s3Endpoint;
-
-  final String? bucket;
-  final String? region;
-  final String? accessKeyId;
-  final String? secretAccessKey;
 
   /// リクエストタイムアウト。デフォルト 30 秒。
   final Duration timeout;
 
   const FileClientConfig({
     this.serverUrl,
-    this.s3Endpoint,
-    this.bucket,
-    this.region,
-    this.accessKeyId,
-    this.secretAccessKey,
     this.timeout = const Duration(seconds: 30),
   });
 }

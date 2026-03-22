@@ -49,7 +49,7 @@ fn render_helm(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "helm").api_style(api_style);
+        TemplateContextBuilder::new("task-api", "service", lang, "helm").api_style(api_style);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -107,7 +107,7 @@ fn render_helm_with_styles(
         .map(std::string::ToString::to_string)
         .collect();
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_styles(styles);
+        TemplateContextBuilder::new("task-api", "service", "go", "helm").api_styles(styles);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -191,7 +191,7 @@ fn test_helm_chart_yaml_content() {
     };
 
     let content = read_output(&tmp, "Chart.yaml");
-    assert!(content.contains("name: order-api"));
+    assert!(content.contains("name: task-api"));
     assert!(content.contains("version:"));
     assert!(content.contains("appVersion:"));
 }
@@ -204,7 +204,7 @@ fn test_helm_values_yaml_content() {
     };
 
     let content = read_output(&tmp, "values.yaml");
-    assert!(content.contains("order-api"));
+    assert!(content.contains("task-api"));
     assert!(content.contains("replicaCount:"));
     assert!(content.contains("image:"));
 }
@@ -218,7 +218,7 @@ fn test_helm_deployment_content() {
 
     let content = read_output(&tmp, "deployment.yaml");
     assert!(content.contains("kind: Deployment"));
-    assert!(content.contains("order-api"));
+    assert!(content.contains("task-api"));
 }
 
 #[test]

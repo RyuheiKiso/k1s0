@@ -3,18 +3,18 @@
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server
+    - task-server
   http:
     - route:
         - destination:
-            host: order-server
+            host: task-server
             subset: stable
       mirror:
-        host: order-server
+        host: task-server
         subset: canary
       mirrorPercentage:
         value: 10.0

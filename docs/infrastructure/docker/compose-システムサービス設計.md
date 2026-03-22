@@ -350,9 +350,9 @@ services:
   #     retries: 5
 
   # --- service tier ---
-  # order-server:
+  # task-server:
   #   build:
-  #     context: ./regions/service/order/server/rust
+  #     context: ./regions/service/task/server/rust
   #     dockerfile: Dockerfile
   #   profiles: [service]
   #   ports:
@@ -363,7 +363,7 @@ services:
   #     kafka:
   #       condition: service_healthy
   #   volumes:
-  #     - ./regions/service/order/server/rust/config:/app/config
+  #     - ./regions/service/task/server/rust/config:/app/config
 
   # --- API Gateway ---
   # NOTE: Kong は docker-compose.yaml 本体に定義済み（infra プロファイル）。

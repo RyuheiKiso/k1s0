@@ -447,15 +447,15 @@ curl -s -X POST http://localhost:8083/api/v1/auth/token/validate \
   -d "{\"token\":\"${TOKEN}\"}" | jq
 ```
 
-### 4. Business Tier（accounting）の起動
+### 4. Business Tier（taskmanagement）の起動
 
 ```bash
-# accounting domain-master を追加起動
+# taskmanagement project-master を追加起動
 docker compose --profile infra --profile system --profile business up -d
 
 # CRUD API の動作確認（JWT 認証 + RBAC）
 curl -s -H "Authorization: Bearer ${TOKEN}" \
-  http://localhost:8210/api/v1/categories | jq
+  http://localhost:8210/api/v1/project-types | jq
 ```
 
 ### 5. CLI でサーバーひな形を生成
@@ -490,7 +490,7 @@ cargo build --release
 | vault | 8091 | 50059 | system |
 | graphql-gateway | 8092 | — | system |
 | bff-proxy | 8082 | — | system |
-| domain-master | 8210 | 9210 | business |
+| project-master | 8210 | 9210 | business |
 
 ---
 
@@ -506,7 +506,7 @@ cargo build --release
 | [auth-login-flow.drawio](docs/diagrams/auth-login-flow.drawio) | 認証フロー（OIDC PKCE・RBAC・JWKS・Device Code） |
 | [system-internal-dependencies.drawio](docs/diagrams/system-internal-dependencies.drawio) | System サービス群の内部依存グラフ |
 | [developer-workflow.drawio](docs/diagrams/developer-workflow.drawio) | 開発者ワークフロー（Proto・CLI・SDUI・CI/CD） |
-| [saga-order-flow.drawio](docs/diagrams/saga-order-flow.drawio) | 注文 Saga フロー（補償トランザクション） |
+| [saga-task-flow.drawio](docs/diagrams/saga-task-flow.drawio) | タスク割り当て Saga フロー（補償トランザクション） |
 | [observability-data-flow.drawio](docs/diagrams/observability-data-flow.drawio) | 可観測性データパイプライン |
 | [security-architecture.drawio](docs/diagrams/security-architecture.drawio) | セキュリティアーキテクチャ（TLS・Vault・RBAC） |
 | [database-ownership.drawio](docs/diagrams/database-ownership.drawio) | データベース所有権マッピング |

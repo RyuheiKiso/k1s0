@@ -52,7 +52,7 @@ fn render_cicd(
     // 実際の kind (server/client 等) は元のパラメータを使うが、
     // テンプレート選択用の kind は "cicd" とする。
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "cicd").api_style(api_style);
+        TemplateContextBuilder::new("task-api", "service", lang, "cicd").api_style(api_style);
 
     if has_database {
         builder = builder.with_database("postgresql");
@@ -314,9 +314,9 @@ fn test_cicd_service_name_in_workflow_name() {
     let content = read_output(&tmp, ci_file);
 
     assert!(
-        content.contains("order-api")
-            || content.contains("OrderApi")
-            || content.contains("order_api"),
+        content.contains("task-api")
+            || content.contains("TaskApi")
+            || content.contains("task_api"),
         "service_name not found in workflow name"
     );
 }

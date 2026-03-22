@@ -14,7 +14,7 @@ use k1s0_app_registry::domain::entity::version::AppVersion;
 use k1s0_app_registry::domain::repository::{
     AppRepository, DownloadStatsRepository, VersionRepository,
 };
-use k1s0_app_registry::infrastructure::s3_client::S3Client;
+use k1s0_app_registry::infrastructure::file_storage::FileStorage;
 use k1s0_app_registry::infrastructure::TokenVerifier;
 
 // ---------------------------------------------------------------------------
@@ -186,8 +186,8 @@ async fn make_test_app_with_repos(
     version_repo: Arc<dyn VersionRepository>,
     download_stats_repo: Arc<dyn DownloadStatsRepository>,
 ) -> axum::Router {
-    let s3_client =
-        Arc::new(S3Client::new("http://localhost:19000", "test-bucket", "us-east-1").await);
+    // テスト用: 一時ディレクトリをストレージルートとして使用する
+    let file_storage = Arc::new(FileStorage::new(std::env::temp_dir().join("k1s0-test")));
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("test"));
 
     let state = AppState {
@@ -231,7 +231,7 @@ async fn make_test_app_with_repos(
                 app_repo.clone(),
                 version_repo.clone(),
                 download_stats_repo.clone(),
-                s3_client,
+                file_storage,
             ),
         ),
         validate_token_uc: Arc::new(ValidateTokenUseCase::new(
@@ -282,7 +282,7 @@ fn sample_version(app_id: &str, version: &str) -> AppVersion {
         arch: "amd64".to_string(),
         size_bytes: Some(10_000_000),
         checksum_sha256: "abc123def456".to_string(),
-        s3_key: format!("{}/{}/linux/amd64/binary", app_id, version),
+        storage_key: format!("{}/{}/linux/amd64/binary", app_id, version),
         release_notes: Some("Initial release".to_string()),
         mandatory: false,
         published_at: chrono::Utc::now(),

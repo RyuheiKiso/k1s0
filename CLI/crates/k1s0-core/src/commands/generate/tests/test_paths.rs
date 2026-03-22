@@ -30,17 +30,17 @@ fn test_build_output_path_server_business() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("ledger".to_string()),
+            name: Some("project-master".to_string()),
             ..DetailConfig::default()
         },
     };
     let path = build_output_path(&config, Path::new(""));
     assert_eq!(
         path,
-        PathBuf::from("regions/business/accounting/server/rust/ledger")
+        PathBuf::from("regions/business/taskmanagement/server/rust/project-master")
     );
 }
 
@@ -49,16 +49,16 @@ fn test_build_output_path_server_service() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
     let path = build_output_path(&config, Path::new(""));
     // service Tier では detail.name をサブディレクトリに追加しない
-    assert_eq!(path, PathBuf::from("regions/service/order/server/rust"));
+    assert_eq!(path, PathBuf::from("regions/service/task/server/rust"));
 }
 
 #[test]
@@ -66,17 +66,17 @@ fn test_build_output_path_client_business() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("accounting-web".to_string()),
+            name: Some("taskmanagement-web".to_string()),
             ..DetailConfig::default()
         },
     };
     let path = build_output_path(&config, Path::new(""));
     assert_eq!(
         path,
-        PathBuf::from("regions/business/accounting/client/react/accounting-web")
+        PathBuf::from("regions/business/taskmanagement/client/react/taskmanagement-web")
     );
 }
 
@@ -85,15 +85,15 @@ fn test_build_output_path_client_service() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
     let path = build_output_path(&config, Path::new(""));
-    assert_eq!(path, PathBuf::from("regions/service/order/client/react"));
+    assert_eq!(path, PathBuf::from("regions/service/task/client/react"));
 }
 
 #[test]
@@ -134,10 +134,10 @@ fn test_build_ci_workflow_path_uses_unique_module_identifier() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -145,6 +145,6 @@ fn test_build_ci_workflow_path_uses_unique_module_identifier() {
     let ci_path = build_ci_workflow_path(&config, base_dir);
     assert_eq!(
         ci_path,
-        PathBuf::from("workspace/.github/workflows/service-order-client-react-ci.yaml")
+        PathBuf::from("workspace/.github/workflows/service-task-client-react-ci.yaml")
     );
 }

@@ -12,7 +12,7 @@ beforeEach(() => {
       return Promise.resolve('  Event count: 1');
     }
     if (command === 'execute_event_codegen') {
-      return Promise.resolve(['proto/accounting/events/v1/item_created.proto']);
+      return Promise.resolve(['proto/taskmanagement/events/v1/task_created.proto']);
     }
     return Promise.resolve(undefined);
   });
@@ -27,6 +27,6 @@ describe('EventCodegenPage', () => {
     expect(await screen.findByText(/Event count: 1/)).toBeInTheDocument();
 
     await user.click(screen.getByTestId('btn-generate-event'));
-    expect(await screen.findByText('proto/accounting/events/v1/item_created.proto')).toBeInTheDocument();
+    expect(await screen.findByText('proto/taskmanagement/events/v1/task_created.proto')).toBeInTheDocument();
   });
 });

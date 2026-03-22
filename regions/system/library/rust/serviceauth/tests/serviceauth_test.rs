@@ -18,9 +18,9 @@ fn test_spiffe_id_parse_valid() {
 // business ネームスペースの SPIFFE URI が正しく解析されることを確認する。
 #[test]
 fn test_spiffe_id_parse_business() {
-    let spiffe = SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/order-service").unwrap();
+    let spiffe = SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/task-server").unwrap();
     assert_eq!(spiffe.namespace, "business");
-    assert_eq!(spiffe.service_account, "order-service");
+    assert_eq!(spiffe.service_account, "task-server");
 }
 
 // service ネームスペースの SPIFFE URI が正しく解析されることを確認する。
@@ -77,7 +77,7 @@ fn test_spiffe_id_tier_access() {
     assert!(system_svc.allows_tier_access("service"));
 
     let business_svc =
-        SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/order-service").unwrap();
+        SpiffeId::parse("spiffe://k1s0.internal/ns/business/sa/task-server").unwrap();
     assert!(!business_svc.allows_tier_access("system"));
     assert!(business_svc.allows_tier_access("business"));
     assert!(business_svc.allows_tier_access("service"));

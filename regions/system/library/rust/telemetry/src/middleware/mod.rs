@@ -69,7 +69,7 @@ pub use http_layer::MetricsLayer;
 /// use k1s0_telemetry::middleware::TelemetryMiddleware;
 /// use k1s0_telemetry::metrics::Metrics;
 ///
-/// let metrics = Arc::new(Metrics::new("order-server"));
+/// let metrics = Arc::new(Metrics::new("task-server"));
 /// let mw = TelemetryMiddleware::new(metrics);
 ///
 /// let app = Router::new()
@@ -126,7 +126,7 @@ impl TelemetryMiddleware {
 /// use k1s0_telemetry::middleware::GrpcInterceptor;
 /// use k1s0_telemetry::metrics::Metrics;
 ///
-/// let metrics = Arc::new(Metrics::new("order-server"));
+/// let metrics = Arc::new(Metrics::new("task-server"));
 /// let interceptor = GrpcInterceptor::new(metrics);
 /// ```
 #[derive(Clone)]

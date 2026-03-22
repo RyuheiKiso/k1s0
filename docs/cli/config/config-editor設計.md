@@ -38,11 +38,11 @@ k1s0 generate config-types （対話式 CLI）
          lib/config/__generated__/config_types.dart  (Flutter)
 
 管理者ユーザー
-  │ /config/order-server を開く
+  │ /config/task-server を開く
   ↓
 ConfigEditorPage  (component_id: ConfigEditorPage)
-  ├─ GET /api/v1/config-schema/order-server   → スキーマ取得
-  ├─ GET /api/v1/config/services/order-server → 現在値取得
+  ├─ GET /api/v1/config-schema/task-server   → スキーマ取得
+  ├─ GET /api/v1/config/services/task-server → 現在値取得
   │  UIをスキーマから自動組み立て
   └─ PUT /api/v1/config/{namespace}/{key}     → 保存（楽観ロック）
 ```
@@ -58,15 +58,15 @@ ConfigEditorPage  (component_id: ConfigEditorPage)
 # $schema: ./config-schema-schema.json
 version: 1
 
-service: order-server
-namespace_prefix: service.order
+service: task-server
+namespace_prefix: service.task
 
 categories:
   - id: database
     label: データベース
     icon: storage
     namespaces:
-      - service.order.database
+      - service.task.database
     fields:
       - key: max_connections
         label: 最大接続数
@@ -95,13 +95,13 @@ categories:
     label: メッセージング
     icon: message
     namespaces:
-      - service.order.kafka
+      - service.task.kafka
     fields:
       - key: consumer_group
         label: コンシューマーグループ
         type: string
         pattern: "^[a-z][a-z0-9-]+\\.[a-z][a-z0-9-]+$"
-        default: order-server.default
+        default: task-server.default
 
       - key: max_poll_interval_ms
         label: 最大ポーリング間隔
@@ -115,16 +115,16 @@ categories:
     label: 機能フラグ
     icon: flag
     namespaces:
-      - service.order.feature
+      - service.task.feature
     fields:
-      - key: enable_bulk_order
-        label: 一括注文機能
-        description: 複数オーダーの一括処理を有効にする
+      - key: enable_bulk_task
+        label: 一括タスク機能
+        description: 複数タスクの一括処理を有効にする
         type: boolean
         default: false
 
-      - key: max_items_per_order
-        label: 注文上限アイテム数
+      - key: max_items_per_task
+        label: タスク上限アイテム数
         type: integer
         min: 1
         max: 1000
@@ -259,14 +259,14 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 
 ```json
 {
-  "service": "order-server",
-  "namespace_prefix": "service.order",
+  "service": "task-server",
+  "namespace_prefix": "service.task",
   "categories": [
     {
       "id": "database",
       "label": "データベース",
       "icon": "storage",
-      "namespaces": ["service.order.database"],
+      "namespaces": ["service.task.database"],
       "fields": [
         {
           "key": "max_connections",
@@ -291,13 +291,13 @@ rpc UpsertConfigSchema(UpsertConfigSchemaRequest) returns (UpsertConfigSchemaRes
 
 ```json
 {
-  "namespace_prefix": "service.order",
+  "namespace_prefix": "service.task",
   "categories": [
     {
       "id": "database",
       "label": "データベース",
       "icon": "storage",
-      "namespaces": ["service.order.database"],
+      "namespaces": ["service.task.database"],
       "fields": [...]
     }
   ]
@@ -415,7 +415,7 @@ class ConfigInterpreter {
   いいえ（型定義ファイルのみ生成）
 
 [確認] 以下の内容で実行します。よろしいですか？
-    スキーマ:  ./config-schema.yaml (order-server)
+    スキーマ:  ./config-schema.yaml (task-server)
     push:      https://config.k1s0-system.svc.cluster.local
     React   →  src/config/__generated__/config-types.ts
     Flutter →  lib/config/__generated__/config_types.dart
@@ -424,7 +424,7 @@ class ConfigInterpreter {
   いいえ
 
 Pushing schema...
-  ✅ schema registered: order-server (3 categories, 8 fields)
+  ✅ schema registered: task-server (3 categories, 8 fields)
 Generating type definitions...
   ✅ src/config/__generated__/config-types.ts
   ✅ lib/config/__generated__/config_types.dart
@@ -448,8 +448,8 @@ export const ConfigKeys = {
     MAX_POLL_INTERVAL_MS: 'max_poll_interval_ms',
   },
   FEATURE_FLAGS: {
-    ENABLE_BULK_ORDER:   'enable_bulk_order',
-    MAX_ITEMS_PER_ORDER: 'max_items_per_order',
+    ENABLE_BULK_TASK:   'enable_bulk_task',
+    MAX_ITEMS_PER_TASK: 'max_items_per_task',
   },
 } as const;
 
@@ -459,8 +459,8 @@ export type ConfigValues = {
   'database.pool_timeout_ms':   number;
   'kafka.consumer_group':       string;
   'kafka.max_poll_interval_ms': number;
-  'feature_flags.enable_bulk_order':   boolean;
-  'feature_flags.max_items_per_order': number;
+  'feature_flags.enable_bulk_task':   boolean;
+  'feature_flags.max_items_per_task': number;
 };
 ```
 
@@ -589,7 +589,7 @@ export const componentRegistry: ComponentRegistry = {
 4. git commit / PR
    （フロントエンドのコード変更は不要）
 
-5. デプロイ後、/config/order-server を開くと新しい設定項目が自動表示
+5. デプロイ後、/config/task-server を開くと新しい設定項目が自動表示
 ```
 
 ---

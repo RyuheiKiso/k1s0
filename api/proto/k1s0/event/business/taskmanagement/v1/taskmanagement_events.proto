@@ -1,0 +1,38 @@
+// k1s0 タスク管理ビジネスイベント定義。
+// プロジェクトタイプ変更・ステータス定義変更イベントを提供する。
+syntax = "proto3";
+package k1s0.event.business.taskmanagement.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/business/taskmanagement/v1;taskmanagementeventv1";
+
+import "k1s0/system/common/v1/types.proto";
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// プロジェクトタイプ変更イベント
+message ProjectTypeChangedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string project_type_id = 2;
+  string code = 3;
+  string change_type = 4;
+  k1s0.system.common.v1.Timestamp changed_at = 5;
+}
+
+// ステータス定義変更イベント
+message StatusDefinitionChangedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string status_definition_id = 2;
+  string project_type_id = 3;
+  string code = 4;
+  string change_type = 5;
+  int32 version_number = 6;
+  k1s0.system.common.v1.Timestamp changed_at = 7;
+}
+
+// テナント拡張変更イベント
+message TenantExtensionChangedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string tenant_id = 2;
+  string status_definition_id = 3;
+  string change_type = 4;
+  k1s0.system.common.v1.Timestamp changed_at = 5;
+}

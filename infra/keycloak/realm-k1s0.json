@@ -77,44 +77,68 @@
         "clientRole": false
       },
       {
-        "name": "biz_accounting_admin",
-        "description": "Accounting domain administrator - full access to accounting resources",
+        "name": "biz_taskmanagement_admin",
+        "description": "Task management domain administrator - full access to project-master resources",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "biz_accounting_manager",
-        "description": "Accounting domain manager - read/write access to accounting resources",
+        "name": "biz_taskmanagement_manager",
+        "description": "Task management domain manager - read/write access to project-master resources",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "biz_accounting_viewer",
-        "description": "Accounting domain viewer - read-only access to accounting resources",
+        "name": "biz_taskmanagement_viewer",
+        "description": "Task management domain viewer - read-only access to project-master resources",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "svc_order_admin",
-        "description": "Order service administrator - full access to order resources",
+        "name": "svc_task_admin",
+        "description": "Task service administrator - full access to task resources",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "svc_order_user",
-        "description": "Order service user - standard order operations",
+        "name": "svc_task_user",
+        "description": "Task service user - create and update tasks",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "svc_order_viewer",
-        "description": "Order service viewer - read-only access to order resources",
+        "name": "svc_task_viewer",
+        "description": "Task service viewer - read-only access to task resources",
         "composite": false,
         "clientRole": false
       },
       {
-        "name": "order_manager",
-        "description": "Order manager - manages orders",
+        "name": "svc_board_admin",
+        "description": "Board service administrator - full access to board resources",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_board_user",
+        "description": "Board service user - increment/decrement columns",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_activity_admin",
+        "description": "Activity service administrator - full access to activity resources including approve/reject",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_activity_user",
+        "description": "Activity service user - create and submit activities",
+        "composite": false,
+        "clientRole": false
+      },
+      {
+        "name": "svc_activity_viewer",
+        "description": "Activity service viewer - read-only access to activity resources",
         "composite": false,
         "clientRole": false
       },

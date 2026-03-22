@@ -326,7 +326,7 @@ describe('full config', () => {
       'config.yaml',
       `
 app:
-  name: order-server
+  name: task-server
   version: "1.0.0"
   tier: service
   environment: dev
@@ -342,7 +342,7 @@ grpc:
 database:
   host: "localhost"
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: ""
   ssl_mode: "disable"
@@ -352,13 +352,13 @@ database:
 kafka:
   brokers:
     - "localhost:9092"
-  consumer_group: "order-server.default"
+  consumer_group: "task-server.default"
   security_protocol: "PLAINTEXT"
   topics:
     publish:
-      - "k1s0.service.order.created.v1"
+      - "k1s0.service.task.created.v1"
     subscribe:
-      - "k1s0.service.payment.completed.v1"
+      - "k1s0.service.tasks.completed.v1"
 redis:
   host: "localhost"
   port: 6379
@@ -392,10 +392,10 @@ auth:
     );
 
     const cfg = load(path);
-    expect(cfg.app.name).toBe('order-server');
+    expect(cfg.app.name).toBe('task-server');
     expect(cfg.app.tier).toBe('service');
     expect(cfg.grpc?.port).toBe(50051);
-    expect(cfg.database?.name).toBe('order_db');
+    expect(cfg.database?.name).toBe('task_db');
     expect(cfg.kafka?.security_protocol).toBe('PLAINTEXT');
     expect(cfg.redis?.port).toBe(6379);
     expect(cfg.auth.oidc?.client_id).toBe('k1s0-bff');

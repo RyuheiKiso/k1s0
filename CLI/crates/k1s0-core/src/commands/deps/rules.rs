@@ -210,12 +210,12 @@ mod tests {
     fn test_violation_system_to_business() {
         let services = vec![
             make_service("auth-server", "system", None),
-            make_service("accounting-server", "business", Some("accounting")),
+            make_service("project-master-server", "business", Some("taskmanagement")),
         ];
         let deps = vec![make_dep(
             "auth-server",
             "system",
-            "accounting-server",
+            "project-master-server",
             "business",
             DependencyType::Grpc,
         )];
@@ -230,12 +230,12 @@ mod tests {
     fn test_violation_system_to_service() {
         let services = vec![
             make_service("auth-server", "system", None),
-            make_service("order-server", "service", Some("order")),
+            make_service("task-server", "service", Some("task")),
         ];
         let deps = vec![make_dep(
             "auth-server",
             "system",
-            "order-server",
+            "task-server",
             "service",
             DependencyType::Rest,
         )];
@@ -248,13 +248,13 @@ mod tests {
     #[test]
     fn test_violation_business_to_service() {
         let services = vec![
-            make_service("accounting-server", "business", Some("accounting")),
-            make_service("order-server", "service", Some("order")),
+            make_service("project-master-server", "business", Some("taskmanagement")),
+            make_service("task-server", "service", Some("task")),
         ];
         let deps = vec![make_dep(
-            "accounting-server",
+            "project-master-server",
             "business",
-            "order-server",
+            "task-server",
             "service",
             DependencyType::Grpc,
         )];
@@ -272,10 +272,10 @@ mod tests {
     fn test_allowed_service_to_system() {
         let services = vec![
             make_service("auth-server", "system", None),
-            make_service("order-server", "service", Some("order")),
+            make_service("task-server", "service", Some("task")),
         ];
         let deps = vec![make_dep(
-            "order-server",
+            "task-server",
             "service",
             "auth-server",
             "system",
@@ -293,13 +293,13 @@ mod tests {
     #[test]
     fn test_allowed_service_to_business() {
         let services = vec![
-            make_service("accounting-server", "business", Some("accounting")),
-            make_service("order-server", "service", Some("order")),
+            make_service("project-master-server", "business", Some("taskmanagement")),
+            make_service("task-server", "service", Some("task")),
         ];
         let deps = vec![make_dep(
-            "order-server",
+            "task-server",
             "service",
-            "accounting-server",
+            "project-master-server",
             "business",
             DependencyType::Grpc,
         )];
@@ -315,13 +315,13 @@ mod tests {
     #[test]
     fn test_violation_service_to_service_sync() {
         let services = vec![
-            make_service("order-server", "service", Some("order")),
-            make_service("payment-server", "service", Some("payment")),
+            make_service("task-server", "service", Some("task")),
+            make_service("activity-server", "service", Some("activity")),
         ];
         let deps = vec![make_dep(
-            "order-server",
+            "task-server",
             "service",
-            "payment-server",
+            "activity-server",
             "service",
             DependencyType::Rest,
         )];
@@ -335,13 +335,13 @@ mod tests {
     #[test]
     fn test_allowed_service_to_service_kafka() {
         let services = vec![
-            make_service("order-server", "service", Some("order")),
-            make_service("payment-server", "service", Some("payment")),
+            make_service("task-server", "service", Some("task")),
+            make_service("activity-server", "service", Some("activity")),
         ];
         let deps = vec![make_dep(
-            "order-server",
+            "task-server",
             "service",
-            "payment-server",
+            "activity-server",
             "service",
             DependencyType::Kafka,
         )];
@@ -361,11 +361,11 @@ mod tests {
     #[test]
     fn test_violation_business_cross_domain_sync() {
         let services = vec![
-            make_service("accounting-server", "business", Some("accounting")),
+            make_service("project-master-server", "business", Some("taskmanagement")),
             make_service("hr-server", "business", Some("hr")),
         ];
         let deps = vec![make_dep(
-            "accounting-server",
+            "project-master-server",
             "business",
             "hr-server",
             "business",
@@ -385,13 +385,13 @@ mod tests {
     #[test]
     fn test_info_same_domain_sync() {
         let services = vec![
-            make_service("order-api-server", "business", Some("order")),
-            make_service("order-processor-server", "business", Some("order")),
+            make_service("task-api-server", "business", Some("taskmanagement")),
+            make_service("task-processor-server", "business", Some("taskmanagement")),
         ];
         let deps = vec![make_dep(
-            "order-api-server",
+            "task-api-server",
             "business",
-            "order-processor-server",
+            "task-processor-server",
             "business",
             DependencyType::Grpc,
         )];
@@ -432,9 +432,9 @@ mod tests {
     fn test_violations_sorted_by_severity() {
         let services = vec![
             make_service("auth-server", "system", None),
-            make_service("order-server", "service", Some("order")),
-            make_service("payment-server", "service", Some("payment")),
-            make_service("accounting-server", "business", Some("accounting")),
+            make_service("task-server", "service", Some("task")),
+            make_service("activity-server", "service", Some("activity")),
+            make_service("project-master-server", "business", Some("taskmanagement")),
             make_service("hr-server", "business", Some("hr")),
         ];
         let deps = vec![
@@ -442,13 +442,13 @@ mod tests {
             make_dep(
                 "auth-server",
                 "system",
-                "order-server",
+                "task-server",
                 "service",
                 DependencyType::Grpc,
             ),
             // Warning: business異ドメイン同期
             make_dep(
-                "accounting-server",
+                "project-master-server",
                 "business",
                 "hr-server",
                 "business",

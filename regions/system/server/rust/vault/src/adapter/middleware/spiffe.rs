@@ -189,7 +189,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_matching_policy_allowed_spiffe_id() {
-        let spiffe_id = "spiffe://cluster/ns/default/sa/payment-service";
+        let spiffe_id = "spiffe://cluster/ns/default/sa/activity-server";
         let app = build_app(vec![make_policy("api/v1/secrets/*", &[spiffe_id])]);
         let mut req = Request::builder()
             .uri("/api/v1/secrets/db-password")
@@ -204,7 +204,7 @@ mod tests {
     async fn test_matching_policy_denied_spiffe_id() {
         let app = build_app(vec![make_policy(
             "api/v1/secrets/*",
-            &["spiffe://cluster/ns/default/sa/payment-service"],
+            &["spiffe://cluster/ns/default/sa/activity-server"],
         )]);
         let mut req = Request::builder()
             .uri("/api/v1/secrets/db-password")
@@ -227,7 +227,7 @@ mod tests {
     async fn test_matching_policy_no_claims_denied() {
         let app = build_app(vec![make_policy(
             "api/v1/secrets/*",
-            &["spiffe://cluster/ns/default/sa/payment-service"],
+            &["spiffe://cluster/ns/default/sa/activity-server"],
         )]);
         let req = Request::builder()
             .uri("/api/v1/secrets/db-password")

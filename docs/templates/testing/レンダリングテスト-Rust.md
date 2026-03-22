@@ -40,7 +40,7 @@ fn render_server(
 - パス区切りを `/` に正規化（Windows 互換）
 
 テスト用デフォルト値:
-- `service_name`: `"order-api"`
+- `service_name`: `"task-api"`
 - `tier`: `"service"`
 
 #### `read_output()` — 生成ファイルの読み取り
@@ -200,7 +200,7 @@ fn test_go_server_rest_config_yaml() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", true, true);
     let content = read_output(&tmp, "config/config.yaml");
 
-    assert!(content.contains("name: \"order-api\""));
+    assert!(content.contains("name: \"task-api\""));
     assert!(content.contains("port: 8080"));
     assert!(content.contains("database:"));
     assert!(content.contains("port: 5432"));          // postgresql
@@ -338,7 +338,7 @@ fn render_server_multi(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, "server")
+    let mut builder = TemplateContextBuilder::new("task-api", "service", lang, "server")
         .api_styles(api_styles.clone());
 
     if has_database {
@@ -406,7 +406,7 @@ fn render_helm_multi(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "", "helm")
+    let mut builder = TemplateContextBuilder::new("task-api", "service", "", "helm")
         .api_styles(api_styles.clone());
 
     if has_database {
@@ -454,7 +454,7 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-api", "service", lang, "bff")
+    let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -973,10 +973,10 @@ Rust 統合テストで使用するデフォルトのテンプレートコンテ
 
 | 変数 | テスト用デフォルト値 | 備考 |
 |------|-------------------|------|
-| `service_name` | `"order-api"` | kebab-case 正規形 |
-| `service_name_snake` | `"order_api"` | 自動導出 |
-| `service_name_pascal` | `"OrderApi"` | 自動導出 |
-| `service_name_camel` | `"orderApi"` | 自動導出 |
+| `service_name` | `"task-api"` | kebab-case 正規形 |
+| `service_name_snake` | `"task_api"` | 自動導出 |
+| `service_name_pascal` | `"TaskApi"` | 自動導出 |
+| `service_name_camel` | `"taskApi"` | 自動導出 |
 | `tier` | `"service"` | 最も一般的な階層 |
 | `domain` | `""` | service tier では空 |
 | `language` | テストにより変動 | `"rust"` / `"typescript"` / `"dart"` |
@@ -986,7 +986,7 @@ Rust 統合テストで使用するデフォルトのテンプレートコンテ
 | `database_type` | テストにより変動 | `"postgresql"` / `"mysql"` / `"sqlite"` |
 | `has_kafka` | テストにより変動 | `true` / `false` |
 | `has_redis` | テストにより変動 | `true` / `false` |
-| `rust_crate` | 自動導出 | `"order-api"` |
+| `rust_crate` | 自動導出 | `"task-api"` |
 | `docker_registry` | `"harbor.internal.example.com"` | デフォルト値 |
 | `docker_project` | `"k1s0-service"` | 自動導出: `"k1s0-{tier}"` |
 

@@ -159,14 +159,14 @@ describe('UserCard', () => {
 // 単体テスト: test/ ディレクトリに配置
 // ビジネスロジックの正確性を検証する
 void main() {
-  group('OrderCalculator', () {
-    test('合計金額を正しく計算する', () {
-      final calculator = OrderCalculator();
-      final total = calculator.calculate([
-        OrderItem(price: 100, quantity: 2),
-        OrderItem(price: 200, quantity: 1),
-      ]);
-      expect(total, equals(400));
+  group('TaskStatusValidator', () {
+    test('Open から InProgress への遷移が許可される', () {
+      final validator = TaskStatusValidator();
+      final result = validator.canTransition(
+        TaskStatus.open,
+        TaskStatus.inProgress,
+      );
+      expect(result, isTrue);
     });
   });
 }
@@ -395,7 +395,7 @@ services:
 1. インフラ層:     PostgreSQL → Redis → Kafka → Keycloak → Vault
 2. System 層:      auth → config → saga → その他 system サービス
 3. Gateway 層:     graphql-gateway → bff-proxy
-4. Business 層:    domain-master
+4. Business 層:    project-master
 5. テストランナー:  全サービス healthy 後に起動
 ```
 
@@ -405,7 +405,7 @@ services:
 | --- | --- | --- |
 | DB スキーマ | `infra/docker/init-db/*.sql` | PostgreSQL の初期化スクリプトで自動実行 |
 | Keycloak Realm | `infra/docker/keycloak/` の Realm JSON | コンテナ起動時に `--import-realm` で自動インポート |
-| テストユーザー | Realm JSON に定義済み | admin / user / order-manager の 3 ロール |
+| テストユーザー | Realm JSON に定義済み | admin / user / task-manager の 3 ロール |
 | テストデータ | テストケース内で API 経由で作成 | テスト終了後にクリーンアップ |
 | Kafka トピック | `infra/messaging/kafka/create-topics.sh` | kafka-init コンテナで自動作成 |
 

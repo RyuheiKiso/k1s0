@@ -237,20 +237,20 @@ export const notification = {
 } as const;
 
 /**
- * Order サービス（サービスティア）の既知エラーコード。
+ * Task サービス（サービスティア）の既知エラーコード。
  */
-export const order = {
+export const task = {
   /** 見つからない */
-  notFound: () => new ErrorCode('SVC_ORDER_NOT_FOUND'),
+  notFound: () => new ErrorCode('SVC_TASK_NOT_FOUND'),
   /** バリデーション失敗 */
-  validationFailed: () => new ErrorCode('SVC_ORDER_VALIDATION_FAILED'),
+  validationFailed: () => new ErrorCode('SVC_TASK_VALIDATION_FAILED'),
   /** 不正なステータス遷移 */
   invalidStatusTransition: () =>
-    new ErrorCode('SVC_ORDER_INVALID_STATUS_TRANSITION'),
+    new ErrorCode('SVC_TASK_INVALID_STATUS_TRANSITION'),
   /** バージョン競合 */
-  versionConflict: () => new ErrorCode('SVC_ORDER_VERSION_CONFLICT'),
+  versionConflict: () => new ErrorCode('SVC_TASK_VERSION_CONFLICT'),
   /** 内部エラー */
-  internalError: () => new ErrorCode('SVC_ORDER_INTERNAL_ERROR'),
+  internalError: () => new ErrorCode('SVC_TASK_INTERNAL_ERROR'),
 } as const;
 
 /**

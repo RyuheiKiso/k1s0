@@ -27,20 +27,20 @@ mod tests {
     fn make_two_step_workflow() -> WorkflowDefinition {
         WorkflowDefinition::from_yaml(
             r#"
-name: order-fulfillment
+name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+    compensate: TaskService.CancelTask
     timeout_secs: 5
     retry:
       max_attempts: 1
       initial_interval_ms: 100
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
-    compensate: PaymentService.Refund
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
+    compensate: BoardService.DecrementColumn
     timeout_secs: 5
     retry:
       max_attempts: 1
@@ -91,7 +91,7 @@ steps:
     ) -> SagaState {
         let saga = SagaState::new(
             workflow_name.to_string(),
-            serde_json::json!({"order_id": "ORD-001", "amount": 5000}),
+            serde_json::json!({"task_id": "TASK-001", "assignee_id": "user-001"}),
             Some("corr-test".to_string()),
             Some("test-user".to_string()),
         );
@@ -183,15 +183,15 @@ steps:
     #[test]
     fn test_workflow_definition_parsing() {
         let workflow = make_two_step_workflow();
-        assert_eq!(workflow.name, "order-fulfillment");
+        assert_eq!(workflow.name, "task-assignment");
         assert_eq!(workflow.steps.len(), 2);
-        assert_eq!(workflow.steps[0].name, "reserve-inventory");
-        assert_eq!(workflow.steps[0].service, "inventory-service");
+        assert_eq!(workflow.steps[0].name, "create-task");
+        assert_eq!(workflow.steps[0].service, "task-server");
         assert_eq!(
             workflow.steps[0].compensate.as_deref(),
-            Some("InventoryService.Release")
+            Some("TaskService.CancelTask")
         );
-        assert_eq!(workflow.steps[1].name, "process-payment");
+        assert_eq!(workflow.steps[1].name, "increment-board-column");
     }
 
     /// ワークフロー定義のバリデーション: 空の名前はエラー
@@ -266,7 +266,7 @@ steps:
         );
 
         let workflow = make_two_step_workflow();
-        let saga = create_saga(&repo, "order-fulfillment").await;
+        let saga = create_saga(&repo, "task-assignment").await;
         let saga_id = saga.saga_id;
 
         // Sagaを実行する
@@ -304,9 +304,9 @@ steps:
     #[tokio::test]
     async fn test_step_failure_triggers_compensation() {
         let repo = Arc::new(InMemorySagaRepository::new());
-        // 2番目のステップ（PaymentService.Charge）で失敗するcallerを作成する
+        // 2番目のステップ（BoardService.IncrementColumn）で失敗するcallerを作成する
         let caller: Arc<dyn GrpcStepCaller> = Arc::new(SelectiveFailCaller {
-            fail_methods: vec!["PaymentService.Charge".to_string()],
+            fail_methods: vec!["BoardService.IncrementColumn".to_string()],
         });
         let publisher = Arc::new(RecordingPublisher::new());
 
@@ -317,7 +317,7 @@ steps:
         );
 
         let workflow = make_two_step_workflow();
-        let saga = create_saga(&repo, "order-fulfillment").await;
+        let saga = create_saga(&repo, "task-assignment").await;
         let saga_id = saga.saga_id;
 
         // Sagaを実行する（ステップ2で失敗→補償）
@@ -367,7 +367,7 @@ steps:
         let uc = ExecuteSagaUseCase::new(repo.clone(), caller, None);
 
         let workflow = make_two_step_workflow();
-        let saga = create_saga(&repo, "order-fulfillment").await;
+        let saga = create_saga(&repo, "task-assignment").await;
         let saga_id = saga.saga_id;
 
         // Sagaを実行する（ステップ0で失敗）
@@ -389,7 +389,7 @@ steps:
 
         // COMPLETED状態のSagaを作成する
         let mut saga = SagaState::new(
-            "order-fulfillment".to_string(),
+            "task-assignment".to_string(),
             serde_json::json!({}),
             None,
             None,
@@ -471,7 +471,7 @@ steps:
         let uc = ExecuteSagaUseCase::new(repo.clone(), caller, None);
 
         let workflow = make_two_step_workflow();
-        let saga = create_saga(&repo, "order-fulfillment").await;
+        let saga = create_saga(&repo, "task-assignment").await;
         let saga_id = saga.saga_id;
 
         // publisherなしでも正常に実行できることを検証する
@@ -503,11 +503,11 @@ steps:
     #[tokio::test]
     async fn test_noop_grpc_caller() {
         let caller = NoOpGrpcCaller;
-        let payload = serde_json::json!({"order_id": "123"});
+        let payload = serde_json::json!({"task_id": "123"});
 
         // call_step が成功レスポンスを返すことを検証する
         let result = caller
-            .call_step("inventory-service", "InventoryService.Reserve", &payload)
+            .call_step("task-server", "TaskService.CreateTask", &payload)
             .await;
         assert!(result.is_ok());
 

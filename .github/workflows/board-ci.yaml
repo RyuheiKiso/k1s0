@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/board-ci.yaml
+# Per-service CI pipeline for board server（reusable workflow 経由）
+# NOTE: board は service tier のため独立した Cargo.toml を使用（standalone モード）
+name: board-ci
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'regions/service/board/server/**'
+      # クライアントコード変更時もサーバーCIを起動し、契約整合性を確認する
+      - 'regions/service/board/client/**'
+      # DB migration 変更はサーバーコードとの整合性確認が必要なため起動する
+      - 'regions/service/board/database/**'
+
+concurrency:
+  group: board-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
+jobs:
+  # 再利用可能ワークフローを呼び出してCI実行
+  ci:
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    uses: ./.github/workflows/_rust-service-ci.yaml
+    with:
+      service-path: regions/service/board/server/rust/board
+      package-name: k1s0-board-server
+      workspace-path: regions/service/board/server/rust/board
+      standalone: true
+
+  # 実 DB 統合テスト（T-01/T-02 対応）
+  # PostgreSQL サービスコンテナを使用し、#[ignore] テストを実行する
+  integration-test:
+    needs: ci
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    # NOTE: DB認証情報は平文で記載しているが、これはエフェメラルCIランナー上の
+    # サービスコンテナ専用であり、テスト完了後に自動破棄される。
+    # 本番環境の認証情報は GitHub Secrets / Vault 経由で管理する。
+    services:
+      postgres:
+        image: postgres:17.2
+        env:
+          POSTGRES_USER: dev
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dev"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # スキーマ名は Rust コードの default_schema() = "board_service" と一致させる
+      DATABASE_URL: postgresql://dev:dev@localhost:5432/k1s0_service?options=-c%20search_path%3Dboard_service,public
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+        with:
+          toolchain: "1.93"
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: regions/service/board/server/rust/board
+      # DB スキーマを初期化する（integration-test.yaml と同じ手順で実行）
+      - name: Initialize database schemas
+        env:
+          PGPASSWORD: dev
+        run: |
+          for sql in infra/docker/init-db/*.sql; do
+            echo "=== Running $sql ==="
+            psql -h localhost -U dev -d postgres -f "$sql"
+          done
+      - name: Run integration tests with real DB
+        run: cargo test --manifest-path regions/service/board/server/rust/board/Cargo.toml --all -- --include-ignored

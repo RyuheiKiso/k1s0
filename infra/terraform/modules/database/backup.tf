@@ -1,5 +1,5 @@
-# このバックアップモジュールは本番環境用です（S3 オフロード方式）。
-# dev/staging 環境のバックアップは infra/kubernetes/backup/ の CronJob で管理します。
+# PostgreSQL・MySQL バックアップ CronJob（全環境共通）
+# バックアップはデータベースPVC上のローカルディレクトリ（/backup）に保存される。
 
 # PostgreSQL バックアップ CronJob
 resource "kubernetes_cron_job_v1" "postgresql_backup" {
@@ -26,12 +26,11 @@ resource "kubernetes_cron_job_v1" "postgresql_backup" {
 
             container {
               name = "pg-backup"
-              # AWS CLI 付きイメージ: pg_dump 実行後に s3cmd で S3 へアップロードするため、
-              # PostgreSQL クライアントと S3 転送ツールの両方が必要
-              image   = "k1s0/postgresql-backup:${var.postgresql_version}-awscli"
+              # pg_dump 実行後に PVC（/backup）へ保存する。S3 依存なし。
+              image   = "k1s0/postgresql-backup:${var.postgresql_version}"
               command = ["/bin/sh", "-c"]
               args    = [
-                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz && aws s3 cp /backup/pg-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/postgresql/ --no-progress"
+                "pg_dump -h postgresql -U $PGUSER -d $PGDATABASE | gzip > /backup/pg-$(date +%Y%m%d).sql.gz"
               ]
 
               # コンテナレベルのセキュリティコンテキスト
@@ -100,14 +99,13 @@ resource "kubernetes_cron_job_v1" "mysql_backup" {
 
             container {
               name = "mysql-backup"
-              # AWS CLI 付きイメージ: mysqldump 実行後に S3 へアップロードするため、
-              # MySQL クライアントと AWS CLI の両方が必要
-              image   = "k1s0/mysql-backup:${var.mysql_version}-awscli"
+              # mysqldump 実行後に PVC（/backup）へ保存する。S3 依存なし。
+              image   = "k1s0/mysql-backup:${var.mysql_version}"
               command = ["/bin/sh", "-c"]
               # --defaults-extra-file を使用してパスワードを渡す
               # プロセスリストにパスワードが露出するのを防止する
               args    = [
-                "echo '[client]\nuser='\"$MYSQL_USER\"'\npassword='\"$MYSQL_PASSWORD\"'\nhost=mysql' > /tmp/my.cnf && mysqldump --defaults-extra-file=/tmp/my.cnf --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz && rm -f /tmp/my.cnf && aws s3 cp /backup/mysql-$(date +%Y%m%d).sql.gz s3://${var.backup_bucket}/mysql/ --no-progress"
+                "echo '[client]\nuser='\"$MYSQL_USER\"'\npassword='\"$MYSQL_PASSWORD\"'\nhost=mysql' > /tmp/my.cnf && mysqldump --defaults-extra-file=/tmp/my.cnf --all-databases | gzip > /backup/mysql-$(date +%Y%m%d).sql.gz && rm -f /tmp/my.cnf"
               ]
 
               # コンテナレベルのセキュリティコンテキスト

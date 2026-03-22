@@ -56,10 +56,10 @@
           <mxGeometry x="40" y="440" width="1120" height="180" as="geometry"/>
         </mxCell>
 
-        <mxCell id="ceph-rgw" value="Ceph RGW&#xa;(S3 互換ストレージ)" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="storage-layer">
+        <mxCell id="ceph-rgw" value="PersistentVolume (PV)&#xa;(ローカルFS)" style="shape=cylinder3;whiteSpace=wrap;boundedLbl=1;backgroundOutline=1;size=10;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="storage-layer">
           <mxGeometry x="80" y="46" width="180" height="80" as="geometry"/>
         </mxCell>
-        <mxCell id="ceph-desc" value="アプリバイナリ保存&#xa;(exe / dmg / AppImage)" style="text;align=left;verticalAlign=top;fontSize=10;fillColor=none;strokeColor=none;spacingLeft=4;" vertex="1" parent="storage-layer">
+        <mxCell id="ceph-desc" value="アプリバイナリ保存&#xa;(exe / dmg / AppImage)&#xa;AWS/S3依存なし" style="text;align=left;verticalAlign=top;fontSize=10;fillColor=none;strokeColor=none;spacingLeft=4;" vertex="1" parent="storage-layer">
           <mxGeometry x="80" y="130" width="180" height="36" as="geometry"/>
         </mxCell>
 

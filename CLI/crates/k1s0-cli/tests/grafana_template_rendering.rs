@@ -34,7 +34,7 @@ fn render_grafana(
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "grafana")
         .server_port(server_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -64,7 +64,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_grafana_file_list() {
-    let Some((_, names)) = render_grafana("order-api", "service", 8080) else {
+    let Some((_, names)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -91,21 +91,21 @@ fn test_grafana_file_list() {
 
 #[test]
 fn test_overview_has_service_name() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "dashboard-overview.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Overview dashboard should contain service name\n--- dashboard-overview.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_overview_has_namespace() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -119,7 +119,7 @@ fn test_overview_has_namespace() {
 
 #[test]
 fn test_overview_has_grafana_dashboard_label() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -147,7 +147,7 @@ fn test_overview_system_error_threshold() {
 
 #[test]
 fn test_overview_business_error_threshold() {
-    let Some((tmp, _)) = render_grafana("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "business", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -165,14 +165,14 @@ fn test_overview_business_error_threshold() {
 
 #[test]
 fn test_slo_has_service_name() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "dashboard-slo.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "SLO dashboard should contain service name\n--- dashboard-slo.yaml ---\n{content}"
     );
 }
@@ -193,7 +193,7 @@ fn test_slo_system_availability_target() {
 
 #[test]
 fn test_slo_business_availability_target() {
-    let Some((tmp, _)) = render_grafana("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "business", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -221,7 +221,7 @@ fn test_slo_system_latency_target() {
 
 #[test]
 fn test_slo_business_latency_target() {
-    let Some((tmp, _)) = render_grafana("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "business", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -235,7 +235,7 @@ fn test_slo_business_latency_target() {
 
 #[test]
 fn test_slo_service_latency_target() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -253,21 +253,21 @@ fn test_slo_service_latency_target() {
 
 #[test]
 fn test_service_detail_has_service_name() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "dashboard-service-detail.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Service Detail dashboard should contain service name\n--- dashboard-service-detail.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_service_detail_has_server_port() {
-    let Some((tmp, _)) = render_grafana("order-api", "service", 3000) else {
+    let Some((tmp, _)) = render_grafana("task-api", "service", 3000) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };
@@ -285,7 +285,7 @@ fn test_service_detail_has_server_port() {
 
 #[test]
 fn test_grafana_no_tera_syntax() {
-    let Some((tmp, names)) = render_grafana("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_grafana("task-api", "service", 8080) else {
         eprintln!("SKIP: grafana テンプレートディレクトリが未作成");
         return;
     };

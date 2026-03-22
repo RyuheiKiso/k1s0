@@ -63,7 +63,7 @@ regions/system/server/rust/saga/
 ├── config/
 │   └── config.yaml                          # 本番設定
 ├── workflows/
-│   └── order-fulfillment.yaml               # サンプルワークフロー定義
+│   └── task-assignment.yaml                 # サンプルワークフロー定義
 ├── tests/
 │   ├── integration_test.rs                  # REST API 統合テスト
 │   ├── workflow_engine_test.rs              # ワークフローエンジンテスト
@@ -499,14 +499,14 @@ pub struct Config {
 
 ```yaml
 services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
+  task-server:
+    host: "task.k1s0-business.svc.cluster.local"
     port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
+  board-server:
+    host: "board.k1s0-business.svc.cluster.local"
     port: 50051
-  shipping-service:
-    host: "shipping.k1s0-business.svc.cluster.local"
+  activity-server:
+    host: "activity.k1s0-business.svc.cluster.local"
     port: 50051
 
 saga:

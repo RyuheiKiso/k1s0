@@ -28,7 +28,7 @@ const RETRY_MAX_DELAY_MS: u64 = 30_000;
 ///
 /// ```
 /// use k1s0_messaging::dlq::dlq_topic_name;
-/// assert_eq!(dlq_topic_name("k1s0.service.order.created.v1"), "k1s0.service.order.created.v1.dlq");
+/// assert_eq!(dlq_topic_name("k1s0.service.task.created.v1"), "k1s0.service.task.created.v1.dlq");
 /// ```
 pub fn dlq_topic_name(original_topic: &str) -> String {
     format!("{}{}", original_topic, DLQ_SUFFIX)
@@ -124,8 +124,8 @@ mod tests {
     #[test]
     fn test_dlq_topic_name() {
         assert_eq!(
-            dlq_topic_name("k1s0.service.order.created.v1"),
-            "k1s0.service.order.created.v1.dlq"
+            dlq_topic_name("k1s0.service.task.created.v1"),
+            "k1s0.service.task.created.v1.dlq"
         );
     }
 
@@ -142,15 +142,15 @@ mod tests {
     #[test]
     fn test_original_topic_name() {
         assert_eq!(
-            original_topic_name("k1s0.service.order.created.v1.dlq"),
-            Some("k1s0.service.order.created.v1")
+            original_topic_name("k1s0.service.task.created.v1.dlq"),
+            Some("k1s0.service.task.created.v1")
         );
     }
 
     // .dlq サフィックスのないトピック名に original_topic_name を適用すると None が返ることを確認する。
     #[test]
     fn test_original_topic_name_no_suffix() {
-        assert_eq!(original_topic_name("k1s0.service.order.created.v1"), None);
+        assert_eq!(original_topic_name("k1s0.service.task.created.v1"), None);
     }
 
     // forward_to_dlq がメッセージを DLQ トピックへ正常に転送できることを確認する。
@@ -159,7 +159,7 @@ mod tests {
         let producer = NoOpEventProducer;
         let result = forward_to_dlq(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             "processing failed",
@@ -174,7 +174,7 @@ mod tests {
         let producer = NoOpEventProducer;
         let result = process_with_dlq_fallback(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             Some(3),
@@ -191,7 +191,7 @@ mod tests {
         let producer = NoOpEventProducer;
         let result = process_with_dlq_fallback(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             Some(3),
@@ -215,7 +215,7 @@ mod tests {
 
         let result = process_with_dlq_fallback(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             Some(1),
@@ -242,7 +242,7 @@ mod tests {
 
         let result = process_with_dlq_fallback(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             Some(3),
@@ -294,7 +294,7 @@ mod tests {
 
         let result = process_with_dlq_fallback(
             &producer,
-            "k1s0.service.order.created.v1",
+            "k1s0.service.task.created.v1",
             "order-123",
             b"payload".to_vec(),
             None, // デフォルト: 3回

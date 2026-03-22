@@ -57,7 +57,7 @@ regions/service/{service_name}/client/flutter/
 
 | service_name | 配置パス                                      |
 | ------------ | --------------------------------------------- |
-| `inventory`  | `regions/service/inventory/client/flutter/`   |
+| `board`      | `regions/service/board/client/flutter/`       |
 
 ---
 

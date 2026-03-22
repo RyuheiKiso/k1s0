@@ -23,10 +23,8 @@ database:
   max_idle_conns: 5
   conn_max_lifetime: "5m"
 
-s3:
-  endpoint: "http://localhost:7480"
-  bucket: "app-registry"
-  region: "us-east-1"
+storage:
+  path: "/data/apps"
 
 observability:
   log:

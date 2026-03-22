@@ -30,22 +30,22 @@ mod tests {
     #[test]
     fn parse_valid_yaml() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    partition_key: item_id
+    partition_key: project_type_id
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
 "#;
         let config = parse_event_config_str(yaml).unwrap();
-        assert_eq!(config.domain, "accounting");
+        assert_eq!(config.domain, "taskmanagement");
         assert_eq!(config.events.len(), 1);
     }
 
@@ -61,7 +61,7 @@ events:
     #[test]
     fn parse_missing_required_field() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
 "#;
         let result = parse_event_config_str(yaml);

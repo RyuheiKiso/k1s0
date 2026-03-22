@@ -20,7 +20,7 @@ k1s0 では環境変数の直接参照を禁止し、`config/config.yaml` で設
 # config/config.yaml
 
 app:
-  name: "order-server"           # サービス名
+  name: "task-server"            # サービス名
   version: "1.0.0"               # アプリケーションバージョン
   tier: "service"                # system | business | service
   environment: "dev"             # dev | staging | prod
@@ -39,7 +39,7 @@ grpc:                            # gRPC 有効時のみ
 database:                        # DB 有効時のみ
   host: "postgres.k1s0-service.svc.cluster.local"  # Tier に応じて変更: k1s0-system / k1s0-business / k1s0-service
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: ""                   # Vault パス: secret/data/k1s0/{tier}/{service}/database キー: password
   ssl_mode: "disable"            # disable | require | verify-full
@@ -51,7 +51,7 @@ kafka:                           # Kafka 有効時のみ
   brokers:                       # dev: 9092（PLAINTEXT）、prod: 9093（SASL_SSL リスナー）
     - "kafka-0.messaging.svc.cluster.local:9092"
     - "kafka-1.messaging.svc.cluster.local:9092"
-  consumer_group: "order-server.default"  # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）。サービスごとに変更すること
+  consumer_group: "task-server.default"   # 命名規則: {service-name}.{purpose}（メッセージング設計.md 参照）。サービスごとに変更すること
   security_protocol: "PLAINTEXT"   # PLAINTEXT（dev） | SASL_SSL（staging/prod）
   sasl:                            # security_protocol が SASL_SSL の場合のみ有効
     mechanism: "SCRAM-SHA-512"     # SCRAM-SHA-512 | PLAIN
@@ -61,11 +61,11 @@ kafka:                           # Kafka 有効時のみ
     ca_cert_path: ""               # Strimzi が発行する CA 証明書のパス
   topics:
     publish:
-      - "k1s0.service.order.created.v1"
-      - "k1s0.service.order.updated.v1"
+      - "k1s0.service.task.created.v1"
+      - "k1s0.service.task.updated.v1"
     subscribe:
-      - "k1s0.service.payment.completed.v1"
-      - "k1s0.service.inventory.reserved.v1"
+      - "k1s0.service.activity.completed.v1"
+      - "k1s0.service.board.reserved.v1"
 
 redis:                           # Redis 有効時のみ
   host: "redis.k1s0-system.svc.cluster.local"

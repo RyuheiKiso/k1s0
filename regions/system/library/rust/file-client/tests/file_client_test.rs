@@ -15,25 +15,12 @@ fn make_client() -> InMemoryFileClient {
 // Config
 // ---------------------------------------------------------------------------
 
-// サーバーモードの設定がデフォルト値（タイムアウト30秒、S3フィールドが未設定）で生成されることを確認する。
+// サーバーモードの設定がデフォルト値（server_url・タイムアウト30秒）で生成されることを確認する。
 #[test]
 fn config_server_mode_defaults() {
     let cfg = FileClientConfig::server_mode("http://localhost:9000");
     assert_eq!(cfg.server_url, Some("http://localhost:9000".to_string()));
-    assert!(cfg.s3_endpoint.is_none());
-    assert!(cfg.bucket.is_none());
-    assert!(cfg.region.is_none());
     assert_eq!(cfg.timeout, Duration::from_secs(30));
-}
-
-// ダイレクトモードの設定でS3エンドポイント・バケット・リージョンが正しく設定されることを確認する。
-#[test]
-fn config_direct_mode_fields() {
-    let cfg = FileClientConfig::direct_mode("http://minio:9000", "my-bucket", "us-east-1");
-    assert!(cfg.server_url.is_none());
-    assert_eq!(cfg.s3_endpoint, Some("http://minio:9000".to_string()));
-    assert_eq!(cfg.bucket, Some("my-bucket".to_string()));
-    assert_eq!(cfg.region, Some("us-east-1".to_string()));
 }
 
 // with_timeout でタイムアウトをデフォルト値から上書きできることを確認する。

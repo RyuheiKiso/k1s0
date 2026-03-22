@@ -15,13 +15,13 @@
 apiVersion: flagger.app/v1beta1
 kind: Canary
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: order-server
+    name: task-server
   service:
     port: 80
     targetPort: 8080

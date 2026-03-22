@@ -3,16 +3,16 @@
 # 目的: 定期リストアテスト（H-12監査対応）
 # バックアップから実際にリストアできることを検証し、障害時のRTOを保証する
 # 頻度: 四半期に1回以上（staging環境で実施すること）
-# 実行前提: vault CLIおよびawsコマンドが利用可能であること
+# 実行前提: vault CLIが利用可能であること
+# バックアップはPVC（BACKUP_DIR）から読み込む。S3依存なし。
 
 set -euo pipefail
 
 # ==============================================================================
 # 設定パラメータ（環境変数で上書き可能）
 # ==============================================================================
-# テスト対象S3バケット（環境変数未設定時は終了）
-: "${S3_BUCKET:?S3_BUCKET 環境変数を設定してください}"
-: "${S3_ENDPOINT:?S3_ENDPOINT 環境変数を設定してください}"
+# バックアップファイルが保存されているPVCマウントパス
+BACKUP_DIR="${BACKUP_DIR:-/backup/vault}"
 # Vault接続先（テスト用の一時Vaultインスタンス）
 VAULT_TEST_ADDR="${VAULT_TEST_ADDR:-http://127.0.0.1:8201}"
 # テスト用一時ディレクトリ
@@ -61,36 +61,28 @@ trap cleanup EXIT
 # メイン処理
 # ==============================================================================
 log "=== Vault スナップショット リストアテスト 開始 ==="
-log "S3_BUCKET: ${S3_BUCKET}"
-log "S3_ENDPOINT: ${S3_ENDPOINT}"
+log "BACKUP_DIR: ${BACKUP_DIR}"
 
 # ステップ1: 作業ディレクトリを作成する
 log "ステップ1: 作業ディレクトリを準備します (${WORK_DIR})"
 mkdir -p "${WORK_DIR}"
 
-# ステップ2: S3から最新のVaultスナップショットを取得する
-log "ステップ2: S3から最新スナップショットを取得します..."
-LATEST_SNAPSHOT=$(aws s3 ls "s3://${S3_BUCKET}/vault/" \
-  --endpoint-url "${S3_ENDPOINT}" \
-  | grep "vault-raft-" \
-  | sort \
-  | tail -1 \
-  | awk '{print $4}')
+# ステップ2: PVCから最新のVaultスナップショットを取得する
+log "ステップ2: PVCから最新スナップショットを取得します..."
+LATEST_SNAPSHOT=$(ls -t "${BACKUP_DIR}"/vault-raft-*.snap 2>/dev/null | head -1)
 
 if [[ -z "${LATEST_SNAPSHOT}" ]]; then
-  error "S3バケット s3://${S3_BUCKET}/vault/ にスナップショットが見つかりません"
+  error "バックアップディレクトリ ${BACKUP_DIR} にスナップショットが見つかりません"
 fi
 
 log "対象スナップショット: ${LATEST_SNAPSHOT}"
 
-# S3からスナップショットをダウンロードする（KMS暗号化対応）
+# スナップショットをテスト作業ディレクトリにコピーする
 SNAPSHOT_PATH="${WORK_DIR}/vault-test.snap"
-aws s3 cp "s3://${S3_BUCKET}/vault/${LATEST_SNAPSHOT}" "${SNAPSHOT_PATH}" \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --sse aws:kms
+cp "${LATEST_SNAPSHOT}" "${SNAPSHOT_PATH}"
 
 SNAP_SIZE=$(du -h "${SNAPSHOT_PATH}" | cut -f1)
-log "ダウンロード完了: ${SNAPSHOT_PATH} (${SNAP_SIZE})"
+log "コピー完了: ${SNAPSHOT_PATH} (${SNAP_SIZE})"
 
 # ステップ3: スナップショットファイルの基本検証を行う
 log "ステップ3: スナップショットファイルの基本検証..."
@@ -151,14 +143,14 @@ VAULT_ADDR="${VAULT_TEST_ADDR}" VAULT_TOKEN="vault-restore-test-token" \
 # ステップ7: テスト結果をまとめる
 log "=== Vault スナップショット リストアテスト 完了 ==="
 log "テスト結果:"
-log "  [OK] S3からスナップショットのダウンロード成功"
+log "  [OK] PVCからスナップショットのコピー成功"
 log "  [OK] スナップショットファイル基本検証（非空・サイズ確認）"
 log "  [OK] Vault Dev Server起動確認"
 log "  [OK] リストア操作の実行確認"
 log ""
 log "スナップショット情報:"
-log "  ファイル名: ${LATEST_SNAPSHOT}"
+log "  ファイル名: $(basename ${LATEST_SNAPSHOT})"
 log "  サイズ: ${SNAP_SIZE}"
-log "  保存先: s3://${S3_BUCKET}/vault/${LATEST_SNAPSHOT}"
+log "  保存先: ${LATEST_SNAPSHOT}"
 log ""
 log "本番環境でのリストア手順は docs/infrastructure/kubernetes/バックアップリストア手順書.md を参照すること"

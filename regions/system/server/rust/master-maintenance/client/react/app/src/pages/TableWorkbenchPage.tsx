@@ -491,7 +491,7 @@ export function TableWorkbenchPage() {
             <Input placeholder="organization" />
           </Form.Item>
           <Form.Item label="Domain scope" name="domain_scope">
-            <Input placeholder="accounting" />
+            <Input placeholder="taskmanagement" />
           </Form.Item>
           <Form.Item label="Description" name="description">
             <Input.TextArea rows={4} />

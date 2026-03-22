@@ -94,10 +94,10 @@ fn test_execute_generate_at_allows_service_server_and_client_to_coexist() {
     let server_config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest],
             db: None,
             kafka: false,
@@ -110,10 +110,10 @@ fn test_execute_generate_at_allows_service_server_and_client_to_coexist() {
     let client_config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -122,18 +122,18 @@ fn test_execute_generate_at_allows_service_server_and_client_to_coexist() {
     assert!(result.is_ok());
     assert!(tmp
         .path()
-        .join("regions/service/order/server/rust")
+        .join("regions/service/task/server/rust")
         .is_dir());
     assert!(tmp
         .path()
-        .join("regions/service/order/client/react")
+        .join("regions/service/task/client/react")
         .is_dir());
     assert!(tmp
         .path()
-        .join(".github/workflows/service-order-server-rust-ci.yaml")
+        .join(".github/workflows/service-task-server-rust-ci.yaml")
         .is_file());
     assert!(tmp
         .path()
-        .join(".github/workflows/service-order-client-react-ci.yaml")
+        .join(".github/workflows/service-task-client-react-ci.yaml")
         .is_file());
 }

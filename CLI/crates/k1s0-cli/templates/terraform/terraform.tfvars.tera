@@ -93,7 +93,6 @@ flagger_version = "1.36.0"
 
 {% if enable_postgresql or enable_mysql %}
 database_namespace = "database"
-backup_bucket      = "k1s0-backup-{{ environment }}"
 {% endif %}
 
 {% if enable_postgresql %}

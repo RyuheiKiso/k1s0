@@ -1,0 +1,19 @@
+// k1s0 ボードサービスイベント定義。
+// ボードカラム更新イベントを提供する。
+syntax = "proto3";
+package k1s0.event.service.board.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/service/board/v1;boardeventv1";
+
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// ボードカラム更新イベント
+message BoardColumnUpdatedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string column_id = 2;
+  string project_id = 3;
+  string status_code = 4;
+  int32 task_count = 5;
+  int32 wip_limit = 6;
+  bool wip_limit_reached = 7;
+}

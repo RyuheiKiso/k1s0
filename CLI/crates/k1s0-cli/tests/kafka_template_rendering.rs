@@ -49,7 +49,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_kafka_file_list() {
-    let Some((_, names)) = render_kafka("order-api", "service") else {
+    let Some((_, names)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
@@ -66,28 +66,28 @@ fn test_kafka_file_list() {
 
 #[test]
 fn test_kafka_topic_has_service_name() {
-    let Some((tmp, _)) = render_kafka("order-api", "service") else {
+    let Some((tmp, _)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
-        content.contains("order_api"),
+        content.contains("task_api"),
         "Kafka topic should contain service_name_snake\n--- kafka-topic.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_kafka_topic_naming_convention() {
-    let Some((tmp, _)) = render_kafka("order-api", "service") else {
+    let Some((tmp, _)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "kafka-topic.yaml");
     assert!(
-        content.contains("k1s0.service.order_api.events.v1"),
+        content.contains("k1s0.service.task_api.events.v1"),
         "Kafka topic should follow naming convention\n--- kafka-topic.yaml ---\n{content}"
     );
 }
@@ -108,7 +108,7 @@ fn test_kafka_topic_system_partitions() {
 
 #[test]
 fn test_kafka_topic_service_partitions() {
-    let Some((tmp, _)) = render_kafka("order-api", "service") else {
+    let Some((tmp, _)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
@@ -122,21 +122,21 @@ fn test_kafka_topic_service_partitions() {
 
 #[test]
 fn test_kafka_dlq_topic_naming() {
-    let Some((tmp, _)) = render_kafka("order-api", "service") else {
+    let Some((tmp, _)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "kafka-topic-dlq.yaml");
     assert!(
-        content.contains("k1s0.service.order_api.events.v1.dlq"),
+        content.contains("k1s0.service.task_api.events.v1.dlq"),
         "DLQ topic should have .dlq suffix\n--- kafka-topic-dlq.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_kafka_dlq_has_dlq_label() {
-    let Some((tmp, _)) = render_kafka("order-api", "service") else {
+    let Some((tmp, _)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };
@@ -150,7 +150,7 @@ fn test_kafka_dlq_has_dlq_label() {
 
 #[test]
 fn test_kafka_no_tera_syntax() {
-    let Some((tmp, names)) = render_kafka("order-api", "service") else {
+    let Some((tmp, names)) = render_kafka("task-api", "service") else {
         eprintln!("SKIP: kafka テンプレートディレクトリが未作成");
         return;
     };

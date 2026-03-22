@@ -156,10 +156,10 @@ mod tests {
     fn test_workflow_definition_row_conversion_with_retry() {
         let definition_json = serde_json::json!({
             "steps": [{
-                "name": "reserve-inventory",
-                "service": "inventory-service",
-                "method": "InventoryService.Reserve",
-                "compensate": "InventoryService.Release",
+                "name": "create-task",
+                "service": "task-server",
+                "method": "TaskService.CreateTask",
+                "compensate": "TaskService.CancelTask",
                 "timeout_secs": 30,
                 "retry": {
                     "max_attempts": 3,
@@ -170,7 +170,7 @@ mod tests {
         });
 
         let row = WorkflowDefinitionRow {
-            name: "order-fulfillment".to_string(),
+            name: "task-assignment".to_string(),
             version: 2,
             definition: definition_json,
             enabled: false,
@@ -179,14 +179,14 @@ mod tests {
         };
 
         let def: WorkflowDefinition = row.try_into().unwrap();
-        assert_eq!(def.name, "order-fulfillment");
+        assert_eq!(def.name, "task-assignment");
         assert_eq!(def.version, 2);
         assert!(!def.enabled);
         assert_eq!(def.steps.len(), 1);
-        assert_eq!(def.steps[0].name, "reserve-inventory");
+        assert_eq!(def.steps[0].name, "create-task");
         assert_eq!(
             def.steps[0].compensate.as_deref(),
-            Some("InventoryService.Release")
+            Some("TaskService.CancelTask")
         );
         let retry = def.steps[0].retry.as_ref().unwrap();
         assert_eq!(retry.max_attempts, 3);

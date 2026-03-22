@@ -112,7 +112,7 @@ func TestProtoPackageToGoPackage(t *testing.T) {
 		expected string
 	}{
 		{"k1s0.system.auth.v1", "authv1"},
-		{"k1s0.service.order.v1", "orderv1"},
+		{"k1s0.service.task.v1", "taskv1"},
 		{"k1s0.business.payment.v1", "paymentv1"},
 	}
 	for _, tc := range tests {

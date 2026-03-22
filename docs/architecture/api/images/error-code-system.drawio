@@ -61,13 +61,13 @@
         </mxCell>
 
         <!-- SVC_ 具体例 -->
-        <mxCell id="svc-ex1" value="SVC_ORDER_NOT_FOUND" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
+        <mxCell id="svc-ex1" value="SVC_TASK_NOT_FOUND" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
           <mxGeometry x="390" y="265" width="150" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="svc-ex2" value="SVC_ORDER_INVALID_QUANTITY" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
+        <mxCell id="svc-ex2" value="SVC_TASK_INVALID_STATUS_TRANSITION" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
           <mxGeometry x="390" y="295" width="165" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="svc-ex3" value="SVC_ORDER_VERSION_CONFLICT" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
+        <mxCell id="svc-ex3" value="SVC_TASK_VERSION_CONFLICT" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
           <mxGeometry x="390" y="325" width="165" height="25" as="geometry"/>
         </mxCell>
 

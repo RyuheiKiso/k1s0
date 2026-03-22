@@ -103,10 +103,6 @@ variable "database_namespace" {
   default     = "database"
 }
 
-variable "backup_bucket" {
-  description = "バックアップ用 Ceph S3 バケット名"
-  type        = string
-}
 {% endif %}
 
 {% if enable_postgresql %}

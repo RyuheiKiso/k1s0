@@ -271,11 +271,11 @@ mod tests {
 
         let rust_path = tmp
             .path()
-            .join("regions/business/accounting/server/rust/ledger");
+            .join("regions/business/taskmanagement/server/rust/project-master");
         fs::create_dir_all(&rust_path).unwrap();
         fs::write(rust_path.join("Cargo.toml"), "[package]\n").unwrap();
 
-        let react_path = tmp.path().join("regions/service/order/client/react");
+        let react_path = tmp.path().join("regions/service/task/client/react");
         fs::create_dir_all(&react_path).unwrap();
         fs::write(
             react_path.join("package.json"),
@@ -395,7 +395,7 @@ mod tests {
         // 親: Rust サーバー
         let parent_path = tmp
             .path()
-            .join("regions/business/accounting/server/rust/ledger");
+            .join("regions/business/taskmanagement/server/rust/project-master");
         fs::create_dir_all(&parent_path).unwrap();
         fs::write(parent_path.join("Cargo.toml"), "[package]\n").unwrap();
 

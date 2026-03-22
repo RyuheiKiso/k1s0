@@ -14,9 +14,9 @@ services:
   # ここでは環境変数やポートのオーバーライドが必要な場合のみ定義する。
 
   # --- service 層 ---
-  # order-server:
+  # task-server:
   #   build:
-  #     context: ./regions/service/order/server/go
+  #     context: ./regions/service/task/server/rust
   #     dockerfile: Dockerfile
   #   profiles: [service]
   #   ports:
@@ -27,7 +27,7 @@ services:
   #     kafka:
   #       condition: service_healthy
   #   volumes:
-  #     - ./regions/service/order/server/go/config:/app/config
+  #     - ./regions/service/task/server/rust/config:/app/config
 
   # --- API Gateway ---
   # NOTE: Kong は docker-compose.yaml 本体に定義済み（infra プロファイル）。

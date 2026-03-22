@@ -15,7 +15,7 @@ pub struct AppVersion {
     pub arch: String,
     pub size_bytes: Option<i64>,
     pub checksum_sha256: String,
-    pub s3_key: String,
+    pub storage_key: String,
     pub release_notes: Option<String>,
     pub mandatory: bool,
     pub published_at: DateTime<Utc>,

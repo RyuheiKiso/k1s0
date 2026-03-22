@@ -152,7 +152,7 @@ mod tests {
             created_by: "tester".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            domain_scope: Some("accounting".to_string()),
+            domain_scope: Some("taskmanagement".to_string()),
         }
     }
 
@@ -188,10 +188,10 @@ mod tests {
 
     #[test]
     fn test_domain_admin_all_allowed() {
-        let roles = vec!["accounting_admin".to_string()];
-        assert!(check_domain_permission(&roles, "accounting", "read"));
-        assert!(check_domain_permission(&roles, "accounting", "write"));
-        assert!(check_domain_permission(&roles, "accounting", "admin"));
+        let roles = vec!["taskmanagement_admin".to_string()];
+        assert!(check_domain_permission(&roles, "taskmanagement", "read"));
+        assert!(check_domain_permission(&roles, "taskmanagement", "write"));
+        assert!(check_domain_permission(&roles, "taskmanagement", "admin"));
         assert!(!check_domain_permission(&roles, "fa", "read"));
     }
 
@@ -201,29 +201,29 @@ mod tests {
         assert!(check_domain_permission(&roles, "fa", "read"));
         assert!(check_domain_permission(&roles, "fa", "write"));
         assert!(!check_domain_permission(&roles, "fa", "admin"));
-        assert!(!check_domain_permission(&roles, "accounting", "read"));
+        assert!(!check_domain_permission(&roles, "taskmanagement", "read"));
     }
 
     #[test]
     fn test_domain_auditor_read_only() {
-        let roles = vec!["accounting_auditor".to_string()];
-        assert!(check_domain_permission(&roles, "accounting", "read"));
-        assert!(!check_domain_permission(&roles, "accounting", "write"));
-        assert!(!check_domain_permission(&roles, "accounting", "admin"));
+        let roles = vec!["taskmanagement_auditor".to_string()];
+        assert!(check_domain_permission(&roles, "taskmanagement", "read"));
+        assert!(!check_domain_permission(&roles, "taskmanagement", "write"));
+        assert!(!check_domain_permission(&roles, "taskmanagement", "admin"));
     }
 
     #[test]
     fn test_business_domain_roles_supported() {
-        let roles = vec!["biz_accounting_manager".to_string()];
-        assert!(check_domain_permission(&roles, "accounting", "read"));
-        assert!(check_domain_permission(&roles, "accounting", "write"));
-        assert!(!check_domain_permission(&roles, "accounting", "admin"));
+        let roles = vec!["biz_taskmanagement_manager".to_string()];
+        assert!(check_domain_permission(&roles, "taskmanagement", "read"));
+        assert!(check_domain_permission(&roles, "taskmanagement", "write"));
+        assert!(!check_domain_permission(&roles, "taskmanagement", "admin"));
     }
 
     #[test]
     fn test_sys_admin_accesses_all_domains() {
         let roles = vec!["sys_admin".to_string()];
-        assert!(check_domain_permission(&roles, "accounting", "read"));
+        assert!(check_domain_permission(&roles, "taskmanagement", "read"));
         assert!(check_domain_permission(&roles, "fa", "admin"));
         assert!(check_domain_permission(&roles, "any_domain", "write"));
     }
@@ -239,7 +239,7 @@ mod tests {
     fn test_has_action_permission_accepts_table_or_domain_roles() {
         let table = sample_table();
         let explicit_roles = vec!["table_departments_reader".to_string()];
-        let domain_roles = vec!["biz_accounting_viewer".to_string()];
+        let domain_roles = vec!["biz_taskmanagement_viewer".to_string()];
 
         assert!(has_action_permission(&explicit_roles, "read", Some(&table)));
         assert!(has_action_permission(&domain_roles, "read", Some(&table)));

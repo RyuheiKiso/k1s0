@@ -423,8 +423,8 @@ mod tests {
     fn test_generate_init_db_sql() {
         let databases = vec![
             DatabaseDep {
-                name: "order_db".to_string(),
-                service: "order-server".to_string(),
+                name: "task_db".to_string(),
+                service: "task-server".to_string(),
             },
             DatabaseDep {
                 name: "auth_db".to_string(),
@@ -434,10 +434,10 @@ mod tests {
 
         let sql = generate_init_db_sql(&databases);
 
-        assert!(sql.contains("CREATE DATABASE \"order_db\""));
+        assert!(sql.contains("CREATE DATABASE \"task_db\""));
         assert!(sql.contains("CREATE DATABASE \"auth_db\""));
         assert!(sql.contains("CREATE DATABASE \"keycloak\""));
-        assert!(sql.contains("-- サービス: order-server"));
+        assert!(sql.contains("-- サービス: task-server"));
         assert!(sql.contains("-- サービス: auth-server"));
     }
 

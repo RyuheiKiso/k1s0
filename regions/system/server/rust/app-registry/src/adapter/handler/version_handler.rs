@@ -58,7 +58,7 @@ pub struct CreateVersionRequest {
     pub arch: String,
     pub size_bytes: Option<i64>,
     pub checksum_sha256: String,
-    pub s3_key: String,
+    pub storage_key: String,
     pub release_notes: Option<String>,
     #[serde(default)]
     pub mandatory: bool,
@@ -88,7 +88,7 @@ pub async fn create_version(
         arch: normalize_arch(&req.arch),
         size_bytes: req.size_bytes,
         checksum_sha256: req.checksum_sha256,
-        s3_key: req.s3_key,
+        storage_key: req.storage_key,
         release_notes: req.release_notes,
         mandatory: req.mandatory,
         published_at: chrono::Utc::now(),

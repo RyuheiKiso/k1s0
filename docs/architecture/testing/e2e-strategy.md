@@ -35,7 +35,7 @@ E2E テストは以下の基準に基づいて対象を選定する。
 | Saga による分散トランザクション | saga-server, 各ドメインサービス | system → service | P0 |
 | DLQ メッセージの再処理 | dlq-manager, Kafka | system | P1 |
 | API ゲートウェイ経由のリクエストルーティング | bff-proxy, Kong, 各サービス | system → service | P1 |
-| アプリ配布（アップロード → レジストリ登録 → ダウンロード） | app-registry, Ceph RGW | system | P2 |
+| アプリ配布（アップロード → レジストリ登録 → ダウンロード） | app-registry | system | P2 |
 
 ### テスト対象外
 

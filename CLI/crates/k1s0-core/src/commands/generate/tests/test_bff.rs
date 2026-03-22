@@ -16,10 +16,10 @@ fn test_service_tier_graphql_creates_bff_directory() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::GraphQL],
             db: None,
             kafka: false,
@@ -29,7 +29,7 @@ fn test_service_tier_graphql_creates_bff_directory() {
     };
     execute_generate_at(&config, tmp.path()).unwrap();
     // BFF ディレクトリが存在するか確認
-    let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+    let bff_path = tmp.path().join("regions/service/task/server/go/bff");
     assert!(
         bff_path.exists(),
         "service Tier + GraphQL should create bff/ directory"
@@ -69,10 +69,10 @@ fn test_bff_not_created_for_business_tier_graphql() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("ledger".to_string()),
+            name: Some("project-master".to_string()),
             api_styles: vec![ApiStyle::GraphQL],
             db: None,
             kafka: false,
@@ -83,7 +83,7 @@ fn test_bff_not_created_for_business_tier_graphql() {
     execute_generate_at(&config, tmp.path()).unwrap();
     let bff_path = tmp
         .path()
-        .join("regions/business/accounting/server/go/ledger/bff");
+        .join("regions/business/taskmanagement/server/go/project-master/bff");
     assert!(
         !bff_path.exists(),
         "business Tier では BFF ディレクトリは作成されない"
@@ -97,10 +97,10 @@ fn test_bff_directory_created_with_language() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::GraphQL],
             db: None,
             kafka: false,
@@ -109,7 +109,7 @@ fn test_bff_directory_created_with_language() {
         },
     };
     execute_generate_at(&config, tmp.path()).unwrap();
-    let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+    let bff_path = tmp.path().join("regions/service/task/server/go/bff");
     assert!(
         bff_path.exists(),
         "service Tier + GraphQL + bff_language=Go で bff/ が作成される"
@@ -123,10 +123,10 @@ fn test_bff_not_created_when_no_graphql() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest],
             db: None,
             kafka: false,
@@ -135,7 +135,7 @@ fn test_bff_not_created_when_no_graphql() {
         },
     };
     execute_generate_at(&config, tmp.path()).unwrap();
-    let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+    let bff_path = tmp.path().join("regions/service/task/server/go/bff");
     assert!(
         !bff_path.exists(),
         "GraphQL なしでは BFF ディレクトリは作成されない"
@@ -148,10 +148,10 @@ fn test_bff_not_created_when_bff_language_none() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::GraphQL],
             db: None,
             kafka: false,
@@ -160,7 +160,7 @@ fn test_bff_not_created_when_bff_language_none() {
         },
     };
     execute_generate_at(&config, tmp.path()).unwrap();
-    let bff_path = tmp.path().join("regions/service/order/server/go/bff");
+    let bff_path = tmp.path().join("regions/service/task/server/go/bff");
     assert!(
         !bff_path.exists(),
         "bff_language=None では BFF ディレクトリは生成されない"

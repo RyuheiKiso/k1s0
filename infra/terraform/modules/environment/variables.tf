@@ -160,11 +160,6 @@ variable "mysql_version" {
   default     = "8.0"
 }
 
-variable "backup_bucket" {
-  description = "データベースバックアップ用 Ceph S3 バケット名"
-  type        = string
-}
-
 # --- Harbor ---
 variable "harbor_chart_version" {
   description = "Harbor Helm チャートバージョン"

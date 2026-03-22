@@ -31,7 +31,7 @@ fn render_flagger(
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "flagger")
         .server_port(server_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -57,7 +57,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_flagger_file_list() {
-    let Some((_, names)) = render_flagger("order-api", "service", 8080) else {
+    let Some((_, names)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
@@ -74,21 +74,21 @@ fn test_flagger_file_list() {
 
 #[test]
 fn test_canary_has_service_name() {
-    let Some((tmp, _)) = render_flagger("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "canary.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Canary should contain service name\n--- canary.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_canary_has_namespace() {
-    let Some((tmp, _)) = render_flagger("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
@@ -102,7 +102,7 @@ fn test_canary_has_namespace() {
 
 #[test]
 fn test_canary_has_server_port() {
-    let Some((tmp, _)) = render_flagger("order-api", "service", 3000) else {
+    let Some((tmp, _)) = render_flagger("task-api", "service", 3000) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
@@ -130,7 +130,7 @@ fn test_canary_system_max_weight() {
 
 #[test]
 fn test_canary_business_max_weight() {
-    let Some((tmp, _)) = render_flagger("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_flagger("task-api", "business", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
@@ -144,7 +144,7 @@ fn test_canary_business_max_weight() {
 
 #[test]
 fn test_canary_service_max_weight() {
-    let Some((tmp, _)) = render_flagger("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
@@ -172,21 +172,21 @@ fn test_canary_system_duration_threshold() {
 
 #[test]
 fn test_metric_template_has_service_name() {
-    let Some((tmp, _)) = render_flagger("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "metric-template.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "MetricTemplate should contain service name\n--- metric-template.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_flagger_no_tera_syntax() {
-    let Some((tmp, names)) = render_flagger("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_flagger("task-api", "service", 8080) else {
         eprintln!("SKIP: flagger テンプレートディレクトリが未作成");
         return;
     };

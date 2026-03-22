@@ -48,7 +48,7 @@ fn render_service_mesh(
         .server_port(server_port)
         .grpc_port(grpc_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -103,7 +103,7 @@ fn render_service_mesh_with_kind(
         .server_port(server_port)
         .grpc_port(grpc_port);
     if tier == "business" {
-        base_builder = base_builder.domain("order");
+        base_builder = base_builder.domain("task");
     }
     let base_ctx = base_builder.build();
 
@@ -219,7 +219,7 @@ fn test_virtual_service_system_timeout() {
 
 #[test]
 fn test_virtual_service_business_timeout() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "business", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "business", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -233,7 +233,7 @@ fn test_virtual_service_business_timeout() {
 
 #[test]
 fn test_virtual_service_service_timeout() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -266,7 +266,7 @@ fn test_virtual_service_grpc_route() {
 
 #[test]
 fn test_virtual_service_no_grpc_route() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -299,7 +299,7 @@ fn test_destination_rule_system_connections() {
 
 #[test]
 fn test_destination_rule_service_connections() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -327,7 +327,7 @@ fn test_destination_rule_grpc_h2_upgrade() {
 
 #[test]
 fn test_destination_rule_no_h2_upgrade() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -396,7 +396,7 @@ fn test_authorization_policy_system() {
 
 #[test]
 fn test_authorization_policy_service() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -416,7 +416,7 @@ fn test_authorization_policy_service() {
 #[test]
 fn test_authorization_policy_bff_deny() {
     let Some((tmp, _)) =
-        render_service_mesh_with_kind("order-bff", "service", "rest", 80, 9090, "bff")
+        render_service_mesh_with_kind("task-bff", "service", "rest", 80, 9090, "bff")
     else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
@@ -493,7 +493,7 @@ fn test_network_policy_system_allows_business_and_service() {
 
 #[test]
 fn test_network_policy_service_allows_ingress() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -521,7 +521,7 @@ fn test_network_policy_grpc_port() {
 
 #[test]
 fn test_network_policy_no_grpc_port_for_rest() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -535,7 +535,7 @@ fn test_network_policy_no_grpc_port_for_rest() {
 
 #[test]
 fn test_network_policy_dns_egress() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };
@@ -549,7 +549,7 @@ fn test_network_policy_dns_egress() {
 
 #[test]
 fn test_network_policy_no_tera_syntax() {
-    let Some((tmp, _)) = render_service_mesh("order-api", "service", "rest", 80, 9090) else {
+    let Some((tmp, _)) = render_service_mesh("task-api", "service", "rest", 80, 9090) else {
         eprintln!("SKIP: service-mesh テンプレートディレクトリが未作成");
         return;
     };

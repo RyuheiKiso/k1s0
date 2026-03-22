@@ -196,7 +196,7 @@ mod tests {
         assert_eq!(cfg.tier(), "business");
 
         let cfg = TopicConfig {
-            name: "k1s0.service.payment.done.v1".to_string(),
+            name: "k1s0.service.activity.approved.v1".to_string(),
             partitions: 3,
             replication_factor: 3,
             retention_ms: 604_800_000,
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn test_with_tier_defaults_service() {
         let cfg = TopicConfig {
-            name: "k1s0.service.payment.done.v1".to_string(),
+            name: "k1s0.service.activity.approved.v1".to_string(),
             partitions: 3,
             replication_factor: 3,
             retention_ms: 604_800_000,

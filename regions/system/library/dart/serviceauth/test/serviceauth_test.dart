@@ -62,17 +62,17 @@ void main() {
 
     test('サービス層のSPIFFE IDが正しくパースされること', () {
       final spiffe = parseSpiffeId(
-          'spiffe://k1s0.internal/ns/service/sa/payment-service');
+          'spiffe://k1s0.internal/ns/service/sa/activity-server');
       expect(spiffe.namespace, equals('service'));
-      expect(spiffe.serviceAccount, equals('payment-service'));
+      expect(spiffe.serviceAccount, equals('activity-server'));
       expect(spiffe.trustDomain, equals('k1s0.internal'));
     });
 
     test('toStringが正しいURIを返すこと', () {
       final spiffe = parseSpiffeId(
-          'spiffe://k1s0.internal/ns/business/sa/order-service');
+          'spiffe://k1s0.internal/ns/business/sa/task-server');
       expect(spiffe.toString(),
-          equals('spiffe://k1s0.internal/ns/business/sa/order-service'));
+          equals('spiffe://k1s0.internal/ns/business/sa/task-server'));
     });
   });
 

@@ -111,10 +111,10 @@ jobs:
           workspaces: |
             regions/system
             CLI
-            regions/business/accounting/server/rust/domain-master
-            regions/service/inventory/server/rust/inventory
-            regions/service/order/server/rust/order
-            regions/service/payment/server/rust/payment
+            regions/business/taskmanagement/server/rust/project-master
+            regions/service/task/server/rust/task
+            regions/service/board/server/rust/board
+            regions/service/activity/server/rust/activity
       - name: Format check Rust crates
         shell: bash
         env:

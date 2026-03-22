@@ -27,12 +27,12 @@ main ─────●────●────●────●────
 
 | 種類 | 用途 | 例 |
 | --- | --- | --- |
-| `feat` | 新機能追加 | `feat/order/add-status-filter` |
-| `fix` | バグ修正 | `fix/order/total-calculation-error` |
-| `refactor` | リファクタリング（動作は変えない） | `refactor/order/extract-usecase` |
-| `docs` | ドキュメント修正 | `docs/order/update-api-spec` |
-| `test` | テスト追加・修正 | `test/order/add-integration-tests` |
-| `chore` | 雑務（依存更新、設定変更等） | `chore/order/update-dependencies` |
+| `feat` | 新機能追加 | `feat/task/add-status-filter` |
+| `fix` | バグ修正 | `fix/task/status-transition-error` |
+| `refactor` | リファクタリング（動作は変えない） | `refactor/task/extract-usecase` |
+| `docs` | ドキュメント修正 | `docs/task/update-api-spec` |
+| `test` | テスト追加・修正 | `test/task/add-integration-tests` |
+| `chore` | 雑務（依存更新、設定変更等） | `chore/task/update-dependencies` |
 
 **ポイント**: サービス名を含めることで、どのサービスの変更かが一目でわかる。
 
@@ -51,18 +51,18 @@ main ─────●────●────●────●────
 ### 例
 
 ```
-feat(order): 注文ステータス更新APIを追加
+feat(task): タスクステータス更新APIを追加
 
-UpdateOrderStatusのgRPCエンドポイントを追加。
+UpdateTaskStatusのgRPCエンドポイントを追加。
 ステータス遷移のバリデーションはドメイン層で実装。
 ```
 
 ```
-fix(order-react): ステータスフィルターが初期化されない問題を修正
+fix(task-react): ステータスフィルターが初期化されない問題を修正
 ```
 
 ```
-test(order): 注文作成ユースケースの単体テストを追加
+test(task): タスク作成ユースケースの単体テストを追加
 ```
 
 ### 種類一覧
@@ -100,7 +100,7 @@ $ k1s0
 # 手動の場合
 $ git clone --filter=blob:none --sparse https://github.com/{org}/k1s0.git
 $ cd k1s0
-$ git sparse-checkout set regions/service/order regions/system/library
+$ git sparse-checkout set regions/service/task regions/system/library
 ```
 
 ### 2. 最新の main を取得
@@ -113,7 +113,7 @@ $ git pull origin main
 ### 3. feature ブランチを作成
 
 ```bash
-$ git checkout -b feat/order/add-status-update-api
+$ git checkout -b feat/task/add-status-update-api
 ```
 
 ### 4. 実装・テスト
@@ -122,11 +122,11 @@ $ git checkout -b feat/order/add-status-update-api
 
 ```bash
 # Rust サーバーのテスト
-$ cd regions/service/order/server/rust
+$ cd regions/service/task/server/rust/task
 $ cargo test
 
 # React クライアントのテスト
-$ cd regions/service/order/client/react
+$ cd regions/service/task/client/react/task
 $ pnpm test
 ```
 
@@ -138,23 +138,23 @@ $ git status
 $ git diff
 
 # 特定のファイルをステージング（推奨）
-$ git add regions/service/order/server/rust/src/domain/model/order.rs
-$ git add regions/service/order/server/rust/src/application/usecase/update_status.rs
+$ git add regions/service/task/server/rust/task/src/domain/model/task.rs
+$ git add regions/service/task/server/rust/task/src/application/usecase/update_status.rs
 
 # まとめてステージングする場合
-$ git add regions/service/order/
+$ git add regions/service/task/
 ```
 
 ### 6. コミット
 
 ```bash
-$ git commit -m "feat(order): 注文ステータス更新APIを追加"
+$ git commit -m "feat(task): タスクステータス更新APIを追加"
 ```
 
 ### 7. リモートにプッシュ
 
 ```bash
-$ git push origin feat/order/add-status-update-api
+$ git push origin feat/task/add-status-update-api
 ```
 
 ### 8. PR を作成
@@ -168,14 +168,14 @@ GitHub の画面、または `gh` CLI で作成する（後述）。
 ### GitHub CLI での作成
 
 ```bash
-$ gh pr create --title "feat(order): 注文ステータス更新APIを追加" --body "$(cat <<'EOF'
+$ gh pr create --title "feat(task): タスクステータス更新APIを追加" --body "$(cat <<'EOF'
 ## 概要
-注文のステータスを更新するgRPC APIを追加しました。
+タスクのステータスを更新するgRPC APIを追加しました。
 
 ## 変更内容
-- domain層: OrderStatusの遷移バリデーション追加
-- usecase層: UpdateOrderStatusUsecase追加
-- infrastructure層: OrderRepositoryにupdate_status実装
+- domain層: TaskStatusの遷移バリデーション追加
+- usecase層: UpdateTaskStatusUsecase追加
+- infrastructure層: TaskRepositoryにupdate_status実装
 - presentation層: gRPCハンドラー追加
 - テスト: 各層の単体テスト追加
 
@@ -184,7 +184,7 @@ $ gh pr create --title "feat(order): 注文ステータス更新APIを追加" --
 - ローカルでgRPCurlを使って動作確認済み
 
 ## 影響範囲
-- orderサービスのサーバーのみ
+- taskサービスのサーバーのみ
 - 既存APIへの影響なし
 EOF
 )"
@@ -215,11 +215,11 @@ EOF
 
 ```bash
 # 修正をコミット
-$ git add regions/service/order/server/rust/src/domain/model/order.rs
-$ git commit -m "fix(order): レビュー指摘対応 - ステータス遷移の検証を強化"
+$ git add regions/service/task/server/rust/task/src/domain/model/task.rs
+$ git commit -m "fix(task): レビュー指摘対応 - ステータス遷移の検証を強化"
 
 # プッシュ
-$ git push origin feat/order/add-status-update-api
+$ git push origin feat/task/add-status-update-api
 ```
 
 ### 指摘に同意しない場合
@@ -254,10 +254,10 @@ $ git merge main
 ```
 <<<<<<< HEAD
 // 自分の変更
-pub fn update_status(&mut self, new_status: OrderStatus) -> Result<(), DomainError> {
+pub fn update_status(&mut self, new_status: TaskStatus) -> Result<(), DomainError> {
 =======
 // main側の変更
-pub fn change_status(&mut self, new_status: OrderStatus) -> Result<(), DomainError> {
+pub fn change_status(&mut self, new_status: TaskStatus) -> Result<(), DomainError> {
 >>>>>>> main
 ```
 
@@ -271,13 +271,13 @@ pub fn change_status(&mut self, new_status: OrderStatus) -> Result<(), DomainErr
 
 ```bash
 # 4. コンフリクトを解消したファイルをステージング
-$ git add regions/service/order/server/rust/src/domain/model/order.rs
+$ git add regions/service/task/server/rust/task/src/domain/model/task.rs
 
 # 5. マージコミットを作成
 $ git commit -m "merge: mainブランチをマージしコンフリクトを解消"
 
 # 6. プッシュ
-$ git push origin feat/order/add-status-update-api
+$ git push origin feat/task/add-status-update-api
 ```
 
 **迷ったら**: 変更した本人に相談する。自分で判断できない場合は「間違って直すより、聞いて正しく直す」方が安全。
@@ -293,9 +293,9 @@ k1s0 はモノリポのため、全ファイルをチェックアウトすると
 ```bash
 $ k1s0
 # メインメニュー → プロジェクト設定 → sparse-checkout 設定
-# 担当サービス（例: order）を選択
+# 担当サービス（例: task）を選択
 # → 自動的に以下がチェックアウトされる:
-#   - regions/service/order/          （自分のサービス）
+#   - regions/service/task/           （自分のサービス）
 #   - regions/system/library/         （system tier ライブラリ）
 #   - regions/business/{領域名}/      （所属するbusiness tier）
 ```
@@ -307,13 +307,13 @@ $ k1s0
 $ git sparse-checkout list
 
 # チェックアウト対象を追加
-$ git sparse-checkout add regions/service/inventory
+$ git sparse-checkout add regions/service/board
 
 # チェックアウト対象を再設定（上書き）
 $ git sparse-checkout set \
-  regions/service/order \
+  regions/service/task \
   regions/system/library \
-  regions/business/accounting
+  regions/business/taskmanagement
 ```
 
 ### 何をチェックアウトすべきか

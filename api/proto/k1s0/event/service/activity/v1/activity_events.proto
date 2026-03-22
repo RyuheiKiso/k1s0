@@ -1,0 +1,26 @@
+// k1s0 アクティビティサービスイベント定義。
+// アクティビティ作成・承認イベントを提供する。
+syntax = "proto3";
+package k1s0.event.service.activity.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/service/activity/v1;activityeventv1";
+
+import "k1s0/system/common/v1/event_metadata.proto";
+
+// アクティビティ作成イベント
+message ActivityCreatedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string activity_id = 2;
+  string task_id = 3;
+  string actor_id = 4;
+  string activity_type = 5;
+  optional int32 duration_minutes = 6;
+}
+
+// アクティビティ承認イベント
+message ActivityApprovedEvent {
+  k1s0.system.common.v1.EventMetadata metadata = 1;
+  string activity_id = 2;
+  string task_id = 3;
+  string approved_by = 4;
+}

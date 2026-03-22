@@ -3,11 +3,11 @@ use serde::Deserialize;
 /// Top-level configuration parsed from `events.yaml`.
 #[derive(Debug, Clone, Deserialize)]
 pub struct EventConfig {
-    /// Domain name in kebab-case (e.g. "accounting").
+    /// Domain name in kebab-case (e.g. "taskmanagement").
     pub domain: String,
     /// Architecture tier.
     pub tier: String,
-    /// Service name in kebab-case (e.g. "domain-master").
+    /// Service name in kebab-case (e.g. "project-master").
     pub service_name: String,
     /// Target language: "rust" or "go".
     pub language: String,
@@ -94,44 +94,44 @@ mod tests {
 
     fn sample_yaml() -> &'static str {
         r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    description: "マスタアイテムが作成された時に発行されるイベント"
-    partition_key: item_id
+    description: "プロジェクトタイプが変更された時に発行されるイベント"
+    partition_key: project_type_id
     outbox: true
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
-          description: "アイテムID"
+          description: "プロジェクトタイプID"
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_project_type_changed
 "#
     }
 
     #[test]
     fn deserialize_yaml() {
         let config: EventConfig = serde_yaml::from_str(sample_yaml()).unwrap();
-        assert_eq!(config.domain, "accounting");
+        assert_eq!(config.domain, "taskmanagement");
         assert_eq!(config.tier, "business");
-        assert_eq!(config.service_name, "domain-master");
+        assert_eq!(config.service_name, "project-master");
         assert_eq!(config.language, "rust");
         assert_eq!(config.events.len(), 1);
 
         let event = &config.events[0];
-        assert_eq!(event.name, "master-item.created");
+        assert_eq!(event.name, "project-type.changed");
         assert_eq!(event.version, 1);
         assert!(event.outbox);
-        assert_eq!(event.partition_key, "item_id");
+        assert_eq!(event.partition_key, "project_type_id");
         assert_eq!(event.schema.fields.len(), 1);
         assert_eq!(event.consumers.len(), 1);
     }
@@ -140,6 +140,6 @@ events:
     fn topic_name_format() {
         let config: EventConfig = serde_yaml::from_str(sample_yaml()).unwrap();
         let topic = config.topic_name(&config.events[0]);
-        assert_eq!(topic, "k1s0.business.accounting.master-item-created.v1");
+        assert_eq!(topic, "k1s0.business.taskmanagement.project-type-changed.v1");
     }
 }

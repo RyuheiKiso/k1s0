@@ -305,21 +305,21 @@ redis_session:
             config_dir.join("config.yaml"),
             r#"
 app:
-  name: order-server
+  name: task-server
   tier: service
   environment: dev
 database:
   host: localhost
-  name: order_db
+  name: task_db
   user: app
 kafka:
   brokers:
     - "kafka-0:9092"
-  consumer_group: order.default
+  consumer_group: task.default
   security_protocol: PLAINTEXT
   topics:
     publish:
-      - "k1s0.service.order.v1"
+      - "k1s0.service.task.v1"
     subscribe: []
 redis:
   host: localhost
@@ -330,7 +330,7 @@ redis:
 
         let deps = detect_dependencies_at(tmp.path()).unwrap();
         assert_eq!(deps.databases.len(), 1);
-        assert_eq!(deps.databases[0].name, "order_db");
+        assert_eq!(deps.databases[0].name, "task_db");
         assert!(deps.has_kafka);
         assert!(deps.has_redis);
         assert!(!deps.has_redis_session);

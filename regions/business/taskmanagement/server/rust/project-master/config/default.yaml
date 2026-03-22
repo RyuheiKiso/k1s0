@@ -1,0 +1,25 @@
+# プロジェクトマスタサーバーデフォルト設定
+app:
+  name: project-master
+  environment: development
+
+server:
+  host: "0.0.0.0"
+  port: 8210
+  grpc_port: 9210
+
+observability:
+  otlp_endpoint: "http://otel-collector:4317"
+  prometheus_port: 9090
+
+database:
+  host: "postgres"
+  port: 5432
+  name: "k1s0_business"
+  schema: "project_master"
+  user: "k1s0"
+  password: ""
+  ssl_mode: "prefer"
+  max_connections: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300

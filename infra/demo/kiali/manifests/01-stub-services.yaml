@@ -311,17 +311,17 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: accounting-server
+  name: project-master-server
   namespace: k1s0-business
   labels:
-    app: accounting-server
+    app: project-master-server
     version: stable
     tier: business
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: accounting-server
+      app: project-master-server
   template:
     metadata:
       annotations:
@@ -330,7 +330,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.istio.io/merge-metrics: "true"
       labels:
-        app: accounting-server
+        app: project-master-server
         version: stable
         tier: business
     spec:
@@ -341,7 +341,7 @@ spec:
           command: ["python", "/app/server.py"]
           env:
             - name: SERVICE_NAME
-              value: accounting-server
+              value: project-master-server
             - name: NAMESPACE_NAME
               value: k1s0-business
             - name: VERSION
@@ -371,13 +371,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: accounting-server
+  name: project-master-server
   namespace: k1s0-business
   labels:
-    app: accounting-server
+    app: project-master-server
 spec:
   selector:
-    app: accounting-server
+    app: project-master-server
   ports:
     - name: http
       port: 80
@@ -390,10 +390,10 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-bff
+  name: task-bff
   namespace: k1s0-service
   labels:
-    app: order-bff
+    app: task-bff
     version: stable
     tier: service
     app.kubernetes.io/component: bff
@@ -401,7 +401,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: order-bff
+      app: task-bff
   template:
     metadata:
       annotations:
@@ -410,7 +410,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.istio.io/merge-metrics: "true"
       labels:
-        app: order-bff
+        app: task-bff
         version: stable
         tier: service
         app.kubernetes.io/component: bff
@@ -422,7 +422,7 @@ spec:
           command: ["python", "/app/server.py"]
           env:
             - name: SERVICE_NAME
-              value: order-bff
+              value: task-bff
             - name: NAMESPACE_NAME
               value: k1s0-service
             - name: VERSION
@@ -430,7 +430,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: DOWNSTREAMS
-              value: http://order-server.k1s0-service.svc.cluster.local/,http://graphql-gateway.k1s0-system.svc.cluster.local/
+              value: http://task-server.k1s0-service.svc.cluster.local/,http://graphql-gateway.k1s0-system.svc.cluster.local/
           ports:
             - containerPort: 8080
           volumeMounts:
@@ -452,13 +452,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-bff
+  name: task-bff
   namespace: k1s0-service
   labels:
-    app: order-bff
+    app: task-bff
 spec:
   selector:
-    app: order-bff
+    app: task-bff
   ports:
     - name: http
       port: 80
@@ -467,17 +467,17 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
   labels:
-    app: order-server
+    app: task-server
     version: stable
     tier: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: order-server
+      app: task-server
   template:
     metadata:
       annotations:
@@ -486,7 +486,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.istio.io/merge-metrics: "true"
       labels:
-        app: order-server
+        app: task-server
         version: stable
         tier: service
     spec:
@@ -497,7 +497,7 @@ spec:
           command: ["python", "/app/server.py"]
           env:
             - name: SERVICE_NAME
-              value: order-server
+              value: task-server
             - name: NAMESPACE_NAME
               value: k1s0-service
             - name: VERSION
@@ -513,7 +513,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: DOWNSTREAMS
-              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://accounting-server.k1s0-business.svc.cluster.local/
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://project-master-server.k1s0-business.svc.cluster.local/
           ports:
             - containerPort: 8080
           volumeMounts:
@@ -535,13 +535,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
   labels:
-    app: order-server
+    app: task-server
 spec:
   selector:
-    app: order-server
+    app: task-server
   ports:
     - name: http
       port: 80

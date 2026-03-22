@@ -322,7 +322,7 @@ func TestLoad_FullConfig(t *testing.T) {
 	base := filepath.Join(dir, "config.yaml")
 	os.WriteFile(base, []byte(`
 app:
-  name: order-server
+  name: task-server
   version: "1.0.0"
   tier: service
   environment: dev
@@ -338,7 +338,7 @@ grpc:
 database:
   host: "localhost"
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: ""
   ssl_mode: "disable"
@@ -348,13 +348,13 @@ database:
 kafka:
   brokers:
     - "localhost:9092"
-  consumer_group: "order-server.default"
+  consumer_group: "task-server.default"
   security_protocol: "PLAINTEXT"
   topics:
     publish:
-      - "k1s0.service.order.created.v1"
+      - "k1s0.service.task.created.v1"
     subscribe:
-      - "k1s0.service.payment.completed.v1"
+      - "k1s0.service.tasks.completed.v1"
 redis:
   host: "localhost"
   port: 6379
@@ -391,12 +391,12 @@ auth:
 	cfg, err := Load(base)
 	require.NoError(t, err)
 
-	assert.Equal(t, "order-server", cfg.App.Name)
+	assert.Equal(t, "task-server", cfg.App.Name)
 	assert.Equal(t, "service", cfg.App.Tier)
 	assert.NotNil(t, cfg.GRPC)
 	assert.Equal(t, 50051, cfg.GRPC.Port)
 	assert.NotNil(t, cfg.Database)
-	assert.Equal(t, "order_db", cfg.Database.Name)
+	assert.Equal(t, "task_db", cfg.Database.Name)
 	assert.NotNil(t, cfg.Kafka)
 	assert.Equal(t, "PLAINTEXT", cfg.Kafka.SecurityProtocol)
 	assert.NotNil(t, cfg.Redis)

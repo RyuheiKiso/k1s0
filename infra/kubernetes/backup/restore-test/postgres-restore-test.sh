@@ -4,17 +4,15 @@
 # pg_restore --list でダンプの構造を検証し、実際にリストアできることを保証する
 # 頻度: 四半期に1回以上（staging環境で実施すること）
 # 実行前提: pg_restore, psql コマンドが利用可能であること
+# バックアップはPVC（BACKUP_DIR）から読み込む。S3依存なし。
 
 set -euo pipefail
 
 # ==============================================================================
 # 設定パラメータ（環境変数で上書き可能）
 # ==============================================================================
-# テスト対象のバックアップPVCマウントパスまたはS3設定
+# テスト対象のバックアップPVCマウントパス。S3依存なし。
 BACKUP_DIR="${BACKUP_DIR:-/backup/postgres}"
-# S3からダウンロードする場合はS3_BUCKETを設定する（未設定の場合はPVCから読む）
-S3_BUCKET="${S3_BUCKET:-}"
-S3_ENDPOINT="${S3_ENDPOINT:-}"
 # テスト用PostgreSQL接続先（staging環境の一時DBを使用すること）
 TEST_PGHOST="${TEST_PGHOST:?TEST_PGHOST 環境変数を設定してください（staging DBホスト）}"
 TEST_PGUSER="${TEST_PGUSER:?TEST_PGUSER 環境変数を設定してください}"
@@ -100,32 +98,12 @@ TEST_FAIL=0
 for DB in ${TARGET_DATABASES}; do
   log "--- データベース: ${DB} ---"
 
-  # バックアップファイルを特定する（最新のものを使用）
-  if [[ -n "${S3_BUCKET}" ]]; then
-    # S3からダウンロードする場合
-    log "S3から最新バックアップを検索します: s3://${S3_BUCKET}/postgres/"
-    LATEST_FILE=$(aws s3 ls "s3://${S3_BUCKET}/postgres/" \
-      --endpoint-url "${S3_ENDPOINT}" \
-      | grep "${DB}-" \
-      | sort \
-      | tail -1 \
-      | awk '{print $4}')
-    if [[ -z "${LATEST_FILE}" ]]; then
-      log "警告: ${DB} のバックアップがS3に見つかりません。スキップします"
-      TEST_FAIL=$((TEST_FAIL + 1))
-      continue
-    fi
-    BACKUP_FILE="${WORK_DIR}/${LATEST_FILE}"
-    aws s3 cp "s3://${S3_BUCKET}/postgres/${LATEST_FILE}" "${BACKUP_FILE}" \
-      --endpoint-url "${S3_ENDPOINT}"
-  else
-    # PVCマウントパスから最新ファイルを取得する
-    BACKUP_FILE=$(ls -t "${BACKUP_DIR}/${DB}-"*.dump 2>/dev/null | head -1)
-    if [[ -z "${BACKUP_FILE}" ]]; then
-      log "警告: ${BACKUP_DIR} に ${DB} のバックアップファイルが見つかりません。スキップします"
-      TEST_FAIL=$((TEST_FAIL + 1))
-      continue
-    fi
+  # バックアップファイルを特定する（PVCマウントパスから最新ファイルを取得する）
+  BACKUP_FILE=$(ls -t "${BACKUP_DIR}/${DB}-"*.dump 2>/dev/null | head -1)
+  if [[ -z "${BACKUP_FILE}" ]]; then
+    log "警告: ${BACKUP_DIR} に ${DB} のバックアップファイルが見つかりません。スキップします"
+    TEST_FAIL=$((TEST_FAIL + 1))
+    continue
   fi
 
   log "検証対象ファイル: ${BACKUP_FILE} ($(du -h "${BACKUP_FILE}" | cut -f1))"

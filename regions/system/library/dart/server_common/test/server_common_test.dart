@@ -354,22 +354,22 @@ void main() {
       );
     });
 
-    // Order サービスの既知エラーコードが正しいことを確認する。
-    test('OrderErrorsが正しいコードを返すこと', () {
-      expect(OrderErrors.notFound().value, 'SVC_ORDER_NOT_FOUND');
+    // Task サービスの既知エラーコードが正しいことを確認する。
+    test('TaskErrorsが正しいコードを返すこと', () {
+      expect(TaskErrors.notFound().value, 'SVC_TASK_NOT_FOUND');
       expect(
-        OrderErrors.validationFailed().value,
-        'SVC_ORDER_VALIDATION_FAILED',
+        TaskErrors.validationFailed().value,
+        'SVC_TASK_VALIDATION_FAILED',
       );
       expect(
-        OrderErrors.invalidStatusTransition().value,
-        'SVC_ORDER_INVALID_STATUS_TRANSITION',
+        TaskErrors.invalidStatusTransition().value,
+        'SVC_TASK_INVALID_STATUS_TRANSITION',
       );
       expect(
-        OrderErrors.versionConflict().value,
-        'SVC_ORDER_VERSION_CONFLICT',
+        TaskErrors.versionConflict().value,
+        'SVC_TASK_VERSION_CONFLICT',
       );
-      expect(OrderErrors.internalError().value, 'SVC_ORDER_INTERNAL_ERROR');
+      expect(TaskErrors.internalError().value, 'SVC_TASK_INTERNAL_ERROR');
     });
   });
 

@@ -26,7 +26,7 @@ fn render_storage(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String
     // business tier では domain が必須のため、テスト用ドメインを設定する
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "storage");
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -52,7 +52,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_storage_file_list() {
-    let Some((_, names)) = render_storage("order-api", "service") else {
+    let Some((_, names)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -69,21 +69,21 @@ fn test_storage_file_list() {
 
 #[test]
 fn test_storage_class_has_service_name() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "storage-class.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "StorageClass should contain service name\n--- storage-class.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_storage_class_has_tier_pool() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -97,7 +97,7 @@ fn test_storage_class_has_tier_pool() {
 
 #[test]
 fn test_storage_class_has_ceph_provisioner() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -111,21 +111,21 @@ fn test_storage_class_has_ceph_provisioner() {
 
 #[test]
 fn test_pvc_has_service_name() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "pvc.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "PVC should contain service name\n--- pvc.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_pvc_has_namespace() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -153,7 +153,7 @@ fn test_pvc_system_storage_size() {
 
 #[test]
 fn test_pvc_business_storage_size() {
-    let Some((tmp, _)) = render_storage("order-api", "business") else {
+    let Some((tmp, _)) = render_storage("task-api", "business") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -167,7 +167,7 @@ fn test_pvc_business_storage_size() {
 
 #[test]
 fn test_pvc_service_storage_size() {
-    let Some((tmp, _)) = render_storage("order-api", "service") else {
+    let Some((tmp, _)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };
@@ -181,7 +181,7 @@ fn test_pvc_service_storage_size() {
 
 #[test]
 fn test_storage_no_tera_syntax() {
-    let Some((tmp, names)) = render_storage("order-api", "service") else {
+    let Some((tmp, names)) = render_storage("task-api", "service") else {
         eprintln!("SKIP: storage テンプレートディレクトリが未作成");
         return;
     };

@@ -53,7 +53,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_alertmanager_file_list() {
-    let Some((_, names)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((_, names)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };
@@ -70,21 +70,21 @@ fn test_alertmanager_file_list() {
 
 #[test]
 fn test_alertmanager_has_service_name() {
-    let Some((tmp, _)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "alertmanager-config.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Alertmanager config should contain service name\n--- alertmanager-config.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_alertmanager_has_namespace() {
-    let Some((tmp, _)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };
@@ -112,7 +112,7 @@ fn test_alertmanager_system_group_interval() {
 
 #[test]
 fn test_alertmanager_service_group_interval() {
-    let Some((tmp, _)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };
@@ -140,21 +140,21 @@ fn test_alertmanager_system_repeat_interval() {
 
 #[test]
 fn test_notification_secret_has_service_name() {
-    let Some((tmp, _)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "notification-secret.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Notification secret should contain service name\n--- notification-secret.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_alertmanager_no_tera_syntax() {
-    let Some((tmp, names)) = render_alertmanager("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_alertmanager("task-api", "service", 8080) else {
         eprintln!("SKIP: alertmanager テンプレートディレクトリが未作成");
         return;
     };

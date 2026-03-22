@@ -385,7 +385,7 @@ type FileInfo struct {
 }
 
 // FileClientIface はk1s0-file-client の FileClient と互換性を持つインターフェース。
-// *fileclient.ServerFileClient または *fileclient.S3FileClient を注入することで満たせる。
+// *fileclient.ServerFileClient を注入することで満たせる。
 type FileClientIface interface {
 	// GenerateUploadURL はアップロード用の署名済みURLを生成する。
 	GenerateUploadURL(ctx context.Context, path, contentType string, expiresIn time.Duration) (*FilePresignedURL, error)
@@ -399,7 +399,7 @@ type FileClientIface interface {
 	Copy(ctx context.Context, src, dst string) error
 }
 
-// FileOutputBinding はS3互換ファイルストレージ操作を OutputBinding として提供するアダプター。
+// FileOutputBinding はfile-server経由のファイル操作を OutputBinding として提供するアダプター。
 // FileClientIface をラップし、以下のオペレーションをサポートする:
 //   - "upload-url":   アップロード用署名済みURLを生成（metadata["path"] 必須）
 //   - "download-url": ダウンロード用署名済みURLを生成（metadata["path"] 必須）

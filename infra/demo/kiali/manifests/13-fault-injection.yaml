@@ -50,13 +50,13 @@ data:
     apiVersion: networking.istio.io/v1
     kind: VirtualService
     metadata:
-      name: order-server-fault-delay
+      name: task-server-fault-delay
       namespace: k1s0-service
       labels:
         app.kubernetes.io/part-of: k1s0-demo
     spec:
       hosts:
-        - order-server.k1s0-service.svc.cluster.local
+        - task-server.k1s0-service.svc.cluster.local
       http:
         - fault:
             delay:
@@ -65,19 +65,19 @@ data:
               fixedDelay: 500ms
           route:
             - destination:
-                host: order-server.k1s0-service.svc.cluster.local
+                host: task-server.k1s0-service.svc.cluster.local
           timeout: 10s
   fault-abort.yaml: |
     apiVersion: networking.istio.io/v1
     kind: VirtualService
     metadata:
-      name: order-server-fault-abort
+      name: task-server-fault-abort
       namespace: k1s0-service
       labels:
         app.kubernetes.io/part-of: k1s0-demo
     spec:
       hosts:
-        - order-server.k1s0-service.svc.cluster.local
+        - task-server.k1s0-service.svc.cluster.local
       http:
         - fault:
             abort:
@@ -86,7 +86,7 @@ data:
               httpStatus: 503
           route:
             - destination:
-                host: order-server.k1s0-service.svc.cluster.local
+                host: task-server.k1s0-service.svc.cluster.local
 ---
 apiVersion: batch/v1
 kind: CronJob

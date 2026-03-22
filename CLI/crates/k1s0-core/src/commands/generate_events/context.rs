@@ -238,9 +238,9 @@ mod tests {
 
     fn sample_config() -> EventsConfig {
         EventsConfig {
-            domain: "accounting".to_string(),
+            domain: "taskmanagement".to_string(),
             tier: "business".to_string(),
-            service_name: "domain-master".to_string(),
+            service_name: "project-master".to_string(),
             language: "rust".to_string(),
             events: vec![EventDefinition {
                 name: "master-item.created".to_string(),
@@ -267,7 +267,7 @@ mod tests {
                 consumers: vec![ConsumerDefinition {
                     domain: "fa".to_string(),
                     service_name: "asset-manager".to_string(),
-                    handler: "on_accounting_master_item_created".to_string(),
+                    handler: "on_taskmanagement_master_item_created".to_string(),
                 }],
             }],
         }
@@ -279,11 +279,11 @@ mod tests {
         let ctx = build_template_context(&config);
         let json = ctx.into_json();
 
-        assert_eq!(json["domain"], "accounting");
-        assert_eq!(json["domain_snake"], "accounting");
+        assert_eq!(json["domain"], "taskmanagement");
+        assert_eq!(json["domain_snake"], "taskmanagement");
         assert_eq!(json["tier"], "business");
-        assert_eq!(json["service_name"], "domain-master");
-        assert_eq!(json["service_name_snake"], "domain_master");
+        assert_eq!(json["service_name"], "project-master");
+        assert_eq!(json["service_name_snake"], "project_master");
         assert_eq!(json["language"], "rust");
         assert_eq!(json["has_outbox"], true);
         assert_eq!(json["has_consumers"], true);
@@ -296,9 +296,9 @@ mod tests {
         assert_eq!(event["name_pascal"], "MasterItemCreated");
         assert_eq!(
             event["topic"],
-            "k1s0.business.accounting.master-item-created.v1"
+            "k1s0.business.taskmanagement.master-item-created.v1"
         );
-        assert_eq!(event["proto_package"], "k1s0.event.business.accounting.v1");
+        assert_eq!(event["proto_package"], "k1s0.event.business.taskmanagement.v1");
         assert_eq!(event["partition_key_pascal"], "ItemId");
 
         let fields = event["fields"].as_array().unwrap();
@@ -309,10 +309,10 @@ mod tests {
         assert_eq!(fields[1]["name_pascal"], "Amount");
 
         let consumers = event["consumers"].as_array().unwrap();
-        assert_eq!(consumers[0]["handler"], "on_accounting_master_item_created");
+        assert_eq!(consumers[0]["handler"], "on_taskmanagement_master_item_created");
         assert_eq!(
             consumers[0]["handler_pascal"],
-            "OnAccountingMasterItemCreated"
+            "OnTaskmanagementMasterItemCreated"
         );
         assert_eq!(
             consumers[0]["consumer_group"],
@@ -348,11 +348,11 @@ mod tests {
 
         assert_eq!(
             json["consumer"]["handler"],
-            "on_accounting_master_item_created"
+            "on_taskmanagement_master_item_created"
         );
         assert_eq!(
             json["consumer"]["handler_pascal"],
-            "OnAccountingMasterItemCreated"
+            "OnTaskmanagementMasterItemCreated"
         );
         assert_eq!(json["event"]["name_pascal"], "MasterItemCreated");
     }
