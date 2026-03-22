@@ -25,7 +25,7 @@ http-body-util = "0.1"
 bytes = "1"
 tower = {workspace = true}
 pin-project-lite = "0.2"
-deadpool-redis = { version = "0.18", optional = true }
+deadpool-redis = { version = "0.23", optional = true }
 sqlx = {workspace = true, features = ["runtime-tokio"], optional = true}
 
 [dev-dependencies]

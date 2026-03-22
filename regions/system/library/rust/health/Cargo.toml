@@ -19,7 +19,7 @@ tokio = {workspace = true}
 serde = {workspace = true}
 mockall = {workspace = true, optional = true}
 sqlx = {workspace = true, optional = true}
-deadpool-redis = { version = "0.18", optional = true }
+deadpool-redis = { version = "0.23", optional = true }
 reqwest = {workspace = true, optional = true}
 rdkafka = { version = "0.39", features = ["cmake-build"], optional = true }
 
