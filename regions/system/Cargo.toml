@@ -103,7 +103,7 @@ tonic = "0.12"
 # tonic-build 0.12 は内部で prost-build 0.13 を使用し、prost 0.13 互換のコードを生成する。
 # tonic 0.12 は prost 0.13 に依存しているため、prost = "0.13" が正しい組み合わせ。
 # tonic-build 0.14 は prost ベースの configure()/compile_protos() API を持たないため使用不可。
-tonic-build = "0.12"
+tonic-build = "0.14"
 prost = "0.13"
 prost-types = "0.13"
 reqwest = { version = "0.12", features = ["json"] }
