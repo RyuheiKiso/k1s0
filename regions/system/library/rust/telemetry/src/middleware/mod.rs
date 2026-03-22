@@ -204,7 +204,7 @@ macro_rules! trace_request {
 /// ```ignore
 /// use k1s0_telemetry::trace_grpc_call;
 ///
-/// let result = trace_grpc_call!("OrderService.CreateOrder", { "ok" });
+/// let result = trace_grpc_call!("TaskService.CreateTask", { "ok" });
 /// ```
 #[macro_export]
 macro_rules! trace_grpc_call {

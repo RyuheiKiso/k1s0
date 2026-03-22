@@ -9,14 +9,14 @@ import 'init.dart';
 ///
 /// ```dart
 /// final cfg = TelemetryConfig(
-///   serviceName: 'OrderService',
+///   serviceName: 'TaskService',
 ///   version: '1.0.0',
-///   tier: 'system',
+///   tier: 'service',
 ///   environment: 'dev',
 /// );
 /// final logger = createLogger(cfg);
-/// logger.info('Order created');
+/// logger.info('Task created');
 /// logger.warning('Slow query detected');
-/// logger.severe('Failed to process payment');
+/// logger.severe('Failed to assign task');
 /// ```
 Logger createLogger(TelemetryConfig config) => Logger(config.serviceName);

@@ -108,7 +108,7 @@ func TestGRPCUnaryInterceptor_Error(t *testing.T) {
 		return expectedErr
 	}
 
-	err := interceptor(context.Background(), "/OrderService/CreateOrder", nil, nil, invoker)
+	err := interceptor(context.Background(), "/TaskService/CreateTask", nil, nil, invoker)
 
 	// invoker のエラーがそのまま返ること。
 	assert.ErrorIs(t, err, expectedErr, "invoker のエラーが伝播すること")
