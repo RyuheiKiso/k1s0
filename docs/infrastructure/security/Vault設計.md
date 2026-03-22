@@ -468,14 +468,14 @@ spec:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/role: "service"
         # 静的シークレット（KV v2）
-        vault.hashicorp.com/agent-inject-secret-api-key: "secret/data/k1s0/service/order/api-key"
+        vault.hashicorp.com/agent-inject-secret-api-key: "secret/data/k1s0/service/task/api-key"
         # 動的シークレット（Database）
-        vault.hashicorp.com/agent-inject-secret-db-creds: "database/creds/service-order-rw"
+        vault.hashicorp.com/agent-inject-secret-db-creds: "database/creds/service-task-rw"
         vault.hashicorp.com/agent-inject-template-db-creds: |
-          {{- with secret "database/creds/service-order-rw" -}}
+          {{- with secret "database/creds/service-task-rw" -}}
           host=postgres.k1s0-service.svc.cluster.local
           port=5432
-          dbname=order_db
+          dbname=task_db
           user={{ .Data.username }}
           password={{ .Data.password }}
           {{- end -}}
