@@ -389,20 +389,20 @@ resource "vault_database_secret_backend" "db" {
   path = "database"
 }
 
-resource "vault_database_secret_backend_connection" "order_db" {
+resource "vault_database_secret_backend_connection" "task_db" {
   backend       = vault_database_secret_backend.db.path
-  name          = "service-order"
-  allowed_roles = ["service-order-rw", "service-order-ro"]
+  name          = "service-task"
+  allowed_roles = ["service-task-rw", "service-task-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-service.svc.cluster.local:5432/order_db"
+    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-service.svc.cluster.local:5432/task_db"
   }
 }
 
-resource "vault_database_secret_backend_role" "order_rw" {
+resource "vault_database_secret_backend_role" "task_rw" {
   backend             = vault_database_secret_backend.db.path
-  name                = "service-order-rw"
-  db_name             = vault_database_secret_backend_connection.order_db.name
+  name                = "service-task-rw"
+  db_name             = vault_database_secret_backend_connection.task_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
   default_ttl         = 86400     # 24 時間
   max_ttl             = 172800    # 48 時間
@@ -468,14 +468,14 @@ spec:
         vault.hashicorp.com/agent-inject: "true"
         vault.hashicorp.com/role: "service"
         # 静的シークレット（KV v2）
-        vault.hashicorp.com/agent-inject-secret-api-key: "secret/data/k1s0/service/order/api-key"
+        vault.hashicorp.com/agent-inject-secret-api-key: "secret/data/k1s0/service/task/api-key"
         # 動的シークレット（Database）
-        vault.hashicorp.com/agent-inject-secret-db-creds: "database/creds/service-order-rw"
+        vault.hashicorp.com/agent-inject-secret-db-creds: "database/creds/service-task-rw"
         vault.hashicorp.com/agent-inject-template-db-creds: |
-          {{- with secret "database/creds/service-order-rw" -}}
+          {{- with secret "database/creds/service-task-rw" -}}
           host=postgres.k1s0-service.svc.cluster.local
           port=5432
-          dbname=order_db
+          dbname=task_db
           user={{ .Data.username }}
           password={{ .Data.password }}
           {{- end -}}

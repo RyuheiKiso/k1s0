@@ -330,10 +330,10 @@ async fn test_start_saga_with_initiated_by() {
 
     let client = SagaClient::new(&mock_server.uri());
     let req = StartSagaRequest {
-        workflow_name: "payment-processing".to_string(),
-        payload: serde_json::json!({"amount": 100}),
+        workflow_name: "task-processing".to_string(),
+        payload: serde_json::json!({"task_id": "task-100"}),
         correlation_id: Some("corr-789".to_string()),
-        initiated_by: Some("service-order".to_string()),
+        initiated_by: Some("service-task".to_string()),
     };
     let result = client.start_saga(&req).await;
     assert!(result.is_ok());

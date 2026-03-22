@@ -356,7 +356,7 @@ grpc:
 database:
   host: "localhost"
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: ""
   ssl_mode: "disable"
@@ -410,7 +410,7 @@ auth:
       expect(cfg.grpc, isNotNull);
       expect(cfg.grpc!.port, 50051);
       expect(cfg.database, isNotNull);
-      expect(cfg.database!.name, 'order_db');
+      expect(cfg.database!.name, 'task_db');
       expect(cfg.kafka, isNotNull);
       expect(cfg.kafka!.securityProtocol, 'PLAINTEXT');
       expect(cfg.redis, isNotNull);

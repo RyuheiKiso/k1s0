@@ -119,8 +119,8 @@ describe('gRPC Interceptor', () => {
       expect(span.end).toHaveBeenCalled();
 
       expect(mockMetrics.recordGRPCRequest).toHaveBeenCalledWith(
-        'test.OrderService',
-        'CreateOrder',
+        'test.TaskService',
+        'CreateTask',
         'ERROR',
       );
     });

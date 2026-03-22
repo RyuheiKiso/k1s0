@@ -639,21 +639,21 @@ config:
 
 ```bash
 # dev 環境
-helm upgrade --install order ./infra/helm/services/service/order \
+helm upgrade --install task ./infra/helm/services/service/task \
   -n k1s0-service \
-  -f ./infra/helm/services/service/order/values-dev.yaml \
+  -f ./infra/helm/services/service/task/values-dev.yaml \
   --set image.tag=1.0.0-a1b2c3d
 
 # staging 環境
-helm upgrade --install order ./infra/helm/services/service/order \
+helm upgrade --install task ./infra/helm/services/service/task \
   -n k1s0-service \
-  -f ./infra/helm/services/service/order/values-staging.yaml \
+  -f ./infra/helm/services/service/task/values-staging.yaml \
   --set image.tag=1.0.0-a1b2c3d
 
 # prod 環境
-helm upgrade --install order ./infra/helm/services/service/order \
+helm upgrade --install task ./infra/helm/services/service/task \
   -n k1s0-service \
-  -f ./infra/helm/services/service/order/values-prod.yaml \
+  -f ./infra/helm/services/service/task/values-prod.yaml \
   --set image.tag=1.0.0-a1b2c3d
 ```
 
