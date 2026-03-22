@@ -74,14 +74,14 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 // EventHandler 実装（non-generic、Event 型固定）
-struct OrderCreatedHandler;
+struct TaskCreatedHandler;
 
 #[async_trait]
-impl EventHandler for OrderCreatedHandler {
-    fn event_type(&self) -> &str { "order.created" }
+impl EventHandler for TaskCreatedHandler {
+    fn event_type(&self) -> &str { "task.created" }
 
     async fn handle(&self, event: Event) -> Result<(), EventBusError> {
-        println!("注文作成通知: aggregate_id={}", event.aggregate_id);
+        println!("タスク作成通知: aggregate_id={}", event.aggregate_id);
         Ok(())
     }
 }
@@ -94,11 +94,11 @@ let config = EventBusConfig::new()
 let bus = EventBus::new(config);
 
 // ハンドラー登録（Arc<dyn EventHandler> を渡す。EventSubscription が Drop されると自動解除）
-let _subscription = bus.subscribe(Arc::new(OrderCreatedHandler)).await;
+let _subscription = bus.subscribe(Arc::new(TaskCreatedHandler)).await;
 
 // イベント発行（Event 構造体を使用）
 let event = Event::with_aggregate_id(
-    "order.created".to_string(),
+    "task.created".to_string(),
     "ORD-001".to_string(),
     serde_json::json!({"user_id": "USR-123", "total_amount": 10000}),
 );

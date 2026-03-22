@@ -132,14 +132,14 @@ describe('InMemorySnapshotStore', () => {
   it('スナップショットを保存・読み込みできる', async () => {
     const store = new InMemorySnapshotStore();
     const snapshot: Snapshot = {
-      streamId: 'order-600',
+      streamId: 'task-600',
       version: 5,
       state: { status: 'shipped' },
       createdAt: new Date(),
     };
 
     await store.saveSnapshot(snapshot);
-    const loaded = await store.loadSnapshot('order-600');
+    const loaded = await store.loadSnapshot('task-600');
     expect(loaded).not.toBeNull();
     expect(loaded!.version).toBe(5);
     expect(loaded!.state).toEqual({ status: 'shipped' });
