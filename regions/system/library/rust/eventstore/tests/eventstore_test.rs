@@ -103,12 +103,12 @@ async fn test_version_conflict_on_wrong_expected() {
 #[tokio::test]
 async fn test_version_conflict_not_raised_with_correct_version() {
     let store = InMemoryEventStore::new();
-    let stream_id = StreamId::new("order-400");
+    let stream_id = StreamId::new("task-400");
 
-    let events = vec![make_event(&stream_id, "OrderCreated")];
+    let events = vec![make_event(&stream_id, "TaskCreated")];
     store.append(&stream_id, events, None).await.unwrap();
 
-    let events2 = vec![make_event(&stream_id, "OrderConfirmed")];
+    let events2 = vec![make_event(&stream_id, "TaskUpdated")];
     let result = store.append(&stream_id, events2, Some(1)).await;
 
     assert!(result.is_ok());
