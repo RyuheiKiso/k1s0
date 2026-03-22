@@ -134,8 +134,8 @@ mod tests {
         let log = SagaStepLog::new_execute(
             saga_id,
             0,
-            "reserve-inventory".to_string(),
-            Some(serde_json::json!({"item_id": "abc"})),
+            "increment-board-column".to_string(),
+            Some(serde_json::json!({"column_id": "abc"})),
         );
         assert_eq!(log.saga_id, saga_id);
         assert_eq!(log.step_index, 0);
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_new_compensate() {
         let saga_id = Uuid::new_v4();
-        let log = SagaStepLog::new_compensate(saga_id, 1, "release-inventory".to_string(), None);
+        let log = SagaStepLog::new_compensate(saga_id, 1, "decrement-board-column".to_string(), None);
         assert_eq!(log.action, StepAction::Compensate);
     }
 
