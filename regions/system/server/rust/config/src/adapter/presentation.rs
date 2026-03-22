@@ -412,13 +412,13 @@ mod tests {
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
             service_name: "task-server".to_string(),
-            namespace_prefix: "service.order".to_string(),
+            namespace_prefix: "service.task".to_string(),
             schema_json: serde_json::json!({
                 "categories": [{
                     "id": "database",
                     "label": "Database",
                     "icon": "storage",
-                    "namespaces": ["service.order.database"],
+                    "namespaces": ["service.task.database"],
                     "fields": [{
                         "key": "timeout",
                         "label": "Timeout",
@@ -444,12 +444,12 @@ mod tests {
     #[test]
     fn upsert_request_normalizes_schema_json() {
         let req = UpsertConfigSchemaRequestDto {
-            namespace_prefix: "service.order".to_string(),
+            namespace_prefix: "service.task".to_string(),
             categories: vec![ConfigCategorySchemaDto {
                 id: "database".to_string(),
                 label: "Database".to_string(),
                 icon: String::new(),
-                namespaces: vec!["service.order.database".to_string()],
+                namespaces: vec!["service.task.database".to_string()],
                 fields: vec![ConfigFieldSchemaDto {
                     key: "enabled".to_string(),
                     label: "Enabled".to_string(),
