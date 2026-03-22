@@ -389,20 +389,20 @@ resource "vault_database_secret_backend" "db" {
   path = "database"
 }
 
-resource "vault_database_secret_backend_connection" "order_db" {
+resource "vault_database_secret_backend_connection" "task_db" {
   backend       = vault_database_secret_backend.db.path
-  name          = "service-order"
-  allowed_roles = ["service-order-rw", "service-order-ro"]
+  name          = "service-task"
+  allowed_roles = ["service-task-rw", "service-task-ro"]
 
   postgresql {
-    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-service.svc.cluster.local:5432/order_db"
+    connection_url = "postgresql://{{username}}:{{password}}@postgres.k1s0-service.svc.cluster.local:5432/task_db"
   }
 }
 
-resource "vault_database_secret_backend_role" "order_rw" {
+resource "vault_database_secret_backend_role" "task_rw" {
   backend             = vault_database_secret_backend.db.path
-  name                = "service-order-rw"
-  db_name             = vault_database_secret_backend_connection.order_db.name
+  name                = "service-task-rw"
+  db_name             = vault_database_secret_backend_connection.task_db.name
   creation_statements = ["CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT ALL ON ALL TABLES IN SCHEMA public TO \"{{name}}\";"]
   default_ttl         = 86400     # 24 時間
   max_ttl             = 172800    # 48 時間
