@@ -78,7 +78,7 @@ func generateTestToken(t *testing.T, privKey *rsa.PrivateKey, opts ...func(jwt.T
 		"roles": []interface{}{"user", "order_manager"},
 	}))
 	require.NoError(t, token.Set("resource_access", map[string]interface{}{
-		"order-service": map[string]interface{}{
+		"task-server": map[string]interface{}{
 			"roles": []interface{}{"read", "write"},
 		},
 	}))
@@ -124,8 +124,8 @@ func TestExtractClaims(t *testing.T) {
 	assert.Equal(t, "taro.yamada@example.com", claims.Email)
 	assert.Contains(t, claims.RealmAccess.Roles, "user")
 	assert.Contains(t, claims.RealmAccess.Roles, "order_manager")
-	assert.Contains(t, claims.ResourceAccess["order-service"].Roles, "read")
-	assert.Contains(t, claims.ResourceAccess["order-service"].Roles, "write")
+	assert.Contains(t, claims.ResourceAccess["task-server"].Roles, "read")
+	assert.Contains(t, claims.ResourceAccess["task-server"].Roles, "write")
 	assert.Equal(t, []string{"system", "business", "service"}, claims.TierAccess)
 }
 
@@ -327,13 +327,13 @@ func TestHasRole(t *testing.T) {
 func TestHasResourceRole(t *testing.T) {
 	claims := &Claims{
 		ResourceAccess: map[string]Access{
-			"order-service": {Roles: []string{"read", "write"}},
+			"task-server": {Roles: []string{"read", "write"}},
 		},
 	}
 
-	assert.True(t, HasResourceRole(claims, "order-service", "read"))
-	assert.True(t, HasResourceRole(claims, "order-service", "write"))
-	assert.False(t, HasResourceRole(claims, "order-service", "delete"))
+	assert.True(t, HasResourceRole(claims, "task-server", "read"))
+	assert.True(t, HasResourceRole(claims, "task-server", "write"))
+	assert.False(t, HasResourceRole(claims, "task-server", "delete"))
 	assert.False(t, HasResourceRole(claims, "user-service", "read"))
 }
 
@@ -344,13 +344,13 @@ func TestHasPermission(t *testing.T) {
 			Roles: []string{"user"},
 		},
 		ResourceAccess: map[string]Access{
-			"order-service": {Roles: []string{"read", "write"}},
+			"task-server": {Roles: []string{"read", "write"}},
 		},
 	}
 
-	assert.True(t, HasPermission(claims, "order-service", "read"))
-	assert.True(t, HasPermission(claims, "order-service", "write"))
-	assert.False(t, HasPermission(claims, "order-service", "delete"))
+	assert.True(t, HasPermission(claims, "task-server", "read"))
+	assert.True(t, HasPermission(claims, "task-server", "write"))
+	assert.False(t, HasPermission(claims, "task-server", "delete"))
 }
 
 // HasPermission が sys_admin ロールを持つクレームに対して全リソース・全操作で true を返すことを確認する。
@@ -389,14 +389,14 @@ func TestHasPermission_ResourceAdmin(t *testing.T) {
 			Roles: []string{"user"},
 		},
 		ResourceAccess: map[string]Access{
-			"order-service": {Roles: []string{"admin"}},
+			"task-server": {Roles: []string{"admin"}},
 		},
 	}
 
 	// リソースに admin ロールがある場合
-	assert.True(t, HasPermission(claims, "order-service", "read"))
-	assert.True(t, HasPermission(claims, "order-service", "write"))
-	assert.True(t, HasPermission(claims, "order-service", "delete"))
+	assert.True(t, HasPermission(claims, "task-server", "read"))
+	assert.True(t, HasPermission(claims, "task-server", "write"))
+	assert.True(t, HasPermission(claims, "task-server", "delete"))
 }
 
 // HasTierAccess がティア階層ルールに従ってアクセス判定を行うことを確認する。
@@ -678,7 +678,7 @@ func TestRequirePermission_Authorized(t *testing.T) {
 	_, r := gin.CreateTestContext(w)
 
 	r.Use(AuthMiddleware(verifier))
-	r.Use(RequirePermission("order-service", "read"))
+	r.Use(RequirePermission("task-server", "read"))
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
@@ -709,7 +709,7 @@ func TestRequirePermission_Forbidden(t *testing.T) {
 	_, r := gin.CreateTestContext(w)
 
 	r.Use(AuthMiddleware(verifier))
-	r.Use(RequirePermission("order-service", "delete"))
+	r.Use(RequirePermission("task-server", "delete"))
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})

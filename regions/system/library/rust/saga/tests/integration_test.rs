@@ -7,7 +7,7 @@ fn make_saga_state(saga_id: &str) -> serde_json::Value {
     serde_json::json!({
         "saga": {
             "saga_id": saga_id,
-            "workflow_name": "order-fulfillment",
+            "workflow_name": "task-assignment",
             "current_step": 0,
             "status": "STARTED",
             "payload": {},
@@ -43,8 +43,8 @@ async fn test_start_saga_success() {
 
     let client = SagaClient::new(&mock_server.uri());
     let req = StartSagaRequest {
-        workflow_name: "order-fulfillment".to_string(),
-        payload: serde_json::json!({"order_id": "ord-001"}),
+        workflow_name: "task-assignment".to_string(),
+        payload: serde_json::json!({"task_id": "task-001"}),
         correlation_id: None,
         initiated_by: None,
     };
@@ -71,7 +71,7 @@ async fn test_start_saga_with_correlation_id() {
 
     let client = SagaClient::new(&mock_server.uri());
     let req = StartSagaRequest {
-        workflow_name: "order-fulfillment".to_string(),
+        workflow_name: "task-assignment".to_string(),
         payload: serde_json::json!({}),
         correlation_id: Some("corr-123".to_string()),
         initiated_by: None,
@@ -95,7 +95,7 @@ async fn test_start_saga_server_error_returns_error() {
 
     let client = SagaClient::new(&mock_server.uri());
     let req = StartSagaRequest {
-        workflow_name: "order-fulfillment".to_string(),
+        workflow_name: "task-assignment".to_string(),
         payload: serde_json::json!({}),
         correlation_id: None,
         initiated_by: None,
@@ -147,7 +147,7 @@ async fn test_get_saga_success() {
     assert!(result.is_ok());
     let state = result.unwrap();
     assert_eq!(state.saga_id.to_string(), saga_id);
-    assert_eq!(state.workflow_name, "order-fulfillment");
+    assert_eq!(state.workflow_name, "task-assignment");
     assert_eq!(state.status, SagaStatus::Started);
     assert_eq!(state.current_step, 0);
 }
@@ -163,10 +163,10 @@ async fn test_get_saga_with_all_fields() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "saga": {
                 "saga_id": saga_id,
-                "workflow_name": "order-fulfillment",
+                "workflow_name": "task-assignment",
                 "current_step": 2,
                 "status": "RUNNING",
-                "payload": {"order_id": "ord-001"},
+                "payload": {"task_id": "task-001"},
                 "correlation_id": "corr-456",
                 "initiated_by": "user-admin",
                 "error_message": null,

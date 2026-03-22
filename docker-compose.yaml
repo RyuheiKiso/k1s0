@@ -274,7 +274,7 @@ services:
       KC_SERVICE_CLIENT_SECRET: ${KC_SERVICE_CLIENT_SECRET:?KC_SERVICE_CLIENT_SECRET must be set. For local dev use docker-compose.dev.yaml}
       KC_TEST_ADMIN_PASSWORD: ${KC_TEST_ADMIN_PASSWORD:?KC_TEST_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       KC_TEST_USER_PASSWORD: ${KC_TEST_USER_PASSWORD:?KC_TEST_USER_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
-      KC_TEST_ORDER_MGR_PASSWORD: ${KC_TEST_ORDER_MGR_PASSWORD:?KC_TEST_ORDER_MGR_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      KC_TEST_TASK_MGR_PASSWORD: ${KC_TEST_TASK_MGR_PASSWORD:?KC_TEST_TASK_MGR_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
     command: ["start-dev", "--import-realm"]
     ports:
@@ -991,43 +991,23 @@ services:
   # ============================================================
   # Business プロファイル
   # ============================================================
-  domain-master-rust:
-    build:
-      context: .
-      dockerfile: ./regions/business/accounting/server/rust/domain-master/Dockerfile
-    profiles: [business]
-    <<: *app-service-defaults
-    ports:
-      - "${DOMAIN_MASTER_REST_HOST_PORT:-8210}:8080"
-      - "${DOMAIN_MASTER_GRPC_HOST_PORT:-9210}:50051"
-    environment:
-      - CONFIG_PATH=/app/config/config.docker.yaml
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-      auth-rust:
-        condition: service_healthy
-    volumes:
-      - ./regions/business/accounting/server/rust/domain-master/config:/app/config
-    healthcheck: *rust-healthcheck
 
   # ============================================================
   # Service プロファイル
   # ============================================================
-  order-rust:
+
+  # タスク管理ドメインのプロジェクトマスタサービス（project-type / status-definition 管理）
+  project-master-rust:
     build:
       context: .
-      dockerfile: ./regions/service/order/server/rust/order/Dockerfile
-    profiles: [service]
+      dockerfile: ./regions/business/taskmanagement/server/rust/project-master/Dockerfile
+    profiles: [business]
     <<: *app-service-defaults
     ports:
-      - "${ORDER_REST_HOST_PORT:-8310}:8080"
-      - "${ORDER_GRPC_HOST_PORT:-9310}:50051"
+      - "${PROJECT_MASTER_REST_HOST_PORT:-8211}:8080"
+      - "${PROJECT_MASTER_GRPC_HOST_PORT:-9211}:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.docker.yaml
+      - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
@@ -1035,21 +1015,21 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./regions/service/order/server/rust/order/config:/app/config
+      - ./regions/business/taskmanagement/server/rust/project-master/config:/app/config
     healthcheck: *rust-healthcheck
 
-  # 在庫管理サービス: 在庫の入出庫・残高管理を担当
-  inventory-rust:
+  # タスク管理サービス: タスクの CRUD + ステータスマシン管理
+  task-rust:
     build:
       context: .
-      dockerfile: ./regions/service/inventory/server/rust/inventory/Dockerfile
+      dockerfile: ./regions/service/task/server/rust/task/Dockerfile
     profiles: [service]
     <<: *app-service-defaults
     ports:
-      - "${INVENTORY_REST_HOST_PORT:-8320}:8080"
-      - "${INVENTORY_GRPC_HOST_PORT:-9320}:50051"
+      - "${TASK_REST_HOST_PORT:-8311}:8080"
+      - "${TASK_GRPC_HOST_PORT:-9311}:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.docker.yaml
+      - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
@@ -1057,21 +1037,21 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./regions/service/inventory/server/rust/inventory/config:/app/config
+      - ./regions/service/task/server/rust/task/config:/app/config
     healthcheck: *rust-healthcheck
 
-  # 決済サービス: 決済処理・決済ステータス管理を担当
-  payment-rust:
+  # ボード管理サービス: Kanban カラム / WIP 制限管理
+  board-rust:
     build:
       context: .
-      dockerfile: ./regions/service/payment/server/rust/payment/Dockerfile
+      dockerfile: ./regions/service/board/server/rust/board/Dockerfile
     profiles: [service]
     <<: *app-service-defaults
     ports:
-      - "${PAYMENT_REST_HOST_PORT:-8330}:8080"
-      - "${PAYMENT_GRPC_HOST_PORT:-9330}:50051"
+      - "${BOARD_REST_HOST_PORT:-8321}:8080"
+      - "${BOARD_GRPC_HOST_PORT:-9321}:50051"
     environment:
-      - CONFIG_PATH=/app/config/config.docker.yaml
+      - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
@@ -1079,7 +1059,29 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./regions/service/payment/server/rust/payment/config:/app/config
+      - ./regions/service/board/server/rust/board/config:/app/config
+    healthcheck: *rust-healthcheck
+
+  # アクティビティサービス: コメント / 工数記録 / 承認フロー
+  activity-rust:
+    build:
+      context: .
+      dockerfile: ./regions/service/activity/server/rust/activity/Dockerfile
+    profiles: [service]
+    <<: *app-service-defaults
+    ports:
+      - "${ACTIVITY_REST_HOST_PORT:-8331}:8080"
+      - "${ACTIVITY_GRPC_HOST_PORT:-9331}:50051"
+    environment:
+      - CONFIG_PATH=/app/config/default.yaml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./regions/service/activity/server/rust/activity/config:/app/config
     healthcheck: *rust-healthcheck
 
   # ============================================================

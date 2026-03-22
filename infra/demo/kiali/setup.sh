@@ -124,14 +124,14 @@ for ns in k1s0-system k1s0-business k1s0-service; do
     -n "${ns}" --dry-run=client -o yaml | kubectl apply -f -
 done
 
-echo "Removing legacy order-server demo resources..."
-kubectl delete deployment order-server order-server-canary order-server-primary \
+echo "Removing legacy task-server demo resources..."
+kubectl delete deployment task-server task-server-canary task-server-primary \
   -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
-kubectl delete canary order-server -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
-kubectl delete service order-server-canary order-server-primary \
+kubectl delete canary task-server -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
+kubectl delete service task-server-canary task-server-primary \
   -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
-kubectl delete destinationrule order-server -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
-kubectl delete virtualservice order-server order-server-canary order-server-mirror order-server-fault order-server-fault-window \
+kubectl delete destinationrule task-server -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
+kubectl delete virtualservice task-server task-server-canary task-server-mirror task-server-fault task-server-fault-window \
   -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
 kubectl delete configmap demo-service-script-primary -n k1s0-service --ignore-not-found >/dev/null 2>&1 || true
 
@@ -142,7 +142,7 @@ echo "Applying Istio resources..."
 kubectl apply -f "${SCRIPT_DIR}/manifests/02-istio.yaml"
 
 echo "Removing legacy scenario VirtualServices..."
-kubectl delete vs order-server-canary order-server-mirror order-server-fault \
+kubectl delete vs task-server-canary task-server-mirror task-server-fault \
   -n k1s0-service --ignore-not-found
 
 echo "Applying baseline VirtualServices..."

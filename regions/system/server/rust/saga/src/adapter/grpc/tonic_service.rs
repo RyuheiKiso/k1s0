@@ -516,7 +516,7 @@ steps:
         let req = Request::new(ProtoStartSagaRequest {
             workflow_name: "test-workflow".to_string(),
             payload: Some(json_to_prost_struct(
-                &serde_json::json!({"order_id": "123"}),
+                &serde_json::json!({"task_id": "123"}),
             )),
             correlation_id: "corr-001".to_string(),
             initiated_by: "user-1".to_string(),
@@ -679,14 +679,14 @@ steps:
         );
 
         let yaml = r#"
-name: order-fulfillment
+name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
 "#;
 
         let req = Request::new(ProtoRegisterWorkflowRequest {
@@ -695,7 +695,7 @@ steps:
 
         let resp = svc.register_workflow(req).await.unwrap();
         let inner = resp.into_inner();
-        assert_eq!(inner.name, "order-fulfillment");
+        assert_eq!(inner.name, "task-assignment");
         assert_eq!(inner.step_count, 2);
     }
 

@@ -31,7 +31,7 @@ fn render_opentelemetry(
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "opentelemetry")
         .server_port(server_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -61,7 +61,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_opentelemetry_file_list() {
-    let Some((_, names)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((_, names)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
@@ -82,21 +82,21 @@ fn test_opentelemetry_file_list() {
 
 #[test]
 fn test_collector_has_service_name() {
-    let Some((tmp, _)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "collector-config.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Collector config should contain service name\n--- collector-config.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_collector_has_namespace() {
-    let Some((tmp, _)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
@@ -124,7 +124,7 @@ fn test_collector_system_batch_timeout() {
 
 #[test]
 fn test_collector_service_batch_timeout() {
-    let Some((tmp, _)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
@@ -156,7 +156,7 @@ fn test_instrumentation_system_sampler() {
 
 #[test]
 fn test_instrumentation_business_sampler() {
-    let Some((tmp, _)) = render_opentelemetry("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_opentelemetry("task-api", "business", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
@@ -170,7 +170,7 @@ fn test_instrumentation_business_sampler() {
 
 #[test]
 fn test_instrumentation_service_sampler() {
-    let Some((tmp, _)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };
@@ -188,7 +188,7 @@ fn test_instrumentation_service_sampler() {
 
 #[test]
 fn test_opentelemetry_no_tera_syntax() {
-    let Some((tmp, names)) = render_opentelemetry("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_opentelemetry("task-api", "service", 8080) else {
         eprintln!("SKIP: opentelemetry テンプレートディレクトリが未作成");
         return;
     };

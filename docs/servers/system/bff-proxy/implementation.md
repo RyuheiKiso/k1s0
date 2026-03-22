@@ -304,3 +304,37 @@ shutdownTraceCtx, cancelTrace := context.WithTimeout(context.Background(), 5*tim
 defer cancelTrace()
 tp.Shutdown(shutdownTraceCtx)
 ```
+
+---
+
+## Doc Sync (2026-03-22)
+
+### OIDC TLS 検証の本番環境 Fatal 化（M-11）
+
+`main.go` の OIDC DiscoveryURL TLS チェックを環境に応じた分岐に変更した。
+
+| 環境 | 動作 |
+| --- | --- |
+| 本番環境（`production`, `prod`） | `logger.Error` を出力後に `os.Exit(1)` で即時終了 |
+| 開発・ステージング環境 | `logger.Warn` を出力して起動を継続 |
+
+本番環境では IdP との通信に TLS（HTTPS）が必須である。`https://` で始まらない `discovery_url` が設定された場合、中間者攻撃のリスクが生じるため、サーバー起動を拒否する。
+
+```go
+// OIDC DiscoveryURL が HTTPS でない場合は環境に応じて処理を分岐する。
+if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
+    if isProductionEnvironment(cfg.App.Environment) {
+        logger.Error("OIDC discovery_url が TLS (https) を使用していません。本番環境では https が必須です",
+            slog.String("discovery_url", cfg.Auth.DiscoveryURL),
+            slog.String("environment", cfg.App.Environment),
+        )
+        os.Exit(1)
+    }
+    logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
+        slog.String("discovery_url", cfg.Auth.DiscoveryURL),
+        slog.String("environment", cfg.App.Environment),
+    )
+}
+```
+
+環境判定には既存の `isProductionEnvironment()` ヘルパーを使用する（`production`, `prod` を本番として扱う）。

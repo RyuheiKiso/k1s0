@@ -34,15 +34,10 @@ export class FileClientError extends Error {
   }
 }
 
+/** ファイルクライアントの設定。S3/AWS SDK 依存を除去し、file-server 経由のみをサポートする。 */
 export interface FileClientConfig {
   /** file-server モードのエンドポイント URL */
   serverUrl?: string;
-  /** S3 互換ストレージの直接エンドポイント */
-  s3Endpoint?: string;
-  bucket?: string;
-  region?: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
   /** リクエストタイムアウト (ms)。デフォルト 30_000。 */
   timeoutMs?: number;
 }
@@ -273,60 +268,3 @@ export class MockFileClient implements FileClient {
   }
 }
 
-// ---------------------------------------------------------------------------
-// S3FileClient — AWS S3 / GCS / Ceph 直接実装
-// ---------------------------------------------------------------------------
-
-export class S3FileClient implements FileClient {
-  private readonly endpoint: string;
-  private readonly bucket: string;
-
-  constructor(config: FileClientConfig) {
-    if (!config.s3Endpoint) {
-      throw new FileClientError('s3Endpoint が設定されていません', 'INVALID_CONFIG');
-    }
-    if (!config.bucket) {
-      throw new FileClientError('bucket が設定されていません', 'INVALID_CONFIG');
-    }
-    this.endpoint = config.s3Endpoint.replace(/\/$/, '');
-    this.bucket = config.bucket;
-  }
-
-  private objectUrl(path: string): string {
-    return `${this.endpoint}/${this.bucket}/${path}`;
-  }
-
-  async generateUploadUrl(path: string, contentType: string, expiresInMs: number): Promise<PresignedUrl> {
-    return {
-      url: this.objectUrl(path),
-      method: 'PUT',
-      expiresAt: new Date(Date.now() + expiresInMs),
-      headers: { 'Content-Type': contentType },
-    };
-  }
-
-  async generateDownloadUrl(path: string, expiresInMs: number): Promise<PresignedUrl> {
-    return {
-      url: this.objectUrl(path),
-      method: 'GET',
-      expiresAt: new Date(Date.now() + expiresInMs),
-      headers: {},
-    };
-  }
-
-  async delete(path: string): Promise<void> {
-    throw new FileClientError(`S3FileClient.delete: AWS SDK 統合が必要です (${path})`, 'NOT_IMPLEMENTED');
-  }
-
-  async getMetadata(path: string): Promise<FileMetadata> {
-    throw new FileClientError(`S3FileClient.getMetadata: AWS SDK 統合が必要です (${path})`, 'NOT_IMPLEMENTED');
-  }
-
-  async list(prefix: string): Promise<FileMetadata[]> {
-    throw new FileClientError(`S3FileClient.list: AWS SDK 統合が必要です (${prefix})`, 'NOT_IMPLEMENTED');
-  }
-
-  async copy(src: string, dst: string): Promise<void> {
-    throw new FileClientError(`S3FileClient.copy: AWS SDK 統合が必要です (${src} -> ${dst})`, 'NOT_IMPLEMENTED');
-  }
-}

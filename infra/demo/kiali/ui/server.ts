@@ -240,7 +240,7 @@ async function getCanaryStatus() {
     const raw = await runCommand("kubectl", [
       "get",
       "canary",
-      "order-server",
+      "task-server",
       "-n",
       "k1s0-service",
       "-o",
@@ -290,7 +290,7 @@ async function getFaultStatus() {
       await runCommand("kubectl", [
         "get",
         "virtualservice",
-        "order-server-fault-window",
+        "task-server-fault-window",
         "-n",
         "k1s0-service",
         "-o",

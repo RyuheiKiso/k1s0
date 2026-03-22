@@ -27,33 +27,33 @@ enum EventType {
   // 設定値変更イベント
   EVENT_TYPE_CONFIG_CHANGED = 200;
 
-  // === 会計系イベント (300-399) ===
-  // 仕訳エントリ作成イベント
-  EVENT_TYPE_ACCOUNTING_ENTRY_CREATED = 300;
-  // 仕訳エントリ承認イベント
-  EVENT_TYPE_ACCOUNTING_ENTRY_APPROVED = 301;
+  // === タスク管理系イベント (300-399) ===
+  // プロジェクトタイプ変更イベント
+  EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED = 300;
+  // ステータス定義変更イベント
+  EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED = 301;
 
-  // === 注文系イベント (400-499) ===
-  // 注文作成イベント
-  EVENT_TYPE_ORDER_CREATED = 400;
-  // 注文更新イベント
-  EVENT_TYPE_ORDER_UPDATED = 401;
-  // 注文キャンセルイベント
-  EVENT_TYPE_ORDER_CANCELLED = 402;
+  // === タスク系イベント (400-499) ===
+  // タスク作成イベント
+  EVENT_TYPE_TASK_CREATED = 400;
+  // タスクステータス変更イベント
+  EVENT_TYPE_TASK_STATUS_CHANGED = 401;
+  // タスクキャンセルイベント
+  EVENT_TYPE_TASK_CANCELLED = 402;
 
-  // === 在庫系イベント (500-599) ===
-  // 在庫予約イベント
-  EVENT_TYPE_INVENTORY_RESERVED = 500;
-  // 在庫解放イベント
-  EVENT_TYPE_INVENTORY_RELEASED = 501;
+  // === ボード系イベント (500-599) ===
+  // ボードカラムインクリメントイベント
+  EVENT_TYPE_BOARD_COLUMN_INCREMENTED = 500;
+  // ボードカラムデクリメントイベント
+  EVENT_TYPE_BOARD_COLUMN_DECREMENTED = 501;
 
-  // === 決済系イベント (600-699) ===
-  // 決済開始イベント
-  EVENT_TYPE_PAYMENT_INITIATED = 600;
-  // 決済完了イベント
-  EVENT_TYPE_PAYMENT_COMPLETED = 601;
-  // 決済失敗イベント
-  EVENT_TYPE_PAYMENT_FAILED = 602;
-  // 返金イベント
-  EVENT_TYPE_PAYMENT_REFUNDED = 603;
+  // === アクティビティ系イベント (600-699) ===
+  // アクティビティ作成イベント
+  EVENT_TYPE_ACTIVITY_CREATED = 600;
+  // アクティビティ承認イベント
+  EVENT_TYPE_ACTIVITY_APPROVED = 601;
+  // アクティビティ却下イベント
+  EVENT_TYPE_ACTIVITY_REJECTED = 602;
+  // アクティビティ削除イベント
+  EVENT_TYPE_ACTIVITY_DELETED = 603;
 }

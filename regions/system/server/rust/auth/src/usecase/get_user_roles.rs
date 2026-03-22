@@ -65,7 +65,7 @@ mod tests {
                         },
                     ],
                     client_roles: HashMap::from([(
-                        "order-service".to_string(),
+                        "task-server".to_string(),
                         vec![Role {
                             id: "role-3".to_string(),
                             name: "read".to_string(),
@@ -81,7 +81,7 @@ mod tests {
 
         let roles = result.unwrap();
         assert_eq!(roles.realm_roles.len(), 2);
-        assert_eq!(roles.client_roles.get("order-service").unwrap().len(), 1);
+        assert_eq!(roles.client_roles.get("task-server").unwrap().len(), 1);
     }
 
     #[tokio::test]

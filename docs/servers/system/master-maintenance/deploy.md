@@ -424,7 +424,7 @@ readinessProbe:
 
 - [system-master-maintenance-server.md](server.md) -- 概要・API 定義・アーキテクチャ
 - [master-maintenance データベース設計](database.md) -- データベーススキーマ・マイグレーション
-- [domain-master-management](domain-master-management.md) -- ドメインマスタ管理
+- [project-master-management](project-master-management.md) -- プロジェクトマスタ管理
 - [Dockerイメージ戦略.md](../../infrastructure/docker/Dockerイメージ戦略.md) -- マルチステージビルド・ベースイメージ
 - [helm設計.md](../../infrastructure/kubernetes/helm設計.md) -- Helm Chart・Vault Agent Injector
 - [可観測性設計.md](../../architecture/observability/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ

@@ -14,75 +14,75 @@ function makeEvent(streamId: StreamId, eventType: string) {
 describe('InMemoryEventStore', () => {
   it('append/loadでイベントを保存・取得できる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-123';
-    const events = [makeEvent(sid, 'OrderCreated'), makeEvent(sid, 'OrderConfirmed')];
+    const sid: StreamId = 'task-123';
+    const events = [makeEvent(sid, 'TaskCreated'), makeEvent(sid, 'TaskUpdated')];
 
     await store.append(sid, events);
     const loaded = await store.load(sid);
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].eventType).toBe('OrderCreated');
-    expect(loaded[1].eventType).toBe('OrderConfirmed');
+    expect(loaded[0].eventType).toBe('TaskCreated');
+    expect(loaded[1].eventType).toBe('TaskUpdated');
     expect(loaded[0].version).toBe(1);
     expect(loaded[1].version).toBe(2);
   });
 
   it('append前はexistsがfalseを返す', async () => {
     const store = new InMemoryEventStore();
-    expect(await store.exists('order-999')).toBe(false);
+    expect(await store.exists('task-999')).toBe(false);
   });
 
   it('append後はexistsがtrueを返す', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-100';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-100';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
     expect(await store.exists(sid)).toBe(true);
   });
 
   it('loadFromで指定バージョン以降のみ取得できる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-200';
+    const sid: StreamId = 'task-200';
     await store.append(sid, [
-      makeEvent(sid, 'OrderCreated'),
-      makeEvent(sid, 'OrderConfirmed'),
-      makeEvent(sid, 'OrderShipped'),
+      makeEvent(sid, 'TaskCreated'),
+      makeEvent(sid, 'TaskUpdated'),
+      makeEvent(sid, 'TaskStatusChanged'),
     ]);
 
     const loaded = await store.loadFrom(sid, 2);
     expect(loaded).toHaveLength(2);
-    expect(loaded[0].eventType).toBe('OrderConfirmed');
+    expect(loaded[0].eventType).toBe('TaskUpdated');
     expect(loaded[0].version).toBe(2);
-    expect(loaded[1].eventType).toBe('OrderShipped');
+    expect(loaded[1].eventType).toBe('TaskStatusChanged');
     expect(loaded[1].version).toBe(3);
   });
 
   it('間違ったexpectedVersionでVersionConflictErrorを投げる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-300';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-300';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
     await expect(
-      store.append(sid, [makeEvent(sid, 'OrderConfirmed')], 0),
+      store.append(sid, [makeEvent(sid, 'TaskUpdated')], 0),
     ).rejects.toThrow(VersionConflictError);
   });
 
   it('正しいexpectedVersionで成功する', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-400';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-400';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
-    const version = await store.append(sid, [makeEvent(sid, 'OrderConfirmed')], 1);
+    const version = await store.append(sid, [makeEvent(sid, 'TaskUpdated')], 1);
     expect(version).toBe(2);
   });
 
   it('currentVersionが正しく更新される', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-500';
+    const sid: StreamId = 'task-500';
     expect(await store.currentVersion(sid)).toBe(0);
 
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
     expect(await store.currentVersion(sid)).toBe(1);
 
-    await store.append(sid, [makeEvent(sid, 'OrderConfirmed'), makeEvent(sid, 'OrderShipped')], 1);
+    await store.append(sid, [makeEvent(sid, 'TaskUpdated'), makeEvent(sid, 'TaskStatusChanged')], 1);
     expect(await store.currentVersion(sid)).toBe(3);
   });
 
@@ -94,12 +94,12 @@ describe('InMemoryEventStore', () => {
 
   it('複数イベントでバージョンが連続増加する', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-700';
+    const sid: StreamId = 'task-700';
     const events = [
-      makeEvent(sid, 'OrderCreated'),
+      makeEvent(sid, 'TaskCreated'),
       makeEvent(sid, 'ItemAdded'),
       makeEvent(sid, 'ItemAdded'),
-      makeEvent(sid, 'OrderConfirmed'),
+      makeEvent(sid, 'TaskUpdated'),
     ];
 
     const finalVersion = await store.append(sid, events);
@@ -114,8 +114,8 @@ describe('InMemoryEventStore', () => {
 
   it('VersionConflictErrorにexpectedとactualが含まれる', async () => {
     const store = new InMemoryEventStore();
-    const sid: StreamId = 'order-800';
-    await store.append(sid, [makeEvent(sid, 'OrderCreated')]);
+    const sid: StreamId = 'task-800';
+    await store.append(sid, [makeEvent(sid, 'TaskCreated')]);
 
     try {
       await store.append(sid, [makeEvent(sid, 'Fail')], 5);
@@ -132,14 +132,14 @@ describe('InMemorySnapshotStore', () => {
   it('スナップショットを保存・読み込みできる', async () => {
     const store = new InMemorySnapshotStore();
     const snapshot: Snapshot = {
-      streamId: 'order-600',
+      streamId: 'task-600',
       version: 5,
       state: { status: 'shipped' },
       createdAt: new Date(),
     };
 
     await store.saveSnapshot(snapshot);
-    const loaded = await store.loadSnapshot('order-600');
+    const loaded = await store.loadSnapshot('task-600');
     expect(loaded).not.toBeNull();
     expect(loaded!.version).toBe(5);
     expect(loaded!.state).toEqual({ status: 'shipped' });

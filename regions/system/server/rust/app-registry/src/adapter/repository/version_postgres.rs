@@ -18,7 +18,7 @@ pub struct VersionRow {
     pub arch: String,
     pub size_bytes: Option<i64>,
     pub checksum_sha256: String,
-    pub s3_key: String,
+    pub storage_key: String,
     pub release_notes: Option<String>,
     pub mandatory: bool,
     pub published_at: chrono::DateTime<chrono::Utc>,
@@ -38,7 +38,7 @@ impl TryFrom<VersionRow> for AppVersion {
             arch: row.arch,
             size_bytes: row.size_bytes,
             checksum_sha256: row.checksum_sha256,
-            s3_key: row.s3_key,
+            storage_key: row.storage_key,
             release_notes: row.release_notes,
             mandatory: row.mandatory,
             published_at: row.published_at,
@@ -78,7 +78,7 @@ impl VersionRepository for VersionPostgresRepository {
         let rows = sqlx::query_as::<_, VersionRow>(
             r#"
             SELECT id, app_id, version, platform, arch, size_bytes, checksum_sha256,
-                   s3_key, release_notes, mandatory, published_at, created_at
+                   storage_key, release_notes, mandatory, published_at, created_at
             FROM app_registry.app_versions
             WHERE app_id = $1
             ORDER BY published_at DESC
@@ -105,10 +105,10 @@ impl VersionRepository for VersionPostgresRepository {
             r#"
             INSERT INTO app_registry.app_versions
                 (app_id, version, platform, arch, size_bytes, checksum_sha256,
-                 s3_key, release_notes, mandatory, published_at)
+                 storage_key, release_notes, mandatory, published_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING id, app_id, version, platform, arch, size_bytes, checksum_sha256,
-                      s3_key, release_notes, mandatory, published_at, created_at
+                      storage_key, release_notes, mandatory, published_at, created_at
             "#,
         )
         .bind(&version.app_id)
@@ -117,7 +117,7 @@ impl VersionRepository for VersionPostgresRepository {
         .bind(&version.arch)
         .bind(version.size_bytes)
         .bind(&version.checksum_sha256)
-        .bind(&version.s3_key)
+        .bind(&version.storage_key)
         .bind(&version.release_notes)
         .bind(version.mandatory)
         .bind(version.published_at)

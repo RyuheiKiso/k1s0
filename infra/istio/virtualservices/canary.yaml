@@ -5,11 +5,11 @@
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server
+    - task-server
   http:
     # テスト用: ヘッダーでカナリアへ直接ルーティング
     - match:
@@ -18,15 +18,15 @@ spec:
               exact: "true"
       route:
         - destination:
-            host: order-server
+            host: task-server
             subset: canary
     # デフォルト: ウェイトベースで段階的にトラフィックを分割
     - route:
         - destination:
-            host: order-server
+            host: task-server
             subset: stable
           weight: 90
         - destination:
-            host: order-server
+            host: task-server
             subset: canary
           weight: 10

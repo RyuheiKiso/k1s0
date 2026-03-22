@@ -1,14 +1,14 @@
 # Service 層のワークスペース定義
-# order, inventory, payment 配下の Rust サーバーを一元管理する
+# task, board, activity 配下の Rust サーバーを一元管理する
 [workspace]
 resolver = "2"
 members = [
-    # 在庫管理サービスの Rust サーバー
-    "inventory/server/rust/inventory",
-    # 受注管理サービスの Rust サーバー
-    "order/server/rust/order",
-    # 決済サービスの Rust サーバー
-    "payment/server/rust/payment",
+    # タスク管理サービスの Rust サーバー
+    "task/server/rust/task",
+    # ボード管理サービスの Rust サーバー
+    "board/server/rust/board",
+    # アクティビティサービスの Rust サーバー
+    "activity/server/rust/activity",
 ]
 
 # ワークスペース共通の Rust バージョン指定

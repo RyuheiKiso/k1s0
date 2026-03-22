@@ -6,7 +6,7 @@
 //! ```ignore
 //! use tracing::{info, warn, error};
 //!
-//! info!(service = "order-server", tier = "service", "Request completed");
+//! info!(service = "task-server", tier = "service", "Request completed");
 //! warn!(method = "POST", path = "/api/v1/orders", "Slow request detected");
 //! error!(error = %e, "Failed to process request");
 //! ```

@@ -79,11 +79,11 @@ func (m *mockPublisher) Publish(ctx context.Context, msg *outbox.OutboxMessage) 
 // --- OutboxMessage テスト ---
 
 func TestNewOutboxMessage(t *testing.T) {
-	payload := json.RawMessage(`{"order_id":"ord-001"}`)
-	msg := outbox.NewOutboxMessage("k1s0.service.order.created.v1", "ord-001", payload)
+	payload := json.RawMessage(`{"task_id":"task-001"}`)
+	msg := outbox.NewOutboxMessage("k1s0.service.task.created.v1", "task-001", payload)
 	assert.NotEmpty(t, msg.ID)
-	assert.Equal(t, "k1s0.service.order.created.v1", msg.Topic)
-	assert.Equal(t, "ord-001", msg.PartitionKey)
+	assert.Equal(t, "k1s0.service.task.created.v1", msg.Topic)
+	assert.Equal(t, "task-001", msg.PartitionKey)
 	assert.Equal(t, outbox.OutboxStatusPending, msg.Status)
 	assert.Equal(t, 0, msg.RetryCount)
 	assert.Equal(t, 3, msg.MaxRetries)

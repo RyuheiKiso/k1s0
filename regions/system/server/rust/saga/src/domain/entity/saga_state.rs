@@ -130,8 +130,8 @@ mod tests {
 
     fn make_saga() -> SagaState {
         SagaState::new(
-            "order-fulfillment".to_string(),
-            serde_json::json!({"order_id": "123"}),
+            "task-assignment".to_string(),
+            serde_json::json!({"task_id": "123"}),
             Some("corr-001".to_string()),
             Some("user-1".to_string()),
         )
@@ -142,7 +142,7 @@ mod tests {
         let saga = make_saga();
         assert_eq!(saga.status, SagaStatus::Started);
         assert_eq!(saga.current_step, 0);
-        assert_eq!(saga.workflow_name, "order-fulfillment");
+        assert_eq!(saga.workflow_name, "task-assignment");
         assert!(saga.error_message.is_none());
         assert!(!saga.is_terminal());
     }

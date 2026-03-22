@@ -241,7 +241,7 @@ void main() {
 
       test('有効なserviceトピック名を受け入れること', () {
         final topic =
-            TopicConfig(name: 'k1s0.service.payment.completed.v2');
+            TopicConfig(name: 'k1s0.service.activity.approved.v2');
         expect(() => topic.validateName(), returnsNormally);
       });
 
@@ -323,7 +323,7 @@ void main() {
 
       test('serviceティアを返すこと', () {
         final topic =
-            TopicConfig(name: 'k1s0.service.payment.completed.v1');
+            TopicConfig(name: 'k1s0.service.activity.approved.v1');
         expect(topic.tier(), equals('service'));
       });
 
@@ -366,7 +366,7 @@ void main() {
 
       test('serviceトピックで3を返すこと', () {
         final topic =
-            TopicConfig(name: 'k1s0.service.payment.done.v1');
+            TopicConfig(name: 'k1s0.service.activity.approved.v1');
         expect(topic.defaultPartitionsForTier(), equals(3));
       });
 

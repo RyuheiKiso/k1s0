@@ -8,9 +8,9 @@ use k1s0_outbox::{OutboxError, OutboxMessage, OutboxProcessor, OutboxStatus, Out
 #[test]
 fn test_outbox_message_serialization_roundtrip() {
     let msg = OutboxMessage::new(
-        "k1s0.service.order.created.v1",
-        "ord-001",
-        serde_json::json!({"order_id": "ord-001", "amount": 100}),
+        "k1s0.service.task.created.v1",
+        "task-001",
+        serde_json::json!({"task_id": "task-001", "amount": 100}),
     );
 
     let json = serde_json::to_string(&msg).unwrap();
@@ -27,8 +27,8 @@ fn test_outbox_message_serialization_roundtrip() {
 #[test]
 fn test_message_state_pending_to_processing() {
     let mut msg = OutboxMessage::new(
-        "k1s0.service.order.created.v1",
-        "ord-001",
+        "k1s0.service.task.created.v1",
+        "task-001",
         serde_json::json!({}),
     );
     assert_eq!(msg.status, OutboxStatus::Pending);
@@ -41,8 +41,8 @@ fn test_message_state_pending_to_processing() {
 #[test]
 fn test_message_state_processing_to_delivered() {
     let mut msg = OutboxMessage::new(
-        "k1s0.service.order.created.v1",
-        "ord-001",
+        "k1s0.service.task.created.v1",
+        "task-001",
         serde_json::json!({}),
     );
     msg.mark_processing();
@@ -57,8 +57,8 @@ fn test_message_state_processing_to_delivered() {
 #[test]
 fn test_message_state_processing_to_failed() {
     let mut msg = OutboxMessage::new(
-        "k1s0.service.order.created.v1",
-        "ord-001",
+        "k1s0.service.task.created.v1",
+        "task-001",
         serde_json::json!({}),
     );
     msg.mark_processing();
@@ -73,8 +73,8 @@ fn test_message_state_processing_to_failed() {
 #[test]
 fn test_message_retry_count_increments() {
     let mut msg = OutboxMessage::new(
-        "k1s0.service.order.created.v1",
-        "ord-001",
+        "k1s0.service.task.created.v1",
+        "task-001",
         serde_json::json!({}),
     );
     assert_eq!(msg.retry_count, 0);

@@ -125,46 +125,46 @@ mod tests {
     use super::*;
 
     const SAMPLE_YAML: &str = r#"
-name: order-fulfillment
+name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+    compensate: TaskService.CancelTask
     timeout_secs: 30
     retry:
       max_attempts: 3
       backoff: exponential
       initial_interval_ms: 1000
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
-    compensate: PaymentService.Refund
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
+    compensate: BoardService.DecrementColumn
     timeout_secs: 60
     retry:
       max_attempts: 2
       backoff: exponential
       initial_interval_ms: 2000
-  - name: arrange-shipping
-    service: shipping-service
-    method: ShippingService.CreateShipment
-    compensate: ShippingService.CancelShipment
+  - name: log-activity
+    service: activity-server
+    method: ActivityService.CreateActivity
+    compensate: ActivityService.DeleteActivity
     timeout_secs: 30
 "#;
 
     #[test]
     fn test_from_yaml() {
         let def = WorkflowDefinition::from_yaml(SAMPLE_YAML).unwrap();
-        assert_eq!(def.name, "order-fulfillment");
+        assert_eq!(def.name, "task-assignment");
         assert_eq!(def.version, 1);
         assert!(def.enabled);
         assert_eq!(def.steps.len(), 3);
-        assert_eq!(def.steps[0].name, "reserve-inventory");
-        assert_eq!(def.steps[0].service, "inventory-service");
-        assert_eq!(def.steps[0].method, "InventoryService.Reserve");
+        assert_eq!(def.steps[0].name, "create-task");
+        assert_eq!(def.steps[0].service, "task-server");
+        assert_eq!(def.steps[0].method, "TaskService.CreateTask");
         assert_eq!(
             def.steps[0].compensate.as_deref(),
-            Some("InventoryService.Release")
+            Some("TaskService.CancelTask")
         );
         assert_eq!(def.steps[0].timeout_secs, 30);
         assert_eq!(def.steps[1].timeout_secs, 60);

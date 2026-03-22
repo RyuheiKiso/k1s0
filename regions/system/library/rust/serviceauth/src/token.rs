@@ -262,12 +262,12 @@ mod tests {
     // business ネームスペースを含む SPIFFE URI が正しく解析されることを確認する。
     #[test]
     fn test_parse_business_namespace() {
-        let uri = "spiffe://k1s0.internal/ns/business/sa/order-service";
+        let uri = "spiffe://k1s0.internal/ns/business/sa/task-server";
         let spiffe = SpiffeId::parse(uri).unwrap();
 
         assert_eq!(spiffe.trust_domain, "k1s0.internal");
         assert_eq!(spiffe.namespace, "business");
-        assert_eq!(spiffe.service_account, "order-service");
+        assert_eq!(spiffe.service_account, "task-server");
     }
 
     // "spiffe://" プレフィックスがない URI の解析がエラーになることを確認する。
@@ -355,11 +355,11 @@ mod tests {
         let spiffe = SpiffeId {
             trust_domain: "k1s0.internal".to_string(),
             namespace: "business".to_string(),
-            service_account: "payment-service".to_string(),
+            service_account: "activity-server".to_string(),
         };
         assert_eq!(
             spiffe.to_uri(),
-            "spiffe://k1s0.internal/ns/business/sa/payment-service"
+            "spiffe://k1s0.internal/ns/business/sa/activity-server"
         );
     }
 
@@ -382,7 +382,7 @@ mod tests {
         let spiffe = SpiffeId {
             trust_domain: "k1s0.internal".to_string(),
             namespace: "business".to_string(),
-            service_account: "order-service".to_string(),
+            service_account: "task-server".to_string(),
         };
         assert!(!spiffe.allows_tier_access("system"));
         assert!(spiffe.allows_tier_access("business"));

@@ -118,7 +118,7 @@
         <mxCell id="60" value="PostgresBinding" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="930" y="460" width="120" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="61" value="S3Binding" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
+        <mxCell id="61" value="FileBinding" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">
           <mxGeometry x="1060" y="460" width="100" height="35" as="geometry"/>
         </mxCell>
         <mxCell id="62" value="HttpBinding" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="1">

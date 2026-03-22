@@ -15,7 +15,7 @@ Clean Architecture に基づく 4 層構成を採用する。
 | domain | エンティティ・リポジトリトレイト・ドメインサービス | なし（最内層） |
 | usecase | ビジネスロジック（アップロード・ダウンロード・メタデータ管理） | domain のみ |
 | adapter | REST/gRPC ハンドラー・ミドルウェア | usecase, domain |
-| infrastructure | 設定・DB接続・S3クライアント・Kafka・起動シーケンス | 全レイヤー |
+| infrastructure | 設定・DB接続・LocalFsストレージ・Kafka・起動シーケンス | 全レイヤー |
 
 ---
 
@@ -65,7 +65,7 @@ regions/system/server/rust/file/
 │   │   ├── mod.rs
 │   │   ├── config.rs                        # 設定構造体・読み込み
 │   │   ├── file_metadata_postgres.rs        # FileRepository PostgreSQL 実装
-│   │   ├── s3_storage.rs                    # S3 互換ストレージクライアント（aws-sdk-s3）
+│   │   ├── local_fs_storage.rs              # ローカルファイルシステムストレージ（tokio::fs）
 │   │   ├── in_memory.rs                     # InMemory リポジトリ（dev/test 用）
 │   │   ├── kafka_producer.rs                # Kafka プロデューサー（ファイルイベント通知）
 │   │   └── startup.rs                       # 起動シーケンス・DI
@@ -87,23 +87,23 @@ regions/system/server/rust/file/
 
 | ユースケース | 責務 |
 |------------|------|
-| `GenerateUploadUrlUseCase` | S3 プリサインドURL発行（TTL 付き） |
+| `GenerateUploadUrlUseCase` | ストレージURL発行（file-server エンドポイントURL） |
 | `CompleteUploadUseCase` | アップロード完了通知処理 + Kafka イベント発行 |
-| `GenerateDownloadUrlUseCase` | ダウンロード用プリサインドURL発行 |
+| `GenerateDownloadUrlUseCase` | ダウンロード用ストレージURL発行 |
 | `GetFileMetadataUseCase` / `ListFilesUseCase` | メタデータ取得 |
-| `DeleteFileUseCase` | ファイル削除（S3 + メタデータ） |
+| `DeleteFileUseCase` | ファイル削除（LocalFs + メタデータ） |
 | `UpdateFileTagsUseCase` | タグ更新 |
 
 #### 外部連携
 
-- **S3 Storage** (`infrastructure/s3_storage.rs`): aws-sdk-s3 クライアントで S3/GCS/Ceph 互換エンドポイントに接続する。バックエンドは config で切り替え可能
+- **LocalFs Storage** (`infrastructure/local_fs_storage.rs`): tokio::fs でローカルファイルシステム（PV マウント）を操作する。バックエンドは config で切り替え可能
 - **Kafka Producer** (`infrastructure/kafka_producer.rs`): `k1s0.system.file.events.v1` トピックにファイルイベントを通知する
 
 ### エラーハンドリング方針
 
 - ユースケース層で `anyhow::Result` を返却し、adapter 層で HTTP/gRPC ステータスコードに変換する
 - エラーコードプレフィックス: `SYS_FILE_`
-- S3 障害時はエラーレスポンスを返す（ファイル操作はリトライしない）
+- LocalFs 操作失敗時はエラーレスポンスを返す（ファイル操作はリトライしない）
 
 ### テスト方針
 
@@ -112,7 +112,7 @@ regions/system/server/rust/file/
 | 単体テスト | テナント分離・アクセス制御 | mockall によるリポジトリモック |
 | InMemory テスト | リポジトリ | `in_memory.rs` による DB 不要テスト |
 | 統合テスト | REST/gRPC ハンドラー | axum-test / tonic テストクライアント |
-| S3 テスト | ストレージ操作 | LocalStack または MinIO による S3 互換テスト |
+| LocalFs テスト | ストレージ操作 | `tempfile` クレートによる一時ディレクトリを使用したテスト |
 
 ---
 

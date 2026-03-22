@@ -61,10 +61,10 @@ jobs:
           workspaces: |
             regions/system
             CLI
-            regions/business/accounting/server/rust/domain-master
-            regions/service/inventory/server/rust/inventory
-            regions/service/order/server/rust/order
-            regions/service/payment/server/rust/payment
+            regions/business/taskmanagement/server/rust/project-master
+            regions/service/task/server/rust/task
+            regions/service/board/server/rust/board
+            regions/service/activity/server/rust/activity
       - name: Build Rust crates
         shell: bash
         run: |
@@ -86,7 +86,7 @@ jobs:
           cargo build --manifest-path regions/system/Cargo.toml --workspace $excludes --all-targets
           echo "=== Building CLI ==="
           cargo build --manifest-path CLI/Cargo.toml --workspace --exclude k1s0-gui --all-targets
-          for dir in regions/business/accounting/server/rust/domain-master regions/service/inventory/server/rust/inventory regions/service/order/server/rust/order regions/service/payment/server/rust/payment; do
+          for dir in regions/business/taskmanagement/server/rust/project-master regions/service/task/server/rust/task regions/service/board/server/rust/board regions/service/activity/server/rust/activity; do
             if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
               echo "=== Building $dir ==="
               cargo build --manifest-path "$dir/Cargo.toml" --all-targets
@@ -173,9 +173,9 @@ jobs:
           done
           echo "=== docker build regions/system/server/go/bff-proxy/Dockerfile ==="
           docker build -t ci-bff-proxy regions/system/server/go/bff-proxy
-          if [ -f regions/business/accounting/server/rust/domain-master/Dockerfile ]; then
-            echo "=== docker build domain-master ==="
-            docker build -f regions/business/accounting/server/rust/domain-master/Dockerfile -t ci-domain-master .
+          if [ -f regions/business/taskmanagement/server/rust/project-master/Dockerfile ]; then
+            echo "=== docker build project-master ==="
+            docker build -f regions/business/taskmanagement/server/rust/project-master/Dockerfile -t ci-project-master .
           fi
 
   # 全ビルドの集約ジョブ

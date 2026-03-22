@@ -43,7 +43,7 @@ mod tests {
             arch: "amd64".to_string(),
             size_bytes: Some(10_000_000),
             checksum_sha256: "sha256hash".to_string(),
-            s3_key: "cli/1.1.0/linux/amd64/k1s0".to_string(),
+            storage_key: "cli/1.1.0/linux/amd64/k1s0".to_string(),
             release_notes: Some("New feature".to_string()),
             mandatory: false,
             published_at: chrono::Utc::now(),

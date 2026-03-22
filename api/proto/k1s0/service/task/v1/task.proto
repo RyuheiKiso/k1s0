@@ -1,0 +1,129 @@
+// k1s0 タスクサービス gRPC 定義。
+// タスクの作成・取得・一覧・ステータス更新を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一。
+syntax = "proto3";
+
+package k1s0.service.task.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/task/v1;taskv1";
+
+import "k1s0/system/common/v1/types.proto";
+
+service TaskService {
+  // タスク作成
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  // タスク取得
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  // タスク一覧
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  // タスクステータス更新
+  rpc UpdateTaskStatus(UpdateTaskStatusRequest) returns (UpdateTaskStatusResponse);
+}
+
+// ---------- Enum ----------
+
+// TaskStatus はタスクのステータス。
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_OPEN = 1;
+  TASK_STATUS_IN_PROGRESS = 2;
+  TASK_STATUS_REVIEW = 3;
+  TASK_STATUS_DONE = 4;
+  TASK_STATUS_CANCELLED = 5;
+}
+
+// TaskPriority はタスクの優先度。
+enum TaskPriority {
+  TASK_PRIORITY_UNSPECIFIED = 0;
+  TASK_PRIORITY_LOW = 1;
+  TASK_PRIORITY_MEDIUM = 2;
+  TASK_PRIORITY_HIGH = 3;
+  TASK_PRIORITY_CRITICAL = 4;
+}
+
+// ---------- メッセージ型 ----------
+
+// タスク
+message Task {
+  string id = 1;
+  string project_id = 2;
+  string title = 3;
+  optional string description = 4;
+  TaskStatus status = 5;
+  TaskPriority priority = 6;
+  optional string assignee_id = 7;
+  string reporter_id = 8;
+  optional k1s0.system.common.v1.Timestamp due_date = 9;
+  repeated string labels = 10;
+  string created_by = 11;
+  optional string updated_by = 12;
+  int32 version = 13;
+  repeated TaskChecklistItem checklist = 14;
+  k1s0.system.common.v1.Timestamp created_at = 15;
+  k1s0.system.common.v1.Timestamp updated_at = 16;
+}
+
+// タスクチェックリスト項目
+message TaskChecklistItem {
+  string id = 1;
+  string task_id = 2;
+  string title = 3;
+  bool is_completed = 4;
+  int32 sort_order = 5;
+  k1s0.system.common.v1.Timestamp created_at = 6;
+}
+
+// ---------- リクエスト/レスポンス ----------
+
+message CreateTaskRequest {
+  string project_id = 1;
+  string title = 2;
+  optional string description = 3;
+  optional TaskPriority priority = 4;
+  optional string assignee_id = 5;
+  optional k1s0.system.common.v1.Timestamp due_date = 6;
+  repeated string labels = 7;
+  repeated CreateChecklistItemRequest checklist = 8;
+}
+
+message CreateChecklistItemRequest {
+  string title = 1;
+  optional int32 sort_order = 2;
+}
+
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+message GetTaskRequest {
+  string task_id = 1;
+}
+
+message GetTaskResponse {
+  Task task = 1;
+}
+
+message ListTasksRequest {
+  optional string project_id = 1;
+  optional string assignee_id = 2;
+  optional TaskStatus status = 3;
+  optional TaskPriority priority = 4;
+  k1s0.system.common.v1.Pagination pagination = 5;
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+  // total_count は PaginationResult.total_count に統一（重複削除）
+  reserved 2;
+  reserved "total_count";
+  k1s0.system.common.v1.PaginationResult pagination = 3;
+}
+
+message UpdateTaskStatusRequest {
+  string task_id = 1;
+  TaskStatus status = 2;
+}
+
+message UpdateTaskStatusResponse {
+  Task task = 1;
+}

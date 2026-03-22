@@ -8,7 +8,7 @@
 
 k1s0 のマルチテナント設計（`docs/architecture/multi-tenancy.md`）では、**行レベルセキュリティ（RLS）+ tenant_id カラム**を基本戦略として採用している。
 
-Phase 1 では service 層（order-db, payment-db, inventory-db）に tenant_id と RLS を追加した。一方、system 層のデータベースには未対応のものが残っており、以下の状況にあった。
+Phase 1 では service 層（task-db, activity-db, board-db）に tenant_id と RLS を追加した。一方、system 層のデータベースには未対応のものが残っており、以下の状況にあった。
 
 | データベース | 状況 | リスク |
 |------------|------|--------|
@@ -84,4 +84,4 @@ CREATE POLICY tenant_isolation ON {schema}.{table}
 - [ADR-0007: Saga 補償ロジックと在庫予約](0007-saga-compensation-inventory-reservations.md)
 - saga-db マイグレーション: `regions/system/database/saga-db/migrations/008_add_tenant_id_rls.up.sql`
 - event-store-db マイグレーション: `regions/system/database/event-store-db/migrations/006_add_tenant_id_rls.up.sql`
-- service 層 RLS 参考実装: `regions/service/order/database/postgres/migrations/009_add_tenant_id_and_rls.up.sql`
+- service 層 RLS 参考実装: `regions/service/task/database/postgres/migrations/009_add_tenant_id_and_rls.up.sql`

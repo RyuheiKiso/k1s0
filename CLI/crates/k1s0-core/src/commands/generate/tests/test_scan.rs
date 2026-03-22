@@ -26,20 +26,20 @@ fn test_scan_placements_at_system_returns_empty() {
 #[test]
 fn test_scan_placements_at_business_with_dirs() {
     let tmp = TempDir::new().unwrap();
-    fs::create_dir_all(tmp.path().join("regions/business/accounting")).unwrap();
     fs::create_dir_all(tmp.path().join("regions/business/fa")).unwrap();
     fs::create_dir_all(tmp.path().join("regions/business/hr")).unwrap();
+    fs::create_dir_all(tmp.path().join("regions/business/taskmanagement")).unwrap();
     // ファイルは含まれないことを確認
     fs::write(tmp.path().join("regions/business/.gitkeep"), "").unwrap();
     let result = scan_placements_at(&Tier::Business, tmp.path());
-    assert_eq!(result, vec!["accounting", "fa", "hr"]);
+    assert_eq!(result, vec!["fa", "hr", "taskmanagement"]);
 }
 
 #[test]
 fn test_scan_placements_at_service_with_dirs() {
     let tmp = TempDir::new().unwrap();
-    fs::create_dir_all(tmp.path().join("regions/service/order")).unwrap();
-    fs::create_dir_all(tmp.path().join("regions/service/payment")).unwrap();
+    fs::create_dir_all(tmp.path().join("regions/service/board")).unwrap();
+    fs::create_dir_all(tmp.path().join("regions/service/task")).unwrap();
     let result = scan_placements_at(&Tier::Service, tmp.path());
-    assert_eq!(result, vec!["order", "payment"]);
+    assert_eq!(result, vec!["board", "task"]);
 }

@@ -107,56 +107,6 @@ services:
           policy: local
 
   # ============================================================
-  # Accounting Ledger Service (business Tier)
-  # ※ ledger-rust サービスは未実装のためコメントアウト
-  # ============================================================
-  # - name: accounting-ledger-v1
-  #   url: http://ledger-rust:8080
-  #   routes:
-  #     - name: ledger-route
-  #       paths:
-  #         - /api/v1/accounting/ledger
-  #       strip_path: false
-  #   plugins:
-  #     - name: rate-limiting
-  #       config:
-  #         minute: 1000
-  #         policy: local
-
-  # ============================================================
-  # Accounts Service (business Tier)
-  # ※ accounts-rust サービスは未実装のためコメントアウト
-  # ============================================================
-  # - name: accounts-v1
-  #   url: http://accounts-rust:8080
-  #   routes:
-  #     - name: accounts-route
-  #       paths:
-  #         - /api/v1/accounts
-  #       strip_path: false
-  #   plugins:
-  #     - name: rate-limiting
-  #       config:
-  #         minute: 1000
-  #         policy: local
-
-  # ============================================================
-  # Order Service (service Tier)
-  # ============================================================
-  - name: order-v1
-    url: http://order-rust:8080
-    routes:
-      - name: order-route
-        paths:
-          - /api/v1/orders
-        strip_path: false
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 1000
-          policy: local
-
-  # ============================================================
   # Dashboard Service (service Tier)
   # ※ dashboard-rust サービスは未実装のためコメントアウト
   # ============================================================

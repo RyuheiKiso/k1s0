@@ -43,7 +43,3 @@ variable "mysql_version" {
   default     = "8.0"
 }
 
-variable "backup_bucket" {
-  description = "Ceph S3 bucket name for database backups"
-  type        = string
-}

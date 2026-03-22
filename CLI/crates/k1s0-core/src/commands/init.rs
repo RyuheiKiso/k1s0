@@ -472,7 +472,7 @@ mod tests {
         assert!(yaml.contains("kafka-init:"));
         assert!(yaml.contains("profiles: [observability]"));
         assert!(!yaml.contains("auth-rust:"));
-        assert!(!yaml.contains("domain-master-rust:"));
+        assert!(!yaml.contains("project-master-rust:"));
     }
 
     #[test]

@@ -79,8 +79,8 @@ scenario_normal() {
   echo "  [Kiali Guide]"
   echo "  - Graph > Namespace: k1s0-system, k1s0-business, k1s0-service"
   echo "  - Graph Type: workload"
-  echo "  - All edges should be green and order-server-primary should be present"
-  echo "  - kubectl get canary order-server -n k1s0-service"
+  echo "  - All edges should be green and task-server-primary should be present"
+  echo "  - kubectl get canary task-server -n k1s0-service"
 }
 
 scenario_canary_promote() {
@@ -89,12 +89,12 @@ scenario_canary_promote() {
   start_traffic normal
   echo ""
   echo "  [Flagger Guide]"
-  echo "  - kubectl get canary order-server -n k1s0-service -w"
+  echo "  - kubectl get canary task-server -n k1s0-service -w"
   echo "  - Expect weights to move in 20%% steps until promotion completes"
   echo ""
   echo "  [Kiali Guide]"
   echo "  - Graph Type: workload"
-  echo "  - Watch order-bff traffic split across order-server and order-server-primary"
+  echo "  - Watch task-bff traffic split across task-server and task-server-primary"
 }
 
 scenario_canary_rollback() {
@@ -103,7 +103,7 @@ scenario_canary_rollback() {
   start_traffic normal
   echo ""
   echo "  [Flagger Guide]"
-  echo "  - kubectl get canary order-server -n k1s0-service -w"
+  echo "  - kubectl get canary task-server -n k1s0-service -w"
   echo "  - Expect failed checks and automatic rollback"
   echo ""
   echo "  [Grafana Guide] http://localhost:3200"
@@ -131,7 +131,7 @@ scenario_tracing() {
   start_traffic normal
   echo ""
   echo "  [Jaeger Guide] http://localhost:16686"
-  echo "  - Search > Service: order-bff.k1s0-service"
+  echo "  - Search > Service: task-bff.k1s0-service"
   echo "  - Open a trace to inspect the full span chain"
 }
 
@@ -141,7 +141,7 @@ scenario_logs() {
   echo ""
   echo "  [Grafana Guide] http://localhost:3200"
   echo "  - Open 'k1s0 Demo / k1s0 Log Explorer'"
-  echo "  - Query example: {namespace=\"k1s0-service\",app=\"order-bff\"}"
+  echo "  - Query example: {namespace=\"k1s0-service\",app=\"task-bff\"}"
 }
 
 scenario_kafka() {
@@ -149,8 +149,8 @@ scenario_kafka() {
   stop_traffic
   echo ""
   echo "  [Kafka Demo]"
-  echo "  - Producer sends order-events every 5s to Kafka"
-  echo "  - Consumer (accounting-processor group) reads events from Kafka"
+  echo "  - Producer sends task-events every 5s to Kafka"
+  echo "  - Consumer (project-master-processor group) reads events from Kafka"
   echo "  - Producer logs: kubectl logs -f deploy/kafka-demo-producer -n messaging"
   echo "  - Consumer logs: kubectl logs -f deploy/kafka-demo-consumer -n messaging"
 }

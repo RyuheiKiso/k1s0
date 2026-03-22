@@ -73,7 +73,6 @@ module "environment" {
   mysql_chart_version      = var.mysql_chart_version
   postgresql_version       = var.postgresql_version
   mysql_version            = var.mysql_version
-  backup_bucket            = var.backup_bucket
 
   harbor_chart_version = var.harbor_chart_version
   harbor_domain        = var.harbor_domain

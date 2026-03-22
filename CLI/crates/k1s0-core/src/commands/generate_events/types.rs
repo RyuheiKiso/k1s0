@@ -113,8 +113,8 @@ mod tests {
     fn test_topic_name() {
         let event = sample_event();
         assert_eq!(
-            event.topic_name("business", "accounting"),
-            "k1s0.business.accounting.master-item-created.v1"
+            event.topic_name("business", "taskmanagement"),
+            "k1s0.business.taskmanagement.master-item-created.v1"
         );
     }
 
@@ -150,9 +150,9 @@ schema:
     #[test]
     fn test_deserialize_events_config() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
   - name: master-item.created
@@ -167,10 +167,10 @@ events:
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_master_item_created
 "#;
         let config: EventsConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(config.domain, "accounting");
+        assert_eq!(config.domain, "taskmanagement");
         assert_eq!(config.events.len(), 1);
         assert_eq!(config.events[0].consumers.len(), 1);
     }

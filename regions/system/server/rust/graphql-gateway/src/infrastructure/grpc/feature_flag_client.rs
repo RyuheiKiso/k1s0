@@ -6,6 +6,7 @@ use tonic::transport::Channel;
 use tracing::instrument;
 
 use crate::domain::model::FeatureFlag;
+use crate::domain::port::FeatureFlagPort;
 use crate::infrastructure::config::BackendConfig;
 
 #[allow(dead_code)]
@@ -248,5 +249,14 @@ impl FeatureFlagGrpcClient {
                 }
             }
         }))
+    }
+}
+
+// FeatureFlagPort トレイトの実装。ドメイン層が具象クライアント型に依存せず、
+// ポートトレイト経由でフィーチャーフラグサービスにアクセスできるようにする。
+#[async_trait::async_trait]
+impl FeatureFlagPort for FeatureFlagGrpcClient {
+    async fn list_flags_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<FeatureFlag>> {
+        self.list_flags_by_keys(keys).await
     }
 }

@@ -79,7 +79,7 @@ func TestTopicConfig_ValidateName_Valid(t *testing.T) {
 	}{
 		{"k1s0.system.user.created.v1"},
 		{"k1s0.business.order.placed.v2"},
-		{"k1s0.service.payment.processed.v1"},
+		{"k1s0.service.activity.created.v1"},
 		{"k1s0.system.user-profile.updated.v10"},
 		{"k1s0.system.auth.token-refreshed.v1"},
 	}
@@ -119,7 +119,7 @@ func TestTopicConfig_Tier(t *testing.T) {
 	}{
 		{"k1s0.system.user.created.v1", "system"},
 		{"k1s0.business.order.placed.v1", "business"},
-		{"k1s0.service.payment.done.v1", "service"},
+		{"k1s0.service.activity.approved.v1", "service"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -398,7 +398,7 @@ func TestTopicConfig_WithTierDefaults_Business(t *testing.T) {
 
 // TopicConfig_WithTierDefaults_ServiceがServiceティアのトピックにデフォルトパーティション数3を設定することを検証する。
 func TestTopicConfig_WithTierDefaults_Service(t *testing.T) {
-	tc := &kafka.TopicConfig{Name: "k1s0.service.payment.done.v1"}
+	tc := &kafka.TopicConfig{Name: "k1s0.service.activity.approved.v1"}
 	tc.WithTierDefaults()
 	assert.Equal(t, 3, tc.Partitions)
 }

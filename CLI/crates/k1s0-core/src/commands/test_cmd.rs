@@ -429,7 +429,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
 
         // 親: Rust サーバー
-        let parent_path = tmp.path().join("regions/service/order/server/rust");
+        let parent_path = tmp.path().join("regions/service/task/server/rust");
         fs::create_dir_all(&parent_path).unwrap();
         fs::write(parent_path.join("Cargo.toml"), "[package]\n").unwrap();
 

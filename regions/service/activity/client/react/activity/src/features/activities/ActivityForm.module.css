@@ -1,0 +1,25 @@
+/* フォームフィールドの共通レイアウト */
+.field {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* エラーメッセージ */
+.error {
+  color: red;
+  font-size: 0.85em;
+}
+
+/* ボタンコンテナ */
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* 作業時間入力フィールド */
+.durationInput {
+  width: 120px;
+}

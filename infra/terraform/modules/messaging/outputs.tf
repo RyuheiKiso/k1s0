@@ -13,9 +13,14 @@ output "topic_names" {
   value = {
     system_auth_login        = "k1s0.system.auth.login.v1"
     system_audit_events      = "k1s0.system.audit.events.v1"
-    service_order_created    = "k1s0.service.order.created.v1"
-    service_order_updated    = "k1s0.service.order.updated.v1"
-    service_inventory_reserved = "k1s0.service.inventory.reserved.v1"
-    business_accounting_entry = "k1s0.business.accounting.entry.v1"
+    # タスク管理トピック
+    service_task_created     = "k1s0.service.task.created.v1"
+    service_task_updated     = "k1s0.service.task.updated.v1"
+    service_task_cancelled   = "k1s0.service.task.cancelled.v1"
+    service_board_column_updated = "k1s0.service.board.column_updated.v1"
+    service_activity_created = "k1s0.service.activity.created.v1"
+    service_activity_approved = "k1s0.service.activity.approved.v1"
+    business_taskmanagement_project_type_changed = "k1s0.business.taskmanagement.projectmaster.project_type_changed.v1"
+    business_taskmanagement_status_definition_changed = "k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1"
   }
 }

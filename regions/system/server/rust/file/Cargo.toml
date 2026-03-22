@@ -37,10 +37,6 @@ tonic = {workspace = true}
 prost = {workspace = true}
 prost-types = {workspace = true}
 
-# S3
-aws-sdk-s3 = "1"
-aws-config = "1"
-
 # Kafka
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 sqlx = {workspace = true}

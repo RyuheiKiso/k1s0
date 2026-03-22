@@ -82,9 +82,9 @@ mod tests {
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
             corr_id.to_string(),
-            "OrderCreated".to_string(),
-            "order-service".to_string(),
-            "service.order".to_string(),
+            "TaskCreated".to_string(),
+            "task-server".to_string(),
+            "service.task".to_string(),
             "trace-123".to_string(),
             Utc::now(),
         )

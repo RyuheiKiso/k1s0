@@ -228,7 +228,7 @@ mod tests {
     fn make_schema() -> ConfigSchema {
         ConfigSchema {
             id: Uuid::new_v4(),
-            service_name: "order-service".to_string(),
+            service_name: "task-server".to_string(),
             namespace_prefix: "service.order".to_string(),
             schema_json: serde_json::json!({
                 "categories": [{
@@ -256,14 +256,14 @@ mod tests {
         let schema = make_schema();
         schema_repo
             .expect_find_by_service_name()
-            .withf(|service| service == "order-service")
+            .withf(|service| service == "task-server")
             .return_once(move |_| Ok(Some(schema)));
 
         let app = router(AppState::new(config_repo, Arc::new(schema_repo)));
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/api/v1/config-schema/order-service")
+                    .uri("/api/v1/config-schema/task-server")
                     .body(Body::empty())
                     .expect("request build should succeed"),
             )
@@ -276,7 +276,7 @@ mod tests {
             .expect("test operation should succeed");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("test operation should succeed");
-        assert_eq!(json["service"], "order-service");
+        assert_eq!(json["service"], "task-server");
         assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
         assert_eq!(json["categories"][0]["fields"][0]["default"], 30);
         assert!(json.get("schema_json").is_none());
@@ -296,7 +296,7 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .method("PUT")
-                    .uri("/api/v1/config-schema/order-service")
+                    .uri("/api/v1/config-schema/task-server")
                     .header("content-type", "application/json")
                     .body(Body::from(
                         serde_json::json!({
@@ -326,7 +326,7 @@ mod tests {
             .expect("test operation should succeed");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("test operation should succeed");
-        assert_eq!(json["service"], "order-service");
+        assert_eq!(json["service"], "task-server");
         assert_eq!(json["categories"][0]["fields"][0]["type"], "integer");
         assert_eq!(json["categories"][0]["fields"][0]["default"], 30);
     }

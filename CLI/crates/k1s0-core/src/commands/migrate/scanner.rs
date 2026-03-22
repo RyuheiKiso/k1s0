@@ -476,7 +476,7 @@ mod tests {
             "business"
         );
         assert_eq!(
-            extract_tier(Path::new("regions/service/order/server/rust")),
+            extract_tier(Path::new("regions/service/task/server/rust")),
             "service"
         );
         assert_eq!(extract_tier(Path::new("unknown/path")), "unknown");

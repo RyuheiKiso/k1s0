@@ -37,7 +37,7 @@ service ServiceCatalogService {
 message ServiceInfo {
   // サービス UUID
   string id = 1;
-  // サービス名（例: auth, tenant, order）
+  // サービス名（例: auth, tenant, task）
   string name = 2;
   // 表示名
   string display_name = 3;

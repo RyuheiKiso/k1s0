@@ -7,6 +7,7 @@ use tonic::transport::Channel;
 use tracing::instrument;
 
 use crate::domain::model::{Tenant, TenantStatus};
+use crate::domain::port::TenantPort;
 use crate::infrastructure::config::BackendConfig;
 
 /// gRPC レスポンスの中間表現。GraphQL の TenantConnection に変換前の生データ。
@@ -298,6 +299,15 @@ impl TenantGrpcClient {
                 }
             }
         }))
+    }
+}
+
+// TenantPort トレイトの実装。ドメイン層が具象クライアント型に依存せず、
+// ポートトレイト経由でテナントサービスにアクセスできるようにする。
+#[async_trait::async_trait]
+impl TenantPort for TenantGrpcClient {
+    async fn list_tenants_by_ids(&self, ids: &[String]) -> anyhow::Result<Vec<Tenant>> {
+        self.list_tenants_by_ids(ids).await
     }
 }
 

@@ -340,7 +340,7 @@ auth:
       final dir = Directory.systemTemp.createTempSync('k1s0_');
       final path = writeConfig(dir, 'config.yaml', '''
 app:
-  name: order-server
+  name: task-server
   version: "1.0.0"
   tier: service
   environment: dev
@@ -366,13 +366,13 @@ database:
 kafka:
   brokers:
     - "localhost:9092"
-  consumer_group: "order-server.default"
+  consumer_group: "task-server.default"
   security_protocol: "PLAINTEXT"
   topics:
     publish:
-      - "k1s0.service.order.created.v1"
+      - "k1s0.service.task.created.v1"
     subscribe:
-      - "k1s0.service.payment.completed.v1"
+      - "k1s0.service.activity.approved.v1"
 redis:
   host: "localhost"
   port: 6379
@@ -405,7 +405,7 @@ auth:
 ''');
 
       final cfg = loadConfig(path);
-      expect(cfg.app.name, 'order-server');
+      expect(cfg.app.name, 'task-server');
       expect(cfg.app.tier, 'service');
       expect(cfg.grpc, isNotNull);
       expect(cfg.grpc!.port, 50051);

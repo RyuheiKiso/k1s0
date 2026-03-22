@@ -112,14 +112,14 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
 # --- Service Tier ---
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
-  --topic k1s0.service.order.created.v1 \
+  --topic k1s0.service.task.created.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
-  --topic k1s0.service.order.updated.v1 \
+  --topic k1s0.service.task.status_changed.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
@@ -138,8 +138,8 @@ for topic in \
   k1s0.system.notification.requested.v1.dlq \
   k1s0.system.quota.exceeded.v1.dlq \
   k1s0.system.saga.state_changed.v1.dlq \
-  k1s0.service.order.created.v1.dlq \
-  k1s0.service.order.updated.v1.dlq; do
+  k1s0.service.task.created.v1.dlq \
+  k1s0.service.task.status_changed.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
     --create --if-not-exists \
     --topic "${topic}" \

@@ -1,12 +1,12 @@
-# order-server DestinationRule (service Tier)
+# task-server DestinationRule (service Tier)
 # サブセット定義、ロードバランシングポリシー、Circuit Breaker を設定
 apiVersion: networking.istio.io/v1
 kind: DestinationRule
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
-  host: order-server
+  host: task-server
   trafficPolicy:
     connectionPool:
       tcp:

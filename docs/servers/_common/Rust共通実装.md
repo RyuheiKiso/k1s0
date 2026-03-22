@@ -81,13 +81,13 @@ tonic-build = {workspace = true}
 
 ### k1s0-proto-build 共通クレート
 
-service tier の Rust サーバー（payment / order / inventory）は `k1s0-proto-build` 共通クレートを使用して proto コンパイルを統一する。サービス proto とイベント proto を単一呼び出しでコンパイルし、共通型（`Pagination` / `PaginationResult` / `EventMetadata` 等）の上書き消失を防止する。
+service tier の Rust サーバー（activity / task / board）は `k1s0-proto-build` 共通クレートを使用して proto コンパイルを統一する。サービス proto とイベント proto を単一呼び出しでコンパイルし、共通型（`Pagination` / `PaginationResult` / `EventMetadata` 等）の上書き消失を防止する。
 
 ```rust
 // build.rs — 共通クレートを使用したパターン（推奨）
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     k1s0_proto_build::compile_service_protos(
-        "payment",                     // サービス名
+        "activity",                    // サービス名
         "../../../../../../api/proto", // proto ルートディレクトリ
         "src/proto",                   // 出力先
     )
@@ -435,7 +435,7 @@ FOR UPDATE SKIP LOCKED
     ON outbox_messages (created_at ASC)
     WHERE published_at IS NULL;
   ```
-- 3サービス（order, inventory, payment）すべての `fetch_pending_messages` メソッドに適用済み
+- 3サービス（task, board, activity）すべての `fetch_pending_messages` メソッドに適用済み
 
 ---
 
@@ -509,7 +509,7 @@ Err(e) => {
 
 ### 現状の問題
 
-service / business 層の 4 サーバー（order, inventory, payment, domain-master）および system 層の多数のサーバーで、`startup.rs` がほぼ同一のボイラープレートコードをコピペしている。具体的に重複しているのは以下の処理ブロックである:
+service / business 層の 4 サーバー（task, board, activity, project-master）および system 層の多数のサーバーで、`startup.rs` がほぼ同一のボイラープレートコードをコピペしている。具体的に重複しているのは以下の処理ブロックである:
 
 | # | 処理 | 重複行数（概算） | サーバー間の差分 |
 |---|------|-----------------|----------------|
@@ -567,8 +567,8 @@ pub trait ServerApp: Send + Sync + 'static {
 |-------|------|---------|
 | Phase 1 | `ServerBuilder` に `serve()` メソッドを追加。REST/gRPC 並行起動 + graceful shutdown を共通化 | server-common のみ |
 | Phase 2 | 既存の `connect_database()` ローカル定義を持つサーバーを `ServerBuilder::init_db_pool()` に移行 | 全 Rust サーバー（段階的） |
-| Phase 3 | service 層 3 サーバー（order, payment, inventory）を `ServerApp` trait ベースに移行。Outbox Poller 起動も統合 | service 層 3 サーバー |
-| Phase 4 | business 層（domain-master）を移行 | domain-master |
+| Phase 3 | service 層 3 サーバー（task, activity, board）を `ServerApp` trait ベースに移行。Outbox Poller 起動も統合 | service 層 3 サーバー |
+| Phase 4 | business 層（project-master）を移行 | project-master |
 | Phase 5 | system 層の残りのサーバーを段階的に移行 | system 層サーバー（段階的） |
 
 **移行の原則**:

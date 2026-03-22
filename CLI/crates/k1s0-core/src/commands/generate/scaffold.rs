@@ -693,8 +693,8 @@ mod tests {
 
     #[test]
     fn test_generate_graphql_stub() {
-        let gql = generate_graphql_stub("order");
-        assert!(gql.contains("order GraphQL Schema"));
+        let gql = generate_graphql_stub("task");
+        assert!(gql.contains("task GraphQL Schema"));
         assert!(gql.contains("type Query"));
     }
 
@@ -707,8 +707,8 @@ mod tests {
 
     #[test]
     fn test_generate_proto_stub() {
-        let proto = generate_proto_stub("order-api");
-        assert!(proto.contains("package order_api"));
-        assert!(proto.contains("service order_apiService"));
+        let proto = generate_proto_stub("task-api");
+        assert!(proto.contains("package task_api"));
+        assert!(proto.contains("service task_apiService"));
     }
 }

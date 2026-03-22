@@ -282,7 +282,7 @@ fn validate_full_config_with_all_sections() {
     let f = yaml_file(
         r#"
 app:
-  name: order-server
+  name: task-server
   version: "2.0.0"
   tier: business
   environment: staging
@@ -298,7 +298,7 @@ grpc:
 database:
   host: "db.example.com"
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: "secret"
   ssl_mode: "require"
@@ -309,13 +309,13 @@ kafka:
   brokers:
     - "kafka-0:9092"
     - "kafka-1:9092"
-  consumer_group: "order-server.default"
+  consumer_group: "task-server.default"
   security_protocol: "PLAINTEXT"
   topics:
     publish:
       - "k1s0.business.order.created.v1"
     subscribe:
-      - "k1s0.business.payment.completed.v1"
+      - "k1s0.business.tasks.completed.v1"
 redis:
   host: "redis.example.com"
   port: 6379

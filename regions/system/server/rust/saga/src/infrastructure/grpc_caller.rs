@@ -203,7 +203,7 @@ mod tests {
             },
         );
         services.insert(
-            "payment-service".to_string(),
+            "activity-server".to_string(),
             ServiceEndpoint {
                 host: "localhost".to_string(),
                 port: 50052,
@@ -220,7 +220,7 @@ mod tests {
             "http://localhost:50051"
         );
         assert_eq!(
-            registry.resolve("payment-service").unwrap(),
+            registry.resolve("activity-server").unwrap(),
             "http://localhost:50052"
         );
     }

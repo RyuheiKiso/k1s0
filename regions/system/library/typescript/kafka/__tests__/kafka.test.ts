@@ -117,7 +117,7 @@ describe('validateTopicName', () => {
   const validNames = [
     'k1s0.system.user.created.v1',
     'k1s0.business.order.placed.v2',
-    'k1s0.service.payment.processed.v1',
+    'k1s0.service.activity.created.v1',
     'k1s0.system.user-profile.updated.v10',
     'k1s0.system.auth.token-refreshed.v1',
   ];
@@ -150,7 +150,7 @@ describe('topicTier', () => {
   });
 
   it('returns "service" for service topic', () => {
-    expect(topicTier({ name: 'k1s0.service.payment.done.v1' })).toBe('service');
+    expect(topicTier({ name: 'k1s0.service.activity.approved.v1' })).toBe('service');
   });
 
   it('returns empty string for invalid topic name', () => {
@@ -186,7 +186,7 @@ describe('topicDefaultPartitions', () => {
   });
 
   it('returns 3 for service topic', () => {
-    expect(topicDefaultPartitions({ name: 'k1s0.service.payment.done.v1' })).toBe(3);
+    expect(topicDefaultPartitions({ name: 'k1s0.service.activity.approved.v1' })).toBe(3);
   });
 
   it('returns 3 for invalid topic name', () => {

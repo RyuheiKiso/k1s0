@@ -19,25 +19,25 @@
           <mxGeometry x="100" y="90" width="400" height="30" as="geometry" />
         </mxCell>
 
-        <!-- accounting/domain-master -->
-        <mxCell id="domain_master" value="&lt;b&gt;accounting/&lt;br&gt;domain-master&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E8B57;fontColor=#FFFFFF;strokeColor=#1E6B3F;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+        <!-- taskmanagement/task-master -->
+        <mxCell id="project_master" value="&lt;b&gt;taskmanagement/&lt;br&gt;task-master&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E8B57;fontColor=#FFFFFF;strokeColor=#1E6B3F;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="160" y="170" width="220" height="80" as="geometry" />
         </mxCell>
 
-        <!-- accounting/journal-processor -->
-        <mxCell id="journal_proc" value="&lt;b&gt;accounting/&lt;br&gt;journal-processor&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E8B57;fontColor=#FFFFFF;strokeColor=#1E6B3F;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+        <!-- taskmanagement/task-processor -->
+        <mxCell id="journal_proc" value="&lt;b&gt;taskmanagement/&lt;br&gt;task-processor&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E8B57;fontColor=#FFFFFF;strokeColor=#1E6B3F;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="560" y="170" width="220" height="80" as="geometry" />
         </mxCell>
 
         <!-- 双方向矢印 -->
-        <mxCell id="sync_arrow_right" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;endArrow=block;endFill=1;" edge="1" source="domain_master" target="journal_proc" parent="1">
+        <mxCell id="sync_arrow_right" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;endArrow=block;endFill=1;" edge="1" source="project_master" target="journal_proc" parent="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="500" y="200" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="sync_arrow_left" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;endArrow=block;endFill=1;" edge="1" source="journal_proc" target="domain_master" parent="1">
+        <mxCell id="sync_arrow_left" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#2E7D32;endArrow=block;endFill=1;" edge="1" source="journal_proc" target="project_master" parent="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="500" y="220" />
@@ -59,8 +59,8 @@
           <mxGeometry x="100" y="390" width="400" height="30" as="geometry" />
         </mxCell>
 
-        <!-- accounting/server -->
-        <mxCell id="acc_server" value="&lt;b&gt;accounting/&lt;br&gt;server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;fontColor=#FFFFFF;strokeColor=#3A70B0;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+        <!-- taskmanagement/server -->
+        <mxCell id="acc_server" value="&lt;b&gt;taskmanagement/&lt;br&gt;server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;fontColor=#FFFFFF;strokeColor=#3A70B0;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="160" y="470" width="180" height="80" as="geometry" />
         </mxCell>
 
@@ -69,12 +69,12 @@
           <mxGeometry x="440" y="465" width="120" height="90" as="geometry" />
         </mxCell>
 
-        <!-- fa/server -->
-        <mxCell id="fa_server" value="&lt;b&gt;fa/&lt;br&gt;server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;fontColor=#FFFFFF;strokeColor=#3A70B0;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
+        <!-- （将来のドメイン）/server -->
+        <mxCell id="fa_server" value="&lt;b&gt;（将来のドメイン）/&lt;br&gt;server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4A90D9;fontColor=#FFFFFF;strokeColor=#3A70B0;fontSize=14;fontFamily=Helvetica;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="660" y="470" width="180" height="80" as="geometry" />
         </mxCell>
 
-        <!-- accounting → Kafka -->
+        <!-- taskmanagement → Kafka -->
         <mxCell id="async_e1" value="publish" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeWidth=2;strokeColor=#1565C0;fontFamily=Helvetica;fontSize=11;fontColor=#1565C0;" edge="1" source="acc_server" target="kafka" parent="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -85,7 +85,7 @@
         </mxCell>
 
         <!-- イベントラベル -->
-        <mxCell id="event_label" value="&lt;b&gt;MasterItemCreated イベント&lt;/b&gt;" style="text;html=1;fontSize=13;fontFamily=Helvetica;align=center;fontColor=#1565C0;fillColor=#BBDEFB;rounded=1;strokeColor=none;" vertex="1" parent="1">
+        <mxCell id="event_label" value="&lt;b&gt;TaskCreated イベント&lt;/b&gt;" style="text;html=1;fontSize=13;fontFamily=Helvetica;align=center;fontColor=#1565C0;fillColor=#BBDEFB;rounded=1;strokeColor=none;" vertex="1" parent="1">
           <mxGeometry x="370" y="580" width="250" height="30" as="geometry" />
         </mxCell>
 

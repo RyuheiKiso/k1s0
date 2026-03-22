@@ -183,23 +183,23 @@ mod tests {
 
     fn valid_yaml() -> &'static str {
         r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    partition_key: item_id
+    partition_key: project_type_id
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_project_type_changed
 "#
     }
 
@@ -213,7 +213,7 @@ events:
     // domain が空の場合にバリデーションエラーが返されることを確認する。
     #[test]
     fn empty_domain_fails() {
-        let yaml = valid_yaml().replace("domain: accounting", "domain: \"\"");
+        let yaml = valid_yaml().replace("domain: taskmanagement", "domain: \"\"");
         let config = parse_event_config_str(&yaml).unwrap();
         let err = validate_event_config(&config).unwrap_err();
         assert!(err.to_string().contains("domain"));
@@ -240,7 +240,7 @@ events:
     // スキーマフィールドに存在しない partition_key を指定した場合にエラーになることを確認する。
     #[test]
     fn invalid_partition_key_fails() {
-        let yaml = valid_yaml().replace("partition_key: item_id", "partition_key: nonexistent");
+        let yaml = valid_yaml().replace("partition_key: project_type_id", "partition_key: nonexistent");
         let config = parse_event_config_str(&yaml).unwrap();
         let err = validate_event_config(&config).unwrap_err();
         assert!(err.to_string().contains("partition_key"));
@@ -259,9 +259,9 @@ events:
     #[test]
     fn duplicate_event_name_fails() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
   - name: item.created
@@ -290,9 +290,9 @@ events:
     #[test]
     fn duplicate_field_number_fails() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
   - name: item.created
@@ -316,8 +316,8 @@ events:
     #[test]
     fn non_snake_case_handler_fails() {
         let yaml = valid_yaml().replace(
-            "handler: on_accounting_master_item_created",
-            "handler: onAccountingMasterItemCreated",
+            "handler: on_taskmanagement_project_type_changed",
+            "handler: onTaskmanagementProjectTypeChanged",
         );
         let config = parse_event_config_str(&yaml).unwrap();
         let err = validate_event_config(&config).unwrap_err();

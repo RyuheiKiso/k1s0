@@ -21,7 +21,8 @@ spec:
             app: harbor-backup
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、Harbor専用ServiceAccountを使用する
+          serviceAccountName: harbor-backup-sa
           containers:
             - name: harbor-backup
               image: postgres:17-alpine

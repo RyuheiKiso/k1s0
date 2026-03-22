@@ -151,14 +151,10 @@ func (c *InMemoryFileClient) StoredFiles() []*FileMetadata {
 // ---------------------------------------------------------------------------
 
 // FileClientConfig はファイルクライアントの設定。
+// S3/AWS SDK 依存を除去し、file-server 経由のみをサポートする。
 type FileClientConfig struct {
-	ServerURL       string
-	S3Endpoint      string
-	Bucket          string
-	Region          string
-	AccessKeyID     string
-	SecretAccessKey string
-	Timeout         time.Duration
+	ServerURL string
+	Timeout   time.Duration
 }
 
 // Option は FileClientConfig を変更するオプション関数。
@@ -306,72 +302,3 @@ func (c *ServerFileClient) Copy(ctx context.Context, src, dst string) error {
 	return c.doJSON(ctx, http.MethodPost, "/api/v1/files/copy", copyRequest{Src: src, Dst: dst}, nil)
 }
 
-// ---------------------------------------------------------------------------
-// S3FileClient — AWS S3 / GCS / Ceph 直接実装
-// ---------------------------------------------------------------------------
-
-// S3FileClient は S3 互換ストレージに直接アクセスする FileClient 実装。
-// 実際の S3 操作は aws-sdk-go-v2 を使用するが、ここでは依存を追加せずに
-// プリサインドURL生成の骨格のみを実装する（SDK 統合は利用側で拡張する）。
-type S3FileClient struct {
-	endpoint string
-	bucket   string
-	region   string
-}
-
-// NewS3FileClient は S3FileClient を生成する。
-// endpoint は S3 互換エンドポイント（例: "https://s3.amazonaws.com"）。
-func NewS3FileClient(endpoint, bucket, region string, opts ...Option) FileClient {
-	cfg := &FileClientConfig{
-		S3Endpoint: endpoint,
-		Bucket:     bucket,
-		Region:     region,
-		Timeout:    30 * time.Second,
-	}
-	for _, o := range opts {
-		o(cfg)
-	}
-	return &S3FileClient{
-		endpoint: strings.TrimRight(endpoint, "/"),
-		bucket:   bucket,
-		region:   region,
-	}
-}
-
-func (c *S3FileClient) objectURL(path string) string {
-	return fmt.Sprintf("%s/%s/%s", c.endpoint, c.bucket, path)
-}
-
-func (c *S3FileClient) GenerateUploadURL(_ context.Context, path, contentType string, expiresIn time.Duration) (*PresignedURL, error) {
-	return &PresignedURL{
-		URL:       c.objectURL(path),
-		Method:    "PUT",
-		ExpiresAt: time.Now().Add(expiresIn),
-		Headers:   map[string]string{"Content-Type": contentType},
-	}, nil
-}
-
-func (c *S3FileClient) GenerateDownloadURL(_ context.Context, path string, expiresIn time.Duration) (*PresignedURL, error) {
-	return &PresignedURL{
-		URL:       c.objectURL(path),
-		Method:    "GET",
-		ExpiresAt: time.Now().Add(expiresIn),
-		Headers:   map[string]string{},
-	}, nil
-}
-
-func (c *S3FileClient) Delete(_ context.Context, path string) error {
-	return fmt.Errorf("S3FileClient.Delete: aws-sdk-go-v2 統合が必要です (path=%s)", path)
-}
-
-func (c *S3FileClient) GetMetadata(_ context.Context, path string) (*FileMetadata, error) {
-	return nil, fmt.Errorf("S3FileClient.GetMetadata: aws-sdk-go-v2 統合が必要です (path=%s)", path)
-}
-
-func (c *S3FileClient) List(_ context.Context, prefix string) ([]*FileMetadata, error) {
-	return nil, fmt.Errorf("S3FileClient.List: aws-sdk-go-v2 統合が必要です (prefix=%s)", prefix)
-}
-
-func (c *S3FileClient) Copy(_ context.Context, src, dst string) error {
-	return fmt.Errorf("S3FileClient.Copy: aws-sdk-go-v2 統合が必要です (src=%s, dst=%s)", src, dst)
-}

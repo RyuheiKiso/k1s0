@@ -158,9 +158,9 @@ mod tests {
     // OutboxMessage::new が正しい初期状態（Pending・retry_count=0・is_processable=true）で生成されることを確認する。
     #[test]
     fn test_new_message() {
-        let payload = serde_json::json!({"order_id": "ord-001"});
-        let msg = OutboxMessage::new("k1s0.service.order.created.v1", "ord-001", payload);
-        assert_eq!(msg.topic, "k1s0.service.order.created.v1");
+        let payload = serde_json::json!({"order_id": "task-001"});
+        let msg = OutboxMessage::new("k1s0.service.task.created.v1", "task-001", payload);
+        assert_eq!(msg.topic, "k1s0.service.task.created.v1");
         assert_eq!(msg.status, OutboxStatus::Pending);
         assert_eq!(msg.retry_count, 0);
         assert!(msg.is_processable());

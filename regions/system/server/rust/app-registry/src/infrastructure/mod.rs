@@ -1,6 +1,6 @@
 pub mod config;
 pub mod database;
-pub mod s3_client;
+pub mod file_storage;
 pub mod signature_verifier;
 pub mod startup;
 

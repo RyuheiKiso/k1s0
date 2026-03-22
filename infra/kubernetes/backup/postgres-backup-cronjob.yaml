@@ -23,7 +23,8 @@ spec:
             app: postgres-backup
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、PostgreSQL専用ServiceAccountを使用する
+          serviceAccountName: postgres-backup-sa
           containers:
             - name: postgres-backup
               image: postgres:17-alpine

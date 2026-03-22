@@ -69,11 +69,11 @@
           <mxGeometry x="1340" y="155" width="200" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="ns_business" value="k1s0-business&#xa;(PeerAuth: STRICT)&#xa;&#xa;ドメイン別サーバー&#xa;(accounting / inventory ...)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="ns_business" value="k1s0-business&#xa;(PeerAuth: STRICT)&#xa;&#xa;ドメイン別サーバー&#xa;(taskmanagement / task ...)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1580" y="155" width="200" height="120" as="geometry" />
         </mxCell>
 
-        <mxCell id="ns_service" value="k1s0-service&#xa;(PeerAuth: STRICT)&#xa;&#xa;BFF / order / etc.&#xa;(BFF間通信: DENY)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="ns_service" value="k1s0-service&#xa;(PeerAuth: STRICT)&#xa;&#xa;BFF / task / etc.&#xa;(BFF間通信: DENY)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1820" y="155" width="200" height="120" as="geometry" />
         </mxCell>
 

@@ -86,7 +86,7 @@ Tier とは別に、クラスタ基盤用の Namespace も存在する（例: `i
 
 **補足:**
 - system Tier 内の通信は、共通基盤としての一体的な動作を保証するために許可する
-- business Tier 内では、同一ドメインコンテキスト（例: 同じ `accounting/` 配下）のサービス間に限り同期通信を許可する。異なるドメインコンテキスト間（例: `accounting/` と `fa/`）では Kafka 等の非同期メッセージングを使用する
+- business Tier 内では、同一ドメインコンテキスト（例: 同じ `taskmanagement/` 配下）のサービス間に限り同期通信を許可する。異なるドメインコンテキスト間（例: `taskmanagement/` と `fa/`）では Kafka 等の非同期メッセージングを使用する
 - service Tier 内の BFF は、それぞれが独立したエンドポイントとして動作するため、BFF 間の直接通信は禁止する
 
 ### Server 間の依存イメージ
@@ -167,7 +167,7 @@ regions/
 │   │   └── dart/
 │   └── database/
 ├── business/
-│   └── {領域名}/          # 例: accounting, fa
+│   └── {領域名}/          # 例: taskmanagement, fa
 │       ├── server/
 │       │   └── rust/
 │       ├── client/
@@ -180,7 +180,7 @@ regions/
 │       │   └── dart/
 │       └── database/
 └── service/
-    └── {サービス名}/          # 例: order, inventory
+    └── {サービス名}/          # 例: task, board
         ├── server/
         │   ├── rust/
         │   │   ├── （Rust サーバー構成）

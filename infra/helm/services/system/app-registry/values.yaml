@@ -81,9 +81,6 @@ vault:
     - path: "secret/data/k1s0/system/app-registry/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
-    - path: "secret/data/k1s0/system/app-registry/ceph"
-      key: "secret-key"
-      mountPath: "/vault/secrets/ceph-secret-key"
 
 nodeSelector: {}
 tolerations: []

@@ -78,9 +78,9 @@ func TestParseSpiffeId_Valid(t *testing.T) {
 
 // ParseSpiffeIdで解析したSpiffeIdのStringメソッドが元のSPIFFE URI文字列を返すことを確認する。
 func TestParseSpiffeId_String(t *testing.T) {
-	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/order-service")
+	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/task-server")
 	require.NoError(t, err)
-	assert.Equal(t, "spiffe://k1s0.internal/ns/business/sa/order-service", spiffe.String())
+	assert.Equal(t, "spiffe://k1s0.internal/ns/business/sa/task-server", spiffe.String())
 }
 
 // AllowsTierAccessがシステム階層のアクセス許可を正しく判定することを確認する。
@@ -90,7 +90,7 @@ func TestParseSpiffeId_AllowsTierAccess(t *testing.T) {
 	assert.True(t, systemSpiffe.AllowsTierAccess("system"))
 	assert.True(t, systemSpiffe.AllowsTierAccess("business"))
 
-	businessSpiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/order-service")
+	businessSpiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/business/sa/task-server")
 	require.NoError(t, err)
 	assert.True(t, businessSpiffe.AllowsTierAccess("business"))
 	assert.False(t, businessSpiffe.AllowsTierAccess("system"))
@@ -349,9 +349,9 @@ func TestGetCachedToken_ReturnsErrorOnTokenFail(t *testing.T) {
 
 // ParseSpiffeIdがサービス階層のSPIFFE IDを正しく解析することを確認する。
 func TestParseSpiffeId_ServiceTier(t *testing.T) {
-	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/service/sa/payment-service")
+	spiffe, err := sa.ParseSpiffeId("spiffe://k1s0.internal/ns/service/sa/activity-server")
 	require.NoError(t, err)
 	assert.Equal(t, "service", spiffe.Namespace)
-	assert.Equal(t, "payment-service", spiffe.ServiceAccount)
+	assert.Equal(t, "activity-server", spiffe.ServiceAccount)
 	assert.Equal(t, "k1s0.internal", spiffe.TrustDomain)
 }

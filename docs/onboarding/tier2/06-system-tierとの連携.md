@@ -38,20 +38,20 @@ impl SystemClients {
 }
 
 // usecase での利用
-impl ManageItemsUseCase {
-    pub async fn create_item(&self, input: CreateItemInput, token: &str) -> Result<MasterItem> {
+impl ManageStatusDefinitionsUseCase {
+    pub async fn create_status_definition(&self, input: CreateStatusDefinitionInput, token: &str) -> Result<MasterStatusDefinition> {
         // system tier の auth サーバーでユーザー情報を取得
         let user = self.system_clients.auth.get_user(token).await?;
 
         // テナント固有の設定を取得
         let tenant_config = self.system_clients.config
-            .get_config(&user.tenant_id, "accounting.master")
+            .get_config(&user.tenant_id, "taskmanagement.master")
             .await?;
 
         // ビジネスロジック実行
-        let item = MasterItem::new(input, &user, &tenant_config)?;
-        self.item_repo.save(&item).await?;
-        Ok(item)
+        let status_definition = MasterStatusDefinition::new(input, &user, &tenant_config)?;
+        self.status_definition_repo.save(&status_definition).await?;
+        Ok(status_definition)
     }
 }
 ```
@@ -163,8 +163,8 @@ async fn main() -> Result<()> {
 
     // 6. アプリケーション組み立て
     let app = Router::new()
-        .merge(category_routes(/* ... */))
-        .merge(item_routes(/* ... */))
+        .merge(project_type_routes(/* ... */))
+        .merge(status_definition_routes(/* ... */))
         .layer(CorrelationLayer::new())      // 相関ID伝播
         .layer(AuthLayer::new(jwt_validator)) // JWT検証
         .layer(TraceLayer::new());            // トレース計装
@@ -210,23 +210,23 @@ auth:
 ### RBAC の適用
 
 ```rust
-// adapter/handler/category_handler.rs
-async fn create_category(
-    State(usecase): State<Arc<ManageCategoriesUseCase>>,
-    claims: JwtClaims,                              // 認証済みクレーム
-    rbac: RbacGuard<"accounting:category:create">,  // パーミッションチェック
-    Json(input): Json<CreateCategoryRequest>,
-) -> Result<Json<CategoryResponse>, AppError> {
-    let category = usecase.create(input.into(), &claims).await?;
-    Ok(Json(category.into()))
+// adapter/handler/project_type_handler.rs
+async fn create_project_type(
+    State(usecase): State<Arc<ManageProjectTypesUseCase>>,
+    claims: JwtClaims,                                          // 認証済みクレーム
+    rbac: RbacGuard<"taskmanagement:project-type:create">,      // パーミッションチェック
+    Json(input): Json<CreateProjectTypeRequest>,
+) -> Result<Json<ProjectTypeResponse>, AppError> {
+    let project_type = usecase.create(input.into(), &claims).await?;
+    Ok(Json(project_type.into()))
 }
 ```
 
 ```go
 // Go の場合
-func (h *categoryHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *projectTypeHandler) Create(w http.ResponseWriter, r *http.Request) {
     claims := authlib.ClaimsFromContext(r.Context())
-    if err := h.rbac.Enforce(claims, "accounting:category:create"); err != nil {
+    if err := h.rbac.Enforce(claims, "taskmanagement:project-type:create"); err != nil {
         http.Error(w, "Forbidden", http.StatusForbidden)
         return
     }
@@ -260,7 +260,7 @@ use k1s0_correlation::CorrelationLayer;
 
 // トレースの初期化
 init_tracing(&TracingConfig {
-    service_name: "accounting-domain-master",
+    service_name: "taskmanagement-project-master",
     otlp_endpoint: "http://otel-collector:4317",
     sample_rate: 1.0,
 })?;
@@ -277,12 +277,12 @@ let app = Router::new()
 ```rust
 use k1s0_telemetry::instrument;
 
-#[instrument(name = "manage_items.create", skip(self))]
-pub async fn create_item(&self, input: CreateItemInput) -> Result<MasterItem> {
+#[instrument(name = "manage_status_definitions.create", skip(self))]
+pub async fn create_status_definition(&self, input: CreateStatusDefinitionInput) -> Result<MasterStatusDefinition> {
     // このメソッドの実行がスパンとして記録される
-    let item = MasterItem::new(input)?;
-    self.item_repo.save(&item).await?;
-    Ok(item)
+    let status_definition = MasterStatusDefinition::new(input)?;
+    self.status_definition_repo.save(&status_definition).await?;
+    Ok(status_definition)
 }
 ```
 
@@ -292,10 +292,10 @@ pub async fn create_item(&self, input: CreateItemInput) -> Result<MasterItem> {
 use k1s0_telemetry::metrics::{counter, histogram};
 
 // カウンター
-counter!("domain_master.items.created", 1, "category" => category_name);
+counter!("project_master.status_definitions.created", 1, "project_type" => project_type_name);
 
 // ヒストグラム（レイテンシ）
-let timer = histogram!("domain_master.items.create_duration_ms");
+let timer = histogram!("project_master.status_definitions.create_duration_ms");
 let _guard = timer.start();
 // ... 処理 ...
 ```
@@ -308,18 +308,18 @@ use k1s0_correlation::current_correlation_id;
 
 info!(
     correlation_id = %current_correlation_id(),
-    item_id = %item.id,
-    category = %item.category_id,
-    "マスタ項目を作成しました"
+    status_definition_id = %status_definition.id,
+    project_type = %status_definition.project_type_id,
+    "マスタステータス定義を作成しました"
 );
 ```
 
 ```go
 import "github.com/k1s0/system/library/go/telemetry/log"
 
-log.Info(ctx, "マスタ項目を作成しました",
-    "item_id", item.ID,
-    "category", item.CategoryID,
+log.Info(ctx, "マスタステータス定義を作成しました",
+    "status_definition_id", statusDefinition.ID,
+    "project_type", statusDefinition.ProjectTypeID,
 )
 ```
 
@@ -341,9 +341,9 @@ let producer = KafkaProducer::new(&ProducerConfig {
 
 // イベント発行
 producer.produce(
-    "accounting.master-item.created",  // トピック
-    &item.id.to_string(),              // キー（パーティショニング用）
-    &MasterItemCreatedEvent::from(&item),  // Protobuf シリアライズ
+    "taskmanagement.master-status-definition.created",          // トピック
+    &status_definition.id.to_string(),                          // キー（パーティショニング用）
+    &MasterStatusDefinitionCreatedEvent::from(&status_definition),  // Protobuf シリアライズ
 ).await?;
 ```
 
@@ -356,7 +356,7 @@ use k1s0_kafka::{KafkaConsumer, ConsumerConfig};
 
 let consumer = KafkaConsumer::new(&ConsumerConfig {
     brokers: config.kafka.brokers.clone(),
-    group_id: "accounting.domain-master".to_string(),
+    group_id: "taskmanagement.project-master".to_string(),
     topics: vec!["fa.asset.acquired".to_string()],
     schema_registry: schema_registry.clone(),
 })?;
@@ -388,9 +388,9 @@ kafka:
 
 | パターン | 形式 | 例 |
 | --- | --- | --- |
-| ドメインイベント | `{領域名}.{集約名}.{イベント名}` | `accounting.master-item.created` |
-| コマンド | `{領域名}.{集約名}.command.{操作名}` | `accounting.master-item.command.sync` |
-| DLQ | `{元トピック}.dlq` | `accounting.master-item.created.dlq` |
+| ドメインイベント | `{領域名}.{集約名}.{イベント名}` | `taskmanagement.master-status-definition.created` |
+| コマンド | `{領域名}.{集約名}.command.{操作名}` | `taskmanagement.master-status-definition.command.sync` |
+| DLQ | `{元トピック}.dlq` | `taskmanagement.master-status-definition.created.dlq` |
 
 ### Schema Registry の利用
 
@@ -399,7 +399,7 @@ kafka:
 ```bash
 # スキーマの登録（buf + Schema Registry）
 buf build proto/ -o schema.bin
-curl -X POST "http://schema-registry:8081/subjects/accounting.master-item.created-value/versions" \
+curl -X POST "http://schema-registry:8081/subjects/taskmanagement.master-status-definition.created-value/versions" \
   -H "Content-Type: application/vnd.schemaregistry.v1+json" \
   -d @schema.json
 ```
@@ -420,8 +420,8 @@ use k1s0_outbox::OutboxPublisher;
 let mut tx = pool.begin().await?;
 item_repo.save_with_tx(&item, &mut tx).await?;
 outbox.publish_with_tx(
-    "accounting.master-item.created",
-    &MasterItemCreatedEvent::from(&item),
+    "taskmanagement.master-status-definition.created",
+    &MasterStatusDefinitionCreatedEvent::from(&status_definition),
     &mut tx,
 ).await?;
 tx.commit().await?;

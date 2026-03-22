@@ -33,9 +33,9 @@ k1s0 CLI ひな形生成のHelm Chartテンプレート仕様。Helm Chart は K
 
 | tier       | domain       | service_name | 配置パス                                                 |
 | ---------- | ------------ | ------------ | -------------------------------------------------------- |
-| `service`  | ---          | `order`      | `infra/helm/services/service/order/`                     |
+| `service`  | ---          | `task`       | `infra/helm/services/service/task/`                      |
 | `system`   | ---          | `auth`       | `infra/helm/services/system/auth/`                       |
-| `business` | `accounting` | `ledger`     | `infra/helm/services/business/accounting/ledger/`        |
+| `business` | `taskmanagement` | `ledger` | `infra/helm/services/business/taskmanagement/ledger/`    |
 
 ## テンプレートファイル一覧
 
@@ -1059,10 +1059,10 @@ istio:
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: order-server
+  name: task-server
 spec:
   hosts:
-    - order-server
+    - task-server
   http:
     - timeout: 30s
       retries:
@@ -1071,16 +1071,16 @@ spec:
         retryOn: "5xx,reset,connect-failure"
       route:
         - destination:
-            host: order-server
+            host: task-server
             port:
               number: 80
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
-  name: order-server
+  name: task-server
 spec:
-  host: order-server
+  host: task-server
   trafficPolicy:
     outlierDetection:
       consecutiveGatewayErrors: 5

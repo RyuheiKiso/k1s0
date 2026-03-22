@@ -1,0 +1,118 @@
+// サーバー起動処理。
+// DB 接続・マイグレーション・ユースケース・ルーター構築・サーバー起動を行う。
+use std::sync::Arc;
+use tracing::info;
+
+use crate::adapter::handler::{AppState, router};
+use crate::infrastructure::config::{Config, KafkaConfig};
+use crate::usecase::{
+    event_publisher::NoopProjectMasterEventPublisher,
+    get_status_definition_versions::GetStatusDefinitionVersionsUseCase,
+    manage_project_types::ManageProjectTypesUseCase,
+    manage_status_definitions::ManageStatusDefinitionsUseCase,
+    manage_tenant_extensions::ManageTenantExtensionsUseCase,
+};
+
+pub async fn run() -> anyhow::Result<()> {
+    // 設定読み込み
+    let config_path = std::env::var("CONFIG_PATH")
+        .unwrap_or_else(|_| "config/default.yaml".to_string());
+    let cfg = Config::load(&config_path)?;
+    info!(service = "project-master", "starting server");
+
+    // テレメトリ初期化
+    let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
+        service_name: cfg.app.name.clone(),
+        ..Default::default()
+    };
+    k1s0_telemetry::init_telemetry(&telemetry_cfg)
+        .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {}", e))?;
+
+    // DB 接続
+    let db_pool = if let Some(ref db_cfg) = cfg.database {
+        let url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| db_cfg.connection_url());
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(db_cfg.max_connections)
+            .connect(&url)
+            .await?;
+        // マイグレーション実行
+        crate::MIGRATOR.run(&pool).await?;
+        info!("database migrations completed");
+        Some(pool)
+    } else {
+        None
+    };
+
+    // メトリクス
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("project-master"));
+
+    // リポジトリ
+    let (project_type_repo, status_def_repo, tenant_ext_repo, version_repo): (
+        Arc<dyn crate::domain::repository::project_type_repository::ProjectTypeRepository>,
+        Arc<dyn crate::domain::repository::status_definition_repository::StatusDefinitionRepository>,
+        Arc<dyn crate::domain::repository::tenant_extension_repository::TenantExtensionRepository>,
+        Arc<dyn crate::domain::repository::version_repository::VersionRepository>,
+    ) = if let Some(ref pool) = db_pool {
+        (
+            Arc::new(crate::infrastructure::persistence::project_type_postgres_repository::ProjectTypePostgresRepository::new(pool.clone())),
+            Arc::new(crate::infrastructure::persistence::status_definition_postgres_repository::StatusDefinitionPostgresRepository::new(pool.clone())),
+            Arc::new(crate::infrastructure::persistence::tenant_extension_postgres_repository::TenantExtensionPostgresRepository::new(pool.clone())),
+            Arc::new(crate::infrastructure::persistence::version_postgres_repository::VersionPostgresRepository::new(pool.clone())),
+        )
+    } else {
+        anyhow::bail!("database configuration is required");
+    };
+
+    // Kafka プロデューサー（任意）
+    let event_publisher: Arc<dyn crate::usecase::event_publisher::ProjectMasterEventPublisher> =
+        if let Some(ref kafka_cfg) = cfg.kafka {
+            match crate::infrastructure::messaging::kafka_producer::ProjectMasterKafkaProducer::new(kafka_cfg) {
+                Ok(p) => {
+                    info!("kafka producer initialized");
+                    Arc::new(p)
+                }
+                Err(e) => {
+                    tracing::warn!("failed to initialize kafka producer: {}", e);
+                    Arc::new(NoopProjectMasterEventPublisher)
+                }
+            }
+        } else {
+            Arc::new(NoopProjectMasterEventPublisher)
+        };
+
+    // ユースケース
+    let manage_project_types_uc = Arc::new(ManageProjectTypesUseCase::new(
+        project_type_repo,
+        event_publisher.clone(),
+    ));
+    let manage_status_definitions_uc = Arc::new(ManageStatusDefinitionsUseCase::new(
+        status_def_repo,
+        event_publisher.clone(),
+    ));
+    let get_versions_uc = Arc::new(GetStatusDefinitionVersionsUseCase::new(version_repo));
+    let manage_tenant_extensions_uc = Arc::new(ManageTenantExtensionsUseCase::new(
+        tenant_ext_repo,
+        event_publisher,
+    ));
+
+    // AppState + ルーター
+    let state = AppState {
+        manage_project_types_uc,
+        manage_status_definitions_uc,
+        get_versions_uc,
+        manage_tenant_extensions_uc,
+        metrics: metrics.clone(),
+        auth_state: None, // TODO: 認証設定
+    };
+    let app = router(state);
+
+    // サーバー起動
+    let addr = format!("{}:{}", cfg.server.host, cfg.server.port);
+    info!(addr = %addr, "REST server listening");
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    axum::serve(listener, app).await?;
+
+    k1s0_telemetry::shutdown();
+    Ok(())
+}

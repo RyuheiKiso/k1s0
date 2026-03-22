@@ -12,13 +12,13 @@ import { renderWithProviders } from '../../test/render';
 import TemplateMigratePage from '../TemplateMigratePage';
 
 const target = {
-  path: '/repo/regions/service/order/server/rust',
+  path: '/repo/regions/service/task/server/rust',
   available_version: '1.5.0',
   manifest: {
     apiVersion: 'k1s0/v1',
     kind: 'TemplateInstance',
     metadata: {
-      name: 'order-server',
+      name: 'task-server',
       generatedAt: '2026-03-10T00:00:00Z',
       generatedBy: 'k1s0-cli@0.1.0',
     },
@@ -31,9 +31,9 @@ const target = {
       },
       parameters: {
         tier: 'service',
-        placement: 'order',
-        serviceName: 'order',
-        moduleName: 'order',
+        placement: 'task',
+        serviceName: 'task',
+        moduleName: 'task',
         apiStyles: ['rest'],
       },
       customizations: {
@@ -64,9 +64,9 @@ beforeEach(() => {
             merge_result: {
               Conflict: [
                 {
-                  base: '[package]\nname = "order"\n',
-                  ours: '[package]\nname = "order-user"\n',
-                  theirs: '[package]\nname = "order-template"\n',
+                  base: '[package]\nname = "task"\n',
+                  ours: '[package]\nname = "task-user"\n',
+                  theirs: '[package]\nname = "task-template"\n',
                 },
               ],
             },
@@ -105,7 +105,7 @@ describe('TemplateMigratePage', () => {
         plan: expect.objectContaining({
           changes: [
             expect.objectContaining({
-              merge_result: { Clean: '[package]\nname = "order-template"\n' },
+              merge_result: { Clean: '[package]\nname = "task-template"\n' },
             }),
           ],
         }),
@@ -126,7 +126,7 @@ describe('TemplateMigratePage', () => {
     await user.click(screen.getByTestId('btn-template-rollback'));
 
     expect(mockInvoke).toHaveBeenCalledWith('execute_template_migration_rollback', {
-      projectDir: '/repo/regions/service/order/server/rust',
+      projectDir: '/repo/regions/service/task/server/rust',
       backupId: '20260312_010101',
     });
   });
@@ -166,7 +166,7 @@ describe('TemplateMigratePage', () => {
               path: 'Cargo.toml',
               change_type: 'Modified',
               merge_strategy: 'template',
-              merge_result: { Clean: '[package]\nname = "order-template"\n' },
+              merge_result: { Clean: '[package]\nname = "task-template"\n' },
             },
           ],
         });

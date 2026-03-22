@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tracing::info;
 
 use super::config::{parse_pool_duration, Config};
-use super::s3_client::S3Client;
+use super::file_storage::FileStorage;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
 use crate::adapter::repository::app_postgres::AppPostgresRepository;
 use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRepository;
@@ -96,8 +96,9 @@ pub async fn run() -> anyhow::Result<()> {
         None
     };
 
-    // S3 client (for Ceph RGW presigned URLs)
-    let s3_client = Arc::new(S3Client::new(&cfg.s3.endpoint, &cfg.s3.bucket, &cfg.s3.region).await);
+    // ファイルストレージ（ローカルFS）の初期化
+    let file_storage = Arc::new(FileStorage::new(&cfg.storage.path));
+    info!(storage_path = %cfg.storage.path, "initializing local file storage");
 
     // Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-app-registry"));
@@ -161,7 +162,7 @@ pub async fn run() -> anyhow::Result<()> {
         app_repo.clone(),
         version_repo.clone(),
         download_stats_repo.clone(),
-        s3_client.clone(),
+        file_storage.clone(),
     ));
 
     let validate_token_uc = Arc::new(ValidateTokenUseCase::new(

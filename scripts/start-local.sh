@@ -46,7 +46,7 @@ for port in 8083 8084 8085 8086 8087 8088 8089 8091 8092 8082; do
 done
 
 if [ "$PROFILES" = "all" ]; then
-  curl -sf "http://localhost:8210/healthz" > /dev/null 2>&1 && echo "  domain-master (port 8210): healthy" || echo "  domain-master (port 8210): not ready"
+  curl -sf "http://localhost:8210/healthz" > /dev/null 2>&1 && echo "  project-master (port 8210): healthy" || echo "  project-master (port 8210): not ready"
 fi
 
 echo ""

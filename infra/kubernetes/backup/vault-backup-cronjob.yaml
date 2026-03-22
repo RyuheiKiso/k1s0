@@ -21,13 +21,12 @@ spec:
             app: vault-backup
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、Vault専用ServiceAccountを使用する
+          serviceAccountName: vault-backup-sa
           containers:
             - name: vault-backup
-              # AWS CLI 付きイメージを使用: バックアップスクリプトで aws s3 cp を実行するため、
-              # vault CLI と AWS CLI の両方が必要。hashicorp/vault には AWS CLI が含まれないため
-              # amazon/aws-cli ベースのカスタムイメージに変更する
-              image: k1s0/vault-backup:1.17-awscli
+              # Vault Raft スナップショットを PVC（/backup）に保存する。S3 依存なし。
+              image: hashicorp/vault:1.17
               # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
               securityContext:
                 runAsNonRoot: true
@@ -58,13 +57,6 @@ spec:
                   find "${BACKUP_DIR}" -name "vault-raft-*.snap" -mtime +30 -delete
 
                   echo "Vault backup completed."
-
-                  # S3オフサイトバックアップ: 災害復旧のためリモートストレージにコピー
-                  echo "Uploading Vault backup to S3..."
-                  aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap" \
-                    --endpoint-url "${S3_ENDPOINT}" \
-                    --no-progress
-                  echo "S3 upload completed: s3://${S3_BUCKET}/vault/vault-raft-${TIMESTAMP}.snap"
               env:
                 - name: VAULT_ADDR
                   value: "https://vault.k1s0-system.svc.cluster.local:8200"
@@ -75,27 +67,6 @@ spec:
                       key: token
                 - name: VAULT_CACERT
                   value: "/vault/tls/ca.crt"
-                # S3オフサイトバックアップ用の認証情報とエンドポイント設定
-                - name: S3_BUCKET
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: bucket
-                - name: S3_ENDPOINT
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: endpoint
-                - name: AWS_ACCESS_KEY_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: access-key-id
-                - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: secret-access-key
               volumeMounts:
                 - name: backup-volume
                   mountPath: /backup

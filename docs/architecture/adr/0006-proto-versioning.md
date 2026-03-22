@@ -31,12 +31,12 @@ k1s0 は4言語（Go/Rust/TypeScript/Dart）でサービスを実装しており
 後方互換性のある変更（フィールド追加等）は同一パッケージで行う:
 
 ```protobuf
-message Order {
+message Task {
   string id = 1;
   // Deprecated: status_enum を使用すること。
   string status = 3 [deprecated = true];
   // 新フィールド（既存クライアントは無視する）
-  OrderStatus status_enum = 13;
+  TaskStatus status_enum = 13;
 }
 ```
 
@@ -49,10 +49,10 @@ message Order {
 3. フィールドを削除し、`reserved` で番号と名前を予約する:
 
 ```protobuf
-message Order {
+message Task {
   reserved 3;
   reserved "status";
-  OrderStatus status_enum = 13;
+  TaskStatus status_enum = 13;
 }
 ```
 

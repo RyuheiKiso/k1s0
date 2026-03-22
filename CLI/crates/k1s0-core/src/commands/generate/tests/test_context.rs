@@ -12,10 +12,10 @@ fn test_build_template_context_multiple_api_styles() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
             db: None,
             kafka: false,
@@ -35,10 +35,10 @@ fn test_build_template_context_with_custom_config() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest],
             db: None,
             kafka: false,
@@ -53,8 +53,8 @@ fn test_build_template_context_with_custom_config() {
     };
     let ctx = build_template_context(&config, &cli_config).unwrap();
     assert_eq!(ctx.docker_registry, "my-registry.io");
-    assert_eq!(ctx.rust_crate, "order");
-    assert_eq!(ctx.module_path, "regions/service/order/server/rust");
+    assert_eq!(ctx.rust_crate, "task");
+    assert_eq!(ctx.module_path, "regions/service/task/server/rust");
 }
 
 #[test]
@@ -62,10 +62,10 @@ fn test_build_template_context_react_client_language_framework() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("accounting-web".to_string()),
+            name: Some("taskmanagement-web".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -87,10 +87,10 @@ fn test_build_template_context_flutter_client_language_framework() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::Flutter),
         detail: DetailConfig {
-            name: Some("order-app".to_string()),
+            name: Some("task-app".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -135,10 +135,10 @@ fn test_build_template_context_business_tier_sets_domain() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Language(Language::Go),
         detail: DetailConfig {
-            name: Some("ledger".to_string()),
+            name: Some("project-master".to_string()),
             api_styles: vec![ApiStyle::Grpc],
             db: None,
             kafka: false,
@@ -149,13 +149,13 @@ fn test_build_template_context_business_tier_sets_domain() {
     let cli_config = CliConfig::default();
     let ctx = build_template_context(&config, &cli_config).unwrap();
     assert_eq!(
-        ctx.domain, "accounting",
+        ctx.domain, "taskmanagement",
         "business tier では domain が placement から設定される必要がある"
     );
     assert_eq!(ctx.tier, "business");
     // module_path に domain が含まれることを検証する
     assert!(
-        ctx.module_path.contains("accounting"),
+        ctx.module_path.contains("taskmanagement"),
         "module_path に domain が含まれる必要がある: {}",
         ctx.module_path
     );
@@ -166,7 +166,7 @@ fn test_build_template_context_business_tier_empty_domain_fails_validation() {
     // business tier で domain が空の場合に validate() がエラーを返すことを検証する
     use crate::template::context::TemplateContextBuilder;
 
-    let builder = TemplateContextBuilder::new("ledger", "business", "go", "server");
+    let builder = TemplateContextBuilder::new("project-master", "business", "go", "server");
     // domain を設定しない（空のまま）ので validate() はエラーになる
     let result = builder.try_build();
     assert!(

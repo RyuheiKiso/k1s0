@@ -13,7 +13,7 @@ pub struct Config {
     #[serde(default)]
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
-    pub s3: S3Config,
+    pub storage: StorageConfig,
 }
 
 impl Config {
@@ -163,36 +163,24 @@ fn default_cache_ttl_secs() -> u64 {
     600
 }
 
+/// ローカルファイルシステムストレージの設定。
 #[derive(Debug, Clone, Deserialize)]
-pub struct S3Config {
-    #[serde(default = "default_s3_endpoint")]
-    pub endpoint: String,
-    #[serde(default = "default_s3_bucket")]
-    pub bucket: String,
-    #[serde(default = "default_s3_region")]
-    pub region: String,
+pub struct StorageConfig {
+    /// アプリバイナリを格納するルートディレクトリパス。
+    #[serde(default = "default_storage_path")]
+    pub path: String,
 }
 
-impl Default for S3Config {
+impl Default for StorageConfig {
     fn default() -> Self {
         Self {
-            endpoint: default_s3_endpoint(),
-            bucket: default_s3_bucket(),
-            region: default_s3_region(),
+            path: default_storage_path(),
         }
     }
 }
 
-fn default_s3_endpoint() -> String {
-    "http://localhost:7480".to_string()
-}
-
-fn default_s3_bucket() -> String {
-    "app-registry".to_string()
-}
-
-fn default_s3_region() -> String {
-    "us-east-1".to_string()
+fn default_storage_path() -> String {
+    "/data/apps".to_string()
 }
 
 pub fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {
@@ -239,11 +227,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_s3_config_defaults() {
-        let cfg = S3Config::default();
-        assert_eq!(cfg.endpoint, "http://localhost:7480");
-        assert_eq!(cfg.bucket, "app-registry");
-        assert_eq!(cfg.region, "us-east-1");
+    fn test_storage_config_defaults() {
+        let cfg = StorageConfig::default();
+        assert_eq!(cfg.path, "/data/apps");
     }
 
     #[test]

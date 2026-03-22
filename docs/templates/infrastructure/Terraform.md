@@ -200,8 +200,6 @@ module "database" {
   enable_mysql            = var.enable_mysql
   postgresql_chart_version = var.postgresql_chart_version
   mysql_chart_version     = var.mysql_chart_version
-  backup_bucket           = var.backup_bucket
-
   depends_on = [module.kubernetes_base, module.kubernetes_storage]
 }
 {% endif %}
@@ -363,10 +361,6 @@ variable "database_namespace" {
   default     = "database"
 }
 
-variable "backup_bucket" {
-  description = "バックアップ用 Ceph S3 バケット名"
-  type        = string
-}
 {% endif %}
 
 {% if enable_postgresql %}
@@ -585,7 +579,6 @@ flagger_version = "1.36.0"
 
 {% if enable_postgresql or enable_mysql %}
 database_namespace = "database"
-backup_bucket      = "k1s0-backup-{{ environment }}"
 {% endif %}
 
 {% if enable_postgresql %}

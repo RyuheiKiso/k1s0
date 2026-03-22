@@ -13,7 +13,7 @@ import {
   file,
   scheduler,
   notification,
-  order,
+  task,
   featureflag,
   type ApiResponse,
   type PaginatedResponse,
@@ -361,11 +361,11 @@ describe('Well-known error codes', () => {
     );
   });
 
-  // Order サービスの既知エラーコードを確認する
-  it('order の既知エラーコードが正しい', () => {
-    expect(order.notFound().value).toBe('SVC_ORDER_NOT_FOUND');
-    expect(order.validationFailed().value).toBe('SVC_ORDER_VALIDATION_FAILED');
-    expect(order.versionConflict().value).toBe('SVC_ORDER_VERSION_CONFLICT');
+  // Task サービスの既知エラーコードを確認する
+  it('task の既知エラーコードが正しい', () => {
+    expect(task.notFound().value).toBe('SVC_TASK_NOT_FOUND');
+    expect(task.validationFailed().value).toBe('SVC_TASK_VALIDATION_FAILED');
+    expect(task.versionConflict().value).toBe('SVC_TASK_VERSION_CONFLICT');
   });
 
   // Feature Flag サービスの既知エラーコードを確認する

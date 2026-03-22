@@ -33,7 +33,7 @@ fn render_server(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "server").api_style(api_style);
+        TemplateContextBuilder::new("task-api", "service", lang, "server").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -130,7 +130,7 @@ fn render_client(framework: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-app", "service", framework, "client")
+    let ctx = TemplateContextBuilder::new("task-app", "service", framework, "client")
         .framework(framework)
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -159,7 +159,7 @@ fn render_library(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-lib", "system", lang, "library").build();
+    let ctx = TemplateContextBuilder::new("task-lib", "system", lang, "library").build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -186,7 +186,7 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-db", "service", db_type, "database")
+    let ctx = TemplateContextBuilder::new("task-db", "service", db_type, "database")
         .with_database(db_type)
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -216,7 +216,7 @@ fn render_helm(api_style: &str, has_database: bool, database_type: &str) -> (Tem
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_style(api_style);
+        TemplateContextBuilder::new("task-api", "service", "go", "helm").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -255,7 +255,7 @@ fn render_cicd(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", lang, kind_for_ctx)
+    let mut builder = TemplateContextBuilder::new("task-api", "service", lang, kind_for_ctx)
         .api_style(api_style);
 
     if has_database {
@@ -382,7 +382,7 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-api", "service", lang, "bff")
+    let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -482,7 +482,7 @@ fn render_server_multi(
         .collect();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "server").api_styles(styles);
+        TemplateContextBuilder::new("task-api", "service", lang, "server").api_styles(styles);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -555,7 +555,7 @@ fn render_helm_multi(
         .collect();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", "go", "helm").api_styles(styles);
+        TemplateContextBuilder::new("task-api", "service", "go", "helm").api_styles(styles);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -642,7 +642,7 @@ fn render_devcontainer(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer").framework(fw);
+        TemplateContextBuilder::new("task-api", "service", lang, "devcontainer").framework(fw);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -803,7 +803,7 @@ fn render_docker_compose(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
+    let mut builder = TemplateContextBuilder::new("task-api", "service", "go", "docker-compose")
         .server_language(server_lang)
         .server_port(port);
 
@@ -910,7 +910,7 @@ fn test_snapshot_service_mesh_system_grpc() {
 /// Service Mesh: service + REST
 #[test]
 fn test_snapshot_service_mesh_service_rest() {
-    let (_, names) = render_service_mesh("order-api", "service", "rest", 80, 9090);
+    let (_, names) = render_service_mesh("task-api", "service", "rest", 80, 9090);
     let mut sorted = names.clone();
     sorted.sort();
     insta::assert_yaml_snapshot!("service_mesh_service_rest", sorted);

@@ -192,9 +192,9 @@ mod tests {
 
     fn valid_config() -> EventsConfig {
         EventsConfig {
-            domain: "accounting".to_string(),
+            domain: "taskmanagement".to_string(),
             tier: "business".to_string(),
-            service_name: "domain-master".to_string(),
+            service_name: "project-master".to_string(),
             language: "rust".to_string(),
             events: vec![EventDefinition {
                 name: "master-item.created".to_string(),
@@ -221,7 +221,7 @@ mod tests {
                 consumers: vec![ConsumerDefinition {
                     domain: "fa".to_string(),
                     service_name: "asset-manager".to_string(),
-                    handler: "on_accounting_master_item_created".to_string(),
+                    handler: "on_taskmanagement_master_item_created".to_string(),
                 }],
             }],
         }

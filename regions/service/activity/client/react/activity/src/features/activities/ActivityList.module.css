@@ -1,0 +1,97 @@
+/* フィルターツールバー */
+.toolbar {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* タイムラインコンテナ */
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* タイムラインアイテム */
+.timelineItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.timelineItem:hover {
+  background-color: #f8f9fa;
+}
+
+/* タイムラインドット（種別に応じた色） */
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.dotComment {
+  background-color: #17a2b8;
+}
+
+.dotTimeEntry {
+  background-color: #28a745;
+}
+
+.dotStatusChange {
+  background-color: #ffc107;
+}
+
+.dotAssignment {
+  background-color: #6f42c1;
+}
+
+/* タイムラインコンテンツ */
+.content {
+  flex: 1;
+}
+
+/* アクティビティのメタ情報（アクター・日時） */
+.meta {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* アクティビティの本文テキスト */
+.body {
+  margin: 0;
+}
+
+/* ステータスバッジの共通スタイル */
+.statusBadge {
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-left: 8px;
+}
+
+/* 各ステータスの背景色 */
+.statusActive {
+  background-color: #28a745;
+}
+
+.statusSubmitted {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.statusApproved {
+  background-color: #17a2b8;
+}
+
+.statusRejected {
+  background-color: #dc3545;
+}

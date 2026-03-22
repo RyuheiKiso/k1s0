@@ -312,26 +312,26 @@ mod tests {
     fn sample_config() -> EventConfig {
         parse_event_config_str(
             r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    description: "マスタアイテムが作成された時に発行されるイベント"
-    partition_key: item_id
+    description: "プロジェクトタイプが変更された時に発行されるイベント"
+    partition_key: project_type_id
     outbox: true
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
-          description: "アイテムID"
+          description: "プロジェクトタイプID"
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_project_type_changed
 "#,
         )
         .unwrap()
@@ -355,13 +355,13 @@ events:
             .collect();
 
         assert!(created_names
-            .contains(&"proto/accounting/events/v1/master_item_created.proto".to_string()));
+            .contains(&"proto/taskmanagement/events/v1/project_type_changed.proto".to_string()));
         assert!(created_names.contains(&"src/events/mod.rs".to_string()));
         assert!(created_names.contains(&"src/events/types.rs".to_string()));
         assert!(created_names.contains(&"src/events/producer.rs".to_string()));
         assert!(created_names.contains(&"src/events/consumers/mod.rs".to_string()));
         assert!(created_names
-            .contains(&"src/events/consumers/on_accounting_master_item_created.rs".to_string()));
+            .contains(&"src/events/consumers/on_taskmanagement_project_type_changed.rs".to_string()));
         assert!(created_names.contains(&"migrations/001_create_outbox.up.sql".to_string()));
         assert!(created_names.contains(&"migrations/001_create_outbox.down.sql".to_string()));
         assert!(created_names.contains(&"config/schema-registry.yaml".to_string()));
@@ -384,24 +384,24 @@ events:
     #[test]
     fn generate_go_project() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: go
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    partition_key: item_id
+    partition_key: project_type_id
     outbox: true
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
     consumers:
       - domain: fa
         service_name: asset-manager
-        handler: on_accounting_master_item_created
+        handler: on_taskmanagement_project_type_changed
 "#;
         let config = parse_event_config_str(yaml).unwrap();
         let tmp = tempfile::tempdir().unwrap();
@@ -420,16 +420,16 @@ events:
 
         assert!(created_names.contains(&"internal/events/producer.go".to_string()));
         assert!(created_names.contains(
-            &"internal/events/consumers/on_accounting_master_item_created.go".to_string()
+            &"internal/events/consumers/on_taskmanagement_project_type_changed.go".to_string()
         ));
     }
 
     #[test]
     fn no_outbox_migration_when_disabled() {
         let yaml = r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
   - name: item.created

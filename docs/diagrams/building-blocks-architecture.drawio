@@ -72,7 +72,7 @@
         <mxCell id="37" value="PostgresBinding&#xa;PostgreSQL" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="30">
           <mxGeometry x="670" y="40" width="110" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="38" value="S3Binding&#xa;S3/MinIO" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="30">
+        <mxCell id="38" value="FileBinding&#xa;file-server" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="30">
           <mxGeometry x="790" y="40" width="90" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="39" value="HttpBinding&#xa;HTTP" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="30">
@@ -96,7 +96,7 @@
         <mxCell id="60" value="components.yaml" style="shape=note;whiteSpace=wrap;html=0;backgroundOutline=1;size=15;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontSize=12;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="980" y="120" width="180" height="200" as="geometry"/>
         </mxCell>
-        <mxCell id="61" value="apiVersion: k1s0/v1&#xa;kind: Components&#xa;spec:&#xa;  pubsub: kafka&#xa;  statestore: redis&#xa;  secretstore: vault&#xa;  bindings:&#xa;    - postgres&#xa;    - s3" style="text;html=0;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontFamily=monospace;" vertex="1" parent="1">
+        <mxCell id="61" value="apiVersion: k1s0/v1&#xa;kind: Components&#xa;spec:&#xa;  pubsub: kafka&#xa;  statestore: redis&#xa;  secretstore: vault&#xa;  bindings:&#xa;    - postgres" style="text;html=0;align=left;verticalAlign=top;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontFamily=monospace;" vertex="1" parent="1">
           <mxGeometry x="990" y="150" width="160" height="150" as="geometry"/>
         </mxCell>
 

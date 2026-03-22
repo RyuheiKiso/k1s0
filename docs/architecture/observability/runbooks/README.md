@@ -34,8 +34,8 @@
 | auth | 認証サービス障害 | [services/auth.md](./services/auth.md) | critical |
 | config | 設定サービス障害 | [services/config.md](./services/config.md) | warning |
 | saga | Saga 補償処理失敗 | [services/saga.md](./services/saga.md) | critical |
-| order | 注文 Kafka コンシューマーラグ | [services/order.md](./services/order.md) | critical / warning |
-| payment | 決済 DLQ 溢れ / 高エラー率 | [services/payment.md](./services/payment.md) | critical |
+| task | タスク Kafka コンシューマーラグ | [services/task.md](./services/task.md) | critical / warning |
+| activity | アクティビティ DLQ 溢れ / 高エラー率 | [services/activity.md](./services/activity.md) | critical |
 
 ## インシデント管理
 

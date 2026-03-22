@@ -1,26 +1,26 @@
-# order-server canary Deployment.
+# task-server canary Deployment.
 # Shares the same demo service implementation as stable, but exposes
 # the canary version label so Kiali can split workloads correctly.
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-server-canary
+  name: task-server-canary
   namespace: k1s0-service
   labels:
-    app: order-server
+    app: task-server
     version: canary
     tier: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: order-server
+      app: task-server
       version: canary
   template:
     metadata:
       labels:
-        app: order-server
+        app: task-server
         version: canary
         tier: service
     spec:
@@ -31,7 +31,7 @@ spec:
           command: ["python", "/app/server.py"]
           env:
             - name: SERVICE_NAME
-              value: order-server
+              value: task-server
             - name: NAMESPACE_NAME
               value: k1s0-service
             - name: VERSION
@@ -39,7 +39,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: DOWNSTREAMS
-              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://accounting-server.k1s0-business.svc.cluster.local/
+              value: http://auth-server.k1s0-system.svc.cluster.local/,http://config-server.k1s0-system.svc.cluster.local/,http://saga-server.k1s0-system.svc.cluster.local/,http://project-master-server.k1s0-business.svc.cluster.local/
           ports:
             - containerPort: 8080
           volumeMounts:

@@ -27,7 +27,7 @@ fn render_loki(service_name: &str, tier: &str, server_port: u16) -> Option<(Temp
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "loki")
         .server_port(server_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -57,7 +57,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_loki_file_list() {
-    let Some((_, names)) = render_loki("order-api", "service", 8080) else {
+    let Some((_, names)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
@@ -78,21 +78,21 @@ fn test_loki_file_list() {
 
 #[test]
 fn test_promtail_has_service_name() {
-    let Some((tmp, _)) = render_loki("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "promtail-config.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Promtail config should contain service name\n--- promtail-config.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_promtail_has_namespace() {
-    let Some((tmp, _)) = render_loki("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
@@ -120,7 +120,7 @@ fn test_promtail_system_has_metrics_stage() {
 
 #[test]
 fn test_promtail_service_no_metrics_stage() {
-    let Some((tmp, _)) = render_loki("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
@@ -152,7 +152,7 @@ fn test_log_policy_system_retention() {
 
 #[test]
 fn test_log_policy_business_retention() {
-    let Some((tmp, _)) = render_loki("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_loki("task-api", "business", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
@@ -166,7 +166,7 @@ fn test_log_policy_business_retention() {
 
 #[test]
 fn test_log_policy_service_retention() {
-    let Some((tmp, _)) = render_loki("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };
@@ -184,7 +184,7 @@ fn test_log_policy_service_retention() {
 
 #[test]
 fn test_loki_no_tera_syntax() {
-    let Some((tmp, names)) = render_loki("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_loki("task-api", "service", 8080) else {
         eprintln!("SKIP: loki テンプレートディレクトリが未作成");
         return;
     };

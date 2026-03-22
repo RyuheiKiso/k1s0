@@ -61,6 +61,29 @@ infra/helm/services/system/kong/
 └── values-dev.yaml       # 開発設定（multiplier=10）
 ```
 
+### Redis 障害時のフェイルセーフ方針（C-07監査対応）
+
+Kong Rate Limiting プラグインの `fault_tolerant` 設定は **本番環境では `false`** に設定する。
+
+| 設定値 | 動作 | 採用環境 |
+|--------|------|----------|
+| `true`（フォールバック） | Redis 障害時にレート制限を **バイパス**（リクエストを全通過させる） | ❌ 本番禁止 |
+| `false`（フェイルセーフ） | Redis 障害時にレート制限を **維持**（エラーを返す） | ✅ 本番必須 |
+
+#### 理由
+
+`fault_tolerant: true` は Redis 接続失敗時にレート制限をバイパスするため、
+Redis 障害（ネットワーク瞬断・OOM 等）が発生した際に意図しないレート制限の完全解除が起き、
+バックエンドサービスへの過負荷・DDoS 的なトラフィック流入を招く恐れがある。
+
+本番環境では **フェイルセーフ（fail-closed）** を採用し、
+Redis 障害時は 503 を返してリクエストを制限する。
+
+#### dev / staging 環境について
+
+開発・ステージング環境では利便性を優先して `fault_tolerant: true` を許容する。
+ただし `values-prod.yaml` では必ず `false` を維持すること。
+
 ---
 
 ## Istio VirtualService との関係

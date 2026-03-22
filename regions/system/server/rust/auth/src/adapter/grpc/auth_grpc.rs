@@ -556,7 +556,7 @@ mod tests {
                         },
                     ],
                     client_roles: HashMap::from([(
-                        "order-service".to_string(),
+                        "task-server".to_string(),
                         vec![Role {
                             id: "role-3".to_string(),
                             name: "read".to_string(),
@@ -580,8 +580,8 @@ mod tests {
         assert_eq!(resp.realm_roles.len(), 2);
         assert_eq!(resp.realm_roles[0].name, "user");
         assert_eq!(resp.realm_roles[1].name, "sys_admin");
-        assert_eq!(resp.client_roles["order-service"].roles.len(), 1);
-        assert_eq!(resp.client_roles["order-service"].roles[0].name, "read");
+        assert_eq!(resp.client_roles["task-server"].roles.len(), 1);
+        assert_eq!(resp.client_roles["task-server"].roles[0].name, "read");
     }
 
     #[tokio::test]

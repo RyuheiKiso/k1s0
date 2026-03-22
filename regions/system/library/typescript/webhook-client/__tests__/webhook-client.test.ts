@@ -6,7 +6,7 @@ import {
   HttpWebhookClient,
   WebhookError,
 } from '../src/index.js';
-import type { WebhookPayload } from '../src/index.js';
+import type { WebhookPayload, WebhookLogger } from '../src/index.js';
 
 describe('generateSignature', () => {
   it('HMAC-SHA256のhex文字列を返す', () => {
@@ -229,5 +229,86 @@ describe('HttpWebhookClient', () => {
     );
     expect(keys.length).toBe(3);
     expect(new Set(keys).size).toBe(1);
+  });
+
+  // loggerコールバックのテスト
+  it('loggerが設定されている場合に送信ログが呼び出される', async () => {
+    // loggerモックを作成して呼び出し内容を記録する
+    const mockLogger = vi.fn<WebhookLogger>();
+    const mockFetch = createMockFetch([{ status: 200 }]);
+    const client = new HttpWebhookClient(
+      { logger: mockLogger },
+      mockFetch,
+    );
+
+    await client.send('https://example.com/hook', testPayload);
+
+    // 送信試行のinfoログが1回呼ばれることを確認する
+    expect(mockLogger).toHaveBeenCalledWith(
+      'info',
+      expect.stringContaining('[webhook-client] Sending webhook to'),
+      expect.objectContaining({ url: 'https://example.com/hook', attempt: 1 }),
+    );
+  });
+
+  it('loggerが設定されている場合にリトライ可能ステータスでwarnログが呼び出される', async () => {
+    // warnレベルログの呼び出しを検証する
+    const mockLogger = vi.fn<WebhookLogger>();
+    const mockFetch = createMockFetch([{ status: 500 }, { status: 200 }]);
+    const client = new HttpWebhookClient(
+      { maxRetries: 3, initialBackoffMs: 1, maxBackoffMs: 10, logger: mockLogger },
+      mockFetch,
+    );
+
+    await client.send('https://example.com/hook', testPayload);
+
+    // リトライ可能ステータスのwarnログが呼ばれることを確認する
+    expect(mockLogger).toHaveBeenCalledWith(
+      'warn',
+      expect.stringContaining('Retryable status 500'),
+      expect.objectContaining({ status: 500, url: 'https://example.com/hook' }),
+    );
+  });
+
+  it('loggerが設定されている場合にネットワークエラーでerrorログが呼び出される', async () => {
+    // errorレベルログの呼び出しを検証する
+    const mockLogger = vi.fn<WebhookLogger>();
+    let callCount = 0;
+    const mockFetch = vi.fn(async () => {
+      callCount++;
+      if (callCount <= 1) {
+        throw new Error('Network error');
+      }
+      return new Response(null, { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const client = new HttpWebhookClient(
+      { maxRetries: 3, initialBackoffMs: 1, maxBackoffMs: 10, logger: mockLogger },
+      mockFetch,
+    );
+
+    await client.send('https://example.com/hook', testPayload);
+
+    // ネットワークエラーのerrorログが呼ばれることを確認する
+    expect(mockLogger).toHaveBeenCalledWith(
+      'error',
+      expect.stringContaining('Network error'),
+      expect.objectContaining({ url: 'https://example.com/hook', error: 'Network error' }),
+    );
+  });
+
+  it('loggerが未設定の場合にconsole.logが呼び出されない', async () => {
+    // loggerなしでもconsole.logが汚染されないことを確認する
+    const consoleSpy = vi.spyOn(console, 'log');
+    const mockFetch = createMockFetch([{ status: 500 }, { status: 200 }]);
+    const client = new HttpWebhookClient(
+      { maxRetries: 3, initialBackoffMs: 1, maxBackoffMs: 10 },
+      mockFetch,
+    );
+
+    await client.send('https://example.com/hook', testPayload);
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

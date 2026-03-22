@@ -50,7 +50,7 @@ regions/system/server/rust/app-registry/
 │   └── infrastructure/
 │       ├── mod.rs
 │       ├── database.rs                  # DB 接続プール管理
-│       ├── s3_client.rs                 # S3/Ceph RGW クライアント
+│       ├── file_storage.rs              # ローカルFS読み込み（PV マウント）
 │       └── repository/
 │           ├── mod.rs
 │           ├── app_postgres.rs          # AppRepository PostgreSQL 実装
@@ -71,9 +71,8 @@ regions/system/server/rust/app-registry/
 > 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
-# S3/Ceph RGW
-aws-sdk-s3 = "1"
-aws-config = { version = "1", features = ["behavior-version-latest"] }
+# SHA-256 チェックサム計算（ファイル整合性検証）
+sha2 = "0.10"
 ```
 
 > **注**: 本サーバーは gRPC を提供しないため、`tonic` / `tonic-build` / `prost` は不要。`build.rs` も不要。
@@ -92,7 +91,7 @@ aws-config = { version = "1", features = ["behavior-version-latest"] }
 | `CreateVersionUseCase` | 新しいバージョンを登録 | `VersionRepository` |
 | `DeleteVersionUseCase` | バージョンを削除 | `VersionRepository` |
 | `GetLatestUseCase` | プラットフォーム・アーキテクチャ指定で最新バージョンを取得 | `VersionRepository` |
-| `GenerateDownloadUrlUseCase` | S3 署名付きURLを生成し、ダウンロード統計を記録 | `VersionRepository`, `DownloadStatsRepository`, `S3Client` |
+| `GenerateDownloadUrlUseCase` | ローカルFSからファイルを読み込み直接配信、ダウンロード統計を記録 | `VersionRepository`, `DownloadStatsRepository`, `FileStorage` |
 
 ### ユースケース構造体
 
@@ -101,7 +100,7 @@ aws-config = { version = "1", features = ["behavior-version-latest"] }
 pub struct GenerateDownloadUrlUseCase {
     version_repo: Arc<dyn VersionRepository>,
     download_stats_repo: Arc<dyn DownloadStatsRepository>,
-    s3_client: Arc<S3Client>,
+    file_storage: Arc<FileStorage>,
 }
 
 impl GenerateDownloadUrlUseCase {
@@ -112,59 +111,45 @@ impl GenerateDownloadUrlUseCase {
         platform: Option<&str>,
         arch: Option<&str>,
         user_id: Option<&str>,
-    ) -> Result<DownloadUrlResponse, AppRegistryError>;
+    ) -> Result<DownloadResult, AppRegistryError>;
+}
+
+// DownloadResult はファイルバイト列とメタデータを保持する
+pub struct DownloadResult {
+    pub file_bytes: Vec<u8>,
+    pub content_type: String,
+    pub filename: String,
 }
 ```
 
 ---
 
-## S3 クライアント設計
+## FileStorage 設計
 
-### S3Client
+### FileStorage
 
-Ceph RGW 互換の S3 クライアント。署名付きURL生成を担当する。
+ローカルファイルシステム（PV マウント）からファイルを読み込む。AWS 依存なし。
 
 ```rust
-// src/infrastructure/s3_client.rs
-pub struct S3Client {
-    client: aws_sdk_s3::Client,
-    bucket: String,
-    url_expiry_secs: u64,
+// src/infrastructure/file_storage.rs
+pub struct FileStorage {
+    root_path: PathBuf,
 }
 
-impl S3Client {
-    pub async fn new(config: &S3Config) -> Self {
-        let s3_config = aws_config::from_env()
-            .endpoint_url(&config.endpoint)
-            .load()
-            .await;
-
-        let client = aws_sdk_s3::Client::from_conf(
-            aws_sdk_s3::config::Builder::from(&s3_config)
-                .force_path_style(true)  // Ceph RGW 必須
-                .build(),
-        );
-
-        Self {
-            client,
-            bucket: config.bucket.clone(),
-            url_expiry_secs: config.url_expiry_secs,
-        }
-    }
-
-    pub async fn generate_presigned_url(&self, s3_key: &str) -> Result<String, anyhow::Error>;
+impl FileStorage {
+    pub fn new(root_path: impl Into<PathBuf>) -> Self;
+    // storage_key に対応するファイルのバイト列を返す
+    pub async fn read_file(&self, storage_key: &str) -> anyhow::Result<Vec<u8>>;
+    pub async fn file_exists(&self, storage_key: &str) -> bool;
+    pub async fn file_size(&self, storage_key: &str) -> anyhow::Result<u64>;
 }
 ```
 
-### S3 設定
+### FileStorage 設定
 
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
-| `endpoint` | string | S3/Ceph RGW エンドポイント URL |
-| `bucket` | string | バケット名 |
-| `region` | string | リージョン |
-| `url_expiry_secs` | int | 署名付きURL有効期限（秒） |
-| `force_path_style` | bool | パススタイルアクセス（Ceph RGW 必須: `true`） |
+| `path` | string | ファイル保存ルートパス（例: `/data/apps`） |
 
 ---
 
@@ -231,12 +216,8 @@ pub enum Platform {
 アプリレジストリサーバー固有の設定セクション。共通セクション（app/server/database/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
-s3:
-  endpoint: "http://ceph-rgw.storage.svc.cluster.local:8080"
-  bucket: "app-registry"
-  region: "us-east-1"
-  url_expiry_secs: 3600
-  force_path_style: true
+storage:
+  path: "/data/apps"
 ```
 
 ---

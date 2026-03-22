@@ -791,30 +791,30 @@ mod tests {
         let tag = build_image_tag(
             "harbor.internal.example.com",
             "service",
-            "order",
+            "task",
             "1.2.3",
             "abc1234",
         );
         assert_eq!(
             tag,
-            "harbor.internal.example.com/k1s0-service/order:1.2.3-abc1234"
+            "harbor.internal.example.com/k1s0-service/task:1.2.3-abc1234"
         );
     }
 
     #[test]
     fn test_build_helm_args() {
-        let args = build_helm_args("order", "service/order", "service", "dev", "1.2.3-abc1234");
+        let args = build_helm_args("task", "service/task", "service", "dev", "1.2.3-abc1234");
         assert_eq!(
             args,
             vec![
                 "upgrade",
                 "--install",
-                "order",
-                "./infra/helm/services/service/order",
+                "task",
+                "./infra/helm/services/service/task",
                 "-n",
                 "k1s0-service",
                 "-f",
-                "./infra/helm/services/service/order/values-dev.yaml",
+                "./infra/helm/services/service/task/values-dev.yaml",
                 "--set",
                 "image.tag=1.2.3-abc1234",
             ]
@@ -823,14 +823,14 @@ mod tests {
 
     #[test]
     fn test_build_helm_rollback_args() {
-        let args = build_helm_rollback_args("order", "service");
-        assert_eq!(args, vec!["rollback", "order", "-n", "k1s0-service"]);
+        let args = build_helm_rollback_args("task", "service");
+        assert_eq!(args, vec!["rollback", "task", "-n", "k1s0-service"]);
     }
 
     #[test]
     fn test_extract_tier_from_target_path() {
         assert_eq!(
-            extract_tier_from_target_path("regions/service/order/server/rust"),
+            extract_tier_from_target_path("regions/service/task/server/rust"),
             Some("service".to_string())
         );
         assert_eq!(
@@ -843,8 +843,8 @@ mod tests {
     #[test]
     fn test_extract_service_name_from_target_path() {
         assert_eq!(
-            extract_service_name_from_target_path("regions/service/order/server/rust"),
-            Some("order".to_string())
+            extract_service_name_from_target_path("regions/service/task/server/rust"),
+            Some("task".to_string())
         );
         assert_eq!(
             extract_service_name_from_target_path("regions/system/server/rust/auth"),
@@ -869,12 +869,12 @@ mod tests {
     fn test_format_deploy_success() {
         let message = format_deploy_success(
             "dev",
-            "order",
-            "harbor.internal.example.com/k1s0-service/order:1.0.0-abc1234",
+            "task",
+            "harbor.internal.example.com/k1s0-service/task:1.0.0-abc1234",
             "service",
         );
         assert!(message.contains("Deploy completed"));
-        assert!(message.contains("helm status order -n k1s0-service"));
+        assert!(message.contains("helm status task -n k1s0-service"));
     }
 
     #[test]
@@ -900,7 +900,7 @@ mod tests {
         let tmp = TempDir::new().unwrap();
 
         // 親: Rust サーバー（Dockerfile あり）
-        let parent_path = tmp.path().join("regions/service/order/server/rust");
+        let parent_path = tmp.path().join("regions/service/task/server/rust");
         fs::create_dir_all(&parent_path).unwrap();
         fs::write(parent_path.join("Dockerfile"), "FROM scratch\n").unwrap();
 

@@ -273,9 +273,9 @@ mod tests {
     fn test_format_generation_summary() {
         use crate::commands::generate_events::types::*;
         let config = EventsConfig {
-            domain: "accounting".to_string(),
+            domain: "taskmanagement".to_string(),
             tier: "business".to_string(),
-            service_name: "domain-master".to_string(),
+            service_name: "project-master".to_string(),
             language: "rust".to_string(),
             events: vec![EventDefinition {
                 name: "master-item.created".to_string(),
@@ -300,7 +300,7 @@ mod tests {
         };
         let summary = format_generation_summary(&config);
         assert!(summary.contains("イベント数: 1"));
-        assert!(summary.contains("k1s0.business.accounting.master-item-created.v1"));
+        assert!(summary.contains("k1s0.business.taskmanagement.master-item-created.v1"));
         assert!(summary.contains("Consumer 数: 1"));
         assert!(summary.contains("Outbox: あり"));
     }

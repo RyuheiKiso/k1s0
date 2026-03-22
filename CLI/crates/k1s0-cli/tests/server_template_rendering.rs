@@ -34,7 +34,7 @@ fn render_server(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "server").api_style(api_style);
+        TemplateContextBuilder::new("task-api", "service", lang, "server").api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);
@@ -189,7 +189,7 @@ fn test_go_server_rest_full_stack_file_list() {
 
     // go.mod の内容検証
     let go_mod = read_output(&tmp, "go.mod");
-    assert!(go_mod.contains("module github.com/org/k1s0/regions/service/order-api/server/go"));
+    assert!(go_mod.contains("module github.com/org/k1s0/regions/service/task-api/server/go"));
     assert!(go_mod.contains("github.com/gin-gonic/gin"));
     assert!(go_mod.contains("github.com/oapi-codegen/oapi-codegen/v2"));
     assert!(go_mod.contains("github.com/jmoiron/sqlx"));
@@ -225,7 +225,7 @@ fn test_go_server_rest_main_go_content() {
 
     // DI: repo -> uc -> handler
     assert!(content.contains("persistence.NewRepository(db)"));
-    assert!(content.contains("usecase.NewOrderApiUseCase("));
+    assert!(content.contains("usecase.NewTaskApiUseCase("));
     assert!(content.contains("handler.NewHandler(uc)"));
 
     // healthz / readyz
@@ -245,7 +245,7 @@ fn test_go_server_rest_entity() {
 
     assert!(content.contains("package model"));
     assert!(content.contains("import \"time\""));
-    assert!(content.contains("type OrderApiEntity struct {"));
+    assert!(content.contains("type TaskApiEntity struct {"));
     assert!(content.contains("ID          string    `json:\"id\" db:\"id\"`"));
     assert!(content.contains(
         "Name        string    `json:\"name\" db:\"name\" validate:\"required,max=255\"`"
@@ -260,13 +260,13 @@ fn test_go_server_rest_repository() {
 
     assert!(content.contains("package repository"));
     assert!(content.contains("//go:generate mockgen"));
-    assert!(content.contains("type OrderApiRepository interface {"));
+    assert!(content.contains("type TaskApiRepository interface {"));
     assert!(
-        content.contains("FindByID(ctx context.Context, id string) (*model.OrderApiEntity, error)")
+        content.contains("FindByID(ctx context.Context, id string) (*model.TaskApiEntity, error)")
     );
-    assert!(content.contains("FindAll(ctx context.Context) ([]*model.OrderApiEntity, error)"));
-    assert!(content.contains("Create(ctx context.Context, entity *model.OrderApiEntity) error"));
-    assert!(content.contains("Update(ctx context.Context, entity *model.OrderApiEntity) error"));
+    assert!(content.contains("FindAll(ctx context.Context) ([]*model.TaskApiEntity, error)"));
+    assert!(content.contains("Create(ctx context.Context, entity *model.TaskApiEntity) error"));
+    assert!(content.contains("Update(ctx context.Context, entity *model.TaskApiEntity) error"));
     assert!(content.contains("Delete(ctx context.Context, id string) error"));
 }
 
@@ -276,12 +276,12 @@ fn test_go_server_rest_usecase() {
     let content = read_output(&tmp, "internal/usecase/usecase.go");
 
     assert!(content.contains("package usecase"));
-    assert!(content.contains("type OrderApiUseCase struct {"));
-    assert!(content.contains("repo repository.OrderApiRepository"));
-    assert!(content.contains("func NewOrderApiUseCase("));
-    assert!(content.contains("func (uc *OrderApiUseCase) GetByID(ctx context.Context, id string) (*model.OrderApiEntity, error)"));
+    assert!(content.contains("type TaskApiUseCase struct {"));
+    assert!(content.contains("repo repository.TaskApiRepository"));
+    assert!(content.contains("func NewTaskApiUseCase("));
+    assert!(content.contains("func (uc *TaskApiUseCase) GetByID(ctx context.Context, id string) (*model.TaskApiEntity, error)"));
     assert!(content.contains("return uc.repo.FindByID(ctx, id)"));
-    assert!(content.contains("func (uc *OrderApiUseCase) Create(ctx context.Context, entity *model.OrderApiEntity) error"));
+    assert!(content.contains("func (uc *TaskApiUseCase) Create(ctx context.Context, entity *model.TaskApiEntity) error"));
     assert!(content.contains("return uc.repo.Create(ctx, entity)"));
 }
 
@@ -293,12 +293,12 @@ fn test_go_server_rest_handler() {
     assert!(content.contains("package handler"));
     assert!(content.contains("var validate = validator.New()"));
     assert!(content.contains("type Handler struct {"));
-    assert!(content.contains("uc *usecase.OrderApiUseCase"));
-    assert!(content.contains("func NewHandler(uc *usecase.OrderApiUseCase) *Handler"));
+    assert!(content.contains("uc *usecase.TaskApiUseCase"));
+    assert!(content.contains("func NewHandler(uc *usecase.TaskApiUseCase) *Handler"));
     assert!(content.contains("func (h *Handler) RegisterRoutes(r *gin.Engine)"));
-    assert!(content.contains("v1.GET(\"/order-api\""));
-    assert!(content.contains("v1.GET(\"/order-api/:id\""));
-    assert!(content.contains("v1.POST(\"/order-api\""));
+    assert!(content.contains("v1.GET(\"/task-api\""));
+    assert!(content.contains("v1.GET(\"/task-api/:id\""));
+    assert!(content.contains("v1.POST(\"/task-api\""));
 
     // ErrorResponse: D-007
     assert!(content.contains("type ErrorResponse struct {"));
@@ -337,19 +337,19 @@ fn test_go_server_rest_persistence_repository() {
     let content = read_output(&tmp, "internal/infra/persistence/repository.go");
 
     assert!(content.contains("package persistence"));
-    assert!(content.contains("type orderApiRepository struct {"));
-    assert!(content.contains("func NewRepository(db *sqlx.DB) repository.OrderApiRepository"));
+    assert!(content.contains("type taskApiRepository struct {"));
+    assert!(content.contains("func NewRepository(db *sqlx.DB) repository.TaskApiRepository"));
     assert!(
-        content.contains("func (r *orderApiRepository) FindByID(ctx context.Context, id string)")
+        content.contains("func (r *taskApiRepository) FindByID(ctx context.Context, id string)")
     );
-    assert!(content.contains("func (r *orderApiRepository) FindAll(ctx context.Context)"));
+    assert!(content.contains("func (r *taskApiRepository) FindAll(ctx context.Context)"));
     assert!(content.contains(
-        "func (r *orderApiRepository) Create(ctx context.Context, entity *model.OrderApiEntity)"
+        "func (r *taskApiRepository) Create(ctx context.Context, entity *model.TaskApiEntity)"
     ));
     assert!(content.contains(
-        "func (r *orderApiRepository) Update(ctx context.Context, entity *model.OrderApiEntity)"
+        "func (r *taskApiRepository) Update(ctx context.Context, entity *model.TaskApiEntity)"
     ));
-    assert!(content.contains("func (r *orderApiRepository) Delete(ctx context.Context, id string)"));
+    assert!(content.contains("func (r *taskApiRepository) Delete(ctx context.Context, id string)"));
 }
 
 #[test]
@@ -397,7 +397,7 @@ fn test_go_server_rest_config_yaml() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", true, true);
     let content = read_output(&tmp, "config/config.yaml");
 
-    assert!(content.contains("name: \"order-api\""));
+    assert!(content.contains("name: \"task-api\""));
     assert!(content.contains("port: 8080"));
     assert!(content.contains("database:"));
     assert!(content.contains("host: \"localhost\""));
@@ -417,14 +417,14 @@ fn test_go_server_rest_openapi() {
     let content = read_output(&tmp, "api/openapi/openapi.yaml");
 
     assert!(content.contains("openapi: \"3.0.3\""));
-    assert!(content.contains("title: \"OrderApi API\""));
-    assert!(content.contains("/api/v1/order-api:"));
-    assert!(content.contains("/api/v1/order-api/{id}:"));
-    assert!(content.contains("operationId: \"listOrderApi\""));
-    assert!(content.contains("operationId: \"createOrderApi\""));
-    assert!(content.contains("operationId: \"getOrderApi\""));
-    assert!(content.contains("$ref: \"#/components/schemas/OrderApi\""));
-    assert!(content.contains("$ref: \"#/components/schemas/CreateOrderApiRequest\""));
+    assert!(content.contains("title: \"TaskApi API\""));
+    assert!(content.contains("/api/v1/task-api:"));
+    assert!(content.contains("/api/v1/task-api/{id}:"));
+    assert!(content.contains("operationId: \"listTaskApi\""));
+    assert!(content.contains("operationId: \"createTaskApi\""));
+    assert!(content.contains("operationId: \"getTaskApi\""));
+    assert!(content.contains("$ref: \"#/components/schemas/TaskApi\""));
+    assert!(content.contains("$ref: \"#/components/schemas/CreateTaskApiRequest\""));
     assert!(content.contains("$ref: \"#/components/schemas/ErrorResponse\""));
 }
 
@@ -481,10 +481,10 @@ fn test_go_server_grpc_handler() {
 
     assert!(content.contains("package handler"));
     assert!(content.contains("type GRPCHandler struct {"));
-    assert!(content.contains("pb.UnimplementedOrderApiServiceServer"));
-    assert!(content.contains("func NewGRPCHandler(uc *usecase.OrderApiUseCase) *GRPCHandler"));
+    assert!(content.contains("pb.UnimplementedTaskApiServiceServer"));
+    assert!(content.contains("func NewGRPCHandler(uc *usecase.TaskApiUseCase) *GRPCHandler"));
     assert!(content.contains(
-        "func (h *GRPCHandler) GetOrderApi(ctx context.Context, req *pb.GetOrderApiRequest)"
+        "func (h *GRPCHandler) GetTaskApi(ctx context.Context, req *pb.GetTaskApiRequest)"
     ));
     assert!(content.contains("codes.Internal"));
     assert!(content.contains("codes.NotFound"));
@@ -496,18 +496,18 @@ fn test_go_server_grpc_proto() {
     let content = read_output(&tmp, "api/proto/service.proto");
 
     assert!(content.contains("syntax = \"proto3\";"));
-    assert!(content.contains("package k1s0.service.order_api.v1;"));
-    assert!(content.contains("option go_package = \"github.com/org/k1s0/regions/service/order-api/server/go/api/proto/gen\""));
-    assert!(content.contains("service OrderApiService {"));
-    assert!(content.contains("rpc GetOrderApi"));
-    assert!(content.contains("rpc ListOrderApi"));
-    assert!(content.contains("rpc CreateOrderApi"));
-    assert!(content.contains("message GetOrderApiRequest {"));
-    assert!(content.contains("message GetOrderApiResponse {"));
-    assert!(content.contains("message ListOrderApiRequest {"));
-    assert!(content.contains("message ListOrderApiResponse {"));
-    assert!(content.contains("message CreateOrderApiRequest {"));
-    assert!(content.contains("message CreateOrderApiResponse {"));
+    assert!(content.contains("package k1s0.service.task_api.v1;"));
+    assert!(content.contains("option go_package = \"github.com/org/k1s0/regions/service/task-api/server/go/api/proto/gen\""));
+    assert!(content.contains("service TaskApiService {"));
+    assert!(content.contains("rpc GetTaskApi"));
+    assert!(content.contains("rpc ListTaskApi"));
+    assert!(content.contains("rpc CreateTaskApi"));
+    assert!(content.contains("message GetTaskApiRequest {"));
+    assert!(content.contains("message GetTaskApiResponse {"));
+    assert!(content.contains("message ListTaskApiRequest {"));
+    assert!(content.contains("message ListTaskApiResponse {"));
+    assert!(content.contains("message CreateTaskApiRequest {"));
+    assert!(content.contains("message CreateTaskApiResponse {"));
 }
 
 #[test]
@@ -561,11 +561,11 @@ fn test_go_server_graphql_resolver() {
 
     assert!(content.contains("package handler"));
     assert!(content.contains("type Resolver struct {"));
-    assert!(content.contains("func NewResolver(uc *usecase.OrderApiUseCase) *Resolver"));
+    assert!(content.contains("func NewResolver(uc *usecase.TaskApiUseCase) *Resolver"));
     assert!(content.contains("func (r *Resolver) Query() QueryResolver"));
     assert!(content.contains("type queryResolver struct{ *Resolver }"));
-    assert!(content.contains("func (r *queryResolver) OrderApi(ctx context.Context, id string) (*model.OrderApiEntity, error)"));
-    assert!(content.contains("func (r *queryResolver) OrderApiList(ctx context.Context) ([]*model.OrderApiEntity, error)"));
+    assert!(content.contains("func (r *queryResolver) TaskApi(ctx context.Context, id string) (*model.TaskApiEntity, error)"));
+    assert!(content.contains("func (r *queryResolver) TaskApiList(ctx context.Context) ([]*model.TaskApiEntity, error)"));
 }
 
 #[test]
@@ -740,7 +740,7 @@ fn test_rust_server_rest_cargo_toml() {
     let (tmp, _) = render_server("rust", "rest", true, "postgresql", true, true);
     let content = read_output(&tmp, "Cargo.toml");
 
-    assert!(content.contains("name = \"order-api\""));
+    assert!(content.contains("name = \"task-api\""));
     assert!(content.contains("axum = \"0.7\""));
     assert!(content.contains("tokio = { version = \"1\", features = [\"full\"] }"));
     assert!(content.contains("serde = { version = \"1\", features = [\"derive\"] }"));
@@ -786,7 +786,7 @@ fn test_rust_server_rest_main_rs() {
     assert!(content.contains("infra::messaging::Producer::new(kafka_config)"));
 
     // DI
-    assert!(content.contains("usecase::OrderApiUseCase::new("));
+    assert!(content.contains("usecase::TaskApiUseCase::new("));
     assert!(content.contains("adapter::handler::AppHandler::new(uc)"));
 
     // healthz / readyz
@@ -808,7 +808,7 @@ fn test_rust_server_rest_domain_model() {
     assert!(content.contains("use serde::{Deserialize, Serialize};"));
     assert!(content.contains("#[derive(Debug, Clone, Serialize, Deserialize)]"));
     assert!(content.contains("#[derive(sqlx::FromRow)]"));
-    assert!(content.contains("pub struct OrderApiEntity {"));
+    assert!(content.contains("pub struct TaskApiEntity {"));
     assert!(content.contains("pub id: String,"));
     assert!(content.contains("pub name: String,"));
     assert!(content.contains("pub description: Option<String>,"));
@@ -823,19 +823,19 @@ fn test_rust_server_rest_domain_repository() {
     let content = read_output(&tmp, "src/domain/repository.rs");
 
     assert!(content.contains("use async_trait::async_trait;"));
-    assert!(content.contains("use super::model::OrderApiEntity;"));
+    assert!(content.contains("use super::model::TaskApiEntity;"));
     assert!(content.contains("#[cfg_attr(test, mockall::automock)]"));
     assert!(content.contains("#[async_trait]"));
-    assert!(content.contains("pub trait OrderApiRepository: Send + Sync {"));
+    assert!(content.contains("pub trait TaskApiRepository: Send + Sync {"));
     assert!(content.contains(
-        "async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>;"
+        "async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<TaskApiEntity>>;"
     ));
-    assert!(content.contains("async fn find_all(&self) -> anyhow::Result<Vec<OrderApiEntity>>;"));
+    assert!(content.contains("async fn find_all(&self) -> anyhow::Result<Vec<TaskApiEntity>>;"));
     assert!(
-        content.contains("async fn create(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;")
+        content.contains("async fn create(&self, entity: &TaskApiEntity) -> anyhow::Result<()>;")
     );
     assert!(
-        content.contains("async fn update(&self, entity: &OrderApiEntity) -> anyhow::Result<()>;")
+        content.contains("async fn update(&self, entity: &TaskApiEntity) -> anyhow::Result<()>;")
     );
     assert!(content.contains("async fn delete(&self, id: &str) -> anyhow::Result<()>;"));
 }
@@ -846,17 +846,17 @@ fn test_rust_server_rest_usecase_service() {
     let content = read_output(&tmp, "src/usecase/service.rs");
 
     assert!(content.contains("use std::sync::Arc;"));
-    assert!(content.contains("use crate::domain::model::OrderApiEntity;"));
-    assert!(content.contains("use crate::domain::repository::OrderApiRepository;"));
-    assert!(content.contains("pub struct OrderApiUseCase {"));
-    assert!(content.contains("repo: Arc<dyn OrderApiRepository>,"));
+    assert!(content.contains("use crate::domain::model::TaskApiEntity;"));
+    assert!(content.contains("use crate::domain::repository::TaskApiRepository;"));
+    assert!(content.contains("pub struct TaskApiUseCase {"));
+    assert!(content.contains("repo: Arc<dyn TaskApiRepository>,"));
     assert!(content.contains("pub fn new("));
-    assert!(content.contains("repo: impl OrderApiRepository + 'static,"));
+    assert!(content.contains("repo: impl TaskApiRepository + 'static,"));
     assert!(content.contains(
-        "pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<OrderApiEntity>>"
+        "pub async fn get_by_id(&self, id: &str) -> anyhow::Result<Option<TaskApiEntity>>"
     ));
     assert!(content.contains("self.repo.find_by_id(id).await"));
-    assert!(content.contains("pub async fn get_all(&self) -> anyhow::Result<Vec<OrderApiEntity>>"));
+    assert!(content.contains("pub async fn get_all(&self) -> anyhow::Result<Vec<TaskApiEntity>>"));
     assert!(content.contains("self.repo.find_all().await"));
 }
 
@@ -866,13 +866,13 @@ fn test_rust_server_rest_handler() {
     let content = read_output(&tmp, "src/adapter/handler/rest.rs");
 
     assert!(content.contains("use axum::{"));
-    assert!(content.contains("use crate::usecase::OrderApiUseCase;"));
+    assert!(content.contains("use crate::usecase::TaskApiUseCase;"));
     assert!(content.contains("pub struct AppHandler {"));
-    assert!(content.contains("uc: Arc<OrderApiUseCase>,"));
-    assert!(content.contains("pub fn new(uc: OrderApiUseCase) -> Self"));
+    assert!(content.contains("uc: Arc<TaskApiUseCase>,"));
+    assert!(content.contains("pub fn new(uc: TaskApiUseCase) -> Self"));
     assert!(content.contains("pub fn routes(&self) -> Router"));
-    assert!(content.contains("\"/api/v1/order-api\""));
-    assert!(content.contains("\"/api/v1/order-api/{id}\""));
+    assert!(content.contains("\"/api/v1/task-api\""));
+    assert!(content.contains("\"/api/v1/task-api/{id}\""));
     assert!(content.contains("struct ErrorResponse {"));
     assert!(content.contains("async fn list("));
     assert!(content.contains("async fn get_by_id("));
@@ -905,17 +905,17 @@ fn test_rust_server_rest_persistence() {
     let content = read_output(&tmp, "src/infra/persistence.rs");
 
     assert!(content.contains("use async_trait::async_trait;"));
-    assert!(content.contains("use crate::domain::model::OrderApiEntity;"));
-    assert!(content.contains("use crate::domain::repository::OrderApiRepository;"));
+    assert!(content.contains("use crate::domain::model::TaskApiEntity;"));
+    assert!(content.contains("use crate::domain::repository::TaskApiRepository;"));
     assert!(content.contains("use crate::infra::config::DatabaseConfig;"));
     assert!(content
         .contains("pub async fn create_pool(cfg: &DatabaseConfig) -> anyhow::Result<DbPool>"));
     assert!(content.contains("pub struct Repository {"));
-    assert!(content.contains("impl OrderApiRepository for Repository {"));
+    assert!(content.contains("impl TaskApiRepository for Repository {"));
     assert!(content.contains("async fn find_by_id(&self, id: &str)"));
     assert!(content.contains("async fn find_all(&self)"));
-    assert!(content.contains("async fn create(&self, entity: &OrderApiEntity)"));
-    assert!(content.contains("async fn update(&self, entity: &OrderApiEntity)"));
+    assert!(content.contains("async fn create(&self, entity: &TaskApiEntity)"));
+    assert!(content.contains("async fn update(&self, entity: &TaskApiEntity)"));
     assert!(content.contains("async fn delete(&self, id: &str)"));
 }
 
@@ -969,10 +969,10 @@ fn test_rust_server_rest_dockerfile() {
     assert!(content.contains("FROM rust:1.93-bookworm AS chef"));
     assert!(content.contains("cargo build --release"));
     assert!(content.contains("FROM gcr.io/distroless/cc-debian12"));
-    assert!(content.contains("/app/target/release/order-api /order-api"));
+    assert!(content.contains("/app/target/release/task-api /task-api"));
     assert!(content.contains("EXPOSE 8080"));
     assert!(content.contains("USER nonroot:nonroot"));
-    assert!(content.contains("ENTRYPOINT [\"/order-api\"]"));
+    assert!(content.contains("ENTRYPOINT [\"/task-api\"]"));
 }
 
 // =========================================================================
@@ -1008,13 +1008,13 @@ fn test_rust_server_grpc_handler() {
     let content = read_output(&tmp, "src/adapter/handler/grpc.rs");
 
     assert!(content.contains("use tonic::{Request, Response, Status};"));
-    assert!(content.contains("use crate::usecase::OrderApiUseCase;"));
-    assert!(content.contains("tonic::include_proto!(\"order_api.v1\");"));
-    assert!(content.contains("pub struct OrderApiGrpcService {"));
-    assert!(content.contains("impl OrderApiService for OrderApiGrpcService {"));
-    assert!(content.contains("async fn get_order_api("));
-    assert!(content.contains("async fn list_order_api("));
-    assert!(content.contains("async fn create_order_api("));
+    assert!(content.contains("use crate::usecase::TaskApiUseCase;"));
+    assert!(content.contains("tonic::include_proto!(\"task_api.v1\");"));
+    assert!(content.contains("pub struct TaskApiGrpcService {"));
+    assert!(content.contains("impl TaskApiService for TaskApiGrpcService {"));
+    assert!(content.contains("async fn get_task_api("));
+    assert!(content.contains("async fn list_task_api("));
+    assert!(content.contains("async fn create_task_api("));
 }
 
 #[test]
@@ -1023,7 +1023,7 @@ fn test_rust_server_grpc_handler_mod() {
     let content = read_output(&tmp, "src/adapter/handler/mod.rs");
 
     assert!(content.contains("mod grpc;"));
-    assert!(content.contains("pub use grpc::OrderApiGrpcService as AppHandler;"));
+    assert!(content.contains("pub use grpc::TaskApiGrpcService as AppHandler;"));
 }
 
 #[test]
@@ -1066,16 +1066,16 @@ fn test_rust_server_graphql_handler() {
     assert!(content.contains(
         "use async_graphql::{Context, Object, Schema, EmptyMutation, EmptySubscription};"
     ));
-    assert!(content.contains("use crate::domain::model::OrderApiEntity;"));
-    assert!(content.contains("use crate::usecase::OrderApiUseCase;"));
+    assert!(content.contains("use crate::domain::model::TaskApiEntity;"));
+    assert!(content.contains("use crate::usecase::TaskApiUseCase;"));
     assert!(content.contains("pub struct QueryRoot;"));
     assert!(content.contains("#[Object]"));
-    assert!(content.contains("async fn order_api("));
-    assert!(content.contains("async fn order_api_list("));
+    assert!(content.contains("async fn task_api("));
+    assert!(content.contains("async fn task_api_list("));
     assert!(content.contains(
-        "pub type OrderApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"
+        "pub type TaskApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"
     ));
-    assert!(content.contains("pub fn build_schema(uc: OrderApiUseCase) -> OrderApiSchema"));
+    assert!(content.contains("pub fn build_schema(uc: TaskApiUseCase) -> TaskApiSchema"));
 }
 
 #[test]
@@ -1084,7 +1084,7 @@ fn test_rust_server_graphql_handler_mod() {
     let content = read_output(&tmp, "src/adapter/handler/mod.rs");
 
     assert!(content.contains("mod graphql;"));
-    assert!(content.contains("pub use graphql::{build_schema, OrderApiSchema, QueryRoot};"));
+    assert!(content.contains("pub use graphql::{build_schema, TaskApiSchema, QueryRoot};"));
 }
 
 #[test]
@@ -1297,7 +1297,7 @@ fn test_go_server_multi_api_file_list() {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+    let ctx = TemplateContextBuilder::new("task-api", "service", "go", "server")
         .api_styles(vec!["rest".to_string(), "grpc".to_string()])
         .with_database("postgresql")
         .build();
@@ -1360,8 +1360,8 @@ fn test_go_server_graphql_schema_graphql() {
     let content = read_output(&tmp, "api/graphql/schema.graphql");
 
     assert!(content.contains("type Query"));
-    assert!(content.contains("OrderApi"));
-    assert!(content.contains("CreateOrderApiInput"));
+    assert!(content.contains("TaskApi"));
+    assert!(content.contains("CreateTaskApiInput"));
 }
 
 #[test]
@@ -1379,7 +1379,7 @@ fn test_go_server_rest_readme() {
     let (tmp, _) = render_server("go", "rest", false, "", false, false);
     let content = read_output(&tmp, "README.md");
 
-    assert!(content.contains("# order-api"));
+    assert!(content.contains("# task-api"));
     assert!(content.contains("go mod tidy"));
     assert!(content.contains("go run"));
     assert!(content.contains("go test"));
@@ -1392,7 +1392,7 @@ fn test_rust_server_rest_readme() {
     let (tmp, _) = render_server("rust", "rest", false, "", false, false);
     let content = read_output(&tmp, "README.md");
 
-    assert!(content.contains("# order-api"));
+    assert!(content.contains("# task-api"));
     assert!(content.contains("cargo build"));
     assert!(content.contains("cargo run"));
     assert!(content.contains("cargo test"));
@@ -1609,7 +1609,7 @@ fn test_go_server_rest_usecase_has_update() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "internal/usecase/usecase.go");
     assert!(
-        content.contains("func (uc *OrderApiUseCase) Update("),
+        content.contains("func (uc *TaskApiUseCase) Update("),
         "Go usecase should have Update method"
     );
 }
@@ -1619,7 +1619,7 @@ fn test_go_server_rest_usecase_has_delete() {
     let (tmp, _) = render_server("go", "rest", true, "postgresql", false, false);
     let content = read_output(&tmp, "internal/usecase/usecase.go");
     assert!(
-        content.contains("func (uc *OrderApiUseCase) Delete("),
+        content.contains("func (uc *TaskApiUseCase) Delete("),
         "Go usecase should have Delete method"
     );
 }
@@ -1670,7 +1670,7 @@ fn render_server_business_rust(api_style: &str) -> (TempDir, Vec<String>) {
     fs::create_dir_all(&output_dir).unwrap();
 
     let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
-        .domain("accounting")
+        .domain("taskmanagement")
         .api_style(api_style)
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
@@ -1695,7 +1695,7 @@ fn render_server_business_go(api_style: &str) -> (TempDir, Vec<String>) {
     fs::create_dir_all(&output_dir).unwrap();
 
     let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
-        .domain("accounting")
+        .domain("taskmanagement")
         .api_style(api_style)
         .build();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();

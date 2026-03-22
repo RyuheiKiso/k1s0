@@ -46,7 +46,7 @@ mod tests {
             id: Uuid::new_v4(),
             name: name.to_string(),
             description: String::new(),
-            domain: "service.order".to_string(),
+            domain: "service.task".to_string(),
             steps: steps
                 .into_iter()
                 .map(|(et, src)| FlowStep {
@@ -73,7 +73,7 @@ mod tests {
             "corr-1".to_string(),
             event_type.to_string(),
             source.to_string(),
-            "service.order".to_string(),
+            "service.task".to_string(),
             "trace-1".to_string(),
             Utc::now(),
         )
@@ -82,14 +82,14 @@ mod tests {
     #[test]
     fn test_match_event_found() {
         let flow = make_flow(
-            "order_fulfillment",
+            "task_assignment",
             vec![
-                ("OrderCreated", "order-service"),
-                ("PaymentProcessed", "payment-service"),
+                ("TaskCreated", "task-server"),
+                ("ActivityCreated", "activity-server"),
             ],
             true,
         );
-        let event = make_event("PaymentProcessed", "payment-service");
+        let event = make_event("ActivityCreated", "activity-server");
         let result = FlowMatchingService::match_event(&event, std::slice::from_ref(&flow));
         assert!(result.is_some());
         let (flow_id, step_index) = result.unwrap();
@@ -100,8 +100,8 @@ mod tests {
     #[test]
     fn test_match_event_not_found() {
         let flow = make_flow(
-            "order_fulfillment",
-            vec![("OrderCreated", "order-service")],
+            "task_assignment",
+            vec![("TaskCreated", "task-server")],
             true,
         );
         let event = make_event("UnknownEvent", "unknown-service");
@@ -113,19 +113,19 @@ mod tests {
     fn test_match_event_disabled_flow_skipped() {
         let flow = make_flow(
             "disabled_flow",
-            vec![("OrderCreated", "order-service")],
+            vec![("TaskCreated", "task-server")],
             false,
         );
-        let event = make_event("OrderCreated", "order-service");
+        let event = make_event("TaskCreated", "task-server");
         let result = FlowMatchingService::match_event(&event, &[flow]);
         assert!(result.is_none());
     }
 
     #[test]
     fn test_match_event_first_matching_flow() {
-        let flow1 = make_flow("flow1", vec![("OrderCreated", "order-service")], true);
-        let flow2 = make_flow("flow2", vec![("OrderCreated", "order-service")], true);
-        let event = make_event("OrderCreated", "order-service");
+        let flow1 = make_flow("flow1", vec![("TaskCreated", "task-server")], true);
+        let flow2 = make_flow("flow2", vec![("TaskCreated", "task-server")], true);
+        let event = make_event("TaskCreated", "task-server");
         let result = FlowMatchingService::match_event(&event, &[flow1.clone(), flow2]);
         assert!(result.is_some());
         assert_eq!(result.unwrap().0, flow1.id);
@@ -134,16 +134,16 @@ mod tests {
     #[test]
     fn test_match_event_domain_mismatch_skipped() {
         let flow = make_flow(
-            "order_fulfillment",
-            vec![("OrderCreated", "order-service")],
+            "task_assignment",
+            vec![("TaskCreated", "task-server")],
             true,
         );
         // Event with different domain
         let event = EventRecord::new(
             "corr-1".to_string(),
-            "OrderCreated".to_string(),
-            "order-service".to_string(),
-            "service.payment".to_string(), // different domain
+            "TaskCreated".to_string(),
+            "task-server".to_string(),
+            "service.activity".to_string(), // different domain
             "trace-1".to_string(),
             Utc::now(),
         );
@@ -158,9 +158,9 @@ mod tests {
             id: Uuid::new_v4(),
             name: "any_source_flow".to_string(),
             description: String::new(),
-            domain: "service.order".to_string(),
+            domain: "service.task".to_string(),
             steps: vec![FlowStep {
-                event_type: "OrderCreated".to_string(),
+                event_type: "TaskCreated".to_string(),
                 source: String::new(),
                 source_filter: None, // no source filter
                 timeout_seconds: 30,
@@ -175,7 +175,7 @@ mod tests {
             created_at: now,
             updated_at: now,
         };
-        let event = make_event("OrderCreated", "any-random-service");
+        let event = make_event("TaskCreated", "any-random-service");
         let result = FlowMatchingService::match_event(&event, std::slice::from_ref(&flow));
         assert!(result.is_some());
         assert_eq!(result.unwrap().0, flow.id);

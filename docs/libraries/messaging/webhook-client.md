@@ -175,10 +175,15 @@ export interface WebhookPayload {
   data: Record<string, unknown>;
 }
 
+// ログ出力のコールバック型定義（呼び出し側がロガーを注入可能にする）
+export type WebhookLogger = (level: 'info' | 'warn' | 'error', message: string, meta?: Record<string, unknown>) => void;
+
 export interface WebhookConfig {
   maxRetries?: number;       // デフォルト: 3
   initialBackoffMs?: number; // デフォルト: 1000
   maxBackoffMs?: number;     // デフォルト: 30000
+  // ログ出力コールバック（省略時はログを出力しない）
+  logger?: WebhookLogger;
   secret?: string;           // 設定時に send で自動署名
 }
 
@@ -207,6 +212,26 @@ export class InMemoryWebhookClient implements WebhookClient {
 
 export function generateSignature(secret: string, body: string): string;
 export function verifySignature(secret: string, body: string, signature: string): boolean;
+```
+
+**ロガー注入パターン**:
+
+`HttpWebhookClient` は `console.log` を直接使用しない。呼び出し側が `logger` コールバックを注入することでログ出力を制御する。注入しない場合はログが出力されない（サイレント動作）。
+
+```typescript
+// 例: pino などの外部ロガーを注入する
+import pino from 'pino';
+const pinoLogger = pino();
+
+const client = new HttpWebhookClient({
+  secret: 'my-hmac-secret',
+  logger: (level, message, meta) => {
+    pinoLogger[level]({ ...meta }, message);
+  },
+});
+
+// loggerなし（サイレント動作）
+const silentClient = new HttpWebhookClient({ secret: 'my-hmac-secret' });
 ```
 
 **カバレッジ目標**: 90%以上

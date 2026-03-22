@@ -622,7 +622,7 @@ mod tests {
         let result = merge_vault_secrets(
             &mut base,
             "https://vault.example.com",
-            "secret/data/k1s0/service/order/database",
+            "secret/data/k1s0/service/task/database",
         );
         assert!(result.is_ok());
     }
@@ -736,7 +736,7 @@ mod tests {
     fn test_runtime_config_deserialize_full() {
         let yaml = r#"
 app:
-  name: order-server
+  name: task-server
   version: "1.0.0"
   tier: service
   environment: dev
@@ -749,14 +749,14 @@ grpc:
 database:
   host: localhost
   port: 5432
-  name: order_db
+  name: task_db
   user: app
   password: ""
   ssl_mode: disable
 kafka:
   brokers:
     - "kafka-0:9092"
-  consumer_group: order-server.default
+  consumer_group: task-server.default
   security_protocol: PLAINTEXT
 redis:
   host: localhost
@@ -792,14 +792,14 @@ auth:
     jwks_uri: "https://auth.example.com/certs"
 "#;
         let config: RuntimeConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(config.app.name, "order-server");
+        assert_eq!(config.app.name, "task-server");
         assert_eq!(config.app.tier, "service");
         assert_eq!(config.server.port, 8080);
         let grpc = config.grpc.unwrap();
         assert_eq!(grpc.port, 50051);
         assert_eq!(grpc.max_recv_msg_size, Some(4_194_304));
         let db = config.database.unwrap();
-        assert_eq!(db.name, "order_db");
+        assert_eq!(db.name, "task_db");
         assert_eq!(db.ssl_mode, "disable");
         let kafka = config.kafka.unwrap();
         assert_eq!(kafka.brokers, vec!["kafka-0:9092"]);

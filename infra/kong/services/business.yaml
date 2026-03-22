@@ -1,8 +1,9 @@
 # business Tier のサービス定義
 # Tier別レート制限: business=1000/min（グローバル500/minをサービスレベルで上書き）
 services:
-  - name: accounting-ledger-v1
-    url: http://ledger-server.k1s0-business.svc.cluster.local:80
+  # --- タスク管理 ---
+  - name: project-master-v1
+    url: http://project-master-rust.k1s0-business.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:
@@ -15,26 +16,10 @@ services:
           fault_tolerant: true
           hide_client_headers: false
     routes:
-      - name: ledger-v1-route
+      - name: project-master-v1-route
         paths:
-          - /api/v1/accounting/ledger
+          - /api/v1/taskmanagement/project-types
+          - /api/v1/taskmanagement/status-definitions
+          - /api/v1/taskmanagement/tenant-extensions
         strip_path: false
 
-  - name: accounts-v1
-    url: http://accounts-server.k1s0-business.svc.cluster.local:80
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 1000
-          second: 40
-          policy: redis
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_port: 6379
-          redis_database: 1
-          fault_tolerant: true
-          hide_client_headers: false
-    routes:
-      - name: accounts-v1-route
-        paths:
-          - /api/v1/accounts
-        strip_path: false

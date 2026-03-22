@@ -1,20 +1,20 @@
 # Traffic mirroring: copy 10% of stable traffic to canary.
-# Keeps the order-server baseline timeout/retry policy.
+# Keeps the task-server baseline timeout/retry policy.
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server.k1s0-service.svc.cluster.local
+    - task-server.k1s0-service.svc.cluster.local
   http:
     - route:
         - destination:
-            host: order-server.k1s0-service.svc.cluster.local
+            host: task-server.k1s0-service.svc.cluster.local
             subset: stable
       mirror:
-        host: order-server.k1s0-service.svc.cluster.local
+        host: task-server.k1s0-service.svc.cluster.local
         subset: canary
       mirrorPercentage:
         value: 10.0

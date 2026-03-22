@@ -21,7 +21,7 @@ kubectl label job "${JOB_NAME}" -n "${NAMESPACE}" \
   --overwrite >/dev/null
 
 deadline=$((SECONDS + 60))
-until kubectl get virtualservice order-server-fault-window -n "${NAMESPACE}" >/dev/null 2>&1; do
+until kubectl get virtualservice task-server-fault-window -n "${NAMESPACE}" >/dev/null 2>&1; do
   if [ "${SECONDS}" -ge "${deadline}" ]; then
     echo "ERROR: fault injection job did not activate the fault window in time."
     exit 1

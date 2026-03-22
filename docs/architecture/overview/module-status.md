@@ -73,23 +73,23 @@
 
 ## Businessティア
 
-<!-- ビジネスロジック層。会計・ドメインマスタなど -->
+<!-- ビジネスロジック層。タスク管理・プロジェクトマスタなど -->
 
 | モジュール | 成熟度 | 備考 |
 |-----------|--------|------|
-| accounting | `template-only` | server/client/library/database構造のみ |
+| taskmanagement | `template-only` | server/client/library/database構造のみ |
 
 ---
 
 ## Serviceティア
 
-<!-- サービス層。注文・在庫・決済などの業務サービス -->
+<!-- サービス層。タスク・ボード・アクティビティなどの業務サービス -->
 
 | モジュール | 成熟度 | 備考 |
 |-----------|--------|------|
-| order | `template-only` | scaffold生成のみ |
-| inventory | `template-only` | scaffold生成のみ |
-| payment | `beta` | ドメインモデル・ユースケース・Outbox/Kafka連携・冪等性チェック実装済み |
+| task | `template-only` | scaffold生成のみ |
+| board | `template-only` | scaffold生成のみ |
+| activity | `beta` | ドメインモデル・ユースケース・Outbox/Kafka連携・冪等性チェック実装済み |
 
 ---
 

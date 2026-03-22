@@ -27,12 +27,6 @@ serde_yaml = {workspace = true}
 # DB
 sqlx = {workspace = true}
 
-# S3 (Ceph RGW)
-aws-sdk-s3 = "1"
-aws-config = "1"
-aws-credential-types = "1"
-aws-smithy-types = "1"
-
 # Utilities
 uuid = {workspace = true}
 chrono = {workspace = true}

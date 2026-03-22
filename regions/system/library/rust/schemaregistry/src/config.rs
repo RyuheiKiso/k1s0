@@ -101,8 +101,8 @@ mod tests {
     #[test]
     fn test_subject_name_business_topic() {
         let subject =
-            SchemaRegistryConfig::subject_name("k1s0.business.accounting.invoice-issued.v2");
-        assert_eq!(subject, "k1s0.business.accounting.invoice-issued.v2-value");
+            SchemaRegistryConfig::subject_name("k1s0.business.taskmanagement.project-type-changed.v1");
+        assert_eq!(subject, "k1s0.business.taskmanagement.project-type-changed.v1-value");
     }
 
     // URLのみ指定した JSON からデシリアライズしたとき、デフォルト値が適用されることを確認する。

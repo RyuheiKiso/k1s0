@@ -40,5 +40,7 @@ rateLimiting:
     host: redis.k1s0-system.svc.cluster.local
     port: 6379
     database: 1
-    fault_tolerant: true
+    # Redis障害時にレート制限をバイパスさせないフェイルセーフ設定（C-07監査指摘対応）
+    # falseにすることでRedis接続失敗時もリクエストを通過させず、意図しない上限解除を防ぐ
+    fault_tolerant: false
     hide_client_headers: false

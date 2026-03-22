@@ -577,7 +577,7 @@ fn test_load_full_config() {
         f,
         r#"
 app:
-  name: order-server
+  name: task-server
   version: "1.0.0"
   tier: service
   environment: dev
@@ -593,7 +593,7 @@ grpc:
 database:
   host: "localhost"
   port: 5432
-  name: "order_db"
+  name: "task_db"
   user: "app"
   password: ""
   ssl_mode: "disable"
@@ -603,13 +603,13 @@ database:
 kafka:
   brokers:
     - "localhost:9092"
-  consumer_group: "order-server.default"
+  consumer_group: "task-server.default"
   security_protocol: "PLAINTEXT"
   topics:
     publish:
-      - "k1s0.service.order.created.v1"
+      - "k1s0.service.task.created.v1"
     subscribe:
-      - "k1s0.service.payment.completed.v1"
+      - "k1s0.service.tasks.completed.v1"
 redis:
   host: "localhost"
   port: 6379
@@ -644,12 +644,12 @@ auth:
     .unwrap();
 
     let cfg = load(f.path().to_str().unwrap(), None).unwrap();
-    assert_eq!(cfg.app.name, "order-server");
+    assert_eq!(cfg.app.name, "task-server");
     assert_eq!(cfg.app.tier, "service");
     assert!(cfg.grpc.is_some());
     assert_eq!(cfg.grpc.as_ref().unwrap().port, 50051);
     assert!(cfg.database.is_some());
-    assert_eq!(cfg.database.as_ref().unwrap().name, "order_db");
+    assert_eq!(cfg.database.as_ref().unwrap().name, "task_db");
     assert!(cfg.kafka.is_some());
     assert_eq!(cfg.kafka.as_ref().unwrap().security_protocol, "PLAINTEXT");
     assert!(cfg.redis.is_some());

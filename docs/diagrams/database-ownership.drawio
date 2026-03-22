@@ -322,11 +322,11 @@
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 
-        <mxCell id="s3_store" value="&lt;b&gt;S3 互換ストレージ&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Ceph / S3 / GCS 互換&lt;br&gt;オブジェクトストレージ&lt;br&gt;ファイル保存・ログアーカイブ&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
+        <mxCell id="s3_store" value="&lt;b&gt;PersistentVolume (PV)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ローカルファイルシステム&lt;br&gt;ファイル保存（AWS/S3依存なし）&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=12;fontStyle=0;" vertex="1" parent="1">
           <mxGeometry x="1160" y="1260" width="260" height="110" as="geometry"/>
         </mxCell>
 
-        <mxCell id="s3_file" value="&lt;b&gt;File Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ファイルアップロード/ダウンロード&lt;br&gt;aws-sdk-s3 クライアント&lt;br&gt;プリサインドURL生成&lt;br&gt;テナント分離&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="s3_file" value="&lt;b&gt;File Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ファイルアップロード/ダウンロード&lt;br&gt;LocalFs ストレージ（PV）&lt;br&gt;プリサインドURL生成&lt;br&gt;テナント分離&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="1190" y="1400" width="200" height="90" as="geometry"/>
         </mxCell>
         <mxCell id="e_s3_file" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;" edge="1" parent="1" source="s3_file" target="s3_store">
@@ -337,7 +337,7 @@
           <mxGeometry x="1490" y="1260" width="260" height="110" as="geometry"/>
         </mxCell>
 
-        <mxCell id="vault_consumers" value="&lt;b&gt;Vault 利用サービス&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;全サーバー: DB パスワード取得&lt;br&gt;Auth Server: JWT 署名鍵&lt;br&gt;Config Server: 暗号化キー&lt;br&gt;File Server: S3 シークレットキー&lt;br&gt;Search Server: OpenSearch パスワード&lt;br&gt;Quota Server: Redis パスワード&lt;br&gt;Vault Agent Injector 経由&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="vault_consumers" value="&lt;b&gt;Vault 利用サービス&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;全サーバー: DB パスワード取得&lt;br&gt;Auth Server: JWT 署名鍵&lt;br&gt;Config Server: 暗号化キー&lt;br&gt;Search Server: OpenSearch パスワード&lt;br&gt;Quota Server: Redis パスワード&lt;br&gt;Vault Agent Injector 経由&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="1500" y="1400" width="240" height="130" as="geometry"/>
         </mxCell>
         <mxCell id="e_vault_consumers" style="endArrow=block;endFill=1;strokeWidth=2;strokeColor=#82B366;dashed=1;" edge="1" parent="1" source="vault_consumers" target="vault_secret_store">

@@ -47,7 +47,7 @@ mod tests {
     #[test]
     fn scan_targets_returns_manifest_targets() {
         let temp = TempDir::new().unwrap();
-        let project = temp.path().join("regions/service/order/server/rust");
+        let project = temp.path().join("regions/service/task/server/rust");
         fs::create_dir_all(&project).unwrap();
         fs::write(
             project.join(MANIFEST_FILE_NAME),
@@ -55,7 +55,7 @@ mod tests {
 apiVersion: k1s0/v1
 kind: TemplateInstance
 metadata:
-  name: order-server
+  name: task-server
   generatedAt: "2026-03-12T00:00:00Z"
   generatedBy: k1s0-cli@0.1.0
 spec:
@@ -66,9 +66,9 @@ spec:
     checksum: sha256:abc
   parameters:
     tier: service
-    placement: order
-    serviceName: order
-    moduleName: order
+    placement: task
+    serviceName: task
+    moduleName: task
     apiStyles: [rest]
 "#,
         )

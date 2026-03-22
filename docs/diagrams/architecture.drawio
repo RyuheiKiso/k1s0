@@ -66,7 +66,7 @@
         <mxCell id="126" value="Navigation Server (Rust)&#xa;gRPC 50051&#xa;クライアントルーティング配信&#xa;ロール別ルートフィルタリング&#xa;ガード: AUTH/ROLE/REDIRECT" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="120">
           <mxGeometry x="1250" y="160" width="380" height="95" as="geometry"/>
         </mxCell>
-        <mxCell id="127" value="File Server (Rust)&#xa;REST 8080 + gRPC 50051&#xa;ファイルストレージ管理&#xa;S3/GCS/Ceph対応&#xa;マルチパートアップロード" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="120">
+        <mxCell id="127" value="File Server (Rust)&#xa;REST 8098 + gRPC 50051&#xa;ファイルストレージ管理&#xa;LocalFs ストレージ（PV）&#xa;ファイル直接配信" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#D6B656;fontSize=9;verticalAlign=middle;align=center;" vertex="1" parent="120">
           <mxGeometry x="1650" y="160" width="380" height="95" as="geometry"/>
         </mxCell>
 
@@ -149,13 +149,13 @@
         <mxCell id="160" value="Service Tier (サービス層) - k1s0-service namespace - 個別マイクロサービス・BFF" style="swimlane;startSize=30;rounded=1;fillColor=#F8CECC;strokeColor=#B85450;fontStyle=1;fontSize=13;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="30" y="1505" width="2300" height="170" as="geometry"/>
         </mxCell>
-        <mxCell id="161" value="Order BFF / Service&#xa;注文サービス&#xa;注文作成, 更新, キャンセル&#xa;Kafka: order.created/updated.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
+        <mxCell id="161" value="Task BFF / Service&#xa;タスクサービス&#xa;タスク作成, 更新, 完了&#xa;Kafka: task.created/updated.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
           <mxGeometry x="150" y="40" width="450" height="110" as="geometry"/>
         </mxCell>
-        <mxCell id="162" value="Inventory BFF / Service&#xa;在庫サービス&#xa;在庫引当, 解放, 照会&#xa;Kafka: inventory.reserved/released.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
+        <mxCell id="162" value="Board BFF / Service&#xa;ボードサービス&#xa;ボード作成, カード管理, 照会&#xa;Kafka: board.created/updated.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
           <mxGeometry x="700" y="40" width="450" height="110" as="geometry"/>
         </mxCell>
-        <mxCell id="163" value="Payment BFF / Service&#xa;決済サービス&#xa;決済処理, 返金, 照会&#xa;Kafka: payment.processed/refunded.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
+        <mxCell id="163" value="Activity BFF / Service&#xa;アクティビティサービス&#xa;アクティビティ記録, 集計, 照会&#xa;Kafka: activity.created/updated.v1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=10;verticalAlign=middle;align=center;" vertex="1" parent="160">
           <mxGeometry x="1250" y="40" width="450" height="110" as="geometry"/>
         </mxCell>
 
@@ -488,7 +488,7 @@
         <mxCell id="343" value="Kafkaトピック命名" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="30" y="2090" width="400" height="20" as="geometry"/>
         </mxCell>
-        <mxCell id="344" value="k1s0.{tier}.{domain}.{event-type}.{version} | 例: k1s0.system.auth.audit.v1, k1s0.service.order.created.v1 | DLQ: *.dlq.v1 (30日保存)" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="344" value="k1s0.{tier}.{domain}.{event-type}.{version} | 例: k1s0.system.auth.audit.v1, k1s0.service.task.created.v1 | DLQ: *.dlq.v1 (30日保存)" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="30" y="2110" width="1000" height="20" as="geometry"/>
         </mxCell>
         <mxCell id="345" value="API設計" style="text;html=0;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=9;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">

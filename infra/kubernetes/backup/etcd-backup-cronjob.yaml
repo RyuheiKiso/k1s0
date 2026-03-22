@@ -21,7 +21,8 @@ spec:
             app: etcd-backup
         spec:
           restartPolicy: OnFailure
-          serviceAccountName: backup-operator
+          # L-07監査対応: 過剰権限集約を避けるため、etcd専用ServiceAccountを使用する
+          serviceAccountName: etcd-backup-sa
           hostNetwork: true
           containers:
             - name: etcd-backup
@@ -58,37 +59,9 @@ spec:
                   find "${BACKUP_DIR}" -name "etcd-snapshot-*.db" -mtime +30 -delete
 
                   echo "etcd backup completed: ${BACKUP_FILE}"
-
-                  # S3オフサイトバックアップ: 災害復旧のためリモートストレージにコピー
-                  echo "Uploading etcd backup to S3..."
-                  aws s3 cp "${BACKUP_FILE}" "s3://${S3_BUCKET}/etcd/etcd-snapshot-${TIMESTAMP}.db" \
-                    --endpoint-url "${S3_ENDPOINT}" \
-                    --no-progress
-                  echo "S3 upload completed: s3://${S3_BUCKET}/etcd/etcd-snapshot-${TIMESTAMP}.db"
               env:
                 - name: ETCDCTL_API
                   value: "3"
-                # S3オフサイトバックアップ用の認証情報とエンドポイント設定
-                - name: S3_BUCKET
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: bucket
-                - name: S3_ENDPOINT
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: endpoint
-                - name: AWS_ACCESS_KEY_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: access-key-id
-                - name: AWS_SECRET_ACCESS_KEY
-                  valueFrom:
-                    secretKeyRef:
-                      name: s3-backup-credentials
-                      key: secret-access-key
               volumeMounts:
                 - name: etcd-certs
                   mountPath: /etc/kubernetes/pki/etcd

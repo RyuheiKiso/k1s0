@@ -270,13 +270,13 @@
                 <mxCell id="biz_quota" value="ResourceQuota: CPU 16/32 | Mem 32Gi/64Gi | Pods 100 | PVCs 40" style="text;fontSize=9;fontColor=#9673A6;fontStyle=2;align=left;" parent="ns_business" vertex="1">
                     <mxGeometry x="10" y="28" width="450" height="18" as="geometry"/>
                 </mxCell>
-                <mxCell id="biz_accounting" value="Accounting&#xa;会計管理" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" parent="ns_business" vertex="1">
+                <mxCell id="biz_taskmanagement" value="TaskManagement&#xa;タスク管理" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" parent="ns_business" vertex="1">
                     <mxGeometry x="20" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="biz_ledger" value="Ledger&#xa;元帳管理" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" parent="ns_business" vertex="1">
+                <mxCell id="biz_ledger" value="(将来のドメイン A)" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;fontColor=#9673A6;fontStyle=2;" parent="ns_business" vertex="1">
                     <mxGeometry x="170" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="biz_fa" value="Fixed Assets&#xa;固定資産管理" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" parent="ns_business" vertex="1">
+                <mxCell id="biz_fa" value="(将来のドメイン B)" style="rounded=1;whiteSpace=wrap;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;fontColor=#9673A6;fontStyle=2;" parent="ns_business" vertex="1">
                     <mxGeometry x="320" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="biz_netpol" value="NetworkPolicy: business + service ティアからのアクセスを許可" style="text;fontSize=9;fontColor=#9673A6;fontStyle=2;align=left;" parent="ns_business" vertex="1">
@@ -288,13 +288,13 @@
                 <mxCell id="svc_quota" value="ResourceQuota: CPU 8/16 | Mem 16Gi/32Gi | Pods 50 | PVCs 20" style="text;fontSize=9;fontColor=#B85450;fontStyle=2;align=left;" parent="ns_service" vertex="1">
                     <mxGeometry x="10" y="28" width="450" height="18" as="geometry"/>
                 </mxCell>
-                <mxCell id="svc_order" value="Order BFF&#xa;受注管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
+                <mxCell id="svc_task" value="Task BFF&#xa;タスク管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
                     <mxGeometry x="20" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="svc_inventory" value="Inventory BFF&#xa;在庫管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
+                <mxCell id="svc_board" value="Board BFF&#xa;ボード管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
                     <mxGeometry x="170" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="svc_shipping" value="Shipping BFF&#xa;出荷管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
+                <mxCell id="svc_shipping" value="Activity BFF&#xa;アクティビティ管理" style="rounded=1;whiteSpace=wrap;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" parent="ns_service" vertex="1">
                     <mxGeometry x="320" y="55" width="130" height="50" as="geometry"/>
                 </mxCell>
                 <mxCell id="svc_netpol" value="NetworkPolicy: service + ingress ティアからのアクセスを許可" style="text;fontSize=9;fontColor=#B85450;fontStyle=2;align=left;" parent="ns_service" vertex="1">

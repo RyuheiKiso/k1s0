@@ -11,7 +11,7 @@
         </mxCell>
 
         <!-- 具体例: 大きな水平バー -->
-        <mxCell id="example-bar" value="&lt;font style=&quot;font-size:16px;&quot;&gt;&lt;b&gt;k1s0&lt;/b&gt; . &lt;b&gt;service&lt;/b&gt; . &lt;b&gt;order&lt;/b&gt; . &lt;b&gt;created&lt;/b&gt; . &lt;b&gt;v1&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="example-bar" value="&lt;font style=&quot;font-size:16px;&quot;&gt;&lt;b&gt;k1s0&lt;/b&gt; . &lt;b&gt;service&lt;/b&gt; . &lt;b&gt;task&lt;/b&gt; . &lt;b&gt;created&lt;/b&gt; . &lt;b&gt;v1&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontColor=#333333;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="100" y="55" width="800" height="45" as="geometry"/>
         </mxCell>
 
@@ -32,8 +32,8 @@
           <mxGeometry x="380" y="150" width="20" height="50" as="geometry"/>
         </mxCell>
 
-        <!-- order セグメント (blue/Data) -->
-        <mxCell id="seg-domain" value="&lt;b&gt;order&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
+        <!-- task セグメント (blue/Data) -->
+        <mxCell id="seg-domain" value="&lt;b&gt;task&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="400" y="150" width="140" height="50" as="geometry"/>
         </mxCell>
         <mxCell id="dot3" value="." style="text;html=1;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
@@ -96,7 +96,7 @@
         <mxCell id="schema-title" value="&lt;b&gt;Schema Registry Subject Name&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="100" y="275" width="280" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="schema-box" value="&lt;font style=&quot;font-size:13px;&quot;&gt;k1s0.service.order.created.v1&lt;b&gt;-value&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=13;align=center;verticalAlign=middle;fontFamily=Courier New;" vertex="1" parent="1">
+        <mxCell id="schema-box" value="&lt;font style=&quot;font-size:13px;&quot;&gt;k1s0.service.task.created.v1&lt;b&gt;-value&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#333333;fontSize=13;align=center;verticalAlign=middle;fontFamily=Courier New;" vertex="1" parent="1">
           <mxGeometry x="100" y="305" width="380" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="schema-suffix-note" value="← &lt;i&gt;-value&lt;/i&gt; サフィックスが付加" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#9673A6;" vertex="1" parent="1">
@@ -107,7 +107,7 @@
         <mxCell id="proto-title" value="&lt;b&gt;Proto Package 対応&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#333333;" vertex="1" parent="1">
           <mxGeometry x="100" y="360" width="280" height="25" as="geometry"/>
         </mxCell>
-        <mxCell id="proto-box" value="&lt;font style=&quot;font-size:13px;&quot;&gt;package k1s0.event.service.order.v1;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=13;align=center;verticalAlign=middle;fontFamily=Courier New;" vertex="1" parent="1">
+        <mxCell id="proto-box" value="&lt;font style=&quot;font-size:13px;&quot;&gt;package k1s0.event.service.task.v1;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#333333;fontSize=13;align=center;verticalAlign=middle;fontFamily=Courier New;" vertex="1" parent="1">
           <mxGeometry x="100" y="390" width="380" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="proto-note" value="← &lt;i&gt;event&lt;/i&gt; namespace が挿入" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#6C8EBF;" vertex="1" parent="1">

@@ -228,6 +228,38 @@ Proto 定義 (`api/proto/k1s0/system/dlq/v1/dlq.proto`) との差異:
 - Proto の `ListMessagesResponse` には `page` フィールドがないが、REST レスポンスには `page` を含める（ページネーション慣例）
 - Proto の `DeleteMessageResponse` は削除された `id` を返すが、REST クライアントは void を返す
 
+## Doc Sync (2026-03-22)
+
+### io.ReadAll エラーハンドリング修正（H-04）
+
+Go 実装の全 HTTP エラーパス（5箇所）で `io.ReadAll` の戻り値を `_` で無視していた実装を修正した。
+
+**変更前（エラーを無視）**:
+```go
+respBody, _ := io.ReadAll(resp.Body)
+```
+
+**変更後（エラーをハンドリング）**:
+```go
+respBody, readErr := io.ReadAll(resp.Body)
+if readErr != nil {
+    // レスポンスボディの読み取りに失敗した場合はエラーを返す
+    return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
+}
+```
+
+対象箇所:
+| 関数 | 返却型 | エラー時の返却値 |
+| --- | --- | --- |
+| `ListMessages` | `(*ListDlqMessagesResponse, error)` | `nil, fmt.Errorf(...)` |
+| `GetMessage` | `(*DlqMessage, error)` | `nil, fmt.Errorf(...)` |
+| `RetryMessage` | `(*RetryDlqMessageResponse, error)` | `nil, fmt.Errorf(...)` |
+| `DeleteMessage` | `error` | `fmt.Errorf(...)` |
+| `RetryAll` | `error` | `fmt.Errorf(...)` |
+
+`io.ReadAll` が失敗するのは、接続リセット・タイムアウト等の I/O エラーが発生した場合である。
+エラーを無視すると、ボディが空のまま空文字列でエラーメッセージが組み立てられ、デバッグが困難になる。
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

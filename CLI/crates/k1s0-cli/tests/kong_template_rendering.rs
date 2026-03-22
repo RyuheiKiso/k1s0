@@ -64,7 +64,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_kong_file_list() {
-    let Some((_, names)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((_, names)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -85,21 +85,21 @@ fn test_kong_file_list() {
 
 #[test]
 fn test_kong_service_has_service_name() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "kong-service.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Kong service should contain service name\n--- kong-service.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_kong_service_has_namespace() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -127,7 +127,7 @@ fn test_kong_service_grpc_port() {
 
 #[test]
 fn test_kong_service_no_grpc_port_for_rest() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -159,7 +159,7 @@ fn test_kong_plugins_rate_limit_system() {
 
 #[test]
 fn test_kong_plugins_rate_limit_service() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -173,7 +173,7 @@ fn test_kong_plugins_rate_limit_service() {
 
 #[test]
 fn test_kong_plugins_has_cors() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -187,7 +187,7 @@ fn test_kong_plugins_has_cors() {
 
 #[test]
 fn test_kong_plugins_has_jwt() {
-    let Some((tmp, _)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, _)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };
@@ -205,7 +205,7 @@ fn test_kong_plugins_has_jwt() {
 
 #[test]
 fn test_kong_no_tera_syntax() {
-    let Some((tmp, names)) = render_kong("order-api", "service", "rest", 8080, 50051) else {
+    let Some((tmp, names)) = render_kong("task-api", "service", "rest", 8080, 50051) else {
         eprintln!("SKIP: kong テンプレートディレクトリが未作成");
         return;
     };

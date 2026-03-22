@@ -7,7 +7,6 @@ edition = "2021"
 default = ["server-mode"]
 mock = ["mockall"]
 server-mode = []
-direct-mode = ["aws-config", "aws-sdk-s3"]
 
 [dependencies]
 async-trait = {workspace = true}
@@ -18,8 +17,6 @@ serde_json = {workspace = true}
 chrono = {workspace = true}
 reqwest = {workspace = true}
 mockall = {workspace = true, optional = true}
-aws-config = { version = "1", optional = true }
-aws-sdk-s3 = { version = "1", optional = true }
 
 [dev-dependencies]
 tokio = {workspace = true}

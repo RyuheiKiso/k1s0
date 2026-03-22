@@ -71,15 +71,15 @@ fn test_execute_generate_react_client() {
     let tmp = TempDir::new().unwrap();
     let base = tmp
         .path()
-        .join("regions/business/accounting/client/react/accounting-web");
+        .join("regions/business/taskmanagement/client/react/taskmanagement-web");
 
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
-            name: Some("accounting-web".to_string()),
+            name: Some("taskmanagement-web".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -96,15 +96,15 @@ fn test_execute_generate_react_client() {
 #[test]
 fn test_execute_generate_flutter_client() {
     let tmp = TempDir::new().unwrap();
-    let base = tmp.path().join("regions/service/order/client/flutter");
+    let base = tmp.path().join("regions/service/task/client/flutter");
 
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::Flutter),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -144,15 +144,15 @@ fn test_execute_generate_rust_library() {
     let tmp = TempDir::new().unwrap();
     let base = tmp
         .path()
-        .join("regions/business/accounting/library/rust/ledger-lib");
+        .join("regions/business/taskmanagement/library/rust/project-master-lib");
 
     let config = GenerateConfig {
         kind: Kind::Library,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("ledger-lib".to_string()),
+            name: Some("project-master-lib".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -243,16 +243,16 @@ fn test_database_creates_seeds_and_schema_dirs() {
     let config = GenerateConfig {
         kind: Kind::Database,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Database {
-            name: "order-db".to_string(),
+            name: "task-db".to_string(),
             rdbms: Rdbms::MySQL,
         },
         detail: DetailConfig::default(),
     };
     let result = execute_generate_at(&config, tmp.path());
     assert!(result.is_ok());
-    let base = tmp.path().join("regions/service/order/database/order-db");
+    let base = tmp.path().join("regions/service/task/database/task-db");
     assert!(base.join("seeds").is_dir(), "seeds/ directory should exist");
     assert!(
         base.join("schema").is_dir(),

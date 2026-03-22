@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{header, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -10,7 +10,6 @@ use super::{AppState, ErrorResponse};
 use crate::domain::entity::claims::Claims;
 use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
-use crate::usecase::generate_download_url::DownloadUrlResult;
 use crate::usecase::version_selection::normalize_arch;
 
 /// プラットフォーム・アーキテクチャのクエリパラメータ。
@@ -59,10 +58,7 @@ pub async fn get_latest(
         .execute(&id, platform.as_ref(), arch.as_deref())
         .await
     {
-        Ok(version) => {
-            // レスポンスDTOを直接 Json として返す（.expect() 排除）
-            (StatusCode::OK, Json(version)).into_response()
-        }
+        Ok(version) => (StatusCode::OK, Json(version)).into_response(),
         Err(crate::usecase::get_latest::GetLatestError::AppNotFound(_)) => {
             let err =
                 ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");
@@ -92,7 +88,7 @@ pub async fn get_latest(
         ("arch" = Option<String>, Query, description = "Architecture: amd64/x64, arm64"),
     ),
     responses(
-        (status = 200, description = "Download URL generated", body = DownloadUrlResult),
+        (status = 200, description = "File binary (application/octet-stream)"),
         (status = 404, description = "Version not found"),
     ),
     security(("bearer_auth" = []))
@@ -129,7 +125,20 @@ pub async fn download_version(
         )
         .await
     {
-        Ok(result) => (StatusCode::OK, Json(result)).into_response(),
+        Ok(result) => {
+            // ファイルをバイナリとして直接ストリーミング配信する
+            let content_disposition =
+                format!("attachment; filename=\"{}\"", result.filename);
+            (
+                StatusCode::OK,
+                [
+                    (header::CONTENT_TYPE, result.content_type),
+                    (header::CONTENT_DISPOSITION, content_disposition),
+                ],
+                result.file_bytes,
+            )
+                .into_response()
+        }
         Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::AppNotFound(_)) => {
             let err =
                 ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");

@@ -13,6 +13,7 @@ regions/system/server/rust/graphql-gateway/
 │   ├── lib.rs
 │   ├── domain/
 │   │   ├── mod.rs
+│   │   ├── port.rs                # ポートトレイト（TenantPort, FeatureFlagPort, ConfigPort）
 │   │   ├── model/
 │   │   │   ├── mod.rs
 │   │   │   ├── tenant.rs          # Tenant, TenantStatus, TenantConnection
@@ -25,9 +26,9 @@ regions/system/server/rust/graphql-gateway/
 │   │   │   ├── notification.rs     # NotificationLog, NotificationChannel, NotificationTemplate
 │   │   │   ├── workflow.rs         # WorkflowDefinition, WorkflowStep, WorkflowInstance, WorkflowTask
 │   │   │   ├── payload.rs          # Mutation payload types (all services)
-│   │   │   └── graphql_context.rs # GraphqlContext (user_id, roles, request_id)
+│   │   │   └── graphql_context.rs # GraphqlContext (user_id, roles, request_id, loaders)
 │   │   └── loader/
-│   │       └── mod.rs             # DataLoader trait 定義
+│   │       └── mod.rs             # DataLoader trait 実装（TenantLoader, FeatureFlagLoader, ConfigLoader）
 │   ├── usecase/
 │   │   ├── mod.rs
 │   │   ├── tenant_query.rs        # TenantQueryResolver
@@ -313,14 +314,44 @@ pub struct UserError {
 }
 ```
 
+### src/domain/port.rs
+
+クリーンアーキテクチャの依存性逆転の原則（DIP）に基づき、ドメイン層がインフラストラクチャ層に直接依存しないよう、ポートトレイトを定義する。
+各 gRPC クライアントはこのトレイトを実装することで、domain 層からはトレイトオブジェクト経由でのみアクセスされる。
+
+```rust
+use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
+
+/// テナントサービスへのアクセスを抽象化するポートトレイト
+#[async_trait::async_trait]
+pub trait TenantPort: Send + Sync {
+    async fn list_tenants_by_ids(&self, ids: &[String]) -> anyhow::Result<Vec<Tenant>>;
+}
+
+/// フィーチャーフラグサービスへのアクセスを抽象化するポートトレイト
+#[async_trait::async_trait]
+pub trait FeatureFlagPort: Send + Sync {
+    async fn list_flags_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<FeatureFlag>>;
+}
+
+/// コンフィグサービスへのアクセスを抽象化するポートトレイト
+#[async_trait::async_trait]
+pub trait ConfigPort: Send + Sync {
+    async fn list_configs_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<ConfigEntry>>;
+}
+```
+
 ### src/domain/model/graphql_context.rs
+
+> **注記（監査 C-05 対応）**: 旧実装では `use crate::infrastructure::grpc::{...}` により domain 層が infrastructure 層に直接依存していた（クリーンアーキテクチャ違反）。ポートトレイト（`domain::port`）を導入して依存を逆転させた。
 
 ```rust
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
 
-use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
+// ポートトレイトのみに依存し、インフラストラクチャ層への直接依存を排除
+use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 
 pub struct GraphqlContext {
     pub user_id: String,
@@ -331,16 +362,17 @@ pub struct GraphqlContext {
     pub config_loader: Arc<DataLoader<ConfigLoader>>,
 }
 
+// client フィールドは具象型ではなくトレイトオブジェクトを保持
 pub struct TenantLoader {
-    pub client: Arc<TenantGrpcClient>,
+    pub client: Arc<dyn TenantPort>,
 }
 
 pub struct FeatureFlagLoader {
-    pub client: Arc<FeatureFlagGrpcClient>,
+    pub client: Arc<dyn FeatureFlagPort>,
 }
 
 pub struct ConfigLoader {
-    pub client: Arc<ConfigGrpcClient>,
+    pub client: Arc<dyn ConfigPort>,
 }
 ```
 

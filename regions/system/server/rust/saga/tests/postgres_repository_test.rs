@@ -20,7 +20,7 @@ mod tests {
     fn make_saga(workflow_name: &str) -> SagaState {
         SagaState::new(
             workflow_name.to_string(),
-            serde_json::json!({"order_id": "ORD-001"}),
+            serde_json::json!({"task_id": "TASK-001"}),
             Some("corr-001".to_string()),
             Some("user-1".to_string()),
         )
@@ -41,7 +41,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_and_find_saga() {
         let repo = InMemorySagaRepository::new();
-        let saga = make_saga("order-fulfillment");
+        let saga = make_saga("task-assignment");
         let saga_id = saga.saga_id;
 
         // Saga を作成する
@@ -53,7 +53,7 @@ mod tests {
 
         let found = found.unwrap();
         assert_eq!(found.saga_id, saga_id);
-        assert_eq!(found.workflow_name, "order-fulfillment");
+        assert_eq!(found.workflow_name, "task-assignment");
         assert_eq!(found.status, SagaStatus::Started);
         assert_eq!(found.current_step, 0);
         assert_eq!(found.correlation_id.as_deref(), Some("corr-001"));
@@ -107,7 +107,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_with_step_log_atomicity() {
         let repo = InMemorySagaRepository::new();
-        let mut saga = make_saga("order-fulfillment");
+        let mut saga = make_saga("task-assignment");
         let saga_id = saga.saga_id;
         repo.create(&saga).await.unwrap();
 
@@ -115,8 +115,8 @@ mod tests {
         let mut step_log = SagaStepLog::new_execute(
             saga_id,
             0,
-            "reserve-inventory".to_string(),
-            Some(serde_json::json!({"item_id": "ITEM-001"})),
+            "create-task".to_string(),
+            Some(serde_json::json!({"task_id": "TASK-001"})),
         );
         step_log.mark_success(Some(serde_json::json!({"reserved": true})));
 
@@ -134,7 +134,7 @@ mod tests {
         // ステップログが記録されていることを検証する
         let logs = repo.find_step_logs(saga_id).await.unwrap();
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].step_name, "reserve-inventory");
+        assert_eq!(logs[0].step_name, "create-task");
         assert_eq!(
             logs[0].status,
             k1s0_saga_server::domain::entity::saga_step_log::StepStatus::Success
@@ -145,7 +145,7 @@ mod tests {
     #[tokio::test]
     async fn test_multiple_step_logs() {
         let repo = InMemorySagaRepository::new();
-        let mut saga = make_saga("order-fulfillment");
+        let mut saga = make_saga("task-assignment");
         let saga_id = saga.saga_id;
         repo.create(&saga).await.unwrap();
 
@@ -153,7 +153,7 @@ mod tests {
         let mut log0 = SagaStepLog::new_execute(
             saga_id,
             0,
-            "reserve-inventory".to_string(),
+            "create-task".to_string(),
             None,
         );
         log0.mark_success(Some(serde_json::json!({"ok": true})));
@@ -164,25 +164,25 @@ mod tests {
         let mut log1 = SagaStepLog::new_execute(
             saga_id,
             1,
-            "process-payment".to_string(),
+            "increment-board-column".to_string(),
             None,
         );
-        log1.mark_failed("payment declined".to_string());
-        saga.start_compensation("step 'process-payment' failed".to_string());
+        log1.mark_failed("board column increment failed".to_string());
+        saga.start_compensation("step 'increment-board-column' failed".to_string());
         repo.update_with_step_log(&saga, &log1).await.unwrap();
 
         // 全ステップログが記録されていることを検証する
         let logs = repo.find_step_logs(saga_id).await.unwrap();
         assert_eq!(logs.len(), 2, "2件のステップログが記録される");
-        assert_eq!(logs[0].step_name, "reserve-inventory");
-        assert_eq!(logs[1].step_name, "process-payment");
+        assert_eq!(logs[0].step_name, "create-task");
+        assert_eq!(logs[1].step_name, "increment-board-column");
         assert_eq!(
             logs[1].status,
             k1s0_saga_server::domain::entity::saga_step_log::StepStatus::Failed
         );
         assert_eq!(
             logs[1].error_message.as_deref(),
-            Some("payment declined")
+            Some("board column increment failed")
         );
     }
 
@@ -253,21 +253,21 @@ mod tests {
         let repo = InMemorySagaRepository::new();
 
         // 異なるワークフロー名のSagaを作成する
-        repo.create(&make_saga("order-fulfillment")).await.unwrap();
-        repo.create(&make_saga("order-fulfillment")).await.unwrap();
-        repo.create(&make_saga("payment-processing")).await.unwrap();
+        repo.create(&make_saga("task-assignment")).await.unwrap();
+        repo.create(&make_saga("task-assignment")).await.unwrap();
+        repo.create(&make_saga("board-update")).await.unwrap();
 
         // workflow_name フィルタで絞り込む
         let params = SagaListParams {
-            workflow_name: Some("order-fulfillment".to_string()),
+            workflow_name: Some("task-assignment".to_string()),
             page: 1,
             page_size: 10,
             ..Default::default()
         };
         let (sagas, total) = repo.list(&params).await.unwrap();
-        assert_eq!(total, 2, "order-fulfillment は2件");
+        assert_eq!(total, 2, "task-assignment は2件");
         assert_eq!(sagas.len(), 2);
-        assert!(sagas.iter().all(|s| s.workflow_name == "order-fulfillment"));
+        assert!(sagas.iter().all(|s| s.workflow_name == "task-assignment"));
     }
 
     /// list の status フィルタを検証する

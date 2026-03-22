@@ -20,6 +20,7 @@ use crate::usecase::{
     ListAppsUseCase, ListVersionsUseCase, UpdateAppUseCase,
 };
 
+
 /// ValidateTokenUseCase はトークン検証のためのユースケース。
 /// auth server の ValidateTokenUseCase と同等だが、app-registry 用に簡略化。
 pub struct ValidateTokenUseCase {
@@ -104,7 +105,6 @@ pub struct AppState {
         crate::domain::entity::version::AppVersion,
         crate::domain::entity::platform::Platform,
         crate::domain::entity::download_stat::DownloadStat,
-        crate::usecase::generate_download_url::DownloadUrlResult,
         crate::usecase::get_download_stats::DownloadStatsSummary,
         app_handler::AppListResponse,
         version_handler::VersionListResponse,

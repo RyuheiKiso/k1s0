@@ -203,7 +203,7 @@ fn metrics_kafka_produce_consume() {
     let m = Metrics::new("kafka-test");
     m.record_kafka_message_produced("orders.created");
     m.record_kafka_message_produced("orders.created");
-    m.record_kafka_message_consumed("payments.completed", "order-server.default");
+    m.record_kafka_message_consumed("tasks.completed", "task-server.default");
 
     let output = m.gather_metrics();
     assert!(output.contains("kafka_messages_produced_total"));

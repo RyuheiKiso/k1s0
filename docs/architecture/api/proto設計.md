@@ -119,12 +119,16 @@ api/proto/
   │   └── eventmonitor/
   │       └── v1/event_monitor.proto      # EventMonitorService
   ├── business/
-  │   └── accounting/
-  │       └── domainmaster/
-  │           └── v1/domain_master.proto  # DomainMasterService
+  │   └── taskmanagement/
+  │       └── projectmaster/
+  │           └── v1/project_master.proto  # ProjectMasterService
   └── service/
-    └── order/
-      └── v1/order.proto                 # OrderService
+    ├── task/
+    │   └── v1/task.proto                  # TaskService
+    ├── board/
+    │   └── v1/board.proto                 # BoardService
+    └── activity/
+        └── v1/activity.proto              # ActivityService
 ```
 
 ### Kafka イベント定義
@@ -140,13 +144,15 @@ api/proto/k1s0/
     │   └── config/
     │       └── v1/config_events.proto    # 設定変更イベント
     ├── business/
-    │   └── accounting/
-    │       └── v1/accounting_events.proto
+    │   └── taskmanagement/
+    │       └── v1/taskmanagement_events.proto
     └── service/
-        ├── order/
-        │   └── v1/order_events.proto
-        └── inventory/
-            └── v1/inventory_events.proto
+        ├── task/
+        │   └── v1/task_events.proto
+        ├── board/
+        │   └── v1/board_events.proto
+        └── activity/
+            └── v1/activity_events.proto
 ```
 
 ---
@@ -4147,85 +4153,81 @@ message DiffModifiedEntryProto {
 
 ---
 
-## ドメインマスタサービス定義（domain_master.proto）— Business Tier
+## プロジェクトマスタサービス定義（project_master.proto）— Business Tier
 
-パッケージ: `k1s0.business.accounting.domainmaster.v1`
+パッケージ: `k1s0.business.taskmanagement.projectmaster.v1`
 
-会計ドメインのマスタデータ管理サービス。カテゴリ・項目の CRUD、バージョン履歴の取得、およびテナント単位のマスタ拡張（表示名オーバーライド・属性拡張）を提供する。
+タスク管理ドメインのマスタデータ管理サービス。プロジェクトタイプ・ステータス定義の CRUD、バージョン履歴の取得、およびテナント単位のプロジェクト拡張を提供する。
 
 ```protobuf
-// api/proto/k1s0/business/accounting/domainmaster/v1/domain_master.proto
+// api/proto/k1s0/business/taskmanagement/projectmaster/v1/project_master.proto
 syntax = "proto3";
-package k1s0.business.accounting.domainmaster.v1;
+package k1s0.business.taskmanagement.projectmaster.v1;
 
-option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/business/accounting/domainmaster/v1;domainmasterv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/business/taskmanagement/projectmaster/v1;projectmasterv1";
 
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
-service DomainMasterService {
-  // カテゴリ操作
-  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
-  rpc GetCategory(GetCategoryRequest) returns (GetCategoryResponse);
-  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
-  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
-  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+service ProjectMasterService {
+  // プロジェクトタイプ操作
+  rpc ListProjectTypes(ListProjectTypesRequest) returns (ListProjectTypesResponse);
+  rpc GetProjectType(GetProjectTypeRequest) returns (GetProjectTypeResponse);
+  rpc CreateProjectType(CreateProjectTypeRequest) returns (CreateProjectTypeResponse);
+  rpc UpdateProjectType(UpdateProjectTypeRequest) returns (UpdateProjectTypeResponse);
+  rpc DeleteProjectType(DeleteProjectTypeRequest) returns (DeleteProjectTypeResponse);
 
-  // 項目操作
-  rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
-  rpc GetItem(GetItemRequest) returns (GetItemResponse);
-  rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
-  rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
-  rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse);
+  // ステータス定義操作
+  rpc ListStatusDefinitions(ListStatusDefinitionsRequest) returns (ListStatusDefinitionsResponse);
+  rpc GetStatusDefinition(GetStatusDefinitionRequest) returns (GetStatusDefinitionResponse);
+  rpc CreateStatusDefinition(CreateStatusDefinitionRequest) returns (CreateStatusDefinitionResponse);
+  rpc UpdateStatusDefinition(UpdateStatusDefinitionRequest) returns (UpdateStatusDefinitionResponse);
+  rpc DeleteStatusDefinition(DeleteStatusDefinitionRequest) returns (DeleteStatusDefinitionResponse);
 
   // バージョン操作
-  rpc ListItemVersions(ListItemVersionsRequest) returns (ListItemVersionsResponse);
+  rpc ListStatusDefinitionVersions(ListStatusDefinitionVersionsRequest) returns (ListStatusDefinitionVersionsResponse);
 
   // テナント拡張操作
-  rpc GetTenantExtension(GetTenantExtensionRequest) returns (GetTenantExtensionResponse);
-  rpc UpsertTenantExtension(UpsertTenantExtensionRequest) returns (UpsertTenantExtensionResponse);
-  rpc DeleteTenantExtension(DeleteTenantExtensionRequest) returns (DeleteTenantExtensionResponse);
-  rpc ListTenantItems(ListTenantItemsRequest) returns (ListTenantItemsResponse);
+  rpc GetTenantProjectExtension(GetTenantProjectExtensionRequest) returns (GetTenantProjectExtensionResponse);
+  rpc UpsertTenantProjectExtension(UpsertTenantProjectExtensionRequest) returns (UpsertTenantProjectExtensionResponse);
+  rpc DeleteTenantProjectExtension(DeleteTenantProjectExtensionRequest) returns (DeleteTenantProjectExtensionResponse);
 }
 
 // ============================================================
 // Domain Types
 // ============================================================
 
-message MasterCategory {
+message ProjectType {
   string id = 1;
   string code = 2;
   string display_name = 3;
-  string description = 4;
-  google.protobuf.Struct validation_schema = 5;          // カテゴリ固有のバリデーションスキーマ
-  bool is_active = 6;
-  int32 sort_order = 7;
-  string created_by = 8;
-  google.protobuf.Timestamp created_at = 9;
-  google.protobuf.Timestamp updated_at = 10;
+  optional string description = 4;
+  bool is_active = 5;
+  int32 sort_order = 6;
+  string created_by = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp updated_at = 9;
 }
 
-message MasterItem {
+message StatusDefinition {
   string id = 1;
-  string category_id = 2;
+  string project_type_code = 2;
   string code = 3;
   string display_name = 4;
-  string description = 5;
-  google.protobuf.Struct attributes = 6;                 // カテゴリ定義に準拠した属性
-  optional string parent_item_id = 7;                    // 階層構造（親項目 ID）
-  google.protobuf.Timestamp effective_from = 8;          // 有効開始日
-  optional google.protobuf.Timestamp effective_until = 9; // 有効終了日（null = 無期限）
-  bool is_active = 10;
-  int32 sort_order = 11;
-  string created_by = 12;
-  google.protobuf.Timestamp created_at = 13;
-  google.protobuf.Timestamp updated_at = 14;
+  optional string description = 5;
+  optional string color = 6;                             // 表示色（例: "#0052CC"）
+  bool is_terminal = 7;                                  // 終端ステータスか
+  int32 sort_order = 8;
+  int32 version = 9;                                     // 楽観的排他制御用
+  string created_by = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
 }
 
-message MasterItemVersion {
+message StatusDefinitionVersion {
   string id = 1;
-  string item_id = 2;
+  string status_definition_id = 2;
   int32 version_number = 3;
   google.protobuf.Struct before_data = 4;
   google.protobuf.Struct after_data = 5;
@@ -4234,202 +4236,175 @@ message MasterItemVersion {
   google.protobuf.Timestamp created_at = 8;
 }
 
-message TenantMasterExtension {
+message TenantProjectExtension {
   string id = 1;
   string tenant_id = 2;
-  string item_id = 3;
-  optional string display_name_override = 4;             // テナント固有の表示名
-  google.protobuf.Struct attributes_override = 5;        // テナント固有の属性オーバーライド
+  string project_type_code = 3;
+  optional string display_name_override = 4;
+  google.protobuf.Struct custom_fields = 5;
   bool is_enabled = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
 }
 
-message TenantMergedItem {
-  MasterItem base_item = 1;
-  optional TenantMasterExtension extension = 2;
-  string effective_display_name = 3;                     // マージ後の表示名
-  google.protobuf.Struct effective_attributes = 4;       // マージ後の属性
-}
-
 // ============================================================
-// Category Request/Response
+// ProjectType Request/Response
 // ============================================================
 
-message ListCategoriesRequest {
+message ListProjectTypesRequest {
   bool active_only = 1;
   k1s0.system.common.v1.Pagination pagination = 2;
 }
 
-message ListCategoriesResponse {
-  repeated MasterCategory categories = 1;
+message ListProjectTypesResponse {
+  repeated ProjectType project_types = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
-message GetCategoryRequest {
-  string category_id = 1;
+message GetProjectTypeRequest {
+  string code = 1;
 }
 
-message GetCategoryResponse {
-  MasterCategory category = 1;
+message GetProjectTypeResponse {
+  ProjectType project_type = 1;
 }
 
-message CreateCategoryRequest {
+message CreateProjectTypeRequest {
   string code = 1;
   string display_name = 2;
   optional string description = 3;
-  google.protobuf.Struct validation_schema = 4;
-  optional bool is_active = 5;
-  optional int32 sort_order = 6;
+  optional bool is_active = 4;
+  optional int32 sort_order = 5;
 }
 
-message CreateCategoryResponse {
-  MasterCategory category = 1;
+message CreateProjectTypeResponse {
+  ProjectType project_type = 1;
 }
 
-message UpdateCategoryRequest {
-  string category_id = 1;
+message UpdateProjectTypeRequest {
+  string code = 1;
   optional string display_name = 2;
   optional string description = 3;
-  google.protobuf.Struct validation_schema = 4;
-  optional bool is_active = 5;
-  optional int32 sort_order = 6;
+  optional bool is_active = 4;
+  optional int32 sort_order = 5;
 }
 
-message UpdateCategoryResponse {
-  MasterCategory category = 1;
+message UpdateProjectTypeResponse {
+  ProjectType project_type = 1;
 }
 
-message DeleteCategoryRequest {
-  string category_id = 1;
+message DeleteProjectTypeRequest {
+  string code = 1;
 }
 
-message DeleteCategoryResponse {
+message DeleteProjectTypeResponse {
   bool success = 1;
 }
 
 // ============================================================
-// Item Request/Response
+// StatusDefinition Request/Response
 // ============================================================
 
-message ListItemsRequest {
-  string category_id = 1;
-  bool active_only = 2;
-  k1s0.system.common.v1.Pagination pagination = 3;
-}
-
-message ListItemsResponse {
-  repeated MasterItem items = 1;
-  k1s0.system.common.v1.PaginationResult pagination = 2;
-}
-
-message GetItemRequest {
-  string item_id = 1;
-}
-
-message GetItemResponse {
-  MasterItem item = 1;
-}
-
-message CreateItemRequest {
-  string category_id = 1;
-  string code = 2;
-  string display_name = 3;
-  optional string description = 4;
-  google.protobuf.Struct attributes = 5;
-  optional string parent_item_id = 6;
-  optional google.protobuf.Timestamp effective_from = 7;
-  optional google.protobuf.Timestamp effective_until = 8;
-  optional bool is_active = 9;
-  optional int32 sort_order = 10;
-}
-
-message CreateItemResponse {
-  MasterItem item = 1;
-}
-
-message UpdateItemRequest {
-  string item_id = 1;
-  optional string display_name = 2;
-  optional string description = 3;
-  google.protobuf.Struct attributes = 4;
-  optional string parent_item_id = 5;
-  optional google.protobuf.Timestamp effective_from = 6;
-  optional google.protobuf.Timestamp effective_until = 7;
-  optional bool is_active = 8;
-  optional int32 sort_order = 9;
-}
-
-message UpdateItemResponse {
-  MasterItem item = 1;
-}
-
-message DeleteItemRequest {
-  string item_id = 1;
-}
-
-message DeleteItemResponse {
-  bool success = 1;
-}
-
-// ============================================================
-// Item Version Request/Response
-// ============================================================
-
-message ListItemVersionsRequest {
-  string item_id = 1;
+message ListStatusDefinitionsRequest {
+  string project_type_code = 1;
   k1s0.system.common.v1.Pagination pagination = 2;
 }
 
-message ListItemVersionsResponse {
-  repeated MasterItemVersion versions = 1;
+message ListStatusDefinitionsResponse {
+  repeated StatusDefinition status_definitions = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
-// ============================================================
-// Tenant Extension Request/Response
-// ============================================================
-
-message GetTenantExtensionRequest {
-  string tenant_id = 1;
-  string item_id = 2;
+message GetStatusDefinitionRequest {
+  string code = 1;
 }
 
-message GetTenantExtensionResponse {
-  TenantMasterExtension extension = 1;
+message GetStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
 }
 
-message UpsertTenantExtensionRequest {
-  string tenant_id = 1;
-  string item_id = 2;
-  optional string display_name_override = 3;
-  google.protobuf.Struct attributes_override = 4;
-  optional bool is_enabled = 5;
+message CreateStatusDefinitionRequest {
+  string project_type_code = 1;
+  string code = 2;
+  string display_name = 3;
+  optional string description = 4;
+  optional string color = 5;
+  optional bool is_terminal = 6;
+  optional int32 sort_order = 7;
 }
 
-message UpsertTenantExtensionResponse {
-  TenantMasterExtension extension = 1;
+message CreateStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
 }
 
-message DeleteTenantExtensionRequest {
-  string tenant_id = 1;
-  string item_id = 2;
+message UpdateStatusDefinitionRequest {
+  string code = 1;
+  optional string display_name = 2;
+  optional string description = 3;
+  optional string color = 4;
+  optional bool is_terminal = 5;
+  optional int32 sort_order = 6;
+  int32 expected_version = 7;
 }
 
-message DeleteTenantExtensionResponse {
+message UpdateStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
+}
+
+message DeleteStatusDefinitionRequest {
+  string code = 1;
+}
+
+message DeleteStatusDefinitionResponse {
   bool success = 1;
 }
 
-message ListTenantItemsRequest {
-  string tenant_id = 1;
-  string category_id = 2;
-  bool active_only = 3;
-  k1s0.system.common.v1.Pagination pagination = 4;
+// ============================================================
+// StatusDefinitionVersion Request/Response
+// ============================================================
+
+message ListStatusDefinitionVersionsRequest {
+  string status_definition_id = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
 }
 
-message ListTenantItemsResponse {
-  repeated TenantMergedItem items = 1;
+message ListStatusDefinitionVersionsResponse {
+  repeated StatusDefinitionVersion versions = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// ============================================================
+// TenantProjectExtension Request/Response
+// ============================================================
+
+message GetTenantProjectExtensionRequest {
+  string tenant_id = 1;
+  string project_type_code = 2;
+}
+
+message GetTenantProjectExtensionResponse {
+  TenantProjectExtension extension = 1;
+}
+
+message UpsertTenantProjectExtensionRequest {
+  string tenant_id = 1;
+  string project_type_code = 2;
+  optional string display_name_override = 3;
+  google.protobuf.Struct custom_fields = 4;
+  optional bool is_enabled = 5;
+}
+
+message UpsertTenantProjectExtensionResponse {
+  TenantProjectExtension extension = 1;
+}
+
+message DeleteTenantProjectExtensionRequest {
+  string tenant_id = 1;
+  string project_type_code = 2;
+}
+
+message DeleteTenantProjectExtensionResponse {
+  bool success = 1;
 }
 ```
 
@@ -4437,130 +4412,114 @@ message ListTenantItemsResponse {
 
 | RPC | 説明 |
 | --- | --- |
-| `DomainMasterService.ListCategories` | アクティブフラグでフィルタしたマスタカテゴリ一覧取得 |
-| `DomainMasterService.GetCategory` | カテゴリ ID でマスタカテゴリ取得 |
-| `DomainMasterService.CreateCategory` | マスタカテゴリの新規作成（バリデーションスキーマ指定） |
-| `DomainMasterService.UpdateCategory` | マスタカテゴリの部分更新 |
-| `DomainMasterService.DeleteCategory` | マスタカテゴリの削除 |
-| `DomainMasterService.ListItems` | カテゴリ ID でフィルタしたマスタ項目一覧取得 |
-| `DomainMasterService.GetItem` | 項目 ID でマスタ項目取得 |
-| `DomainMasterService.CreateItem` | マスタ項目の新規作成（有効期間・階層構造指定） |
-| `DomainMasterService.UpdateItem` | マスタ項目の部分更新 |
-| `DomainMasterService.DeleteItem` | マスタ項目の削除 |
-| `DomainMasterService.ListItemVersions` | 項目 ID でバージョン履歴一覧取得（変更前後データ含む） |
-| `DomainMasterService.GetTenantExtension` | テナント ID + 項目 ID でテナント拡張取得 |
-| `DomainMasterService.UpsertTenantExtension` | テナントマスタ拡張の作成・更新（表示名・属性オーバーライド） |
-| `DomainMasterService.DeleteTenantExtension` | テナントマスタ拡張の削除 |
-| `DomainMasterService.ListTenantItems` | テナント ID + カテゴリ ID でマージ済み項目一覧取得 |
+| `ProjectMasterService.ListProjectTypes` | アクティブフラグでフィルタしたプロジェクトタイプ一覧取得 |
+| `ProjectMasterService.GetProjectType` | コードでプロジェクトタイプ取得 |
+| `ProjectMasterService.CreateProjectType` | プロジェクトタイプの新規作成 |
+| `ProjectMasterService.UpdateProjectType` | プロジェクトタイプの部分更新 |
+| `ProjectMasterService.DeleteProjectType` | プロジェクトタイプの削除 |
+| `ProjectMasterService.ListStatusDefinitions` | プロジェクトタイプコードでフィルタしたステータス定義一覧取得 |
+| `ProjectMasterService.GetStatusDefinition` | コードでステータス定義取得 |
+| `ProjectMasterService.CreateStatusDefinition` | ステータス定義の新規作成 |
+| `ProjectMasterService.UpdateStatusDefinition` | ステータス定義の部分更新（楽観ロック） |
+| `ProjectMasterService.DeleteStatusDefinition` | ステータス定義の削除 |
+| `ProjectMasterService.ListStatusDefinitionVersions` | ステータス定義のバージョン履歴一覧取得 |
+| `ProjectMasterService.GetTenantProjectExtension` | テナント ID + プロジェクトタイプコードでテナント拡張取得 |
+| `ProjectMasterService.UpsertTenantProjectExtension` | テナントプロジェクト拡張の作成・更新 |
+| `ProjectMasterService.DeleteTenantProjectExtension` | テナントプロジェクト拡張の削除 |
 
 ---
 
-## 注文サービス定義（order.proto）— Service Tier
+## タスクサービス定義（task.proto）— Service Tier
 
-パッケージ: `k1s0.service.order.v1`
+パッケージ: `k1s0.service.task.v1`
 
-注文の作成・取得・一覧・ステータス更新を提供するサービス。
+タスクの作成・取得・一覧・ステータス更新を提供するサービス。
 
 ```protobuf
-// api/proto/k1s0/service/order/v1/order.proto
+// api/proto/k1s0/service/task/v1/task.proto
 syntax = "proto3";
-package k1s0.service.order.v1;
+package k1s0.service.task.v1;
 
-option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/order/v1;orderv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/task/v1;taskv1";
 
 import "google/protobuf/timestamp.proto";
 import "k1s0/system/common/v1/types.proto";
 
-service OrderService {
-  // 注文作成
-  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
-  // 注文取得
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
-  // 注文一覧
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
-  // 注文ステータス更新
-  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+service TaskService {
+  // タスク作成
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  // タスク取得
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  // タスク一覧
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  // タスクステータス更新
+  rpc UpdateTaskStatus(UpdateTaskStatusRequest) returns (UpdateTaskStatusResponse);
 }
 
 // ============================================================
 // Domain Types
 // ============================================================
 
-message Order {
+message Task {
   string id = 1;
-  string customer_id = 2;
-  string status = 3;                                     // PENDING / CONFIRMED / SHIPPED / DELIVERED / CANCELLED
-  int64 total_amount = 4;                                // 合計金額（最小通貨単位）
-  string currency = 5;                                   // 通貨コード（例: "JPY", "USD"）
-  optional string notes = 6;
-  string created_by = 7;
-  optional string updated_by = 8;
-  int32 version = 9;                                     // 楽観的排他制御用
-  repeated OrderItem items = 10;
+  string project_id = 2;
+  string title = 3;
+  optional string description = 4;
+  string status = 5;                                     // Open / InProgress / Review / Done / Cancelled
+  optional string assignee_id = 6;
+  optional string due_date = 7;
+  string created_by = 8;
+  optional string updated_by = 9;
+  int32 version = 10;                                    // 楽観的排他制御用
   google.protobuf.Timestamp created_at = 11;
   google.protobuf.Timestamp updated_at = 12;
-}
-
-message OrderItem {
-  string id = 1;
-  string order_id = 2;
-  string product_id = 3;
-  string product_name = 4;
-  int32 quantity = 5;
-  int64 unit_price = 6;                                  // 単価（最小通貨単位）
-  int64 subtotal = 7;                                    // 小計（最小通貨単位）
-  google.protobuf.Timestamp created_at = 8;
 }
 
 // ============================================================
 // Request/Response
 // ============================================================
 
-message CreateOrderRequest {
-  string customer_id = 1;
-  string currency = 2;
-  optional string notes = 3;
-  repeated CreateOrderItemRequest items = 4;
+message CreateTaskRequest {
+  string project_id = 1;
+  string title = 2;
+  optional string description = 3;
+  optional string assignee_id = 4;
+  optional string due_date = 5;
 }
 
-message CreateOrderItemRequest {
-  string product_id = 1;
-  string product_name = 2;
-  int32 quantity = 3;
-  int64 unit_price = 4;
+message CreateTaskResponse {
+  Task task = 1;
 }
 
-message CreateOrderResponse {
-  Order order = 1;
+message GetTaskRequest {
+  string task_id = 1;
 }
 
-message GetOrderRequest {
-  string order_id = 1;
+message GetTaskResponse {
+  Task task = 1;
 }
 
-message GetOrderResponse {
-  Order order = 1;
-}
-
-message ListOrdersRequest {
-  optional string customer_id = 1;
+message ListTasksRequest {
+  optional string project_id = 1;
   optional string status = 2;
-  k1s0.system.common.v1.Pagination pagination = 3;
+  optional string assignee_id = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
 }
 
-message ListOrdersResponse {
-  repeated Order orders = 1;
+message ListTasksResponse {
+  repeated Task tasks = 1;
   int64 total_count = 2;
   k1s0.system.common.v1.PaginationResult pagination = 3;
 }
 
-message UpdateOrderStatusRequest {
-  string order_id = 1;
+message UpdateTaskStatusRequest {
+  string task_id = 1;
   string status = 2;
+  int32 expected_version = 3;
 }
 
-message UpdateOrderStatusResponse {
-  Order order = 1;
+message UpdateTaskStatusResponse {
+  Task task = 1;
 }
 ```
 
@@ -4568,10 +4527,10 @@ message UpdateOrderStatusResponse {
 
 | RPC | 説明 |
 | --- | --- |
-| `OrderService.CreateOrder` | 注文の新規作成（顧客・通貨・明細指定） |
-| `OrderService.GetOrder` | 注文 ID で注文詳細取得（明細含む） |
-| `OrderService.ListOrders` | 顧客・ステータスでフィルタした注文一覧取得 |
-| `OrderService.UpdateOrderStatus` | 注文ステータスの更新 |
+| `TaskService.CreateTask` | タスクの新規作成（プロジェクト・タイトル・担当者指定） |
+| `TaskService.GetTask` | タスク ID でタスク詳細取得 |
+| `TaskService.ListTasks` | プロジェクト・ステータス・担当者でフィルタしたタスク一覧取得 |
+| `TaskService.UpdateTaskStatus` | タスクステータスの更新（楽観ロック） |
 
 ---
 

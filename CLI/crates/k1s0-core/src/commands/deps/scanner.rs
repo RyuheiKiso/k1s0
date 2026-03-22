@@ -681,30 +681,30 @@ mod tests {
     #[test]
     fn test_scan_services_business_tier() {
         let tmp = TempDir::new().unwrap();
-        let acct_dir = tmp.path().join("regions/business/accounting/server/rust");
-        fs::create_dir_all(&acct_dir).unwrap();
-        fs::write(acct_dir.join("Cargo.toml"), "[package]").unwrap();
+        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        fs::create_dir_all(&tm_dir).unwrap();
+        fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 
         let services = scan_services(tmp.path());
         assert_eq!(services.len(), 1);
-        assert_eq!(services[0].name, "accounting-server");
+        assert_eq!(services[0].name, "taskmanagement-server");
         assert_eq!(services[0].tier, "business");
-        assert_eq!(services[0].domain, Some("accounting".to_string()));
+        assert_eq!(services[0].domain, Some("taskmanagement".to_string()));
         assert_eq!(services[0].language, "rust");
     }
 
     #[test]
     fn test_scan_services_service_tier() {
         let tmp = TempDir::new().unwrap();
-        let order_dir = tmp.path().join("regions/service/order/server/go");
-        fs::create_dir_all(&order_dir).unwrap();
-        fs::write(order_dir.join("go.mod"), "module order-server").unwrap();
+        let task_dir = tmp.path().join("regions/service/task/server/go");
+        fs::create_dir_all(&task_dir).unwrap();
+        fs::write(task_dir.join("go.mod"), "module task-server").unwrap();
 
         let services = scan_services(tmp.path());
         assert_eq!(services.len(), 1);
-        assert_eq!(services[0].name, "order-server");
+        assert_eq!(services[0].name, "task-server");
         assert_eq!(services[0].tier, "service");
-        assert_eq!(services[0].domain, Some("order".to_string()));
+        assert_eq!(services[0].domain, Some("task".to_string()));
     }
 
     #[test]
@@ -717,21 +717,21 @@ mod tests {
         fs::write(auth_dir.join("Cargo.toml"), "[package]").unwrap();
 
         // business
-        let acct_dir = tmp.path().join("regions/business/accounting/server/rust");
-        fs::create_dir_all(&acct_dir).unwrap();
-        fs::write(acct_dir.join("Cargo.toml"), "[package]").unwrap();
+        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        fs::create_dir_all(&tm_dir).unwrap();
+        fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 
         // service
-        let order_dir = tmp.path().join("regions/service/order/server/go");
-        fs::create_dir_all(&order_dir).unwrap();
-        fs::write(order_dir.join("go.mod"), "module order").unwrap();
+        let task_dir = tmp.path().join("regions/service/task/server/go");
+        fs::create_dir_all(&task_dir).unwrap();
+        fs::write(task_dir.join("go.mod"), "module task").unwrap();
 
         let services = scan_services(tmp.path());
         assert_eq!(services.len(), 3);
         // ソート済み
-        assert_eq!(services[0].name, "accounting-server");
-        assert_eq!(services[1].name, "auth-server");
-        assert_eq!(services[2].name, "order-server");
+        assert_eq!(services[0].name, "auth-server");
+        assert_eq!(services[1].name, "task-server");
+        assert_eq!(services[2].name, "taskmanagement-server");
     }
 
     #[test]
@@ -879,11 +879,11 @@ kafka:
     fn test_scan_rest_dependencies() {
         let tmp = TempDir::new().unwrap();
 
-        let order_dir = tmp.path().join("regions/service/order/server/rust");
-        fs::create_dir_all(order_dir.join("src")).unwrap();
-        fs::write(order_dir.join("Cargo.toml"), "[package]").unwrap();
+        let task_dir = tmp.path().join("regions/service/task/server/rust");
+        fs::create_dir_all(task_dir.join("src")).unwrap();
+        fs::write(task_dir.join("Cargo.toml"), "[package]").unwrap();
         fs::write(
-            order_dir.join("src/client.rs"),
+            task_dir.join("src/client.rs"),
             r#"let url = "http://auth.k1s0-system:8080/api/v1/verify";"#,
         )
         .unwrap();
@@ -895,7 +895,7 @@ kafka:
         let services = scan_services(tmp.path());
         let deps = scan_rest_dependencies(&services, tmp.path());
         assert_eq!(deps.len(), 1);
-        assert_eq!(deps[0].source, "order-server");
+        assert_eq!(deps[0].source, "task-server");
         assert_eq!(deps[0].target, "auth-server");
         assert_eq!(deps[0].dep_type, DependencyType::Rest);
     }

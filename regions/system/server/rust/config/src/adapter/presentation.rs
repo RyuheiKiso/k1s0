@@ -411,7 +411,7 @@ mod tests {
     fn domain_schema_maps_to_rest_dto_with_legacy_shape() {
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
-            service_name: "order-service".to_string(),
+            service_name: "task-server".to_string(),
             namespace_prefix: "service.order".to_string(),
             schema_json: serde_json::json!({
                 "categories": [{
@@ -433,7 +433,7 @@ mod tests {
         };
 
         let dto = ConfigEditorSchemaDto::try_from(&schema).unwrap();
-        assert_eq!(dto.service, "order-service");
+        assert_eq!(dto.service, "task-server");
         assert_eq!(
             dto.categories[0].fields[0].field_type,
             ConfigFieldType::Integer
@@ -476,7 +476,7 @@ mod tests {
     #[test]
     fn pb_schema_roundtrip_uses_shared_conversion() {
         let pb_schema = pb::ConfigEditorSchema {
-            service_name: "order-service".to_string(),
+            service_name: "task-server".to_string(),
             namespace_prefix: "service.order".to_string(),
             categories: vec![pb::ConfigCategorySchema {
                 id: "database".to_string(),
@@ -503,7 +503,7 @@ mod tests {
         };
 
         let dto = ConfigEditorSchemaDto::from_pb(&pb_schema).unwrap();
-        assert_eq!(dto.service, "order-service");
+        assert_eq!(dto.service, "task-server");
         assert_eq!(
             dto.categories[0].fields[0].field_type,
             ConfigFieldType::Integer
@@ -511,7 +511,7 @@ mod tests {
         assert_eq!(dto.categories[0].fields[0].default, serde_json::json!(30));
 
         let converted = dto.to_pb();
-        assert_eq!(converted.service_name, "order-service");
+        assert_eq!(converted.service_name, "task-server");
         assert_eq!(converted.categories[0].fields[0].r#type, 2);
     }
 }

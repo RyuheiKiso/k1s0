@@ -46,7 +46,7 @@ fn render_devcontainer(
     fs::create_dir_all(&output_dir).unwrap();
 
     let mut builder =
-        TemplateContextBuilder::new("order-api", "service", lang, "devcontainer").framework(fw);
+        TemplateContextBuilder::new("task-api", "service", lang, "devcontainer").framework(fw);
 
     if has_database {
         builder = builder.with_database(database_type);

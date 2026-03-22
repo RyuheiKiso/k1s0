@@ -74,7 +74,7 @@
         </mxCell>
 
         <!-- 導入対象候補ノート -->
-        <mxCell id="target-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;GraphQL 導入対象候補&lt;/b&gt;&lt;br&gt;- ダッシュボード画面&lt;br&gt;&amp;nbsp;&amp;nbsp;(注文+在庫+会計+ユーザー)&lt;br&gt;- レポート画面&lt;br&gt;- ユーザープロフィール画面&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#D6B656;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
+        <mxCell id="target-note" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;GraphQL 導入対象候補&lt;/b&gt;&lt;br&gt;- ダッシュボード画面&lt;br&gt;&amp;nbsp;&amp;nbsp;(タスク+ボードカード+アクティビティ+ユーザー)&lt;br&gt;- レポート画面&lt;br&gt;- ユーザープロフィール画面&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F5F5F5;strokeColor=#D6B656;fontSize=9;align=left;spacingLeft=8;" vertex="1" parent="1">
           <mxGeometry x="350" y="500" width="220" height="90" as="geometry"/>
         </mxCell>
 
@@ -129,10 +129,10 @@
         </mxCell>
 
         <!-- Backend Services -->
-        <mxCell id="backend1" value="&lt;b&gt;Order&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+        <mxCell id="backend1" value="&lt;b&gt;Task&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
           <mxGeometry x="650" y="570" width="80" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="backend2" value="&lt;b&gt;Inventory&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
+        <mxCell id="backend2" value="&lt;b&gt;Board&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=80;" vertex="1" parent="1">
           <mxGeometry x="740" y="570" width="80" height="40" as="geometry"/>
         </mxCell>
         <mxCell id="backend3" value="&lt;b&gt;Tenant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;gRPC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#E1D5E7;strokeColor=#9673A6;opacity=80;" vertex="1" parent="1">

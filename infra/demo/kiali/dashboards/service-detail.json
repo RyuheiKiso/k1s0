@@ -86,7 +86,7 @@
         "datasource": { "type": "prometheus", "uid": "prometheus" },
         "query": { "query": "label_values(http_requests_total{namespace=~\"$namespace\"}, service)", "refId": "service" },
         "definition": "label_values(http_requests_total{namespace=~\"$namespace\"}, service)",
-        "current": { "selected": true, "text": "order-server", "value": "order-server" },
+        "current": { "selected": true, "text": "task-server", "value": "task-server" },
         "includeAll": true,
         "multi": false
       }

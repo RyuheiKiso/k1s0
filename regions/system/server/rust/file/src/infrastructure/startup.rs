@@ -10,6 +10,7 @@ use k1s0_server_common::middleware::rbac::Tier;
 
 use super::config::Config;
 use super::in_memory::{InMemoryFileMetadataRepository, InMemoryFileStorageRepository};
+use super::local_fs_storage::LocalFsStorageRepository;
 use super::kafka_producer::{FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher};
 use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use crate::proto::k1s0::system::file::v1::file_service_server::FileServiceServer;
@@ -87,23 +88,24 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::new(InMemoryFileMetadataRepository::new())
     };
 
-    // Storage backend (S3 or InMemory)
-
+    // Storage backend（ローカルFS または インメモリ）
     let storage_repo: Arc<dyn FileStorageRepository> = if let Some(ref storage_cfg) = cfg.storage {
-        if storage_cfg.backend == "s3" {
-            let bucket = storage_cfg
-                .bucket
+        if storage_cfg.backend == "local" {
+            let root_path = storage_cfg
+                .path
                 .clone()
-                .unwrap_or_else(|| "k1s0-files".to_string());
-            info!(bucket = %bucket, "initializing S3 storage backend");
-            Arc::new(
-                super::s3_storage::S3StorageRepository::new(
-                    bucket,
-                    storage_cfg.region.clone(),
-                    storage_cfg.endpoint.clone(),
-                )
-                .await?,
-            )
+                .unwrap_or_else(|| "/data/files".to_string());
+            let base_url = storage_cfg
+                .base_url
+                .clone()
+                .unwrap_or_else(|| {
+                    format!("http://{}:{}", cfg.server.host, cfg.server.port)
+                });
+            info!(root_path = %root_path, "initializing local filesystem storage backend");
+            Arc::new(LocalFsStorageRepository::new(
+                std::path::PathBuf::from(root_path),
+                base_url,
+            ))
         } else {
             info!("using in-memory storage backend");
             Arc::new(InMemoryFileStorageRepository::new())

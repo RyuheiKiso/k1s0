@@ -73,13 +73,13 @@
           <mxGeometry x="510" y="333" width="200" height="20" as="geometry"/>
         </mxCell>
 
-        <mxCell id="order" value="&lt;b&gt;order-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+        <mxCell id="order" value="&lt;b&gt;task-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
           <mxGeometry x="520" y="370" width="120" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="inventory" value="&lt;b&gt;inventory-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+        <mxCell id="inventory" value="&lt;b&gt;board-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
           <mxGeometry x="660" y="370" width="130" height="40" as="geometry"/>
         </mxCell>
-        <mxCell id="payment" value="&lt;b&gt;payment-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
+        <mxCell id="payment" value="&lt;b&gt;activity-server&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;arcSize=20;" vertex="1" parent="1">
           <mxGeometry x="810" y="370" width="120" height="40" as="geometry"/>
         </mxCell>
 

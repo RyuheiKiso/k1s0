@@ -54,7 +54,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_keycloak_file_list() {
-    let Some((_, names)) = render_keycloak("order-api", "service") else {
+    let Some((_, names)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
@@ -71,35 +71,35 @@ fn test_keycloak_file_list() {
 
 #[test]
 fn test_keycloak_client_has_client_id() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
-        content.contains("\"clientId\": \"order-api\""),
+        content.contains("\"clientId\": \"task-api\""),
         "Keycloak client should have correct clientId\n--- keycloak-client.json ---\n{content}"
     );
 }
 
 #[test]
 fn test_keycloak_client_has_pascal_name() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "keycloak-client.json");
     assert!(
-        content.contains("OrderApi"),
+        content.contains("TaskApi"),
         "Keycloak client should use PascalCase name\n--- keycloak-client.json ---\n{content}"
     );
 }
 
 #[test]
 fn test_keycloak_client_has_namespace() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
@@ -113,7 +113,7 @@ fn test_keycloak_client_has_namespace() {
 
 #[test]
 fn test_keycloak_client_has_tier() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
@@ -127,7 +127,7 @@ fn test_keycloak_client_has_tier() {
 
 #[test]
 fn test_keycloak_client_openid_connect() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
@@ -141,7 +141,7 @@ fn test_keycloak_client_openid_connect() {
 
 #[test]
 fn test_keycloak_client_service_accounts_enabled() {
-    let Some((tmp, _)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, _)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };
@@ -159,7 +159,7 @@ fn test_keycloak_client_service_accounts_enabled() {
 
 #[test]
 fn test_keycloak_no_tera_syntax() {
-    let Some((tmp, names)) = render_keycloak("order-api", "service") else {
+    let Some((tmp, names)) = render_keycloak("task-api", "service") else {
         eprintln!("SKIP: keycloak テンプレートディレクトリが未作成");
         return;
     };

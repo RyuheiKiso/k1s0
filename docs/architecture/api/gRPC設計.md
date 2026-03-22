@@ -22,7 +22,7 @@ k1s0.{tier}.{domain}.v{major}
 | ---------- | -------------------------- | ------------------- |
 | `k1s0`     | プロジェクトプレフィックス | 固定                |
 | `tier`     | Tier 名                    | `system`, `service` |
-| `domain`   | ドメイン名                 | `auth`, `order`     |
+| `domain`   | ドメイン名                 | `auth`, `task`      |
 | `v{major}` | メジャーバージョン         | `v1`, `v2`          |
 
 ### proto ファイル配置
@@ -34,9 +34,9 @@ k1s0.{tier}.{domain}.v{major}
 | 対象 | 配置先 | 例 |
 | --- | --- | --- |
 | 複数サービスで共有する message 型・enum | `api/proto/k1s0/system/common/v1/` | Pagination, Timestamp, Money |
-| イベント定義（Kafka メッセージスキーマ） | `api/proto/k1s0/event/{tier}/{domain}/v1/` | OrderCreatedEvent, LoginEvent |
+| イベント定義（Kafka メッセージスキーマ） | `api/proto/k1s0/event/{tier}/{domain}/v1/` | TaskCreatedEvent, LoginEvent |
 | サービス固有の gRPC サービス定義 | `api/proto/k1s0/{tier}/{domain}/v1/` | AuthService, SagaService |
-| サービス固有の Request/Response 型 | `api/proto/k1s0/{tier}/{domain}/v1/` | CreateOrderRequest |
+| サービス固有の Request/Response 型 | `api/proto/k1s0/{tier}/{domain}/v1/` | CreateTaskRequest |
 
 > **注記**: gRPC の `tier` は、API を提供するサービスの Tier と一致させる（`system` / `business` / `service`）。現状のリポジトリでは system tier の gRPC が中心のため `api/proto/k1s0/system/` が主に存在する。
 
@@ -101,44 +101,44 @@ message Timestamp {
 ### サービス定義例
 
 ```protobuf
-// api/proto/k1s0/service/order/v1/order.proto
+// api/proto/k1s0/service/task/v1/task.proto
 syntax = "proto3";
-package k1s0.service.order.v1;
+package k1s0.service.task.v1;
 
 import "k1s0/system/common/v1/types.proto";
 
-service OrderService {
-  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
 }
 
-message CreateOrderRequest {
-  string product_id = 1;
-  int32 quantity = 2;
+message CreateTaskRequest {
+  string project_id = 1;
+  int32 priority = 2;
 }
 
-message CreateOrderResponse {
-  string order_id = 1;
+message CreateTaskResponse {
+  string task_id = 1;
 }
 
-message GetOrderRequest {
-  string order_id = 1;
+message GetTaskRequest {
+  string task_id = 1;
 }
 
-message GetOrderResponse {
-  string order_id = 1;
-  string product_id = 2;
-  int32 quantity = 3;
+message GetTaskResponse {
+  string task_id = 1;
+  string project_id = 2;
+  int32 priority = 3;
   string status = 4;
 }
 
-message ListOrdersRequest {
+message ListTasksRequest {
   k1s0.system.common.v1.Pagination pagination = 1;
 }
 
-message ListOrdersResponse {
-  repeated GetOrderResponse orders = 1;
+message ListTasksResponse {
+  repeated GetTaskResponse tasks = 1;
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 ```
@@ -214,7 +214,7 @@ plugins:
 ### パッケージレベルバージョニング
 
 ```
-k1s0.service.order.v1  →  k1s0.service.order.v2
+k1s0.service.task.v1  →  k1s0.service.task.v2
 ```
 
 ### パッケージレベルバージョニングの背景
@@ -224,11 +224,11 @@ gRPC のバージョニングは **proto パッケージ名にメジャーバー
 バージョンアップ時は新しいパッケージディレクトリを作成し、旧バージョンと並行運用する。
 
 ```
-api/proto/k1s0/service/order/
+api/proto/k1s0/service/task/
 ├── v1/
-│   └── order.proto     # 旧バージョン（非推奨期間中は維持）
+│   └── task.proto      # 旧バージョン（非推奨期間中は維持）
 └── v2/
-    └── order.proto     # 新バージョン
+    └── task.proto      # 新バージョン
 ```
 
 ### 後方互換性ルール

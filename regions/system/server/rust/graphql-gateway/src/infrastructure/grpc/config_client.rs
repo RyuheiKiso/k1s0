@@ -7,6 +7,7 @@ use tracing::instrument;
 use tracing::warn;
 
 use crate::domain::model::ConfigEntry;
+use crate::domain::port::ConfigPort;
 use crate::infrastructure::config::BackendConfig;
 
 #[allow(dead_code)]
@@ -189,6 +190,15 @@ impl ConfigGrpcClient {
                 }
             },
         ))
+    }
+}
+
+// ConfigPort トレイトの実装。ドメイン層が具象クライアント型に依存せず、
+// ポートトレイト経由でコンフィグサービスにアクセスできるようにする。
+#[async_trait::async_trait]
+impl ConfigPort for ConfigGrpcClient {
+    async fn list_configs_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<ConfigEntry>> {
+        self.list_configs_by_keys(keys).await
     }
 }
 

@@ -54,7 +54,8 @@ export default tseslint.config(
       ],
 
       // General
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // console.logはCIでブロック、console.warn/errorのみ許可する
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
   {

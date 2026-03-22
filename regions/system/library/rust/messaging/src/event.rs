@@ -180,7 +180,7 @@ mod tests {
     #[test]
     fn test_event_metadata_correlation_id_only() {
         let meta =
-            EventMetadata::new("order.placed", "order-service").with_correlation_id("corr-xyz");
+            EventMetadata::new("task.created", "task-server").with_correlation_id("corr-xyz");
         assert!(meta.trace_id.is_none());
         assert_eq!(meta.correlation_id.as_deref(), Some("corr-xyz"));
     }

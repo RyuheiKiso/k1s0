@@ -65,7 +65,7 @@ fn test_determine_post_commands_react_client() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Business,
-        placement: Some("accounting".to_string()),
+        placement: Some("taskmanagement".to_string()),
         lang_fw: LangFw::Framework(Framework::React),
         detail: DetailConfig {
             name: Some("web-app".to_string()),
@@ -84,10 +84,10 @@ fn test_determine_post_commands_flutter_client() {
     let config = GenerateConfig {
         kind: Kind::Client,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Framework(Framework::Flutter),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             ..DetailConfig::default()
         },
     };
@@ -152,13 +152,13 @@ fn test_determine_post_commands_server_with_db() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest],
             db: Some(DbInfo {
-                name: "order-db".to_string(),
+                name: "task-db".to_string(),
                 rdbms: Rdbms::PostgreSQL,
             }),
             kafka: false,
@@ -178,10 +178,10 @@ fn test_determine_post_commands_server_without_db() {
     let config = GenerateConfig {
         kind: Kind::Server,
         tier: Tier::Service,
-        placement: Some("order".to_string()),
+        placement: Some("task".to_string()),
         lang_fw: LangFw::Language(Language::Rust),
         detail: DetailConfig {
-            name: Some("order".to_string()),
+            name: Some("task".to_string()),
             api_styles: vec![ApiStyle::Rest],
             db: None,
             kafka: false,

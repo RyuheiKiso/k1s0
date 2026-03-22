@@ -34,7 +34,7 @@ fn render_observability(
     let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "observability")
         .server_port(server_port);
     if tier == "business" {
-        builder = builder.domain("order");
+        builder = builder.domain("task");
     }
     let ctx = builder.build();
 
@@ -64,7 +64,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_observability_file_list() {
-    let Some((_, names)) = render_observability("order-api", "service", 8080) else {
+    let Some((_, names)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
@@ -85,14 +85,14 @@ fn test_observability_file_list() {
 
 #[test]
 fn test_servicemonitor_has_service_name() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "servicemonitor.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "ServiceMonitor should contain service name\n--- servicemonitor.yaml ---\n{content}"
     );
 }
@@ -113,7 +113,7 @@ fn test_servicemonitor_system_interval() {
 
 #[test]
 fn test_servicemonitor_business_interval() {
-    let Some((tmp, _)) = render_observability("order-api", "business", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "business", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
@@ -127,7 +127,7 @@ fn test_servicemonitor_business_interval() {
 
 #[test]
 fn test_servicemonitor_service_interval() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
@@ -141,7 +141,7 @@ fn test_servicemonitor_service_interval() {
 
 #[test]
 fn test_servicemonitor_has_namespace() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
@@ -159,49 +159,49 @@ fn test_servicemonitor_has_namespace() {
 
 #[test]
 fn test_alerts_has_high_error_rate() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
-        content.contains("OrderApiHighErrorRate"),
+        content.contains("TaskApiHighErrorRate"),
         "Alerts should contain HighErrorRate rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_alerts_has_high_latency() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
-        content.contains("OrderApiHighLatency"),
+        content.contains("TaskApiHighLatency"),
         "Alerts should contain HighLatency rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_alerts_has_pod_restart() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "alerts.yaml");
     assert!(
-        content.contains("OrderApiPodRestart"),
+        content.contains("TaskApiPodRestart"),
         "Alerts should contain PodRestart rule\n--- alerts.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_alerts_has_namespace() {
-    let Some((tmp, _)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, _)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };
@@ -219,7 +219,7 @@ fn test_alerts_has_namespace() {
 
 #[test]
 fn test_observability_no_tera_syntax() {
-    let Some((tmp, names)) = render_observability("order-api", "service", 8080) else {
+    let Some((tmp, names)) = render_observability("task-api", "service", 8080) else {
         eprintln!("SKIP: observability テンプレートディレクトリが未作成");
         return;
     };

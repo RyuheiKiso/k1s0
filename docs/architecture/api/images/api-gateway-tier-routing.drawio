@@ -104,8 +104,8 @@
           <mxGeometry x="780" y="290" width="180" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- Businessサービス一覧: accounting, HR -->
-        <mxCell id="biz-services" value="accounting&lt;br&gt;HR" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;opacity=70;" vertex="1" parent="1">
+        <!-- Businessサービス一覧: taskmanagement -->
+        <mxCell id="biz-services" value="taskmanagement" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;opacity=70;" vertex="1" parent="1">
           <mxGeometry x="1020" y="290" width="120" height="60" as="geometry"/>
         </mxCell>
 
@@ -131,8 +131,8 @@
           <mxGeometry x="780" y="500" width="180" height="60" as="geometry"/>
         </mxCell>
 
-        <!-- Serviceサービス一覧: order-bff, user-bff -->
-        <mxCell id="svc-services" value="order-bff&lt;br&gt;user-bff" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
+        <!-- Serviceサービス一覧: task-bff, user-bff -->
+        <mxCell id="svc-services" value="task-bff&lt;br&gt;user-bff" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#FFF2CC;strokeColor=#D6B656;opacity=70;" vertex="1" parent="1">
           <mxGeometry x="1020" y="500" width="120" height="60" as="geometry"/>
         </mxCell>
 

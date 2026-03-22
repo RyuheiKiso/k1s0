@@ -150,14 +150,14 @@ func TestEventMetadata_WithTraceId(t *testing.T) {
 
 // EventEnvelopeの全フィールド（Topic、Payload、Headers）が正しく設定されることを確認する。
 func TestEventEnvelope_Fields(t *testing.T) {
-	meta := messaging.NewEventMetadata("order.placed.v1", "corr-002", "order-service")
+	meta := messaging.NewEventMetadata("task.created.v1", "corr-002", "task-server")
 	envelope := messaging.EventEnvelope{
 		Metadata: meta,
-		Topic:    "k1s0.business.order.placed.v1",
+		Topic:    "k1s0.business.task.created.v1",
 		Payload:  map[string]int{"order_id": 42},
 		Headers:  map[string]string{"version": "1"},
 	}
-	assert.Equal(t, "k1s0.business.order.placed.v1", envelope.Topic)
+	assert.Equal(t, "k1s0.business.task.created.v1", envelope.Topic)
 	assert.Equal(t, "1", envelope.Headers["version"])
 	assert.Equal(t, map[string]int{"order_id": 42}, envelope.Payload)
 }

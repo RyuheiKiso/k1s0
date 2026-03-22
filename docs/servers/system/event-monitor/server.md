@@ -58,7 +58,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | dlq-manager との違い | dlq-manager は DLQ メッセージの管理・再処理に特化する。event-monitor は正常フロー含む全イベントフローの業務視点モニタリングに特化する |
 | 可観測性スタックとの違い | Prometheus/Jaeger はインフラメトリクス・技術トレースを提供する。event-monitor は「注文→出荷→請求のフロー全体で今どこが詰まっているか」を業務担当者が確認する手段を提供する |
 | イベント集約方式 | Kafka コンシューマーが `k1s0.*.*.*.v1` パターンの全ドメインイベントを購読し、メタデータ（correlation_id, event_type, timestamp）を抽出して DB に永続化。ペイロード本体は保存しない（容量節約） |
-| フロー定義 | 業務フロー（期待されるイベントチェーン）を JSON で定義。例: `OrderCreated → InventoryReserved → PaymentProcessed → OrderCompleted` |
+| フロー定義 | 業務フロー（期待されるイベントチェーン）を JSON で定義。例: `TaskCreated → BoardReserved → ActivityProcessed → TaskCompleted` |
 | SLO 定義 | フロー別に「完了までの目標時間」「許容エラー率」を定義。バーンレート計算で違反を早期検出 |
 | correlation-id | k1s0-correlation ライブラリの correlation_id をキーとして、フロー横断のイベントチェーンを構築 |
 | DB スキーマ | PostgreSQL の `event_monitor` スキーマ（event_records, flow_definitions, flow_instances, flow_slos テーブル） |
@@ -73,33 +73,33 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 
 ```json
 {
-  "name": "order_fulfillment",
-  "description": "注文フルフィルメントフロー",
-  "domain": "service.order",
+  "name": "task_assignment",
+  "description": "タスクアサインメントフロー",
+  "domain": "service.task",
   "steps": [
     {
-      "event_type": "OrderCreated",
-      "source": "order-service",
+      "event_type": "TaskCreated",
+      "source": "task-service",
       "timeout_seconds": 0,
-      "description": "注文作成"
+      "description": "タスク作成"
     },
     {
-      "event_type": "InventoryReserved",
-      "source": "inventory-service",
+      "event_type": "BoardReserved",
+      "source": "board-service",
       "timeout_seconds": 30,
-      "description": "在庫引当（注文作成から30秒以内）"
+      "description": "ボード割当（タスク作成から30秒以内）"
     },
     {
-      "event_type": "PaymentProcessed",
-      "source": "payment-service",
+      "event_type": "ActivityProcessed",
+      "source": "activity-service",
       "timeout_seconds": 60,
-      "description": "決済処理（在庫引当から60秒以内）"
+      "description": "アクティビティ処理（ボード割当から60秒以内）"
     },
     {
-      "event_type": "OrderCompleted",
-      "source": "order-service",
+      "event_type": "TaskCompleted",
+      "source": "task-service",
       "timeout_seconds": 10,
-      "description": "注文完了（決済処理から10秒以内）"
+      "description": "タスク完了（アクティビティ処理から10秒以内）"
     }
   ],
   "slo": {
@@ -156,7 +156,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | --- | --- | --- | --- | --- |
 | `page` | int | No | 1 | ページ番号 |
 | `page_size` | int | No | 20 | 1 ページあたりの件数 |
-| `domain` | string | No | - | ドメインでフィルタ（例: `service.order`） |
+| `domain` | string | No | - | ドメインでフィルタ（例: `service.task`） |
 | `event_type` | string | No | - | イベントタイプでフィルタ |
 | `source` | string | No | - | イベントソースでフィルタ |
 | `from` | string | No | - | 開始日時（ISO 8601） |
@@ -171,9 +171,9 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
     {
       "id": "evt-001",
       "correlation_id": "corr-12345",
-      "event_type": "OrderCreated",
-      "source": "order-service",
-      "domain": "service.order",
+      "event_type": "TaskCreated",
+      "source": "task-service",
+      "domain": "service.task",
       "trace_id": "abc123def456",
       "timestamp": "2026-03-05T10:00:00.000+00:00",
       "flow_id": "flow-001",
@@ -201,7 +201,7 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
   "correlation_id": "corr-12345",
   "flow": {
     "id": "flow-001",
-    "name": "order_fulfillment",
+    "name": "task_assignment",
     "status": "in_progress",
     "started_at": "2026-03-05T10:00:00.000+00:00",
     "elapsed_seconds": 45
@@ -209,8 +209,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
   "events": [
     {
       "id": "evt-001",
-      "event_type": "OrderCreated",
-      "source": "order-service",
+      "event_type": "TaskCreated",
+      "source": "task-service",
       "timestamp": "2026-03-05T10:00:00.000+00:00",
       "step_index": 0,
       "status": "completed",
@@ -218,8 +218,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
     },
     {
       "id": "evt-002",
-      "event_type": "InventoryReserved",
-      "source": "inventory-service",
+      "event_type": "BoardReserved",
+      "source": "board-service",
       "timestamp": "2026-03-05T10:00:15.000+00:00",
       "step_index": 1,
       "status": "completed",
@@ -227,8 +227,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
     },
     {
       "id": "evt-003",
-      "event_type": "PaymentProcessed",
-      "source": "payment-service",
+      "event_type": "ActivityProcessed",
+      "source": "activity-service",
       "timestamp": "2026-03-05T10:00:45.000+00:00",
       "step_index": 2,
       "status": "completed",
@@ -237,8 +237,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
   ],
   "pending_steps": [
     {
-      "event_type": "OrderCompleted",
-      "source": "order-service",
+      "event_type": "TaskCompleted",
+      "source": "task-service",
       "step_index": 3,
       "timeout_seconds": 10,
       "waiting_since_seconds": 0
@@ -262,7 +262,7 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
 ```json
 {
   "flow_id": "flow-001",
-  "flow_name": "order_fulfillment",
+  "flow_name": "task_assignment",
   "period": "24h",
   "kpi": {
     "total_started": 1250,
@@ -275,7 +275,7 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
     "p95_duration_seconds": 145.0,
     "p99_duration_seconds": 210.0,
     "bottleneck_step": {
-      "event_type": "PaymentProcessed",
+      "event_type": "ActivityProcessed",
       "step_index": 2,
       "avg_duration_seconds": 42.5,
       "timeout_rate": 0.02
@@ -304,8 +304,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
   "flows": [
     {
       "flow_id": "flow-001",
-      "flow_name": "order_fulfillment",
-      "domain": "service.order",
+      "flow_name": "task_assignment",
+      "domain": "service.task",
       "total_started": 1250,
       "completion_rate": 0.96,
       "avg_duration_seconds": 85.3,
@@ -313,8 +313,8 @@ correlation-id に紐づく全イベントを時系列順に取得し、フロ�
     },
     {
       "flow_id": "flow-002",
-      "flow_name": "invoice_processing",
-      "domain": "business.accounting",
+      "flow_name": "project_processing",
+      "domain": "business.taskmanagement",
       "total_started": 340,
       "completion_rate": 0.998,
       "avg_duration_seconds": 12.1,
@@ -338,7 +338,7 @@ SLO バーンレートを取得する。バーンレートが 1.0 を超える�
 ```json
 {
   "flow_id": "flow-001",
-  "flow_name": "order_fulfillment",
+  "flow_name": "task_assignment",
   "windows": [
     {
       "window": "1h",
@@ -386,17 +386,17 @@ SLO バーンレートを取得する。バーンレートが 1.0 を超える�
 {
   "preview": {
     "total_events_to_replay": 6,
-    "affected_services": ["payment-service", "order-service"],
+    "affected_services": ["activity-service", "task-service"],
     "affected_flows": [
       {
         "correlation_id": "corr-12345",
-        "flow_name": "order_fulfillment",
+        "flow_name": "task_assignment",
         "replay_from_step": 2,
         "events_to_replay": 3
       },
       {
         "correlation_id": "corr-12346",
-        "flow_name": "order_fulfillment",
+        "flow_name": "task_assignment",
         "replay_from_step": 2,
         "events_to_replay": 3
       }
@@ -875,9 +875,9 @@ scheduler-server にジョブを登録し、定期的にタイムアウトした
 | --- | --- | --- |
 | `id` | UUID | イベント記録の一意識別子 |
 | `correlation_id` | String | 業務トランザクション相関 ID |
-| `event_type` | String | イベントタイプ（例: `OrderCreated`） |
-| `source` | String | イベントソース（例: `order-service`） |
-| `domain` | String | ドメイン（例: `service.order`） |
+| `event_type` | String | イベントタイプ（例: `TaskCreated`） |
+| `source` | String | イベントソース（例: `task-service`） |
+| `domain` | String | ドメイン（例: `service.task`） |
 | `trace_id` | String | 分散トレース ID |
 | `timestamp` | DateTime\<Utc\> | イベント発生日時 |
 | `flow_id` | Option\<UUID\> | マッチしたフロー定義 ID |
@@ -890,9 +890,9 @@ scheduler-server にジョブを登録し、定期的にタイムアウトした
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `id` | UUID | フロー定義の一意識別子 |
-| `name` | String | フロー名（例: `order_fulfillment`） |
+| `name` | String | フロー名（例: `task_assignment`） |
 | `description` | String | フローの説明 |
-| `domain` | String | 業務領域（例: `service.order`） |
+| `domain` | String | 業務領域（例: `service.task`） |
 | `steps` | Vec\<FlowStep\> | フローステップ一覧 |
 | `slo` | FlowSlo | SLO 定義 |
 | `enabled` | bool | フロー定義の有効/無効 |

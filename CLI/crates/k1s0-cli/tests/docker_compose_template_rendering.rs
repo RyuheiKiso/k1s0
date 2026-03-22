@@ -49,7 +49,7 @@ fn render_docker_compose_with(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("order-api", "service", "go", "docker-compose")
+    let mut builder = TemplateContextBuilder::new("task-api", "service", "go", "docker-compose")
         .server_language(server_lang)
         .server_port(port);
 
@@ -275,7 +275,7 @@ fn test_docker_compose_override_go_context() {
 
     let content = read_output(&tmp, "docker-compose.override.yaml.example");
     assert!(
-        content.contains("./regions/service/server/go/order-api"),
+        content.contains("./regions/service/server/go/task-api"),
         "Go ビルドコンテキストが含まれるべき\n--- content ---\n{content}"
     );
 }
@@ -291,7 +291,7 @@ fn test_docker_compose_override_rust_context() {
 
     let content = read_output(&tmp, "docker-compose.override.yaml.example");
     assert!(
-        content.contains("./regions/service/server/rust/order-api"),
+        content.contains("./regions/service/server/rust/task-api"),
         "Rust ビルドコンテキストが含まれるべき\n--- content ---\n{content}"
     );
 }

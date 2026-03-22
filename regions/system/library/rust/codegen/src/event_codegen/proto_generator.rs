@@ -65,21 +65,21 @@ mod tests {
     fn sample_config() -> EventConfig {
         parse_event_config_str(
             r#"
-domain: accounting
+domain: taskmanagement
 tier: business
-service_name: domain-master
+service_name: project-master
 language: rust
 events:
-  - name: master-item.created
+  - name: project-type.changed
     version: 1
-    description: "マスタアイテムが作成された時に発行されるイベント"
-    partition_key: item_id
+    description: "プロジェクトタイプが変更された時に発行されるイベント"
+    partition_key: project_type_id
     schema:
       fields:
-        - name: item_id
+        - name: project_type_id
           type: string
           number: 1
-          description: "アイテムID"
+          description: "プロジェクトタイプID"
         - name: name
           type: string
           number: 2
@@ -93,9 +93,9 @@ events:
         let config = sample_config();
         let proto = generate_proto(&config, &config.events[0]);
         assert!(proto.contains("syntax = \"proto3\";"));
-        assert!(proto.contains("package k1s0.business.accounting.events.v1;"));
-        assert!(proto.contains("message MasterItemCreated {"));
-        assert!(proto.contains("string item_id = 1;"));
+        assert!(proto.contains("package k1s0.business.taskmanagement.events.v1;"));
+        assert!(proto.contains("message ProjectTypeChanged {"));
+        assert!(proto.contains("string project_type_id = 1;"));
         assert!(proto.contains("string name = 2;"));
     }
 
@@ -103,7 +103,7 @@ events:
     fn proto_path() {
         let config = sample_config();
         let path = proto_rel_path(&config, &config.events[0]);
-        assert_eq!(path, "proto/accounting/events/v1/master_item_created.proto");
+        assert_eq!(path, "proto/taskmanagement/events/v1/project_type_changed.proto");
     }
 
     #[test]

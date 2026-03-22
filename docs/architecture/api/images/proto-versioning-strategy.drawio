@@ -18,7 +18,7 @@
         <mxCell id="pkg1" value="&lt;b&gt;k1s0.system.auth.v1&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="90" width="200" height="35" as="geometry"/>
         </mxCell>
-        <mxCell id="pkg2" value="&lt;b&gt;k1s0.business.order.v1&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+        <mxCell id="pkg2" value="&lt;b&gt;k1s0.business.taskmanagement.v1&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
           <mxGeometry x="40" y="135" width="200" height="35" as="geometry"/>
         </mxCell>
         <mxCell id="pkg3" value="&lt;b&gt;k1s0.service.notification.v1&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=1;" vertex="1" parent="1">

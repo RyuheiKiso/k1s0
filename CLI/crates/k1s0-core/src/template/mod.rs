@@ -345,7 +345,7 @@ mod tests {
     #[test]
     fn test_resolve_output_path_removes_tera_extension() {
         let result =
-            TemplateEngine::resolve_output_path(Path::new("cmd/main.go.tera"), "order", "order");
+            TemplateEngine::resolve_output_path(Path::new("cmd/main.go.tera"), "task", "task");
         assert_eq!(result, PathBuf::from("cmd/main.go"));
     }
 
@@ -353,20 +353,20 @@ mod tests {
     fn test_resolve_output_path_replaces_name_placeholder() {
         let result = TemplateEngine::resolve_output_path(
             Path::new("{name}.go.tera"),
-            "order-api",
-            "order_api",
+            "task-api",
+            "task_api",
         );
-        assert_eq!(result, PathBuf::from("order-api.go"));
+        assert_eq!(result, PathBuf::from("task-api.go"));
     }
 
     #[test]
     fn test_resolve_output_path_replaces_module_placeholder() {
         let result = TemplateEngine::resolve_output_path(
             Path::new("src/{module}.rs.tera"),
-            "order-api",
-            "order_api",
+            "task-api",
+            "task_api",
         );
-        assert_eq!(result, PathBuf::from("src/order_api.rs"));
+        assert_eq!(result, PathBuf::from("src/task_api.rs"));
     }
 
     #[test]
@@ -385,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_should_include_rest_handler_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_rest_handler_when_grpc() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn test_should_include_grpc_handler_when_grpc() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -421,7 +421,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_grpc_handler_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -433,7 +433,7 @@ mod tests {
 
     #[test]
     fn test_should_include_graphql_resolver_when_graphql() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("graphql")
             .build();
 
@@ -445,7 +445,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_graphql_resolver_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -457,7 +457,7 @@ mod tests {
 
     #[test]
     fn test_should_include_openapi_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -469,7 +469,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_openapi_when_grpc() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -481,7 +481,7 @@ mod tests {
 
     #[test]
     fn test_should_include_proto_when_grpc() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_proto_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -505,7 +505,7 @@ mod tests {
 
     #[test]
     fn test_should_include_persistence_when_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .with_database("postgresql")
             .build();
 
@@ -517,7 +517,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_persistence_when_no_database() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server").build();
 
         assert!(!TemplateEngine::should_include_file(
             Path::new("internal/infra/persistence/db.go.tera"),
@@ -527,7 +527,7 @@ mod tests {
 
     #[test]
     fn test_should_include_kafka_when_enabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .with_kafka()
             .build();
 
@@ -539,7 +539,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_kafka_when_disabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server").build();
 
         assert!(!TemplateEngine::should_include_file(
             Path::new("internal/infra/messaging/kafka.go.tera"),
@@ -549,7 +549,7 @@ mod tests {
 
     #[test]
     fn test_should_include_common_files_always() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -574,7 +574,7 @@ mod tests {
 
     #[test]
     fn test_should_include_oapi_codegen_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -586,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_oapi_codegen_when_grpc() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -598,7 +598,7 @@ mod tests {
 
     #[test]
     fn test_should_include_readme_always() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -614,7 +614,7 @@ mod tests {
 
     #[test]
     fn test_should_include_rust_rest_handler_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "rust", "server")
             .api_style("rest")
             .build();
 
@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_rust_grpc_handler_when_rest() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "rust", "server")
             .api_style("rest")
             .build();
 
@@ -642,7 +642,7 @@ mod tests {
 
     #[test]
     fn test_should_include_redis_file_when_redis_enabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .with_redis()
             .build();
@@ -655,7 +655,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_redis_file_when_redis_disabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -667,7 +667,7 @@ mod tests {
 
     #[test]
     fn test_should_exclude_redis_config_when_redis_disabled() {
-        let ctx = TemplateContextBuilder::new("order", "service", "rust", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "rust", "server")
             .api_style("rest")
             .build();
 
@@ -683,7 +683,7 @@ mod tests {
 
     #[test]
     fn test_should_include_rest_and_grpc_when_both_selected() {
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_styles(vec!["rest".to_string(), "grpc".to_string()])
             .build();
 
@@ -830,7 +830,7 @@ mod tests {
         fs::create_dir_all(&output_dir).unwrap();
 
         // コンテキストを構築
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task-api", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -893,20 +893,20 @@ mod tests {
 
         // レンダリング内容の検証
         let main_content = fs::read_to_string(output_dir.join("cmd/main.go")).unwrap();
-        assert!(main_content.contains("// Service: order-api"));
+        assert!(main_content.contains("// Service: task-api"));
         assert!(main_content
-            .contains("// Module: github.com/org/k1s0/regions/service/order-api/server/go"));
+            .contains("// Module: github.com/org/k1s0/regions/service/task-api/server/go"));
 
         let go_mod_content = fs::read_to_string(output_dir.join("go.mod")).unwrap();
         assert!(go_mod_content
-            .contains("module github.com/org/k1s0/regions/service/order-api/server/go"));
+            .contains("module github.com/org/k1s0/regions/service/task-api/server/go"));
 
         let entity_content =
             fs::read_to_string(output_dir.join("internal/domain/model/entity.go")).unwrap();
-        assert!(entity_content.contains("type OrderApi struct {}"));
+        assert!(entity_content.contains("type TaskApi struct {}"));
 
         let config_content = fs::read_to_string(output_dir.join("config/config.yaml")).unwrap();
-        assert!(config_content.contains("service_name: order-api"));
+        assert!(config_content.contains("service_name: task-api"));
         assert!(config_content.contains("tier: service"));
     }
 
@@ -950,7 +950,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task-api", "service", "go", "server")
             .api_style("grpc")
             .build();
 
@@ -1014,7 +1014,7 @@ mod tests {
         fs::create_dir_all(&output_dir).unwrap();
 
         // DB あり、Kafka あり
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .with_database("postgresql")
             .with_kafka()
@@ -1068,7 +1068,7 @@ mod tests {
         fs::create_dir_all(&output_dir).unwrap();
 
         // DB なし、Kafka なし
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server")
             .api_style("rest")
             .build();
 
@@ -1098,7 +1098,7 @@ mod tests {
 
         fs::create_dir_all(&go_lib_dir).unwrap();
 
-        // {name}.go.tera -> order-api.go
+        // {name}.go.tera -> task-api.go
         fs::write(
             go_lib_dir.join("{name}.go.tera"),
             "package {{ service_name_snake }}\n\n// {{ service_name_pascal }} library\n",
@@ -1120,7 +1120,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "system", "go", "library").build();
+        let ctx = TemplateContextBuilder::new("task-api", "system", "go", "library").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1135,18 +1135,18 @@ mod tests {
             })
             .collect();
 
-        // {name} が "order-api" に置換されていることを検証
+        // {name} が "task-api" に置換されていることを検証
         assert!(
-            generated_names.contains(&"order-api.go".to_string()),
+            generated_names.contains(&"task-api.go".to_string()),
             "Placeholder {{name}} should be replaced with service_name. Generated: {generated_names:?}"
         );
         assert!(generated_names.contains(&"go.mod".to_string()));
         assert!(generated_names.contains(&"internal/internal.go".to_string()));
 
         // 内容の検証
-        let lib_content = fs::read_to_string(output_dir.join("order-api.go")).unwrap();
-        assert!(lib_content.contains("package order_api"));
-        assert!(lib_content.contains("// OrderApi library"));
+        let lib_content = fs::read_to_string(output_dir.join("task-api.go")).unwrap();
+        assert!(lib_content.contains("package task_api"));
+        assert!(lib_content.contains("// TaskApi library"));
     }
 
     #[test]
@@ -1166,7 +1166,7 @@ mod tests {
         )
         .unwrap();
 
-        // src/{module}.rs.tera -> src/order_api.rs
+        // src/{module}.rs.tera -> src/task_api.rs
         fs::write(
             src_dir.join("{module}.rs.tera"),
             "// Module: {{ service_name_pascal }}\n",
@@ -1183,7 +1183,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "service", "rust", "library").build();
+        let ctx = TemplateContextBuilder::new("task-api", "service", "rust", "library").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1198,9 +1198,9 @@ mod tests {
             })
             .collect();
 
-        // {module} が "order_api" (snake_case) に置換されていることを検証
+        // {module} が "task_api" (snake_case) に置換されていることを検証
         assert!(
-            generated_names.contains(&"src/order_api.rs".to_string()),
+            generated_names.contains(&"src/task_api.rs".to_string()),
             "Placeholder {{module}} should be replaced with service_name_snake. Generated: {generated_names:?}"
         );
         assert!(generated_names.contains(&"src/lib.rs".to_string()));
@@ -1208,13 +1208,13 @@ mod tests {
 
         // 内容の検証
         let lib_rs = fs::read_to_string(output_dir.join("src/lib.rs")).unwrap();
-        assert!(lib_rs.contains("pub mod order_api;"));
+        assert!(lib_rs.contains("pub mod task_api;"));
 
-        let module_rs = fs::read_to_string(output_dir.join("src/order_api.rs")).unwrap();
-        assert!(module_rs.contains("// Module: OrderApi"));
+        let module_rs = fs::read_to_string(output_dir.join("src/task_api.rs")).unwrap();
+        assert!(module_rs.contains("// Module: TaskApi"));
 
         let cargo_toml = fs::read_to_string(output_dir.join("Cargo.toml")).unwrap();
-        assert!(cargo_toml.contains("name = \"order-api\""));
+        assert!(cargo_toml.contains("name = \"task-api\""));
     }
 
     #[test]
@@ -1226,7 +1226,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order", "service", "go", "server").build();
+        let ctx = TemplateContextBuilder::new("task", "service", "go", "server").build();
 
         let mut engine = TemplateEngine::new(&template_root).unwrap();
         let result = engine.render_to_dir(&ctx, &output_dir);
@@ -1254,7 +1254,7 @@ mod tests {
         let output_dir = tmp.path().join("output");
         fs::create_dir_all(&output_dir).unwrap();
 
-        let ctx = TemplateContextBuilder::new("order-api", "service", "go", "server")
+        let ctx = TemplateContextBuilder::new("task-api", "service", "go", "server")
             .api_style("rest")
             .with_database("postgresql")
             .with_redis()

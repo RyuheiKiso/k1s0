@@ -1,0 +1,14 @@
+apiVersion: v2
+name: project-master
+description: k1s0 project-master service (タスク管理プロジェクトタイプ/ステータス定義マスタ)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: k1s0-common
+    version: "0.1.0"
+    # NOTE(H-007): 本番環境では OCI レジストリ参照に変更すること。
+    # 例: repository: "oci://harbor.k1s0.io/helm-charts"
+    # file:// 参照は CI/CD パイプラインや外部環境で壊れる可能性がある。
+    repository: "file://../../../charts/k1s0-common"

@@ -355,7 +355,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 入力:
 ```json
 {
-  "service_name": "order-api",
+  "service_name": "task-api",
   "language": "go",
   "framework": "",
   "has_database": true,
@@ -445,7 +445,7 @@ CLI の対話フローで選択されたオプションに応じて、Dev Contai
 入力:
 ```json
 {
-  "service_name": "inventory-app",
+  "service_name": "board-app",
   "language": "dart",
   "framework": "flutter",
   "has_database": false,

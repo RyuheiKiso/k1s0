@@ -177,27 +177,27 @@
         </mxCell>
 
         <!-- Root Span: HTTP Request -->
-        <mxCell id="span-root" value="&lt;b&gt;HTTP POST /api/v1/orders&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s1 | duration: 450ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
+        <mxCell id="span-root" value="&lt;b&gt;HTTP POST /api/v1/tasks&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s1 | duration: 450ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="780" y="140" width="540" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Child Span: Handler -->
-        <mxCell id="span-handler" value="&lt;b&gt;OrderService.CreateOrder&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s2 | duration: 380ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
+        <mxCell id="span-handler" value="&lt;b&gt;TaskService.CreateTask&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s2 | duration: 380ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="810" y="200" width="490" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Grandchild Span: DB Query -->
-        <mxCell id="span-db" value="&lt;b&gt;DB: INSERT orders&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s3 | duration: 50ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
+        <mxCell id="span-db" value="&lt;b&gt;DB: INSERT tasks&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s3 | duration: 50ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFF2CC;strokeColor=#D6B656;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="840" y="260" width="200" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Grandchild Span: gRPC Call -->
-        <mxCell id="span-grpc" value="&lt;b&gt;gRPC: InventoryService.Reserve&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s4 | duration: 120ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
+        <mxCell id="span-grpc" value="&lt;b&gt;gRPC: BoardService.AssignCard&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s4 | duration: 120ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#E1D5E7;strokeColor=#9673A6;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="840" y="320" width="300" height="40" as="geometry"/>
         </mxCell>
 
         <!-- Grandchild Span: Kafka Produce -->
-        <mxCell id="span-kafka" value="&lt;b&gt;Kafka: Produce OrderCreated&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s5 | duration: 30ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFE0B2;strokeColor=#E65100;shadow=1;" vertex="1" parent="1">
+        <mxCell id="span-kafka" value="&lt;b&gt;Kafka: Produce TaskCreated&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;span_id: s5 | duration: 30ms&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fillColor=#FFE0B2;strokeColor=#E65100;shadow=1;" vertex="1" parent="1">
           <mxGeometry x="840" y="380" width="250" height="40" as="geometry"/>
         </mxCell>
 

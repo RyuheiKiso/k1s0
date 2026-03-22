@@ -83,19 +83,19 @@ mod tests {
     async fn success() {
         let mut mock = MockFlowDefinitionRepository::new();
         mock.expect_exists_by_name()
-            .withf(|name| name == "order_flow")
+            .withf(|name| name == "task_flow")
             .returning(|_| Ok(false));
         mock.expect_create().returning(|_| Ok(()));
 
         let uc = CreateFlowUseCase::new(Arc::new(mock));
         let input = CreateFlowInput {
-            name: "order_flow".to_string(),
+            name: "task_flow".to_string(),
             description: "test".to_string(),
-            domain: "service.order".to_string(),
+            domain: "service.task".to_string(),
             steps: vec![FlowStep {
-                event_type: "OrderCreated".to_string(),
-                source: "order-service".to_string(),
-                source_filter: Some("order-service".to_string()),
+                event_type: "TaskCreated".to_string(),
+                source: "task-server".to_string(),
+                source_filter: Some("task-server".to_string()),
                 timeout_seconds: 0,
                 description: String::new(),
             }],
@@ -107,7 +107,7 @@ mod tests {
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().name, "order_flow");
+        assert_eq!(result.unwrap().name, "task_flow");
     }
 
     #[tokio::test]
@@ -119,11 +119,11 @@ mod tests {
         let input = CreateFlowInput {
             name: "existing".to_string(),
             description: "test".to_string(),
-            domain: "service.order".to_string(),
+            domain: "service.task".to_string(),
             steps: vec![FlowStep {
-                event_type: "OrderCreated".to_string(),
-                source: "order-service".to_string(),
-                source_filter: Some("order-service".to_string()),
+                event_type: "TaskCreated".to_string(),
+                source: "task-server".to_string(),
+                source_filter: Some("task-server".to_string()),
                 timeout_seconds: 0,
                 description: String::new(),
             }],

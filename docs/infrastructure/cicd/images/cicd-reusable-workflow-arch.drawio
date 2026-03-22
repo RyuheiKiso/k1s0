@@ -25,7 +25,7 @@
         <mxCell id="svc-tenant" value="tenant-ci.yaml" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="svc-group">
           <mxGeometry x="130" y="60" width="110" height="30" as="geometry"/>
         </mxCell>
-        <mxCell id="svc-order" value="order-ci.yaml" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="svc-group">
+        <mxCell id="svc-task" value="task-ci.yaml" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#D5E8D4;strokeColor=#82B366;shadow=1;" vertex="1" parent="svc-group">
           <mxGeometry x="250" y="60" width="110" height="30" as="geometry"/>
         </mxCell>
         <mxCell id="svc-event" value="event-store-ci.yaml" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;fillColor=#DAE8FC;strokeColor=#6C8EBF;shadow=1;" vertex="1" parent="svc-group">
@@ -101,7 +101,7 @@
         <mxCell id="call-go1" value="uses:" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;fontSize=9;fontColor=#82B366;endArrow=block;endFill=1;" edge="1" source="svc-bb-go" target="rw-go" parent="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
-        <mxCell id="call-order-rust" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;endArrow=block;endFill=1;" edge="1" source="svc-order" target="rw-rust" parent="1">
+        <mxCell id="call-task-rust" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;endArrow=block;endFill=1;" edge="1" source="svc-task" target="rw-rust" parent="1">
           <mxGeometry relative="1" as="geometry"/>
         </mxCell>
 

@@ -43,9 +43,9 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | API 種別 | プロトコル | 用途 | 例 |
 | --- | --- | --- | --- |
-| ドメイン CRUD API | REST | ドメインエンティティの作成・参照・更新・削除 | `/api/v1/accounting/ledger`, `/api/v1/accounts` |
-| ドメインイベント配信 | gRPC Stream | ドメインイベントのリアルタイム配信（サーバーストリーミング） | `LedgerService.StreamLedgerEvents` |
-| ドメイン操作 API | gRPC | サービス間のドメイン操作呼び出し | `AccountingService.CloseLedger` |
+| ドメイン CRUD API | REST | ドメインエンティティの作成・参照・更新・削除 | `/api/v1/taskmanagement/board`, `/api/v1/projects` |
+| ドメインイベント配信 | gRPC Stream | ドメインイベントのリアルタイム配信（サーバーストリーミング） | `BoardService.StreamBoardEvents` |
+| ドメイン操作 API | gRPC | サービス間のドメイン操作呼び出し | `TaskManagementService.CloseBoard` |
 
 ### service Tier
 
@@ -53,7 +53,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 
 | API 種別 | プロトコル | 用途 | 例 |
 | --- | --- | --- | --- |
-| BFF API | REST | フロントエンドからの標準的な API 呼び出し | `/api/v1/orders`, `/api/v1/dashboard` |
+| BFF API | REST | フロントエンドからの標準的な API 呼び出し | `/api/v1/tasks`, `/api/v1/dashboard` |
 | BFF API | GraphQL | 複数サービスのデータ集約（導入基準を満たす場合） | `query { dashboard { ... } }` |
 | 外部連携 API | REST | サードパーティシステムとのデータ連携 | `/api/v1/integrations/{provider}` |
 

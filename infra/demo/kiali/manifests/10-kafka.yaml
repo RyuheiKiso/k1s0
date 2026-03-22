@@ -75,7 +75,7 @@ spec:
       port: 9092
       targetPort: 9092
 ---
-# Demo producer: sends order events every 5 seconds
+# Demo producer: sends task events every 5 seconds
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -103,7 +103,7 @@ spec:
               sleep 30
               # Create topic
               /opt/kafka/bin/kafka-topics.sh --create \
-                --topic order-events \
+                --topic task-events \
                 --bootstrap-server kafka.messaging.svc.cluster.local:9092 \
                 --partitions 3 \
                 --replication-factor 1 \
@@ -111,10 +111,10 @@ spec:
               # Produce messages continuously
               while true; do
                 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-                ORDER_ID=$((RANDOM % 10000))
-                echo "{\"event\":\"order_created\",\"order_id\":${ORDER_ID},\"timestamp\":\"${TIMESTAMP}\",\"service\":\"order-server\"}" | \
+                TASK_ID=$((RANDOM % 10000))
+                echo "{\"event\":\"task_created\",\"task_id\":${TASK_ID},\"timestamp\":\"${TIMESTAMP}\",\"service\":\"task-server\"}" | \
                   /opt/kafka/bin/kafka-console-producer.sh \
-                    --topic order-events \
+                    --topic task-events \
                     --bootstrap-server kafka.messaging.svc.cluster.local:9092
                 sleep 5
               done
@@ -126,7 +126,7 @@ spec:
               cpu: 100m
               memory: 128Mi
 ---
-# Demo consumer: reads order events (simulates accounting-server processing)
+# Demo consumer: reads task events (simulates project-master-server processing)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -153,9 +153,9 @@ spec:
               # Wait for Kafka and topic to be ready
               sleep 45
               /opt/kafka/bin/kafka-console-consumer.sh \
-                --topic order-events \
+                --topic task-events \
                 --bootstrap-server kafka.messaging.svc.cluster.local:9092 \
-                --group accounting-processor \
+                --group project-master-processor \
                 --from-beginning
           resources:
             requests:

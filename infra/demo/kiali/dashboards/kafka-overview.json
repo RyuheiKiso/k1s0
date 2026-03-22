@@ -11,7 +11,7 @@
       "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "sum(kafka_topic_partitions{topic=\"order-events\"})", "legendFormat": "partitions" }
+        { "expr": "sum(kafka_topic_partitions{topic=\"task-events\"})", "legendFormat": "partitions" }
       ],
       "fieldConfig": { "defaults": { "unit": "short" } }
     },
@@ -21,7 +21,7 @@
       "gridPos": { "h": 8, "w": 9, "x": 6, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "sum(rate(kafka_topic_partition_current_offset{topic=\"order-events\"}[5m]))", "legendFormat": "offset rate" }
+        { "expr": "sum(rate(kafka_topic_partition_current_offset{topic=\"task-events\"}[5m]))", "legendFormat": "offset rate" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     },
@@ -31,7 +31,7 @@
       "gridPos": { "h": 8, "w": 9, "x": 15, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "sum(rate(kafka_consumergroup_current_offset{topic=\"order-events\",consumergroup=\"accounting-processor\"}[5m]))", "legendFormat": "consumer offset rate" }
+        { "expr": "sum(rate(kafka_consumergroup_current_offset{topic=\"task-events\",consumergroup=\"project-master-processor\"}[5m]))", "legendFormat": "consumer offset rate" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     },
@@ -41,7 +41,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "sum(kafka_consumergroup_lag{topic=\"order-events\",consumergroup=\"accounting-processor\"})", "legendFormat": "lag" }
+        { "expr": "sum(kafka_consumergroup_lag{topic=\"task-events\",consumergroup=\"project-master-processor\"})", "legendFormat": "lag" }
       ],
       "fieldConfig": { "defaults": { "unit": "short" } }
     },

@@ -363,7 +363,7 @@ mod tests {
     fn test_validate_spiffe_id_business_namespace() {
         let client = make_client("https://auth.example.com/token");
         let result = client.validate_spiffe_id(
-            "spiffe://k1s0.internal/ns/business/sa/order-service",
+            "spiffe://k1s0.internal/ns/business/sa/task-server",
             "business",
         );
         assert!(result.is_ok());

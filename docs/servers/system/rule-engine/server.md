@@ -117,7 +117,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 {
   "name": "tax_calculation",
   "description": "税率計算ルールセット",
-  "domain": "accounting",
+  "domain": "taskmanagement",
   "evaluation_mode": "first_match",
   "default_result": { "tax_rate": 0.10, "tax_label": "標準税率" },
   "rules": ["rule-uuid-1", "rule-uuid-2", "rule-uuid-3"]
@@ -126,7 +126,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 
 | フィールド | 説明 |
 | --- | --- |
-| `domain` | 業務領域（例: `accounting`, `fa`）。ルールセットの名前空間として機能 |
+| `domain` | 業務領域（例: `taskmanagement`, `fa`）。ルールセットの名前空間として機能 |
 | `evaluation_mode` | `first_match`（最初のマッチで停止）/ `all_match`（全マッチを配列で返却） |
 | `default_result` | どのルールにもマッチしなかった場合のデフォルト結果 |
 
@@ -273,7 +273,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 {
   "name": "tax_calculation",
   "description": "税率計算ルールセット",
-  "domain": "accounting",
+  "domain": "taskmanagement",
   "evaluation_mode": "first_match",
   "default_result": { "tax_rate": 0.10, "tax_label": "標準税率" },
   "rule_ids": ["rule-001", "rule-002", "rule-003"]
@@ -287,7 +287,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
   "id": "rs-001",
   "name": "tax_calculation",
   "description": "税率計算ルールセット",
-  "domain": "accounting",
+  "domain": "taskmanagement",
   "evaluation_mode": "first_match",
   "default_result": { "tax_rate": 0.10, "tax_label": "標準税率" },
   "rule_ids": ["rule-001", "rule-002", "rule-003"],
@@ -351,7 +351,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 
 ```json
 {
-  "rule_set": "accounting.tax_calculation",
+  "rule_set": "taskmanagement.tax_calculation",
   "input": {
     "item": {
       "category": "food",
@@ -373,7 +373,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 ```json
 {
   "evaluation_id": "eval_01JABCDEFG1234567890",
-  "rule_set": "accounting.tax_calculation",
+  "rule_set": "taskmanagement.tax_calculation",
   "rule_set_version": 3,
   "matched_rule": {
     "id": "rule-001",
@@ -420,7 +420,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 ```json
 {
   "evaluation_id": "eval_01JABCDEFG1234567892",
-  "rule_set": "accounting.tax_calculation",
+  "rule_set": "taskmanagement.tax_calculation",
   "rule_set_version": 3,
   "matched_rule": null,
   "result": { "tax_rate": 0.10, "tax_label": "標準税率" },
@@ -436,7 +436,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 {
   "error": {
     "code": "SYS_RULE_SET_NOT_FOUND",
-    "message": "rule set not found: accounting.tax_calculation",
+    "message": "rule set not found: taskmanagement.tax_calculation",
     "request_id": "req_abc123def456",
     "details": []
   }
@@ -469,7 +469,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
   "logs": [
     {
       "evaluation_id": "eval_01JABCDEFG1234567890",
-      "rule_set": "accounting.tax_calculation",
+      "rule_set": "taskmanagement.tax_calculation",
       "rule_set_version": 3,
       "matched_rule_id": "rule-001",
       "input_hash": "sha256:abc123...",
@@ -735,7 +735,7 @@ message EvaluateResponse {
   "event_type": "RULE_SET_PUBLISHED",
   "rule_set_id": "rs-001",
   "rule_set_name": "tax_calculation",
-  "domain": "accounting",
+  "domain": "taskmanagement",
   "action": "PUBLISHED",
   "version": 3,
   "previous_version": 2,
@@ -801,7 +801,7 @@ config-server がルールエンジン関連の設定変更を通知した場合
 | `id` | UUID | ルールセットの一意識別子 |
 | `name` | String | ルールセット名（例: `tax_calculation`） |
 | `description` | String | ルールセットの説明 |
-| `domain` | String | 業務領域（例: `accounting`, `fa`） |
+| `domain` | String | 業務領域（例: `taskmanagement`, `fa`） |
 | `evaluation_mode` | EvaluationMode | `FirstMatch` / `AllMatch` |
 | `default_result` | serde_json::Value | デフォルト結果 |
 | `rule_ids` | Vec\<UUID\> | 所属ルール ID 一覧（優先度順） |

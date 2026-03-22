@@ -1,0 +1,29 @@
+# k1s0-common からのデフォルトを継承し、activity サービス固有の値のみ上書きする
+# 共通デフォルト値は infra/helm/charts/k1s0-common/values.yaml を参照
+
+image:
+  repository: k1s0-service/activity
+
+container:
+  port: 8080
+
+vault:
+  enabled: true
+  role: "service"
+  secrets:
+    - path: "secret/data/k1s0/service/activity/database"
+      key: "password"
+      mountPath: "/vault/secrets/db-password"
+
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+serviceAccount:
+  name: "activity-rust"
+
+labels:
+  tier: service
+
+kafka:
+  enabled: true
+
+redis:
+  enabled: false

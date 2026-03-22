@@ -523,13 +523,13 @@ mod tests {
         let config = GenerateConfig {
             kind: Kind::Server,
             tier: Tier::Service,
-            placement: Some("order".to_string()),
+            placement: Some("task".to_string()),
             lang_fw: LangFw::Language(Language::Rust),
             detail: DetailConfig {
-                name: Some("order".to_string()),
+                name: Some("task".to_string()),
                 api_styles: vec![ApiStyle::Rest, ApiStyle::Grpc],
                 db: Some(crate::commands::generate::types::DbInfo {
-                    name: "order-db".to_string(),
+                    name: "task-db".to_string(),
                     rdbms: Rdbms::PostgreSQL,
                 }),
                 kafka: true,
@@ -551,12 +551,12 @@ mod tests {
 
         assert_eq!(restored_config.kind, Kind::Server);
         assert_eq!(restored_config.tier, Tier::Service);
-        assert_eq!(restored_config.placement, Some("order".to_string()));
+        assert_eq!(restored_config.placement, Some("task".to_string()));
         assert_eq!(
             restored_config.detail.api_styles,
             vec![ApiStyle::Rest, ApiStyle::Grpc]
         );
-        assert_eq!(restored_config.detail.db.unwrap().name, "order-db");
+        assert_eq!(restored_config.detail.db.unwrap().name, "task-db");
         assert!(restored_config.detail.kafka);
         assert!(restored_config.detail.redis);
         assert_eq!(restored_config.detail.bff_language, Some(Language::Go));
@@ -567,7 +567,7 @@ mod tests {
         );
         assert!(yaml.contains("apiVersion: k1s0/v1"));
         assert!(yaml.contains("kind: TemplateInstance"));
-        assert!(yaml.contains("serviceName: order"));
+        assert!(yaml.contains("serviceName: task"));
         assert!(yaml.contains("apiStyles:"));
     }
 
@@ -576,10 +576,10 @@ mod tests {
         let config = GenerateConfig {
             kind: Kind::Client,
             tier: Tier::Business,
-            placement: Some("accounting".to_string()),
+            placement: Some("taskmanagement".to_string()),
             lang_fw: LangFw::Framework(Framework::React),
             detail: DetailConfig {
-                name: Some("accounting-web".to_string()),
+                name: Some("taskmanagement-web".to_string()),
                 ..DetailConfig::default()
             },
         };
@@ -594,14 +594,14 @@ mod tests {
 
         assert_eq!(restored_config.kind, Kind::Client);
         assert_eq!(restored_config.tier, Tier::Business);
-        assert_eq!(restored_config.placement, Some("accounting".to_string()));
+        assert_eq!(restored_config.placement, Some("taskmanagement".to_string()));
         assert!(matches!(
             restored_config.lang_fw,
             LangFw::Framework(Framework::React)
         ));
         assert_eq!(
             restored_config.detail.name,
-            Some("accounting-web".to_string())
+            Some("taskmanagement-web".to_string())
         );
     }
 

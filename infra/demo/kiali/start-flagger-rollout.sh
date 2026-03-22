@@ -12,12 +12,12 @@ MODE="${1:-promote}"
 NAMESPACE="k1s0-service"
 REVISION="${MODE}-$(date +%s)"
 
-if ! kubectl get canary order-server -n "${NAMESPACE}" >/dev/null 2>&1; then
-  echo "ERROR: Flagger canary for order-server is not installed."
+if ! kubectl get canary task-server -n "${NAMESPACE}" >/dev/null 2>&1; then
+  echo "ERROR: Flagger canary for task-server is not installed."
   exit 1
 fi
 
-kubectl wait --for=condition=available deployment/order-server-primary \
+kubectl wait --for=condition=available deployment/task-server-primary \
   -n "${NAMESPACE}" --timeout=120s >/dev/null
 
 case "${MODE}" in
@@ -41,7 +41,7 @@ esac
 
 echo "Starting Flagger rollout (${MODE})..."
 
-kubectl patch deployment order-server -n "${NAMESPACE}" --type strategic -p "
+kubectl patch deployment task-server -n "${NAMESPACE}" --type strategic -p "
 spec:
   template:
     metadata:
@@ -65,7 +65,7 @@ spec:
               value: ${REVISION}
 " >/dev/null
 
-kubectl rollout status deployment/order-server -n "${NAMESPACE}" --timeout=120s >/dev/null
+kubectl rollout status deployment/task-server -n "${NAMESPACE}" --timeout=120s >/dev/null
 
 echo "Flagger rollout triggered. Watch with:"
-echo "  kubectl get canary order-server -n ${NAMESPACE} -w"
+echo "  kubectl get canary task-server -n ${NAMESPACE} -w"

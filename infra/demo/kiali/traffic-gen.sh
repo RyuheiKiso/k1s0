@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Generate demo traffic by hitting the local order-bff process.
+# Generate demo traffic by hitting the local task-bff process.
 # The demo service fans out to downstream services, emits JSON logs,
 # and forwards B3 headers so Istio produces real metrics and traces.
 set -euo pipefail
@@ -14,10 +14,10 @@ echo "Interval: ${INTERVAL}s | Duration: ${DURATION}s | Mode: ${MODE} | Burst: $
 echo "Press Ctrl+C to stop"
 echo ""
 
-ORDER_BFF=$(kubectl get pod -n k1s0-service -l app=order-bff -o jsonpath='{.items[0].metadata.name}')
+TASK_BFF=$(kubectl get pod -n k1s0-service -l app=task-bff -o jsonpath='{.items[0].metadata.name}')
 
 echo "Root pod found:"
-echo "  order-bff: ${ORDER_BFF}"
+echo "  task-bff: ${TASK_BFF}"
 echo ""
 
 END_TIME=$((SECONDS + DURATION))
@@ -27,7 +27,7 @@ while [ "${SECONDS}" -lt "${END_TIME}" ]; do
   COUNT=$((COUNT + 1))
   echo "[$(date +%H:%M:%S)] Round ${COUNT}"
 
-  if ! kubectl exec -i "${ORDER_BFF}" -n k1s0-service -c stub -- \
+  if ! kubectl exec -i "${TASK_BFF}" -n k1s0-service -c stub -- \
     python - "${MODE}" "${BURST_SIZE}" <<'PY'
 import json
 import secrets

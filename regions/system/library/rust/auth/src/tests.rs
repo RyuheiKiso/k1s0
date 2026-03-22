@@ -83,7 +83,7 @@ mod tests {
         let claims = claims_override.unwrap_or_else(|| {
             let mut resource_access = HashMap::new();
             resource_access.insert(
-                "order-service".into(),
+                "task-server".into(),
                 TestAccess {
                     roles: vec!["read".into(), "write".into()],
                 },
@@ -227,7 +227,7 @@ mod tests {
     fn test_claims_resource_roles() {
         let mut ra = HashMap::new();
         ra.insert(
-            "order-service".to_string(),
+            "task-server".to_string(),
             RoleSet {
                 roles: vec!["read".into(), "write".into()],
             },
@@ -250,7 +250,7 @@ mod tests {
             tier_access: None,
         };
 
-        assert_eq!(claims.resource_roles("order-service"), &["read", "write"]);
+        assert_eq!(claims.resource_roles("task-server"), &["read", "write"]);
         assert!(claims.resource_roles("user-service").is_empty());
     }
 
@@ -602,13 +602,13 @@ mod tests {
         assert!(has_role(&claims, "order_manager"));
         assert!(!has_role(&claims, "sys_admin"));
 
-        assert!(has_resource_role(&claims, "order-service", "read"));
-        assert!(has_resource_role(&claims, "order-service", "write"));
-        assert!(!has_resource_role(&claims, "order-service", "delete"));
+        assert!(has_resource_role(&claims, "task-server", "read"));
+        assert!(has_resource_role(&claims, "task-server", "write"));
+        assert!(!has_resource_role(&claims, "task-server", "delete"));
 
-        assert!(check_permission(&claims, "order-service", "read"));
-        assert!(has_permission(&claims, "order-service", "read"));
-        assert!(!check_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "task-server", "read"));
+        assert!(has_permission(&claims, "task-server", "read"));
+        assert!(!check_permission(&claims, "task-server", "delete"));
 
         assert!(has_tier_access(&claims, "system"));
         assert!(has_tier_access(&claims, "business"));

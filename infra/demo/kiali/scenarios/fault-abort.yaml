@@ -3,11 +3,11 @@
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: order-server
+  name: task-server
   namespace: k1s0-service
 spec:
   hosts:
-    - order-server.k1s0-service.svc.cluster.local
+    - task-server.k1s0-service.svc.cluster.local
   http:
     - fault:
         abort:
@@ -20,6 +20,6 @@ spec:
           fixedDelay: 500ms
       route:
         - destination:
-            host: order-server.k1s0-service.svc.cluster.local
+            host: task-server.k1s0-service.svc.cluster.local
             subset: stable
       timeout: 10s

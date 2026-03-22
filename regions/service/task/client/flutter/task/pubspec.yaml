@@ -1,0 +1,33 @@
+name: task
+description: タスク管理クライアント
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.7.0 <4.0.0'
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Riverpod による状態管理
+  flutter_riverpod: ^3.3.1
+  # go_router によるルーティング
+  go_router: ^17.1.0
+  # Dio による HTTP クライアント
+  dio: ^5.7.0
+  # YAML 設定ファイル読み込み
+  yaml: ^3.1.2
+  # システム共通クライアント SDK（設定・認証・API クライアント）
+  system_client:
+    path: ../../../../../system/client/flutter/system_client
+
+flutter:
+  assets:
+    - config/config.yaml
+    - config/config.development.yaml
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

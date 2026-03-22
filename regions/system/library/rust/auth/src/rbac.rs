@@ -155,12 +155,12 @@ mod tests {
     #[test]
     fn test_has_resource_role() {
         let mut ra = HashMap::new();
-        ra.insert("order-service", vec!["read", "write"]);
+        ra.insert("task-server", vec!["read", "write"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
 
-        assert!(has_resource_role(&claims, "order-service", "read"));
-        assert!(has_resource_role(&claims, "order-service", "write"));
-        assert!(!has_resource_role(&claims, "order-service", "delete"));
+        assert!(has_resource_role(&claims, "task-server", "read"));
+        assert!(has_resource_role(&claims, "task-server", "write"));
+        assert!(!has_resource_role(&claims, "task-server", "delete"));
         assert!(!has_resource_role(&claims, "user-service", "read"));
     }
 
@@ -168,22 +168,22 @@ mod tests {
     #[test]
     fn test_check_permission_basic() {
         let mut ra = HashMap::new();
-        ra.insert("order-service", vec!["read", "write"]);
+        ra.insert("task-server", vec!["read", "write"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
 
-        assert!(check_permission(&claims, "order-service", "read"));
-        assert!(check_permission(&claims, "order-service", "write"));
-        assert!(!check_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "task-server", "read"));
+        assert!(check_permission(&claims, "task-server", "write"));
+        assert!(!check_permission(&claims, "task-server", "delete"));
     }
 
     // has_permission が check_permission の別名として同じ結果を返すことを確認する。
     #[test]
     fn test_has_permission_alias() {
         let mut ra = HashMap::new();
-        ra.insert("order-service", vec!["read"]);
+        ra.insert("task-server", vec!["read"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
-        assert!(has_permission(&claims, "order-service", "read"));
-        assert!(!has_permission(&claims, "order-service", "write"));
+        assert!(has_permission(&claims, "task-server", "read"));
+        assert!(!has_permission(&claims, "task-server", "write"));
     }
 
     // sys_admin ロールを持つユーザーがすべてのリソースの全操作を許可されることを確認する。
@@ -200,12 +200,12 @@ mod tests {
     #[test]
     fn test_check_permission_resource_admin() {
         let mut ra = HashMap::new();
-        ra.insert("order-service", vec!["admin"]);
+        ra.insert("task-server", vec!["admin"]);
         let claims = make_claims(vec!["user"], ra, vec![]);
 
-        assert!(check_permission(&claims, "order-service", "read"));
-        assert!(check_permission(&claims, "order-service", "write"));
-        assert!(check_permission(&claims, "order-service", "delete"));
+        assert!(check_permission(&claims, "task-server", "read"));
+        assert!(check_permission(&claims, "task-server", "write"));
+        assert!(check_permission(&claims, "task-server", "delete"));
     }
 
     // system Tier を持つユーザーが全 Tier へのアクセスを許可されることを確認する。

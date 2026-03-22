@@ -1,0 +1,272 @@
+// k1s0 プロジェクトマスタサービス gRPC 定義。
+// タスク管理ドメインのマスタデータ管理（プロジェクトタイプ・ステータス定義・バージョン・テナント拡張）を提供する。
+// Timestamp 型を k1s0.system.common.v1.Timestamp に統一。
+syntax = "proto3";
+
+package k1s0.business.taskmanagement.projectmaster.v1;
+
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/business/taskmanagement/projectmaster/v1;projectmasterv1";
+
+import "google/protobuf/struct.proto";
+import "k1s0/system/common/v1/types.proto";
+
+service ProjectMasterService {
+  // プロジェクトタイプ操作
+  rpc ListProjectTypes(ListProjectTypesRequest) returns (ListProjectTypesResponse);
+  rpc GetProjectType(GetProjectTypeRequest) returns (GetProjectTypeResponse);
+  rpc CreateProjectType(CreateProjectTypeRequest) returns (CreateProjectTypeResponse);
+  rpc UpdateProjectType(UpdateProjectTypeRequest) returns (UpdateProjectTypeResponse);
+  rpc DeleteProjectType(DeleteProjectTypeRequest) returns (DeleteProjectTypeResponse);
+
+  // ステータス定義操作
+  rpc ListStatusDefinitions(ListStatusDefinitionsRequest) returns (ListStatusDefinitionsResponse);
+  rpc GetStatusDefinition(GetStatusDefinitionRequest) returns (GetStatusDefinitionResponse);
+  rpc CreateStatusDefinition(CreateStatusDefinitionRequest) returns (CreateStatusDefinitionResponse);
+  rpc UpdateStatusDefinition(UpdateStatusDefinitionRequest) returns (UpdateStatusDefinitionResponse);
+  rpc DeleteStatusDefinition(DeleteStatusDefinitionRequest) returns (DeleteStatusDefinitionResponse);
+
+  // バージョン操作
+  rpc ListStatusDefinitionVersions(ListStatusDefinitionVersionsRequest) returns (ListStatusDefinitionVersionsResponse);
+
+  // テナント拡張操作
+  rpc GetTenantExtension(GetTenantExtensionRequest) returns (GetTenantExtensionResponse);
+  rpc UpsertTenantExtension(UpsertTenantExtensionRequest) returns (UpsertTenantExtensionResponse);
+  rpc DeleteTenantExtension(DeleteTenantExtensionRequest) returns (DeleteTenantExtensionResponse);
+  rpc ListTenantStatuses(ListTenantStatusesRequest) returns (ListTenantStatusesResponse);
+}
+
+// ---------- メッセージ型 ----------
+
+// プロジェクトタイプ（ソフトウェア開発・マーケティング等のテンプレート定義）
+message ProjectType {
+  string id = 1;
+  string code = 2;
+  string display_name = 3;
+  string description = 4;
+  google.protobuf.Struct default_workflow = 5;
+  bool is_active = 6;
+  int32 sort_order = 7;
+  string created_by = 8;
+  k1s0.system.common.v1.Timestamp created_at = 9;
+  k1s0.system.common.v1.Timestamp updated_at = 10;
+}
+
+// ステータス定義（Open/In Progress/Review/Done 等の共通ステータス定義）
+message StatusDefinition {
+  string id = 1;
+  string project_type_id = 2;
+  string code = 3;
+  string display_name = 4;
+  string description = 5;
+  optional string color = 6;
+  google.protobuf.Struct allowed_transitions = 7;
+  bool is_initial = 8;
+  bool is_terminal = 9;
+  int32 sort_order = 10;
+  string created_by = 11;
+  k1s0.system.common.v1.Timestamp created_at = 12;
+  k1s0.system.common.v1.Timestamp updated_at = 13;
+}
+
+// ステータス定義バージョン（ワークフロー変更の監査履歴）
+message StatusDefinitionVersion {
+  string id = 1;
+  string status_definition_id = 2;
+  int32 version_number = 3;
+  google.protobuf.Struct before_data = 4;
+  google.protobuf.Struct after_data = 5;
+  string changed_by = 6;
+  string change_reason = 7;
+  k1s0.system.common.v1.Timestamp created_at = 8;
+}
+
+// テナントプロジェクト拡張（テナント毎のカスタマイズ）
+message TenantProjectExtension {
+  string id = 1;
+  string tenant_id = 2;
+  string status_definition_id = 3;
+  optional string display_name_override = 4;
+  google.protobuf.Struct attributes_override = 5;
+  bool is_enabled = 6;
+  k1s0.system.common.v1.Timestamp created_at = 7;
+  k1s0.system.common.v1.Timestamp updated_at = 8;
+}
+
+// テナントマージステータス（マージビュー用）
+message TenantMergedStatus {
+  StatusDefinition base_status = 1;
+  optional TenantProjectExtension extension = 2;
+  string effective_display_name = 3;
+  google.protobuf.Struct effective_attributes = 4;
+}
+
+// ---------- プロジェクトタイプ リクエスト/レスポンス ----------
+
+message ListProjectTypesRequest {
+  bool active_only = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListProjectTypesResponse {
+  repeated ProjectType project_types = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message GetProjectTypeRequest {
+  string project_type_id = 1;
+}
+
+message GetProjectTypeResponse {
+  ProjectType project_type = 1;
+}
+
+message CreateProjectTypeRequest {
+  string code = 1;
+  string display_name = 2;
+  optional string description = 3;
+  google.protobuf.Struct default_workflow = 4;
+  optional bool is_active = 5;
+  optional int32 sort_order = 6;
+}
+
+message CreateProjectTypeResponse {
+  ProjectType project_type = 1;
+}
+
+message UpdateProjectTypeRequest {
+  string project_type_id = 1;
+  optional string display_name = 2;
+  optional string description = 3;
+  google.protobuf.Struct default_workflow = 4;
+  optional bool is_active = 5;
+  optional int32 sort_order = 6;
+}
+
+message UpdateProjectTypeResponse {
+  ProjectType project_type = 1;
+}
+
+message DeleteProjectTypeRequest {
+  string project_type_id = 1;
+}
+
+message DeleteProjectTypeResponse {
+  bool success = 1;
+}
+
+// ---------- ステータス定義 リクエスト/レスポンス ----------
+
+message ListStatusDefinitionsRequest {
+  string project_type_id = 1;
+  bool active_only = 2;
+  k1s0.system.common.v1.Pagination pagination = 3;
+}
+
+message ListStatusDefinitionsResponse {
+  repeated StatusDefinition status_definitions = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+message GetStatusDefinitionRequest {
+  string status_definition_id = 1;
+}
+
+message GetStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
+}
+
+message CreateStatusDefinitionRequest {
+  string project_type_id = 1;
+  string code = 2;
+  string display_name = 3;
+  optional string description = 4;
+  optional string color = 5;
+  google.protobuf.Struct allowed_transitions = 6;
+  optional bool is_initial = 7;
+  optional bool is_terminal = 8;
+  optional int32 sort_order = 9;
+}
+
+message CreateStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
+}
+
+message UpdateStatusDefinitionRequest {
+  string status_definition_id = 1;
+  optional string display_name = 2;
+  optional string description = 3;
+  optional string color = 4;
+  google.protobuf.Struct allowed_transitions = 5;
+  optional bool is_initial = 6;
+  optional bool is_terminal = 7;
+  optional int32 sort_order = 8;
+  optional string change_reason = 9;
+}
+
+message UpdateStatusDefinitionResponse {
+  StatusDefinition status_definition = 1;
+}
+
+message DeleteStatusDefinitionRequest {
+  string status_definition_id = 1;
+}
+
+message DeleteStatusDefinitionResponse {
+  bool success = 1;
+}
+
+// ---------- バージョン リクエスト/レスポンス ----------
+
+message ListStatusDefinitionVersionsRequest {
+  string status_definition_id = 1;
+  k1s0.system.common.v1.Pagination pagination = 2;
+}
+
+message ListStatusDefinitionVersionsResponse {
+  repeated StatusDefinitionVersion versions = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}
+
+// ---------- テナント拡張 リクエスト/レスポンス ----------
+
+message GetTenantExtensionRequest {
+  string tenant_id = 1;
+  string status_definition_id = 2;
+}
+
+message GetTenantExtensionResponse {
+  TenantProjectExtension extension = 1;
+}
+
+message UpsertTenantExtensionRequest {
+  string tenant_id = 1;
+  string status_definition_id = 2;
+  optional string display_name_override = 3;
+  google.protobuf.Struct attributes_override = 4;
+  optional bool is_enabled = 5;
+}
+
+message UpsertTenantExtensionResponse {
+  TenantProjectExtension extension = 1;
+}
+
+message DeleteTenantExtensionRequest {
+  string tenant_id = 1;
+  string status_definition_id = 2;
+}
+
+message DeleteTenantExtensionResponse {
+  bool success = 1;
+}
+
+message ListTenantStatusesRequest {
+  string tenant_id = 1;
+  string project_type_id = 2;
+  bool active_only = 3;
+  k1s0.system.common.v1.Pagination pagination = 4;
+}
+
+message ListTenantStatusesResponse {
+  repeated TenantMergedStatus statuses = 1;
+  k1s0.system.common.v1.PaginationResult pagination = 2;
+}

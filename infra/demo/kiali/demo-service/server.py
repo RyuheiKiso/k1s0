@@ -47,9 +47,9 @@ DB_QUERY_PLANS = {
     "config-server": [("config_entries", "load_config_bundle", 0.001, 0.004)],
     "graphql-gateway": [("schema_registry", "load_resolvers", 0.001, 0.003)],
     "saga-server": [("saga_instances", "persist_step", 0.004, 0.015)],
-    "accounting-server": [("ledger_entries", "insert_entry", 0.003, 0.012)],
-    "order-bff": [("sessions", "load_session", 0.001, 0.004)],
-    "order-server": [
+    "project-master-server": [("tasks", "create_task", 0.003, 0.012)],
+    "task-bff": [("sessions", "load_session", 0.001, 0.004)],
+    "task-server": [
         ("orders", "persist_order", 0.005, 0.02),
         ("order_items", "insert_items", 0.003, 0.01),
     ],
@@ -282,11 +282,11 @@ def record_kafka_metrics(response_status: int) -> None:
     if response_status >= 500:
         return
     with METRICS_LOCK:
-        if SERVICE_NAME == "order-server":
-            KAFKA_MESSAGES_PRODUCED.inc((SERVICE_NAME, "order-events"))
-        elif SERVICE_NAME == "accounting-server":
+        if SERVICE_NAME == "task-server":
+            KAFKA_MESSAGES_PRODUCED.inc((SERVICE_NAME, "task-events"))
+        elif SERVICE_NAME == "project-master-server":
             KAFKA_MESSAGES_CONSUMED.inc(
-                (SERVICE_NAME, "order-events", "accounting-processor")
+                (SERVICE_NAME, "task-events", "project-master-processor")
             )
 
 

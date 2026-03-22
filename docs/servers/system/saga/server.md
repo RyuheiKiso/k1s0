@@ -656,7 +656,7 @@ regions/system/server/rust/saga/
 │   ├── config.yaml                          # 本番設定
 │   └── config.dev.yaml                      # 開発設定
 ├── workflows/
-│   └── order-fulfillment.yaml               # サンプルワークフロー
+│   └── task-assignment.yaml                 # サンプルワークフロー
 ├── tests/
 │   ├── integration_test.rs                  # REST API 統合テスト
 │   ├── workflow_engine_test.rs              # ワークフローエンジンテスト
@@ -801,17 +801,15 @@ regions/system/library/rust/saga/
 
 ```json
 {
-  "workflow_name": "order-fulfillment",
+  "workflow_name": "task-assignment",
   "payload": {
-    "order_id": "ord-12345",
-    "customer_id": "cust-67890",
-    "items": [
-      {"product_id": "prod-001", "quantity": 2}
-    ],
-    "total_amount": 5000
+    "task_id": "task-12345",
+    "assignee_id": "user-67890",
+    "board_id": "board-001",
+    "column": "in-progress"
   },
   "correlation_id": "req-abc-123",
-  "initiated_by": "order-service"
+  "initiated_by": "task-service"
 }
 ```
 
@@ -846,12 +844,12 @@ regions/system/library/rust/saga/
   "sagas": [
     {
       "saga_id": "550e8400-e29b-41d4-a716-446655440000",
-      "workflow_name": "order-fulfillment",
+      "workflow_name": "task-assignment",
       "current_step": 3,
       "status": "COMPLETED",
-      "payload": {"order_id": "ord-12345"},
+      "payload": {"task_id": "task-12345"},
       "correlation_id": "req-abc-123",
-      "initiated_by": "order-service",
+      "initiated_by": "task-service",
       "error_message": null,
       "created_at": "2026-02-20T10:30:00.000Z",
       "updated_at": "2026-02-20T10:30:05.123Z"
@@ -874,12 +872,12 @@ regions/system/library/rust/saga/
 {
   "saga": {
     "saga_id": "550e8400-e29b-41d4-a716-446655440000",
-    "workflow_name": "order-fulfillment",
+    "workflow_name": "task-assignment",
     "current_step": 3,
     "status": "COMPLETED",
-    "payload": {"order_id": "ord-12345"},
+    "payload": {"task_id": "task-12345"},
     "correlation_id": "req-abc-123",
-    "initiated_by": "order-service",
+    "initiated_by": "task-service",
     "error_message": null,
     "created_at": "2026-02-20T10:30:00.000Z",
     "updated_at": "2026-02-20T10:30:05.123Z"
@@ -888,11 +886,11 @@ regions/system/library/rust/saga/
     {
       "id": "660e8400-e29b-41d4-a716-446655440001",
       "step_index": 0,
-      "step_name": "reserve-inventory",
+      "step_name": "create-task",
       "action": "EXECUTE",
       "status": "SUCCESS",
-      "request_payload": {"order_id": "ord-12345"},
-      "response_payload": {"reservation_id": "res-001"},
+      "request_payload": {"task_id": "task-12345"},
+      "response_payload": {"task_id": "task-12345"},
       "error_message": null,
       "started_at": "2026-02-20T10:30:00.100Z",
       "completed_at": "2026-02-20T10:30:01.200Z"
@@ -900,11 +898,11 @@ regions/system/library/rust/saga/
     {
       "id": "660e8400-e29b-41d4-a716-446655440002",
       "step_index": 1,
-      "step_name": "process-payment",
+      "step_name": "increment-board-column",
       "action": "EXECUTE",
       "status": "SUCCESS",
-      "request_payload": {"order_id": "ord-12345"},
-      "response_payload": {"transaction_id": "txn-001"},
+      "request_payload": {"task_id": "task-12345"},
+      "response_payload": {"column_count": 3},
       "error_message": null,
       "started_at": "2026-02-20T10:30:01.300Z",
       "completed_at": "2026-02-20T10:30:03.500Z"
@@ -956,12 +954,12 @@ regions/system/library/rust/saga/
 
 ```json
 {
-  "workflow_yaml": "name: order-fulfillment
+  "workflow_yaml": "name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+    compensate: TaskService.CancelTask
     timeout_secs: 30
     retry:
       max_attempts: 3
@@ -975,7 +973,7 @@ steps:
 
 ```json
 {
-  "name": "order-fulfillment",
+  "name": "task-assignment",
   "step_count": 3
 }
 ```
@@ -988,9 +986,9 @@ steps:
 {
   "workflows": [
     {
-      "name": "order-fulfillment",
+      "name": "task-assignment",
       "step_count": 3,
-      "step_names": ["reserve-inventory", "process-payment", "arrange-shipping"]
+      "step_names": ["create-task", "increment-board-column", "log-activity"]
     }
   ]
 }
@@ -1037,32 +1035,32 @@ steps:
 ## ワークフロー YAML 定義例
 
 ```yaml
-name: order-fulfillment
+name: task-assignment
 steps:
-  - name: reserve-inventory
-    service: inventory-service
-    method: InventoryService.Reserve
-    compensate: InventoryService.Release
+  - name: create-task
+    service: task-server
+    method: TaskService.CreateTask
+    compensate: TaskService.CancelTask
     timeout_secs: 30
     retry:
       max_attempts: 3
       backoff: exponential
       initial_interval_ms: 1000
 
-  - name: process-payment
-    service: payment-service
-    method: PaymentService.Charge
-    compensate: PaymentService.Refund
+  - name: increment-board-column
+    service: board-server
+    method: BoardService.IncrementColumn
+    compensate: BoardService.DecrementColumn
     timeout_secs: 60
     retry:
       max_attempts: 2
       backoff: exponential
       initial_interval_ms: 2000
 
-  - name: arrange-shipping
-    service: shipping-service
-    method: ShippingService.CreateShipment
-    compensate: ShippingService.CancelShipment
+  - name: log-activity
+    service: activity-server
+    method: ActivityService.CreateActivity
+    compensate: ActivityService.DeleteActivity
     timeout_secs: 30
 ```
 
@@ -1164,11 +1162,11 @@ tempfile = "3"
 
 ```yaml
 services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
+  task-server:
+    host: "task.k1s0-business.svc.cluster.local"
     port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
+  board-server:
+    host: "board.k1s0-business.svc.cluster.local"
     port: 50051
 ```
 
@@ -1241,14 +1239,14 @@ kafka:
     subscribe: []
 
 services:
-  inventory-service:
-    host: "inventory.k1s0-business.svc.cluster.local"
+  task-server:
+    host: "task.k1s0-business.svc.cluster.local"
     port: 50051
-  payment-service:
-    host: "payment.k1s0-business.svc.cluster.local"
+  board-server:
+    host: "board.k1s0-business.svc.cluster.local"
     port: 50051
-  shipping-service:
-    host: "shipping.k1s0-business.svc.cluster.local"
+  activity-server:
+    host: "activity.k1s0-business.svc.cluster.local"
     port: 50051
 
 saga:

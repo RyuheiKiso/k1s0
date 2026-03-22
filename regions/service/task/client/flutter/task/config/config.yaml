@@ -1,0 +1,11 @@
+app:
+  name: "Task Management"
+  version: "0.1.0"
+  env: "development"
+api:
+  base_url: "http://localhost:8080"
+  timeout: 30
+  retry:
+    max_attempts: 3
+    backoff_ms: 1000
+features: {}

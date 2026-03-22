@@ -14,13 +14,13 @@
         <mxCell id="coord" value="&lt;b&gt;Saga&lt;br&gt;Coordinator&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="60" y="60" width="100" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="svcA" value="&lt;b&gt;Service A&lt;/b&gt;&lt;br&gt;(注文)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="svcA" value="&lt;b&gt;Service A&lt;/b&gt;&lt;br&gt;(タスク)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="270" y="60" width="100" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="svcB" value="&lt;b&gt;Service B&lt;/b&gt;&lt;br&gt;(在庫)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="svcB" value="&lt;b&gt;Service B&lt;/b&gt;&lt;br&gt;(ボードカード)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="480" y="60" width="100" height="50" as="geometry"/>
         </mxCell>
-        <mxCell id="svcC" value="&lt;b&gt;Service C&lt;/b&gt;&lt;br&gt;(決済)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
+        <mxCell id="svcC" value="&lt;b&gt;Service C&lt;/b&gt;&lt;br&gt;(アクティビティ)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;" vertex="1" parent="1">
           <mxGeometry x="690" y="60" width="100" height="50" as="geometry"/>
         </mxCell>
         <mxCell id="kafka" value="&lt;b&gt;Event Bus&lt;/b&gt;&lt;br&gt;(Kafka)" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
@@ -42,31 +42,31 @@
           <mxGeometry x="40" y="123" width="240" height="20" as="geometry"/>
         </mxCell>
 
-        <!-- ① Coordinator → Service A: 注文作成 -->
-        <mxCell id="m1" value="① 注文作成コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
+        <!-- ① Coordinator → Service A: タスク作成 -->
+        <mxCell id="m1" value="① タスク作成コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="155" as="sourcePoint"/><mxPoint x="320" y="155" as="targetPoint"/></mxGeometry>
         </mxCell>
         <mxCell id="m1r" value="成功レスポンス" style="html=1;strokeWidth=2;strokeColor=#6C8EBF;fontSize=10;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="320" y="180" as="sourcePoint"/><mxPoint x="110" y="180" as="targetPoint"/></mxGeometry>
         </mxCell>
         <!-- Service A → Kafka: イベント発行 -->
-        <mxCell id="m1e" value="OrderCreated" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
+        <mxCell id="m1e" value="TaskCreated" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="320" y="195" as="sourcePoint"/><mxPoint x="950" y="195" as="targetPoint"/></mxGeometry>
         </mxCell>
 
-        <!-- ② Coordinator → Service B: 在庫引当 -->
-        <mxCell id="m2" value="② 在庫引当コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
+        <!-- ② Coordinator → Service B: ボードカード割当 -->
+        <mxCell id="m2" value="② ボードカード割当コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="225" as="sourcePoint"/><mxPoint x="530" y="225" as="targetPoint"/></mxGeometry>
         </mxCell>
         <mxCell id="m2r" value="成功レスポンス" style="html=1;strokeWidth=2;strokeColor=#82B366;fontSize=10;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="530" y="250" as="sourcePoint"/><mxPoint x="110" y="250" as="targetPoint"/></mxGeometry>
         </mxCell>
-        <mxCell id="m2e" value="InventoryReserved" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
+        <mxCell id="m2e" value="BoardCardAssigned" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="530" y="265" as="sourcePoint"/><mxPoint x="950" y="265" as="targetPoint"/></mxGeometry>
         </mxCell>
 
-        <!-- ③ Coordinator → Service C: 決済処理 -->
-        <mxCell id="m3" value="③ 決済処理コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
+        <!-- ③ Coordinator → Service C: アクティビティ記録 -->
+        <mxCell id="m3" value="③ アクティビティ記録コマンド" style="html=1;strokeWidth=2;strokeColor=#9673A6;fontSize=10;fontStyle=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="295" as="sourcePoint"/><mxPoint x="740" y="295" as="targetPoint"/></mxGeometry>
         </mxCell>
 
@@ -77,7 +77,7 @@
         <mxCell id="m3r" value="失敗レスポンス" style="html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="740" y="330" as="sourcePoint"/><mxPoint x="110" y="330" as="targetPoint"/></mxGeometry>
         </mxCell>
-        <mxCell id="m3e" value="PaymentFailed" style="html=1;strokeWidth=1;strokeColor=#B85450;fontSize=9;dashed=1;" edge="1" parent="1">
+        <mxCell id="m3e" value="ActivityFailed" style="html=1;strokeWidth=1;strokeColor=#B85450;fontSize=9;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="740" y="345" as="sourcePoint"/><mxPoint x="950" y="345" as="targetPoint"/></mxGeometry>
         </mxCell>
 
@@ -89,25 +89,25 @@
           <mxGeometry x="40" y="403" width="360" height="20" as="geometry"/>
         </mxCell>
 
-        <!-- 補償②: Coordinator → Service B: 在庫引当解除 -->
-        <mxCell id="c2" value="補償② 在庫引当解除" style="html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;" edge="1" parent="1">
+        <!-- 補償②: Coordinator → Service B: ボードカード割当解除 -->
+        <mxCell id="c2" value="補償② ボードカード割当解除" style="html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="440" as="sourcePoint"/><mxPoint x="530" y="440" as="targetPoint"/></mxGeometry>
         </mxCell>
         <mxCell id="c2r" value="補償完了" style="html=1;strokeWidth=2;strokeColor=#82B366;fontSize=10;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="530" y="465" as="sourcePoint"/><mxPoint x="110" y="465" as="targetPoint"/></mxGeometry>
         </mxCell>
-        <mxCell id="c2e" value="InventoryReleased" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
+        <mxCell id="c2e" value="BoardCardReleased" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="530" y="480" as="sourcePoint"/><mxPoint x="950" y="480" as="targetPoint"/></mxGeometry>
         </mxCell>
 
-        <!-- 補償①: Coordinator → Service A: 注文キャンセル -->
-        <mxCell id="c1" value="補償① 注文キャンセル" style="html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;" edge="1" parent="1">
+        <!-- 補償①: Coordinator → Service A: タスクキャンセル -->
+        <mxCell id="c1" value="補償① タスクキャンセル" style="html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;fontStyle=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="110" y="510" as="sourcePoint"/><mxPoint x="320" y="510" as="targetPoint"/></mxGeometry>
         </mxCell>
         <mxCell id="c1r" value="補償完了" style="html=1;strokeWidth=2;strokeColor=#6C8EBF;fontSize=10;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="320" y="535" as="sourcePoint"/><mxPoint x="110" y="535" as="targetPoint"/></mxGeometry>
         </mxCell>
-        <mxCell id="c1e" value="OrderCancelled" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
+        <mxCell id="c1e" value="TaskCancelled" style="html=1;strokeWidth=1;strokeColor=#666666;fontSize=9;dashed=1;" edge="1" parent="1">
           <mxGeometry relative="1" as="geometry"><mxPoint x="320" y="550" as="sourcePoint"/><mxPoint x="950" y="550" as="targetPoint"/></mxGeometry>
         </mxCell>
 

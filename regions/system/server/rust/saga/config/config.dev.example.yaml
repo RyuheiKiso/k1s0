@@ -28,10 +28,10 @@ kafka:
     subscribe: []
 
 services:
-  inventory-service:
+  board-server:
     host: "localhost"
     port: 50051
-  payment-service:
+  activity-server:
     host: "localhost"
     port: 50052
   shipping-service:

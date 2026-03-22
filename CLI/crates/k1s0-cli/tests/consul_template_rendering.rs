@@ -47,7 +47,7 @@ fn read_output(tmp: &TempDir, path: &str) -> String {
 
 #[test]
 fn test_consul_file_list() {
-    let Some((_, names)) = render_consul("order-api", "service") else {
+    let Some((_, names)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
@@ -64,49 +64,49 @@ fn test_consul_file_list() {
 
 #[test]
 fn test_consul_backend_has_service_name() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "backend-config.tf");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Backend config should contain service name\n--- backend-config.tf ---\n{content}"
     );
 }
 
 #[test]
 fn test_consul_backend_has_tier_path() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "backend-config.tf");
     assert!(
-        content.contains("k1s0/service/order-api"),
+        content.contains("k1s0/service/task-api"),
         "Backend config should contain tier-based path\n--- backend-config.tf ---\n{content}"
     );
 }
 
 #[test]
 fn test_consul_service_defaults_has_service_name() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
 
     let content = read_output(&tmp, "service-defaults.yaml");
     assert!(
-        content.contains("order-api"),
+        content.contains("task-api"),
         "Service defaults should contain service name\n--- service-defaults.yaml ---\n{content}"
     );
 }
 
 #[test]
 fn test_consul_service_defaults_has_namespace() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
@@ -121,7 +121,7 @@ fn test_consul_service_defaults_has_namespace() {
 /// Consul バックエンド設定が HTTPS スキームを使用していることを検証する
 #[test]
 fn test_consul_backend_uses_https() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
@@ -136,7 +136,7 @@ fn test_consul_backend_uses_https() {
 /// Consul バックエンド設定に ACL トークンのコメントが含まれることを検証する
 #[test]
 fn test_consul_backend_has_acl_token_comment() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
@@ -151,7 +151,7 @@ fn test_consul_backend_has_acl_token_comment() {
 /// Consul サービスデフォルト設定に connect-inject アノテーションが含まれることを検証する
 #[test]
 fn test_consul_service_defaults_has_connect_inject() {
-    let Some((tmp, _)) = render_consul("order-api", "service") else {
+    let Some((tmp, _)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };
@@ -165,7 +165,7 @@ fn test_consul_service_defaults_has_connect_inject() {
 
 #[test]
 fn test_consul_no_tera_syntax() {
-    let Some((tmp, names)) = render_consul("order-api", "service") else {
+    let Some((tmp, names)) = render_consul("task-api", "service") else {
         eprintln!("SKIP: consul テンプレートディレクトリが未作成");
         return;
     };

@@ -50,7 +50,7 @@ regions/business/{domain}/client/react/{service_name}/
 
 | domain       | service_name       | 配置パス                                                   |
 | ------------ | ------------------ | ---------------------------------------------------------- |
-| `accounting` | `ledger-app`       | `regions/business/accounting/client/react/ledger-app/`     |
+| `taskmanagement` | `ledger-app`       | `regions/business/taskmanagement/client/react/ledger-app/`     |
 
 ### service Tier
 
@@ -62,7 +62,7 @@ regions/service/{service_name}/client/react/
 
 | service_name | 配置パス                                      |
 | ------------ | --------------------------------------------- |
-| `order`      | `regions/service/order/client/react/`          |
+| `task`      | `regions/service/task/client/react/`          |
 
 ---
 
@@ -654,8 +654,8 @@ function App() {
 各ルートコンポーネントは `React.lazy()` で遅延読み込みする:
 
 ```tsx
-const OrderList = React.lazy(() => import('./features/orders/OrderList'));
-const OrderDetail = React.lazy(() => import('./features/orders/OrderDetail'));
+const TaskList = React.lazy(() => import('./features/tasks/TaskList'));
+const TaskDetail = React.lazy(() => import('./features/tasks/TaskDetail'));
 ```
 
 ### アクセシビリティ

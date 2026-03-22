@@ -137,8 +137,8 @@ mod tests {
 
     #[test]
     fn test_validate_name_valid() {
-        assert!(validate_name("order").is_ok());
-        assert!(validate_name("order-api").is_ok());
+        assert!(validate_name("task").is_ok());
+        assert!(validate_name("task-api").is_ok());
         assert!(validate_name("my-service-123").is_ok());
         assert!(validate_name("a").is_ok());
         assert!(validate_name("1").is_ok());
@@ -148,10 +148,10 @@ mod tests {
 
     #[test]
     fn test_validate_name_invalid() {
-        assert!(validate_name("-order").is_err());
-        assert!(validate_name("order-").is_err());
-        assert!(validate_name("Order").is_err());
-        assert!(validate_name("order_api").is_err());
+        assert!(validate_name("-task").is_err());
+        assert!(validate_name("task-").is_err());
+        assert!(validate_name("Task").is_err());
+        assert!(validate_name("task_api").is_err());
         assert!(validate_name("").is_err());
         assert!(validate_name("UPPER").is_err());
         assert!(validate_name("has space").is_err());
