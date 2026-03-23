@@ -113,10 +113,11 @@ type OAuthClient interface {
 #### 動作フロー
 
 1. **起動時**: `Discover()` で OIDC エンドポイント情報を取得
-2. **失敗時**: `retryOIDCDiscovery` ゴルーチンがバックグラウンドで再試行
-   - 指数バックオフ: 初回 5 秒 → 最大 60 秒
+2. **失敗時**: `retryOIDCDiscovery` ゴルーチンがバックグラウンドで**無限リトライ**（M-4 対応）
+   - 短期フェーズ（最初 20 回）: 指数バックオフ（初回 5 秒 → 最大 60 秒）
+   - 長期フェーズ（21 回目以降）: 5 分間隔で継続的にリトライ
    - コンテキストキャンセルで graceful shutdown に対応
-3. **readiness**: `IsDiscovered()` が `true` になるまで `/readyz` は 503 を返す
+3. **readiness**: `oidcReady` フラグが `true` になるまで `/readyz` は 503 を返す
 
 #### スレッドセーフティ
 
@@ -338,3 +339,101 @@ if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
 ```
 
 環境判定には既存の `isProductionEnvironment()` ヘルパーを使用する（`production`, `prod` を本番として扱う）。
+
+---
+
+## Doc Sync (2026-03-23)
+
+### OIDC Discovery 永続的 503 の自動復帰（M-4）
+
+`retryOIDCDiscovery` のリトライ上限（20 回）を撤廃し、Keycloak 復旧後に自動接続できる無限リトライに変更した。
+
+#### 変更前の問題
+
+20 回のリトライ失敗後にゴルーチンが終了していたため、Keycloak が復旧しても BFF Proxy ポッドの手動再起動が必要だった。
+
+#### 変更後の動作
+
+| フェーズ | 条件 | リトライ間隔 |
+| --- | --- | --- |
+| 短期フェーズ | 最初 20 回 | 指数バックオフ（5 秒 → 60 秒） |
+| 長期フェーズ | 21 回目以降 | 5 分間隔で継続 |
+
+- Keycloak が復旧すれば最大 5 分以内に自動接続される
+- K8s の `readinessProbe` がトラフィックを遮断し続けるため、OIDC 未初期化状態でリクエストを受けない
+- コンテキストキャンセル（SIGTERM/SIGINT）でのみゴルーチンが終了する
+
+```go
+// 短期フェーズ（最初 20 回）: 指数バックオフ（5秒〜60秒）
+// 長期フェーズ（21 回目以降）: 5分間隔で継続的にリトライ
+const shortPhaseRetries = 20
+longPhaseInterval := 5 * time.Minute
+```
+
+### トークンリフレッシュ時のセッション不整合修正（M-5）
+
+`proxy_usecase.go` の `PrepareProxy` でトークンリフレッシュ後のセッション更新順序を修正した。
+
+#### 問題
+
+メモリ上の `sess` を先に更新してから Redis へ保存していたため、Redis 更新失敗時にメモリと Redis の状態が乖離し、次リクエストでセッション不整合が発生していた。
+
+| フェーズ | 旧動作（問題あり） | 新動作（修正後） |
+| --- | --- | --- |
+| 1 | メモリ `sess` を新トークンで更新 | 新トークン値を一時変数に格納（メモリ未変更） |
+| 2 | Redis を更新（失敗してもメモリは更新済） | `tempSess`（shallow copy）を Redis に保存 |
+| 3 | Redis 失敗はエラーログのみで続行 | Redis 失敗時はエラーを返しメモリを変更しない |
+| 4 | — | Redis 成功後にのみメモリ `sess` を更新 |
+
+#### 修正方針
+
+Redis 先行・メモリ後行の順序を強制し、Redis 失敗時は `BFF_PROXY_SESSION_UPDATE_FAILED` エラーコードを返してリクエストを中断する。
+
+```go
+// M-5 対応: Redis を先に更新し、成功後にのみメモリ上のセッションを更新する。
+tempSess := *sess
+tempSess.AccessToken = updatedAccessToken
+tempSess.RefreshToken = updatedRefreshToken
+tempSess.IDToken = updatedIDToken
+tempSess.ExpiresAt = updatedExpiresAt
+
+if err := uc.sessionStore.Update(ctx, input.SessionID, &tempSess, uc.sessionTTL); err != nil {
+    return nil, &ProxyUseCaseError{Code: "BFF_PROXY_SESSION_UPDATE_FAILED", Err: err}
+}
+
+// Redis 更新成功後にメモリ上のセッションを更新する
+sess.AccessToken = updatedAccessToken
+// ...
+```
+
+### OIDC Discovery 必須フィールドバリデーション（M-3）
+
+`oauth/client.go` の `Discover()` 関数に、Discovery レスポンスの必須フィールドを検証するバリデーションを追加した。
+
+#### 背景
+
+Discovery レスポンスの必須フィールドが欠落していた場合、後続の認証フローで不正な動作（空エンドポイントへのリクエスト・JWKS 検証スキップ等）が起こり得た。
+
+#### 変更内容
+
+`json.Unmarshal` 後・`c.oidcConfig = &cfg` 前に以下の4フィールドを検証する:
+
+| フィールド | 欠落時のリスク |
+| --- | --- |
+| `issuer` | JWKSVerifier の iss 検証が機能しない |
+| `authorization_endpoint` | 認可リダイレクト先が空になる |
+| `token_endpoint` | コード交換・リフレッシュが失敗する |
+| `jwks_uri` | ID トークンの署名検証が不可能になる |
+
+また `tokenRequest()` にも `access_token` 空チェックを追加した。`access_token` が欠落したレスポンスをそのまま返すと、上流 API 呼び出しがすべて 401 となるため、早期エラーで呼び出し元に伝える。
+
+### iss/aud 自動検証の明示（H-6）
+
+`oauth/client.go` の `ensureVerifier()` 内の `oidc.NewVerifier` 呼び出し箇所にコメントを追記し、`go-oidc` の自動検証を明示した。
+
+`go-oidc` ライブラリの `IDTokenVerifier.Verify()` は内部で以下を自動検証する:
+
+- `iss`（Issuer）: `NewVerifier` に渡した `cfg.Issuer` と一致すること
+- `aud`（Audience）: `oidc.Config.ClientID` が `aud` クレームに含まれること
+
+`oidc.Config{ClientID: c.clientID}` の設定が正しく行われていることを確認済み。追加の手動検証コードは不要。

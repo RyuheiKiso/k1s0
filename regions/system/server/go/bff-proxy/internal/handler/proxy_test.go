@@ -108,10 +108,12 @@ func TestProxyHandler_RefreshFailure_DeletesSession(t *testing.T) {
 	oidcServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/.well-known/openid-configuration") {
 			w.Header().Set("Content-Type", "application/json")
-			// トークンエンドポイントとして自身のホストを返す
+			// M-3 対応: 必須フィールド（issuer, authorization_endpoint, token_endpoint, jwks_uri）を全て含める
 			_ = json.NewEncoder(w).Encode(map[string]string{
-				"issuer":         "http://" + r.Host,
-				"token_endpoint": "http://" + r.Host + "/token",
+				"issuer":                 "http://" + r.Host,
+				"authorization_endpoint": "http://" + r.Host + "/auth",
+				"token_endpoint":         "http://" + r.Host + "/token",
+				"jwks_uri":               "http://" + r.Host + "/jwks",
 			})
 			return
 		}

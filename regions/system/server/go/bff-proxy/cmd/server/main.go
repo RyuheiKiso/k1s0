@@ -407,54 +407,70 @@ func isProductionEnvironment(env string) bool {
 	}
 }
 
-// retryOIDCDiscovery はOIDC discoveryが完了するまでバックグラウンドで再試行する。
-// 指数バックオフ（5s→10s→20s→最大60s）でリトライし、コンテキストがキャンセルされたら終了する。
-// G-05 対応: 最大リトライ回数を 20 回に制限し、無限リトライによる長時間待機を防止する。
+// retryOIDCDiscovery は OIDC discovery が完了するまでバックグラウンドで無限リトライする。
+// M-4 対応: Keycloak 復旧後に自動接続できるよう、リトライ上限を撤廃して無限ループに変更する。
 // H-07 対応: oidcReady パラメータを追加し、discovery 成功時に true を格納する。
 //
-//	全リトライ失敗時はフラグを false のまま維持し、/readyz を通じて
-//	Kubernetes がトラフィックを遮断できるようにする。
+// リトライ戦略:
+//   - 短期フェーズ（最初 20 回）: 指数バックオフ（5 秒〜60 秒）で素早く復帰を試みる
+//   - 長期フェーズ（21 回目以降）: 5 分間隔で継続的にリトライする
+//     K8s readinessProbe がポッドをサービスから切り離し続けるため、永続的な 503 を回避できる
+//
+// コンテキストがキャンセルされた場合（シャットダウン時）のみ終了する。
 func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.Logger, oidcReady *atomic.Bool) {
+	// 短期フェーズのリトライ上限回数
+	const shortPhaseRetries = 20
+	// 長期フェーズのリトライ間隔（5分）
+	longPhaseInterval := 5 * time.Minute
 	// 初回リトライ間隔
 	interval := 5 * time.Second
-	// リトライ間隔の上限
-	maxInterval := 60 * time.Second
-	// G-05 対応: リトライ上限回数（20 回で諦めてバックグラウンドゴルーチンを終了する）
-	const maxRetries = 20
+	// リトライ間隔の上限（短期フェーズ）
+	maxShortInterval := 60 * time.Second
+	// 現在のリトライ試行回数
+	attempt := 0
 
-	for attempt := 1; attempt <= maxRetries; attempt++ {
+	for {
+		// コンテキストキャンセル（シャットダウン）時のみループを終了する
 		select {
 		case <-ctx.Done():
 			logger.Info("OIDC discovery retry stopped due to context cancellation")
 			return
 		case <-time.After(interval):
-			if _, err := client.Discover(ctx); err != nil {
+		}
+
+		attempt++
+		if _, err := client.Discover(ctx); err != nil {
+			if attempt <= shortPhaseRetries {
+				// 短期フェーズ: 指数バックオフで次のリトライ間隔を計算する
+				interval = min(interval*2, maxShortInterval)
 				logger.Warn("OIDC discovery retry failed",
 					slog.String("error", err.Error()),
 					slog.Int("attempt", attempt),
-					slog.Int("max_retries", maxRetries),
-					slog.Duration("next_retry_in", interval*2),
+					slog.Duration("next_retry_in", interval),
 				)
-				// 指数バックオフで次のリトライ間隔を計算する
-				interval *= 2
-				if interval > maxInterval {
-					interval = maxInterval
+			} else {
+				// 長期フェーズへの移行時に一度だけエラーログを出力する
+				if attempt == shortPhaseRetries+1 {
+					logger.Error("OIDC discovery 短期リトライ上限到達。5分間隔で継続します",
+						slog.Int("attempt", attempt),
+						slog.Duration("long_phase_interval", longPhaseInterval),
+					)
+					interval = longPhaseInterval
 				}
-				continue
+				// 長期フェーズ: 5分間隔で継続的にリトライする（K8s readinessProbe がトラフィックを遮断中）
+				logger.Info("OIDC discovery 長期リトライ中",
+					slog.String("error", err.Error()),
+					slog.Int("attempt", attempt),
+					slog.Duration("next_retry_in", interval),
+				)
 			}
-			// H-07 対応: OIDC discovery 全失敗後、readiness を false にして
-			// Kubernetes がトラフィックを遮断できるようにする。
-			// リトライ成功時のみ oidcReady を true に更新する。
-			oidcReady.Store(true)
-			logger.Info("OIDC discovery succeeded after retry", slog.Int("attempt", attempt))
-			return
+			continue
 		}
+
+		// H-07 対応: discovery 成功時のみ oidcReady を true に更新する。
+		// /readyz が 200 を返すようになり、Kubernetes がトラフィックを再開する。
+		oidcReady.Store(true)
+		logger.Info("OIDC discovery succeeded after retry", slog.Int("attempt", attempt))
+		return
 	}
-	// G-05 対応: 最大リトライ回数に達した場合はエラーログを出してゴルーチンを終了する。
-	// H-07 対応: oidcReady は false のまま維持され、/readyz が 503 を返し続ける。
-	// これにより Kubernetes の readinessProbe がポッドをサービスから切り離し、
-	// OIDC 未対応状態のインスタンスへのトラフィックを遮断する。
-	logger.Error("OIDC discovery failed after maximum retries, giving up. Readiness will remain false.",
-		slog.Int("max_retries", maxRetries),
-	)
 }

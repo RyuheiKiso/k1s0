@@ -19,7 +19,8 @@ spec:
       defaultRequest:
         # limit（1）の 50% に設定（M-08 対応）
         cpu: 500m
-        memory: 256Mi
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 512Mi
       # max 制限を追加（暴走コンテナによるノード枯渇を防止する）
       max:
         cpu: "2"
@@ -43,7 +44,8 @@ spec:
       defaultRequest:
         # limit（2）の 50% に設定（M-08 対応）
         cpu: 1000m
-        memory: 512Mi
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 1Gi
       # max 制限を追加（business tier の最大リソース上限を設定する）
       max:
         cpu: "4"
@@ -66,7 +68,8 @@ spec:
       defaultRequest:
         # limit（1500m）の 50% に設定（M-08 対応）
         cpu: 750m
-        memory: 256Mi
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 768Mi
       # max 制限を追加（service tier の最大リソース上限を設定する）
       max:
         cpu: "3"

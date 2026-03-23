@@ -12,11 +12,13 @@ import (
 )
 
 func TestClient_Discover(t *testing.T) {
+	// M-3 対応後: 必須フィールド（Issuer, AuthorizationEndpoint, TokenEndpoint, JwksURI）をすべて含めること
 	oidcCfg := OIDCConfig{
 		AuthorizationEndpoint: "https://idp.example.com/authorize",
 		TokenEndpoint:         "https://idp.example.com/token",
 		UserinfoEndpoint:      "https://idp.example.com/userinfo",
 		EndSessionEndpoint:    "https://idp.example.com/logout",
+		JwksURI:               "https://idp.example.com/jwks",
 		Issuer:                "https://idp.example.com",
 	}
 
@@ -41,7 +43,13 @@ func TestClient_Discover_Cached(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(OIDCConfig{Issuer: "https://idp.example.com"})
+		// M-3 対応後: キャッシュテストでも必須フィールドをすべて含める
+		json.NewEncoder(w).Encode(OIDCConfig{
+			Issuer:                "https://idp.example.com",
+			AuthorizationEndpoint: "https://idp.example.com/authorize",
+			TokenEndpoint:         "https://idp.example.com/token",
+			JwksURI:               "https://idp.example.com/jwks",
+		})
 	}))
 	defer srv.Close()
 
@@ -129,7 +137,13 @@ func TestClient_IsDiscovered_Before(t *testing.T) {
 func TestClient_IsDiscovered_After(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(OIDCConfig{Issuer: "https://idp.example.com"})
+		// M-3 対応後: 必須フィールドをすべて含める
+		json.NewEncoder(w).Encode(OIDCConfig{
+			Issuer:                "https://idp.example.com",
+			AuthorizationEndpoint: "https://idp.example.com/authorize",
+			TokenEndpoint:         "https://idp.example.com/token",
+			JwksURI:               "https://idp.example.com/jwks",
+		})
 	}))
 	defer srv.Close()
 
@@ -149,15 +163,85 @@ func TestClient_EnsureDiscovered_Error(t *testing.T) {
 	assert.Contains(t, err.Error(), "OIDC discovery not performed")
 }
 
+// TestDiscover_MissingJwksURI は jwks_uri が空の Discovery レスポンスでエラーになることを確認する。
+// M-3 対応: 必須フィールドの欠落を早期検出することで、後続の署名検証失敗を防止する。
+func TestDiscover_MissingJwksURI(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// jwks_uri を意図的に省略した Discovery レスポンスを返す
+		json.NewEncoder(w).Encode(OIDCConfig{
+			Issuer:                "https://idp.example.com",
+			AuthorizationEndpoint: "https://idp.example.com/authorize",
+			TokenEndpoint:         "https://idp.example.com/token",
+			// JwksURI: 空のまま（欠落を模擬）
+		})
+	}))
+	defer srv.Close()
+
+	client := NewClient(context.Background(), srv.URL, "client-id", "", "http://localhost/callback", nil)
+
+	_, err := client.Discover(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "jwks_uri")
+}
+
+// TestDiscover_MissingTokenEndpoint は token_endpoint が空の Discovery レスポンスでエラーになることを確認する。
+// M-3 対応: token_endpoint が欠落するとコード交換フローが成立しないため早期エラーとする。
+func TestDiscover_MissingTokenEndpoint(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// token_endpoint を意図的に省略した Discovery レスポンスを返す
+		json.NewEncoder(w).Encode(OIDCConfig{
+			Issuer:                "https://idp.example.com",
+			AuthorizationEndpoint: "https://idp.example.com/authorize",
+			JwksURI:               "https://idp.example.com/jwks",
+			// TokenEndpoint: 空のまま（欠落を模擬）
+		})
+	}))
+	defer srv.Close()
+
+	client := NewClient(context.Background(), srv.URL, "client-id", "", "http://localhost/callback", nil)
+
+	_, err := client.Discover(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "token_endpoint")
+}
+
+// TestExchangeCode_EmptyAccessToken は access_token が空のトークンレスポンスでエラーになることを確認する。
+// M-3 対応: access_token が欠落したレスポンスを受け入れると後続の API 呼び出しがすべて失敗するため早期エラーとする。
+func TestExchangeCode_EmptyAccessToken(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// access_token が空のトークンレスポンスを返す（異常系を模擬）
+		json.NewEncoder(w).Encode(TokenResponse{
+			// AccessToken: 空のまま（欠落を模擬）
+			RefreshToken: "refresh-456",
+			TokenType:    "Bearer",
+			ExpiresIn:    300,
+		})
+	}))
+	defer srv.Close()
+
+	client := NewClient(context.Background(), "https://idp.example.com", "my-client", "secret", "http://localhost/callback", nil)
+	client.oidcConfig = &OIDCConfig{TokenEndpoint: srv.URL}
+
+	_, err := client.ExchangeCode(context.Background(), "code-abc", "verifier-xyz")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "access_token")
+}
+
 // TestClient_ClearDiscoveryCache はキャッシュクリア後に再discoveryが必要になることを確認する。
 func TestClient_ClearDiscoveryCache(t *testing.T) {
 	callCount := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
+		// M-3 対応後: 必須フィールドをすべて含める
 		json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
+			TokenEndpoint:         "https://idp.example.com/token",
+			JwksURI:               "https://idp.example.com/jwks",
 		})
 	}))
 	defer srv.Close()

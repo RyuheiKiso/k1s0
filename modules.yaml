@@ -520,7 +520,9 @@ modules:
 
   - path: regions/system/library/rust/building-blocks
     lang: rust
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
     workspace: regions/system
@@ -590,7 +592,9 @@ modules:
 
   - path: regions/system/library/rust/event-bus
     lang: rust
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
     workspace: regions/system
@@ -864,7 +868,9 @@ modules:
 
   - path: regions/system/library/go/building-blocks
     lang: go
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
 
@@ -924,7 +930,9 @@ modules:
 
   - path: regions/system/library/go/event-bus
     lang: go
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
 
@@ -1002,7 +1010,9 @@ modules:
 
   - path: regions/system/library/go/pubsub
     lang: go
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
     language_scope: [rust, go]  # Rust 側は "bb-pubsub"
@@ -1171,7 +1181,9 @@ modules:
 
   - path: regions/system/library/typescript/building-blocks
     lang: ts
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
 
@@ -1231,7 +1243,9 @@ modules:
 
   - path: regions/system/library/typescript/event-bus
     lang: ts
-    status: stable
+    # M-7 対応: ADR-0018 に基づき messaging ライブラリへの統一を決定
+    status: deprecated
+    deprecated_note: "messaging ライブラリに統合済み。移行ガイドは docs/libraries/messaging/migration-guide.md を参照"
     type: library
     maturity: beta
 

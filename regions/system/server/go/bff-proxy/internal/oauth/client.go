@@ -135,6 +135,21 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 		return nil, fmt.Errorf("discovery レスポンスの解析に失敗しました: %w", err)
 	}
 
+	// M-3 対応: OIDC Discovery レスポンスの必須フィールドが欠落していないか検証する
+	// 空フィールドのまま処理を続行すると後続の認証フローで不正な動作が起こる
+	if cfg.Issuer == "" {
+		return nil, fmt.Errorf("OIDC discovery レスポンスに issuer が含まれていません")
+	}
+	if cfg.AuthorizationEndpoint == "" {
+		return nil, fmt.Errorf("OIDC discovery レスポンスに authorization_endpoint が含まれていません")
+	}
+	if cfg.TokenEndpoint == "" {
+		return nil, fmt.Errorf("OIDC discovery レスポンスに token_endpoint が含まれていません")
+	}
+	if cfg.JwksURI == "" {
+		return nil, fmt.Errorf("OIDC discovery レスポンスに jwks_uri が含まれていません")
+	}
+
 	c.oidcConfig = &cfg
 	// discoveryが正常に完了したことを記録する（atomic: goroutine安全）
 	c.discovered.Store(true)
@@ -258,6 +273,12 @@ func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Val
 		return nil, fmt.Errorf("トークンレスポンスの解析に失敗しました: %w", err)
 	}
 
+	// M-3 対応: トークンレスポンスに access_token が含まれているか検証する
+	// access_token が空の場合は認証フローが正常に完了していないと判断してエラーを返す
+	if tokenResp.AccessToken == "" {
+		return nil, fmt.Errorf("トークンレスポンスに access_token が含まれていません")
+	}
+
 	return &tokenResp, nil
 }
 
@@ -364,6 +385,10 @@ func (c *Client) ensureVerifier() (*oidc.IDTokenVerifier, error) {
 	// c.ctx（アプリケーションレベルのコンテキスト）を使用することで、
 	// シャットダウン時に JWKS のバックグラウンドフェッチがキャンセルされる。
 	keySet := oidc.NewRemoteKeySet(c.ctx, cfg.JwksURI)
+	// H-6 対応: go-oidc の IDTokenVerifier が iss（Issuer）と aud（Audience = ClientID）を自動検証している。
+	// oidc.Config{ClientID: c.clientID} を渡すことで、Verify() 呼び出し時に
+	// トークンの iss が cfg.Issuer と一致すること、かつ aud に c.clientID が含まれることを強制する。
+	// これにより他の IdP や他クライアント向けのトークンを誤受け入れするリスクを排除する。
 	c.verifier = oidc.NewVerifier(cfg.Issuer, keySet, &oidc.Config{ClientID: c.clientID})
 	return c.verifier, nil
 }

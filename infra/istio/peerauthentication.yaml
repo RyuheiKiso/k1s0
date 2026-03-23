@@ -1,6 +1,7 @@
 # Mesh-wide PeerAuthentication: STRICT mTLS as default for the entire mesh.
 # Defined in the service-mesh Namespace (istiod's Namespace) to enforce mTLS globally.
-# TLS 1.3 を最低バージョンとして強制する（M-6）
+# H-3 対応: minProtocolVersion は PeerAuthentication CRD に存在しないフィールドのため削除。
+# TLS 最小バージョンの強制は meshConfig.meshMTLS.minProtocolVersion へ移設（istiod.yaml を参照）。
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
@@ -9,7 +10,6 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
 # observability Namespace は Namespace レベルで STRICT mTLS を強制する（H-01 対応）
 # PERMISSIVE ではメトリクス通信が平文で許可されるため盗聴リスクがある。
@@ -34,7 +34,8 @@ spec:
 # These complement the mesh-wide STRICT mTLS default defined in the service-mesh
 # Namespace (see サービスメッシュ設計.md). Even if the mesh-wide setting is
 # accidentally modified, these Namespace-level settings act as a defense layer.
-# TLS 1.3 を最低バージョンとして強制する（M-6）
+# H-3 対応: minProtocolVersion は PeerAuthentication CRD に存在しないフィールドのため全 Namespace 分を削除。
+# TLS 最小バージョンの強制は meshConfig.meshMTLS.minProtocolVersion へ移設（istiod.yaml を参照）。
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -44,7 +45,6 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -54,7 +54,6 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -64,4 +63,3 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3

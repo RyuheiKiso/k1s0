@@ -6,7 +6,7 @@ metadata:
 spec:
   selfSigned: {}
 ---
-# Step 2: CA certificate (10 years) issued by the bootstrap issuer
+# Step 2: CA certificate (5 years) issued by the bootstrap issuer
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -16,7 +16,8 @@ spec:
   isCA: true
   commonName: k1s0-internal-ca
   secretName: k1s0-ca-secret
-  duration: 87600h        # 10 years
+  # 5 years（L-2 対応: セキュリティベストプラクティスに従い 10 年から 5 年に短縮）
+  duration: 43800h
   renewBefore: 8760h      # Renew 1 year before expiry
   privateKey:
     algorithm: ECDSA

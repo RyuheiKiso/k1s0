@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use k1s0_circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, Semaphore};
 
 use crate::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
+use crate::domain::error::AuthError;
 use crate::domain::repository::UserRepository;
 
 /// KeycloakConfig は Keycloak 接続の設定を表す。
@@ -83,6 +84,9 @@ pub struct KeycloakClient {
     /// Keycloak への HTTP リクエストを保護するサーキットブレーカー。
     /// 外部サービス障害時にリクエストを遮断し、システム全体の安定性を確保する。
     circuit_breaker: CircuitBreaker,
+    /// H-5 対応: トークン更新の同時実行を1タスクに制限し、Thundering Herd 問題を防止する。
+    /// キャッシュ期限切れ時に複数の async タスクが同時に Keycloak へリクエストを送信することを防ぐ。
+    token_refresh_semaphore: Semaphore,
 }
 
 impl KeycloakClient {
@@ -106,6 +110,8 @@ impl KeycloakClient {
             http_client,
             admin_token: Arc::new(RwLock::new(None)),
             circuit_breaker: CircuitBreaker::new(cb_config),
+            // H-5 対応: permit 数 1 の Semaphore でトークン更新を逐次化する
+            token_refresh_semaphore: Semaphore::new(1),
         })
     }
 
@@ -126,22 +132,38 @@ impl KeycloakClient {
     }
 
     /// Admin API トークンを取得する（キャッシュ付き）。
+    /// H-5 対応: 高速パス（Read lock）→ Semaphore 取得 → ダブルチェック → Write lock の
+    /// 3段階構造により、Thundering Herd を防止しつつキャッシュヒット時の性能を最大化する。
     async fn get_admin_token(&self) -> anyhow::Result<String> {
-        let cache = self.admin_token.read().await;
-        if let Some(ref cached) = *cache {
-            if chrono::Utc::now() < cached.expires_at {
-                return Ok(cached.token.clone());
+        // 高速パス: 読み取りロックでキャッシュ確認（競合なし）
+        {
+            let cache = self.admin_token.read().await;
+            if let Some(ref cached) = *cache {
+                if chrono::Utc::now() < cached.expires_at {
+                    return Ok(cached.token.clone());
+                }
             }
-        }
-        drop(cache);
+        } // Read lock をここで drop する
 
-        let mut cache = self.admin_token.write().await;
-        // 二重チェック
-        if let Some(ref cached) = *cache {
-            if chrono::Utc::now() < cached.expires_at {
-                return Ok(cached.token.clone());
+        // H-5 対応: Semaphore で単一タスクのみトークン取得を実行し Thundering Herd を防ぐ
+        let _permit = self
+            .token_refresh_semaphore
+            .acquire()
+            .await
+            .map_err(|e| anyhow::anyhow!("Semaphore acquire に失敗しました: {}", e))?;
+
+        // Semaphore 取得後にダブルチェック（先行タスクがトークンを更新済みの場合はスキップ）
+        {
+            let cache = self.admin_token.read().await;
+            if let Some(ref cached) = *cache {
+                if chrono::Utc::now() < cached.expires_at {
+                    return Ok(cached.token.clone());
+                }
             }
         }
+
+        // Write lock を取得してトークンを更新する
+        let mut cache = self.admin_token.write().await;
 
         let token_url = self.config.admin_token_url();
         let form = self.config.admin_token_form();
@@ -192,7 +214,8 @@ impl UserRepository for KeycloakClient {
             .map_err(|e| anyhow::anyhow!("keycloak find_by_id failed: {}", e))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            anyhow::bail!("user not found: {}", user_id);
+            // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
+            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
         }
 
         let kc_user: KeycloakUser = resp.error_for_status()?.json().await?;
@@ -275,7 +298,8 @@ impl UserRepository for KeycloakClient {
             .map_err(|e| anyhow::anyhow!("keycloak get_roles failed: {}", e))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
-            anyhow::bail!("user not found: {}", user_id);
+            // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
+            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
         }
 
         let realm_roles: Vec<KeycloakRole> = resp.error_for_status()?.json().await?;

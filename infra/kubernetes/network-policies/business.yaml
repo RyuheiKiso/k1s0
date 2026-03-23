@@ -37,9 +37,11 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # DNS 解決を許可（kube-dns / CoreDNS）
+    # M-1 対応: DNS 通信を CoreDNS が存在する kube-system のみに制限する（system.yaml と統一）
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
       ports:
         - protocol: UDP
           port: 53

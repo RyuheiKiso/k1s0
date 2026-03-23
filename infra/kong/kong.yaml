@@ -204,6 +204,7 @@ plugins:
         - exp
         # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
         # OIDCプラグイン移行後（ADR-0017）に対応予定。
+        # H-6 対応: 暫定措置として BFF Proxy で iss/aud 検証を実施中（H-6）。
       header_names:
         - Authorization
 
