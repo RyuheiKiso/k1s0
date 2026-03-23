@@ -51,14 +51,14 @@ func HTTPMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 func GRPCUnaryInterceptor(logger *slog.Logger) func(
 	ctx context.Context,
 	method string,
-	req, reply interface{},
-	invoker func(ctx context.Context, method string, req, reply interface{}) error,
+	req, reply any,
+	invoker func(ctx context.Context, method string, req, reply any) error,
 ) error {
 	return func(
 		ctx context.Context,
 		method string,
-		req, reply interface{},
-		invoker func(ctx context.Context, method string, req, reply interface{}) error,
+		req, reply any,
+		invoker func(ctx context.Context, method string, req, reply any) error,
 	) error {
 		tracer := otel.Tracer("k1s0-grpc")
 		ctx, span := tracer.Start(ctx, method,

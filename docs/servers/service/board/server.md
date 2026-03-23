@@ -7,12 +7,21 @@ Rust で実装する。
 
 ### RBAC対応表
 
-| ロール名 | リソース/アクション |
-|---------|-----------------|
-| board:read | ボードカラム一覧取得・単体取得 |
-| board:write | タスク数増減・WIP制限更新 |
+service tier のロールに基づいてアクセス制御する。
 
-Tier: `Tier::Service`。JWKS ベースの JWT 認証と、`require_permission(Tier::Service, "board", action)` による権限チェックを行う。
+| ロール | read | write |
+|--------|------|-------|
+| `sys_admin` | ✅ | ✅ |
+| `svc_admin` | ✅ | ✅ |
+| `svc_operator` | ✅ | ✅ |
+| `svc_viewer` | ✅ | ❌ |
+
+| アクション | 対象エンドポイント |
+|-----------|-----------------|
+| `read` | GET（カラム一覧・単体取得） |
+| `write` | POST / PUT（タスク数増減・WIP制限更新） |
+
+実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 
 service tier のボード管理サーバーは以下の機能を提供する。
 

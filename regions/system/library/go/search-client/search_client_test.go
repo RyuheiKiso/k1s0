@@ -26,7 +26,7 @@ func TestIndexDocument(t *testing.T) {
 
 	doc := searchclient.IndexDocument{
 		ID:     "prod-001",
-		Fields: map[string]interface{}{"name": "Rust Programming"},
+		Fields: map[string]any{"name": "Rust Programming"},
 	}
 	result, err := c.IndexDocument(ctx, "products", doc)
 	require.NoError(t, err)
@@ -38,7 +38,7 @@ func TestIndexDocument(t *testing.T) {
 func TestIndexDocument_IndexNotFound(t *testing.T) {
 	c := searchclient.NewInMemorySearchClient()
 	ctx := context.Background()
-	doc := searchclient.IndexDocument{ID: "1", Fields: map[string]interface{}{}}
+	doc := searchclient.IndexDocument{ID: "1", Fields: map[string]any{}}
 	_, err := c.IndexDocument(ctx, "nonexistent", doc)
 	require.Error(t, err)
 }
@@ -50,9 +50,9 @@ func TestBulkIndex(t *testing.T) {
 	_ = c.CreateIndex(ctx, "items", searchclient.NewIndexMapping())
 
 	docs := []searchclient.IndexDocument{
-		{ID: "i-1", Fields: map[string]interface{}{"name": "Item 1"}},
-		{ID: "i-2", Fields: map[string]interface{}{"name": "Item 2"}},
-		{ID: "i-3", Fields: map[string]interface{}{"name": "Item 3"}},
+		{ID: "i-1", Fields: map[string]any{"name": "Item 1"}},
+		{ID: "i-2", Fields: map[string]any{"name": "Item 2"}},
+		{ID: "i-3", Fields: map[string]any{"name": "Item 3"}},
 	}
 	result, err := c.BulkIndex(ctx, "items", docs)
 	require.NoError(t, err)
@@ -69,11 +69,11 @@ func TestSearch(t *testing.T) {
 
 	_, _ = c.IndexDocument(ctx, "products", searchclient.IndexDocument{
 		ID:     "p-1",
-		Fields: map[string]interface{}{"name": "Rust Programming", "category": "books"},
+		Fields: map[string]any{"name": "Rust Programming", "category": "books"},
 	})
 	_, _ = c.IndexDocument(ctx, "products", searchclient.IndexDocument{
 		ID:     "p-2",
-		Fields: map[string]interface{}{"name": "Go Language", "category": "books"},
+		Fields: map[string]any{"name": "Go Language", "category": "books"},
 	})
 
 	result, err := c.Search(ctx, "products", searchclient.SearchQuery{
@@ -102,7 +102,7 @@ func TestDeleteDocument(t *testing.T) {
 	ctx := context.Background()
 	_ = c.CreateIndex(ctx, "products", searchclient.NewIndexMapping())
 	_, _ = c.IndexDocument(ctx, "products", searchclient.IndexDocument{
-		ID: "p-1", Fields: map[string]interface{}{"name": "Test"},
+		ID: "p-1", Fields: map[string]any{"name": "Test"},
 	})
 
 	err := c.DeleteDocument(ctx, "products", "p-1")
@@ -116,7 +116,7 @@ func TestSearch_EmptyQuery(t *testing.T) {
 	ctx := context.Background()
 	_ = c.CreateIndex(ctx, "items", searchclient.NewIndexMapping())
 	_, _ = c.IndexDocument(ctx, "items", searchclient.IndexDocument{
-		ID: "i-1", Fields: map[string]interface{}{"name": "Item 1"},
+		ID: "i-1", Fields: map[string]any{"name": "Item 1"},
 	})
 
 	result, err := c.Search(ctx, "items", searchclient.SearchQuery{Query: "", Page: 0, Size: 20})

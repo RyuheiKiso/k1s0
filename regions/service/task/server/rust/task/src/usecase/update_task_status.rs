@@ -13,6 +13,8 @@ impl UpdateTaskStatusUseCase {
         Self { task_repo }
     }
 
+    // タスクステータス更新の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(
         &self,
         id: Uuid,
@@ -50,7 +52,9 @@ mod tests {
             status: TaskStatus::Open,
             priority: TaskPriority::Medium,
             assignee_id: None,
+            reporter_id: None,
             due_date: None,
+            labels: vec![],
             created_by: "user1".to_string(),
             updated_by: None,
             version: 1,

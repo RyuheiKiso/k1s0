@@ -52,7 +52,8 @@ func (c *HttpSearchClient) Close() {}
 // CreateIndex は指定名とマッピングでインデックスを作成する。
 // PUT /api/v1/indexes/:name
 func (c *HttpSearchClient) CreateIndex(ctx context.Context, name string, mapping IndexMapping) error {
-	body, err := json.Marshal(map[string]interface{}{
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	body, err := json.Marshal(map[string]any{
 		"name":    name,
 		"mapping": mapping,
 	})
@@ -118,7 +119,8 @@ func (c *HttpSearchClient) IndexDocument(ctx context.Context, index string, doc 
 // BulkIndex は複数ドキュメントをまとめてインデックス登録する。
 // POST /api/v1/indexes/:index/documents/_bulk
 func (c *HttpSearchClient) BulkIndex(ctx context.Context, index string, docs []IndexDocument) (BulkResult, error) {
-	body, err := json.Marshal(map[string]interface{}{"documents": docs})
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	body, err := json.Marshal(map[string]any{"documents": docs})
 	if err != nil {
 		return BulkResult{}, fmt.Errorf("search: bulk_index marshal: %w", err)
 	}

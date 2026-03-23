@@ -122,7 +122,8 @@ message WatchFeatureFlagResponse {
   string flag_key = 1;
   // Deprecated: use change_type_enum instead.
   // CREATED, UPDATED, DELETED
-  string change_type = 2;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string change_type = 2 [deprecated = true];
   FeatureFlag flag = 3;
   k1s0.system.common.v1.Timestamp changed_at = 4;
   // 変更操作の種別（change_type の enum 版）。

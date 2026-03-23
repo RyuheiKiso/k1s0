@@ -19,3 +19,11 @@ spec:
         - namespaceSelector:
             matchLabels:
               tier: service
+      # I-1 対応: ポート制限を追加し、Kafka および Schema Registry 以外のポートへのアクセスを遮断
+      ports:
+        - protocol: TCP
+          port: 9092    # Kafka ブローカーポート（プレーンテキスト）
+        - protocol: TCP
+          port: 9093    # Kafka ブローカーポート（TLS）
+        - protocol: TCP
+          port: 8081    # Schema Registry ポート

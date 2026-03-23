@@ -495,45 +495,6 @@
       ]
     }
   ],
-  "users": [
-    {
-      "username": "test-admin",
-      "email": "admin@k1s0.dev",
-      "firstName": "Test",
-      "lastName": "Admin",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "admin123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "user",
-        "sys_admin"
-      ]
-    },
-    {
-      "username": "test-user",
-      "email": "user@k1s0.dev",
-      "firstName": "Test",
-      "lastName": "User",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "user123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": [
-        "user"
-      ]
-    }
-  ],
   "components": {
     "org.keycloak.keys.KeyProvider": [
       {

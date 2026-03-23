@@ -35,9 +35,23 @@ impl SearchOpenSearchRepository {
     ) -> anyhow::Result<Self> {
         let url = Url::parse(url)?;
         let conn_pool = SingleNodeConnectionPool::new(url);
-        // tls_insecure フラグに基づいて TLS 証明書検証モードを設定する。
+        // APP_ENV が production/staging の場合は tls_insecure=true を無視し TLS 検証を強制する（S-2 対応）
+        let effective_tls_insecure = if tls_insecure {
+            let app_env = std::env::var("APP_ENV").unwrap_or_default();
+            if app_env == "production" || app_env == "staging" {
+                tracing::warn!(
+                    "tls_insecure=true が指定されましたが、本番環境のため TLS 証明書検証を強制的に有効化します"
+                );
+                false
+            } else {
+                true
+            }
+        } else {
+            false
+        };
+        // effective_tls_insecure フラグに基づいて TLS 証明書検証モードを設定する。
         // Full(cert) はカスタム証明書ピン止め用のため、通常の証明書検証には Default を使用する。
-        let cert_validation = if tls_insecure {
+        let cert_validation = if effective_tls_insecure {
             CertificateValidation::None
         } else {
             CertificateValidation::Default

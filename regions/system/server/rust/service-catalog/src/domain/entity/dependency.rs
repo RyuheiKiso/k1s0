@@ -1,6 +1,14 @@
+// サービス間依存関係エンティティ。依存の種類（runtime/build/optional）を型安全に管理する。
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
+
+/// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("Invalid value: {0}")]
+    InvalidValue(String),
+}
 
 /// Dependency はサービス間の依存関係を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -30,15 +38,16 @@ impl std::fmt::Display for DependencyType {
     }
 }
 
+// DependencyType の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for DependencyType {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "runtime" => Ok(DependencyType::Runtime),
             "build" => Ok(DependencyType::Build),
             "optional" => Ok(DependencyType::Optional),
-            _ => Err(format!("invalid dependency type: {}", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid dependency type: {}", s))),
         }
     }
 }

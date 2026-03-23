@@ -13,6 +13,52 @@ impl StreamPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    /// トランザクション内でイベントストリームを作成する内部ヘルパー。
+    /// 呼び出し元のトランザクション（tx）を受け取り、INSERTを実行する。
+    pub async fn create_in_tx<'a>(
+        stream: &EventStream,
+        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            r#"
+            INSERT INTO eventstore.event_streams
+                (id, aggregate_type, current_version, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5)
+            "#,
+        )
+        .bind(&stream.id)
+        .bind(&stream.aggregate_type)
+        .bind(stream.current_version)
+        .bind(stream.created_at)
+        .bind(stream.updated_at)
+        .execute(&mut **tx)
+        .await?;
+
+        Ok(())
+    }
+
+    /// トランザクション内でイベントストリームのバージョンを更新する内部ヘルパー。
+    /// 呼び出し元のトランザクション（tx）を受け取り、UPDATEを実行する。
+    pub async fn update_version_in_tx<'a>(
+        id: &str,
+        new_version: i64,
+        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+    ) -> anyhow::Result<()> {
+        sqlx::query(
+            r#"
+            UPDATE eventstore.event_streams
+            SET current_version = $2, updated_at = NOW()
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .bind(new_version)
+        .execute(&mut **tx)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow)]

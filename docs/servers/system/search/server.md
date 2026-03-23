@@ -551,6 +551,7 @@ opensearch:
   password: ""
   index_prefix: "k1s0-"
   tls_insecure: false  # 本番環境では必ず false。true にすると TLS 証明書検証が無効化される（開発環境のみ使用可）
+  # セキュリティ注意事項 (S-2): APP_ENV が production または staging の場合、tls_insecure=true の指定は無視され TLS 証明書検証が強制的に有効化される。
 
 kafka:
   brokers:

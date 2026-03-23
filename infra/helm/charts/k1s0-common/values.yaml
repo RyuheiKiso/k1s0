@@ -70,9 +70,12 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # PodDisruptionBudget
+# I-2 対応: minAvailable を絶対値（1）から相対値（"50%"）に変更
+# 絶対値だとレプリカ数が少ない場合に可用性保証が不十分になるため、
+# レプリカ数に依存しない割合指定とすることで常に半数以上の Pod 稼働を保証する
 pdb:
   enabled: true
-  minAvailable: 1
+  minAvailable: "50%"
 
 # Ingress（Kong 経由のため通常は無効）
 ingress:

@@ -1,6 +1,14 @@
+// テナントエンティティ。テナントのライフサイクル管理とプランを定義する。
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
 use uuid::Uuid;
+
+/// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("Invalid value: {0}")]
+    InvalidValue(String),
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TenantStatus {
@@ -40,8 +48,9 @@ impl Plan {
     }
 }
 
+// Plan の文字列パース実装（型安全な ParseError を使用する）
 impl FromStr for Plan {
-    type Err = String;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -49,7 +58,7 @@ impl FromStr for Plan {
             "starter" => Ok(Plan::Starter),
             "professional" => Ok(Plan::Professional),
             "enterprise" => Ok(Plan::Enterprise),
-            _ => Err(format!("unknown plan: {}", s)),
+            _ => Err(ParseError::InvalidValue(format!("unknown plan: {}", s))),
         }
     }
 }

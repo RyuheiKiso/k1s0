@@ -20,12 +20,13 @@ func mergeFromFile(cfg *Config, envPath string) error {
 		return fmt.Errorf("failed to marshal base config: %w", err)
 	}
 
-	var baseValue map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var baseValue map[string]any
 	if err := yaml.Unmarshal(baseData, &baseValue); err != nil {
 		return fmt.Errorf("failed to parse base config: %w", err)
 	}
 
-	var envValue map[string]interface{}
+	var envValue map[string]any
 	if err := yaml.Unmarshal(envData, &envValue); err != nil {
 		return fmt.Errorf("failed to parse env config: %w", err)
 	}
@@ -44,16 +45,16 @@ func mergeFromFile(cfg *Config, envPath string) error {
 	return nil
 }
 
-// deepMerge は base マップに overlay マップを再帰的にマージする。
-func deepMerge(base, overlay map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+// deepMerge は base マップに overlay マップを再帰的にマージする（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
+func deepMerge(base, overlay map[string]any) map[string]any {
+	result := make(map[string]any)
 	for k, v := range base {
 		result[k] = v
 	}
 	for k, v := range overlay {
 		if baseVal, ok := result[k]; ok {
-			baseMap, baseIsMap := baseVal.(map[string]interface{})
-			overlayMap, overlayIsMap := v.(map[string]interface{})
+			baseMap, baseIsMap := baseVal.(map[string]any)
+			overlayMap, overlayIsMap := v.(map[string]any)
 			if baseIsMap && overlayIsMap {
 				result[k] = deepMerge(baseMap, overlayMap)
 				continue

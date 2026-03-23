@@ -12,6 +12,8 @@ impl CreateActivityUseCase {
         Self { repo }
     }
 
+    // アクティビティ作成の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
         input.validate()?;
 

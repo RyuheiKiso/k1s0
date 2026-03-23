@@ -7,12 +7,21 @@ Rust で実装する。
 
 ### RBAC対応表
 
-| ロール名 | リソース/アクション |
-|---------|-----------------|
-| task:read | タスク一覧取得・単体取得 |
-| task:write | タスク作成・更新・ステータス遷移・キャンセル |
+service tier のロールに基づいてアクセス制御する。
 
-Tier: `Tier::Service`。JWKS ベースの JWT 認証と、`require_permission(Tier::Service, "task", action)` による権限チェックを行う。
+| ロール | read | write |
+|--------|------|-------|
+| `sys_admin` | ✅ | ✅ |
+| `svc_admin` | ✅ | ✅ |
+| `svc_operator` | ✅ | ✅ |
+| `svc_viewer` | ✅ | ❌ |
+
+| アクション | 対象エンドポイント |
+|-----------|-----------------|
+| `read` | GET（タスク一覧・詳細・チェックリスト取得） |
+| `write` | POST / PUT（タスク作成・更新・ステータス遷移） |
+
+実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 
 service tier のタスク管理サーバーは以下の機能を提供する。
 
@@ -72,32 +81,42 @@ service tier のタスク管理サーバーは以下の機能を提供する。
   "title": "ログイン機能の実装",
   "description": "JWT ベースのログイン機能を実装する",
   "assignee_id": "user-uuid",
+  "reporter_id": "reporter-uuid",
   "priority": "high",
-  "due_date": "2026-04-30"
+  "due_date": "2026-04-30T00:00:00Z",
+  "labels": ["backend", "auth"]
 }
 ```
 
+<!-- proto 定義（CreateTaskRequest）と一致するようフィールドを更新。priority は optional、due_date は Timestamp 型、reporter_id・labels を追加。 -->
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `project_id` | string | Yes | 所属プロジェクト ID |
 | `title` | string | Yes | タスクタイトル（1文字以上） |
 | `description` | string | No | タスク説明 |
 | `assignee_id` | string | No | 担当者 ID |
-| `priority` | string | Yes | 優先度（`low`, `medium`, `high`, `critical`） |
-| `due_date` | string | No | 期限日（ISO 8601 日付形式） |
+| `reporter_id` | string | No | タスクの報告者 ID |
+| `priority` | string | No | 優先度（`low`, `medium`, `high`, `critical`） |
+| `due_date` | string | No | 期限日時（ISO 8601 日時形式 (Timestamp 型)） |
+| `labels` | string[] | No | ラベルの一覧 |
+| `checklist` | object[] | No | 作成時のチェックリスト（`title`, `sort_order` を持つ） |
 
 **レスポンス（201 Created）**
 
+<!-- proto の Task メッセージと一致するよう reporter_id・labels・tenant_id フィールドを追加。 -->
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "project_id": "PROJECT-001",
+  "tenant_id": "tenant-uuid",
   "title": "ログイン機能の実装",
   "description": "JWT ベースのログイン機能を実装する",
   "status": "open",
   "assignee_id": "user-uuid",
+  "reporter_id": "reporter-uuid",
   "priority": "high",
-  "due_date": "2026-04-30",
+  "due_date": "2026-04-30T00:00:00Z",
+  "labels": ["backend", "auth"],
   "checklist_items": [],
   "created_by": "admin@example.com",
   "version": 1,
@@ -155,6 +174,45 @@ PostgreSQL への接続を確認する。
   }
 }
 ```
+
+---
+
+<!-- proto ファイル（api/proto/k1s0/service/task/v1/task.proto）に定義された gRPC API を追加。D-2 対応。 -->
+## gRPC API 定義
+
+proto ファイル参照: `api/proto/k1s0/service/task/v1/task.proto`
+
+`TaskService` は以下の 4 つの RPC メソッドを提供する。
+
+| RPC メソッド | リクエスト | レスポンス | 説明 |
+| --- | --- | --- | --- |
+| `CreateTask` | `CreateTaskRequest` | `CreateTaskResponse` | タスクを作成する |
+| `GetTask` | `GetTaskRequest` | `GetTaskResponse` | 指定 ID のタスクを取得する |
+| `ListTasks` | `ListTasksRequest` | `ListTasksResponse` | タスク一覧を取得する（フィルター・ページネーション対応） |
+| `UpdateTaskStatus` | `UpdateTaskStatusRequest` | `UpdateTaskStatusResponse` | タスクのステータスを遷移させる（楽観的ロック付き） |
+
+### CreateTaskRequest フィールド
+
+<!-- proto の CreateTaskRequest と一致するフィールド定義。priority・due_date・assignee_id・labels・checklist は省略可能。 -->
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `project_id` | string | Yes | 所属プロジェクト ID |
+| `title` | string | Yes | タスクタイトル |
+| `description` | string (optional) | No | タスク説明 |
+| `priority` | TaskPriority (optional) | No | 優先度 |
+| `assignee_id` | string (optional) | No | 担当者 ID |
+| `due_date` | Timestamp (optional) | No | 期限日時 |
+| `labels` | string[] | No | ラベル一覧 |
+| `checklist` | CreateChecklistItemRequest[] | No | 作成時のチェックリスト |
+
+### UpdateTaskStatusRequest フィールド
+
+<!-- expected_version による楽観的ロックをドキュメント化する。 -->
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `task_id` | string | Yes | 更新対象タスク ID |
+| `status` | TaskStatus | Yes | 遷移先ステータス |
+| `expected_version` | int32 | Yes | 楽観的ロック用バージョン番号。クライアント保持のバージョンと不一致の場合はエラーを返す。 |
 
 ---
 

@@ -28,13 +28,16 @@ impl TaskKafkaProducer {
         })
     }
 
-    pub async fn publish(&self, event_type: &str, payload: &[u8]) -> anyhow::Result<()> {
+    /// イベントを Kafka へ発行する。
+    /// task_id をパーティションキーとして使用し、同一タスクのイベント順序を保証する。
+    pub async fn publish(&self, event_type: &str, payload: &[u8], task_id: &str) -> anyhow::Result<()> {
         let topic = match event_type {
             "TaskCreated" => &self.task_created_topic,
             "TaskCancelled" => &self.task_cancelled_topic,
             _ => &self.task_updated_topic,
         };
-        let record = FutureRecord::to(topic).payload(payload).key("task");
+        // task_id をパーティションキーとして使用し、同一タスクのイベント順序を保証する
+        let record = FutureRecord::to(topic).payload(payload).key(task_id);
         self.producer
             .send(record, Duration::from_secs(5))
             .await

@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ADR-0005 形式のレスポンスから error オブジェクトを取り出すヘルパー。
-func extractErrorBody(t *testing.T, body map[string]interface{}) map[string]interface{} {
+// ADR-0005 形式のレスポンスから error オブジェクトを取り出すヘルパー（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
+func extractErrorBody(t *testing.T, body map[string]any) map[string]any {
 	t.Helper()
-	errObj, ok := body["error"].(map[string]interface{})
+	errObj, ok := body["error"].(map[string]any)
 	assert.True(t, ok, "body.error should be an object")
 	return errObj
 }
@@ -31,7 +31,8 @@ func TestRespondError_SetsStatusAndCode(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-	var body map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var body map[string]any
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	errObj := extractErrorBody(t, body)
 	assert.Equal(t, "SYS_INTERNAL_ERROR", errObj["code"])
@@ -50,7 +51,8 @@ func TestRespondBadRequest_Returns400(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	var body map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var body map[string]any
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	errObj := extractErrorBody(t, body)
 	assert.Equal(t, "INVALID_PARAM", errObj["code"])
@@ -69,7 +71,8 @@ func TestAbortErrorWithMessage_SetsAllFields(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 
-	var body map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var body map[string]any
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	errObj := extractErrorBody(t, body)
 	assert.Equal(t, "AUTH_REQUIRED", errObj["code"])
@@ -87,7 +90,8 @@ func TestRespondError_IncludesRequestID(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	router.ServeHTTP(w, req)
 
-	var body map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var body map[string]any
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	errObj := extractErrorBody(t, body)
 	// request_id フィールドが error オブジェクト内に存在すること
@@ -106,10 +110,12 @@ func TestRespondError_IncludesEmptyDetails(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	router.ServeHTTP(w, req)
 
-	var body map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var body map[string]any
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	errObj := extractErrorBody(t, body)
 	details, exists := errObj["details"]
 	assert.True(t, exists, "error object should contain details field")
-	assert.IsType(t, []interface{}{}, details)
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	assert.IsType(t, []any{}, details)
 }

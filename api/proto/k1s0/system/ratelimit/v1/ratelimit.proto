@@ -122,7 +122,8 @@ message RateLimitRule {
   int64 limit = 4;
   int64 window_seconds = 5;
   // Deprecated: use algorithm_enum instead.
-  string algorithm = 6;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string algorithm = 6 [deprecated = true];
   bool enabled = 7;
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
@@ -141,7 +142,8 @@ message GetUsageResponse {
   int64 limit = 3;
   int64 window_seconds = 4;
   // Deprecated: use algorithm_enum instead.
-  string algorithm = 5;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string algorithm = 5 [deprecated = true];
   bool enabled = 6;
   optional int64 used = 7;
   optional int64 remaining = 8;

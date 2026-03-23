@@ -153,17 +153,18 @@ resources:
 
 ### プラグイン一覧と設定
 
-| プラグイン           | 適用範囲   | 目的                          |
-| -------------------- | ---------- | ----------------------------- |
-| rate-limiting        | グローバル | レート制限                    |
-| jwt                  | グローバル | JWT 認証                      |
-| cors                 | グローバル | CORS 制御                     |
-| request-transformer  | サービス別 | リクエストヘッダー変換        |
-| response-transformer | グローバル | レスポンスセキュリティヘッダー付与 |
-| prometheus           | グローバル | メトリクス収集                |
-| file-log             | グローバル | アクセスログ出力              |
-| ip-restriction       | サービス別 | IP 制限（Admin API 保護等）   |
-| post-function        | グローバル | ユーザー情報（claims）をバックエンドへのリクエストヘッダーに転送（[認証認可設計](../auth/認証認可設計.md) の「ヘッダー転送」参照） |
+| プラグイン               | 適用範囲   | 目的                          |
+| ------------------------ | ---------- | ----------------------------- |
+| rate-limiting            | グローバル | レート制限                    |
+| jwt                      | グローバル | JWT 認証                      |
+| cors                     | グローバル | CORS 制御                     |
+| request-size-limiting    | グローバル | DoS 対策リクエストサイズ制限（10MB）|
+| request-transformer      | サービス別 | リクエストヘッダー変換        |
+| response-transformer     | グローバル | レスポンスセキュリティヘッダー付与 |
+| prometheus               | グローバル | メトリクス収集                |
+| file-log                 | グローバル | アクセスログ出力              |
+| ip-restriction           | サービス別 | IP 制限（Admin API 保護等）   |
+| post-function            | グローバル | ユーザー情報（claims）をバックエンドへのリクエストヘッダーに転送（[認証認可設計](../auth/認証認可設計.md) の「ヘッダー転送」参照） |
 
 #### JWT プラグイン
 
@@ -213,7 +214,23 @@ plugins:
 > - staging: `["https://*.staging.k1s0.internal.example.com"]`
 > - prod: `["https://*.k1s0.internal.example.com"]`
 
+#### Request Size Limiting プラグイン
+
+DoS 攻撃対策として、グローバルレベルで 10MB を超えるリクエストをブロックする。開発環境（`kong.dev.yaml`）でも同一の制限を適用する。
+
+```yaml
+plugins:
+  # リクエストサイズ制限: DoS攻撃対策として大容量リクエストをブロック
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10
+      size_unit: megabytes
+      require_content_length: false
+```
+
 #### Response Transformer プラグイン
+
+セキュリティヘッダーを全レスポンスに付与する。本番環境（`kong.yaml`）と開発環境（`kong.dev.yaml`）で同一のヘッダーを適用し、開発時から本番同等のセキュリティ挙動を確認できるようにする。
 
 ```yaml
 plugins:

@@ -11,9 +11,10 @@ import (
 type Filter struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"` // "eq", "lt", "gt", "range", "in"
-	Value    interface{} `json:"value"`
+	// フィルター値（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）
+	Value    any `json:"value"`
 	// ValueTo は "range" オペレーター使用時の上限値（オプション）。
-	ValueTo  interface{} `json:"value_to,omitempty"`
+	ValueTo  any `json:"value_to,omitempty"`
 }
 
 // FacetBucket はファセット集計バケット。
@@ -31,18 +32,18 @@ type SearchQuery struct {
 	Size    uint32   `json:"size"`
 }
 
-// SearchResult は検索結果。
+// SearchResult は検索結果（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
 type SearchResult struct {
-	Hits   []map[string]interface{}    `json:"hits"`
-	Total  uint64                      `json:"total"`
-	Facets map[string][]FacetBucket    `json:"facets"`
-	TookMs uint64                      `json:"took_ms"`
+	Hits   []map[string]any         `json:"hits"`
+	Total  uint64                   `json:"total"`
+	Facets map[string][]FacetBucket `json:"facets"`
+	TookMs uint64                   `json:"took_ms"`
 }
 
-// IndexDocument はインデックス対象ドキュメント。
+// IndexDocument はインデックス対象ドキュメント（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
 type IndexDocument struct {
-	ID     string                 `json:"id"`
-	Fields map[string]interface{} `json:"fields"`
+	ID     string         `json:"id"`
+	Fields map[string]any `json:"fields"`
 }
 
 // IndexResult はインデックス結果。
@@ -155,10 +156,11 @@ func (c *InMemorySearchClient) Search(_ context.Context, index string, query Sea
 		return SearchResult{}, fmt.Errorf("index not found: %s", index)
 	}
 
-	var hits []map[string]interface{}
+	// interface{} → any: Go 1.18+ 推奨エイリアスを使用する
+	var hits []map[string]any
 	for _, doc := range docs {
 		if query.Query == "" || matchesQuery(doc, query.Query) {
-			hit := make(map[string]interface{})
+			hit := make(map[string]any)
 			hit["id"] = doc.ID
 			for k, v := range doc.Fields {
 				hit[k] = v

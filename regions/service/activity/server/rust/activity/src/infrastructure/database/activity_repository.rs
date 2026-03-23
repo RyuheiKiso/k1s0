@@ -130,7 +130,8 @@ impl ActivityRepository for ActivityPostgresRepository {
         Activity::try_from(row)
     }
 
-    async fn update_status(&self, id: Uuid, status: &str, _updated_by: Option<&str>) -> anyhow::Result<Activity> {
+    // updated_by を Option<String> として受け取る（mockall との互換性のため）
+    async fn update_status(&self, id: Uuid, status: &str, _updated_by: Option<String>) -> anyhow::Result<Activity> {
         let mut tx = self.pool.begin().await?;
 
         let row = sqlx::query_as::<_, ActivityRow>(

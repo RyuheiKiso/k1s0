@@ -14,7 +14,8 @@ type errorBody struct {
 	Code      string        `json:"code"`
 	Message   string        `json:"message"`
 	RequestID string        `json:"request_id"`
-	Details   []interface{} `json:"details"`
+	// エラー詳細リスト（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）
+	Details   []any `json:"details"`
 }
 
 // errorResponse は ADR-0005 準拠のレスポンス外部構造。
@@ -34,7 +35,7 @@ func respondErrorWithMessage(c *gin.Context, status int, code, message string) {
 			Code:      code,
 			Message:   message,
 			RequestID: middleware.GetRequestID(c),
-			Details:   []interface{}{},
+			Details:   []any{},
 		},
 	}
 	c.JSON(status, payload)
@@ -51,7 +52,7 @@ func abortErrorWithMessage(c *gin.Context, status int, code, message string) {
 			Code:      code,
 			Message:   message,
 			RequestID: middleware.GetRequestID(c),
-			Details:   []interface{}{},
+			Details:   []any{},
 		},
 	}
 	c.AbortWithStatusJSON(status, payload)

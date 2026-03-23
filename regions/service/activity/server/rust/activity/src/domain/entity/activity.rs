@@ -5,6 +5,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("Invalid value: {0}")]
+    InvalidValue(String),
+}
+
 /// アクティビティステータス（承認フロー）
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -36,15 +43,16 @@ impl ActivityStatus {
     }
 }
 
+// ActivityStatus の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for ActivityStatus {
-    type Err = String;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "active" => Ok(Self::Active),
             "submitted" => Ok(Self::Submitted),
             "approved" => Ok(Self::Approved),
             "rejected" => Ok(Self::Rejected),
-            _ => Err(format!("invalid activity status: '{}'", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid activity status: '{}'", s))),
         }
     }
 }
@@ -76,15 +84,16 @@ impl ActivityType {
     }
 }
 
+// ActivityType の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for ActivityType {
-    type Err = String;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "comment" => Ok(Self::Comment),
             "time_entry" => Ok(Self::TimeEntry),
             "status_change" => Ok(Self::StatusChange),
             "assignment" => Ok(Self::Assignment),
-            _ => Err(format!("invalid activity type: '{}'", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid activity type: '{}'", s))),
         }
     }
 }

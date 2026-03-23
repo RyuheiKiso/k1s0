@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	configv1 "github.com/k1s0-platform/api/gen/go/k1s0/system/config/v1"
 	"google.golang.org/grpc"
@@ -41,7 +42,11 @@ func NewWatchConfigClient(ctx context.Context, target string, opts ...grpc.DialO
 
 // NewInsecureWatchConfigClient は TLS なし（開発・テスト用）でターゲットに接続する WatchConfigClient を生成する。
 // 本番環境では使用しないこと。
+// 本番・ステージング環境では insecure 接続を禁止する（S-1: TLS強制化対応）
 func NewInsecureWatchConfigClient(ctx context.Context, target string, opts ...grpc.DialOption) (*WatchConfigClient, error) {
+	if env := os.Getenv("APP_ENV"); env == "production" || env == "staging" {
+		return nil, fmt.Errorf("watch config: insecure gRPC connection is not allowed in %s environment; use NewWatchConfigClient with TLS credentials", env)
+	}
 	opts = append([]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}, opts...)
 	return NewWatchConfigClient(ctx, target, opts...)
 }

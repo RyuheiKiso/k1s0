@@ -108,7 +108,8 @@ func NewHttpSchedulerClient(addr string) (*HttpSchedulerClient, error) {
 	}, nil
 }
 
-func (c *HttpSchedulerClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
+// doRequest は HTTP リクエストを実行する（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
+func (c *HttpSchedulerClient) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)

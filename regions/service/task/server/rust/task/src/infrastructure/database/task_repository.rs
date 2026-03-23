@@ -18,6 +18,7 @@ impl TaskPostgresRepository {
     }
 }
 
+// DB の tasks テーブル行を表す中間型。reporter_id と labels カラムを含む。
 #[derive(sqlx::FromRow)]
 struct TaskRow {
     id: Uuid,
@@ -27,6 +28,8 @@ struct TaskRow {
     status: String,
     priority: String,
     assignee_id: Option<String>,
+    // 報告者 ID（DB の reporter_id カラムに対応）
+    reporter_id: Option<String>,
     due_date: Option<chrono::DateTime<chrono::Utc>>,
     created_by: String,
     updated_by: Option<String>,
@@ -35,6 +38,8 @@ struct TaskRow {
     updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+// TaskRow からドメインエンティティ Task へ変換する。
+// reporter_id と labels はエンティティに直接マップする。
 impl TryFrom<TaskRow> for Task {
     type Error = anyhow::Error;
     fn try_from(row: TaskRow) -> Result<Self, Self::Error> {
@@ -46,7 +51,11 @@ impl TryFrom<TaskRow> for Task {
             status: row.status.parse().map_err(|e: String| anyhow::anyhow!(e))?,
             priority: row.priority.parse().map_err(|e: String| anyhow::anyhow!(e))?,
             assignee_id: row.assignee_id,
+            reporter_id: row.reporter_id,
             due_date: row.due_date,
+            // labels は別テーブルで管理するため、ここでは空リストを返す
+            // 完全取得が必要な場合は find_by_id_with_labels を使用する
+            labels: vec![],
             created_by: row.created_by,
             updated_by: row.updated_by,
             version: row.version,

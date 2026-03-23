@@ -2,16 +2,16 @@
 // Kafka への発行を抽象化する。
 use async_trait::async_trait;
 
-/// プロジェクトタイプ変更イベント
-#[derive(Debug, Clone)]
+/// プロジェクトタイプ変更イベント（Kafka へのシリアライズに Serialize が必要）
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ProjectTypeChangedEvent {
     pub project_type_id: String,
     pub code: String,
     pub change_type: String,
 }
 
-/// ステータス定義変更イベント
-#[derive(Debug, Clone)]
+/// ステータス定義変更イベント（Kafka へのシリアライズに Serialize が必要）
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct StatusDefinitionChangedEvent {
     pub status_definition_id: String,
     pub project_type_id: String,
@@ -20,8 +20,8 @@ pub struct StatusDefinitionChangedEvent {
     pub version_number: i32,
 }
 
-/// テナント拡張変更イベント
-#[derive(Debug, Clone)]
+/// テナント拡張変更イベント（Kafka へのシリアライズに Serialize が必要）
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct TenantExtensionChangedEvent {
     pub tenant_id: String,
     pub status_definition_id: String,

@@ -62,6 +62,7 @@ regions/service/task/server/rust/task/
 
 ### Cargo.toml
 
+<!-- workspace 依存管理方式に更新し、gRPC 関連依存（tonic・prost・prost-types・k1s0-proto-build・k1s0-correlation・k1s0-outbox）を追加。k1s0-server-common の features を実際の値に修正。D-3/D-5 対応。 -->
 ```toml
 [package]
 name = "k1s0-task-server"
@@ -69,40 +70,52 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Web framework
-axum = { version = "0.8", features = ["macros", "multipart"] }
-tokio = { version = "1", features = ["full"] }
-tower = "0.5"
-tower-http = { version = "0.6", features = ["trace", "cors"] }
+# Web framework（workspace 依存管理）
+axum = { workspace = true, features = ["macros", "multipart"] }
+tokio = { workspace = true, features = ["full"] }
+tower = { workspace = true }
+tower-http = { workspace = true, features = ["trace", "cors"] }
+
+# gRPC（tonic/prost による gRPC サーバー実装）
+tonic = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
 
 # Serialization
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 
 # DB
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
+sqlx = { workspace = true, features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "migrate"] }
 
 # Utilities
-uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
-anyhow = "1"
-thiserror = "2"
-async-trait = "0.1"
+uuid = { workspace = true, features = ["v4", "serde"] }
+chrono = { workspace = true, features = ["serde"] }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
 
 # Logging / Tracing
-tracing = "0.1"
+tracing = { workspace = true }
 
 # Validation
-validator = { version = "0.18", features = ["derive"] }
+validator = { workspace = true, features = ["derive"] }
 
 # Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { workspace = true, features = ["cmake-build"] }
 
 # k1s0 internal libraries
 k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", features = ["full"] }
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
-k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["axum"] }
+# k1s0-server-common: auth（JWT 検証）・grpc-auth（gRPC 認証）・shutdown（グレースフルシャットダウン）を有効化
+k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["auth", "grpc-auth", "shutdown"] }
+# proto 生成コード（gRPC クライアント/サーバースタブ）
+k1s0-proto-build = { path = "../../../../../system/library/rust/proto-build" }
+# 分散トレーシング用相関 ID
+k1s0-correlation = { path = "../../../../../system/library/rust/correlation" }
+# Outbox パターン（タスクイベントのトランザクション内書き込み）
+k1s0-outbox = { path = "../../../../../system/library/rust/outbox" }
 
 [features]
 db-tests = []
@@ -241,16 +254,23 @@ pub enum TaskPriority {
 
 ### Task / TaskChecklistItem
 
+<!-- task.rs の実装と一致するよう project_id を Uuid 型、due_date を Option<DateTime<Utc>> に修正し、reporter_id と labels フィールドを追加。D-3 対応。 -->
 ```rust
 pub struct Task {
     pub id: Uuid,
-    pub project_id: String,
+    // project_id は UUID 型（Uuid 型に修正）
+    pub project_id: Uuid,
     pub title: String,
     pub description: Option<String>,
     pub status: TaskStatus,
     pub assignee_id: Option<String>,
+    // タスクを報告したユーザーの ID（proto の reporter_id フィールドに対応）
+    pub reporter_id: Option<String>,
     pub priority: TaskPriority,
-    pub due_date: Option<NaiveDate>,
+    // due_date は日時型（Option<NaiveDate> から Option<DateTime<Utc>> に修正）
+    pub due_date: Option<DateTime<Utc>>,
+    // タスクに付与されたラベル一覧（proto の labels フィールドに対応）
+    pub labels: Vec<String>,
     pub created_by: String,
     pub updated_by: Option<String>,
     pub version: i32,

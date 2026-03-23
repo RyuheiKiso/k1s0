@@ -44,7 +44,8 @@ services:
   # インフラ
   # ============================================================
   postgres:
-    image: postgres:17
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: postgres:17.4
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -78,7 +79,8 @@ services:
       retries: 5
 
   mysql:
-    image: mysql:8.4
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: mysql:8.4.4
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -112,7 +114,8 @@ services:
       retries: 5
 
   redis:
-    image: redis:7
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: redis:7.4.2
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -241,7 +244,8 @@ services:
       start_period: 30s
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: quay.io/keycloak/keycloak:26.0.7
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -293,7 +297,8 @@ services:
       start_period: 30s
 
   redis-session:
-    image: redis:7
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: redis:7.4.2
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -327,7 +332,8 @@ services:
       retries: 5
 
   vault:
-    image: hashicorp/vault:1.17
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: hashicorp/vault:1.17.6
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -347,6 +353,8 @@ services:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-token}
       # ヘルスチェックで vault status を実行するために必要な接続先設定
       VAULT_ADDR: "http://127.0.0.1:8200"
+      # no-new-privileges + CAP_DROP:ALL 環境での setcap 失敗を回避する
+      SKIP_SETCAP: "true"
     ports:
       - "${VAULT_HOST_PORT:-8200}:8200"
     # Vault のシールド状態と初期化状態を確認するヘルスチェック
@@ -360,7 +368,8 @@ services:
   # API Gateway
   # ============================================================
   kong:
-    image: kong:3.8
+    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
+    image: kong:3.9.1
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1121,7 +1130,7 @@ services:
   # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。
   # ============================================================
   jaeger:
-    image: jaegertracing/all-in-one:1.62
+    image: jaegertracing/all-in-one:1.62.0
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1141,7 +1150,7 @@ services:
       - "${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"    # OTLP HTTP
 
   prometheus:
-    image: prom/prometheus:v2.55
+    image: prom/prometheus:v2.55.1
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1162,7 +1171,7 @@ services:
       - "${PROMETHEUS_HOST_PORT:-9090}:9090"
 
   loki:
-    image: grafana/loki:3.3
+    image: grafana/loki:3.3.2
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1202,7 +1211,7 @@ services:
       - loki
 
   grafana:
-    image: grafana/grafana:11.3
+    image: grafana/grafana:11.3.2
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped

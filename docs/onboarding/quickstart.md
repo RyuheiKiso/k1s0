@@ -130,6 +130,61 @@ just observability-up
 
 ---
 
+## Docker Compose profile について
+
+k1s0 の `docker-compose.yaml` はサービスを **profile** で分類している。
+PostgreSQL・Redis・Kafka・Keycloak 等のインフラサービスはすべて `infra` プロファイルに属しており、
+`docker compose up` をそのまま実行しても起動しない。
+
+### just コマンドを使う場合（推奨）
+
+`just local-up-dev` は内部で `--profile infra --profile system` を自動付与するため、
+追加の操作は不要。
+
+```bash
+# 開発環境一式を起動（infra + system プロファイルを自動付与）
+just local-up-dev
+
+# 可観測性スタックのみ起動
+just observability-up
+
+# 特定プロファイルのみ起動（例: infra のみ）
+just local-up-profile infra
+```
+
+### docker compose を直接呼ぶ場合
+
+`--profile infra` フラグが必要。
+
+```bash
+# インフラサービス（PostgreSQL / Redis / Kafka / Keycloak 等）を起動
+docker compose --profile infra up -d
+
+# インフラ + system プロファイルを同時起動
+docker compose --profile infra --profile system up -d
+
+# 個別サービスの停止時も profile が必要
+docker compose --profile infra down
+```
+
+> 注意: `docker compose up -d` のみでは infra サービスが起動しないため、
+> アプリケーションサービスが DB / Kafka に接続できずに起動失敗する。
+
+### Keycloak のポートについて
+
+Keycloak は HTTP ポートと管理ポートの 2 つを公開している。用途によって接続先が異なるため注意すること。
+
+| 用途 | ポート | URL |
+|------|--------|-----|
+| 認証コンソール・OIDC エンドポイント | 8180 (HTTP) | `http://localhost:8180` |
+| ヘルスチェック・管理 API | 9000 (管理ポート) | `http://localhost:9000/health/ready` |
+
+- **ヘルスチェック**は管理ポート（9000）の `/health/ready` エンドポイントで行う
+- `http://localhost:8180/health/ready` にアクセスしても **404** が返る（管理ポートとは別のポート）
+- docker-compose.yaml のヘルスチェックも `localhost:9000` に対して実行している
+
+---
+
 ## 最初の操作
 
 ```bash

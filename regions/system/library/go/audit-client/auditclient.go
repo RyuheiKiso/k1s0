@@ -15,7 +15,8 @@ type AuditEvent struct {
 	Action       string                 `json:"action"`
 	ResourceType string                 `json:"resource_type"`
 	ResourceID   string                 `json:"resource_id"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	// メタデータ: 任意の追加情報を格納する（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）
+	Metadata     map[string]any `json:"metadata"`
 	Timestamp    time.Time              `json:"timestamp"`
 }
 

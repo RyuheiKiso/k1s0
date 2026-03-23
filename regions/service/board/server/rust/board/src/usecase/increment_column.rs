@@ -12,6 +12,8 @@ impl IncrementColumnUseCase {
         Self { repo }
     }
 
+    // カラムタスク数増加の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, req: &IncrementColumnRequest) -> anyhow::Result<BoardColumn> {
         self.repo.increment(req).await
     }

@@ -13,6 +13,46 @@ impl EventPostgresRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    /// トランザクション内でイベントを一括INSERTする内部ヘルパー。
+    /// 呼び出し元のトランザクション（tx）を受け取り、全件INSERTが成功した場合のみコミットは呼び出し元が行う。
+    pub async fn append_in_tx<'a>(
+        stream_id: &str,
+        events: Vec<StoredEvent>,
+        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+    ) -> anyhow::Result<Vec<StoredEvent>> {
+        let mut result = Vec::with_capacity(events.len());
+
+        for event in events {
+            // メタデータをJSONオブジェクトとしてシリアライズする
+            let metadata = serde_json::json!({
+                "actor_id": event.metadata.actor_id,
+                "correlation_id": event.metadata.correlation_id,
+                "causation_id": event.metadata.causation_id,
+            });
+            // トランザクション内でINSERTを実行し、採番されたシーケンスを含む行を返す
+            let row = sqlx::query_as::<_, StoredEventRow>(
+                r#"
+                INSERT INTO eventstore.events
+                    (stream_id, event_type, version, payload, metadata, occurred_at, stored_at)
+                VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                RETURNING stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                "#,
+            )
+            .bind(stream_id)
+            .bind(&event.event_type)
+            .bind(event.version)
+            .bind(&event.payload)
+            .bind(&metadata)
+            .bind(event.occurred_at)
+            .fetch_one(&mut **tx)
+            .await?;
+
+            result.push(row.into());
+        }
+
+        Ok(result)
+    }
 }
 
 #[derive(sqlx::FromRow)]
@@ -64,33 +104,14 @@ impl EventRepository for EventPostgresRepository {
         stream_id: &str,
         events: Vec<StoredEvent>,
     ) -> anyhow::Result<Vec<StoredEvent>> {
-        let mut result = Vec::with_capacity(events.len());
+        // 全イベントのINSERTを単一トランザクションで包み、部分的な書き込みを防止する
+        let mut tx = self.pool.begin().await?;
 
-        for event in events {
-            let metadata = serde_json::json!({
-                "actor_id": event.metadata.actor_id,
-                "correlation_id": event.metadata.correlation_id,
-                "causation_id": event.metadata.causation_id,
-            });
-            let row = sqlx::query_as::<_, StoredEventRow>(
-                r#"
-                INSERT INTO eventstore.events
-                    (stream_id, event_type, version, payload, metadata, occurred_at, stored_at)
-                VALUES ($1, $2, $3, $4, $5, $6, NOW())
-                RETURNING stream_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
-                "#,
-            )
-            .bind(stream_id)
-            .bind(&event.event_type)
-            .bind(event.version)
-            .bind(&event.payload)
-            .bind(&metadata)
-            .bind(event.occurred_at)
-            .fetch_one(&self.pool)
-            .await?;
+        // トランザクション内でイベントを一括INSERTする
+        let result = Self::append_in_tx(stream_id, events, &mut tx).await?;
 
-            result.push(row.into());
-        }
+        // 全件INSERT成功後にコミットする
+        tx.commit().await?;
 
         Ok(result)
     }

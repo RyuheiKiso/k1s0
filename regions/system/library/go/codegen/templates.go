@@ -5,7 +5,8 @@ var goMainTemplate = `package main
 
 import (
 	"context"
-	"log"
+	// 構造化ログに変更: log → log/slog（A-2 対応）
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,7 +21,9 @@ func main() {
 	defer cancel()
 
 	if err := app.Run(ctx); err != nil {
-		log.Fatalf("failed to run: %v", err)
+		// 構造化ログに変更: log.Fatalf → slog.Error + os.Exit（A-2 対応）
+		slog.Error("failed to run", "err", err)
+		os.Exit(1)
 	}
 }
 `
@@ -38,15 +41,18 @@ var goAppTemplate = `package app
 
 import (
 	"context"
-	"log"
+	// 構造化ログに変更: log → log/slog（A-2 対応）
+	"log/slog"
 )
 
 // Run はアプリケーションのメインループを実行する。
 // ctx がキャンセルされると終了する。
 func Run(ctx context.Context) error {
-	log.Println("service started")
+	// 構造化ログに変更: log.Println → slog.Info（A-2 対応）
+	slog.Info("service started")
 	<-ctx.Done()
-	log.Println("service stopping")
+	// 構造化ログに変更: log.Println → slog.Info（A-2 対応）
+	slog.Info("service stopping")
 	return nil
 }
 `

@@ -39,7 +39,8 @@ message DlqMessage {
   // JSON-encoded payload bytes.
   bytes payload = 6;
   // Deprecated: use status_enum instead.
-  string status = 7;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string status = 7 [deprecated = true];
   k1s0.system.common.v1.Timestamp created_at = 8;
   k1s0.system.common.v1.Timestamp updated_at = 9;
   optional k1s0.system.common.v1.Timestamp last_retry_at = 10;

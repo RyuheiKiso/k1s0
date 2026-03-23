@@ -5,6 +5,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("Invalid value: {0}")]
+    InvalidValue(String),
+}
+
 /// タスクステータス（ステータスマシン）
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -42,8 +49,9 @@ impl TaskStatus {
     }
 }
 
+// TaskStatus の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for TaskStatus {
-    type Err = String;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "open" => Ok(Self::Open),
@@ -51,7 +59,7 @@ impl std::str::FromStr for TaskStatus {
             "review" => Ok(Self::Review),
             "done" => Ok(Self::Done),
             "cancelled" => Ok(Self::Cancelled),
-            _ => Err(format!("invalid task status: '{}'", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid task status: '{}'", s))),
         }
     }
 }
@@ -83,15 +91,16 @@ impl TaskPriority {
     }
 }
 
+// TaskPriority の文字列パース実装（型安全な ParseError を使用する）
 impl std::str::FromStr for TaskPriority {
-    type Err = String;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "low" => Ok(Self::Low),
             "medium" => Ok(Self::Medium),
             "high" => Ok(Self::High),
             "critical" => Ok(Self::Critical),
-            _ => Err(format!("invalid task priority: '{}'", s)),
+            _ => Err(ParseError::InvalidValue(format!("invalid task priority: '{}'", s))),
         }
     }
 }
@@ -103,6 +112,7 @@ impl std::fmt::Display for TaskPriority {
 }
 
 /// タスクエンティティ
+/// proto の Task メッセージと一致するよう reporter_id と labels フィールドを保持する。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {
     pub id: Uuid,
@@ -112,7 +122,11 @@ pub struct Task {
     pub status: TaskStatus,
     pub priority: TaskPriority,
     pub assignee_id: Option<String>,
+    // タスクを報告したユーザーの ID（proto の reporter_id フィールドに対応）
+    pub reporter_id: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
+    // タスクに付与されたラベル一覧（proto の labels フィールドに対応）
+    pub labels: Vec<String>,
     pub created_by: String,
     pub updated_by: Option<String>,
     pub version: i32,
@@ -146,6 +160,7 @@ pub struct TaskChecklistItem {
 }
 
 /// タスク作成 DTO
+/// proto の CreateTaskRequest フィールドに対応し、labels を含む。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTask {
     pub project_id: Uuid,
@@ -154,18 +169,11 @@ pub struct CreateTask {
     pub priority: TaskPriority,
     pub assignee_id: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
+    // タスクに付与するラベル一覧（proto の labels フィールドに対応）
+    pub labels: Vec<String>,
     pub checklist: Vec<CreateChecklistItem>,
 }
 
-impl CreateTask {
-    /// 入力バリデーション
-    pub fn validate(&self) -> Result<(), TaskError> {
-        if self.title.trim().is_empty() {
-            return Err(TaskError::ValidationFailed("title must not be empty".to_string()));
-        }
-        Ok(())
-    }
-}
 
 /// チェックリスト項目作成 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]

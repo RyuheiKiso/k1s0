@@ -190,7 +190,8 @@ func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) 
 	}, nil
 }
 
-func (c *GrpcRateLimitClient) doRequest(ctx context.Context, method, path string, body interface{}) (*http.Response, error) {
+// doRequest は HTTP リクエストを実行する（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
+func (c *GrpcRateLimitClient) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)

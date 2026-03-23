@@ -137,3 +137,5 @@ fn default_log_level() -> String { "info".to_string() }
 fn default_log_fmt() -> String { "json".to_string() }
 fn default_trace_enabled() -> bool { true }
 fn default_trace_endpoint() -> String { k1s0_server_common::DEFAULT_OTEL_ENDPOINT.to_string() }
+// デフォルトのサンプリングレート（1.0 = 全トレースを収集する）
+fn default_sample_rate() -> f64 { 1.0 }

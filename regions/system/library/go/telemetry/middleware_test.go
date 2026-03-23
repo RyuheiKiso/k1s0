@@ -86,7 +86,8 @@ func TestGRPCUnaryInterceptor_Success(t *testing.T) {
 
 	// 成功を返す invoker スタブ。
 	called := false
-	invoker := func(ctx context.Context, method string, req, reply interface{}) error {
+	// gRPC unary invoker スタブ（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）
+	invoker := func(ctx context.Context, method string, req, reply any) error {
 		called = true
 		return nil
 	}
@@ -102,9 +103,9 @@ func TestGRPCUnaryInterceptor_Error(t *testing.T) {
 	logger := slog.Default()
 	interceptor := GRPCUnaryInterceptor(logger)
 
-	// エラーを返す invoker スタブ。
+	// エラーを返す invoker スタブ（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
 	expectedErr := errors.New("gRPC: service unavailable")
-	invoker := func(ctx context.Context, method string, req, reply interface{}) error {
+	invoker := func(ctx context.Context, method string, req, reply any) error {
 		return expectedErr
 	}
 

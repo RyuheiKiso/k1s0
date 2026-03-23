@@ -13,7 +13,81 @@ impl GetBoardColumnUseCase {
         Self { repo }
     }
 
+    // ボードカラム取得の全処理をトレースするためにスパンを自動生成する
+    #[tracing::instrument(skip(self))]
     pub async fn execute(&self, id: Uuid) -> anyhow::Result<Option<BoardColumn>> {
         self.repo.find_by_id(id).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::board_column_repository::MockBoardColumnRepository;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    // テスト用のサンプルカラムを生成するヘルパー関数
+    fn sample_column() -> BoardColumn {
+        BoardColumn {
+            id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
+            status_code: "open".to_string(),
+            wip_limit: 3,
+            task_count: 1,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    // 正常系: 指定した ID のカラムが取得できることを確認する
+    #[tokio::test]
+    async fn test_get_board_column_success() {
+        let mut mock = MockBoardColumnRepository::new();
+        let col = sample_column();
+        let col_id = col.id;
+        let col_clone = col.clone();
+
+        mock.expect_find_by_id()
+            .times(1)
+            .returning(move |_| Ok(Some(col_clone.clone())));
+
+        let uc = GetBoardColumnUseCase::new(Arc::new(mock));
+        let result = uc.execute(col_id).await;
+        assert!(result.is_ok());
+        let found = result.unwrap();
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().id, col_id);
+    }
+
+    // 異常系: 指定した ID のカラムが存在しない場合（NotFound）に None が返ることを確認する
+    #[tokio::test]
+    async fn test_get_board_column_not_found() {
+        let mut mock = MockBoardColumnRepository::new();
+
+        mock.expect_find_by_id()
+            .times(1)
+            .returning(|_| Ok(None));
+
+        let uc = GetBoardColumnUseCase::new(Arc::new(mock));
+        let result = uc.execute(Uuid::new_v4()).await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_none());
+    }
+
+    // 異常系: リポジトリがエラーを返した場合にエラーが伝播することを確認する
+    #[tokio::test]
+    async fn test_get_board_column_repository_error() {
+        let mut mock = MockBoardColumnRepository::new();
+
+        mock.expect_find_by_id()
+            .times(1)
+            .returning(|_| Err(anyhow::anyhow!("database error")));
+
+        let uc = GetBoardColumnUseCase::new(Arc::new(mock));
+        let result = uc.execute(Uuid::new_v4()).await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("database error"));
     }
 }

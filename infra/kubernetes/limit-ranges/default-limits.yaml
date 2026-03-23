@@ -1,3 +1,5 @@
+# k1s0-system Namespace 用 LimitRange（I-4 対応）
+# system tier は基盤サービスのため、デフォルト値を維持しつつ max 制限を追加してリソース上限を明示する
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -11,8 +13,14 @@ spec:
       defaultRequest:
         cpu: 250m
         memory: 256Mi
+      # max 制限を追加（暴走コンテナによるノード枯渇を防止する）
+      max:
+        cpu: "2"
+        memory: 2Gi
       type: Container
 ---
+# k1s0-business Namespace 用 LimitRange（I-4 対応）
+# business tier は業務ロジックを担うため、system tier より高いリソース割り当てとする
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -20,14 +28,22 @@ metadata:
   namespace: k1s0-business
 spec:
   limits:
+    # business tier は複雑な業務処理に対応するためデフォルトを引き上げる
     - default:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "2"
+        memory: 2Gi
+      # defaultRequest も business tier の負荷特性に合わせて引き上げる
       defaultRequest:
-        cpu: 250m
-        memory: 256Mi
+        cpu: 500m
+        memory: 512Mi
+      # max 制限を追加（business tier の最大リソース上限を設定する）
+      max:
+        cpu: "4"
+        memory: 4Gi
       type: Container
 ---
+# k1s0-service Namespace 用 LimitRange（I-4 対応）
+# service tier は各サービスの特性に応じた中間的なリソース設定とする
 apiVersion: v1
 kind: LimitRange
 metadata:
@@ -35,10 +51,15 @@ metadata:
   namespace: k1s0-service
 spec:
   limits:
+    # service tier は system と business の中間値に調整する
     - default:
-        cpu: "1"
-        memory: 1Gi
+        cpu: "1500m"
+        memory: 1536Mi
       defaultRequest:
         cpu: 250m
         memory: 256Mi
+      # max 制限を追加（service tier の最大リソース上限を設定する）
+      max:
+        cpu: "3"
+        memory: 3Gi
       type: Container
