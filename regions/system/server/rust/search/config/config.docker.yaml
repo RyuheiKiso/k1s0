@@ -14,5 +14,5 @@ database:
   port: 5432
   name: "search_db"
   user: "dev"
-  password: "dev"
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"

@@ -160,7 +160,7 @@ pub struct TaskChecklistItem {
 }
 
 /// タスク作成 DTO
-/// proto の CreateTaskRequest フィールドに対応し、labels を含む。
+/// proto の CreateTaskRequest フィールドに対応し、reporter_id と labels を含む。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTask {
     pub project_id: Uuid,
@@ -168,6 +168,8 @@ pub struct CreateTask {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub assignee_id: Option<String>,
+    // タスクを報告したユーザーの ID（DB の reporter_id NOT NULL カラムに対応。ハンドラーで設定する）
+    pub reporter_id: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
     // タスクに付与するラベル一覧（proto の labels フィールドに対応）
     pub labels: Vec<String>,

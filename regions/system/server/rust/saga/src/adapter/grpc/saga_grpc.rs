@@ -270,12 +270,19 @@ impl SagaGrpcService {
             .map_err(|e| GrpcError::Internal(format!("failed to get saga: {}", e)))?
             .ok_or_else(|| GrpcError::NotFound(format!("saga not found: {}", req.saga_id)))?;
 
+        // payload のシリアライズ失敗はデバッグ困難なエラーになるため、黙殺せず Internal エラーとして伝播させる
+        // unwrap_or_default() では失敗が無音になり、クライアントが空バイト列を受け取っても原因調査ができない
+        let saga_payload = serde_json::to_vec(&saga.payload).map_err(|e| {
+            tracing::error!("saga payload シリアライズ失敗: saga_id={}, error={}", saga.saga_id, e);
+            GrpcError::Internal("saga payload の変換に失敗しました".to_string())
+        })?;
+
         let saga_proto = SagaStateProto {
             id: saga.saga_id.to_string(),
             workflow_name: saga.workflow_name.clone(),
             current_step: saga.current_step,
             status: saga.status.to_string(),
-            payload: serde_json::to_vec(&saga.payload).unwrap_or_default(),
+            payload: saga_payload,
             correlation_id: saga.correlation_id.unwrap_or_default(),
             initiated_by: saga.initiated_by.unwrap_or_default(),
             error_message: saga.error_message.unwrap_or_default(),
@@ -352,21 +359,33 @@ impl SagaGrpcService {
         let total_count_i64 = i64::from(total_count);
         let has_next = (page as i64 * page_size as i64) < total_count_i64;
 
+        // payload のシリアライズ失敗はデバッグ困難なエラーになるため、黙殺せず Internal エラーとして伝播させる
+        // map クロージャを Result を返すように変更し、collect::<Result<Vec<_>, _>>() でエラーを伝播させる
         let saga_protos = sagas
             .into_iter()
-            .map(|saga| SagaStateProto {
-                id: saga.saga_id.to_string(),
-                workflow_name: saga.workflow_name.clone(),
-                current_step: saga.current_step,
-                status: saga.status.to_string(),
-                payload: serde_json::to_vec(&saga.payload).unwrap_or_default(),
-                correlation_id: saga.correlation_id.unwrap_or_default(),
-                initiated_by: saga.initiated_by.unwrap_or_default(),
-                error_message: saga.error_message.unwrap_or_default(),
-                created_at: saga.created_at.to_rfc3339(),
-                updated_at: saga.updated_at.to_rfc3339(),
+            .map(|saga| -> Result<SagaStateProto, GrpcError> {
+                let payload = serde_json::to_vec(&saga.payload).map_err(|e| {
+                    tracing::error!(
+                        "saga payload シリアライズ失敗: saga_id={}, error={}",
+                        saga.saga_id,
+                        e
+                    );
+                    GrpcError::Internal("saga payload の変換に失敗しました".to_string())
+                })?;
+                Ok(SagaStateProto {
+                    id: saga.saga_id.to_string(),
+                    workflow_name: saga.workflow_name.clone(),
+                    current_step: saga.current_step,
+                    status: saga.status.to_string(),
+                    payload,
+                    correlation_id: saga.correlation_id.unwrap_or_default(),
+                    initiated_by: saga.initiated_by.unwrap_or_default(),
+                    error_message: saga.error_message.unwrap_or_default(),
+                    created_at: saga.created_at.to_rfc3339(),
+                    updated_at: saga.updated_at.to_rfc3339(),
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(ListSagasResponse {
             sagas: saga_protos,

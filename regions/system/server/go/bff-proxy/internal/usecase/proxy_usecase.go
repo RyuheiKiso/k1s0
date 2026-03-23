@@ -106,24 +106,46 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 
 		tokenResp := val.(*refreshResult).tokenResp
 
-		// 新しいトークンでセッションデータを更新する
-		sess.AccessToken = tokenResp.AccessToken
+		// M-5 対応: Redis を先に更新し、成功後にのみメモリ上のセッションを更新する。
+		// Redis 更新前にメモリを変更すると、Redis 失敗時に状態が乖離してセッション不整合が生じる。
+
+		// 新しいセッションデータを一時オブジェクトに構築する（メモリはまだ変更しない）
+		updatedAccessToken := tokenResp.AccessToken
+		updatedRefreshToken := sess.RefreshToken
+		updatedIDToken := sess.IDToken
+		updatedExpiresAt := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
+
+		// リフレッシュレスポンスに新しい refresh token / ID token が含まれる場合は上書きする
 		if tokenResp.RefreshToken != "" {
-			sess.RefreshToken = tokenResp.RefreshToken
+			updatedRefreshToken = tokenResp.RefreshToken
 		}
 		if tokenResp.IDToken != "" {
-			sess.IDToken = tokenResp.IDToken
+			updatedIDToken = tokenResp.IDToken
 		}
-		sess.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
 
-		// リフレッシュ後のセッション更新に失敗した場合はエラーログを記録する
-		if err := uc.sessionStore.Update(ctx, input.SessionID, sess, uc.sessionTTL); err != nil {
+		// 一時オブジェクトで Redis を先に更新する（shallow copy: SessionData にポインタフィールドなし）
+		tempSess := *sess
+		tempSess.AccessToken = updatedAccessToken
+		tempSess.RefreshToken = updatedRefreshToken
+		tempSess.IDToken = updatedIDToken
+		tempSess.ExpiresAt = updatedExpiresAt
+
+		// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
+		if err := uc.sessionStore.Update(ctx, input.SessionID, &tempSess, uc.sessionTTL); err != nil {
 			if uc.logger != nil {
 				uc.logger.Error("リフレッシュ後のセッション更新に失敗しました",
+					slog.String("session_id", input.SessionID),
 					slog.String("error", err.Error()),
 				)
 			}
+			return nil, &ProxyUseCaseError{Code: "BFF_PROXY_SESSION_UPDATE_FAILED", Err: err}
 		}
+
+		// Redis 更新成功後にメモリ上のセッションを更新する
+		sess.AccessToken = updatedAccessToken
+		sess.RefreshToken = updatedRefreshToken
+		sess.IDToken = updatedIDToken
+		sess.ExpiresAt = updatedExpiresAt
 	}
 
 	return &PrepareProxyOutput{

@@ -16,7 +16,7 @@ database:
   name: "k1s0_system"
   schema: "master_maintenance"
   user: "dev"
-  password: "dev"
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"
   max_connections: 25
   max_idle_conns: 5

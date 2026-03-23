@@ -13,7 +13,7 @@ database:
   port: 5432
   name: k1s0_system
   user: dev
-  password: dev
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: disable
 
 kafka:

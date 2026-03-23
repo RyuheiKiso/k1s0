@@ -54,7 +54,7 @@ services:
   keycloak:
     environment:
       KC_DB_PASSWORD: dev
-      KEYCLOAK_ADMIN_PASSWORD: dev
+      KC_BOOTSTRAP_ADMIN_PASSWORD: dev
       KC_BFF_CLIENT_SECRET: dev-bff-secret
       KC_SERVICE_CLIENT_SECRET: dev-service-secret
       KC_TEST_ADMIN_PASSWORD: admin123

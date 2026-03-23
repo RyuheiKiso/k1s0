@@ -4,6 +4,15 @@
 # docker-compose.yaml の kafka-init サービスから実行される。
 #
 # Kubernetes 環境では Strimzi KafkaTopic CRD (topics.yaml) を使用する。
+#
+# パーティション数の設計方針:
+# - 6 partitions (system tier 高優先度): 高スループットが必要なシステムイベント
+#   (audit, config変更, auth, saga等) を対象とし、コンシューマーグループ最大6並列処理を想定。
+# - 3 partitions (system tier 低優先度 / service tier): ファイル操作・クォータ等の
+#   中程度トラフィックのシステムイベント、および業務イベント (task作成・更新等) を対象とし、
+#   コンシューマーグループ最大3並列処理を想定。
+# - 1 partition (DLQ): Dead Letter Queue は再処理時のメッセージ順序保証を優先し、
+#   1並列処理で運用する。保持期間は30日 (retention.ms=2592000000)。
 
 set -euo pipefail
 

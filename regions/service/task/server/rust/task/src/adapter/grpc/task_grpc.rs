@@ -127,14 +127,17 @@ impl TaskService for TaskGrpcService {
             description: req.description,
             priority: proto_priority_to_domain(req.priority.unwrap_or(0)),
             assignee_id: req.assignee_id,
+            // gRPC 呼び出し元の reporter_id は取得不可のため None とし、UseCase 側で created_by を使用する
+            reporter_id: None,
             due_date: None,
             // proto の labels をドメイン入力に渡す
             labels: req.labels,
             checklist,
         };
 
-        // gRPC メタデータから呼び出し元ユーザーを取得できないため "grpc" を使用する
-        match self.create_task_uc.execute(&input, "grpc").await {
+        // gRPC メタデータから呼び出し元ユーザーとテナントIDを取得できないため "system" を使用する
+        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
+        match self.create_task_uc.execute("system", &input, "grpc").await {
             Ok(task) => Ok(Response::new(CreateTaskResponse {
                 task: Some(domain_task_to_proto(task)),
             })),
@@ -151,7 +154,9 @@ impl TaskService for TaskGrpcService {
         let id = Uuid::parse_str(&req.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
 
-        match self.get_task_uc.execute(id).await {
+        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
+        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
+        match self.get_task_uc.execute("system", id).await {
             Ok(Some(task)) => Ok(Response::new(GetTaskResponse {
                 task: Some(domain_task_to_proto(task)),
             })),
@@ -193,7 +198,9 @@ impl TaskService for TaskGrpcService {
             offset,
         };
 
-        match self.list_tasks_uc.execute(&filter).await {
+        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
+        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
+        match self.list_tasks_uc.execute("system", &filter).await {
             Ok((tasks, total)) => {
                 let proto_tasks: Vec<_> = tasks.into_iter().map(domain_task_to_proto).collect();
                 let page_size = limit.unwrap_or(proto_tasks.len() as i64) as i32;
@@ -234,7 +241,9 @@ impl TaskService for TaskGrpcService {
             expected_version: req.expected_version,
         };
 
-        match self.update_task_status_uc.execute(id, &input, "grpc").await {
+        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
+        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
+        match self.update_task_status_uc.execute("system", id, &input, "grpc").await {
             Ok(task) => Ok(Response::new(UpdateTaskStatusResponse {
                 task: Some(domain_task_to_proto(task)),
             })),

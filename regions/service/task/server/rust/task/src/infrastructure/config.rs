@@ -77,13 +77,19 @@ impl DatabaseConfig {
     }
 }
 
+// Kafkaトピック設定。create-topics.sh のトピック名と一致させる。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
+    #[serde(default = "default_task_created_topic")]
     pub task_created_topic: String,
-    pub task_updated_topic: String,
-    pub task_cancelled_topic: String,
+    // タスクの更新・キャンセルを統合した status_changed トピック
+    #[serde(default = "default_task_status_changed_topic")]
+    pub task_status_changed_topic: String,
 }
+
+fn default_task_created_topic() -> String { "k1s0.service.task.created.v1".to_string() }
+fn default_task_status_changed_topic() -> String { "k1s0.service.task.status_changed.v1".to_string() }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
@@ -134,7 +140,7 @@ fn default_host() -> String { "0.0.0.0".to_string() }
 fn default_port() -> u16 { 8310 }
 fn default_grpc_port() -> u16 { 9310 }
 fn default_db_port() -> u16 { 5432 }
-fn default_schema() -> String { "task".to_string() }
+fn default_schema() -> String { "task_service".to_string() }
 fn default_ssl_mode() -> String { "disable".to_string() }
 fn default_max_conn() -> u32 { 25 }
 fn default_idle_conn() -> u32 { 5 }

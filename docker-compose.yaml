@@ -271,8 +271,8 @@ services:
       # 本番環境では必ず強力なパスワード/シークレットを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       KC_DB_PASSWORD: ${KC_DB_PASSWORD:?KC_DB_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       KC_HEALTH_ENABLED: "true"
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       # Realm JSONのenvsubst用シークレット変数
       KC_BFF_CLIENT_SECRET: ${KC_BFF_CLIENT_SECRET:?KC_BFF_CLIENT_SECRET must be set. For local dev use docker-compose.dev.yaml}
       KC_SERVICE_CLIENT_SECRET: ${KC_SERVICE_CLIENT_SECRET:?KC_SERVICE_CLIENT_SECRET must be set. For local dev use docker-compose.dev.yaml}
@@ -1109,7 +1109,7 @@ services:
       - ALL
     read_only: true
     tmpfs:
-      - /tmp
+      - /tmp:exec
     depends_on:
       kafka:
         condition: service_healthy

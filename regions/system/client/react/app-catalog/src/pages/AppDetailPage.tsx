@@ -1,3 +1,4 @@
+// M-8 対応: safeImageUrl をインポートし、icon_url の XSS リスクを排除する
 import { useParams } from 'react-router-dom';
 import type { App, AppVersion } from '../api/types';
 import { useAppDetail } from '../hooks/useAppDetail';
@@ -5,6 +6,7 @@ import { PlatformBadge } from '../components/PlatformBadge';
 import { VersionHistory } from '../components/VersionHistory';
 import { DownloadButton } from '../components/DownloadButton';
 import { detectClientPlatform, formatArch, formatBytes, platformLabels } from '../lib/platform';
+import { safeImageUrl } from '../lib/safeUrl';
 
 function buildPreviewCards(app: App) {
   return [
@@ -51,13 +53,15 @@ export function AppDetailPage() {
   const { detectedPlatform, recommendedVersion } = getRecommendedVersion(versions);
   const previewCards = buildPreviewCards(app);
   const supportedPlatforms = [...new Set(versions.map((version) => version.platform))];
+  // icon_url を検証済みの安全なURLに変換する（javascript:/data: スキームは undefined になる）
+  const iconUrl = safeImageUrl(app.icon_url);
 
   return (
     <div className="app-detail-page">
       <div className="app-detail-page__header">
         <div className="app-detail-page__icon">
-          {app.icon_url ? (
-            <img src={app.icon_url} alt={`${app.name} アイコン`} />
+          {iconUrl ? (
+            <img src={iconUrl} alt={`${app.name} アイコン`} />
           ) : (
             <div className="app-detail-page__icon-placeholder">{app.name.charAt(0)}</div>
           )}

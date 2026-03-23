@@ -1,4 +1,5 @@
 // タスク一覧ユースケース。
+// RLS テナント分離のため tenant_id をリポジトリに渡す。
 use crate::domain::entity::task::{Task, TaskFilter};
 use crate::domain::repository::task_repository::TaskRepository;
 use std::sync::Arc;
@@ -14,9 +15,9 @@ impl ListTasksUseCase {
 
     // タスク一覧取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, filter: &TaskFilter) -> anyhow::Result<(Vec<Task>, i64)> {
-        let tasks = self.task_repo.find_all(filter).await?;
-        let count = self.task_repo.count(filter).await?;
+    pub async fn execute(&self, tenant_id: &str, filter: &TaskFilter) -> anyhow::Result<(Vec<Task>, i64)> {
+        let tasks = self.task_repo.find_all(tenant_id, filter).await?;
+        let count = self.task_repo.count(tenant_id, filter).await?;
         Ok((tasks, count))
     }
 }
@@ -63,19 +64,19 @@ mod tests {
         // find_all が 2 件のタスクを返すようにモックを設定する
         mock.expect_find_all()
             .times(1)
-            .returning(move |_| Ok(tasks_clone.clone()));
+            .returning(move |_, _| Ok(tasks_clone.clone()));
 
         // count が 2 を返すようにモックを設定する
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(2i64));
+            .returning(|_, _| Ok(2i64));
 
         let uc = ListTasksUseCase::new(Arc::new(mock));
         let filter = TaskFilter {
             project_id: Some(project_id),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("system", &filter).await;
         assert!(result.is_ok());
         let (task_list, total) = result.unwrap();
         assert_eq!(task_list.len(), 2);
@@ -90,19 +91,19 @@ mod tests {
         // find_all が空のベクタを返すようにモックを設定する
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Ok(vec![]));
+            .returning(|_, _| Ok(vec![]));
 
         // count が 0 を返すようにモックを設定する
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(0i64));
+            .returning(|_, _| Ok(0i64));
 
         let uc = ListTasksUseCase::new(Arc::new(mock));
         let filter = TaskFilter {
             project_id: Some(Uuid::new_v4()),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("system", &filter).await;
         assert!(result.is_ok());
         let (task_list, total) = result.unwrap();
         assert!(task_list.is_empty());
@@ -117,11 +118,11 @@ mod tests {
         // find_all がエラーを返す場合のモックを設定し、エラー伝播を検証する
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database connection error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection error")));
 
         let uc = ListTasksUseCase::new(Arc::new(mock));
         let filter = TaskFilter::default();
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("system", &filter).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database connection error"));
     }

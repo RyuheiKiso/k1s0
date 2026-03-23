@@ -39,3 +39,8 @@ meshConfig:
     holdApplicationUntilProxyStarts: true
   outboundTrafficPolicy:
     mode: REGISTRY_ONLY
+  # H-4 対応: mesh-wide ポリシーが適用される Namespace を明示する（デフォルトは istio-system だが本プロジェクトは service-mesh を使用）
+  rootNamespace: service-mesh
+  # H-3 対応: TLS の最小バージョン制限は PeerAuthentication ではなく meshConfig.meshMTLS で設定する
+  meshMTLS:
+    minProtocolVersion: TLSV1_3

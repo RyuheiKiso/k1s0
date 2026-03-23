@@ -26,6 +26,13 @@ spec:
           containers:
             - name: harbor-backup
               image: postgres:17-alpine
+              # H-7 対応: 最小権限でコンテナを実行する（他のバックアップジョブと統一）
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
               command:
                 - /bin/sh
                 - -c

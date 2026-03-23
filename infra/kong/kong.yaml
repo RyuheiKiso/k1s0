@@ -202,8 +202,9 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
-        - iss  # 発行元検証: consumer の key（KONG_KEYCLOAK_ISSUER）と一致することを確認
-      maximum_expiration: 900           # 15分（Access Token のライフタイム）
+        # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
+        # OIDCプラグイン移行後（ADR-0017）に対応予定。
+        # H-6 対応: 暫定措置として BFF Proxy で iss/aud 検証を実施中（H-6）。
       header_names:
         - Authorization
 
@@ -284,10 +285,12 @@ plugins:
   # INFRA-005: Admin API への不正アクセスを防止するため、内部ネットワークからのみアクセスを許可する
   - name: ip-restriction
     config:
-      # 許可する IP レンジ: Kubernetes クラスター内部ネットワークのみ
-      # 環境別の値は Helm values または envsubst で上書きすること
+      # Kong Admin API へのアクセスを Kubernetes Pod CIDR に限定する（H-03 対応）
+      # デフォルト: 10.244.0.0/16（Kubernetes Pod CIDR）
+      # 旧デフォルト 10.0.0.0/8 はクラス A 全体を許可する広すぎる範囲であり、盗聴・不正アクセスリスクがある
+      # 本番環境では KONG_ADMIN_ALLOWED_IPS 環境変数で実際のクラスタ Pod CIDR を設定すること
       allow:
-        - ${KONG_ADMIN_ALLOWED_IPS:-10.0.0.0/8}
+        - ${KONG_ADMIN_ALLOWED_IPS:-10.244.0.0/16}
 
 # ============================================================
 # Consumers - Keycloak JWKS 連携

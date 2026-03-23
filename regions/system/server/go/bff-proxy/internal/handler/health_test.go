@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -40,10 +41,31 @@ func TestHealthz(t *testing.T) {
 }
 
 // TestReadyz_OIDCNotDiscovered はOIDC discoveryが未完了の場合に503を返すことを確認する。
+// oauthClient のフォールバックパス（oidcReady が nil の場合）を検証する。
 func TestReadyz_OIDCNotDiscovered(t *testing.T) {
-	// OIDC discoveryが未完了のモック
+	// OIDC discoveryが未完了のモック（oidcReady は nil でフォールバックパスを使用）
 	mock := &mockOIDCChecker{discovered: false}
 	h := &HealthHandler{oauthClient: mock}
+
+	router := gin.New()
+	router.GET("/readyz", h.Readyz)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusServiceUnavailable, w.Code)
+	assert.Contains(t, w.Body.String(), `"reason":"oidc discovery not completed"`)
+}
+
+// TestReadyz_OIDCReadyFlagFalse はH-07対応: oidcReady フラグが false の場合に503を返すことを確認する。
+// retryOIDCDiscovery が全リトライを消費して失敗した後の状態をシミュレートする。
+func TestReadyz_OIDCReadyFlagFalse(t *testing.T) {
+	// H-07 対応: oidcReady フラグが false（全リトライ失敗後の状態）
+	var oidcReady atomic.Bool
+	// oidcReady.Store(false) はゼロ値なので明示的な設定は不要だが、意図を明確にするため記載
+	oidcReady.Store(false)
+	h := &HealthHandler{oidcReady: &oidcReady}
 
 	router := gin.New()
 	router.GET("/readyz", h.Readyz)

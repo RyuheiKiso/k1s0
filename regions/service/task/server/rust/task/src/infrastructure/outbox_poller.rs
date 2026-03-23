@@ -36,7 +36,7 @@ impl OutboxPoller {
 
         // FOR UPDATE SKIP LOCKED で他インスタンスが処理中のレコードをスキップする
         let rows: Vec<(Uuid, String, serde_json::Value)> = sqlx::query_as(
-            "SELECT id, event_type, payload FROM task.outbox_events WHERE published = false ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
+            "SELECT id, event_type, payload FROM task_service.outbox_events WHERE published_at IS NULL ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
         )
         .fetch_all(&mut *tx)
         .await?;
@@ -66,8 +66,8 @@ impl OutboxPoller {
                 continue;
             }
 
-            // 送信成功したイベントのみ published = true に更新する
-            sqlx::query("UPDATE task.outbox_events SET published = true WHERE id = $1")
+            // 送信成功したイベントのみ published_at を現在時刻に更新する
+            sqlx::query("UPDATE task_service.outbox_events SET published_at = NOW() WHERE id = $1")
                 .bind(id)
                 .execute(&mut *tx)
                 .await?;

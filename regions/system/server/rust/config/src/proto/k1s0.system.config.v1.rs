@@ -156,6 +156,8 @@ pub struct WatchConfigResponse {
     pub changed_by: ::prost::alloc::string::String,
     /// Deprecated: use change_type_enum instead.
     /// CREATED, UPDATED, DELETED
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "8")]
     pub change_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "9")]

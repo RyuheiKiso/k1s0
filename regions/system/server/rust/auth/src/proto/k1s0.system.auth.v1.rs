@@ -207,6 +207,8 @@ pub struct CheckPermissionResponse {
 pub struct RecordAuditLogRequest {
     /// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "1")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -223,6 +225,8 @@ pub struct RecordAuditLogRequest {
     pub action: ::prost::alloc::string::String,
     /// SUCCESS / FAILURE
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "7")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（client_id, grant_type 等）
@@ -258,6 +262,8 @@ pub struct SearchAuditLogsRequest {
     #[prost(string, tag = "2")]
     pub user_id: ::prost::alloc::string::String,
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "3")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
@@ -266,6 +272,8 @@ pub struct SearchAuditLogsRequest {
     pub to: ::core::option::Option<super::super::common::v1::Timestamp>,
     /// SUCCESS / FAILURE
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "6")]
     pub result: ::prost::alloc::string::String,
     /// 監査イベント種別フィルタ（enum）
@@ -289,6 +297,8 @@ pub struct AuditLog {
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "2")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
@@ -302,6 +312,8 @@ pub struct AuditLog {
     #[prost(string, tag = "7")]
     pub action: ::prost::alloc::string::String,
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "8")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（変更前後の値等）

@@ -1,4 +1,5 @@
 // タスク作成ユースケース。Outbox パターンでイベントを発行する。
+// RLS テナント分離のため tenant_id をリポジトリに渡す。
 use crate::domain::entity::task::{CreateTask, Task};
 use crate::domain::repository::task_repository::TaskRepository;
 use crate::domain::service::task_service::TaskService;
@@ -15,9 +16,9 @@ impl CreateTaskUseCase {
 
     // タスク作成の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, input: &CreateTask, created_by: &str) -> anyhow::Result<Task> {
+    pub async fn execute(&self, tenant_id: &str, input: &CreateTask, created_by: &str) -> anyhow::Result<Task> {
         TaskService::validate_title(&input.title)?;
-        self.task_repo.create(input, created_by).await
+        self.task_repo.create(tenant_id, input, created_by).await
     }
 }
 
@@ -59,7 +60,7 @@ mod tests {
 
         mock.expect_create()
             .times(1)
-            .returning(move |_, _| Ok(task_clone.clone()));
+            .returning(move |_, _, _| Ok(task_clone.clone()));
 
         let uc = CreateTaskUseCase::new(Arc::new(mock));
         let input = CreateTask {
@@ -68,11 +69,12 @@ mod tests {
             description: None,
             priority: TaskPriority::Medium,
             assignee_id: None,
+            reporter_id: None,
             due_date: None,
             labels: vec![],
             checklist: vec![],
         };
-        let result = uc.execute(&input, "user1").await;
+        let result = uc.execute("system", &input, "user1").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().title, "Fix bug");
     }
@@ -87,11 +89,12 @@ mod tests {
             description: None,
             priority: TaskPriority::Medium,
             assignee_id: None,
+            reporter_id: None,
             due_date: None,
             labels: vec![],
             checklist: vec![],
         };
-        let result = uc.execute(&input, "user1").await;
+        let result = uc.execute("system", &input, "user1").await;
         assert!(result.is_err());
     }
 }

@@ -2,7 +2,10 @@ server:
   http_listen_port: 3101
 
 positions:
-  filename: /tmp/positions.yaml
+  # Pod 再起動後もログ読み取り位置を保持するため、永続ボリュームにポジションファイルを保存する
+  # /tmp はコンテナ再起動時に消失し、ログの重複送信または欠損が発生するため使用禁止
+  # Kubernetes デプロイ時は /var/promtail を PVC または emptyDir でマウントすること
+  filename: /var/promtail/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push

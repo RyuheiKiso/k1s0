@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::domain::entity::api_key::ApiKey;
+use crate::domain::error::AuthError;
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
 /// ApiKeyPostgresRepository は ApiKeyRepository の PostgreSQL 実装。
@@ -147,7 +148,8 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         }
 
         if result.rows_affected() == 0 {
-            anyhow::bail!("api key not found: {}", id);
+            // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
+            return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
         }
         Ok(())
     }
@@ -165,7 +167,8 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         }
 
         if result.rows_affected() == 0 {
-            anyhow::bail!("api key not found: {}", id);
+            // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
+            return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
         }
         Ok(())
     }

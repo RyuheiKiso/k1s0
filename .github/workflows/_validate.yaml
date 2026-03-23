@@ -41,6 +41,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # L-4 対応: modules.yaml と実際のディレクトリ構造の整合性を検証する
+      - name: Verify modules.yaml consistency
+        run: bash scripts/check-modules-consistency.sh
       - name: modules.yaml とディスク上マニフェストの整合性チェック
         shell: bash
         run: |

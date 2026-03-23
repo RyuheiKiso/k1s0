@@ -1,8 +1,8 @@
 # Build stage
-# Go 1.24 にアップデートしてセキュリティパッチと最新機能を適用する
+# go.mod の要求バージョン（go 1.26.1）と整合性を保つため golang:1.26-alpine を使用する
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache ca-certificates git
 

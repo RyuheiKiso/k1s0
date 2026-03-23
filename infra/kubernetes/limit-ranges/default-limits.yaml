@@ -1,3 +1,9 @@
+# LimitRange 設計方針（M-08 対応）:
+# - defaultRequest は limit の 50% に設定し、Kubernetes スケジューラーが
+#   ノードのリソース消費を適切に見積もれるようにする
+# - burst 許容: 通常は defaultRequest 程度で動作し、負荷時に limit まで使用可能
+# - 実際の消費パターンは HPA メトリクスを参考に随時見直すこと
+---
 # k1s0-system Namespace 用 LimitRange（I-4 対応）
 # system tier は基盤サービスのため、デフォルト値を維持しつつ max 制限を追加してリソース上限を明示する
 apiVersion: v1
@@ -11,8 +17,10 @@ spec:
         cpu: "1"
         memory: 1Gi
       defaultRequest:
-        cpu: 250m
-        memory: 256Mi
+        # limit（1）の 50% に設定（M-08 対応）
+        cpu: 500m
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 512Mi
       # max 制限を追加（暴走コンテナによるノード枯渇を防止する）
       max:
         cpu: "2"
@@ -34,8 +42,10 @@ spec:
         memory: 2Gi
       # defaultRequest も business tier の負荷特性に合わせて引き上げる
       defaultRequest:
-        cpu: 500m
-        memory: 512Mi
+        # limit（2）の 50% に設定（M-08 対応）
+        cpu: 1000m
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 1Gi
       # max 制限を追加（business tier の最大リソース上限を設定する）
       max:
         cpu: "4"
@@ -56,8 +66,10 @@ spec:
         cpu: "1500m"
         memory: 1536Mi
       defaultRequest:
-        cpu: 250m
-        memory: 256Mi
+        # limit（1500m）の 50% に設定（M-08 対応）
+        cpu: 750m
+        # L-1 対応: memory の defaultRequest を limit の 50% に統一する（CPU と同一方針）
+        memory: 768Mi
       # max 制限を追加（service tier の最大リソース上限を設定する）
       max:
         cpu: "3"

@@ -1,6 +1,7 @@
 # Mesh-wide PeerAuthentication: STRICT mTLS as default for the entire mesh.
 # Defined in the service-mesh Namespace (istiod's Namespace) to enforce mTLS globally.
-# TLS 1.3 を最低バージョンとして強制する（M-6）
+# H-3 対応: minProtocolVersion は PeerAuthentication CRD に存在しないフィールドのため削除。
+# TLS 最小バージョンの強制は meshConfig.meshMTLS.minProtocolVersion へ移設（istiod.yaml を参照）。
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
@@ -9,24 +10,32 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
-# observability Namespace uses PERMISSIVE mode because Prometheus
-# scrape uses plain HTTP without mTLS (see サービスメッシュ設計.md).
+# observability Namespace は Namespace レベルで STRICT mTLS を強制する（H-01 対応）
+# PERMISSIVE ではメトリクス通信が平文で許可されるため盗聴リスクがある。
+# Prometheus の scrape ポート（15020: Istio envoy sidecar の admin metrics 集約ポート）のみ
+# portLevelMtls で PERMISSIVE を例外許可し、それ以外は STRICT を維持する。
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: allow-prometheus
+  name: observability-mtls
   namespace: observability
 spec:
   mtls:
-    mode: PERMISSIVE
+    # Namespace 全体は STRICT mTLS を強制し、盗聴リスクを排除する
+    mode: STRICT
+  portLevelMtls:
+    # Prometheus が Istio envoy sidecar からメトリクスを scrape する標準ポート（15020）のみ例外許可
+    # このポートは Istio が集約した Prometheus 形式のメトリクスを提供するため plain HTTP が必要
+    15020:
+      mode: PERMISSIVE
 ---
 # Namespace-level PeerAuthentication for defense-in-depth (multi-layer protection).
 # These complement the mesh-wide STRICT mTLS default defined in the service-mesh
 # Namespace (see サービスメッシュ設計.md). Even if the mesh-wide setting is
 # accidentally modified, these Namespace-level settings act as a defense layer.
-# TLS 1.3 を最低バージョンとして強制する（M-6）
+# H-3 対応: minProtocolVersion は PeerAuthentication CRD に存在しないフィールドのため全 Namespace 分を削除。
+# TLS 最小バージョンの強制は meshConfig.meshMTLS.minProtocolVersion へ移設（istiod.yaml を参照）。
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -36,7 +45,6 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -46,7 +54,6 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3
 ---
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
@@ -56,4 +63,3 @@ metadata:
 spec:
   mtls:
     mode: STRICT
-    minProtocolVersion: TLSV1_3

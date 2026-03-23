@@ -174,11 +174,15 @@ services:
       KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: ${KC_DB_USERNAME:-dev}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD:-dev}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-dev}
-    command: start-dev --import-realm
+      # Keycloak 26以降は KC_BOOTSTRAP_ADMIN_* を使用する（KEYCLOAK_ADMIN_* は非推奨）
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-dev}
+      KC_HEALTH_ENABLED: "true"
+    entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
+    command: ["start-dev", "--import-realm"]
     ports:
       - "${KEYCLOAK_HOST_PORT:-8180}:8080"
+      - "${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -517,8 +521,8 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `MYSQL_PASSWORD` | dev | mysql | MySQL パスワード |
 | `KC_DB_USERNAME` | dev | keycloak | Keycloak DB ユーザー名 |
 | `KC_DB_PASSWORD` | dev | keycloak | Keycloak DB パスワード |
-| `KEYCLOAK_ADMIN` | admin | keycloak | Keycloak 管理者ユーザー名 |
-| `KEYCLOAK_ADMIN_PASSWORD` | dev | keycloak | Keycloak 管理者パスワード |
+| `KEYCLOAK_ADMIN` | admin | keycloak | Keycloak 管理者ユーザー名（`KC_BOOTSTRAP_ADMIN_USERNAME` にマップ） |
+| `KEYCLOAK_ADMIN_PASSWORD` | dev | keycloak | Keycloak 管理者パスワード（`KC_BOOTSTRAP_ADMIN_PASSWORD` にマップ） |
 | `VAULT_DEV_ROOT_TOKEN_ID` | dev-token | vault | Vault dev モードトークン |
 | `GF_SECURITY_ADMIN_PASSWORD` | dev | grafana | Grafana 管理者パスワード |
 

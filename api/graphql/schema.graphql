@@ -1,20 +1,136 @@
+# GraphQL スキーマ定義
+# このファイルは api/graphql/schema.graphql が参照用スキーマ。
+# 実装は async-graphql のコードファーストアプローチで graphql_handler.rs に定義されている。
+# 最終更新: 2026-03-23（外部監査 C-05 対応）
+
 type Query {
+  # --- Tenant ---
   tenant(id: ID!): Tenant
-  tenants(page: Int, pageSize: Int): TenantConnection!
+  tenants(first: Int, after: String): TenantConnection!
+
+  # --- FeatureFlag ---
   featureFlag(key: String!): FeatureFlag
   featureFlags(environment: String): [FeatureFlag!]!
+
+  # --- Config ---
   config(key: String!): ConfigEntry
+
+  # --- Navigation ---
+  navigation(bearerToken: String): Navigation!
+
+  # --- ServiceCatalog ---
+  catalogService(id: ID!): CatalogService
+  catalogServices(first: Int, tier: String, status: String, search: String): CatalogServiceConnection!
+  serviceHealth(serviceId: String): [ServiceHealth!]!
+
+  # --- Auth ---
+  user(userId: ID!): User
+  users(first: Int, after: Int, search: String, enabled: Boolean): [User!]!
+  userRoles(userId: ID!): [Role!]!
+  checkPermission(permission: String!, resource: String!, roles: [String!]!, userId: String): PermissionCheck!
+  searchAuditLogs(first: Int, after: Int, userId: String, eventType: String, result: String): AuditLogConnection!
+
+  # --- Session ---
+  session(sessionId: ID!): Session
+  userSessions(userId: ID!): [Session!]!
+
+  # --- Vault ---
+  secretMetadata(path: String!): SecretMetadata
+  secrets(prefix: String): [String!]!
+  vaultAuditLogs(offset: Int, limit: Int): [VaultAuditLogEntry!]!
+
+  # --- Scheduler ---
+  job(jobId: ID!): Job
+  jobs(status: String, first: Int, after: Int): [Job!]!
+  jobExecution(executionId: ID!): JobExecution
+  jobExecutions(jobId: ID!, first: Int, after: Int, status: String): [JobExecution!]!
+
+  # --- Notification ---
+  notification(notificationId: ID!): NotificationLog
+  notifications(channelId: String, status: String, page: Int, pageSize: Int): [NotificationLog!]!
+  notificationChannel(id: ID!): NotificationChannel
+  notificationChannels(channelType: String, enabledOnly: Boolean, page: Int, pageSize: Int): [NotificationChannel!]!
+  notificationTemplate(id: ID!): NotificationTemplate
+  notificationTemplates(channelType: String, page: Int, pageSize: Int): [NotificationTemplate!]!
+
+  # --- Workflow ---
+  workflow(workflowId: ID!): WorkflowDefinition
+  workflows(enabledOnly: Boolean, first: Int, after: Int): [WorkflowDefinition!]!
+  workflowInstance(instanceId: ID!): WorkflowInstance
+  workflowInstances(status: String, workflowId: String, initiatorId: String, first: Int, after: Int): [WorkflowInstance!]!
+  workflowTasks(assigneeId: String, status: String, instanceId: String, overdueOnly: Boolean, first: Int, after: Int): [WorkflowTask!]!
 }
 
 type Mutation {
-  createTenant(input: CreateTenantInput!): Tenant!
-  updateTenant(id: ID!, input: UpdateTenantInput!): Tenant!
+  # --- Tenant ---
+  createTenant(input: CreateTenantInput!): CreateTenantPayload!
+  updateTenant(id: ID!, input: UpdateTenantInput!): UpdateTenantPayload!
+
+  # --- FeatureFlag ---
   setFeatureFlag(key: String!, input: SetFeatureFlagInput!): SetFeatureFlagPayload!
+
+  # --- ServiceCatalog ---
+  registerService(input: RegisterServiceInput!): RegisterServicePayload!
+  updateService(id: ID!, input: UpdateServiceInput!): UpdateServicePayload!
+  deleteService(id: ID!): DeleteServicePayload!
+
+  # --- Auth ---
+  recordAuditLog(input: RecordAuditLogInput!): RecordAuditLogPayload!
+
+  # --- Session ---
+  createSession(input: CreateSessionInput!): CreateSessionPayload!
+  refreshSession(input: RefreshSessionInput!): RefreshSessionPayload!
+  revokeSession(sessionId: ID!): RevokeSessionPayload!
+  revokeAllSessions(userId: ID!): RevokeAllSessionsPayload!
+
+  # --- Vault ---
+  setSecret(input: SetSecretInput!): SetSecretPayload!
+  rotateSecret(input: RotateSecretInput!): RotateSecretPayload!
+  deleteSecret(path: String!, versions: [Int!]): DeleteSecretPayload!
+
+  # --- Scheduler ---
+  createJob(input: CreateJobInput!): CreateJobPayload!
+  updateJob(jobId: ID!, input: UpdateJobInput!): UpdateJobPayload!
+  deleteJob(jobId: ID!): DeleteJobPayload!
+  pauseJob(jobId: ID!): PauseJobPayload!
+  resumeJob(jobId: ID!): ResumeJobPayload!
+  triggerJob(jobId: ID!): TriggerJobPayload!
+
+  # --- Notification ---
+  sendNotification(input: SendNotificationInput!): SendNotificationPayload!
+  retryNotification(notificationId: ID!): RetryNotificationPayload!
+  createChannel(input: CreateChannelInput!): CreateChannelPayload!
+  updateChannel(id: ID!, input: UpdateChannelInput!): UpdateChannelPayload!
+  deleteChannel(id: ID!): DeleteChannelPayload!
+  createTemplate(input: CreateTemplateInput!): CreateTemplatePayload!
+  updateTemplate(id: ID!, input: UpdateTemplateInput!): UpdateTemplatePayload!
+  deleteTemplate(id: ID!): DeleteTemplatePayload!
+
+  # --- Workflow ---
+  createWorkflow(input: CreateWorkflowInput!): CreateWorkflowPayload!
+  updateWorkflow(workflowId: ID!, input: UpdateWorkflowInput!): UpdateWorkflowPayload!
+  deleteWorkflow(workflowId: ID!): DeleteWorkflowPayload!
+  startWorkflowInstance(input: StartInstanceInput!): StartInstancePayload!
+  cancelWorkflowInstance(instanceId: ID!, reason: String): CancelInstancePayload!
+  reassignTask(input: ReassignTaskInput!): ReassignTaskPayload!
+  approveTask(input: TaskDecisionInput!): ApproveTaskPayload!
+  rejectTask(input: TaskDecisionInput!): RejectTaskPayload!
 }
 
 type Subscription {
+  # --- Config ---
   configChanged(namespaces: [String!]): ConfigEntry!
+
+  # --- Tenant ---
+  tenantUpdated(tenantId: ID!): Tenant!
+
+  # --- FeatureFlag ---
+  featureFlagChanged(key: String!): FeatureFlag!
 }
+
+# ===========================================================================
+# Tenant ドメイン型
+# ===========================================================================
 
 type Tenant {
   id: ID!
@@ -30,6 +146,16 @@ enum TenantStatus {
   DELETED
 }
 
+type TenantConnection {
+  nodes: [Tenant!]!
+  totalCount: Int!
+  hasNext: Boolean!
+}
+
+# ===========================================================================
+# FeatureFlag ドメイン型
+# ===========================================================================
+
 type FeatureFlag {
   key: String!
   name: String!
@@ -38,27 +164,341 @@ type FeatureFlag {
   targetEnvironments: [String!]!
 }
 
+# ===========================================================================
+# Config ドメイン型
+# ===========================================================================
+
 type ConfigEntry {
   key: String!
   value: String!
   updatedAt: String!
 }
 
-type TenantConnection {
-  nodes: [Tenant!]!
+# ===========================================================================
+# Navigation ドメイン型
+# ===========================================================================
+
+type Navigation {
+  routes: [NavigationRoute!]!
+  guards: [NavigationGuard!]!
+}
+
+type NavigationRoute {
+  id: String!
+  path: String!
+  componentId: String
+  guardIds: [String!]!
+  children: [NavigationRoute!]!
+  transition: TransitionConfig
+  params: [RouteParam!]!
+  redirectTo: String
+}
+
+type NavigationGuard {
+  id: String!
+  guardType: GuardType!
+  redirectTo: String
+  roles: [String!]!
+}
+
+type TransitionConfig {
+  transitionType: TransitionType!
+  durationMs: Int!
+}
+
+type RouteParam {
+  name: String!
+  paramType: ParamType!
+}
+
+enum GuardType {
+  UNSPECIFIED
+  AUTH_REQUIRED
+  ROLE_REQUIRED
+  REDIRECT_IF_AUTHENTICATED
+}
+
+enum TransitionType {
+  UNSPECIFIED
+  FADE
+  SLIDE
+  MODAL
+}
+
+enum ParamType {
+  UNSPECIFIED
+  STRING_TYPE
+  INT_TYPE
+  UUID_TYPE
+}
+
+# ===========================================================================
+# ServiceCatalog ドメイン型
+# ===========================================================================
+
+type CatalogService {
+  id: String!
+  name: String!
+  displayName: String!
+  description: String!
+  tier: String!
+  version: String!
+  baseUrl: String!
+  grpcEndpoint: String
+  healthUrl: String!
+  status: String!
+  metadata: [MetadataEntry!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type MetadataEntry {
+  key: String!
+  value: String!
+}
+
+type CatalogServiceConnection {
+  services: [CatalogService!]!
   totalCount: Int!
   hasNext: Boolean!
 }
 
-type SetFeatureFlagPayload {
-  featureFlag: FeatureFlag
-  errors: [UserError!]!
+type ServiceHealth {
+  serviceId: String!
+  serviceName: String!
+  status: String!
+  responseTimeMs: Int
+  errorMessage: String
+  checkedAt: String!
 }
+
+# ===========================================================================
+# Auth ドメイン型
+# ===========================================================================
+
+type User {
+  id: String!
+  username: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  enabled: Boolean!
+  emailVerified: Boolean!
+  createdAt: String!
+}
+
+type Role {
+  id: String!
+  name: String!
+  description: String!
+}
+
+type PermissionCheck {
+  allowed: Boolean!
+  reason: String!
+}
+
+type AuditLog {
+  id: String!
+  eventType: String!
+  userId: String!
+  ipAddress: String!
+  userAgent: String!
+  resource: String!
+  action: String!
+  result: String!
+  resourceId: String!
+  traceId: String!
+  createdAt: String!
+}
+
+type AuditLogConnection {
+  logs: [AuditLog!]!
+  totalCount: Int!
+  hasNext: Boolean!
+}
+
+# ===========================================================================
+# Session ドメイン型
+# ===========================================================================
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+}
+
+type Session {
+  sessionId: String!
+  userId: String!
+  deviceId: String!
+  deviceName: String
+  deviceType: String
+  userAgent: String
+  ipAddress: String
+  status: SessionStatus!
+  expiresAt: String!
+  createdAt: String!
+  lastAccessedAt: String
+}
+
+# ===========================================================================
+# Vault ドメイン型
+# ===========================================================================
+
+type SecretMetadata {
+  path: String!
+  currentVersion: Int!
+  versionCount: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type VaultAuditLogEntry {
+  id: String!
+  keyPath: String!
+  action: String!
+  actorId: String!
+  ipAddress: String!
+  success: Boolean!
+  errorMsg: String
+  createdAt: String!
+}
+
+# ===========================================================================
+# Scheduler ドメイン型
+# ===========================================================================
+
+type Job {
+  id: String!
+  name: String!
+  description: String!
+  cronExpression: String!
+  timezone: String!
+  targetType: String!
+  target: String!
+  status: String!
+  nextRunAt: String
+  lastRunAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type JobExecution {
+  id: String!
+  jobId: String!
+  status: String!
+  triggeredBy: String!
+  startedAt: String!
+  finishedAt: String
+  durationMs: Int
+  errorMessage: String
+}
+
+# ===========================================================================
+# Notification ドメイン型
+# ===========================================================================
+
+type NotificationLog {
+  id: String!
+  channelId: String!
+  channelType: String!
+  templateId: String
+  recipient: String!
+  subject: String
+  body: String!
+  status: String!
+  retryCount: Int!
+  errorMessage: String
+  sentAt: String
+  createdAt: String!
+}
+
+type NotificationChannel {
+  id: String!
+  name: String!
+  channelType: String!
+  configJson: String!
+  enabled: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type NotificationTemplate {
+  id: String!
+  name: String!
+  channelType: String!
+  subjectTemplate: String
+  bodyTemplate: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ===========================================================================
+# Workflow ドメイン型
+# ===========================================================================
+
+type WorkflowStep {
+  stepId: String!
+  name: String!
+  stepType: String!
+  assigneeRole: String
+  timeoutHours: Int
+  onApprove: String
+  onReject: String
+}
+
+type WorkflowDefinition {
+  id: String!
+  name: String!
+  description: String!
+  version: Int!
+  enabled: Boolean!
+  steps: [WorkflowStep!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type WorkflowInstance {
+  id: String!
+  workflowId: String!
+  workflowName: String!
+  title: String!
+  initiatorId: String!
+  currentStepId: String
+  status: String!
+  contextJson: String
+  startedAt: String!
+  completedAt: String
+  createdAt: String
+}
+
+type WorkflowTask {
+  id: String!
+  instanceId: String!
+  stepId: String!
+  stepName: String!
+  assigneeId: String
+  status: String!
+  dueAt: String
+  comment: String
+  actorId: String
+  decidedAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ===========================================================================
+# 共通エラー型
+# ===========================================================================
 
 type UserError {
   field: [String!]
   message: String!
 }
+
+# ===========================================================================
+# Tenant Input / Payload 型
+# ===========================================================================
 
 input CreateTenantInput {
   name: String!
@@ -69,8 +509,397 @@ input UpdateTenantInput {
   status: TenantStatus
 }
 
+type CreateTenantPayload {
+  tenant: Tenant
+  errors: [UserError!]!
+}
+
+type UpdateTenantPayload {
+  tenant: Tenant
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# FeatureFlag Input / Payload 型
+# ===========================================================================
+
 input SetFeatureFlagInput {
   enabled: Boolean!
   rolloutPercentage: Int
   targetEnvironments: [String!]
+}
+
+type SetFeatureFlagPayload {
+  featureFlag: FeatureFlag
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# ServiceCatalog Input / Payload 型
+# ===========================================================================
+
+input RegisterServiceInput {
+  name: String!
+  displayName: String!
+  description: String!
+  tier: String!
+  version: String!
+  baseUrl: String!
+  grpcEndpoint: String
+  healthUrl: String!
+}
+
+input UpdateServiceInput {
+  displayName: String
+  description: String
+  version: String
+  baseUrl: String
+  grpcEndpoint: String
+  healthUrl: String
+}
+
+type RegisterServicePayload {
+  service: CatalogService
+  errors: [UserError!]!
+}
+
+type UpdateServicePayload {
+  service: CatalogService
+  errors: [UserError!]!
+}
+
+type DeleteServicePayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Auth Input / Payload 型
+# ===========================================================================
+
+input RecordAuditLogInput {
+  eventType: String!
+  userId: String!
+  ipAddress: String!
+  userAgent: String!
+  resource: String!
+  action: String!
+  result: String!
+  resourceId: String
+  traceId: String
+}
+
+type RecordAuditLogPayload {
+  auditLog: AuditLog
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Session Input / Payload 型
+# ===========================================================================
+
+input CreateSessionInput {
+  userId: String!
+  deviceId: String!
+  deviceName: String
+  deviceType: String
+  userAgent: String
+  ipAddress: String
+  ttlSeconds: Int
+}
+
+input RefreshSessionInput {
+  sessionId: String!
+  ttlSeconds: Int
+}
+
+type CreateSessionPayload {
+  session: Session
+  token: String
+  errors: [UserError!]!
+}
+
+type RefreshSessionPayload {
+  session: Session
+  token: String
+  errors: [UserError!]!
+}
+
+type RevokeSessionPayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+type RevokeAllSessionsPayload {
+  revokedCount: Int!
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Vault Input / Payload 型
+# ===========================================================================
+
+input SetSecretInput {
+  path: String!
+  data: [SecretKeyValue!]!
+}
+
+input RotateSecretInput {
+  path: String!
+  data: [SecretKeyValue!]!
+}
+
+input SecretKeyValue {
+  key: String!
+  value: String!
+}
+
+type SetSecretPayload {
+  path: String
+  version: Int
+  errors: [UserError!]!
+}
+
+type RotateSecretPayload {
+  path: String
+  newVersion: Int
+  rotated: Boolean!
+  errors: [UserError!]!
+}
+
+type DeleteSecretPayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Scheduler Input / Payload 型
+# ===========================================================================
+
+input CreateJobInput {
+  name: String!
+  description: String!
+  cronExpression: String!
+  timezone: String!
+  targetType: String!
+  target: String!
+}
+
+input UpdateJobInput {
+  name: String
+  description: String
+  cronExpression: String
+  timezone: String
+  targetType: String
+  target: String
+}
+
+type CreateJobPayload {
+  job: Job
+  errors: [UserError!]!
+}
+
+type UpdateJobPayload {
+  job: Job
+  errors: [UserError!]!
+}
+
+type DeleteJobPayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+type PauseJobPayload {
+  job: Job
+  errors: [UserError!]!
+}
+
+type ResumeJobPayload {
+  job: Job
+  errors: [UserError!]!
+}
+
+type TriggerJobPayload {
+  execution: JobExecution
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Notification Input / Payload 型
+# ===========================================================================
+
+input SendNotificationInput {
+  channelId: String!
+  templateId: String
+  recipient: String!
+  subject: String
+  body: String
+  templateVariables: [TemplateVariableInput!]
+}
+
+input TemplateVariableInput {
+  key: String!
+  value: String!
+}
+
+input CreateChannelInput {
+  name: String!
+  channelType: String!
+  configJson: String!
+  enabled: Boolean!
+}
+
+input UpdateChannelInput {
+  name: String
+  enabled: Boolean
+  configJson: String
+}
+
+input CreateTemplateInput {
+  name: String!
+  channelType: String!
+  subjectTemplate: String
+  bodyTemplate: String!
+}
+
+input UpdateTemplateInput {
+  name: String
+  subjectTemplate: String
+  bodyTemplate: String
+}
+
+type SendNotificationPayload {
+  notificationId: String
+  status: String
+  errors: [UserError!]!
+}
+
+type RetryNotificationPayload {
+  notification: NotificationLog
+  errors: [UserError!]!
+}
+
+type CreateChannelPayload {
+  channel: NotificationChannel
+  errors: [UserError!]!
+}
+
+type UpdateChannelPayload {
+  channel: NotificationChannel
+  errors: [UserError!]!
+}
+
+type DeleteChannelPayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+type CreateTemplatePayload {
+  template: NotificationTemplate
+  errors: [UserError!]!
+}
+
+type UpdateTemplatePayload {
+  template: NotificationTemplate
+  errors: [UserError!]!
+}
+
+type DeleteTemplatePayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+# ===========================================================================
+# Workflow Input / Payload 型
+# ===========================================================================
+
+input CreateWorkflowInput {
+  name: String!
+  description: String!
+  enabled: Boolean!
+  steps: [WorkflowStepInput!]!
+}
+
+input UpdateWorkflowInput {
+  name: String
+  description: String
+  enabled: Boolean
+  steps: [WorkflowStepInput!]
+}
+
+input WorkflowStepInput {
+  stepId: String!
+  name: String!
+  stepType: String!
+  assigneeRole: String
+  timeoutHours: Int
+  onApprove: String
+  onReject: String
+}
+
+input StartInstanceInput {
+  workflowId: String!
+  title: String!
+  initiatorId: String!
+  contextJson: String
+}
+
+input ReassignTaskInput {
+  taskId: String!
+  newAssigneeId: String!
+  reason: String
+  actorId: String!
+}
+
+input TaskDecisionInput {
+  taskId: String!
+  actorId: String!
+  comment: String
+}
+
+type CreateWorkflowPayload {
+  workflow: WorkflowDefinition
+  errors: [UserError!]!
+}
+
+type UpdateWorkflowPayload {
+  workflow: WorkflowDefinition
+  errors: [UserError!]!
+}
+
+type DeleteWorkflowPayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+type StartInstancePayload {
+  instance: WorkflowInstance
+  errors: [UserError!]!
+}
+
+type CancelInstancePayload {
+  instance: WorkflowInstance
+  errors: [UserError!]!
+}
+
+type ReassignTaskPayload {
+  task: WorkflowTask
+  previousAssigneeId: String
+  errors: [UserError!]!
+}
+
+type ApproveTaskPayload {
+  taskId: String
+  status: String
+  nextTaskId: String
+  instanceStatus: String
+  errors: [UserError!]!
+}
+
+type RejectTaskPayload {
+  taskId: String
+  status: String
+  nextTaskId: String
+  instanceStatus: String
+  errors: [UserError!]!
 }
