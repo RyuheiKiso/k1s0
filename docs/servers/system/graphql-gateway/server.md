@@ -946,3 +946,68 @@ vault:
 ## ObservabilityConfig（log/trace/metrics）
 
 本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+
+---
+
+## 実装状況（M-08）
+
+<!-- M-08指摘事項: graphql-gatewayの実装状況と位置づけを明文化 -->
+
+### 現在の実装状況
+
+graphql-gateway は現在 **実験的（experimental）** な位置づけであり、ai-gateway / ai-agent と同様のステータスにある。
+
+| 項目 | 状況 |
+| --- | --- |
+| modules.yaml の maturity | `beta` |
+| CI | 失敗してもビルドをブロックしない（continue-on-error） |
+| 本番利用 | 非推奨（設計変更の可能性あり） |
+
+### 依存サービス
+
+graphql-gateway は以下の system tier サービスを gRPC でバックエンドとして利用する。
+
+| バックエンドサービス | 用途 | タイムアウト |
+| --- | --- | --- |
+| auth | ユーザー・ロール・監査ログ管理 | 2000ms |
+| session | セッション CRUD | 2000ms |
+| tenant | テナント管理 | 3000ms |
+| featureflag | フィーチャーフラグ管理 | 3000ms |
+| config | 設定値管理 | 3000ms |
+| navigation | ナビゲーション定義 | 3000ms |
+| service-catalog | サービスカタログ | 3000ms |
+| vault | シークレット管理 | 5000ms |
+| workflow | ワークフロー管理 | 5000ms |
+| scheduler | ジョブスケジューリング | 2000ms |
+| notification | 通知管理 | 2000ms |
+| ratelimit | レート制限（gRPC 連携） | 設定による |
+
+### 認証フロー
+
+```
+クライアント
+  |
+  |── POST /graphql（Authorization: Bearer <JWT>）
+  |
+graphql-gateway
+  |── JWT 検証（axum ミドルウェア）
+  |     └─ JWKS: http://auth-server:…/jwks
+  |── GraphQL リゾルバ実行
+        └─ 各バックエンドへ gRPC 呼び出し（tonic）
+```
+
+1. クライアントは `Authorization: Bearer <JWT>` ヘッダーを付与してリクエストを送信する
+2. axum ミドルウェアが JWKS エンドポイントから取得した公開鍵で JWT を検証する
+3. 検証成功後、GraphQL リゾルバが対応するバックエンドサービスへ gRPC でリクエストを転送する
+4. サブスクリプション（WebSocket）は `connection_init` メッセージで JWT を受け取る
+
+### スキーマ設計の概要
+
+- **クエリ**: 各バックエンドサービスのリソース取得（テナント・ユーザー・セッション・Vault 等）
+- **ミューテーション**: RBAC チェック（`sys_admin` または `sys_operator` ロール必須）を経てリソース変更
+- **サブスクリプション**: gRPC Server-Side Streaming を用いたイベント駆動通知（configChanged / tenantUpdated / featureFlagChanged）
+
+### 将来計画
+
+- サブスクリプション: イベント駆動方式（gRPC Server-Side Streaming）は実装済み。Kafka 統合への移行は将来検討
+- maturity を `production` に格上げするには、全バックエンドサービスとの E2E テスト整備が必要

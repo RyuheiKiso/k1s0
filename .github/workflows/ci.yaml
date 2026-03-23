@@ -9,6 +9,24 @@ on:
     branches: [main]
     paths-ignore:
       # C-06 対応: サブディレクトリを明示的に除外する（広すぎる除外は死角を生む）
+      #
+      # ========== paths-ignore 維持管理注意 ==========
+      # 以下のパスを除外しているのは、それぞれ個別CI（*-ci.yaml）が存在するためである。
+      # 個別CIのトリガーパス（paths:）を変更した場合は、このファイルの paths-ignore も
+      # 必ず同時に更新すること（更新漏れはCI二重実行または検出漏れを引き起こす）。
+      #
+      # 個別CI一覧とカバーパスの対応:
+      #   auth-ci.yaml          → regions/system/server/rust/auth/**
+      #   app-registry-ci.yaml  → regions/system/server/rust/app-registry/**
+      #   config-ci.yaml        → regions/system/server/rust/config/**
+      #   saga-ci.yaml          → regions/system/server/rust/saga/**
+      #   dlq-manager-ci.yaml   → regions/system/server/rust/dlq-manager/**
+      #   bff-proxy-ci.yaml     → regions/system/server/go/bff-proxy/**
+      #   task-ci.yaml          → regions/service/task/{server,client,database}/**
+      #   board-ci.yaml         → regions/service/board/{server,client,database}/**
+      #   activity-ci.yaml      → regions/service/activity/{server,client,database}/**
+      #   project-master-ci.yaml → regions/business/taskmanagement/**
+      # ================================================
       - 'regions/system/server/rust/auth/**'
       - 'regions/system/server/rust/app-registry/**'
       - 'regions/system/server/rust/config/**'

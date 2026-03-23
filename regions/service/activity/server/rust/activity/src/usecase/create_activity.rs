@@ -14,17 +14,17 @@ impl CreateActivityUseCase {
 
     // アクティビティ作成の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
+    pub async fn execute(&self, tenant_id: &str, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
         input.validate()?;
 
         // 冪等性チェック: 同じキーが既に存在する場合は既存を返す
         if let Some(ref key) = input.idempotency_key {
-            if let Some(existing) = self.repo.find_by_idempotency_key(key).await? {
+            if let Some(existing) = self.repo.find_by_idempotency_key(tenant_id, key).await? {
                 return Ok(existing);
             }
         }
 
-        self.repo.create(input, actor_id).await
+        self.repo.create(tenant_id, input, actor_id).await
     }
 }
 
@@ -60,9 +60,9 @@ mod tests {
         let existing_clone = existing.clone();
 
         mock.expect_find_by_idempotency_key()
-            .with(eq("key-001"))
+            .with(always(), eq("key-001"))
             .times(1)
-            .returning(move |_| Ok(Some(existing_clone.clone())));
+            .returning(move |_, _| Ok(Some(existing_clone.clone())));
 
         let uc = CreateActivityUseCase::new(Arc::new(mock));
         let input = CreateActivity {
@@ -72,7 +72,7 @@ mod tests {
             duration_minutes: None,
             idempotency_key: Some("key-001".to_string()),
         };
-        let result = uc.execute(&input, "user1").await;
+        let result = uc.execute("tenant1", &input, "user1").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().idempotency_key, Some("key-001".to_string()));
     }
@@ -88,7 +88,7 @@ mod tests {
 
         mock.expect_create()
             .times(1)
-            .returning(move |_, _| Ok(activity_clone.clone()));
+            .returning(move |_, _, _| Ok(activity_clone.clone()));
 
         let uc = CreateActivityUseCase::new(Arc::new(mock));
         let input = CreateActivity {
@@ -98,7 +98,7 @@ mod tests {
             duration_minutes: None,
             idempotency_key: None,
         };
-        let result = uc.execute(&input, "user1").await;
+        let result = uc.execute("tenant1", &input, "user1").await;
         assert!(result.is_ok());
     }
 }

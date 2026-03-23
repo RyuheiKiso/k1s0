@@ -74,6 +74,11 @@ pub struct Claims {
     /// アクセス可能な Tier の一覧
     #[serde(default)]
     pub tier_access: Option<Vec<String>>,
+
+    /// Keycloak JWT トークンのカスタムクレームから取得するテナント ID。
+    /// Keycloak の `tenant_id` Mapper で設定される。未設定の場合は空文字列。
+    #[serde(default)]
+    pub tenant_id: String,
 }
 
 /// Audience は JWT の aud Claim を表す。

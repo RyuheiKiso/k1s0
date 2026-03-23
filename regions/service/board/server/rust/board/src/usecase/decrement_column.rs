@@ -1,4 +1,5 @@
 // カラムタスク数減少ユースケース（在庫解放に相当）。
+// テナント分離のため tenant_id を受け取りリポジトリに渡す。
 use crate::domain::entity::board_column::{BoardColumn, DecrementColumnRequest};
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use std::sync::Arc;
@@ -14,8 +15,8 @@ impl DecrementColumnUseCase {
 
     // カラムタスク数減少の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, req: &DecrementColumnRequest) -> anyhow::Result<BoardColumn> {
-        self.repo.decrement(req).await
+    pub async fn execute(&self, tenant_id: &str, req: &DecrementColumnRequest) -> anyhow::Result<BoardColumn> {
+        self.repo.decrement(tenant_id, req).await
     }
 }
 
@@ -49,7 +50,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(move |_| Ok(col_clone.clone()));
+            .returning(move |_, _| Ok(col_clone.clone()));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {
@@ -58,7 +59,7 @@ mod tests {
             status_code: "in_progress".to_string(),
             reason: None,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().task_count, 2);
     }
@@ -70,7 +71,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection failed")));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {
@@ -79,7 +80,7 @@ mod tests {
             status_code: "in_progress".to_string(),
             reason: None,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database connection failed"));
     }
@@ -91,7 +92,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("column not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("column not found")));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {
@@ -100,7 +101,7 @@ mod tests {
             status_code: "unknown".to_string(),
             reason: Some("task cancelled".to_string()),
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_err());
     }
 
@@ -113,7 +114,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(move |_| Ok(col_clone.clone()));
+            .returning(move |_, _| Ok(col_clone.clone()));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {
@@ -122,7 +123,7 @@ mod tests {
             status_code: "in_progress".to_string(),
             reason: Some("task completed".to_string()),
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_ok());
     }
 }

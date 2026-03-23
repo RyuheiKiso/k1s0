@@ -233,13 +233,15 @@ modules:
     status: stable
     type: server
     workspace: regions/system
-    maturity: beta
+    # セキュリティ基盤として安定稼働。M-01対応にてproductionに格上げ
+    maturity: production
 
   - path: regions/system/server/rust/config
     lang: rust
     status: stable
     type: server
-    maturity: beta
+    # 設定管理として安定稼働。M-01対応にてproductionに格上げ
+    maturity: production
     workspace: regions/system
 
   - path: regions/system/server/rust/dlq-manager
@@ -365,14 +367,16 @@ modules:
     lang: rust
     status: stable
     type: server
-    maturity: beta
+    # セッション管理として安定稼働。M-01対応にてproductionに格上げ
+    maturity: production
     workspace: regions/system
 
   - path: regions/system/server/rust/tenant
     lang: rust
     status: stable
     type: server
-    maturity: beta
+    # テナント管理として安定稼働。M-01対応にてproductionに格上げ
+    maturity: production
     workspace: regions/system
 
   - path: regions/system/server/rust/vault

@@ -47,3 +47,11 @@ ALTER TABLE activity_service.activities ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON activity_service.activities;
 CREATE POLICY tenant_isolation ON activity_service.activities
     USING (tenant_id = current_setting('app.current_tenant_id', true)::TEXT);
+
+-- スーパーユーザーも含む全ユーザーに RLS を強制する
+ALTER TABLE activity_service.activities FORCE ROW LEVEL SECURITY;
+
+-- k1s0 アプリユーザーへのスキーマ使用権限とテーブル操作権限を付与する
+GRANT USAGE ON SCHEMA activity_service TO k1s0;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA activity_service TO k1s0;
+ALTER DEFAULT PRIVILEGES IN SCHEMA activity_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;

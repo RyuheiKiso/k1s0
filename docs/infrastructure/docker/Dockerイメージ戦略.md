@@ -147,6 +147,50 @@ harbor.internal.example.com/{プロジェクト}/{サービス名}:{タグ}
 | k1s0-service    | service tier のサーバー・クライアント |
 | k1s0-infra      | カスタムインフライメージ        |
 
+## ベースイメージ ダイジェスト固定（H-05 対応）
+
+### 目的
+
+タグ（`rust:1.93-bookworm` 等）は可変であり、同じタグでも異なるレイヤーに書き換えられる可能性がある。
+ダイジェスト（`@sha256:...`）を固定することでサプライチェーン攻撃を防ぎ、ビルドの再現性を保証する。
+
+### 固定済みダイジェスト一覧（2026-03-23 時点）
+
+| ベースイメージ                          | ダイジェスト                                                                 |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| `rust:1.93-bookworm`                    | `rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31` |
+| `busybox:1.36.1-musl`                   | `busybox@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213` |
+| `gcr.io/distroless/cc-debian12:nonroot` | `gcr.io/distroless/cc-debian12@sha256:7e5b8df2f4d36f5599ef4ab856d7d444922531709becb03f3368c6d797d0a5eb` |
+| `gcr.io/distroless/static-debian12:nonroot` | `gcr.io/distroless/static-debian12@sha256:a9329520abc449e3b14d5bc3a6ffae065bdde0f02667fa10880c49b35c109fd1` |
+| `gcr.io/distroless/static-debian12`     | `gcr.io/distroless/static-debian12@sha256:20bc6c0bc4d625a22a8fde3e55f6515709b32055ef8fb9cfbddaa06d1760f838` |
+| `gcr.io/distroless/cc:nonroot`          | `gcr.io/distroless/cc@sha256:9c4fe2381c2e6d53c4cfdefeff6edbd2a67ec7713e2c3ca6653806cbdbf27a1e` |
+| `gcr.io/distroless/static:nonroot`      | `gcr.io/distroless/static@sha256:e3f945647ffb95b5839c07038d64f9811adf17308b9121d8a2b87b6a22a80a39` |
+| `golang:1.26-alpine`                    | `golang@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039` |
+| `golang:1.24-bookworm`                  | `golang@sha256:1a6d4452c65dea36aac2e2d606b01b4a029ec90cc1ae53890540ce6173ea77ac` |
+| `node:22-alpine`                        | `node@sha256:8094c002d08262dba12645a3b4a15cd6cd627d30bc782f53229a2ec13ee22a00` |
+| `node:22-bookworm`                      | `node@sha256:f90672bf4c76dfc077d17be4c115b1ae7731d2e8558b457d86bca42aeb193866` |
+| `nginx:alpine`                          | `nginx@sha256:f46cb72c7df02710e693e863a983ac42f6a9579058a59a35f1ae36c9958e4ce0` |
+| `nginx:1.27-alpine`                     | `nginx@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10` |
+| `ghcr.io/cirruslabs/flutter:3.24.0`     | `ghcr.io/cirruslabs/flutter@sha256:eeef49aa71066f71c5b53962ff957f6edd84949da6496ea432f7f455db220b08` |
+| `alpine:3.19`                           | `alpine@sha256:6baf43584bcb78f2e5847d1de515f23499913ac9f12bdf834811a3145eb11ca1` |
+
+### ダイジェスト更新手順
+
+ベースイメージを更新する際は以下のスクリプトを実行してダイジェストを再固定する。
+
+```bash
+# 全 Dockerfile を更新（Docker CLI が必要）
+bash scripts/pin-docker-digests.sh
+
+# 変更内容をプレビューのみ（ファイル変更なし）
+bash scripts/pin-docker-digests.sh --dry-run
+```
+
+### CI/CD での定期更新
+
+- 週次 cron ジョブ等で `scripts/pin-docker-digests.sh` を定期実行し、PR を自動作成する運用を推奨する
+- Renovate / Dependabot の Docker ダイジェスト更新機能を活用してもよい
+
 ## セキュリティ
 
 | 対策                       | 方法                                         |
@@ -156,6 +200,7 @@ harbor.internal.example.com/{プロジェクト}/{サービス名}:{タグ}
 | 不要ツール排除             | distroless / Alpine で攻撃面を最小化         |
 | イメージ署名               | Cosign でイメージに署名                      |
 | プル制限                   | Harbor のロボットアカウントで認証必須         |
+| ベースイメージ固定         | `@sha256:` ダイジェスト固定（H-05 対応）     |
 
 ### Cosign イメージ署名（CI/CD 組み込み）
 

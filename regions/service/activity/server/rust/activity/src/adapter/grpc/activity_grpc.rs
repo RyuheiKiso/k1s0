@@ -1,5 +1,6 @@
 // アクティビティサービス gRPC 実装。
 // 各メソッドで proto Request をドメイン入力型に変換し、UseCase を呼び出して proto Response を返す。
+// RLS テナント分離のため gRPC メタデータから x-tenant-id を取得する。存在しない場合は "system" を使用する。
 use crate::domain::entity::activity::{
     ActivityFilter, ActivityStatus, ActivityType, CreateActivity,
 };
@@ -90,6 +91,17 @@ fn domain_activity_to_proto(a: crate::domain::entity::activity::Activity) -> Pro
     }
 }
 
+/// gRPC メタデータから x-tenant-id を取得する。
+/// 存在しない場合または不正なバイト列の場合は "system" をフォールバックとして使用する（フェーズ2で完全対応）。
+fn tenant_id_from_metadata<T>(req: &Request<T>) -> String {
+    req.metadata()
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or("system")
+        .to_string()
+}
+
 pub struct ActivityGrpcService {
     pub create_activity_uc: Arc<usecase::create_activity::CreateActivityUseCase>,
     pub get_activity_uc: Arc<usecase::get_activity::GetActivityUseCase>,
@@ -116,6 +128,8 @@ impl ActivityGrpcService {
 impl ActivityService for ActivityGrpcService {
     // アクティビティ作成: proto Request をドメイン CreateActivity に変換して UseCase を実行する
     async fn create_activity(&self, req: Request<CreateActivityRequest>) -> Result<Response<CreateActivityResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -128,8 +142,7 @@ impl ActivityService for ActivityGrpcService {
             idempotency_key: r.idempotency_key,
         };
 
-        // gRPC メタデータから呼び出し元を取得できないため "grpc" を使用する
-        match self.create_activity_uc.execute(&input, "grpc").await {
+        match self.create_activity_uc.execute(&tenant_id, &input, "grpc").await {
             Ok(activity) => Ok(Response::new(CreateActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -139,11 +152,13 @@ impl ActivityService for ActivityGrpcService {
 
     // アクティビティ取得: activity_id を UUID に変換して UseCase を実行する
     async fn get_activity(&self, req: Request<GetActivityRequest>) -> Result<Response<GetActivityResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.get_activity_uc.execute(id).await {
+        match self.get_activity_uc.execute(&tenant_id, id).await {
             Ok(Some(activity)) => Ok(Response::new(GetActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -155,6 +170,8 @@ impl ActivityService for ActivityGrpcService {
 
     // アクティビティ一覧: ページネーションパラメータを ActivityFilter に変換して UseCase を実行する
     async fn list_activities(&self, req: Request<ListActivitiesRequest>) -> Result<Response<ListActivitiesResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
 
         // task_id が指定された場合は UUID に変換する
@@ -190,7 +207,7 @@ impl ActivityService for ActivityGrpcService {
             offset,
         };
 
-        match self.list_activities_uc.execute(&filter).await {
+        match self.list_activities_uc.execute(&tenant_id, &filter).await {
             Ok((activities, total)) => {
                 let proto_activities: Vec<_> = activities.into_iter().map(domain_activity_to_proto).collect();
                 let page_size = limit.unwrap_or(proto_activities.len() as i64) as i32;
@@ -215,11 +232,13 @@ impl ActivityService for ActivityGrpcService {
 
     // アクティビティ提出: activity_id を UUID に変換して UseCase を実行する（Active → Submitted）
     async fn submit_activity(&self, req: Request<SubmitActivityRequest>) -> Result<Response<SubmitActivityResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.submit_activity_uc.execute(id, "grpc").await {
+        match self.submit_activity_uc.execute(&tenant_id, id, "grpc").await {
             Ok(activity) => Ok(Response::new(SubmitActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -229,11 +248,13 @@ impl ActivityService for ActivityGrpcService {
 
     // アクティビティ承認: activity_id を UUID に変換して UseCase を実行する（Submitted → Approved）
     async fn approve_activity(&self, req: Request<ApproveActivityRequest>) -> Result<Response<ApproveActivityResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.approve_activity_uc.execute(id, "grpc").await {
+        match self.approve_activity_uc.execute(&tenant_id, id, "grpc").await {
             Ok(activity) => Ok(Response::new(ApproveActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -243,11 +264,13 @@ impl ActivityService for ActivityGrpcService {
 
     // アクティビティ却下: activity_id を UUID に変換して UseCase を実行する（Submitted → Rejected）
     async fn reject_activity(&self, req: Request<RejectActivityRequest>) -> Result<Response<RejectActivityResponse>, Status> {
+        // メタデータから tenant_id を取得する
+        let tenant_id = tenant_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.reject_activity_uc.execute(id, "grpc", &r.reason).await {
+        match self.reject_activity_uc.execute(&tenant_id, id, "grpc", &r.reason).await {
             Ok(activity) => Ok(Response::new(RejectActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),

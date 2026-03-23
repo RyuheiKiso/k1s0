@@ -42,3 +42,10 @@ ALTER TABLE board_service.board_columns ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON board_service.board_columns;
 CREATE POLICY tenant_isolation ON board_service.board_columns
     USING (tenant_id = current_setting('app.current_tenant_id', true)::TEXT);
+-- スーパーユーザーも含む全ユーザーに RLS を強制する
+ALTER TABLE board_service.board_columns FORCE ROW LEVEL SECURITY;
+
+-- k1s0 アプリユーザーへのスキーマ使用権限とテーブル操作権限を付与する
+GRANT USAGE ON SCHEMA board_service TO k1s0;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA board_service TO k1s0;
+ALTER DEFAULT PRIVILEGES IN SCHEMA board_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;

@@ -15,14 +15,14 @@ impl ApproveActivityUseCase {
 
     // アクティビティ承認の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, id: Uuid, approver_id: &str) -> anyhow::Result<Activity> {
+    pub async fn execute(&self, tenant_id: &str, id: Uuid, approver_id: &str) -> anyhow::Result<Activity> {
         let activity = self
             .repo
-            .find_by_id(id)
+            .find_by_id(tenant_id, id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
         activity.transition_to(ActivityStatus::Approved)?;
-        self.repo.update_status(id, "approved", Some(approver_id.to_string())).await
+        self.repo.update_status(tenant_id, id, "approved", Some(approver_id.to_string())).await
     }
 }
 
@@ -64,13 +64,13 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(activity_clone.clone())));
+            .returning(move |_, _| Ok(Some(activity_clone.clone())));
         mock.expect_update_status()
             .times(1)
-            .returning(move |_, _, _| Ok(approved_clone.clone()));
+            .returning(move |_, _, _, _| Ok(approved_clone.clone()));
 
         let uc = ApproveActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(activity_id, "approver1").await;
+        let result = uc.execute("tenant1", activity_id, "approver1").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, ActivityStatus::Approved);
     }
@@ -85,11 +85,11 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(activity_clone.clone())));
+            .returning(move |_, _| Ok(Some(activity_clone.clone())));
         // update_status は呼ばれないはず（遷移バリデーションでエラーになる）
 
         let uc = ApproveActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(activity_id, "approver1").await;
+        let result = uc.execute("tenant1", activity_id, "approver1").await;
         assert!(result.is_err());
     }
 
@@ -103,10 +103,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(activity_clone.clone())));
+            .returning(move |_, _| Ok(Some(activity_clone.clone())));
 
         let uc = ApproveActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(activity_id, "approver1").await;
+        let result = uc.execute("tenant1", activity_id, "approver1").await;
         assert!(result.is_err());
     }
 
@@ -117,10 +117,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
 
         let uc = ApproveActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4(), "approver1").await;
+        let result = uc.execute("tenant1", Uuid::new_v4(), "approver1").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
     }

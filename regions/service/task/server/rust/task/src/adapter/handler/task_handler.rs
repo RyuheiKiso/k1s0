@@ -32,12 +32,18 @@ fn map_err(e: anyhow::Error) -> ServiceError {
     }
 }
 
-/// Claims の iss（トークン発行者）からテナント ID を取得する。
-/// iss が空または Claims が存在しない場合は "system" を返す。
-/// TODO: テナント専用 JWT Claim または X-Tenant-ID ヘッダーが導入された場合は更新すること
+/// JWT クレームからテナント ID を取得する。
+/// tenant_id カスタムクレームを優先し、未設定の場合は iss（発行者URL）をフォールバックとして使用する。
+/// TODO: Keycloak に tenant_id Mapper を設定した後、iss フォールバックを削除すること
 fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
     claims
-        .map(|c| c.iss.as_str())
+        .map(|c| {
+            if !c.tenant_id.is_empty() {
+                c.tenant_id.as_str()
+            } else {
+                c.iss.as_str()
+            }
+        })
         .filter(|s| !s.is_empty())
         .unwrap_or("system")
 }

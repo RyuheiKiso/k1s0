@@ -1,4 +1,5 @@
 // カラムタスク数増加ユースケース（在庫予約に相当）。
+// テナント分離のため tenant_id を受け取りリポジトリに渡す。
 use crate::domain::entity::board_column::{BoardColumn, IncrementColumnRequest};
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use std::sync::Arc;
@@ -14,8 +15,8 @@ impl IncrementColumnUseCase {
 
     // カラムタスク数増加の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, req: &IncrementColumnRequest) -> anyhow::Result<BoardColumn> {
-        self.repo.increment(req).await
+    pub async fn execute(&self, tenant_id: &str, req: &IncrementColumnRequest) -> anyhow::Result<BoardColumn> {
+        self.repo.increment(tenant_id, req).await
     }
 }
 
@@ -47,7 +48,7 @@ mod tests {
 
         mock.expect_increment()
             .times(1)
-            .returning(move |_| Ok(col_clone.clone()));
+            .returning(move |_, _| Ok(col_clone.clone()));
 
         let uc = IncrementColumnUseCase::new(Arc::new(mock));
         let req = IncrementColumnRequest {
@@ -55,7 +56,7 @@ mod tests {
             project_id: col.project_id,
             status_code: "open".to_string(),
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().task_count, 1);
     }

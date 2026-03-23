@@ -506,6 +506,46 @@ PostgreSQL の公式 Docker イメージは、初回起動時に `/docker-entryp
 
 > **注記**: 初期化スクリプトはデータボリュームが空の場合のみ実行される。既存データがある場合はスキップされるため、スキーマ変更時は `docker compose down -v` でボリュームを削除してから再起動すること。
 
+### init-db vs マイグレーションの使い分け
+
+<!-- M-11指摘事項: init-db と各サービスのマイグレーションの使い分け方針を明文化 -->
+
+k1s0 では、データベーススキーマの管理を **init-db**（ローカル開発専用）と **マイグレーション**（本番・ステージング用）の2つの方式で行う。
+
+#### init-db（`infra/docker/init-db/`）
+
+- **用途**: ローカル開発環境の初期化専用
+- **実行タイミング**: `docker compose up` 時に PostgreSQL コンテナが初回起動する際のみ
+- **管理内容**: データベース作成、スキーマ作成、テーブル作成、初期データ、RLS ポリシー、権限付与
+- **注意**: 本番環境には使用しない。再実行は `docker compose down -v` 後に行う
+
+#### マイグレーション（各サービスの `database/*/migrations/`）
+
+- **用途**: 本番環境・ステージング環境でのスキーマ変更
+- **実行タイミング**: サービス起動時に `sqlx::migrate!()` で自動実行
+- **管理内容**: スキーマの増分変更（カラム追加・削除、インデックス変更等）
+- **注意**: init-db との二重管理は設計上の制限。将来的には init-db を廃止し migrations に統一する計画
+
+#### 使い分けフロー
+
+```
+ローカル開発環境
+  └─ docker compose up（初回）
+       └─ PostgreSQL 起動 → init-db/0*.sql が自動実行 → 全スキーマ・テーブルを一括作成
+
+本番 / ステージング環境
+  └─ サービス起動
+       └─ sqlx::migrate!() が自動実行 → migrations/ の未適用ファイルのみ増分適用
+```
+
+#### スキーマ変更時の手順
+
+| 変更内容 | ローカル開発 | 本番・ステージング |
+| --- | --- | --- |
+| 新規テーブル追加 | init-db の該当 SQL ファイルを更新 + `docker compose down -v && up` | migrations/ にファイルを追加してデプロイ |
+| カラム追加 | init-db の該当 SQL ファイルを更新 + `docker compose down -v && up` | migrations/ にファイルを追加してデプロイ |
+| 初期データ変更 | init-db の該当 SQL ファイルを更新 + `docker compose down -v && up` | 別途データ移行スクリプトで対応 |
+
 ### Keycloak Realm プロビジョニング
 
 Keycloak は `docker-entrypoint-wrapper.sh` → `start-dev --import-realm` の順で起動し、`/opt/keycloak/data/import/` にマウントされた JSON ファイルからenvsubst展開後に realm 設定を自動インポートする。

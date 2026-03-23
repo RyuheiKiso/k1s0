@@ -133,6 +133,29 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# board サービスのトピック
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.service.board.column_updated.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# activity サービスのトピック
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.service.activity.created.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.service.activity.approved.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # --- DLQ Topics ---
 for topic in \
   k1s0.system.auth.audit.v1.dlq \
@@ -148,7 +171,10 @@ for topic in \
   k1s0.system.quota.exceeded.v1.dlq \
   k1s0.system.saga.state_changed.v1.dlq \
   k1s0.service.task.created.v1.dlq \
-  k1s0.service.task.status_changed.v1.dlq; do
+  k1s0.service.task.status_changed.v1.dlq \
+  k1s0.service.board.column_updated.v1.dlq \
+  k1s0.service.activity.created.v1.dlq \
+  k1s0.service.activity.approved.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
     --create --if-not-exists \
     --topic "${topic}" \
