@@ -10,15 +10,17 @@ CREATE TABLE IF NOT EXISTS task_service.tasks (
     project_id    TEXT         NOT NULL,
     title         TEXT         NOT NULL,
     description   TEXT,
-    status        TEXT         NOT NULL DEFAULT 'open',
-    priority      TEXT         NOT NULL DEFAULT 'medium',
+    status        TEXT         NOT NULL DEFAULT 'open'
+              CONSTRAINT chk_tasks_status CHECK (status IN ('open', 'in_progress', 'done', 'cancelled')),
+    priority      TEXT         NOT NULL DEFAULT 'medium'
+              CONSTRAINT chk_tasks_priority CHECK (priority IN ('low', 'medium', 'high', 'critical')),
     assignee_id   TEXT,
     reporter_id   TEXT         NOT NULL,
     due_date      TIMESTAMPTZ,
     labels        JSONB        NOT NULL DEFAULT '[]',
     tenant_id     TEXT         NOT NULL DEFAULT 'system',
     created_by    TEXT         NOT NULL,
-    updated_by    VARCHAR(255),
+    updated_by    TEXT         NOT NULL DEFAULT '',
     version       INT          NOT NULL DEFAULT 1,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()

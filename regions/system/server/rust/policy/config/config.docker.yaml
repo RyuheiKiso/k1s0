@@ -15,5 +15,5 @@ database:
   port: 5432
   name: "policy_db"
   user: "dev"
-  password: "dev"
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"

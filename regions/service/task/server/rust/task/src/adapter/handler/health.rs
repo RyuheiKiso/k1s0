@@ -8,7 +8,8 @@ pub async fn healthz() -> impl IntoResponse {
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let filter = crate::domain::entity::task::TaskFilter::default();
-    let ok = state.list_tasks_uc.execute(&filter).await.is_ok();
+    // ヘルスチェック用途のため tenant_id は "system" を使用する
+    let ok = state.list_tasks_uc.execute("system", &filter).await.is_ok();
     let status = if ok { StatusCode::OK } else { StatusCode::SERVICE_UNAVAILABLE };
     (status, Json(serde_json::json!({
         "status": if ok { "ready" } else { "not_ready" },

@@ -153,15 +153,12 @@ func run() error {
 	)
 
 	// OIDC DiscoveryURL が HTTPS でない場合は環境に応じて処理を分岐する。
-	// 本番環境では IdP との通信に TLS が必須のため、非 HTTPS 設定を即時終了で拒否する（M-11 対応）。
+	// 本番環境では IdP との通信に TLS が必須のため、非 HTTPS 設定をエラーとして返す（M-09 対応）。
+	// os.Exit(1) の代わりに error を返すことで、defer 登録済みのクリーンアップ関数が確実に実行される。
 	if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
-		// 本番環境では HTTPS が必須のため即座に終了する
+		// 本番環境では HTTPS が必須のためエラーを返して run() を終了する
 		if isProductionEnvironment(cfg.App.Environment) {
-			logger.Error("OIDC discovery_url が TLS (https) を使用していません。本番環境では https が必須です",
-				slog.String("discovery_url", cfg.Auth.DiscoveryURL),
-				slog.String("environment", cfg.App.Environment),
-			)
-			os.Exit(1)
+			return fmt.Errorf("OIDC discovery_url が TLS (https) を使用していません: %s", cfg.Auth.DiscoveryURL)
 		}
 		// 開発・ステージング環境では警告のみ
 		logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",

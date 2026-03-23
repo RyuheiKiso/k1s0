@@ -1,4 +1,5 @@
 // タスク取得ユースケース。
+// RLS テナント分離のため tenant_id をリポジトリに渡す。
 use crate::domain::entity::task::{Task, TaskChecklistItem};
 use crate::domain::repository::task_repository::TaskRepository;
 use std::sync::Arc;
@@ -16,15 +17,15 @@ impl GetTaskUseCase {
     /// タスクを ID で取得する
     // タスク取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, id: Uuid) -> anyhow::Result<Option<Task>> {
-        self.task_repo.find_by_id(id).await
+    pub async fn execute(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Task>> {
+        self.task_repo.find_by_id(tenant_id, id).await
     }
 
     /// チェックリストを取得する
     // チェックリスト取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn get_checklist(&self, task_id: Uuid) -> anyhow::Result<Vec<TaskChecklistItem>> {
-        self.task_repo.find_checklist(task_id).await
+    pub async fn get_checklist(&self, tenant_id: &str, task_id: Uuid) -> anyhow::Result<Vec<TaskChecklistItem>> {
+        self.task_repo.find_checklist(tenant_id, task_id).await
     }
 }
 
@@ -68,12 +69,12 @@ mod tests {
 
         // 指定した ID でリポジトリが Some(Task) を返すようにモックを設定する
         mock.expect_find_by_id()
-            .with(eq(task_id))
+            .with(always(), eq(task_id))
             .times(1)
-            .returning(move |_| Ok(Some(task_clone.clone())));
+            .returning(move |_, _| Ok(Some(task_clone.clone())));
 
         let uc = GetTaskUseCase::new(Arc::new(mock));
-        let result = uc.execute(task_id).await;
+        let result = uc.execute("system", task_id).await;
         assert!(result.is_ok());
         let found = result.unwrap();
         assert!(found.is_some());
@@ -88,12 +89,12 @@ mod tests {
 
         // リポジトリが None を返す場合（タスクが存在しない）のモックを設定する
         mock.expect_find_by_id()
-            .with(eq(unknown_id))
+            .with(always(), eq(unknown_id))
             .times(1)
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
 
         let uc = GetTaskUseCase::new(Arc::new(mock));
-        let result = uc.execute(unknown_id).await;
+        let result = uc.execute("system", unknown_id).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -106,12 +107,12 @@ mod tests {
 
         // リポジトリがエラーを返す場合のモックを設定し、エラー伝播を検証する
         mock.expect_find_by_id()
-            .with(eq(task_id))
+            .with(always(), eq(task_id))
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database connection error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection error")));
 
         let uc = GetTaskUseCase::new(Arc::new(mock));
-        let result = uc.execute(task_id).await;
+        let result = uc.execute("system", task_id).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database connection error"));
     }

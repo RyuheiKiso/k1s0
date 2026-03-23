@@ -1,4 +1,5 @@
 // タスクステータス更新ユースケース。楽観的ロックでバージョン検証する。
+// RLS テナント分離のため tenant_id をリポジトリに渡す。
 use crate::domain::entity::task::{Task, UpdateTaskStatus};
 use crate::domain::repository::task_repository::TaskRepository;
 use std::sync::Arc;
@@ -17,20 +18,21 @@ impl UpdateTaskStatusUseCase {
     #[tracing::instrument(skip(self))]
     pub async fn execute(
         &self,
+        tenant_id: &str,
         id: Uuid,
         input: &UpdateTaskStatus,
         updated_by: &str,
     ) -> anyhow::Result<Task> {
         let task = self
             .task_repo
-            .find_by_id(id)
+            .find_by_id(tenant_id, id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("Task '{}' not found", id))?;
 
         // ステータス遷移バリデーション
         task.transition_to(input.status.clone())?;
 
-        self.task_repo.update_status(id, input, updated_by).await
+        self.task_repo.update_status(tenant_id, id, input, updated_by).await
     }
 }
 
@@ -75,21 +77,21 @@ mod tests {
         let updated_clone = updated.clone();
 
         mock.expect_find_by_id()
-            .with(eq(task_id))
+            .with(always(), eq(task_id))
             .times(1)
-            .returning(move |_| Ok(Some(task_clone.clone())));
+            .returning(move |_, _| Ok(Some(task_clone.clone())));
 
         mock.expect_update_status()
-            .with(eq(task_id), always(), always())
+            .with(always(), eq(task_id), always(), always())
             .times(1)
-            .returning(move |_, _, _| Ok(updated_clone.clone()));
+            .returning(move |_, _, _, _| Ok(updated_clone.clone()));
 
         let uc = UpdateTaskStatusUseCase::new(Arc::new(mock));
         let input = UpdateTaskStatus {
             status: TaskStatus::InProgress,
             expected_version: 1,
         };
-        let result = uc.execute(task_id, &input, "user1").await;
+        let result = uc.execute("system", task_id, &input, "user1").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, TaskStatus::InProgress);
     }
@@ -102,16 +104,16 @@ mod tests {
         let task_clone = task.clone();
 
         mock.expect_find_by_id()
-            .with(eq(task_id))
+            .with(always(), eq(task_id))
             .times(1)
-            .returning(move |_| Ok(Some(task_clone.clone())));
+            .returning(move |_, _| Ok(Some(task_clone.clone())));
 
         let uc = UpdateTaskStatusUseCase::new(Arc::new(mock));
         let input = UpdateTaskStatus {
             status: TaskStatus::Done, // invalid: Open -> Done
             expected_version: 1,
         };
-        let result = uc.execute(task_id, &input, "user1").await;
+        let result = uc.execute("system", task_id, &input, "user1").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("invalid status transition"));
     }

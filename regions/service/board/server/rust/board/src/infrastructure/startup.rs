@@ -54,6 +54,9 @@ pub async fn run() -> anyhow::Result<()> {
 
     {
         let mut migration_conn = db_pool.acquire().await.context("advisory lock connection")?;
+        // Advisory Lock ID: 1000000011 (board-service)
+        // ID割り当て規則: docs/architecture/conventions/advisory-lock-ids.md 参照
+        // 各サービスのID: task=1000000010, board=1000000011, activity=1000000012
         sqlx::query("SELECT pg_advisory_lock(1000000011)")
             .execute(&mut *migration_conn)
             .await
