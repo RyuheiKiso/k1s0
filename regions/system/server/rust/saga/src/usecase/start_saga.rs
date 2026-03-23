@@ -4,6 +4,7 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::domain::entity::saga_state::SagaState;
+use crate::domain::error::SagaError;
 use crate::domain::repository::{SagaRepository, WorkflowRepository};
 use crate::infrastructure::task_tracker::SagaTaskTracker;
 use crate::usecase::ExecuteSagaUseCase;
@@ -44,20 +45,24 @@ impl StartSagaUseCase {
         payload: serde_json::Value,
         correlation_id: Option<String>,
         initiated_by: Option<String>,
-    ) -> anyhow::Result<Uuid> {
-        // Verify workflow exists
+    ) -> Result<Uuid, SagaError> {
+        // ワークフロー存在確認: 見つからない場合は型安全な NotFound エラーを返す
         let workflow = self
             .workflow_repo
             .get(&workflow_name)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("workflow not found: {}", workflow_name))?;
+            .await
+            .map_err(|e| SagaError::Internal(e.to_string()))?
+            .ok_or_else(|| SagaError::NotFound(format!("workflow: {}", workflow_name)))?;
 
-        // Create saga state
+        // SagaState を生成する
         let state = SagaState::new(workflow_name.clone(), payload, correlation_id, initiated_by);
         let saga_id = state.saga_id;
 
-        // Persist
-        self.saga_repo.create(&state).await?;
+        // SagaState を永続化する: リポジトリエラーは Internal として伝播する
+        self.saga_repo
+            .create(&state)
+            .await
+            .map_err(|e| SagaError::Internal(e.to_string()))?;
 
         info!(
             saga_id = %saga_id,
@@ -115,11 +120,8 @@ mod tests {
         let result = uc
             .execute("nonexistent".to_string(), serde_json::json!({}), None, None)
             .await;
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("workflow not found"));
+        // anyhow::Error ではなく SagaError::NotFound の具体型でアサートする
+        assert!(matches!(result, Err(SagaError::NotFound(_))));
     }
 
     #[tokio::test]

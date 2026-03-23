@@ -1,7 +1,8 @@
 // ボードカラム REST ハンドラー。
 // Claims 拡張から認証ユーザー情報を取得してユースケースに渡す。
-// RLS テナント分離のため Claims の iss（発行者）を tenant_id として使用する。
-// iss が空の場合は "system" をデフォルト値として使用する。
+// RLS テナント分離のため Claims::tenant_id() メソッドを使用して tenant_id を取得する。
+// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
+// 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::board_column::{
     BoardColumnFilter, DecrementColumnRequest, IncrementColumnRequest, UpdateWipLimitRequest,
@@ -24,13 +25,12 @@ fn map_err(e: anyhow::Error) -> ServiceError {
     }
 }
 
-/// Claims の iss（トークン発行者）からテナント ID を取得する。
-/// iss が空または Claims が存在しない場合は "system" を返す。
-/// TODO: テナント専用 JWT Claim または X-Tenant-ID ヘッダーが導入された場合は更新すること
+/// Claims から tenant_id を取得するヘルパー。
+/// Claims が存在する場合は Claims::tenant_id() を使用し、
+/// Claims が存在しない場合は "system" を返す。
 fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
     claims
-        .map(|c| c.iss.as_str())
-        .filter(|s| !s.is_empty())
+        .map(|c| c.tenant_id())
         .unwrap_or("system")
 }
 

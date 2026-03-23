@@ -49,7 +49,7 @@ jobs:
         run: golangci-lint run ./...
         working-directory: ${{ inputs.service-path }}
 
-  # ユニットテスト実行（race detector 有効）
+  # ユニットテスト実行（race detector 有効、カバレッジ計測付き）
   test:
     needs: lint
     runs-on: ubuntu-latest
@@ -62,9 +62,22 @@ jobs:
         with:
           go-version: ${{ inputs.go-version }}
           cache-dependency-path: ${{ inputs.service-path }}/go.sum
-      - name: Run tests
-        run: go test ./... -race -count=1
+      # カバレッジ計測付きでテストを実行する（H-07 対応: カバレッジ未測定の指摘に対応）
+      - name: テスト実行（カバレッジ計測付き）
+        run: go test -coverprofile=coverage.out -covermode=atomic -race -count=1 ./...
         working-directory: ${{ inputs.service-path }}
+      # カバレッジのトータル行をコンソールに出力して可視化する
+      - name: カバレッジサマリ出力
+        run: go tool cover -func=coverage.out | tail -1
+        working-directory: ${{ inputs.service-path }}
+      # カバレッジレポートを Artifact として保存し、後から参照できるようにする
+      - name: カバレッジレポートをアップロード
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: go-coverage-report
+          path: ${{ inputs.service-path }}/coverage.out
+          retention-days: 7
 
   # ビルド検証
   build:

@@ -118,7 +118,24 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# トークン検証 (auth-server -> subscribers) ※topics.yaml k1s0.system.auth.token_validate.v1 と対応
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.auth.token_validate.v1 \
+  --partitions 6 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# マスタデータ変更 (mastermaintenance-server -> subscribers) ※topics.yaml k1s0.system.mastermaintenance.data_changed.v1 と対応
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.mastermaintenance.data_changed.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # --- Service Tier ---
+# L-07 対応: topics.yaml との突合により task.updated.v1 / task.cancelled.v1 を追加する
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
   --topic k1s0.service.task.created.v1 \
@@ -126,9 +143,18 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# タスク更新イベント ※topics.yaml k1s0.service.task.updated.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
-  --topic k1s0.service.task.status_changed.v1 \
+  --topic k1s0.service.task.updated.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# タスクキャンセルイベント ※topics.yaml k1s0.service.task.cancelled.v1 と対応
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.service.task.cancelled.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
@@ -156,13 +182,34 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# --- Business Tier ---
+# L-07 対応: topics.yaml との突合により business tier トピックを追加する
+# プロジェクト種別変更イベント ※topics.yaml k1s0.business.taskmanagement.projectmaster.project_type_changed.v1 と対応
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.business.taskmanagement.projectmaster.project_type_changed.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# ステータス定義変更イベント ※topics.yaml k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1 と対応
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # --- DLQ Topics ---
+# L-07 対応: topics.yaml との突合により不足 DLQ を追加する
 for topic in \
   k1s0.system.auth.audit.v1.dlq \
   k1s0.system.config.changed.v1.dlq \
   k1s0.system.auth.login.v1.dlq \
+  k1s0.system.auth.token_validate.v1.dlq \
   k1s0.system.auth.permission_denied.v1.dlq \
   k1s0.system.apiregistry.schema_updated.v1.dlq \
+  k1s0.system.mastermaintenance.data_changed.v1.dlq \
   k1s0.system.featureflag.changed.v1.dlq \
   k1s0.system.file.uploaded.v1.dlq \
   k1s0.system.file.deleted.v1.dlq \
@@ -171,10 +218,13 @@ for topic in \
   k1s0.system.quota.exceeded.v1.dlq \
   k1s0.system.saga.state_changed.v1.dlq \
   k1s0.service.task.created.v1.dlq \
-  k1s0.service.task.status_changed.v1.dlq \
+  k1s0.service.task.updated.v1.dlq \
+  k1s0.service.task.cancelled.v1.dlq \
   k1s0.service.board.column_updated.v1.dlq \
   k1s0.service.activity.created.v1.dlq \
-  k1s0.service.activity.approved.v1.dlq; do
+  k1s0.service.activity.approved.v1.dlq \
+  k1s0.business.taskmanagement.projectmaster.project_type_changed.v1.dlq \
+  k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
     --create --if-not-exists \
     --topic "${topic}" \

@@ -14,6 +14,7 @@ database:
   name: "k1s0_system"
   user: "app"
   password: ""
+  # dev環境: disable、staging: require、prod: verify-full（docs/servers/_common/database.md 参照）
   ssl_mode: "disable"
   max_open_conns: 25
   max_idle_conns: 5
@@ -65,6 +66,7 @@ database:
   schema: "saga"
   user: "app"
   password: ""
+  # dev環境: disable、staging: require、prod: verify-full（docs/servers/_common/database.md 参照）
   ssl_mode: "disable"
   max_open_conns: 25
   max_idle_conns: 5

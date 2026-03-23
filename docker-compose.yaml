@@ -108,7 +108,9 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      # M-10 対応: 認証情報を付加して mysqladmin ping を実行する。
+      # 認証なし ping は MySQL 8.x 以降でエラーになる場合があるため、ユーザー・パスワードを指定する。
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER:-dev} -p${MYSQL_PASSWORD:-dev} --silent"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -350,6 +352,11 @@ services:
       - SETGID
       - SETUID
     environment:
+      # ================================================================
+      # ⚠️ 本番環境では dev モードを絶対に使用しないこと。
+      # Vault dev モードはインメモリストレージのため再起動でデータが消失する。
+      # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理すること。
+      # ================================================================
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-token}
       # ヘルスチェックで vault status を実行するために必要な接続先設定
       VAULT_ADDR: "http://127.0.0.1:8200"
@@ -1096,6 +1103,33 @@ services:
   # ============================================================
   # Kafka トピック自動作成
   # ============================================================
+  # L-07 対応: ローカル開発用 create-topics.sh と Kubernetes 用 topics.yaml の対応関係
+  #
+  # [System Tier]
+  #   k1s0.system.auth.login.v1                  → topics.yaml: k1s0.system.auth.login.v1
+  #   k1s0.system.auth.audit.v1                  → topics.yaml: k1s0.system.auth.audit.v1
+  #   k1s0.system.auth.token_validate.v1         → topics.yaml: k1s0.system.auth.token_validate.v1
+  #   k1s0.system.auth.permission_denied.v1      → topics.yaml: k1s0.system.auth.permission_denied.v1
+  #   k1s0.system.config.changed.v1              → topics.yaml: k1s0.system.config.changed.v1
+  #   k1s0.system.apiregistry.schema_updated.v1  → topics.yaml: k1s0.system.apiregistry.schema_updated.v1
+  #   k1s0.system.mastermaintenance.data_changed.v1 → topics.yaml: k1s0.system.mastermaintenance.data_changed.v1
+  #   k1s0.system.saga.state_changed.v1          → topics.yaml: k1s0.system.saga.state_changed.v1
+  #   k1s0.system.featureflag.changed.v1         → topics.yaml: 未定義（ローカル開発専用トピック）
+  #   k1s0.system.file.uploaded.v1               → topics.yaml: 未定義（ローカル開発専用トピック）
+  #   k1s0.system.file.deleted.v1                → topics.yaml: 未定義（ローカル開発専用トピック）
+  #   k1s0.system.vault.secret_rotated.v1        → topics.yaml: 未定義（ローカル開発専用トピック）
+  #   k1s0.system.notification.requested.v1      → topics.yaml: 未定義（ローカル開発専用トピック）
+  #   k1s0.system.quota.exceeded.v1              → topics.yaml: 未定義（ローカル開発専用トピック）
+  # [Service Tier]
+  #   k1s0.service.task.created.v1               → topics.yaml: k1s0.service.task.created.v1
+  #   k1s0.service.task.updated.v1               → topics.yaml: k1s0.service.task.updated.v1
+  #   k1s0.service.task.cancelled.v1             → topics.yaml: k1s0.service.task.cancelled.v1
+  #   k1s0.service.board.column_updated.v1       → topics.yaml: k1s0.service.board.column_updated.v1
+  #   k1s0.service.activity.created.v1           → topics.yaml: k1s0.service.activity.created.v1
+  #   k1s0.service.activity.approved.v1          → topics.yaml: k1s0.service.activity.approved.v1
+  # [Business Tier]
+  #   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1       → topics.yaml: 同名
+  #   k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1  → topics.yaml: 同名
   kafka-init:
     image: apache/kafka:3.8.0
     profiles: [infra]

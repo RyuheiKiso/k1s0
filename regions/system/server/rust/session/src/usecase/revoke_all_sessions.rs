@@ -42,9 +42,16 @@ impl RevokeAllSessionsUseCase {
                 session.revoke();
                 self.repo.save(&session).await?;
 
-                // Mark metadata as revoked
+                // セッションの無効化をメタデータに反映する
+                // メタデータ更新は補助的な処理のため、失敗してもセッション処理は継続する。
+                // ただしサイレント無視は監査ログの欠落を検知できないため、警告ログを記録する。
                 if let Ok(session_uuid) = uuid::Uuid::parse_str(&session.id) {
-                    let _ = self.metadata_repo.mark_revoked(session_uuid).await;
+                    if let Err(e) = self.metadata_repo.mark_revoked(session_uuid).await {
+                        tracing::warn!(
+                            error = %e,
+                            "セッションメタデータの保存に失敗しました。監査ログが欠落する可能性があります"
+                        );
+                    }
                 }
 
                 count += 1;
@@ -97,6 +104,37 @@ mod tests {
 
         let uc =
             RevokeAllSessionsUseCase::new(Arc::new(mock), Arc::new(NoopSessionMetadataRepository));
+        let result = uc
+            .execute(&RevokeAllSessionsInput {
+                user_id: "user-1".to_string(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(result.count, 2);
+    }
+
+    #[tokio::test]
+    async fn metadata_mark_revoked_error_does_not_fail_usecase() {
+        // メタデータリポジトリがエラーを返してもユースケースが成功することを確認する
+        use crate::adapter::repository::session_metadata_postgres::MockSessionMetadataRepository;
+
+        let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| {
+            Ok(vec![
+                make_session("s1", false),
+                make_session("s2", false),
+            ])
+        });
+        mock.expect_save().returning(|_| Ok(()));
+
+        // mark_revoked が常にエラーを返すモックを設定する
+        let mut mock_meta = MockSessionMetadataRepository::new();
+        mock_meta
+            .expect_mark_revoked()
+            .returning(|_| Err(anyhow::anyhow!("db connection error")));
+
+        let uc = RevokeAllSessionsUseCase::new(Arc::new(mock), Arc::new(mock_meta));
+        // メタデータ更新失敗でもユースケース全体は成功し、対象セッション数が返る
         let result = uc
             .execute(&RevokeAllSessionsInput {
                 user_id: "user-1".to_string(),

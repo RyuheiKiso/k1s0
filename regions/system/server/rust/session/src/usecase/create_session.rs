@@ -106,7 +106,7 @@ impl CreateSessionUseCase {
             .await
             .map_err(|e| SessionError::Internal(e.to_string()))?;
 
-        // Save session metadata for audit/session listing
+        // 監査ログ・セッション一覧用のメタデータを保存する
         if let Ok(user_uuid) = Uuid::parse_str(&session.user_id) {
             if let Ok(session_uuid) = Uuid::parse_str(&session.id) {
                 let meta_input = SaveSessionMetadataInput {
@@ -119,7 +119,14 @@ impl CreateSessionUseCase {
                     user_agent: input.user_agent.clone(),
                     expires_at: session.expires_at,
                 };
-                let _ = self.metadata_repo.save_metadata(&meta_input).await;
+                // メタデータ保存は補助的な処理のため、失敗してもセッション処理は継続する。
+                // ただしサイレント無視は監査ログの欠落を検知できないため、警告ログを記録する。
+                if let Err(e) = self.metadata_repo.save_metadata(&meta_input).await {
+                    tracing::warn!(
+                        error = %e,
+                        "セッションメタデータの保存に失敗しました。監査ログが欠落する可能性があります"
+                    );
+                }
             }
         }
 
@@ -251,6 +258,49 @@ mod tests {
         };
         let result = uc.execute(&input).await;
         assert!(matches!(result, Err(SessionError::Internal(_))));
+    }
+
+    #[tokio::test]
+    async fn metadata_save_error_does_not_fail_usecase() {
+        // メタデータリポジトリがエラーを返してもユースケースが成功することを確認する
+        use crate::adapter::repository::session_metadata_postgres::MockSessionMetadataRepository;
+
+        let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_user_id().returning(|_| Ok(vec![]));
+        mock.expect_save().returning(|_| Ok(()));
+        let mut mock_publisher = MockSessionEventPublisher::new();
+        mock_publisher
+            .expect_publish_session_created()
+            .returning(|_| Ok(()));
+
+        // メタデータ保存が常にエラーを返すモックを設定する
+        let mut mock_meta = MockSessionMetadataRepository::new();
+        mock_meta
+            .expect_save_metadata()
+            .returning(|_| Err(anyhow::anyhow!("db connection error")));
+
+        let uc = CreateSessionUseCase::new(
+            Arc::new(mock),
+            Arc::new(mock_meta),
+            Arc::new(mock_publisher),
+            3600,
+            86400,
+        );
+        let input = CreateSessionInput {
+            // user_id は UUID 形式でなければメタデータ保存パスに入らないため UUID を使用する
+            user_id: "00000000-0000-0000-0000-000000000001".to_string(),
+            device_id: "device-meta-err".to_string(),
+            device_name: Some("test device".to_string()),
+            device_type: Some("desktop".to_string()),
+            user_agent: None,
+            ip_address: None,
+            ttl_seconds: Some(3600),
+            max_devices: None,
+            metadata: None,
+        };
+        // メタデータ保存失敗でもユースケース全体は成功する
+        let result = uc.execute(&input).await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]

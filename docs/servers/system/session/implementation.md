@@ -113,10 +113,33 @@ regions/system/server/rust/session/
 
 #### 外部連携
 
-- **Redis** (`adapter/repository/session_redis.rs`): redis-rs クレートで Redis 7 に接続。セッションデータを TTL 付きで保存する
+- **Redis** (`adapter/repository/session_redis.rs`): redis-rs クレートで Redis 7 に接続。セッションデータを TTL 付きで保存する。セッション削除（`delete()`）は GET → DEL × 2 → SREM の4操作を Redis Lua スクリプト（`redis::Script`）によって単一のアトミックなトランザクションとして実行し、TOCTOU 競合状態（H-06）を防止する
 - **PostgreSQL** (`adapter/repository/session_metadata_postgres.rs`): デバイス情報・作成日時等のメタデータを記録する
 - **Kafka Consumer** (`infrastructure/kafka_consumer.rs`): `k1s0.system.session.revoke_all.v1` トピックから全セッション失効リクエストを受信する
 - **Kafka Producer** (`infrastructure/kafka_producer.rs`): `k1s0.system.session.created.v1` および `k1s0.system.session.revoked.v1` にイベントを配信する
+
+### Redis 削除処理の原子性（H-06 対応）
+
+セッション削除処理（`delete()`）は以下の3キーを跨いで操作する必要がある。
+
+| キー | 操作 |
+|------|------|
+| `session:id:{id}` | `DEL` |
+| `session:token:{token}` | `DEL` |
+| `session:user:{user_id}` | `SREM` |
+
+修正前は `GET → DEL → DEL → SREM` を4回の個別コマンドで実行していたため、並行リクエスト間で TOCTOU（Time-of-Check to Time-of-Use）競合が発生する可能性があった（外部監査指摘 H-06）。
+
+修正後は Redis Lua スクリプト（`redis::Script`）を使用し、サーバーサイドで4操作をアトミックに実行する。Redis の Lua スクリプトはシングルスレッドで実行されるため、他のコマンドに割り込まれることがなく、競合状態を根本的に排除できる。
+
+Lua スクリプトの実行フロー:
+1. `KEYS[1]`（session_key）に対して `GET` を実行し、存在しなければ `0` を返して終了
+2. `DEL KEYS[1]`（session_key 削除）
+3. `DEL KEYS[2]`（token_key 削除）
+4. `SREM KEYS[3] ARGV[1]`（user_sessions_set からメンバー削除）
+5. `1` を返して正常終了
+
+> **注意**: Lua スクリプト実行前の事前 GET（Rust 側でのキー構築用）と Lua 内の GET の間にセッションが他プロセスに削除された場合、Lua スクリプトは `0` を返して早期終了するが、これは冪等な動作として正常終了として扱う。
 
 ### エラーハンドリング方針
 

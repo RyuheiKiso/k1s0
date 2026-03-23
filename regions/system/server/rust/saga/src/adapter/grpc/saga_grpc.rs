@@ -181,6 +181,20 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
     }
 }
 
+/// domain::SagaError を直接 GrpcError に型安全に変換する。
+/// anyhow ダウンキャスト不要で、execute() 戻り値型変更後に使用する。
+fn map_domain_saga_error_to_grpc_error(err: crate::domain::error::SagaError) -> GrpcError {
+    use crate::domain::error::SagaError;
+    let msg = err.to_string();
+    match err {
+        SagaError::NotFound(_) => GrpcError::NotFound(msg),
+        SagaError::InvalidStatusTransition { .. } => GrpcError::FailedPrecondition(msg),
+        SagaError::CompensationFailed(_) => GrpcError::Internal(msg),
+        SagaError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
+        SagaError::Internal(_) => GrpcError::Internal(msg),
+    }
+}
+
 /// CancelSagaError を GrpcError に変換する。
 /// NotFound は not_found、AlreadyTerminal は failed_precondition、それ以外は internal とする。
 fn map_cancel_error_to_grpc_error(err: CancelSagaError) -> GrpcError {
@@ -246,11 +260,12 @@ impl SagaGrpcService {
             Some(req.initiated_by)
         };
 
+        // ドメインエラー（SagaError）を GrpcError に型安全に変換する
         let saga_id = self
             .start_saga_uc
             .execute(req.workflow_name, json_payload, correlation, initiator)
             .await
-            .map_err(map_anyhow_to_grpc_error)?;
+            .map_err(map_domain_saga_error_to_grpc_error)?;
 
         Ok(StartSagaResponse {
             saga_id: saga_id.to_string(),
