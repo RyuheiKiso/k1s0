@@ -73,5 +73,19 @@ plugins:
 consumers:
   - username: keycloak
     jwt_secrets:
+      # H-1 対応: RS256 アルゴリズム使用時は rsa_public_key フィールドが必須（Kong 3.9.1 DBless モード起動要件）
       - algorithm: RS256
         key: "http://keycloak:8080/realms/k1s0"
+        # ローカル開発では Keycloak の内部URL を使用
+        # JWKS URL: http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
+        # 実運用では keycloak:8080/realms/k1s0/protocol/openid-connect/certs から取得した RSA 公開鍵に差し替えること
+        rsa_public_key: |
+          -----BEGIN PUBLIC KEY-----
+          # 開発環境用: keycloak:8080/realms/k1s0/protocol/openid-connect/certs
+          # から取得した RSA 公開鍵を設定すること（RS256アルゴリズム使用時の必須フィールド）
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
+          dKNlJOxrGvgBNEaMHQSQBQGQR0ZMjPQFGktflANE6gLROHFGM1PNMT0/zplFNAm
+          vJ3F5udDyJolRQMVFiGnvWkXGXKFUCEKEOXQCCTbMBtMDFqHMq6mFQJmN5WQMXE
+          ....placeholder_replace_with_actual_keycloak_public_key....
+          QIDAQAB
+          -----END PUBLIC KEY-----

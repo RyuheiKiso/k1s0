@@ -14,9 +14,9 @@ impl ListActivitiesUseCase {
 
     // アクティビティ一覧取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, filter: &ActivityFilter) -> anyhow::Result<(Vec<Activity>, i64)> {
-        let items = self.repo.find_all(filter).await?;
-        let count = self.repo.count(filter).await?;
+    pub async fn execute(&self, tenant_id: &str, filter: &ActivityFilter) -> anyhow::Result<(Vec<Activity>, i64)> {
+        let items = self.repo.find_all(tenant_id, filter).await?;
+        let count = self.repo.count(tenant_id, filter).await?;
         Ok((items, count))
     }
 }
@@ -58,17 +58,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(move |_| Ok(items_clone.clone()));
+            .returning(move |_, _| Ok(items_clone.clone()));
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(2));
+            .returning(|_, _| Ok(2));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter {
             task_id: Some(task_id),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("tenant1", &filter).await;
         assert!(result.is_ok());
         let (activities, count) = result.unwrap();
         assert_eq!(activities.len(), 2);
@@ -82,17 +82,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Ok(vec![]));
+            .returning(|_, _| Ok(vec![]));
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(0));
+            .returning(|_, _| Ok(0));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter {
             task_id: Some(Uuid::new_v4()),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("tenant1", &filter).await;
         assert!(result.is_ok());
         let (activities, count) = result.unwrap();
         assert!(activities.is_empty());
@@ -106,11 +106,11 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection failed")));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter::default();
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("tenant1", &filter).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database connection failed"));
     }
@@ -124,17 +124,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(move |_| Ok(items.clone()));
+            .returning(move |_, _| Ok(items.clone()));
         mock.expect_count()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("count query failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("count query failed")));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter {
             task_id: Some(task_id),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("tenant1", &filter).await;
         assert!(result.is_err());
     }
 }

@@ -11,8 +11,8 @@ server:
 database:
   host: localhost
   port: 5432
-  name: k1s0_activity
-  schema: activity
+  name: k1s0_service
+  schema: activity_service
   user: k1s0
   password: ""
   ssl_mode: disable
@@ -35,8 +35,8 @@ observability:
 kafka:
   brokers:
     - "kafka:9092"
-  activity_created_topic: "k1s0.service.activity.created"
-  activity_approved_topic: "k1s0.service.activity.approved"
+  activity_created_topic: "k1s0.service.activity.created.v1"
+  activity_approved_topic: "k1s0.service.activity.approved.v1"
 
 auth:
   jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"

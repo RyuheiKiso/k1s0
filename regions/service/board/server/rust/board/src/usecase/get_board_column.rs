@@ -1,4 +1,5 @@
 // ボードカラム取得ユースケース。
+// テナント分離のため tenant_id を受け取りリポジトリに渡す。
 use crate::domain::entity::board_column::BoardColumn;
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use std::sync::Arc;
@@ -15,8 +16,8 @@ impl GetBoardColumnUseCase {
 
     // ボードカラム取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, id: Uuid) -> anyhow::Result<Option<BoardColumn>> {
-        self.repo.find_by_id(id).await
+    pub async fn execute(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<BoardColumn>> {
+        self.repo.find_by_id(tenant_id, id).await
     }
 }
 
@@ -51,10 +52,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(col_clone.clone())));
+            .returning(move |_, _| Ok(Some(col_clone.clone())));
 
         let uc = GetBoardColumnUseCase::new(Arc::new(mock));
-        let result = uc.execute(col_id).await;
+        let result = uc.execute("test-tenant", col_id).await;
         assert!(result.is_ok());
         let found = result.unwrap();
         assert!(found.is_some());
@@ -68,10 +69,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
 
         let uc = GetBoardColumnUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("test-tenant", Uuid::new_v4()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -83,10 +84,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error")));
 
         let uc = GetBoardColumnUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("test-tenant", Uuid::new_v4()).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database error"));
     }

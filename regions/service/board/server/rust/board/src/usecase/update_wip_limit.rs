@@ -1,4 +1,5 @@
 // WIP 制限更新ユースケース。楽観的ロック付き。
+// テナント分離のため tenant_id を受け取りリポジトリに渡す。
 use crate::domain::entity::board_column::{BoardColumn, UpdateWipLimitRequest};
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use crate::domain::service::board_service::BoardService;
@@ -15,9 +16,9 @@ impl UpdateWipLimitUseCase {
 
     // WIP 制限更新の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, req: &UpdateWipLimitRequest) -> anyhow::Result<BoardColumn> {
+    pub async fn execute(&self, tenant_id: &str, req: &UpdateWipLimitRequest) -> anyhow::Result<BoardColumn> {
         BoardService::validate_wip_limit(req.wip_limit)?;
-        self.repo.update_wip_limit(req).await
+        self.repo.update_wip_limit(tenant_id, req).await
     }
 }
 
@@ -51,7 +52,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(move |_| Ok(col_clone.clone()));
+            .returning(move |_, _| Ok(col_clone.clone()));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {
@@ -59,7 +60,7 @@ mod tests {
             wip_limit: 10,
             expected_version: 1,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().wip_limit, 10);
     }
@@ -73,7 +74,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(move |_| Ok(col_clone.clone()));
+            .returning(move |_, _| Ok(col_clone.clone()));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {
@@ -81,7 +82,7 @@ mod tests {
             wip_limit: 0,
             expected_version: 1,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().wip_limit, 0);
     }
@@ -98,7 +99,7 @@ mod tests {
             wip_limit: -1,
             expected_version: 1,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("wip_limit must be >= 0"));
     }
@@ -110,7 +111,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("column not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("column not found")));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {
@@ -118,7 +119,7 @@ mod tests {
             wip_limit: 5,
             expected_version: 1,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("column not found"));
     }
@@ -130,7 +131,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error")));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {
@@ -138,7 +139,7 @@ mod tests {
             wip_limit: 3,
             expected_version: 2,
         };
-        let result = uc.execute(&req).await;
+        let result = uc.execute("test-tenant", &req).await;
         assert!(result.is_err());
     }
 }

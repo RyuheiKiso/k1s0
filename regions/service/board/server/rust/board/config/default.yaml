@@ -11,8 +11,8 @@ server:
 database:
   host: localhost
   port: 5432
-  name: k1s0_board
-  schema: board
+  name: k1s0_service
+  schema: board_service
   user: k1s0
   password: ""
   ssl_mode: disable

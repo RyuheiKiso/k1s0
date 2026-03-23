@@ -71,3 +71,13 @@ ALTER TABLE task_service.task_checklist_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON task_service.task_checklist_items;
 CREATE POLICY tenant_isolation ON task_service.task_checklist_items
     USING (tenant_id = current_setting('app.current_tenant_id', true)::TEXT);
+
+-- スーパーユーザーも含む全ユーザーに RLS を強制する
+ALTER TABLE task_service.tasks FORCE ROW LEVEL SECURITY;
+ALTER TABLE task_service.task_checklist_items FORCE ROW LEVEL SECURITY;
+
+-- k1s0 アプリユーザーへのスキーマ使用権限とテーブル操作権限を付与する
+-- RLS ポリシーが正常に機能するため、k1s0 ロールは NOBYPASSRLS で作成されている
+GRANT USAGE ON SCHEMA task_service TO k1s0;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA task_service TO k1s0;
+ALTER DEFAULT PRIVILEGES IN SCHEMA task_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;

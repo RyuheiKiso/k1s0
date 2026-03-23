@@ -15,8 +15,8 @@ impl GetActivityUseCase {
 
     // アクティビティ取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
-    pub async fn execute(&self, id: Uuid) -> anyhow::Result<Option<Activity>> {
-        self.repo.find_by_id(id).await
+    pub async fn execute(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Activity>> {
+        self.repo.find_by_id(tenant_id, id).await
     }
 }
 
@@ -55,10 +55,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(move |_| Ok(Some(activity_clone.clone())));
+            .returning(move |_, _| Ok(Some(activity_clone.clone())));
 
         let uc = GetActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(activity_id).await;
+        let result = uc.execute("tenant1", activity_id).await;
         assert!(result.is_ok());
         let found = result.unwrap();
         assert!(found.is_some());
@@ -72,10 +72,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
 
         let uc = GetActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("tenant1", Uuid::new_v4()).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }
@@ -87,10 +87,10 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error")));
 
         let uc = GetActivityUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("tenant1", Uuid::new_v4()).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database error"));
     }

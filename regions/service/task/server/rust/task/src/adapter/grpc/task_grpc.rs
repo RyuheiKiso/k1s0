@@ -14,6 +14,18 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+/// gRPC メタデータから x-tenant-id を取得する。
+/// 存在しない場合は "system" にフォールバックする（暫定実装）。
+/// TODO: フォールバックを廃止し、x-tenant-id 必須化（認証ミドルウェアが設定）する
+fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> String {
+    metadata
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 // ドメイン Task をproto Task に変換するヘルパー
 fn domain_task_to_proto(t: crate::domain::entity::task::Task) -> ProtoTask {
     ProtoTask {
@@ -109,6 +121,8 @@ impl TaskService for TaskGrpcService {
         &self,
         request: Request<CreateTaskRequest>,
     ) -> Result<Response<CreateTaskResponse>, Status> {
+        // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
+        let tenant_id = tenant_id_from_metadata(request.metadata());
         let req = request.into_inner();
 
         // project_id を UUID に変換する
@@ -135,9 +149,7 @@ impl TaskService for TaskGrpcService {
             checklist,
         };
 
-        // gRPC メタデータから呼び出し元ユーザーとテナントIDを取得できないため "system" を使用する
-        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
-        match self.create_task_uc.execute("system", &input, "grpc").await {
+        match self.create_task_uc.execute(&tenant_id, &input, "grpc").await {
             Ok(task) => Ok(Response::new(CreateTaskResponse {
                 task: Some(domain_task_to_proto(task)),
             })),
@@ -150,13 +162,13 @@ impl TaskService for TaskGrpcService {
         &self,
         request: Request<GetTaskRequest>,
     ) -> Result<Response<GetTaskResponse>, Status> {
+        // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
+        let tenant_id = tenant_id_from_metadata(request.metadata());
         let req = request.into_inner();
         let id = Uuid::parse_str(&req.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
 
-        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
-        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
-        match self.get_task_uc.execute("system", id).await {
+        match self.get_task_uc.execute(&tenant_id, id).await {
             Ok(Some(task)) => Ok(Response::new(GetTaskResponse {
                 task: Some(domain_task_to_proto(task)),
             })),
@@ -171,6 +183,8 @@ impl TaskService for TaskGrpcService {
         &self,
         request: Request<ListTasksRequest>,
     ) -> Result<Response<ListTasksResponse>, Status> {
+        // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
+        let tenant_id = tenant_id_from_metadata(request.metadata());
         let req = request.into_inner();
 
         // project_id が指定された場合は UUID に変換する
@@ -198,9 +212,7 @@ impl TaskService for TaskGrpcService {
             offset,
         };
 
-        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
-        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
-        match self.list_tasks_uc.execute("system", &filter).await {
+        match self.list_tasks_uc.execute(&tenant_id, &filter).await {
             Ok((tasks, total)) => {
                 let proto_tasks: Vec<_> = tasks.into_iter().map(domain_task_to_proto).collect();
                 let page_size = limit.unwrap_or(proto_tasks.len() as i64) as i32;
@@ -228,6 +240,8 @@ impl TaskService for TaskGrpcService {
         &self,
         request: Request<UpdateTaskStatusRequest>,
     ) -> Result<Response<UpdateTaskStatusResponse>, Status> {
+        // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
+        let tenant_id = tenant_id_from_metadata(request.metadata());
         let req = request.into_inner();
         let id = Uuid::parse_str(&req.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -241,9 +255,7 @@ impl TaskService for TaskGrpcService {
             expected_version: req.expected_version,
         };
 
-        // gRPC メタデータから tenant_id を取得できないため "system" を使用する
-        // TODO: gRPC メタデータから tenant_id を取得する機能を実装すること
-        match self.update_task_status_uc.execute("system", id, &input, "grpc").await {
+        match self.update_task_status_uc.execute(&tenant_id, id, &input, "grpc").await {
             Ok(task) => Ok(Response::new(UpdateTaskStatusResponse {
                 task: Some(domain_task_to_proto(task)),
             })),

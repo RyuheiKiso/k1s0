@@ -1,5 +1,6 @@
 // ボードサービス gRPC 実装。
 // 各メソッドで proto Request をドメイン入力型に変換し、UseCase を呼び出して proto Response を返す。
+// テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" をフォールバックとして使用する。
 use crate::domain::entity::board_column::{
     BoardColumnFilter, DecrementColumnRequest as DomainDecrementReq,
     IncrementColumnRequest as DomainIncrementReq,
@@ -67,6 +68,12 @@ impl BoardGrpcService {
 impl BoardService for BoardGrpcService {
     // カラムタスク数増加: proto Request をドメイン IncrementColumnRequest に変換して UseCase を実行する
     async fn increment_column(&self, req: Request<IncrementColumnRequest>) -> Result<Response<IncrementColumnResponse>, Status> {
+        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
+        let tenant_id = req.metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_owned();
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -79,7 +86,7 @@ impl BoardService for BoardGrpcService {
             status_code: r.status_code,
         };
 
-        match self.increment_column_uc.execute(&domain_req).await {
+        match self.increment_column_uc.execute(&tenant_id, &domain_req).await {
             Ok(col) => Ok(Response::new(IncrementColumnResponse {
                 column: Some(domain_column_to_proto(col)),
             })),
@@ -89,6 +96,12 @@ impl BoardService for BoardGrpcService {
 
     // カラムタスク数減少: proto Request をドメイン DecrementColumnRequest に変換して UseCase を実行する
     async fn decrement_column(&self, req: Request<DecrementColumnRequest>) -> Result<Response<DecrementColumnResponse>, Status> {
+        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
+        let tenant_id = req.metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_owned();
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -103,7 +116,7 @@ impl BoardService for BoardGrpcService {
             reason: if r.reason.is_empty() { None } else { Some(r.reason) },
         };
 
-        match self.decrement_column_uc.execute(&domain_req).await {
+        match self.decrement_column_uc.execute(&tenant_id, &domain_req).await {
             Ok(col) => Ok(Response::new(DecrementColumnResponse {
                 column: Some(domain_column_to_proto(col)),
             })),
@@ -113,11 +126,17 @@ impl BoardService for BoardGrpcService {
 
     // ボードカラム取得: column_id を UUID に変換して UseCase を実行する
     async fn get_board_column(&self, req: Request<GetBoardColumnRequest>) -> Result<Response<GetBoardColumnResponse>, Status> {
+        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
+        let tenant_id = req.metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_owned();
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.column_id)
             .map_err(|_| Status::invalid_argument("invalid column_id"))?;
 
-        match self.get_board_column_uc.execute(id).await {
+        match self.get_board_column_uc.execute(&tenant_id, id).await {
             Ok(Some(col)) => Ok(Response::new(GetBoardColumnResponse {
                 column: Some(domain_column_to_proto(col)),
             })),
@@ -129,6 +148,12 @@ impl BoardService for BoardGrpcService {
 
     // ボードカラム一覧: ページネーションパラメータを BoardColumnFilter に変換して UseCase を実行する
     async fn list_board_columns(&self, req: Request<ListBoardColumnsRequest>) -> Result<Response<ListBoardColumnsResponse>, Status> {
+        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
+        let tenant_id = req.metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_owned();
         let r = req.into_inner();
 
         // project_id が指定された場合は UUID に変換する
@@ -155,7 +180,7 @@ impl BoardService for BoardGrpcService {
             offset,
         };
 
-        match self.list_board_columns_uc.execute(&filter).await {
+        match self.list_board_columns_uc.execute(&tenant_id, &filter).await {
             Ok((cols, total)) => {
                 let proto_cols: Vec<_> = cols.into_iter().map(domain_column_to_proto).collect();
                 let page_size = limit.unwrap_or(proto_cols.len() as i64) as i32;
@@ -180,6 +205,12 @@ impl BoardService for BoardGrpcService {
 
     // WIP 制限更新: proto Request をドメイン UpdateWipLimitRequest に変換して UseCase を実行する
     async fn update_wip_limit(&self, req: Request<UpdateWipLimitRequest>) -> Result<Response<UpdateWipLimitResponse>, Status> {
+        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
+        let tenant_id = req.metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_owned();
         let r = req.into_inner();
         let column_id = Uuid::parse_str(&r.column_id)
             .map_err(|_| Status::invalid_argument("invalid column_id"))?;
@@ -190,7 +221,7 @@ impl BoardService for BoardGrpcService {
             expected_version: r.expected_version,
         };
 
-        match self.update_wip_limit_uc.execute(&domain_req).await {
+        match self.update_wip_limit_uc.execute(&tenant_id, &domain_req).await {
             Ok(col) => Ok(Response::new(UpdateWipLimitResponse {
                 column: Some(domain_column_to_proto(col)),
             })),

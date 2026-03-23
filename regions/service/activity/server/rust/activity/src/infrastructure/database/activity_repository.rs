@@ -1,4 +1,6 @@
-// アクティビティリポジトリの PostgreSQL 実装。冪等性キーによる重複チェック付き。
+// アクティビティリポジトリの PostgreSQL 実装。
+// RLS テナント分離のため、各 DB 操作の先頭で SET LOCAL app.current_tenant_id を発行する。
+// 冪等性キーによる重複チェック付き。Transactional Outbox パターンで outbox テーブルへ書き込む。
 use crate::domain::entity::activity::{Activity, ActivityFilter, ActivityStatus, ActivityType, CreateActivity};
 use crate::domain::repository::activity_repository::ActivityRepository;
 use async_trait::async_trait;
@@ -51,58 +53,91 @@ impl TryFrom<ActivityRow> for Activity {
 
 #[async_trait]
 impl ActivityRepository for ActivityPostgresRepository {
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Activity>> {
+    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Activity>> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let row = sqlx::query_as::<_, ActivityRow>(
-            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity.activities WHERE id = $1",
+            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE id = $1",
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
+        tx.commit().await?;
         row.map(Activity::try_from).transpose()
     }
 
-    async fn find_by_idempotency_key(&self, key: &str) -> anyhow::Result<Option<Activity>> {
+    async fn find_by_idempotency_key(&self, tenant_id: &str, key: &str) -> anyhow::Result<Option<Activity>> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let row = sqlx::query_as::<_, ActivityRow>(
-            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity.activities WHERE idempotency_key = $1",
+            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE idempotency_key = $1",
         )
         .bind(key)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
+        tx.commit().await?;
         row.map(Activity::try_from).transpose()
     }
 
-    async fn find_all(&self, filter: &ActivityFilter) -> anyhow::Result<Vec<Activity>> {
+    async fn find_all(&self, tenant_id: &str, filter: &ActivityFilter) -> anyhow::Result<Vec<Activity>> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let rows = sqlx::query_as::<_, ActivityRow>(
-            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY created_at DESC LIMIT $4 OFFSET $5",
+            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY created_at DESC LIMIT $4 OFFSET $5",
         )
         .bind(filter.task_id)
         .bind(&filter.actor_id)
         .bind(filter.status.as_ref().map(|s| s.as_str()))
         .bind(filter.limit.unwrap_or(50))
         .bind(filter.offset.unwrap_or(0))
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
+        tx.commit().await?;
         rows.into_iter().map(Activity::try_from).collect()
     }
 
-    async fn count(&self, filter: &ActivityFilter) -> anyhow::Result<i64> {
+    async fn count(&self, tenant_id: &str, filter: &ActivityFilter) -> anyhow::Result<i64> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから COUNT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM activity.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3)",
+            "SELECT COUNT(*) FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3)",
         )
         .bind(filter.task_id)
         .bind(&filter.actor_id)
         .bind(filter.status.as_ref().map(|s| s.as_str()))
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
+        tx.commit().await?;
         Ok(count)
     }
 
-    async fn create(&self, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
+    async fn create(&self, tenant_id: &str, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
         let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let activity_id = Uuid::new_v4();
 
         let row = sqlx::query_as::<_, ActivityRow>(
-            r#"INSERT INTO activity.activities (id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version)
+            r#"INSERT INTO activity_service.activities (id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version)
                VALUES ($1, $2, $3, $4, $5, $6, 'active', $7, 1)
                RETURNING id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at"#,
         )
@@ -118,7 +153,7 @@ impl ActivityRepository for ActivityPostgresRepository {
 
         // Outbox イベント
         sqlx::query(
-            "INSERT INTO activity.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityCreated', $3)",
+            "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityCreated', $3)",
         )
         .bind(Uuid::new_v4())
         .bind(activity_id)
@@ -131,11 +166,16 @@ impl ActivityRepository for ActivityPostgresRepository {
     }
 
     // updated_by を Option<String> として受け取る（mockall との互換性のため）
-    async fn update_status(&self, id: Uuid, status: &str, _updated_by: Option<String>) -> anyhow::Result<Activity> {
+    async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, _updated_by: Option<String>) -> anyhow::Result<Activity> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
 
         let row = sqlx::query_as::<_, ActivityRow>(
-            r#"UPDATE activity.activities SET status = $2, version = version + 1, updated_at = now()
+            r#"UPDATE activity_service.activities SET status = $2, version = version + 1, updated_at = now()
                WHERE id = $1
                RETURNING id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at"#,
         )
@@ -148,7 +188,7 @@ impl ActivityRepository for ActivityPostgresRepository {
         // Approved のみ outbox イベントを発行する
         if status == "approved" {
             sqlx::query(
-                "INSERT INTO activity.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityApproved', $3)",
+                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityApproved', $3)",
             )
             .bind(Uuid::new_v4())
             .bind(id)

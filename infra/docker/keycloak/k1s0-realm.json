@@ -298,7 +298,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
-      "secret": "dev-bff-secret",
+      "secret": "${KC_BFF_CLIENT_SECRET}",
       "redirectUris": [
         "https://app.k1s0.internal.example.com/callback",
         "http://localhost:3000/callback"
@@ -341,7 +341,7 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",
-      "secret": "dev-service-secret",
+      "secret": "${KC_SERVICE_CLIENT_SECRET}",
       "defaultClientScopes": [
         "openid"
       ],

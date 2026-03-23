@@ -31,6 +31,9 @@
 | [ADR-0023](./0023-helm-oci-registry.md) | Helm OCIレジストリ | 承認済み |
 | [ADR-0024](./0024-service-account-isolation.md) | サービスアカウント分離 | 承認済み |
 | [ADR-0025](./0025-terraform-state-s3.md) | TerraformステートS3 | 承認済み |
+| [ADR-0026](./0026-service-tier-db-integration.md) | Service Tier DB統合設計（board/activity を k1s0_service に統合） | 承認済み |
+| [ADR-0027](./0027-db-app-user-role-separation.md) | DBアプリケーションユーザー権限分離（k1s0 非特権ロール） | 承認済み |
+| [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
 
 ## ADR の追加方法
 

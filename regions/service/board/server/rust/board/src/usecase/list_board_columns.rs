@@ -1,4 +1,5 @@
 // ボードカラム一覧ユースケース。
+// テナント分離のため tenant_id を受け取りリポジトリに渡す。
 use crate::domain::entity::board_column::{BoardColumn, BoardColumnFilter};
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use std::sync::Arc;
@@ -16,10 +17,11 @@ impl ListBoardColumnsUseCase {
     #[tracing::instrument(skip(self))]
     pub async fn execute(
         &self,
+        tenant_id: &str,
         filter: &BoardColumnFilter,
     ) -> anyhow::Result<(Vec<BoardColumn>, i64)> {
-        let cols = self.repo.find_all(filter).await?;
-        let count = self.repo.count(filter).await?;
+        let cols = self.repo.find_all(tenant_id, filter).await?;
+        let count = self.repo.count(tenant_id, filter).await?;
         Ok((cols, count))
     }
 }
@@ -57,17 +59,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(move |_| Ok(cols_clone.clone()));
+            .returning(move |_, _| Ok(cols_clone.clone()));
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(2));
+            .returning(|_, _| Ok(2));
 
         let uc = ListBoardColumnsUseCase::new(Arc::new(mock));
         let filter = BoardColumnFilter {
             project_id: Some(project_id),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("test-tenant", &filter).await;
         assert!(result.is_ok());
         let (items, count) = result.unwrap();
         assert_eq!(items.len(), 2);
@@ -81,17 +83,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Ok(vec![]));
+            .returning(|_, _| Ok(vec![]));
         mock.expect_count()
             .times(1)
-            .returning(|_| Ok(0));
+            .returning(|_, _| Ok(0));
 
         let uc = ListBoardColumnsUseCase::new(Arc::new(mock));
         let filter = BoardColumnFilter {
             project_id: Some(Uuid::new_v4()),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("test-tenant", &filter).await;
         assert!(result.is_ok());
         let (items, count) = result.unwrap();
         assert!(items.is_empty());
@@ -105,11 +107,11 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("database connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection failed")));
 
         let uc = ListBoardColumnsUseCase::new(Arc::new(mock));
         let filter = BoardColumnFilter::default();
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("test-tenant", &filter).await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("database connection failed"));
     }
@@ -123,17 +125,17 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(move |_| Ok(cols.clone()));
+            .returning(move |_, _| Ok(cols.clone()));
         mock.expect_count()
             .times(1)
-            .returning(|_| Err(anyhow::anyhow!("count query failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("count query failed")));
 
         let uc = ListBoardColumnsUseCase::new(Arc::new(mock));
         let filter = BoardColumnFilter {
             project_id: Some(project_id),
             ..Default::default()
         };
-        let result = uc.execute(&filter).await;
+        let result = uc.execute("test-tenant", &filter).await;
         assert!(result.is_err());
     }
 }
