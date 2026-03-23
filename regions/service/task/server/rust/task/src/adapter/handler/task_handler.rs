@@ -1,7 +1,8 @@
 // タスク REST ハンドラー。
 // Claims 拡張から認証ユーザー ID を取得してユースケースに渡す。
-// RLS テナント分離のため Claims の iss（発行者）を tenant_id として使用する。
-// iss が空の場合は "system" をデフォルト値として使用する。
+// RLS テナント分離のため Claims::tenant_id() メソッドを使用して tenant_id を取得する。
+// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
+// 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::task::{CreateTask, TaskFilter, UpdateTaskStatus};
 use axum::{
@@ -32,19 +33,13 @@ fn map_err(e: anyhow::Error) -> ServiceError {
     }
 }
 
-/// JWT クレームからテナント ID を取得する。
-/// tenant_id カスタムクレームを優先し、未設定の場合は iss（発行者URL）をフォールバックとして使用する。
-/// TODO: Keycloak に tenant_id Mapper を設定した後、iss フォールバックを削除すること
+/// Claims から tenant_id を取得するヘルパー。
+/// Claims が存在する場合は Claims::tenant_id() を使用し、
+/// Claims が存在しない場合は "system" を返す。
+/// Claims::tenant_id() は tenant_id カスタムクレーム（Keycloak Protocol Mapper 設定済み）を優先する。
 fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
     claims
-        .map(|c| {
-            if !c.tenant_id.is_empty() {
-                c.tenant_id.as_str()
-            } else {
-                c.iss.as_str()
-            }
-        })
-        .filter(|s| !s.is_empty())
+        .map(|c| c.tenant_id())
         .unwrap_or("system")
 }
 

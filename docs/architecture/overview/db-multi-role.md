@@ -38,10 +38,12 @@ Vault → サービス (username/password, TTL: 1h)
 
 ## 移行計画
 
-### フェーズ 1: スキーマ分離（現在対応中）
-- `infra/terraform/postgres/roles.tf` にサービス別ロール定義を追加
+### フェーズ 1: スキーマ分離（完了）
+- `infra/terraform/modules/database/roles.tf` にサービス別ロール定義を追加済み
 - 各スキーマへの GRANT 設定（SELECT, INSERT, UPDATE, DELETE のみ。DDL操作はmigrationユーザーのみ）
 - migration用ユーザー（`k1s0_migration`）は全スキーマのDDL権限を保持
+- 開発環境用スクリプト: `infra/docker/init-db/16-roles.sql`
+- ロール関連 Terraform 変数: `infra/terraform/modules/database/variables.tf`
 
 ### フェーズ 2: Vault Database エンジン設定
 - `infra/terraform/vault/database.tf` にDatabase エンジン設定を追加
@@ -71,7 +73,9 @@ Vault → サービス (username/password, TTL: 1h)
 - DB接続はPrivateネットワーク内のみ（PublicIPからのアクセス禁止）
 
 ## 参照
-- `infra/terraform/postgres/` — PostgreSQL Terraform設定
+- `infra/terraform/modules/database/roles.tf` — サービス別ロール・GRANT定義（Terraform）
+- `infra/terraform/modules/database/variables.tf` — ロール関連変数定義
+- `infra/docker/init-db/16-roles.sql` — 開発環境用ロール作成スクリプト
 - `infra/terraform/vault/` — Vault Terraform設定
 - `docs/infrastructure/security/Vault設計.md` — Vault全体設計
 
@@ -80,3 +84,4 @@ Vault → サービス (username/password, TTL: 1h)
 | 日付 | 変更内容 |
 |------|---------|
 | 2026-03-21 | 初版作成（技術品質監査対応 P2-32） |
+| 2026-03-24 | フェーズ 1 完了: roles.tf 新規作成、variables.tf 更新、開発環境用 SQL スクリプト追加（外部監査 C-02 対応） |

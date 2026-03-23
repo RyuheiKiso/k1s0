@@ -1,0 +1,62 @@
+# bff-proxy サービス用 PrometheusRule
+# bff-proxy のアラートルール定義（エラーレート、レイテンシ、Pod 再起動）
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: bff-proxy-alerts
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: bff-proxy
+    tier: system
+    service: bff-proxy
+spec:
+  groups:
+    - name: bff_proxy.rules
+      rules:
+        # エラーレートが 5 分間 5% を超えた場合に critical アラートを発火
+        - alert: bff_proxy_high_error_rate
+          expr: |
+            (
+              sum(rate(http_requests_total{service="bff-proxy", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{service="bff-proxy"}[5m]))
+            ) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            service: bff-proxy
+            tier: system
+          annotations:
+            summary: "High error rate on bff-proxy"
+            description: "Error rate is above 5% for bff-proxy in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
+
+        # P99 レイテンシが 5 分間 2 秒を超えた場合に warning アラートを発火
+        - alert: bff_proxy_high_latency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{service="bff-proxy"}[5m])) by (le)
+            ) > 2.0
+          for: 5m
+          labels:
+            severity: warning
+            service: bff-proxy
+            tier: system
+          annotations:
+            summary: "High P99 latency on bff-proxy"
+            description: "P99 latency is above 2s for bff-proxy in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
+
+        # 15 分間に 3 回以上の Pod 再起動が発生した場合に critical アラートを発火
+        - alert: bff_proxy_pod_restarts
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="k1s0-system", pod=~"bff-proxy.*"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            service: bff-proxy
+            tier: system
+          annotations:
+            summary: "Pod restarts detected for bff-proxy"
+            description: "Pod bff-proxy in k1s0-system has restarted more than 3 times in the last 15 minutes"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/pod-restart.md"

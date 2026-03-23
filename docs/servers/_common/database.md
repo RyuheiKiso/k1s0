@@ -292,6 +292,19 @@ DROP TABLE auth.audit_logs_2024_01;
 | staging | postgres.k1s0-system.svc.cluster.local | require | 25 | 5 |
 | prod | postgres.k1s0-system.svc.cluster.local | verify-full | 50 | 10 |
 
+#### ssl_mode 設定方針
+
+各環境における `ssl_mode` の選択理由を以下に示す。
+
+| 環境 | ssl_mode | 理由 |
+|------|----------|------|
+| dev | `disable` | docker-compose ローカル環境。PostgreSQL への接続は同一 Docker ネットワーク内に閉じており、TLS 不要。意図的に無効化。 |
+| staging | `require` | K8s クラスター内通信。Istio mTLS（PERMISSIVE モード）で転送路は暗号化されるが、証明書検証まで不要。接続先の正当性より暗号化を優先。 |
+| prod | `verify-full` | K8s クラスター内で Istio STRICT mTLS を採用しており、トランスポート層は Envoy サイドカーにより相互認証済み。アプリ層での TLS は技術的に冗長だが、多層防御（Defense in Depth）の観点から `verify-full` を維持する。PostgreSQL サーバー証明書の CN/SAN 検証により、誤った接続先への意図しないデータ送信を防ぐ。 |
+
+> **注意**: `config/config.yaml` の `ssl_mode: "disable"` はデフォルト値（dev 環境相当）。
+> staging/prod にデプロイする際は、Helm values または環境変数 `DATABASE__SSL_MODE` で上書きすること。
+
 ### Vault によるクレデンシャル管理
 
 [認証認可設計](../../architecture/auth/認証認可設計.md) D-006 のシークレットパス体系に従う。

@@ -15,15 +15,26 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 /// gRPC メタデータから x-tenant-id を取得する。
-/// 存在しない場合は "system" にフォールバックする（暫定実装）。
-/// TODO: フォールバックを廃止し、x-tenant-id 必須化（認証ミドルウェアが設定）する
+/// 存在しない場合は "system" にフォールバックし、
+/// 認証ミドルウェアの設定漏れを検知するために警告ログを出力する。
 fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> String {
-    metadata
+    let tenant_id = metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .map(|s| s.to_string());
+
+    match tenant_id {
+        Some(id) => id,
+        None => {
+            // x-tenant-id が設定されていない場合は認証ミドルウェアの設定漏れを示す
+            tracing::warn!(
+                "x-tenant-id metadata missing, falling back to 'system'. \
+                This should be set by the auth middleware."
+            );
+            "system".to_string()
+        }
+    }
 }
 
 // ドメイン Task をproto Task に変換するヘルパー

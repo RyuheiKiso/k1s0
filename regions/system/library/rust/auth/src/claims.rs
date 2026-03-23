@@ -153,6 +153,18 @@ impl Claims {
         self.tier_access.as_deref().unwrap_or(&[])
     }
 
+    /// Claims からテナント ID を取得する。
+    ///
+    /// tenant_id カスタムクレーム（Keycloak Protocol Mapper で設定） > 空文字列時は "system" の優先順。
+    /// iss は以前テナント ID として誤用されていたが、全テナントで共通値のため使用しない。
+    pub fn tenant_id(&self) -> &str {
+        if !self.tenant_id.is_empty() {
+            self.tenant_id.as_str()
+        } else {
+            "system"
+        }
+    }
+
     /// Claims からアクター名を取得する。
     ///
     /// preferred_username > email > sub の優先順位で非空の値を返す。

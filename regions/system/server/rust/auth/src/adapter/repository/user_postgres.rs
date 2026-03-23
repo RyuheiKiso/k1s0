@@ -150,71 +150,82 @@ impl UserRepository for UserPostgresRepository {
         search: Option<String>,
         enabled: Option<bool>,
     ) -> anyhow::Result<UserListResult> {
+        // ページ番号・ページサイズの最小値をガードする
         let page = if page < 1 { 1 } else { page };
         let page_size = if page_size < 1 { 20 } else { page_size };
         let offset = (page - 1) * page_size;
 
-        let mut conditions = Vec::new();
-        let mut bind_index = 1u32;
+        // COUNT クエリ: QueryBuilder で WHERE 句を動的に組み立てる
+        // format! によるプレースホルダー番号の手動管理を排除し、保守性を向上させる
+        let mut count_qb =
+            sqlx::QueryBuilder::new("SELECT COUNT(*) FROM auth.users WHERE 1=1");
 
-        if search.is_some() {
-            conditions.push(format!(
-                "(username ILIKE '%' || ${bi} || '%' OR email ILIKE '%' || ${bi} || '%' OR display_name ILIKE '%' || ${bi} || '%')",
-                bi = bind_index
-            ));
-            bind_index += 1;
-        }
-        if enabled.is_some() {
-            conditions.push(format!("status = ${}", bind_index));
-            bind_index += 1;
-        }
-
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
-
-        let count_query = format!("SELECT COUNT(*) FROM auth.users {}", where_clause);
-        let data_query = format!(
-            "SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at FROM auth.users {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, bind_index, bind_index + 1
-        );
-
-        // count
-        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
         if let Some(ref s) = search {
-            count_q = count_q.bind(s);
+            // ILIKE による部分一致検索: username / email / display_name を対象とする
+            count_qb
+                .push(" AND (username ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(" OR email ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(" OR display_name ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(")");
         }
+
         if let Some(en) = enabled {
+            // enabled フラグを DB の status 文字列に変換して絞り込む
             let status = if en { "active" } else { "inactive" };
-            count_q = count_q.bind(status);
+            count_qb.push(" AND status = ").push_bind(status.to_string());
         }
+
         let start = std::time::Instant::now();
-        let total_count = count_q.fetch_one(&self.pool).await?;
+        let total_count: i64 = count_qb
+            .build_query_scalar()
+            .fetch_one(&self.pool)
+            .await?;
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("list_count", "users", start.elapsed().as_secs_f64());
         }
 
-        // data
-        let mut data_q = sqlx::query_as::<_, UserRow>(&data_query);
+        // DATA クエリ: QueryBuilder で WHERE 句・ORDER BY・LIMIT・OFFSET を動的に組み立てる
+        let mut data_qb = sqlx::QueryBuilder::new(
+            "SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at FROM auth.users WHERE 1=1",
+        );
+
         if let Some(ref s) = search {
-            data_q = data_q.bind(s);
+            // COUNT クエリと同一条件で絞り込む
+            data_qb
+                .push(" AND (username ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(" OR email ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(" OR display_name ILIKE ")
+                .push_bind(format!("%{}%", s))
+                .push(")");
         }
+
         if let Some(en) = enabled {
             let status = if en { "active" } else { "inactive" };
-            data_q = data_q.bind(status);
+            data_qb.push(" AND status = ").push_bind(status.to_string());
         }
-        data_q = data_q.bind(page_size as i64);
-        data_q = data_q.bind(offset as i64);
+
+        // ページネーション用の ORDER BY / LIMIT / OFFSET を追加する
+        data_qb
+            .push(" ORDER BY created_at DESC LIMIT ")
+            .push_bind(page_size as i64)
+            .push(" OFFSET ")
+            .push_bind(offset as i64);
 
         let start = std::time::Instant::now();
-        let rows: Vec<UserRow> = data_q.fetch_all(&self.pool).await?;
+        let rows: Vec<UserRow> = data_qb
+            .build_query_as::<UserRow>()
+            .fetch_all(&self.pool)
+            .await?;
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("list", "users", start.elapsed().as_secs_f64());
         }
-        let users: Vec<User> = rows.into_iter().map(|r| r.into()).collect();
 
+        let users: Vec<User> = rows.into_iter().map(|r| r.into()).collect();
         let has_next = (page as i64 * page_size as i64) < total_count;
 
         Ok(UserListResult {

@@ -137,8 +137,34 @@ impl SessionRepository for RedisSessionRepository {
     async fn delete(&self, id: &str) -> Result<(), SessionError> {
         let mut conn = self.conn.clone();
 
-        // まずセッションを取得してトークンとユーザー ID を知る
         let session_key = self.session_key(id);
+
+        // セッション JSON を先読みしてトークン・ユーザー ID を取得する。
+        // TOCTOU 競合を防ぐため、GET → DEL → DEL → SREM の4操作を
+        // Lua スクリプトで単一のアトミックなトランザクションとして実行する。
+        //
+        // KEYS[1] = session_key  ("session:id:{id}")
+        // KEYS[2] = token_key    ("session:token:{token}")
+        // KEYS[3] = user_key     ("session:user:{user_id}")
+        // ARGV[1] = session_id   (SREM で削除するメンバー)
+        //
+        // スクリプトはセッションが存在しない場合は 0 を、削除した場合は 1 を返す。
+        // redis::Script::new は const/static では使えないため、呼び出しごとに生成する。
+        let script = redis::Script::new(
+            r#"
+local session_json = redis.call('GET', KEYS[1])
+if session_json == false then
+  return 0
+end
+redis.call('DEL', KEYS[1])
+redis.call('DEL', KEYS[2])
+redis.call('SREM', KEYS[3], ARGV[1])
+return 1
+"#,
+        );
+
+        // セッション JSON を取得してキーを構築するため、まず GET のみ実行する。
+        // Lua スクリプトには全キーを渡す必要があるため、事前に JSON を読んでトークン・ユーザー ID を取得する。
         let value: Option<String> = conn
             .get(&session_key)
             .await
@@ -151,20 +177,16 @@ impl SessionRepository for RedisSessionRepository {
             let token_key = self.token_key(&session.token);
             let user_key = self.user_key(&session.user_id);
 
-            // DEL session:{id}
-            conn.del::<_, ()>(&session_key)
+            // Lua スクリプトで GET 確認 → DEL × 2 → SREM をアトミックに実行する。
+            // セッションがスクリプト実行前に他プロセスに削除された場合は 0 が返り、正常終了とする。
+            script
+                .key(&session_key)
+                .key(&token_key)
+                .key(&user_key)
+                .arg(id)
+                .invoke_async::<i32>(&mut conn)
                 .await
-                .map_err(|e| SessionError::Internal(format!("redis DEL error: {}", e)))?;
-
-            // DEL session:token:{token}
-            conn.del::<_, ()>(&token_key)
-                .await
-                .map_err(|e| SessionError::Internal(format!("redis DEL token error: {}", e)))?;
-
-            // SREM session:user:{user_id} id
-            conn.srem::<_, _, ()>(&user_key, id)
-                .await
-                .map_err(|e| SessionError::Internal(format!("redis SREM error: {}", e)))?;
+                .map_err(|e| SessionError::Internal(format!("redis Lua delete error: {}", e)))?;
         }
 
         Ok(())

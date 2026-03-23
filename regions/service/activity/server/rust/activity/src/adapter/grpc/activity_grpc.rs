@@ -92,14 +92,26 @@ fn domain_activity_to_proto(a: crate::domain::entity::activity::Activity) -> Pro
 }
 
 /// gRPC メタデータから x-tenant-id を取得する。
-/// 存在しない場合または不正なバイト列の場合は "system" をフォールバックとして使用する（フェーズ2で完全対応）。
+/// 存在しない場合または不正なバイト列の場合は "system" をフォールバックとして使用し、
+/// 認証ミドルウェアの設定漏れを検知するために警告ログを出力する。
 fn tenant_id_from_metadata<T>(req: &Request<T>) -> String {
-    req.metadata()
+    let tenant_id = req.metadata()
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty())
-        .unwrap_or("system")
-        .to_string()
+        .map(|s| s.to_string());
+
+    match tenant_id {
+        Some(id) => id,
+        None => {
+            // x-tenant-id が設定されていない場合は認証ミドルウェアの設定漏れを示す
+            tracing::warn!(
+                "x-tenant-id metadata missing, falling back to 'system'. \
+                This should be set by the auth middleware."
+            );
+            "system".to_string()
+        }
+    }
 }
 
 pub struct ActivityGrpcService {

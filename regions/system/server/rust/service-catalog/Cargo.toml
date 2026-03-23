@@ -1,9 +1,9 @@
 [package]
 name = "k1s0-service-catalog"
 version = "0.1.0"
-# TODO: edition統一 - プロジェクト全体の方針決定後に統一（大多数は edition = "2021"）
-edition = "2024"
-rust-version = "1.93"
+# edition統一完了: 2021に変更（プロジェクト全体の統一方針に従う）
+edition = "2021"
+rust-version = "1.56"
 
 [lib]
 name = "k1s0_service_catalog"

@@ -169,6 +169,7 @@ pub async fn start_saga(
         ));
     }
 
+    // ドメインエラー（SagaError）をアダプタ層のハンドラーエラー型に型安全に変換する
     let saga_id = state
         .start_saga_uc
         .execute(
@@ -178,7 +179,14 @@ pub async fn start_saga(
             req.initiated_by,
         )
         .await
-        .map_err(|e| SagaError::Internal(e.to_string()))?;
+        .map_err(|e| {
+            use crate::domain::error::SagaError as DomainSagaError;
+            match e {
+                DomainSagaError::NotFound(msg) => SagaError::NotFound(msg),
+                DomainSagaError::ValidationFailed(msg) => SagaError::Validation(msg),
+                other => SagaError::Internal(other.to_string()),
+            }
+        })?;
 
     Ok((
         StatusCode::CREATED,

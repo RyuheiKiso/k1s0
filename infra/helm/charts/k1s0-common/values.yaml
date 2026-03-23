@@ -166,3 +166,11 @@ istio:
       interval: 30s
       baseEjectionTime: 30s
       maxEjectionPercent: 50
+
+# Alertmanager 設定（H-03 対応: PagerDuty エスカレーション通知チャネルを追加）
+# pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない
+alertmanager:
+  webhookUrl: ""            # Microsoft Teams デフォルト Webhook URL（環境別に上書きすること）
+  criticalWebhookUrl: ""    # Microsoft Teams critical Webhook URL（環境別に上書きすること）
+  warningWebhookUrl: ""     # Microsoft Teams warning Webhook URL（環境別に上書きすること）
+  pagerdutyRoutingKey: ""   # PagerDuty Routing Key（Vault パス: secret/data/k1s0/observability/pagerduty キー: routing_key）
