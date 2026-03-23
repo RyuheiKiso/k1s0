@@ -2,46 +2,76 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// 設定エントリを表すドメインエンティティ。
+/// サービスの設定値（名前空間とキーのペア）を管理し、バージョン管理と監査情報を保持する。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigEntry {
+    /// エントリの一意識別子
     pub id: Uuid,
+    /// 設定の名前空間（例: `system.auth.database`）
     pub namespace: String,
+    /// 設定キー（例: `max_connections`）
     pub key: String,
+    /// 設定値（JSON 形式で格納）。シリアライズ時は `value` キーで出力される
     #[serde(rename = "value", alias = "value_json")]
     pub value_json: serde_json::Value,
+    /// 楽観的ロックに使用するバージョン番号
     pub version: i32,
+    /// 設定の説明文
     pub description: String,
+    /// エントリを作成したユーザー識別子
     pub created_by: String,
+    /// エントリを最後に更新したユーザー識別子
     pub updated_by: String,
+    /// エントリ作成日時（UTC）
     pub created_at: DateTime<Utc>,
+    /// エントリ最終更新日時（UTC）
     pub updated_at: DateTime<Utc>,
 }
 
+/// ページネーション情報を表す。
+/// 一覧取得結果とともに返され、クライアントが次ページの存在を判断するために使用する。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct Pagination {
+    /// フィルタ条件に一致する全件数
     pub total_count: i64,
+    /// 現在のページ番号（1 始まり）
     pub page: i32,
+    /// 1 ページあたりの件数
     pub page_size: i32,
+    /// 次ページが存在するかどうか
     pub has_next: bool,
 }
 
+/// 設定エントリ一覧とページネーション情報をまとめた結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ConfigListResult {
+    /// 設定エントリの一覧
     pub entries: Vec<ConfigEntry>,
+    /// ページネーション情報
     pub pagination: Pagination,
 }
 
+/// サービス向けに提供する設定エントリを表す。
+/// `ConfigEntry` から内部管理フィールドを除いたサービス参照用の軽量な表現。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigEntry {
+    /// 設定の名前空間（例: `system.auth.database`）
     pub namespace: String,
+    /// 設定キー（例: `max_connections`）
     pub key: String,
+    /// 設定値（JSON 形式）
     pub value: serde_json::Value,
+    /// 現在のバージョン番号
     pub version: i32,
 }
 
+/// サービスが保持する設定エントリ一覧をまとめた結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct ServiceConfigResult {
+    /// 設定を所有するサービス名（例: `auth-server`）
     pub service_name: String,
+    /// 該当サービスの設定エントリ一覧
     pub entries: Vec<ServiceConfigEntry>,
 }
 

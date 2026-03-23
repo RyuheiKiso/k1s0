@@ -26,8 +26,9 @@ on:
       - 'regions/service/activity/database/**'
       - 'regions/business/taskmanagement/**'
   schedule:
-    # 毎週月曜 03:00 UTC に全テストを定期実行し、回帰テスト失敗を検知する
-    - cron: '0 3 * * 1'
+    # フラッキーテスト検知のため毎日 03:00 UTC に定期実行する（L-02 対応）
+    # 統計的に不安定なテストを翌日以内に検知するため日次実行に変更
+    - cron: '0 3 * * *'
 
 concurrency:
   group: ci-${{ github.ref }}

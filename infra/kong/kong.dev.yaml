@@ -205,7 +205,8 @@ plugins:
     config:
       minute: 5000
       policy: local
-      fault_tolerant: true
+      # ローカル開発環境: local policy のため Redis 障害は発生しないが、本番設定（false）に合わせて統一する
+      fault_tolerant: false
       hide_client_headers: false
 
   # JWT Plugin - Keycloak JWKS 連携（ローカル開発用）
@@ -220,6 +221,8 @@ plugins:
       claims_to_verify:
         - exp
         - iss  # 発行元検証: consumer の key（http://keycloak:8080/realms/k1s0）と一致することを確認
+        # audience クレームを検証し、このサービス向けトークンであることを確認する（OIDC 仕様上必須）
+        - aud
       maximum_expiration: 900           # 15分（Access Token のライフタイム）
       header_names:
         - Authorization

@@ -11,16 +11,24 @@ spec:
     mode: STRICT
     minProtocolVersion: TLSV1_3
 ---
-# observability Namespace uses PERMISSIVE mode because Prometheus
-# scrape uses plain HTTP without mTLS (see サービスメッシュ設計.md).
+# observability Namespace は Namespace レベルで STRICT mTLS を強制する（H-01 対応）
+# PERMISSIVE ではメトリクス通信が平文で許可されるため盗聴リスクがある。
+# Prometheus の scrape ポート（15020: Istio envoy sidecar の admin metrics 集約ポート）のみ
+# portLevelMtls で PERMISSIVE を例外許可し、それ以外は STRICT を維持する。
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: allow-prometheus
+  name: observability-mtls
   namespace: observability
 spec:
   mtls:
-    mode: PERMISSIVE
+    # Namespace 全体は STRICT mTLS を強制し、盗聴リスクを排除する
+    mode: STRICT
+  portLevelMtls:
+    # Prometheus が Istio envoy sidecar からメトリクスを scrape する標準ポート（15020）のみ例外許可
+    # このポートは Istio が集約した Prometheus 形式のメトリクスを提供するため plain HTTP が必要
+    15020:
+      mode: PERMISSIVE
 ---
 # Namespace-level PeerAuthentication for defense-in-depth (multi-layer protection).
 # These complement the mesh-wide STRICT mTLS default defined in the service-mesh

@@ -415,7 +415,8 @@ api/proto/k1s0/system/auth/v1/auth.proto
 syntax = "proto3";
 package k1s0.system.auth.v1;
 
-import "google/protobuf/timestamp.proto";
+// ADR-0004 移行後に実装が更新されたため、timestamp.proto から struct.proto に変更
+import "google/protobuf/struct.proto";
 import "k1s0/system/common/v1/types.proto";
 
 // AuthService は認証・認可サービス。

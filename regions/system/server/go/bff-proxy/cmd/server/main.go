@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -170,24 +171,35 @@ func run() error {
 	}
 
 	// OIDC discoveryを実行する。失敗した場合はバックグラウンドで再試行する。
-	// WaitGroupでゴルーチンのライフサイクルを追跡し、シャットダウン時に安全に完了を待機する
+	// WaitGroupでゴルーチンのライフサイクルを追跡し、シャットダウン時に安全に完了を待機する。
+	// H-07 対応: oidcReady フラグでバックグラウンドリトライの成否を外部から参照可能にする。
+	// HealthHandler がこのフラグを参照し、/readyz で Kubernetes にトラフィック制御の判断を委ねる。
 	var oidcWg sync.WaitGroup
+	// H-07 対応: OIDC discovery の最終的な成否を追跡する atomic フラグ。
+	// 初期値は false。成功時のみ true に更新される。全リトライ失敗時は false のまま維持される。
+	var oidcReady atomic.Bool
 	if _, err := oauthClient.Discover(ctx); err != nil {
 		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))
 		// discoveryが未完了の場合、バックグラウンドで定期的に再試行するゴルーチンを起動する
 		oidcWg.Add(1)
 		go func() {
 			defer oidcWg.Done()
-			retryOIDCDiscovery(ctx, oauthClient, logger)
+			// H-07 対応: oidcReady ポインタを渡し、リトライ成功時に true を格納させる
+			retryOIDCDiscovery(ctx, oauthClient, logger, &oidcReady)
 		}()
+	} else {
+		// 起動時の初回 discovery が成功した場合はフラグを即座に true にする
+		oidcReady.Store(true)
 	}
 
 	// 開発環境（dev/development/local）では secure フラグを外す。
 	// IsDevEnvironment で統一的に判定することで dev/development の不一致を防ぐ。
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 
-	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアントを渡す。
-	healthHandler := handler.NewHealthHandler(redisClient, oauthClient)
+	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアント、OIDCreadyフラグを渡す。
+	// H-07 対応: oidcReady を HealthHandler に渡すことで、バックグラウンドリトライの
+	// 全失敗時に /readyz が 503 を返し、Kubernetes がトラフィックを遮断できるようにする。
+	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, &oidcReady)
 	authHandler := handler.NewAuthHandler(
 		oauthClient, sessionStore, sessionTTL,
 		cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger,
@@ -401,7 +413,11 @@ func isProductionEnvironment(env string) bool {
 // retryOIDCDiscovery はOIDC discoveryが完了するまでバックグラウンドで再試行する。
 // 指数バックオフ（5s→10s→20s→最大60s）でリトライし、コンテキストがキャンセルされたら終了する。
 // G-05 対応: 最大リトライ回数を 20 回に制限し、無限リトライによる長時間待機を防止する。
-func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.Logger) {
+// H-07 対応: oidcReady パラメータを追加し、discovery 成功時に true を格納する。
+//
+//	全リトライ失敗時はフラグを false のまま維持し、/readyz を通じて
+//	Kubernetes がトラフィックを遮断できるようにする。
+func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.Logger, oidcReady *atomic.Bool) {
 	// 初回リトライ間隔
 	interval := 5 * time.Second
 	// リトライ間隔の上限
@@ -429,13 +445,19 @@ func retryOIDCDiscovery(ctx context.Context, client *oauth.Client, logger *slog.
 				}
 				continue
 			}
+			// H-07 対応: OIDC discovery 全失敗後、readiness を false にして
+			// Kubernetes がトラフィックを遮断できるようにする。
+			// リトライ成功時のみ oidcReady を true に更新する。
+			oidcReady.Store(true)
 			logger.Info("OIDC discovery succeeded after retry", slog.Int("attempt", attempt))
 			return
 		}
 	}
-	// G-05 対応: 最大リトライ回数に達した場合は警告を出してゴルーチンを終了する。
-	// サーバーは起動済みだが OIDC 未対応の状態となる。/healthz の readiness で検出できる。
-	logger.Error("OIDC discovery failed after maximum retries, giving up",
+	// G-05 対応: 最大リトライ回数に達した場合はエラーログを出してゴルーチンを終了する。
+	// H-07 対応: oidcReady は false のまま維持され、/readyz が 503 を返し続ける。
+	// これにより Kubernetes の readinessProbe がポッドをサービスから切り離し、
+	// OIDC 未対応状態のインスタンスへのトラフィックを遮断する。
+	logger.Error("OIDC discovery failed after maximum retries, giving up. Readiness will remain false.",
 		slog.Int("max_retries", maxRetries),
 	)
 }

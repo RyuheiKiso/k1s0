@@ -89,6 +89,21 @@ test.describe("CSRF 保護", () => {
   });
 });
 
+/**
+ * Keycloak 依存 E2E テストの実行方法:
+ *
+ * ローカル環境:
+ *   1. docker-compose up keycloak
+ *   2. TEST_KEYCLOAK_AVAILABLE=true TEST_USER=testuser TEST_PASSWORD=testpass npx playwright test
+ *
+ * CI 環境 (GitHub Actions):
+ *   - .github/workflows/e2e.yaml で Keycloak サービスコンテナが起動した場合に
+ *     TEST_KEYCLOAK_AVAILABLE=true が自動設定される
+ *   - 環境変数が設定されていない場合、このテストはスキップされる（認証なし環境での CI をブロックしない）
+ *
+ * 注意: 認証フローの根幹テストのため、定期的なフルテスト実行（weekly/monthly）では
+ *       必ず Keycloak を起動した状態でテストすること
+ */
 // T-04 対応: 認証成功フローの E2E テスト
 // Keycloak が TEST_KEYCLOAK_AVAILABLE=true で利用可能な場合のみ実行する。
 // CI では keycloak サービスコンテナが起動している場合に実行される。

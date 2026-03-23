@@ -11,6 +11,9 @@ plugins:
       key_claim_name: kid
       claims_to_verify:
         - exp
+        - iss  # 発行元検証: consumer の key（Keycloak レルム URL）と一致することを確認
+        # audience クレームを検証し、このサービス向けトークンであることを確認する（OIDC 仕様上必須）
+        - aud
       maximum_expiration: 900           # 15分（Access Token のライフタイム）
       header_names:
         - Authorization

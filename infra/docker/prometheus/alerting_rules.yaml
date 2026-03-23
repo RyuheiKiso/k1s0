@@ -1,6 +1,21 @@
+# アラートルール設計方針 (SLO に基づく閾値設定):
+# ローカル開発・CI 環境用のアラート定義（本番 SLO とは異なる緩い閾値）
+#
+# 参考 SLO（本番環境目標値）:
+#   - 可用性 SLO: 99.9% (月間ダウンタイム 43.8分以下)
+#   - レイテンシー SLO: P99 < 500ms
+#   - エラー率 SLO: < 1%
+#
+# 本ファイルの閾値（開発環境用の警告レベル）:
+#   - エラー率 > 5%: 開発中のデバッグ用（本番では > 1% で通知）
+#   - P99 > 1s: 開発中のパフォーマンス警告（本番では > 500ms）
+# L-04 対応: 閾値根拠の明記と本番用アラートルールファイルの分離を推奨
+
 groups:
   - name: local-dev-alerts
     rules:
+      # サービス死活監視: up メトリクスが 0（到達不能）になったら発火
+      # 可用性 SLO 99.9% の維持のため、1分以上の停止を即時検知する
       - alert: ServiceDown
         expr: up == 0
         for: 1m
@@ -11,6 +26,8 @@ groups:
           description: "{{ $labels.instance }} has been unreachable for more than 1 minute"
           runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
 
+      # HTTP エラー率監視: 5分間のエラー率が 5% を超えたら発火
+      # 開発環境用閾値: 0.05（5%）= 本番 SLO エラー率 1% の5倍（デバッグ優先のため緩く設定）
       - alert: HighErrorRate
         expr: service:http_errors:rate5m > 0.05
         for: 2m
@@ -21,6 +38,8 @@ groups:
           description: "{{ $labels.service }} の 5xx エラー率が {{ $value | humanizePercentage }} です"
           runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
 
+      # レイテンシー監視: P99 レスポンスタイムが 1秒を超えたら発火
+      # 開発環境用閾値: 1s = 本番 SLO P99 500ms の2倍（ローカル環境のオーバーヘッドを考慮）
       - alert: HighLatency
         expr: service:http_request_duration_seconds:p99 > 1
         for: 2m
@@ -31,6 +50,7 @@ groups:
           runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
 
       # gRPC エラー率が 5% を超えた場合にアラートを発火する
+      # 開発環境用閾値: 0.05（5%）= HTTP エラー率と同一基準（本番 SLO では 1% 以下を目標）
       - alert: GrpcHighErrorRate
         expr: service:grpc_errors:rate5m > 0.05
         for: 2m

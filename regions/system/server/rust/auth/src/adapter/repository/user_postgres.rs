@@ -5,6 +5,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::domain::entity::user::{Pagination, User, UserListResult, UserRoles};
+// ドメインエラー型をインポート: anyhow::anyhow! の代わりに型安全なエラーを使用する
+use crate::domain::error::AuthError;
 use crate::domain::repository::UserRepository;
 
 /// UserPostgresRepository は PostgreSQL ベースのユーザーリポジトリ。
@@ -115,8 +117,10 @@ fn split_display_name(display_name: &str) -> (String, String) {
 #[async_trait]
 impl UserRepository for UserPostgresRepository {
     async fn find_by_id(&self, user_id: &str) -> anyhow::Result<User> {
+        // UUID フォーマットが無効な場合はドメインエラー型 ValidationFailed を返す
+        // anyhow::anyhow! ではなく AuthError を使用することで型安全なエラー分類が可能になる
         let uuid = Uuid::parse_str(user_id)
-            .map_err(|e| anyhow::anyhow!("invalid user ID format: {}", e))?;
+            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {}", e)))?;
 
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
@@ -133,7 +137,9 @@ impl UserRepository for UserPostgresRepository {
             m.record_db_query_duration("find_by_id", "users", start.elapsed().as_secs_f64());
         }
 
-        let row = row?.ok_or_else(|| anyhow::anyhow!("user not found: {}", user_id))?;
+        // 対象ユーザーが存在しない場合はドメインエラー型 NotFound を返す
+        // anyhow::anyhow! ではなく AuthError を使用することで HTTP 404 に正確にマッピングされる
+        let row = row?.ok_or_else(|| AuthError::NotFound(user_id.to_string()))?;
         Ok(row.into())
     }
 
@@ -225,10 +231,12 @@ impl UserRepository for UserPostgresRepository {
     async fn get_roles(&self, user_id: &str) -> anyhow::Result<UserRoles> {
         // ロール情報は Keycloak が管理するため、DB からは取得しない。
         // このメソッドは UserRepository トレイトの互換性のために存在する。
-        anyhow::bail!(
+        // anyhow::bail! ではなく AuthError::Internal を使用してドメインエラー型で伝播させる
+        Err(AuthError::Internal(format!(
             "UserPostgresRepository does not support get_roles; use KeycloakClient instead: {}",
             user_id
-        )
+        ))
+        .into())
     }
 }
 
@@ -295,8 +303,9 @@ impl UserPostgresRepository {
     // 将来のユーザー管理 API で使用予定のため dead_code を許可
     #[allow(dead_code)]
     pub async fn update(&self, user: &User) -> anyhow::Result<User> {
+        // UUID フォーマットが無効な場合はドメインエラー型 ValidationFailed を返す
         let uuid = Uuid::parse_str(&user.id)
-            .map_err(|e| anyhow::anyhow!("invalid user ID format: {}", e))?;
+            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {}", e)))?;
         let display_name = Self::build_display_name(user);
         let status = Self::status_from_enabled(user.enabled);
 

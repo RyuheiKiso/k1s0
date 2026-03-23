@@ -13,7 +13,8 @@ services:
           redis_host: redis.k1s0-system.svc.cluster.local
           redis_port: 6379
           redis_database: 1
-          fault_tolerant: true
+          # Redis 障害時もレート制限を強制する（fault_tolerant: false）。DDoS 耐性維持のため設計意図として false が必須
+          fault_tolerant: false
           hide_client_headers: false
     routes:
       - name: project-master-v1-route

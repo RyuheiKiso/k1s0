@@ -1,4 +1,19 @@
+# Kafka トピック設計方針（M-09 対応）:
+# パーティション数の根拠:
+#   - system tier (6パーティション): 高トラフィックイベント（認証、設定変更等）
+#     最大 6 並列コンシューマーグループでスループットを確保する
+#   - service/business tier (3パーティション): レプリカ数（3）に合わせた最小単位
+#     各パーティションがレプリカの1つに割り当てられ、バランスの取れた分散を実現
+#   - DLQ トピック (1パーティション): 低頻度・処理失敗イベントのみ
+#     順序保証が不要なため単一パーティションで十分
+#   - audit トピック (6パーティション): 監査ログの高スループット要件
+#     長期保持（90日間）と高書き込み頻度を考慮
+#
+# レプリカ数は全トピック共通で 3（ブローカー数と一致させ可用性を確保）
+# min.insync.replicas=2 により、1 ブローカー障害時も書き込みを継続可能
+---
 # --- System Tier Topics ---
+# system tier: 認証・設定等の高頻度基盤イベント（6パーティション）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -16,6 +31,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- Service Tier Topics: Task Management ---
+# service tier: タスク管理イベント（3パーティション: レプリカ数と一致させ分散バランスを確保）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -113,6 +129,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- Business Tier Topics: Task Management ---
+# business tier: 業務ロジックイベント（3パーティション: レプリカ数と一致させ分散バランスを確保）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -146,6 +163,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- DLQ Topics: Task Management ---
+# DLQ: 処理失敗イベントの退避先（1パーティション: 低頻度かつ順序保証不要のため単一パーティションで十分）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -300,6 +318,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- System Tier: Auth Audit ---
+# audit トピック: 高スループット要件（6パーティション）、長期保持（90日間）と高書き込み頻度を考慮
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -335,6 +354,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- System Tier: Config Changed ---
+# system tier: 設定変更イベント（6パーティション: 高頻度かつ全サービスが購読する基盤トピック）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -369,6 +389,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- System Tier: Auth Token Validate ---
+# system tier: トークン検証イベント（6パーティション: 全リクエストに伴う高頻度認証処理）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -385,6 +406,7 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
+# system tier: 権限拒否イベント（3パーティション: 正常フローより低頻度のため中程度）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -401,6 +423,7 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
+# system tier: API スキーマ更新イベント（3パーティション: 低頻度の管理操作）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -417,6 +440,7 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
+# system tier: マスタデータ変更イベント（3パーティション: 低頻度の管理操作）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -433,6 +457,7 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
+# system tier: Saga 状態変更イベント（6パーティション: 分散トランザクション処理の高並列要件）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -450,6 +475,7 @@ spec:
     min.insync.replicas: 2
 ---
 # --- 不足トピックの DLQ ---
+# DLQ: Saga 状態変更の処理失敗イベント退避先（1パーティション）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:

@@ -1,3 +1,11 @@
+# Kafka クラスター設定
+# 使用バージョン:
+#   - Strimzi Operator: 0.38.0（Kafka 3.6.x をサポート）
+#     インストール方法: helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0
+#     バージョンは infra/terraform/environments/*/variables.tf の strimzi_operator_version で管理している
+#   - Kafka: 3.6.1（ZooKeeper モード）
+# バージョン互換性: https://strimzi.io/downloads/ で確認すること
+# L-06 対応: Strimzi Operator バージョンを明示的に記録
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:

@@ -2,35 +2,60 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// ConfigChangeLog は設定変更の監査ログを表すドメインエンティティ。
+/// 設定変更の監査ログを表すドメインエンティティ。
+/// 設定エントリに対する CREATED / UPDATED / DELETED 操作の前後の値と操作者を記録し、
+/// 変更履歴の追跡と監査を可能にする。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConfigChangeLog {
+    /// ログの一意識別子
     pub id: Uuid,
+    /// 変更対象の設定エントリ ID
     pub config_entry_id: Uuid,
+    /// 変更対象の名前空間
     pub namespace: String,
+    /// 変更対象の設定キー
     pub key: String,
+    /// 変更前の設定値（新規作成時は `None`）
     pub old_value: Option<serde_json::Value>,
+    /// 変更後の設定値（削除時は `None`）
     pub new_value: Option<serde_json::Value>,
+    /// 変更前のバージョン番号
     pub old_version: i32,
+    /// 変更後のバージョン番号
     pub new_version: i32,
+    /// 変更種別（`CREATED` / `UPDATED` / `DELETED`）
     pub change_type: String,
+    /// 変更を実施したユーザー識別子
     pub changed_by: String,
+    /// 変更操作に紐付くトレース ID（オプション）
     pub trace_id: Option<String>,
+    /// 変更が記録された日時（UTC）
     pub changed_at: DateTime<Utc>,
 }
 
-/// CreateChangeLogRequest は変更ログ作成リクエストを表す。
+/// 変更ログ作成リクエストを表す値オブジェクト。
+/// `ConfigChangeLog::new` に渡すことでログエントリを生成する。
 #[derive(Debug, Clone)]
 pub struct CreateChangeLogRequest {
+    /// 変更対象の設定エントリ ID
     pub config_entry_id: Uuid,
+    /// 変更対象の名前空間
     pub namespace: String,
+    /// 変更対象の設定キー
     pub key: String,
+    /// 変更前の設定値（新規作成時は `None`）
     pub old_value: Option<serde_json::Value>,
+    /// 変更後の設定値（削除時は `None`）
     pub new_value: Option<serde_json::Value>,
+    /// 変更前のバージョン番号
     pub old_version: i32,
+    /// 変更後のバージョン番号
     pub new_version: i32,
+    /// 変更種別（`CREATED` / `UPDATED` / `DELETED`）
     pub change_type: String,
+    /// 変更を実施したユーザー識別子
     pub changed_by: String,
+    /// 変更操作に紐付くトレース ID（オプション）
     pub trace_id: Option<String>,
 }
 

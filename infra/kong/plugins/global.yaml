@@ -14,7 +14,8 @@ plugins:
       redis_host: redis.k1s0-system.svc.cluster.local
       redis_port: 6379
       redis_database: 1
-      fault_tolerant: true           # Redis 障害時は制限なしで通過
+      # Redis 障害時もレート制限を強制する（fault_tolerant: false）。DDoS 耐性維持のため設計意図として false が必須
+      fault_tolerant: false
       hide_client_headers: false     # X-RateLimit-* ヘッダーを返却
 
   # CORS - クロスオリジンリソース共有

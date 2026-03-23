@@ -30,6 +30,10 @@ Kong API Gateway、Istio サービスメッシュ、JWKS トークン検証、RB
   - レート制限・DDoS防御
   - リクエストルーティング
 - **通過するリクエスト**: 認証済みJWTを持つもの、または公開エンドポイント
+- **JWT クレーム検証必須項目**（`infra/kong/kong.yaml` の `claims_to_verify`）:
+  - `exp`: トークン有効期限
+  - `iss`: 発行元（Keycloak レルム URL と一致すること）
+  - `aud`: audience（このサービス向けトークンであることを確認する。OIDC 仕様上必須。別サービス向けトークンの流用を防止する）
 
 ### Istio サービスメッシュ
 - **位置**: クラスター内のサービス間
