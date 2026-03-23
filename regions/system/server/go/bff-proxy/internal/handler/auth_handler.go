@@ -1,19 +1,21 @@
+// auth_handler.go は OAuth2/OIDC 認証フローの HTTP ハンドラーを提供する。
+// Login/Callback/Logout/Session/Exchange の各エンドポイントを実装する。
+// 認証フローのビジネスロジックは AuthUseCase に委譲し、
+// このハンドラーは HTTP リクエスト/レスポンスの変換（Cookie の読み書き、リダイレクト等）のみを担当する。
 package handler
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/middleware"
-	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
-	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/usecase"
 )
 
 const (
@@ -28,33 +30,18 @@ const (
 
 	// postAuthRedirectCookie はモバイルクライアント向けの認証後リダイレクト先を保持する。
 	postAuthRedirectCookie = "k1s0_post_auth_redirect"
-
-	// exchangeCodeTTL はワンタイム交換コードの有効期間（60秒）。
-	exchangeCodeTTL = 60 * time.Second
 )
 
 // OAuthClient は OAuth2/OIDC プロバイダー操作のインターフェース。
-// テスト時にモック差し替えを可能にする。
-type OAuthClient interface {
-	// AuthCodeURL は認可コードフローの URL を構築する。
-	AuthCodeURL(state, codeChallenge string) (string, error)
-	// ExchangeCode は認可コードをトークンに交換する。
-	ExchangeCode(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
-	// ExtractClaims は JWKS 署名検証済みの ID トークンから subject と realm roles を返す。
-	// アクセストークンの署名未検証によるロール改ざんリスクを排除するため、
-	// 必ず ID トークン（検証済み）から roles を取得する。
-	ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error)
-	// LogoutURL は IdP のログアウト URL を返す。
-	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
-	// ClearDiscoveryCache はキャッシュ済みの OIDC discovery 結果をクリアする。
-	// ログアウト時に呼び出し、次回ログインで最新のプロバイダ情報を再取得させる。
-	ClearDiscoveryCache()
-}
+// usecase.AuthOAuthClient の type alias として定義し、
+// テスト時のモック差し替えを可能にしつつ循環参照を避ける。
+type OAuthClient = usecase.AuthOAuthClient
 
-// AuthHandler handles the OAuth2/OIDC browser flow.
+// AuthHandler は OAuth2/OIDC ブラウザ認証フローを処理する HTTP ハンドラー。
+// ビジネスロジックは AuthUseCase に委譲し、HTTP 変換のみを担当する。
 type AuthHandler struct {
-	oauthClient   OAuthClient
-	sessionStore  session.Store
+	// authUseCase は認証フローのビジネスロジックを提供する。
+	authUseCase   *usecase.AuthUseCase
 	sessionTTL    time.Duration
 	postLogoutURI string
 	secureCookie  bool
@@ -63,10 +50,11 @@ type AuthHandler struct {
 	logger       *slog.Logger
 }
 
-// NewAuthHandler creates a new AuthHandler.
+// NewAuthHandler は AuthHandler を生成する。
+// oauthClient と sessionStore を受け取り、AuthUseCase を内部で構築する。
 func NewAuthHandler(
 	oauthClient OAuthClient,
-	sessionStore session.Store,
+	sessionStore port.SessionStore,
 	sessionTTL time.Duration,
 	postLogoutURI string,
 	secureCookie bool,
@@ -74,8 +62,7 @@ func NewAuthHandler(
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
-		oauthClient:   oauthClient,
-		sessionStore:  sessionStore,
+		authUseCase:   usecase.NewAuthUseCase(oauthClient, sessionStore),
 		sessionTTL:    sessionTTL,
 		postLogoutURI: postLogoutURI,
 		secureCookie:  secureCookie,
@@ -84,70 +71,51 @@ func NewAuthHandler(
 	}
 }
 
-// Login initiates the OIDC authorization code flow with PKCE.
+// Login は OIDC 認可コードフロー（PKCE）を開始する。
+// AuthUseCase.Login にビジネスロジックを委譲し、Cookie 設定と IdP へのリダイレクトを行う。
 func (h *AuthHandler) Login(c *gin.Context) {
-	pkce, err := oauth.NewPKCE()
+	out, err := h.authUseCase.Login(c.Request.Context(), usecase.LoginInput{
+		RedirectTo: c.Query("redirect_to"),
+	})
 	if err != nil {
-		h.logger.Error("failed to generate PKCE", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_PKCE_ERROR")
-		return
-	}
-
-	state, err := generateRandomString(32)
-	if err != nil {
-		h.logger.Error("failed to generate state", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_STATE_ERROR")
-		return
-	}
-
-	authURL, err := h.oauthClient.AuthCodeURL(state, pkce.CodeChallenge)
-	if err != nil {
-		h.logger.Error("failed to build auth URL", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_URL_ERROR")
-		return
-	}
-
-	// Store state and verifier in short-lived cookies.
-	maxAge := 300 // 5 minutes
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(stateCookieName, state, maxAge, "/", h.cookieDomain, h.secureCookie, true)
-	c.SetCookie(verifierCookieName, pkce.CodeVerifier, maxAge, "/", h.cookieDomain, h.secureCookie, true)
-
-	// モバイルクライアント向け: redirect_to パラメータがあれば認証後のリダイレクト先を保存する
-	// セキュリティ: カスタムスキームのみ許可し、危険なスキームを明示的に拒否する
-	if redirectTo := c.Query("redirect_to"); redirectTo != "" {
-		if isAllowedRedirectScheme(redirectTo) {
-			c.SetCookie(postAuthRedirectCookie, redirectTo, maxAge, "/", h.cookieDomain, h.secureCookie, true)
+		usecaseErr, ok := err.(*usecase.AuthUseCaseError)
+		if ok {
+			h.logger.Error("Login ユースケースエラー", slog.String("code", usecaseErr.Code), slog.Any("error", usecaseErr.Err))
+			respondError(c, http.StatusInternalServerError, usecaseErr.Code)
+		} else {
+			h.logger.Error("Login 予期しないエラー", slog.Any("error", err))
+			respondError(c, http.StatusInternalServerError, "BFF_AUTH_INTERNAL_ERROR")
 		}
+		return
 	}
 
-	c.Redirect(http.StatusFound, authURL)
+	// state と PKCE verifier を短命な Cookie に保存する（有効期限: 5分）
+	maxAge := 300
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(stateCookieName, out.State, maxAge, "/", h.cookieDomain, h.secureCookie, true)
+	c.SetCookie(verifierCookieName, out.CodeVerifier, maxAge, "/", h.cookieDomain, h.secureCookie, true)
+
+	// モバイルクライアント向け: 許可されたスキームの場合のみ認証後リダイレクト先を保存する
+	if out.AllowMobileRedirect {
+		c.SetCookie(postAuthRedirectCookie, c.Query("redirect_to"), maxAge, "/", h.cookieDomain, h.secureCookie, true)
+	}
+
+	c.Redirect(http.StatusFound, out.AuthURL)
 }
 
-// Callback handles the OIDC callback, exchanges the code, and creates a session.
+// Callback は IdP からのコールバックを処理する。
+// AuthUseCase.Callback にビジネスロジックを委譲し、セッション Cookie の設定とレスポンスを行う。
 func (h *AuthHandler) Callback(c *gin.Context) {
-	// セッション固定化攻撃を防止するため、認証完了前に既存セッションを破棄する。
-	// 攻撃者が認証前のセッション ID を認証後に再利用できないよう削除する（S-03 対応）。
-	if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && existingSessionID != "" {
-		if delErr := h.sessionStore.Delete(c.Request.Context(), existingSessionID); delErr != nil {
-			h.logger.Warn("既存セッションの削除に失敗", slog.String("session_id", existingSessionID), slog.String("error", delErr.Error()))
-		}
-	}
+	// 既存セッション ID（セッション固定化攻撃防止のため UseCase に渡す）
+	existingSessionID, _ := c.Cookie(CookieName)
 
-	// Verify state parameter.
-	state, err := c.Cookie(stateCookieName)
-	if err != nil || state == "" {
-		respondBadRequest(c, "BFF_AUTH_STATE_MISSING")
-		return
-	}
+	// Cookie State の取得（不在は UseCase 側で BFF_AUTH_STATE_MISSING として処理する）
+	cookieState, _ := c.Cookie(stateCookieName)
 
-	queryState := c.Query("state")
-	if queryState != state {
-		respondBadRequest(c, "BFF_AUTH_STATE_MISMATCH")
-		return
-	}
+	// PKCE verifier の取得（不在は UseCase 側で BFF_AUTH_VERIFIER_MISSING として処理する）
+	verifier, _ := c.Cookie(verifierCookieName)
 
-	// Check for error from IdP.
+	// IdP からのエラーレスポンスを確認する
 	if errCode := c.Query("error"); errCode != "" {
 		h.logger.Warn("OIDC callback error",
 			slog.String("error", errCode),
@@ -161,139 +129,90 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	code := c.Query("code")
-	if code == "" {
-		respondBadRequest(c, "BFF_AUTH_CODE_MISSING")
-		return
-	}
+	// モバイルクライアント向けリダイレクト先（Cookie から取得）
+	postAuthRedirect, _ := c.Cookie(postAuthRedirectCookie)
 
-	// Retrieve PKCE verifier.
-	verifier, err := c.Cookie(verifierCookieName)
-	if err != nil || verifier == "" {
-		respondBadRequest(c, "BFF_AUTH_VERIFIER_MISSING")
-		return
-	}
-
-	// Exchange authorization code for tokens.
-	tokenResp, err := h.oauthClient.ExchangeCode(c.Request.Context(), code, verifier)
+	out, err := h.authUseCase.Callback(c.Request.Context(), usecase.CallbackInput{
+		ExistingSessionID: existingSessionID,
+		State:             c.Query("state"),
+		CookieState:       cookieState,
+		Code:              c.Query("code"),
+		CodeVerifier:      verifier,
+		PostAuthRedirect:  postAuthRedirect,
+		SessionTTL:        h.sessionTTL,
+	})
 	if err != nil {
-		h.logger.Error("token exchange failed", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_TOKEN_EXCHANGE_FAILED")
+		usecaseErr, ok := err.(*usecase.AuthUseCaseError)
+		if !ok {
+			h.logger.Error("Callback 予期しないエラー", slog.Any("error", err))
+			respondError(c, http.StatusInternalServerError, "BFF_AUTH_INTERNAL_ERROR")
+			return
+		}
+		// エラーコードに応じた HTTP ステータスコードを返す
+		switch usecaseErr.Code {
+		case "BFF_AUTH_STATE_MISSING", "BFF_AUTH_STATE_MISMATCH",
+			"BFF_AUTH_CODE_MISSING", "BFF_AUTH_VERIFIER_MISSING",
+			"BFF_AUTH_REDIRECT_URL_INVALID":
+			respondBadRequest(c, usecaseErr.Code)
+		case "BFF_AUTH_ID_TOKEN_INVALID":
+			respondError(c, http.StatusUnauthorized, usecaseErr.Code)
+		default:
+			if usecaseErr.Err != nil {
+				h.logger.Error("Callback ユースケースエラー", slog.String("code", usecaseErr.Code), slog.Any("error", usecaseErr.Err))
+			}
+			respondError(c, http.StatusInternalServerError, usecaseErr.Code)
+		}
 		return
 	}
 
-	// JWKS 署名検証付きで ID トークンから subject と realm roles を一括取得する。
-	// アクセストークンからロールを取得する方式（署名未検証）を廃止し、
-	// 必ず検証済みの ID トークンから取得することでロール改ざんリスクを排除する。
-	subject, roles, err := h.oauthClient.ExtractClaims(c.Request.Context(), tokenResp.IDToken)
-	if err != nil {
-		h.logger.Error("ID トークンの検証とクレーム取得に失敗", slog.String("error", err.Error()))
-		respondError(c, http.StatusUnauthorized, "BFF_AUTH_ID_TOKEN_INVALID")
-		return
-	}
-
-	// Generate CSRF token for the session.
-	csrfToken, err := generateRandomString(32)
-	if err != nil {
-		h.logger.Error("failed to generate CSRF token", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_CSRF_ERROR")
-		return
-	}
-
-	// Create session.
-	sessData := &session.SessionData{
-		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: tokenResp.RefreshToken,
-		IDToken:      tokenResp.IDToken,
-		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
-		CSRFToken:    csrfToken,
-		Subject:      subject,
-		Roles:        roles,
-	}
-
-	sessionID, err := h.sessionStore.Create(c.Request.Context(), sessData, h.sessionTTL)
-	if err != nil {
-		h.logger.Error("failed to create session", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_SESSION_CREATE_FAILED")
-		return
-	}
-
-	// Clear OAuth flow cookies.
+	// OAuth フロー用 Cookie をクリアする
 	c.SetCookie(stateCookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
 	c.SetCookie(verifierCookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
 
-	// Set session cookie.
+	// セッション Cookie を発行する
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(CookieName, sessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
+	c.SetCookie(CookieName, out.SessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
 
-	// モバイルクライアント向け: 認証後リダイレクト先が設定されている場合はワンタイム交換コードを発行してリダイレクトする
-	postAuthRedirect, redirectErr := c.Cookie(postAuthRedirectCookie)
-	if redirectErr == nil && postAuthRedirect != "" {
+	// モバイルフロー: 交換コード付きカスタムスキーム URL へリダイレクトする
+	if out.MobileRedirectURL != "" {
 		// リダイレクト用 Cookie をクリアする
 		c.SetCookie(postAuthRedirectCookie, "", -1, "/", h.cookieDomain, h.secureCookie, true)
-
-		// ワンタイム交換コード: セッション ID への参照を短命なエントリとして保存する
-		exchangeData := &session.SessionData{
-			AccessToken: sessionID,
-			ExpiresAt:   time.Now().Add(exchangeCodeTTL).Unix(),
-		}
-		exchangeCode, err := h.sessionStore.Create(c.Request.Context(), exchangeData, exchangeCodeTTL)
-		if err != nil {
-			h.logger.Error("failed to create exchange code", slog.String("error", err.Error()))
-			respondError(c, http.StatusInternalServerError, "BFF_AUTH_EXCHANGE_CREATE_FAILED")
-			return
-		}
-
-		// リダイレクト先 URL に交換コードを付与する（S-05 対応: url.Parse のエラーを検証する）
-		redirectURL, err := url.Parse(postAuthRedirect)
-		if err != nil {
-			h.logger.Error("リダイレクト先 URL のパースに失敗", slog.String("url", postAuthRedirect), slog.String("error", err.Error()))
-			respondError(c, http.StatusBadRequest, "BFF_AUTH_REDIRECT_URL_INVALID")
-			return
-		}
-		q := redirectURL.Query()
-		q.Set("code", exchangeCode)
-		redirectURL.RawQuery = q.Encode()
-		c.Redirect(http.StatusFound, redirectURL.String())
+		c.Redirect(http.StatusFound, out.MobileRedirectURL)
 		return
 	}
 
+	// ブラウザフロー: 認証完了レスポンスを返す
 	c.JSON(http.StatusOK, gin.H{
 		"status":     "authenticated",
-		"csrf_token": csrfToken,
+		"csrf_token": out.CSRFToken,
 	})
 }
 
-// Logout destroys the session and redirects to the IdP logout endpoint.
+// Logout はセッションを削除し、IdP のログアウトエンドポイントへリダイレクトする。
+// AuthUseCase.Logout にビジネスロジックを委譲する。
 func (h *AuthHandler) Logout(c *gin.Context) {
-	// ログアウト時にOIDC discoveryキャッシュをクリアし、次回ログインで最新のプロバイダ情報を再取得させる
-	h.oauthClient.ClearDiscoveryCache()
-
 	sessionID, err := c.Cookie(CookieName)
-	if err == nil && sessionID != "" {
-		sess, _ := h.sessionStore.Get(c.Request.Context(), sessionID)
-
-		// セッションストアからセッションを削除する
-		if err := h.sessionStore.Delete(c.Request.Context(), sessionID); err != nil {
-			h.logger.Warn("セッション削除に失敗", slog.String("session_id", sessionID), slog.String("error", err.Error()))
-		}
-
-		// Clear session cookie.
-		c.SetCookie(CookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
-
-		// Build IdP logout URL with id_token_hint if available.
-		if sess != nil && sess.IDToken != "" {
-			logoutURL, err := h.oauthClient.LogoutURL(sess.IDToken, h.postLogoutURI)
-			if err == nil {
-				c.Redirect(http.StatusFound, logoutURL)
-				return
-			}
-		}
+	if err != nil {
+		sessionID = ""
 	}
 
-	// Fallback: redirect to post-logout URI.
-	if h.postLogoutURI != "" {
-		c.Redirect(http.StatusFound, h.postLogoutURI)
+	out, _ := h.authUseCase.Logout(c.Request.Context(), usecase.LogoutInput{
+		SessionID:     sessionID,
+		PostLogoutURI: h.postLogoutURI,
+	})
+
+	// セッション Cookie をクリアする
+	c.SetCookie(CookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
+
+	// IdP ログアウト URL が構築できた場合はリダイレクトする
+	if out.IdPLogoutURL != "" {
+		c.Redirect(http.StatusFound, out.IdPLogoutURL)
+		return
+	}
+
+	// フォールバック: post-logout URI へリダイレクトする
+	if out.FallbackURI != "" {
+		c.Redirect(http.StatusFound, out.FallbackURI)
 		return
 	}
 
@@ -310,38 +229,37 @@ func (h *AuthHandler) Session(c *gin.Context) {
 		return
 	}
 
-	// セッションストアからセッションデータを取得する
-	sess, err := h.sessionStore.Get(c.Request.Context(), sessionID)
+	// AuthUseCase.CheckSession にセッション検証を委譲する
+	out, err := h.authUseCase.CheckSession(c.Request.Context(), usecase.SessionCheckInput{
+		SessionID: sessionID,
+	})
 	if err != nil {
-		h.logger.Error("failed to get session", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_SESSION_ERROR")
+		usecaseErr, ok := err.(*usecase.AuthUseCaseError)
+		if !ok {
+			h.logger.Error("Session 予期しないエラー", slog.Any("error", err))
+			respondError(c, http.StatusInternalServerError, "BFF_AUTH_SESSION_ERROR")
+			return
+		}
+		switch usecaseErr.Code {
+		case "BFF_AUTH_SESSION_NOT_FOUND":
+			respondError(c, http.StatusUnauthorized, usecaseErr.Code)
+		case "BFF_AUTH_SESSION_EXPIRED":
+			respondError(c, http.StatusUnauthorized, usecaseErr.Code)
+		default:
+			if usecaseErr.Err != nil {
+				h.logger.Error("Session ユースケースエラー", slog.String("code", usecaseErr.Code), slog.Any("error", usecaseErr.Err))
+			}
+			respondError(c, http.StatusInternalServerError, usecaseErr.Code)
+		}
 		return
-	}
-
-	// セッションが存在しない場合は 401 を返す
-	if sess == nil {
-		respondError(c, http.StatusUnauthorized, "BFF_AUTH_SESSION_NOT_FOUND")
-		return
-	}
-
-	// アクセストークンの有効期限が切れている場合は 401 を返す
-	if sess.IsExpired() {
-		respondError(c, http.StatusUnauthorized, "BFF_AUTH_SESSION_EXPIRED")
-		return
-	}
-
-	// roles が nil の場合は空スライスを返す（JSON で null ではなく [] になる）
-	roles := sess.Roles
-	if roles == nil {
-		roles = []string{}
 	}
 
 	// 有効なセッション情報を返す（roles はフロントエンドの /admin ルート認可に使用する）
 	c.JSON(http.StatusOK, gin.H{
-		"id":            sess.Subject,
+		"id":            out.Subject,
 		"authenticated": true,
-		"csrf_token":    sess.CSRFToken,
-		"roles":         roles,
+		"csrf_token":    out.CSRFToken,
+		"roles":         out.Roles,
 	})
 }
 
@@ -355,71 +273,46 @@ func (h *AuthHandler) Exchange(c *gin.Context) {
 		return
 	}
 
-	// 交換コードに対応するエントリをセッションストアから取得する
-	exchangeData, err := h.sessionStore.Get(c.Request.Context(), code)
+	// AuthUseCase.ExchangeCode にビジネスロジックを委譲する
+	out, err := h.authUseCase.ExchangeCode(c.Request.Context(), usecase.ExchangeInput{
+		Code:       code,
+		SessionTTL: h.sessionTTL,
+	})
 	if err != nil {
-		h.logger.Error("failed to get exchange code", slog.String("error", err.Error()))
-		respondError(c, http.StatusInternalServerError, "BFF_AUTH_EXCHANGE_ERROR")
+		usecaseErr, ok := err.(*usecase.AuthUseCaseError)
+		if !ok {
+			h.logger.Error("Exchange 予期しないエラー", slog.Any("error", err))
+			respondError(c, http.StatusInternalServerError, "BFF_AUTH_EXCHANGE_ERROR")
+			return
+		}
+		switch usecaseErr.Code {
+		case "BFF_AUTH_EXCHANGE_CODE_MISSING":
+			respondBadRequest(c, usecaseErr.Code)
+		case "BFF_AUTH_EXCHANGE_CODE_INVALID", "BFF_AUTH_SESSION_NOT_FOUND":
+			respondError(c, http.StatusUnauthorized, usecaseErr.Code)
+		default:
+			if usecaseErr.Err != nil {
+				h.logger.Error("Exchange ユースケースエラー", slog.String("code", usecaseErr.Code), slog.Any("error", usecaseErr.Err))
+			}
+			respondError(c, http.StatusInternalServerError, usecaseErr.Code)
+		}
 		return
-	}
-
-	// 交換コードが存在しないか期限切れの場合は 401 を返す
-	if exchangeData == nil || exchangeData.IsExpired() {
-		respondError(c, http.StatusUnauthorized, "BFF_AUTH_EXCHANGE_CODE_INVALID")
-		return
-	}
-
-	// 実際のセッション ID を取得する（AccessToken フィールドに格納されている）
-	realSessionID := exchangeData.AccessToken
-
-	// 実際のセッションがまだ有効か確認する（交換コード削除より前に検証し、
-	// セッション無効時に交換コードが消費されてしまう問題を防ぐ）
-	realSession, err := h.sessionStore.Get(c.Request.Context(), realSessionID)
-	if err != nil || realSession == nil {
-		respondError(c, http.StatusUnauthorized, "BFF_AUTH_SESSION_NOT_FOUND")
-		return
-	}
-
-	// 全検証通過後に交換コードを削除する（ワンタイム使用）
-	if err := h.sessionStore.Delete(c.Request.Context(), code); err != nil {
-		h.logger.Warn("交換コード削除に失敗", slog.String("code", code), slog.String("error", err.Error()))
 	}
 
 	// セッションクッキーを発行する（モバイルクライアントの Dio が自動保存する）
 	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(CookieName, realSessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
+	c.SetCookie(CookieName, out.RealSessionID, int(h.sessionTTL.Seconds()), "/", h.cookieDomain, h.secureCookie, true)
 
 	// セッション情報を返す
 	c.JSON(http.StatusOK, gin.H{
-		"id":            realSession.Subject,
+		"id":            out.Subject,
 		"authenticated": true,
-		"csrf_token":    realSession.CSRFToken,
+		"csrf_token":    out.CSRFToken,
 	})
 }
 
-// isAllowedRedirectScheme はモバイルリダイレクト先 URL のスキームを検証する。
-// allowlist 方式: k1s0:// スキームのみ許可する。
-// denylist ではなく allowlist を使用することで、未知の危険スキームを漏れなくブロックする。
-func isAllowedRedirectScheme(rawURL string) bool {
-	parsedURL, err := url.Parse(rawURL)
-	if err != nil || parsedURL.Scheme == "" {
-		return false
-	}
-
-	// allowlist: k1s0 カスタムスキームのみ許可する
-	if parsedURL.Scheme != "k1s0" {
-		return false
-	}
-
-	// Host が空でないことを確認する（k1s0://host の形式であること）
-	if parsedURL.Host == "" {
-		return false
-	}
-
-	return true
-}
-
-// generateRandomString generates a hex-encoded random string of the given byte length.
+// generateRandomString はバイト長 n のランダムな hex エンコード文字列を生成する。
+// テストから直接参照されるためこのパッケージに残す。
 func generateRandomString(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
@@ -427,4 +320,3 @@ func generateRandomString(n int) (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
-

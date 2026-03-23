@@ -22,3 +22,15 @@ spec:
         - namespaceSelector:
             matchLabels:
               tier: infra
+      # I-1 対応: ポート制限を追加し、observability 関連サービスへの不要なアクセスを遮断
+      ports:
+        - protocol: TCP
+          port: 9090    # Prometheus メトリクスポート
+        - protocol: TCP
+          port: 3000    # Grafana ダッシュボードポート
+        - protocol: TCP
+          port: 4317    # OpenTelemetry gRPC エンドポイント
+        - protocol: TCP
+          port: 4318    # OpenTelemetry HTTP エンドポイント
+        - protocol: TCP
+          port: 16686   # Jaeger UI ポート

@@ -1447,6 +1447,8 @@ func (w *WatchConfigClient) Close() error
 > **TLS ポリシー**: `NewWatchConfigClient` はデフォルトで TLS を要求する。
 > 開発・テスト環境では `NewInsecureWatchConfigClient` を使うこと。
 
+> **セキュリティ注意事項 (S-1)**: `NewInsecureWatchConfigClient` は `APP_ENV` が `production` または `staging` の場合にエラーを返して接続を拒否する。本番・ステージング環境では必ず `NewWatchConfigClient` に TLS 認証情報を渡すこと。
+
 **使用例（本番）**:
 
 ```go

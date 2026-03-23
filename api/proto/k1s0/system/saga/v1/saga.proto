@@ -57,7 +57,8 @@ message SagaStateProto {
   int32 current_step = 3;
   // Deprecated: use status_enum instead.
   // ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
-  string status = 4;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string status = 4 [deprecated = true];
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 5;
   // 業務相関 ID

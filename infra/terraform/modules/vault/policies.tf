@@ -19,6 +19,33 @@ resource "vault_policy" "service" {
   policy = file("${path.module}/policies/service.hcl")
 }
 
+# ドメイン分離ポリシー（I-5 対応）
+# business/service の tier レベルポリシーはそのまま維持し、ドメイン単位で細粒度のアクセス制御を追加する
+
+# business-project-master ドメインポリシー - project-master ドメイン専用シークレットへのアクセス
+resource "vault_policy" "business_project_master" {
+  name   = "business-project-master"
+  policy = file("${path.module}/policies/business-project-master.hcl")
+}
+
+# service-task ドメインポリシー - task ドメイン専用シークレットへのアクセス
+resource "vault_policy" "service_task" {
+  name   = "service-task"
+  policy = file("${path.module}/policies/service-task.hcl")
+}
+
+# service-board ドメインポリシー - board ドメイン専用シークレットへのアクセス
+resource "vault_policy" "service_board" {
+  name   = "service-board"
+  policy = file("${path.module}/policies/service-board.hcl")
+}
+
+# service-activity ドメインポリシー - activity ドメイン専用シークレットへのアクセス
+resource "vault_policy" "service_activity" {
+  name   = "service-activity"
+  policy = file("${path.module}/policies/service-activity.hcl")
+}
+
 # CI/CD pipeline policy - limited access for AppRole auth
 # セキュリティ: CI/CDパイプラインはデプロイに必要な cicd 配下のシークレットのみアクセス可能
 resource "vault_policy" "cicd" {

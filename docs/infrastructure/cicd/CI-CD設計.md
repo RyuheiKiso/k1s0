@@ -1322,12 +1322,71 @@ env:
 
 Dockerfile および GitHub Actions ワークフローのベースイメージ・アクションは SHA ダイジェストでピン留めし、サプライチェーン攻撃を防止する。ダイジェストの手動管理は運用負荷が高いため、自動化ツールで更新を管理する。
 
+### Dockerfileダイジェスト固定自動化
+
+`.github/workflows/pin-docker-digests.yaml` ワークフローと `scripts/pin-docker-digests.sh` スクリプトにより、リポジトリ内すべての Dockerfile の FROM 行を `@sha256:` 形式に自動更新する仕組みを整備している。
+
+#### 自動実行スケジュール
+
+| 項目 | 内容 |
+| --- | --- |
+| スケジュール | 毎週月曜日 09:00 UTC（日本時間 18:00） |
+| cron 設定 | `0 9 * * 1` |
+| 手動実行 | GitHub Actions の "Run workflow"（`workflow_dispatch`）から手動トリガーも可能 |
+
+#### 動作フロー
+
+1. `scripts/pin-docker-digests.sh` がリポジトリ内の全 Dockerfile を走査し、各 FROM 行のベースイメージを最新の `@sha256:` ダイジェスト付き形式に更新する
+2. 変更がある場合のみ PR を自動作成する（変更がなければジョブは正常終了し PR は作成されない）
+3. PR には `security` / `automated` ラベルが付与され、変更内容と Trivy スキャン確認チェックリストが記載される
+
+#### 運用担当者の対応
+
+運用担当者は週次で自動生成された PR をレビュー・マージすることで、イメージのサプライチェーンセキュリティを継続的に維持できる。
+
+| アクション | 手順 |
+| --- | --- |
+| 週次 PR レビュー | CI の Trivy イメージスキャンが PASS していることを確認してマージ |
+| 手動トリガー | GitHub Actions の "Pin Docker Digests" ワークフローページから "Run workflow" をクリック |
+| 緊急対応 | `workflow_dispatch` で手動実行し、特定イメージの脆弱性対応を即座に反映 |
+
+#### ワークフロー設定（抜粋）
+
+```yaml
+# .github/workflows/pin-docker-digests.yaml（抜粋）
+name: Pin Docker Digests
+
+on:
+  schedule:
+    # 毎週月曜日 09:00 UTC（日本時間 18:00）に実行する
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    # 手動実行も可能にする（テスト・緊急対応用）
+
+jobs:
+  pin-digests:
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Docker ダイジェストを固定する
+        run: scripts/pin-docker-digests.sh
+      - name: PR を作成する
+        uses: peter-evans/create-pull-request@... # v7
+        with:
+          branch: chore/pin-docker-digests
+          labels: |
+            security
+            automated
+```
+
 ### 自動更新ツール: Renovate / Dependabot
 
 | ツール | 設定ファイル | 対象 |
 | --- | --- | --- |
 | Dependabot | `.github/dependabot.yml` | GitHub Actions のアクションバージョン |
 | Renovate | `renovate.json`（導入時） | Dockerfile のベースイメージダイジェスト |
+| `pin-docker-digests.yaml` | `.github/workflows/pin-docker-digests.yaml` | Dockerfile の FROM 行 `@sha256:` ダイジェスト（週次自動 PR） |
 
 #### Dependabot による GitHub Actions 自動更新
 

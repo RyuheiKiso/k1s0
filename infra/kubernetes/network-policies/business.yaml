@@ -16,6 +16,14 @@ spec:
         - namespaceSelector:
             matchLabels:
               tier: service
+      # I-1 対応: ポート制限を追加し、business Tier アプリケーションの許可ポートを明示的に制限
+      ports:
+        - protocol: TCP
+          port: 8080    # HTTP REST API ポート
+        - protocol: TCP
+          port: 50051   # gRPC ポート
+        - protocol: TCP
+          port: 9090    # Prometheus メトリクスポート
 ---
 # k1s0-business: Egress を必要な宛先に制限する
 # DNS、同一 Namespace、system Tier（共通基盤）、messaging（Kafka）、observability のみ許可

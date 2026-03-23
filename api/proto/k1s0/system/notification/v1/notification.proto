@@ -52,7 +52,8 @@ message SendNotificationResponse {
   string notification_id = 1;
   string status = 2;
   // Deprecated: created_at_ts を使用すること。
-  string created_at = 3;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string created_at = 3 [deprecated = true];
   // created_at_ts は created_at の Timestamp 型。
   k1s0.system.common.v1.Timestamp created_at_ts = 4;
 }
@@ -97,13 +98,16 @@ message NotificationLog {
   optional string subject = 6;
   string body = 7;
   // Deprecated: use status_enum instead.
-  string status = 8;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string status = 8 [deprecated = true];
   uint32 retry_count = 9;
   optional string error_message = 10;
   // Deprecated: sent_at_ts を使用すること。
-  optional string sent_at = 11;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  optional string sent_at = 11 [deprecated = true];
   // Deprecated: created_at_ts を使用すること。
-  string created_at = 12;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string created_at = 12 [deprecated = true];
   // 通知ステータスの enum 版（status の型付き版）。
   NotificationStatus status_enum = 13;
   // sent_at_ts は sent_at の Timestamp 型。
@@ -119,9 +123,11 @@ message Channel {
   string config_json = 4;
   bool enabled = 5;
   // Deprecated: created_at_ts を使用すること。
-  string created_at = 6;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string created_at = 6 [deprecated = true];
   // Deprecated: updated_at_ts を使用すること。
-  string updated_at = 7;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string updated_at = 7 [deprecated = true];
   // created_at_ts は created_at の Timestamp 型。
   k1s0.system.common.v1.Timestamp created_at_ts = 8;
   // updated_at_ts は updated_at の Timestamp 型。
@@ -189,9 +195,11 @@ message Template {
   optional string subject_template = 4;
   string body_template = 5;
   // Deprecated: created_at_ts を使用すること。
-  string created_at = 6;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string created_at = 6 [deprecated = true];
   // Deprecated: updated_at_ts を使用すること。
-  string updated_at = 7;
+  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  string updated_at = 7 [deprecated = true];
   // created_at_ts は created_at の Timestamp 型。
   k1s0.system.common.v1.Timestamp created_at_ts = 8;
   // updated_at_ts は updated_at の Timestamp 型。

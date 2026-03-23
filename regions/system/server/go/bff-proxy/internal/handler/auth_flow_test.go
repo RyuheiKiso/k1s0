@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -98,6 +99,38 @@ func (m *mockSessionStore) Delete(_ context.Context, id string) error {
 
 // Touch はセッション TTL を延長する（スライディング有効期限）。
 func (m *mockSessionStore) Touch(_ context.Context, _ string, _ time.Duration) error {
+	return nil
+}
+
+// errOnCreateSessionStore は Create を呼び出すと必ずエラーを返すテスト用セッションストア。
+// セッション保存失敗パスの検証に使用する。
+type errOnCreateSessionStore struct {
+	// err は Create 呼び出し時に返すエラー。
+	err error
+}
+
+// Create は常にエラーを返してセッション保存失敗をシミュレートする。
+func (m *errOnCreateSessionStore) Create(_ context.Context, _ *session.SessionData, _ time.Duration) (string, error) {
+	return "", m.err
+}
+
+// Get は常に nil を返す（テストで呼ばれることはないが Store インターフェースを満たすために実装する）。
+func (m *errOnCreateSessionStore) Get(_ context.Context, _ string) (*session.SessionData, error) {
+	return nil, nil
+}
+
+// Update はセッション更新の空実装（テストで呼ばれることはない）。
+func (m *errOnCreateSessionStore) Update(_ context.Context, _ string, _ *session.SessionData, _ time.Duration) error {
+	return nil
+}
+
+// Delete はセッション削除の空実装（テストで呼ばれることはない）。
+func (m *errOnCreateSessionStore) Delete(_ context.Context, _ string) error {
+	return nil
+}
+
+// Touch は TTL 延長の空実装（テストで呼ばれることはない）。
+func (m *errOnCreateSessionStore) Touch(_ context.Context, _ string, _ time.Duration) error {
 	return nil
 }
 
@@ -692,4 +725,125 @@ func TestExchange_ExpiredCode(t *testing.T) {
 	require.NoError(t, err)
 	// ADR-0005形式: body["error"] はネストされたオブジェクトのためコードフィールドを参照する
 	assert.Equal(t, "BFF_AUTH_EXCHANGE_CODE_INVALID", body["error"].(map[string]any)["code"])
+}
+
+// TestCallback_TokenExchangeFailed は Callback 異常系のテスト。
+// IdP への認可コード交換（ExchangeCode）が失敗した場合に 500 が返ることを検証する。
+// IdP が一時的に利用不能な場合や、コードが既に使用済みの場合にこのケースが発生する。
+func TestCallback_TokenExchangeFailed(t *testing.T) {
+	mock := &mockOAuthClient{
+		// ExchangeCode は IdP 側の障害などでエラーを返す
+		exchangeCodeFn: func(_ context.Context, code, verifier string) (*oauth.TokenResponse, error) {
+			return nil, errors.New("idp connection refused")
+		},
+	}
+
+	store := newMockSessionStore()
+	h := newTestAuthHandler(mock, store)
+	router := setupTestRouter(h)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth/callback?state=test-state&code=auth-code-123", nil)
+	req.AddCookie(&http.Cookie{Name: "k1s0_oauth_state", Value: "test-state"})
+	req.AddCookie(&http.Cookie{Name: "k1s0_pkce_verifier", Value: "test-verifier"})
+	router.ServeHTTP(w, req)
+
+	// ExchangeCode 失敗時は 500 が返ること
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+	// ADR-0005形式: body["error"] はネストオブジェクト
+	assert.Equal(t, "BFF_AUTH_TOKEN_EXCHANGE_FAILED", body["error"].(map[string]any)["code"])
+
+	// セッションは作成されていないこと
+	assert.Empty(t, store.sessions)
+}
+
+// TestCallback_IDTokenInvalid は Callback 異常系のテスト。
+// ID トークンの検証（ExtractClaims）が失敗した場合に 401 が返ることを検証する。
+// JWKS 署名が不正または ID トークンの有効期限切れの場合にこのケースが発生する。
+func TestCallback_IDTokenInvalid(t *testing.T) {
+	mock := &mockOAuthClient{
+		// ExchangeCode は成功するが、ID トークンが不正で署名検証に失敗する
+		exchangeCodeFn: func(_ context.Context, code, verifier string) (*oauth.TokenResponse, error) {
+			return &oauth.TokenResponse{
+				AccessToken:  "access-token-123",
+				RefreshToken: "refresh-token-456",
+				IDToken:      "invalid-id-token",
+				TokenType:    "Bearer",
+				ExpiresIn:    3600,
+			}, nil
+		},
+		// ExtractClaims は ID トークンの署名検証失敗をシミュレートする
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "", nil, errors.New("jwks: signature verification failed")
+		},
+	}
+
+	store := newMockSessionStore()
+	h := newTestAuthHandler(mock, store)
+	router := setupTestRouter(h)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth/callback?state=test-state&code=auth-code-123", nil)
+	req.AddCookie(&http.Cookie{Name: "k1s0_oauth_state", Value: "test-state"})
+	req.AddCookie(&http.Cookie{Name: "k1s0_pkce_verifier", Value: "test-verifier"})
+	router.ServeHTTP(w, req)
+
+	// ID トークン不正時は 401 が返ること
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+	// ADR-0005形式: body["error"] はネストオブジェクト
+	assert.Equal(t, "BFF_AUTH_ID_TOKEN_INVALID", body["error"].(map[string]any)["code"])
+
+	// セッションは作成されていないこと
+	assert.Empty(t, store.sessions)
+}
+
+// TestCallback_SessionCreateFailed は Callback 異常系のテスト。
+// セッションストアへの保存（Create）が失敗した場合に 500 が返ることを検証する。
+// Redis 障害などでセッション永続化できない場合にこのケースが発生する。
+func TestCallback_SessionCreateFailed(t *testing.T) {
+	mock := &mockOAuthClient{
+		// トークン交換と ID トークン検証は成功する
+		exchangeCodeFn: func(_ context.Context, code, verifier string) (*oauth.TokenResponse, error) {
+			return &oauth.TokenResponse{
+				AccessToken:  "access-token-123",
+				RefreshToken: "refresh-token-456",
+				IDToken:      "id-token-789",
+				TokenType:    "Bearer",
+				ExpiresIn:    3600,
+			}, nil
+		},
+		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
+			return "user-sub-001", []string{"user"}, nil
+		},
+	}
+
+	// セッション保存が常に失敗するストアを使用する
+	failStore := &errOnCreateSessionStore{
+		err: errors.New("redis: connection refused"),
+	}
+	h := newTestAuthHandler(mock, failStore)
+	router := setupTestRouter(h)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/auth/callback?state=test-state&code=auth-code-123", nil)
+	req.AddCookie(&http.Cookie{Name: "k1s0_oauth_state", Value: "test-state"})
+	req.AddCookie(&http.Cookie{Name: "k1s0_pkce_verifier", Value: "test-verifier"})
+	router.ServeHTTP(w, req)
+
+	// セッション保存失敗時は 500 が返ること
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var body map[string]any
+	err := json.NewDecoder(w.Body).Decode(&body)
+	require.NoError(t, err)
+	// ADR-0005形式: body["error"] はネストオブジェクト
+	assert.Equal(t, "BFF_AUTH_SESSION_CREATE_FAILED", body["error"].(map[string]any)["code"])
 }

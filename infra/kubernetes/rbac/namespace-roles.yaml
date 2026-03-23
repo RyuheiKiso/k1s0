@@ -1,0 +1,101 @@
+# Namespace スコープの Role/RoleBinding 定義
+# 各 ServiceAccount に対して最小権限の原則に基づいたアクセス制御を設定する（I-3 対応）
+
+# k1s0-system Namespace 用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k1s0-system-role
+  namespace: k1s0-system
+rules:
+  # Pod・Service の参照のみ許可（ヘルスチェック・サービスディスカバリ用）
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  # ConfigMap の参照（設定マウント用）
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Secret の参照（Vault Agent Injector 連携用）
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+# k1s0-system Namespace 用 RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k1s0-system-role-binding
+  namespace: k1s0-system
+subjects:
+  - kind: ServiceAccount
+    name: k1s0-system-sa
+    namespace: k1s0-system
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: k1s0-system-role
+---
+# k1s0-business Namespace 用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k1s0-business-role
+  namespace: k1s0-business
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+# k1s0-business Namespace 用 RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k1s0-business-role-binding
+  namespace: k1s0-business
+subjects:
+  - kind: ServiceAccount
+    name: k1s0-business-sa
+    namespace: k1s0-business
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: k1s0-business-role
+---
+# k1s0-service Namespace 用 Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: k1s0-service-role
+  namespace: k1s0-service
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+# k1s0-service Namespace 用 RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: k1s0-service-role-binding
+  namespace: k1s0-service
+subjects:
+  - kind: ServiceAccount
+    name: k1s0-service-sa
+    namespace: k1s0-service
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: k1s0-service-role
