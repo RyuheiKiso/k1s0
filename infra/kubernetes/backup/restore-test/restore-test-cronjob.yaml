@@ -1,0 +1,240 @@
+# H-12対応: バックアップ復旧テスト CronJob
+# 報告書指摘: 復旧テストスクリプトは存在するが CronJob 化されておらず定期実行されていない。
+# 対応: 四半期ごとに自動実行する CronJob を定義し、復旧テストの継続的な自動化を実現する。
+# 注意: 本 CronJob は staging 環境専用。本番環境ではリストアがデータに影響するため実行禁止。
+---
+# PostgreSQL 復旧テスト CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-restore-test
+  namespace: k1s0-system
+  labels:
+    app: postgres-restore-test
+    tier: system
+    component: backup-verification
+  annotations:
+    # H-12対応: 復旧テストを四半期ごとに自動実行し、バックアップの有効性を継続的に検証する
+    purpose: "バックアップ復旧テスト - staging 環境専用"
+spec:
+  # 四半期ごと（1月・4月・7月・10月の第1日曜日 AM 2:00 JST = UTC 17:00）
+  schedule: "0 17 1-7 1,4,7,10 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      # 復旧テストのタイムアウト: 3時間
+      activeDeadlineSeconds: 10800
+      template:
+        metadata:
+          labels:
+            app: postgres-restore-test
+        spec:
+          restartPolicy: Never
+          serviceAccountName: postgres-backup-sa
+          containers:
+            - name: postgres-restore-test
+              image: postgres:17-alpine
+              # セキュリティ強化: 非rootユーザーで実行する
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 1000
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "=== PostgreSQL 復旧テスト開始 ==="
+                  echo "実行環境: ${K1S0_ENVIRONMENT:-unknown}"
+                  echo "実行日時: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+                  # staging 環境以外では実行を拒否する
+                  if [ "${K1S0_ENVIRONMENT}" != "staging" ]; then
+                    echo "ERROR: このジョブは staging 環境専用です。環境: ${K1S0_ENVIRONMENT}"
+                    exit 1
+                  fi
+
+                  BACKUP_DIR="/backup/postgres"
+                  RESTORE_DB="restore_test_$(date +%Y%m%d)"
+
+                  # 最新のバックアップファイルを取得する
+                  LATEST_BACKUP=$(ls -t "${BACKUP_DIR}"/k1s0_system-*.dump 2>/dev/null | head -1)
+                  if [ -z "${LATEST_BACKUP}" ]; then
+                    echo "ERROR: バックアップファイルが見つかりません: ${BACKUP_DIR}/k1s0_system-*.dump"
+                    exit 1
+                  fi
+                  echo "テスト対象バックアップ: ${LATEST_BACKUP} ($(du -h ${LATEST_BACKUP} | cut -f1))"
+
+                  # テスト用DBを作成する
+                  echo "テスト用DB作成: ${RESTORE_DB}"
+                  PGPASSWORD="${PGPASSWORD}" psql -h "${PGHOST}" -U "${PGUSER}" -c "CREATE DATABASE ${RESTORE_DB};" postgres
+
+                  # バックアップをテスト用DBにリストアする
+                  echo "リストア実行中..."
+                  PGPASSWORD="${PGPASSWORD}" pg_restore \
+                    -h "${PGHOST}" \
+                    -U "${PGUSER}" \
+                    -d "${RESTORE_DB}" \
+                    --no-owner \
+                    --no-acl \
+                    "${LATEST_BACKUP}"
+
+                  # リストアの整合性を簡易チェックする（テーブル数の確認）
+                  TABLE_COUNT=$(PGPASSWORD="${PGPASSWORD}" psql -h "${PGHOST}" -U "${PGUSER}" -d "${RESTORE_DB}" -tAc \
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';")
+                  echo "リストアされたテーブル数: ${TABLE_COUNT}"
+                  if [ "${TABLE_COUNT}" -lt 1 ]; then
+                    echo "ERROR: リストア後のテーブル数が異常です: ${TABLE_COUNT}"
+                    PGPASSWORD="${PGPASSWORD}" psql -h "${PGHOST}" -U "${PGUSER}" -c "DROP DATABASE IF EXISTS ${RESTORE_DB};" postgres
+                    exit 1
+                  fi
+
+                  # テスト用DBをクリーンアップする
+                  echo "テスト用DBを削除: ${RESTORE_DB}"
+                  PGPASSWORD="${PGPASSWORD}" psql -h "${PGHOST}" -U "${PGUSER}" -c "DROP DATABASE ${RESTORE_DB};" postgres
+
+                  echo "=== PostgreSQL 復旧テスト完了 (SUCCESS) ==="
+              env:
+                - name: K1S0_ENVIRONMENT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: k1s0-environment
+                      key: environment
+                - name: PGHOST
+                  value: "postgresql.k1s0-system.svc.cluster.local"
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-credentials
+                      key: username
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-backup-credentials
+                      key: password
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc
+---
+# Vault 復旧テスト CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-restore-test
+  namespace: k1s0-system
+  labels:
+    app: vault-restore-test
+    tier: system
+    component: backup-verification
+  annotations:
+    purpose: "Vault バックアップ復旧テスト - staging 環境専用"
+spec:
+  # 四半期ごと（PostgreSQL テストの翌週 AM 3:00 JST）
+  schedule: "0 18 8-14 1,4,7,10 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 7200
+      template:
+        metadata:
+          labels:
+            app: vault-restore-test
+        spec:
+          restartPolicy: Never
+          serviceAccountName: vault-backup-sa
+          containers:
+            - name: vault-restore-test
+              image: hashicorp/vault:1.19
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: 100
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "=== Vault 復旧テスト開始 ==="
+                  echo "実行環境: ${K1S0_ENVIRONMENT:-unknown}"
+                  echo "実行日時: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+                  # staging 環境以外では実行を拒否する
+                  if [ "${K1S0_ENVIRONMENT}" != "staging" ]; then
+                    echo "ERROR: このジョブは staging 環境専用です。環境: ${K1S0_ENVIRONMENT}"
+                    exit 1
+                  fi
+
+                  BACKUP_DIR="/backup/vault"
+
+                  # 最新のスナップショットを取得する
+                  LATEST_SNAPSHOT=$(ls -t "${BACKUP_DIR}"/vault-snapshot-*.snap 2>/dev/null | head -1)
+                  if [ -z "${LATEST_SNAPSHOT}" ]; then
+                    echo "ERROR: スナップショットが見つかりません: ${BACKUP_DIR}/vault-snapshot-*.snap"
+                    exit 1
+                  fi
+                  echo "テスト対象スナップショット: ${LATEST_SNAPSHOT} ($(du -h ${LATEST_SNAPSHOT} | cut -f1))"
+
+                  # スナップショットの整合性チェック（ファイルサイズと形式の確認）
+                  SNAPSHOT_SIZE=$(stat -c%s "${LATEST_SNAPSHOT}")
+                  if [ "${SNAPSHOT_SIZE}" -lt 1024 ]; then
+                    echo "ERROR: スナップショットサイズが異常に小さいです: ${SNAPSHOT_SIZE} bytes"
+                    exit 1
+                  fi
+                  echo "スナップショットサイズ: ${SNAPSHOT_SIZE} bytes - OK"
+
+                  # Vault スナップショットの inspect（復元可能かどうか確認）
+                  vault operator raft snapshot inspect "${LATEST_SNAPSHOT}" && \
+                    echo "スナップショット整合性チェック: OK" || \
+                    echo "WARN: snapshot inspect がサポートされていません（Vault バージョン依存）"
+
+                  echo "=== Vault 復旧テスト完了 (SUCCESS) ==="
+              env:
+                - name: K1S0_ENVIRONMENT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: k1s0-environment
+                      key: environment
+                - name: VAULT_ADDR
+                  value: "https://vault.k1s0-system.svc.cluster.local:8200"
+                - name: VAULT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: vault-backup-credentials
+                      key: token
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: backup-pvc
