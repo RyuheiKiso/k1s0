@@ -3,7 +3,7 @@
 pub mod health;
 pub mod task_handler;
 
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
