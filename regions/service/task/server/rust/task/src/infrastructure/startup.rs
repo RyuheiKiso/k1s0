@@ -123,6 +123,7 @@ pub async fn run() -> anyhow::Result<()> {
         get_task_uc: get_task_uc.clone(),
         list_tasks_uc: list_tasks_uc.clone(),
         update_task_status_uc: update_task_status_uc.clone(),
+        update_task_uc,
         create_checklist_item_uc,
         update_checklist_item_uc,
         delete_checklist_item_uc,
