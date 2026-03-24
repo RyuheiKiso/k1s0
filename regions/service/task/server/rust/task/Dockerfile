@@ -1,10 +1,8 @@
 # chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include system library dependencies)
-# x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
-ARG TARGETPLATFORM=linux/amd64
-FROM --platform=$TARGETPLATFORM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
+FROM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
 
 # cargo-chef のインストール（依存キャッシュ用）
 RUN cargo install cargo-chef --locked
