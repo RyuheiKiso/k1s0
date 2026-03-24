@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
 use crate::proto::k1s0::system::auth::v1::{
-    AuditLog as ProtoAuditLog, RecordAuditLogRequest, RecordAuditLogResponse,
-    SearchAuditLogsRequest, SearchAuditLogsResponse,
+    AuditEventType, AuditLog as ProtoAuditLog, AuditResult, RecordAuditLogRequest,
+    RecordAuditLogResponse, SearchAuditLogsRequest, SearchAuditLogsResponse,
 };
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp};
 use crate::usecase::record_audit_log::{RecordAuditLogError, RecordAuditLogUseCase};
@@ -138,10 +138,35 @@ impl AuditGrpcService {
     }
 }
 
+/// ドメインのイベントタイプ文字列を AuditEventType enum の i32 値に変換する。
+/// 未知の文字列は Unspecified (0) にフォールバックする。
+fn event_type_str_to_enum(s: &str) -> i32 {
+    match s {
+        s if s.starts_with("LOGIN") => AuditEventType::Login as i32,
+        "LOGOUT" => AuditEventType::Logout as i32,
+        "TOKEN_VALIDATE" | "TOKEN_REFRESH" => AuditEventType::TokenRefresh as i32,
+        "PERMISSION_CHECK" => AuditEventType::PermissionCheck as i32,
+        "API_KEY_CREATED" => AuditEventType::ApiKeyCreated as i32,
+        "API_KEY_REVOKED" => AuditEventType::ApiKeyRevoked as i32,
+        _ => AuditEventType::Unspecified as i32,
+    }
+}
+
+/// ドメインの結果文字列を AuditResult enum の i32 値に変換する。
+fn result_str_to_enum(s: &str) -> i32 {
+    match s {
+        "SUCCESS" => AuditResult::Success as i32,
+        "FAILURE" => AuditResult::Failure as i32,
+        _ => AuditResult::Unspecified as i32,
+    }
+}
+
 fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
     ProtoAuditLog {
         id: log.id.to_string(),
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
         event_type: log.event_type.clone(),
+        event_type_enum: event_type_str_to_enum(&log.event_type),
         user_id: log.user_id.clone(),
         ip_address: log.ip_address.clone(),
         user_agent: log.user_agent.clone(),
@@ -149,15 +174,13 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
         resource_id: log.resource_id.clone().unwrap_or_default(),
         action: log.action.clone(),
         result: log.result.clone(),
+        result_enum: result_str_to_enum(&log.result),
         detail: log.detail.as_ref().and_then(json_to_prost_struct),
         trace_id: log.trace_id.clone().unwrap_or_default(),
         created_at: Some(Timestamp {
             seconds: log.created_at.timestamp(),
             nanos: log.created_at.timestamp_subsec_nanos() as i32,
         }),
-        // 後方互換フィールド: string から enum への移行中は 0 (UNSPECIFIED) で返す
-        event_type_enum: 0,
-        result_enum: 0,
     }
 }
 

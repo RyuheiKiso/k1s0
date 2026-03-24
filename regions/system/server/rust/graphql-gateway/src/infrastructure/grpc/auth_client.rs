@@ -160,20 +160,44 @@ impl AuthGrpcClient {
         resource_id: &str,
         trace_id: &str,
     ) -> anyhow::Result<(String, String)> {
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+        let event_type_enum = match event_type {
+            s if s.starts_with("LOGIN") => {
+                proto::k1s0::system::auth::v1::AuditEventType::Login as i32
+            }
+            "LOGOUT" => proto::k1s0::system::auth::v1::AuditEventType::Logout as i32,
+            "TOKEN_VALIDATE" | "TOKEN_REFRESH" => {
+                proto::k1s0::system::auth::v1::AuditEventType::TokenRefresh as i32
+            }
+            "PERMISSION_CHECK" => {
+                proto::k1s0::system::auth::v1::AuditEventType::PermissionCheck as i32
+            }
+            "API_KEY_CREATED" => {
+                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyCreated as i32
+            }
+            "API_KEY_REVOKED" => {
+                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyRevoked as i32
+            }
+            _ => proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32,
+        };
+        let result_enum = match result {
+            "SUCCESS" => proto::k1s0::system::auth::v1::AuditResult::Success as i32,
+            "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
+            _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
+        };
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::RecordAuditLogRequest {
             event_type: event_type.to_owned(),
+            event_type_enum,
             user_id: user_id.to_owned(),
             ip_address: ip_address.to_owned(),
             user_agent: user_agent.to_owned(),
             resource: resource.to_owned(),
             action: action.to_owned(),
             result: result.to_owned(),
+            result_enum,
             resource_id: resource_id.to_owned(),
             trace_id: trace_id.to_owned(),
             detail: None,
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            event_type_enum: 0,
-            result_enum: 0,
         });
 
         let resp = self
@@ -196,19 +220,45 @@ impl AuthGrpcClient {
         event_type: Option<&str>,
         result: Option<&str>,
     ) -> anyhow::Result<(Vec<AuditLog>, i64, bool)> {
+        // dual-write: 検索フィルタも旧文字列フィールドと新 enum フィールドを同時設定
+        let event_type_str = event_type.unwrap_or_default();
+        let result_str = result.unwrap_or_default();
+        let event_type_filter_enum = match event_type_str {
+            s if s.starts_with("LOGIN") => {
+                proto::k1s0::system::auth::v1::AuditEventType::Login as i32
+            }
+            "LOGOUT" => proto::k1s0::system::auth::v1::AuditEventType::Logout as i32,
+            "TOKEN_VALIDATE" | "TOKEN_REFRESH" => {
+                proto::k1s0::system::auth::v1::AuditEventType::TokenRefresh as i32
+            }
+            "PERMISSION_CHECK" => {
+                proto::k1s0::system::auth::v1::AuditEventType::PermissionCheck as i32
+            }
+            "API_KEY_CREATED" => {
+                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyCreated as i32
+            }
+            "API_KEY_REVOKED" => {
+                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyRevoked as i32
+            }
+            _ => proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32,
+        };
+        let result_filter_enum = match result_str {
+            "SUCCESS" => proto::k1s0::system::auth::v1::AuditResult::Success as i32,
+            "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
+            _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
+        };
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination {
                 page: page.unwrap_or(1),
                 page_size: page_size.unwrap_or(50),
             }),
             user_id: user_id.unwrap_or_default().to_owned(),
-            event_type: event_type.unwrap_or_default().to_owned(),
-            result: result.unwrap_or_default().to_owned(),
+            event_type: event_type_str.to_owned(),
+            event_type_enum: event_type_filter_enum,
+            result: result_str.to_owned(),
+            result_enum: result_filter_enum,
             from: None,
             to: None,
-            // 後方互換フィールド（0 = UNSPECIFIED はフィルタなし）
-            event_type_enum: 0,
-            result_enum: 0,
         });
 
         let resp = self

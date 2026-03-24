@@ -8,7 +8,7 @@
 
 本ドキュメントは、k1s0プロジェクト内の全モジュールの成熟度レベルを一覧で管理する。各レベルの定義は [maturity-levels.md](./maturity-levels.md) を参照。
 
-**最終更新日**: 2026-03-16
+**最終更新日**: 2026-03-25
 
 ---
 
@@ -19,9 +19,9 @@
 | レベル | モジュール数 | 割合 |
 |--------|-------------|------|
 | `production` | 0 | 0% |
-| `beta` | 約20 | 約10% |
+| `beta` | 約24 | 約12% |
 | `experimental` | 3 | 約1% |
-| `template-only` | 約179 | 約89% |
+| `template-only` | 約175 | 約87% |
 
 ---
 
@@ -39,12 +39,12 @@
 | ai-agent | `experimental` | AI統合の実験的実装 |
 | ai-gateway | `experimental` | AIゲートウェイの実験的実装 |
 | api-registry | `template-only` | scaffold生成のみ |
-| app-registry | `template-only` | scaffold生成のみ |
+| app-registry | `beta` | FileStorage（PVマウント）、ダウンロードURL生成、gRPC/REST二重サーバー実装済み |
 | event-monitor | `template-only` | scaffold生成のみ |
 | event-store | `template-only` | scaffold生成のみ |
 | featureflag | `template-only` | scaffold生成のみ |
 | file | `template-only` | scaffold生成のみ |
-| graphql-gateway | `template-only` | scaffold生成のみ |
+| graphql-gateway | `beta` | gRPCクライアント統合、GraphQLハンドラ、認証ミドルウェア・監査ログ連携実装済み |
 | master-maintenance | `template-only` | scaffold生成のみ |
 | navigation | `template-only` | scaffold生成のみ |
 | notification | `beta` | 通知機能実装済み、REST/gRPC二重サーバー対応 |
@@ -87,7 +87,7 @@
 
 | モジュール | 成熟度 | 備考 |
 |-----------|--------|------|
-| task | `template-only` | scaffold生成のみ |
+| task | `beta` | REST/gRPC CRUD、Outbox/Kafka連携、冪等性チェック実装済み |
 | board | `template-only` | scaffold生成のみ |
 | activity | `beta` | ドメインモデル・ユースケース・Outbox/Kafka連携・冪等性チェック実装済み |
 
@@ -189,7 +189,7 @@
 | featureflag | `template-only` | scaffold生成のみ |
 | file-client | `template-only` | scaffold生成のみ |
 | graphql-client | `template-only` | scaffold生成のみ |
-| idempotency | `template-only` | scaffold生成のみ |
+| idempotency | `beta` | Redis/Postgres/InMemory の3バックエンド実装済み、フィーチャーフラグで切り替え可能 |
 | migration | `template-only` | scaffold生成のみ |
 | notification-client | `template-only` | scaffold生成のみ |
 | outbox | `template-only` | scaffold生成のみ |

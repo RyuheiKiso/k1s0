@@ -368,8 +368,8 @@ services:
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
-    # リソース制限: API Gateway は中程度のリソースを使用
-    mem_limit: 1024m
+    # リソース制限: API Gateway のメモリ使用量（外部監査で98%到達を確認、1536mへ増加）
+    mem_limit: 1536m
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Kong運用に必要な最小限のみ付与
     security_opt:

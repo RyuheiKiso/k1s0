@@ -150,6 +150,55 @@ service tier のタスク管理サーバーは以下の機能を提供する。
 }
 ```
 
+#### POST /api/v1/tasks/{task_id}/checklist
+
+チェックリスト項目をタスクに追加する。
+
+**リクエスト**
+
+```json
+{
+  "title": "コードレビュー",
+  "sort_order": 1
+}
+```
+
+**レスポンス（201 Created）**
+
+```json
+{
+  "id": "item-uuid",
+  "task_id": "task-uuid",
+  "title": "コードレビュー",
+  "is_completed": false,
+  "sort_order": 1,
+  "created_at": "2026-03-25T00:00:00Z",
+  "updated_at": "2026-03-25T00:00:00Z"
+}
+```
+
+#### PUT /api/v1/tasks/{task_id}/checklist/{item_id}
+
+チェックリスト項目を更新する。未指定フィールドは変更されない（部分更新）。
+
+**リクエスト**
+
+```json
+{
+  "title": "コードレビュー（完了）",
+  "is_completed": true,
+  "sort_order": 1
+}
+```
+
+**レスポンス（200 OK）**: 更新後の `TaskChecklistItem` を返す。
+
+#### DELETE /api/v1/tasks/{task_id}/checklist/{item_id}
+
+チェックリスト項目を削除する。
+
+**レスポンス（204 No Content）**: ボディなし。
+
 #### GET /healthz
 
 **レスポンス（200 OK）**

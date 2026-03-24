@@ -12,9 +12,9 @@ use crate::proto::k1s0::system::ratelimit::v1::{
     GetRuleRequest as ProtoGetRuleRequest, GetRuleResponse as ProtoGetRuleResponse,
     GetUsageRequest as ProtoGetUsageRequest, GetUsageResponse as ProtoGetUsageResponse,
     ListRulesRequest as ProtoListRulesRequest, ListRulesResponse as ProtoListRulesResponse,
-    RateLimitRule as ProtoRateLimitRule, ResetLimitRequest as ProtoResetLimitRequest,
-    ResetLimitResponse as ProtoResetLimitResponse, UpdateRuleRequest as ProtoUpdateRuleRequest,
-    UpdateRuleResponse as ProtoUpdateRuleResponse,
+    RateLimitAlgorithm, RateLimitRule as ProtoRateLimitRule,
+    ResetLimitRequest as ProtoResetLimitRequest, ResetLimitResponse as ProtoResetLimitResponse,
+    UpdateRuleRequest as ProtoUpdateRuleRequest, UpdateRuleResponse as ProtoUpdateRuleResponse,
 };
 
 use super::ratelimit_grpc::{
@@ -40,6 +40,24 @@ fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> ProtoTimestamp {
         seconds: ts.seconds,
         nanos: ts.nanos,
     }
+}
+
+/// アルゴリズム文字列を RateLimitAlgorithm enum の i32 値に変換する。
+/// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
+fn algorithm_str_to_enum(s: &str) -> i32 {
+    match s {
+        "sliding_window" => RateLimitAlgorithm::SlidingWindow as i32,
+        "token_bucket" => RateLimitAlgorithm::TokenBucket as i32,
+        "fixed_window" => RateLimitAlgorithm::FixedWindow as i32,
+        "leaky_bucket" => RateLimitAlgorithm::LeakyBucket as i32,
+        _ => RateLimitAlgorithm::Unspecified as i32,
+    }
+}
+
+fn algorithm_opt_to_enum(algo: &Option<String>) -> i32 {
+    algo.as_deref()
+        .map(algorithm_str_to_enum)
+        .unwrap_or(RateLimitAlgorithm::Unspecified as i32)
 }
 
 pub struct RateLimitServiceTonic {
@@ -104,6 +122,8 @@ impl RateLimitService for RateLimitServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+        let algorithm_enum = algorithm_str_to_enum(&resp.rule.algorithm);
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
             name: resp.rule.name,
@@ -112,11 +132,10 @@ impl RateLimitService for RateLimitServiceTonic {
             limit: resp.rule.limit,
             window_seconds: resp.rule.window_seconds,
             algorithm: resp.rule.algorithm,
+            algorithm_enum,
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoCreateRuleResponse {
@@ -139,6 +158,8 @@ impl RateLimitService for RateLimitServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+        let algorithm_enum = algorithm_str_to_enum(&resp.rule.algorithm);
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
             name: resp.rule.name,
@@ -147,11 +168,10 @@ impl RateLimitService for RateLimitServiceTonic {
             limit: resp.rule.limit,
             window_seconds: resp.rule.window_seconds,
             algorithm: resp.rule.algorithm,
+            algorithm_enum,
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoGetRuleResponse {
@@ -174,18 +194,19 @@ impl RateLimitService for RateLimitServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+        let algorithm_enum = algorithm_str_to_enum(&resp.algorithm);
         Ok(Response::new(ProtoGetUsageResponse {
             rule_id: resp.rule_id,
             rule_name: resp.rule_name,
             limit: resp.limit,
             window_seconds: resp.window_seconds,
             algorithm: resp.algorithm,
+            algorithm_enum,
             enabled: resp.enabled,
             used: resp.used,
             remaining: resp.remaining,
             reset_at: resp.reset_at,
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            algorithm_enum: 0,
         }))
     }
 
@@ -210,6 +231,8 @@ impl RateLimitService for RateLimitServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+        let algorithm_enum = algorithm_str_to_enum(&resp.rule.algorithm);
         let proto_rule = ProtoRateLimitRule {
             id: resp.rule.id,
             name: resp.rule.name,
@@ -218,11 +241,10 @@ impl RateLimitService for RateLimitServiceTonic {
             limit: resp.rule.limit,
             window_seconds: resp.rule.window_seconds,
             algorithm: resp.rule.algorithm,
+            algorithm_enum,
             enabled: resp.rule.enabled,
             created_at: resp.rule.created_at.map(|ts| pb_timestamp(&ts)),
             updated_at: resp.rule.updated_at.map(|ts| pb_timestamp(&ts)),
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            algorithm_enum: 0,
         };
 
         Ok(Response::new(ProtoUpdateRuleResponse {
@@ -276,19 +298,22 @@ impl RateLimitService for RateLimitServiceTonic {
         let rules = resp
             .rules
             .into_iter()
-            .map(|rule| ProtoRateLimitRule {
-                id: rule.id,
-                name: rule.name,
-                scope: rule.scope,
-                identifier_pattern: rule.identifier_pattern,
-                limit: rule.limit,
-                window_seconds: rule.window_seconds,
-                algorithm: rule.algorithm,
-                enabled: rule.enabled,
-                created_at: rule.created_at.map(|ts| pb_timestamp(&ts)),
-                updated_at: rule.updated_at.map(|ts| pb_timestamp(&ts)),
-                // 後方互換フィールド（0 = UNSPECIFIED）
-                algorithm_enum: 0,
+            // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+            .map(|rule| {
+                let algorithm_enum = algorithm_str_to_enum(&rule.algorithm);
+                ProtoRateLimitRule {
+                    id: rule.id,
+                    name: rule.name,
+                    scope: rule.scope,
+                    identifier_pattern: rule.identifier_pattern,
+                    limit: rule.limit,
+                    window_seconds: rule.window_seconds,
+                    algorithm: rule.algorithm,
+                    algorithm_enum,
+                    enabled: rule.enabled,
+                    created_at: rule.created_at.map(|ts| pb_timestamp(&ts)),
+                    updated_at: rule.updated_at.map(|ts| pb_timestamp(&ts)),
+                }
             })
             .collect();
         Ok(Response::new(ProtoListRulesResponse {

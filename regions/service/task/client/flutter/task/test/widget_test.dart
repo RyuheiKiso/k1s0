@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:task/config/app_config.dart';
 import 'package:task/config/config_provider.dart';
-import 'package:task/main.dart';
+import 'package:task/app/app.dart';
 import 'package:task/providers/task_provider.dart';
 
 /// テスト用のAppConfig定数

@@ -120,7 +120,7 @@ mod tests {
         // find_all がエラーを返す場合のモックを設定し、エラー伝播を検証する
         mock.expect_find_all()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database connection error")));
+            .returning(|_, _| Err(crate::domain::error::TaskError::Infrastructure(anyhow::anyhow!("database connection error"))));
 
         let uc = ListTasksUseCase::new(Arc::new(mock));
         let filter = TaskFilter::default();

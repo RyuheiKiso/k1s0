@@ -28,7 +28,7 @@ use crate::proto::k1s0::system::workflow::v1::{
     UpdateWorkflowRequest as ProtoUpdateWorkflowRequest,
     UpdateWorkflowResponse as ProtoUpdateWorkflowResponse,
     WorkflowDefinition as ProtoWorkflowDefinition, WorkflowInstance as ProtoWorkflowInstance,
-    WorkflowStep as ProtoWorkflowStep, WorkflowSteps as ProtoWorkflowSteps,
+    WorkflowStep as ProtoWorkflowStep, WorkflowStepType, WorkflowSteps as ProtoWorkflowSteps,
     WorkflowTask as ProtoWorkflowTask,
 };
 
@@ -60,6 +60,13 @@ fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> ProtoTimestamp {
 }
 
 fn to_proto_step(step: WorkflowStepData) -> ProtoWorkflowStep {
+    // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+    let step_type_enum = match step.step_type.as_str() {
+        "approval" => WorkflowStepType::Approval as i32,
+        "automated" => WorkflowStepType::Automated as i32,
+        "notification" => WorkflowStepType::Notification as i32,
+        _ => WorkflowStepType::Unspecified as i32,
+    };
     ProtoWorkflowStep {
         step_id: step.step_id,
         name: step.name,
@@ -68,8 +75,7 @@ fn to_proto_step(step: WorkflowStepData) -> ProtoWorkflowStep {
         timeout_hours: step.timeout_hours,
         on_approve: step.on_approve,
         on_reject: step.on_reject,
-        // 後方互換フィールド（0 = UNSPECIFIED）
-        step_type_enum: 0,
+        step_type_enum,
     }
 }
 

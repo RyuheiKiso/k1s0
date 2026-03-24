@@ -3,7 +3,7 @@
 // RLS テナント分離のため、全 DB 操作メソッドに tenant_id パラメータを持つ。
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::domain::entity::task::{CreateTask, Task, TaskChecklistItem, TaskFilter, UpdateTaskStatus};
+use crate::domain::entity::task::{AddChecklistItem, CreateTask, Task, TaskChecklistItem, TaskFilter, UpdateChecklistItem, UpdateTaskStatus};
 use crate::domain::error::TaskError;
 
 #[cfg_attr(test, mockall::automock)]
@@ -19,6 +19,12 @@ pub trait TaskRepository: Send + Sync {
     async fn create(&self, tenant_id: &str, input: &CreateTask, created_by: &str) -> Result<Task, TaskError>;
     /// チェックリスト取得（RLS テナント分離のため tenant_id を先頭に受け取る）
     async fn find_checklist(&self, tenant_id: &str, task_id: Uuid) -> Result<Vec<TaskChecklistItem>, TaskError>;
+    /// チェックリスト項目追加（RLS テナント分離のため tenant_id を先頭に受け取る）
+    async fn add_checklist_item(&self, tenant_id: &str, task_id: Uuid, input: &AddChecklistItem) -> Result<TaskChecklistItem, TaskError>;
+    /// チェックリスト項目更新（RLS テナント分離のため tenant_id を先頭に受け取る）
+    async fn update_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid, input: &UpdateChecklistItem) -> Result<TaskChecklistItem, TaskError>;
+    /// チェックリスト項目削除（RLS テナント分離のため tenant_id を先頭に受け取る）
+    async fn delete_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid) -> Result<(), TaskError>;
     /// ステータス更新（楽観的ロック付き。RLS テナント分離のため tenant_id を先頭に受け取る）
     async fn update_status(
         &self,
