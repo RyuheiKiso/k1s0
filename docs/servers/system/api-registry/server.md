@@ -1038,7 +1038,7 @@ database:
   name: "apiregistry"
   user: "apiregistry"
   password: ""
-  ssl_mode: "disable"
+  ssl_mode: "require"          # 開発環境では "disable"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: 300

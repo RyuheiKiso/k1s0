@@ -296,8 +296,13 @@ pub struct PostgresIdempotencyStore {
     inner: crate::memory::InMemoryIdempotencyStore,
 }
 
+/// デフォルトの接続プールサイズ（未指定時に使用する）
+const DEFAULT_MAX_CONNECTIONS: u32 = 10;
+
 impl PostgresIdempotencyStore {
-    pub async fn new(database_url: impl Into<String>) -> Result<Self, IdempotencyError> {
+    /// 接続プールの最大接続数を指定して新しい PostgresIdempotencyStore を生成する。
+    /// max_connections が None の場合はデフォルト値 (10) を使用する。
+    pub async fn new(database_url: impl Into<String>, max_connections: Option<u32>) -> Result<Self, IdempotencyError> {
         let database_url = database_url.into();
         if database_url.trim().is_empty() {
             return Err(IdempotencyError::StorageError(
@@ -307,8 +312,9 @@ impl PostgresIdempotencyStore {
 
         #[cfg(feature = "postgres")]
         {
+            // 接続プールサイズを設定可能にすることで、環境に応じた最適化を可能にする
             let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(10)
+                .max_connections(max_connections.unwrap_or(DEFAULT_MAX_CONNECTIONS))
                 .connect(&database_url)
                 .await
                 .map_err(sqlx_error)?;

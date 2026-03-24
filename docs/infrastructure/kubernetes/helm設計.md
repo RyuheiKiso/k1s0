@@ -848,6 +848,45 @@ spec:
 - リリース履歴は直近 10 リビジョンを保持する（`--history-max 10`）
 - prod のロールバックは即座に実行できるよう、前バージョンの動作確認を staging で事前に行う
 
+## k1s0-common テンプレート nil-safe 規約（C-1 対応）
+
+### 背景
+
+Helm Library Chart（type: library）の `values.yaml` は、使用側チャートの `helm template` / `helm install` 時に**自動マージされない**。
+そのため `k1s0-common/values.yaml` に記述されたデフォルト値は、サービス側の `values.yaml` で明示的に上書きされていない場合は nil になりうる。
+この仕様により、サービス固有の `values.yaml` に特定のキーが存在しない場合、テンプレート内でそのキーにアクセスするとパニックが発生する。
+
+### 修正済みの nil-safe パターン（2026-03-24: C-1 対応）
+
+| テンプレートファイル | nil-safe 修正内容 |
+|---|---|
+| `_pdb.tpl` | `{{- if and .Values.pdb .Values.pdb.enabled }}` |
+| `_hpa.tpl` | `{{- if and .Values.autoscaling .Values.autoscaling.enabled }}` |
+| `_deployment.tpl` | `{{- if not (and .Values.autoscaling .Values.autoscaling.enabled) }}` |
+| `_deployment.tpl` | `{{- if and .Values.container .Values.container.command }}` |
+| `_deployment.tpl` | `{{- if and .Values.container .Values.container.grpcPort }}` |
+| `_deployment.tpl` | `{{- with .Values.probes }}` で probes nil ガード追加 |
+| `_deployment.tpl` | `mountPath: {{ if .Values.config }}...{{ else }}/etc/app{{ end }}` |
+| `_virtualservice.tpl` | `{{- if and .Values.istio .Values.istio.enabled .Values.istio.virtualService .Values.istio.virtualService.enabled }}` |
+| `_destinationrule.tpl` | `{{- if and .Values.istio .Values.istio.enabled .Values.istio.destinationRule .Values.istio.destinationRule.enabled }}` |
+| `_service.tpl` | `type: {{ if .Values.service }}...{{ else }}ClusterIP{{ end }}` |
+| `_service.tpl` | `{{- if and .Values.service .Values.service.grpcPort }}` |
+| `_configmap.tpl` | `{{- range $key, $value := ((.Values.config).data) }}` |
+| `_helpers.tpl` | `{{- if and .Values.serviceAccount .Values.serviceAccount.create }}` |
+
+### テンプレート修正時の規約
+
+新しいテンプレートを追加・変更する場合は、以下の規約に従うこと:
+
+1. **オブジェクト型の値へのアクセス**: `{{- if .Values.parent }}{{ .Values.parent.child }}{{ end }}` の形で親オブジェクトの nil チェックを先行させる
+2. **条件分岐での比較**: `{{- if and .Values.parent .Values.parent.enabled }}` を使用する
+3. **デフォルト値の提供**: `{{ if .Values.service }}{{ .Values.service.type | default "ClusterIP" }}{{ else }}ClusterIP{{ end }}`
+4. **`range` での nil-safe**: `((.Values.config).data)` のように二重括弧を使用する（Go テンプレートの optional chaining）
+
+### CI による継続検証
+
+`helm lint` は `infra/helm/**` 変更時と定期実行時に全 31 サービスチャートに対して自動実行される（`.github/workflows/_validate.yaml` の `helm-lint` ジョブ）。
+
 ## 関連ドキュメント
 
 - [kubernetes設計](kubernetes設計.md)

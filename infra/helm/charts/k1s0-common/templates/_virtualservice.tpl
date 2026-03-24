@@ -4,7 +4,8 @@ istio.enabled かつ istio.virtualService.enabled の場合のみリソースを
 タイムアウト・リトライ設定を values から注入する。
 */}}
 {{- define "k1s0-common.virtualService" -}}
-{{- if and .Values.istio.enabled .Values.istio.virtualService.enabled }}
+{{/* istio・virtualService オブジェクトの nil チェックを先行させ、未設定 values.yaml でのテンプレートエラーを防ぐ（nil-safe: C-1 対応） */}}
+{{- if and .Values.istio .Values.istio.enabled .Values.istio.virtualService .Values.istio.virtualService.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
@@ -17,7 +18,9 @@ spec:
   http:
     - timeout: {{ .Values.istio.virtualService.timeout | default .Values.istio.timeout | default "30s" }}
       retries:
-        attempts: {{ .Values.istio.virtualService.retries.attempts | default 3 }}
+        {{- $retries := .Values.istio.virtualService.retries }}
+        {{/* M-07監査対応: `default` フィルタは 0 を falsy として扱うため attempts: 0（リトライ無効）が機能しないバグを修正。hasKey で値の有無を判定する。 */}}
+        attempts: {{ if (hasKey $retries "attempts") }}{{ $retries.attempts }}{{ else }}3{{ end }}
         perTryTimeout: {{ .Values.istio.virtualService.retries.perTryTimeout | default "10s" }}
         retryOn: {{ .Values.istio.virtualService.retries.retryOn | default "5xx,reset,connect-failure" }}
       route:

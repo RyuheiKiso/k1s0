@@ -1,5 +1,6 @@
 {{- define "k1s0-common.hpa" -}}
-{{- if .Values.autoscaling.enabled }}
+{{/* autoscaling オブジェクトと enabled フラグの両方が存在する場合のみ HPA リソースを生成する（nil-safe: C-1 対応） */}}
+{{- if and .Values.autoscaling .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

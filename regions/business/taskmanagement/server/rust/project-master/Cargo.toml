@@ -88,3 +88,7 @@ axum = { workspace = true }
 async-trait = { workspace = true }
 uuid = { workspace = true }
 serde_json = { workspace = true }
+
+# ワークスペース定義の Lint ルール（unwrap_used = "deny" 等）を継承する
+[lints]
+workspace = true

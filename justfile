@@ -327,29 +327,68 @@ gen-sdk service proto="api/proto":
 
 # --- Docker ---
 
-# 全サービスの Docker イメージをローカルビルド
+# 全サービスの Docker イメージをローカルビルド（並列実行）
 docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Rust サーバー（system tier）のイメージビルド
+    # BuildKit を明示的に有効化してレイヤーキャッシュとビルドパフォーマンスを最大化する
+    export DOCKER_BUILDKIT=1
+    # 最大同時並列ビルド数（Docker デーモンのリソース過負荷を防ぐ）
+    MAX_PARALLEL=4
+    pids=()
+    names=()
+    failed=0
+
+    # スロット制限付きでバックグラウンドビルドを起動するヘルパー関数
+    # 実行中ジョブが MAX_PARALLEL に達した場合、最古のジョブ完了を待ってからスタートする
+    start_build() {
+        local name="$1"; shift
+        while [ "${#pids[@]}" -ge "$MAX_PARALLEL" ]; do
+            if ! wait "${pids[0]}"; then
+                echo "ERROR: ${names[0]} のビルドが失敗しました" >&2
+                failed=1
+            fi
+            pids=("${pids[@]:1}")
+            names=("${names[@]:1}")
+        done
+        echo "=== [並列] Starting: $name ==="
+        "$@" &
+        pids+=($!)
+        names+=("$name")
+    }
+
+    # Rust サーバー（system tier）のイメージビルド（並列）
     for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
         server_name="$(basename "$(dirname "$dockerfile")")"
-        echo "=== docker build $server_name ==="
         if [ "$server_name" = "graphql-gateway" ]; then
-            docker build -f "$dockerfile" -t "k1s0-$server_name" .
+            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" .
         else
-            docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
+            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
         fi
     done
     # Go サーバー（bff-proxy）のイメージビルド
-    echo "=== docker build bff-proxy ==="
-    docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
+    start_build "bff-proxy" docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
 
-# ローカル開発環境を起動（docker compose）
-local-up: _check-env
+    # 残り全ビルドの完了を待機して失敗を集計する
+    for i in "${!pids[@]}"; do
+        if ! wait "${pids[$i]}"; then
+            echo "ERROR: ${names[$i]} のビルドが失敗しました" >&2
+            failed=1
+        fi
+    done
+    [ "$failed" -eq 0 ] || { echo "ERROR: ビルドが失敗したサービスがあります" >&2; exit 1; }
+
+# ローカル開発環境を起動（docker compose + dev overrides）
+# C-02監査対応: docker-compose.dev.yaml を自動的に適用し、必須環境変数（KEYCLOAK_ADMIN_PASSWORD 等）の
+# デフォルト値を提供することで、新規開発者が just local-up だけで環境を構築できるよう修正。
+local-up: local-up-dev
+
+# CI・本番確認用 docker-compose.yaml 単体起動（dev overrides を適用しない）
+# 本番同等の起動確認が必要な場合は .env に必須変数を設定した上でこのコマンドを使用すること。
+local-up-base: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== Starting local development environment ==="
+    echo "=== Starting local development environment (base, no dev overrides) ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
         docker compose {{_dc_profiles}} up -d
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
@@ -371,11 +410,34 @@ local-down: _check-env
     fi
 
 # 認証バイパス付きでローカル開発環境を起動（ローカル開発専用・本番では使用不可）
+# C-01監査対応: Docker Compose 起動後、Keycloak から RSA 公開鍵を取得して Kong に設定する。
+# setup-kong-jwt.sh が Keycloak の起動を最大60秒待機し、kong.dev.yaml のプレースホルダーを置換する。
+# 置換後は Kong を再起動して設定を反映させる。
+#
+# --env-file .env.dev を指定する理由:
+#   docker-compose.yaml の ${VAR:?error} 構文はホスト環境変数を参照し、ファイルマージより先に評価される。
+#   docker-compose.dev.yaml の environment セクションはコンテナ環境変数であり、上記 interpolation を解決できない。
+#   .env.dev を --env-file で渡すことでホスト環境変数として展開し、起動エラーを防ぐ。
 local-up-dev: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
+    # .env.dev の存在確認: ない場合は明確なエラーで停止する（サイレントな起動失敗を防止）
+    if [ ! -f ".env.dev" ]; then
+        echo "Error: .env.dev が見つかりません。リポジトリルートに .env.dev が必要です。" >&2
+        echo "  参照: .env.dev はリポジトリに含まれています。git status で確認してください。" >&2
+        exit 1
+    fi
     echo "=== Starting local dev environment (auth bypass enabled) ==="
-    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+    echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
+    if bash infra/kong/setup-kong-jwt.sh; then
+        echo "=== Restarting Kong to apply new RSA public key configuration ==="
+        docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml restart kong
+        echo "=== Kong JWT setup complete ==="
+    else
+        echo "[WARN] Kong JWT setup failed. Kong may crash with placeholder RSA key." >&2
+        echo "  Keycloak が起動したら手動で実行してください: bash infra/kong/setup-kong-jwt.sh" >&2
+    fi
 
 # 指定プロファイルのみ起動（例: just local-up-profile infra）
 local-up-profile profile: _check-env

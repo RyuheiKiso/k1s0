@@ -149,7 +149,7 @@ describe('DeviceAuthClient', () => {
 
       try {
         await client.pollToken('test-client', 'device-code-123', 5);
-      } catch (e) {
+      } catch (e: unknown) {
         expect(e).toBeInstanceOf(DeviceFlowError);
         expect((e as DeviceFlowError).errorCode).toBe('expired_token');
       }
@@ -168,7 +168,7 @@ describe('DeviceAuthClient', () => {
 
       try {
         await client.pollToken('test-client', 'device-code-123', 5);
-      } catch (e) {
+      } catch (e: unknown) {
         expect(e).toBeInstanceOf(DeviceFlowError);
         expect((e as DeviceFlowError).errorCode).toBe('access_denied');
       }
@@ -193,7 +193,7 @@ describe('DeviceAuthClient', () => {
       try {
         await client.pollToken('test-client', 'device-code-123', 1, controller.signal);
         expect.unreachable('should have thrown');
-      } catch (e) {
+      } catch (e: unknown) {
         expect(e).toBeInstanceOf(DeviceFlowError);
         expect((e as DeviceFlowError).errorCode).toBe('aborted');
       }

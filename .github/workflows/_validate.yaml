@@ -16,8 +16,9 @@ on:
 
 jobs:
   # Helm チャートのリント
+  # H-8対応: paths-filter 条件を廃止し、全PRで必ず Helm バリデーションを実行する。
+  # Library Chart の変更はコンシューマーチャートに影響するため、Helm 変更がなくても常に検証が必要。
   helm-lint:
-    if: inputs.helm == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -186,11 +187,13 @@ jobs:
         run: terraform fmt -check -recursive infra/terraform/
       - name: Terraform validate (dev)
         working-directory: infra/terraform/environments/dev
+        # CI での HCL 構文検証のみ（-backend=false でバックエンド接続をスキップ）
         run: |
           terraform init -backend=false
           terraform validate
       - name: Terraform validate (prod)
         working-directory: infra/terraform/environments/prod
+        # CI での HCL 構文検証のみ（-backend=false でバックエンド接続をスキップ）
         run: |
           terraform init -backend=false
           terraform validate

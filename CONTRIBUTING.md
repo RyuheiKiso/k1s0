@@ -251,6 +251,47 @@ git push
 
 ---
 
+## 開発環境のセットアップ（IDE 設定）
+
+### VS Code（推奨）
+
+`.vscode/settings.json` に推奨設定が含まれています。以下の拡張機能をインストールしてください:
+
+```json
+// .vscode/extensions.json（推奨拡張機能）
+{
+  "recommendations": [
+    "rust-lang.rust-analyzer",    // Rust 言語サポート
+    "golang.go",                   // Go 言語サポート
+    "ms-vscode.vscode-typescript-next", // TypeScript サポート
+    "Dart-Code.dart-code",         // Dart/Flutter サポート
+    "tamasfe.even-better-toml",    // TOML ファイルサポート
+    "ms-azuretools.vscode-docker", // Docker サポート
+    "redhat.vscode-yaml",          // YAML サポート
+    "yzhang.markdown-all-in-one"   // Markdown サポート
+  ]
+}
+```
+
+### IntelliJ IDEA / GoLand / RustRover
+
+1. **Rust**: RustRover または IntelliJ IDEA + Rust プラグインを使用
+2. **Go**: GoLand または IntelliJ IDEA + Go プラグインを使用
+3. **TypeScript**: WebStorm または IntelliJ IDEA を使用
+4. **Dart/Flutter**: IntelliJ IDEA + Flutter プラグインを使用
+
+EditorConfig (`.editorconfig`) は IDE が自動で読み込むため、インデントやラインエンドの設定は自動適用されます。
+
+### 共通設定
+
+`.editorconfig` により以下が自動設定されます:
+- インデント: スペース4（Rust/Go/TypeScript/Dart 共通）
+- 文字コード: UTF-8
+- 行末: LF（Unix）
+- 末尾改行: あり
+
+---
+
 ## セットアップ手順
 
 - **Day 1 クイックスタート**: [`docs/onboarding/quickstart.md`](docs/onboarding/quickstart.md)

@@ -105,15 +105,35 @@ impl KeycloakRolePermissionSource {
 impl RolePermissionSource for KeycloakRolePermissionSource {
     async fn fetch_role_permissions(&self) -> anyhow::Result<HashMap<String, Vec<String>>> {
         let roles = self.fetch_roles().await?;
-        let mut table = HashMap::new();
 
+        // 複合ロールの取得を並列化してN+1 HTTPリクエストを解消する
+        // composite フラグが立っているロールのみフューチャーを生成し、join_all で一括実行する
+        let composite_futures: Vec<_> = roles
+            .iter()
+            .filter(|r| r.composite)
+            .map(|r| self.fetch_role_composites(&r.name))
+            .collect();
+
+        // 全複合ロールのコンポジット情報を並列取得する（失敗したロールは空リストとして扱う）
+        let composite_results = futures::future::join_all(composite_futures).await;
+
+        // 複合ロール名とコンポジット結果を対応付けるマップを構築する
+        let mut composites_map: HashMap<String, Vec<KeycloakRole>> = HashMap::new();
+        let composite_roles: Vec<_> = roles.iter().filter(|r| r.composite).collect();
+        for (role, result) in composite_roles.into_iter().zip(composite_results) {
+            let composites = result.unwrap_or_default();
+            composites_map.insert(role.name.clone(), composites);
+        }
+
+        let mut table = HashMap::new();
         for role in roles {
             let mut permissions = permissions_from_role(&role);
 
+            // 事前取得済みのコンポジット情報を使用してパーミッションを展開する
             if role.composite {
-                if let Ok(composites) = self.fetch_role_composites(&role.name).await {
+                if let Some(composites) = composites_map.get(&role.name) {
                     for composite in composites {
-                        permissions.extend(permissions_from_role(&composite));
+                        permissions.extend(permissions_from_role(composite));
                         if let Some(p) = normalize_permission(&composite.name) {
                             permissions.push(p);
                         }

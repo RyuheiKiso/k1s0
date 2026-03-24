@@ -48,6 +48,21 @@ csrf:
   enabled: true
   header_name: "X-CSRF-Token"
 
+# CORS設定（H-1対応）: 明示的な Origin ホワイトリストで異オリジンリクエストを制御する
+# 本番環境では allow_origins に実際のフロントエンドドメインを設定すること
+cors:
+  enabled: true
+  allow_origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+  max_age_secs: 600
+
+# レート制限設定（H-2対応）: IP ベースのトークンバケットで大量リクエストを遮断する
+rate_limit:
+  enabled: true
+  rps: 100
+  burst: 200
+
 upstream:
   base_url: "http://auth-server:8080"
   timeout: "30s"

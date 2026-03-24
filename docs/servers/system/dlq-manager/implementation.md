@@ -414,7 +414,7 @@ pub struct DatabaseConfig {
     pub name: String,
     pub user: String,
     pub password: String,    // default: ""
-    pub ssl_mode: String,    // default: "disable"
+    pub ssl_mode: String,    // default: "require"（開発環境では "disable"）
     pub max_open_conns: u32, // default: 25
     pub max_idle_conns: u32, // default: 5
     pub conn_max_lifetime: String, // default: "5m"

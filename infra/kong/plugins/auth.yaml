@@ -1,24 +1,28 @@
 # Authentication Plugins for Kong
-# JWT authentication and JWKS integration with Keycloak.
+# H-03監査対応: JWT iss/aud 検証を実装する。
+# key_claim_name: iss により jwt.claims.iss と consumer key（Keycloak レルム URL）を照合し、
+# 他システム発行トークンを 401 で拒否する。
+# aud 検証は kong.yaml の post-function access フェーズで実施する。
 
 plugins:
-  # JWT Plugin - JWT 認証（グローバル適用）
+  # H-03監査対応: JWT 認証（グローバル適用）
+  # key_claim_name: iss により iss クレームと consumer key の照合で発行元を検証する
+  # aud 検証は post-function access フェーズで実施する（kong.yaml 参照）
   # protocols を https のみに限定し、平文 HTTP 通信を禁止する（M-07 対応）
   - name: jwt
     config:
       uri_param_names: []
       cookie_names: []
-      key_claim_name: kid
+      key_claim_name: iss
       claims_to_verify:
         - exp
-        # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
-        # OIDCプラグイン移行後（ADR-0017）に対応予定。
       header_names:
         - Authorization
     protocols:
       - https
 
 # Keycloak JWKS 連携用 Consumer
+# key に Keycloak レルム URL を指定することで、key_claim_name: iss による iss 検証が機能する
 consumers:
   - username: keycloak
     jwt_secrets:

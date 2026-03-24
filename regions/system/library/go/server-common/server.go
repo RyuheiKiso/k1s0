@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 )
 
 // GRPCServable は gRPC サーバーの起動・停止インターフェース。
@@ -45,8 +46,10 @@ func NewServer(cfg ServerConfig, httpHandler http.Handler, grpcServer GRPCServab
 		cfg:        cfg,
 		grpcServer: grpcServer,
 		httpServer: &http.Server{
-			Addr:    addr,
-			Handler: httpHandler,
+			Addr:              addr,
+			Handler:           httpHandler,
+			// Slowloris攻撃を防止するためのヘッダー読み取りタイムアウト（app.go と同じパターン）
+			ReadHeaderTimeout: 10 * time.Second,
 		},
 	}
 }

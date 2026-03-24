@@ -157,26 +157,60 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Build service Docker images
+      - name: Build service Docker images（並列実行）
         shell: bash
         run: |
+          # BuildKit を明示的に有効化してレイヤーキャッシュとビルドパフォーマンスを最大化する
+          export DOCKER_BUILDKIT=1
+          # 最大同時並列ビルド数（CI ランナーのリソース超過を防ぐ）
+          MAX_PARALLEL=4
+          pids=()
+          names=()
+          failed=0
+
+          # スロット制限付きでバックグラウンドビルドを起動するヘルパー関数
+          # 実行中ジョブが MAX_PARALLEL に達した場合、最古のジョブ完了を待ってからスタートする
+          start_build() {
+            local name="$1"; shift
+            while [ "${#pids[@]}" -ge "$MAX_PARALLEL" ]; do
+              if ! wait "${pids[0]}"; then
+                echo "ERROR: ${names[0]} のビルドが失敗しました" >&2
+                failed=1
+              fi
+              pids=("${pids[@]:1}")
+              names=("${names[@]:1}")
+            done
+            echo "=== [並列] Starting: $name ==="
+            "$@" &
+            pids+=($!)
+            names+=("$name")
+          }
+
           mapfile -t rust_dockerfiles < <(rg --files regions/system/server/rust -g 'Dockerfile' | sort)
           for dockerfile in "${rust_dockerfiles[@]}"; do
             server_name="$(basename "$(dirname "$dockerfile")")"
             tag="ci-${server_name}"
-            echo "=== docker build $dockerfile ==="
             if [ "$server_name" = "graphql-gateway" ]; then
-              docker build -f "$dockerfile" -t "$tag" .
+              start_build "$server_name" docker build -f "$dockerfile" -t "$tag" .
             else
-              docker build -f "regions/system/${dockerfile#regions/system/}" -t "$tag" regions/system
+              start_build "$server_name" docker build -f "regions/system/${dockerfile#regions/system/}" -t "$tag" regions/system
             fi
           done
-          echo "=== docker build regions/system/server/go/bff-proxy/Dockerfile ==="
-          docker build -t ci-bff-proxy regions/system/server/go/bff-proxy
+
+          start_build "bff-proxy" docker build -t ci-bff-proxy regions/system/server/go/bff-proxy
+
           if [ -f regions/business/taskmanagement/server/rust/project-master/Dockerfile ]; then
-            echo "=== docker build project-master ==="
-            docker build -f regions/business/taskmanagement/server/rust/project-master/Dockerfile -t ci-project-master .
+            start_build "project-master" docker build -f regions/business/taskmanagement/server/rust/project-master/Dockerfile -t ci-project-master .
           fi
+
+          # 残り全ビルドの完了を待機して失敗を集計する
+          for i in "${!pids[@]}"; do
+            if ! wait "${pids[$i]}"; then
+              echo "ERROR: ${names[$i]} のビルドが失敗しました" >&2
+              failed=1
+            fi
+          done
+          [ "$failed" -eq 0 ] || { echo "ERROR: ビルドが失敗したサービスがあります" >&2; exit 1; }
 
   # 全ビルドの集約ジョブ
   build:

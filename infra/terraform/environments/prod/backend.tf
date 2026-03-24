@@ -9,8 +9,8 @@ terraform {
     region         = "ap-northeast-1"
     dynamodb_table = "k1s0-terraform-state-lock"
     encrypt        = true
-    # ACL は bucket-owner-full-control を推奨
-    # kms_key_id は KMS CMK で追加暗号化する場合に設定
+    # S3 バージョニングはバケット設定で有効化すること（backend.tf では設定不可）
+    # S3 互換ストレージ（MinIO 等）を使用する場合、kms_key_id は適用不可
   }
 }
 

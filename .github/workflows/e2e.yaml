@@ -1,0 +1,154 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+# .github/workflows/e2e.yaml
+# E2E テストワークフロー（M-2 対応）
+#
+# 目的: Playwright によるユーザーシナリオレベルのリグレッション検出
+# 実行方法: GitHub Actions の「Run workflow」ボタンから手動実行
+# 対象: tests/e2e/specs/ 配下の 5 スペック（auth-flow, api-crud, task-crud, health-check 等）
+#
+# 実行コスト（CI リソース）が高いため、PR ごとの自動実行は行わず手動実行とする。
+# 将来的には schedule トリガー（夜間実行）への移行を検討する。
+
+name: e2e
+
+on:
+  # 手動実行のみ（M-2 対応: まず骨格を整備し、段階的に拡充する）
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "テスト対象環境（デフォルト: local）"
+        required: false
+        default: "local"
+        type: choice
+        options:
+          - local
+
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
+concurrency:
+  # E2E は並列実行すると Docker Compose のポートが競合するため同時実行を防止する
+  group: e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      # テスト結果のアップロードに必要
+      contents: read
+
+    steps:
+      # リポジトリをチェックアウトする
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Node.js をセットアップする（Playwright 実行用）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # pnpm をセットアップする
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "9"
+
+      # E2E テストの依存関係をインストールする
+      - name: Install E2E dependencies
+        working-directory: tests/e2e
+        run: pnpm install --frozen-lockfile
+
+      # Playwright ブラウザをインストールする（Chromium のみ）
+      - name: Install Playwright browsers
+        working-directory: tests/e2e
+        run: pnpm exec playwright install chromium --with-deps
+
+      # infra プロファイルのサービスを起動する（Keycloak, PostgreSQL, Redis, Kafka, Kong）
+      # .env.example から .env を生成して必要な環境変数を設定する
+      - name: Start infrastructure services
+        run: |
+          # E2E テスト用の最小限の環境変数を設定する
+          cat > .env << 'EOF'
+          POSTGRES_PASSWORD=e2e_test_password
+          REDIS_PASSWORD=e2e_test_password
+          REDIS_SESSION_PASSWORD=e2e_test_password
+          KC_BFF_CLIENT_SECRET=e2e_bff_secret
+          KC_SERVICE_CLIENT_SECRET=e2e_service_secret
+          KC_TEST_ADMIN_PASSWORD=admin123
+          KC_TEST_USER_PASSWORD=user123
+          KC_TEST_TASK_MGR_PASSWORD=task123
+          GF_SECURITY_ADMIN_PASSWORD=admin
+          VAULT_DEV_ROOT_TOKEN_ID=e2e-root-token
+          EOF
+          docker compose --profile infra up -d
+
+      # Keycloak の起動完了を待機する（最大 120 秒）
+      - name: Wait for Keycloak
+        run: |
+          echo "Keycloak の起動完了を待機します..."
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost:8180/health/ready > /dev/null 2>&1; then
+              echo "Keycloak が起動しました"
+              break
+            fi
+            echo "待機中... ($i/24)"
+            sleep 5
+          done
+
+      # Kong の JWT 公開鍵を Keycloak から取得して設定する
+      - name: Setup Kong JWT
+        run: ./infra/kong/setup-kong-jwt.sh && docker compose --profile infra restart kong
+
+      # Kong の起動完了を待機する
+      - name: Wait for services ready
+        run: |
+          echo "サービスの起動完了を待機します..."
+          for i in $(seq 1 24); do
+            if curl -sf http://localhost:8000/healthz > /dev/null 2>&1; then
+              echo "Kong が起動しました"
+              break
+            fi
+            echo "待機中... ($i/24)"
+            sleep 5
+          done
+
+      # bff-proxy を起動する（システムサービス）
+      - name: Start system services
+        run: docker compose --profile system up -d
+
+      # E2E テストを実行する
+      - name: Run E2E tests
+        working-directory: tests/e2e
+        env:
+          BASE_URL: "http://localhost:8082"
+          CI: "true"
+        run: pnpm exec playwright test
+
+      # テスト結果（HTML レポート）を artifact として保存する
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: tests/e2e/playwright-report/
+          retention-days: 7
+
+      # テスト失敗時のスクリーンショットを artifact として保存する
+      - name: Upload test screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots-${{ github.run_id }}
+          path: tests/e2e/test-results/
+          retention-days: 7
+
+      # Docker Compose のサービスを停止してクリーンアップする
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose --profile infra --profile system down -v

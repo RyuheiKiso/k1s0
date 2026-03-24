@@ -106,10 +106,31 @@ terraform {
 | 案 D: HTTP backend（独自実装） | カスタム HTTP サーバーで State を管理 | 独自実装のメンテナンスコストが高く、セキュリティ上のリスクも増える |
 | 案 E: Azure Blob Storage | Azure Storage を State backend に使用 | 案 B と同様に AWS 以外のクラウドサービスへの依存が生じる |
 
+## 未対応事項（外部技術評価 H-11/L-4 指摘）
+
+以下の事項は本 ADR の決定範囲に含まれるが、実装が未完了のため明示的に記録する。
+
+### H-11: KMS CMK による追加暗号化（L-03 監査対応）
+
+**現状**: `encrypt = true` による SSE-S3（サーバー側暗号化）で暗号化済み。
+
+**非適用理由**: k1s0 は AWS を使用しない（Kubernetes + HashiCorp Vault + MinIO 等の S3 互換ストレージを使用）。
+AWS KMS の `kms_key_id` は AWS 固有の機能であり、S3 互換ストレージには適用できない。
+
+**代替暗号化**: 使用するオブジェクトストレージの暗号化機能に依存する。
+MinIO の場合は KES（Key Encryption Service）+ Vault 統合による暗号化を使用すること。
+
+### L-4: S3 バケットバージョニング
+
+S3 バージョニングはバケット設定で有効化する（`backend.tf` では設定不可）。
+使用するオブジェクトストレージのバージョニング機能を有効化すること。
+
 ## 参考
 
 - [Terraform S3 Backend 公式ドキュメント](https://developer.hashicorp.com/terraform/language/backend/s3)
 - [Terraform State 管理ベストプラクティス](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-remote)
 - [移行手順書](../../infrastructure/terraform-state-migration.md)
 - 外部監査報告書 H-08: Terraform State Backend の SPOF リスクと暗号化欠如
+- 外部技術評価報告書 H-11: KMS CMK 未設定
+- 外部技術評価報告書 L-4: S3 バージョニング未設定
 - [ADR-0019: Vault ドメイン別シークレット分離](0019-vault-domain-secret-isolation.md)

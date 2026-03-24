@@ -193,18 +193,17 @@ plugins:
       hide_client_headers: false            # X-RateLimit-* ヘッダーを返却
 
   # JWT - Keycloak JWKS 連携
-  # iss クレームを検証することでトークンの発行元（Keycloak レルム）を確認し、
-  # 他のシステムで発行されたトークンによる不正アクセスを防止する
+  # H-03監査対応: JWT iss/aud 検証
+  # key_claim_name: iss により jwt.claims.iss と consumer.jwt_secrets[].key（Keycloak レルム URL）を照合する。
+  # iss が一致しないトークン（他システム発行）は 401 で拒否される。
+  # aud 検証は post-function access フェーズで実施する（下記参照）。
   - name: jwt
     config:
       uri_param_names: []
       cookie_names: []
-      key_claim_name: kid
+      key_claim_name: iss
       claims_to_verify:
         - exp
-        # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
-        # OIDCプラグイン移行後（ADR-0017）に対応予定。
-        # H-6 対応: 暫定措置として BFF Proxy で iss/aud 検証を実施中（H-6）。
       header_names:
         - Authorization
 
@@ -231,13 +230,31 @@ plugins:
       credentials: true
       max_age: 3600
 
-  # Post Function - JWT Claims をバックエンドへのリクエストヘッダーに転送
+  # H-03監査対応: JWT aud 検証 + バックエンドリクエストヘッダー転送
+  # access フェーズを使用する理由:
+  #   1. kong.service.request.set_header() は access フェーズでのみ upstream へのヘッダー設定が有効
+  #      （header_filter フェーズはレスポンス処理であり、upstream リクエストヘッダーは設定不可）
+  #   2. post-function の priority は -1000 で JWT プラグイン（priority 1006）より後に実行されるため
+  #      access フェーズで authenticated_jwt_token が利用可能
+  # Keycloak の openid スコープ（k1s0-api-audience mapper）により全トークンに "k1s0-api" が付与される
   - name: post-function
     config:
-      header_filter:
+      access:
         - |
           local jwt = kong.ctx.shared.authenticated_jwt_token
           if jwt then
+            local aud = jwt.claims.aud
+            local valid = false
+            if type(aud) == "string" then
+              valid = (aud == "k1s0-api")
+            elseif type(aud) == "table" then
+              for _, v in ipairs(aud) do
+                if v == "k1s0-api" then valid = true; break end
+              end
+            end
+            if not valid then
+              return kong.response.exit(401, { message = "Unauthorized: invalid audience" })
+            end
             kong.service.request.set_header("X-User-Id", jwt.claims.sub)
             local roles = ""
             local ra = jwt.claims.realm_access

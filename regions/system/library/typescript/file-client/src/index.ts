@@ -143,7 +143,7 @@ export class ServerFileClient implements FileClient {
       if (res.status === 401 || res.status === 403) throw new FileClientError(text, 'UNAUTHORIZED');
       if (!res.ok) throw new FileClientError(`HTTP ${res.status}: ${text}`, 'INTERNAL');
       return text ? (JSON.parse(text) as T) : (undefined as unknown as T);
-    } catch (e) {
+    } catch (e: unknown) {
       if (e instanceof FileClientError) throw e;
       throw new FileClientError(String(e), 'CONNECTION_ERROR', e instanceof Error ? e : undefined);
     } finally {

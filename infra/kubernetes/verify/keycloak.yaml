@@ -9,6 +9,10 @@ kind: ConfigMap
 metadata:
   name: keycloak-realm
   namespace: k1s0-system
+# JSON レルム設定内のユーザーパスワード（test-admin: admin123, test-user: user123）は
+# Kubernetes Secret 参照に置き換えできない形式（ConfigMap の JSON 文字列内）のため、
+# verify 環境専用テスト用固定値として維持する。本番環境では使用しないこと。
+# 実際の Secret 値は keycloak-secrets.yaml の stringData に定義している。
 data:
   k1s0-realm.json: |
     {
@@ -468,6 +472,11 @@ spec:
       labels:
         app: keycloak
     spec:
+      # Keycloak 26.0 の公式イメージは UID 1000 (jboss) で動作するため非 root 実行が可能
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.0
@@ -477,8 +486,12 @@ spec:
           env:
             - name: KC_BOOTSTRAP_ADMIN_USERNAME
               value: "admin"
+            # Keycloak ブートストラップ管理者パスワードを Secret から参照する
             - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-secrets
+                  key: admin-password
             - name: KC_HOSTNAME_STRICT
               value: "false"
             - name: KC_HOSTNAME_STRICT_HTTPS

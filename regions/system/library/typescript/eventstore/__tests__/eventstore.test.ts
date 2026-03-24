@@ -119,7 +119,7 @@ describe('InMemoryEventStore', () => {
 
     try {
       await store.append(sid, [makeEvent(sid, 'Fail')], 5);
-    } catch (e) {
+    } catch (e: unknown) {
       expect(e).toBeInstanceOf(VersionConflictError);
       const err = e as VersionConflictError;
       expect(err.expected).toBe(5);

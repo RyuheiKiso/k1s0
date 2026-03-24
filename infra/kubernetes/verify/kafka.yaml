@@ -63,6 +63,9 @@ spec:
             failureThreshold: 10
       volumes:
         - name: kafka-data
+          # verify 環境はテスト後にクリーンな状態に戻すことが目的のため、
+          # データの永続化は不要。emptyDir を使用してテスト間のデータ汚染を防ぐ。
+          # 本番環境では PersistentVolumeClaim を使用すること。
           emptyDir: {}
 ---
 apiVersion: v1

@@ -18,7 +18,11 @@ type BFFConfig struct {
 	Auth          AuthConfig          `yaml:"auth" validate:"required"`
 	Session       SessionConfig       `yaml:"session" validate:"required"`
 	CSRF          CSRFConfig          `yaml:"csrf"`
-	Upstream      UpstreamConfig      `yaml:"upstream" validate:"required"`
+	// CORS は Cross-Origin Resource Sharing の設定（H-1対応）
+	CORS CORSConfig `yaml:"cors"`
+	// RateLimit は IP ベースのレート制限設定（H-2対応）
+	RateLimit RateLimitConfig `yaml:"rate_limit"`
+	Upstream  UpstreamConfig  `yaml:"upstream" validate:"required"`
 	// Cookie は Cookie のデフォルト設定。
 	Cookie CookieConfig `yaml:"cookie"`
 }
@@ -115,6 +119,32 @@ type RedisSessionConfig struct {
 type CSRFConfig struct {
 	Enabled    bool   `yaml:"enabled"`
 	HeaderName string `yaml:"header_name"`
+}
+
+// CORSConfig holds Cross-Origin Resource Sharing settings.
+// H-1対応: 明示的な Origin ホワイトリストを設定し、意図せぬオリジンを拒否する。
+type CORSConfig struct {
+	// Enabled は CORS ミドルウェアを有効にするかどうか。
+	Enabled bool `yaml:"enabled"`
+	// AllowOrigins は許可するオリジンのリスト（例: ["https://app.k1s0.example.com", "http://localhost:3000"]）
+	AllowOrigins []string `yaml:"allow_origins"`
+	// AllowHeaders は許可するリクエストヘッダーのリスト（未設定時はデフォルト値を使用する）
+	AllowHeaders []string `yaml:"allow_headers"`
+	// ExposeHeaders はブラウザが参照できるレスポンスヘッダーのリスト（未設定時はデフォルト値を使用する）
+	ExposeHeaders []string `yaml:"expose_headers"`
+	// MaxAgeSecs はプリフライトレスポンスのキャッシュ時間（秒）。0 の場合は 600 秒を使用する。
+	MaxAgeSecs int `yaml:"max_age_secs"`
+}
+
+// RateLimitConfig holds IP-based rate limiting settings.
+// H-2対応: DDoS攻撃や大量リクエストから BFF Proxy を保護するためのレート制限。
+type RateLimitConfig struct {
+	// Enabled は IP ベースのレート制限を有効にするかどうか。
+	Enabled bool `yaml:"enabled"`
+	// RPS は 1 IP あたりの秒間リクエスト上限（requests per second）。0 の場合は 100 を使用する。
+	RPS float64 `yaml:"rps"`
+	// Burst は瞬間的に許可するリクエスト数の上限（バースト許容量）。0 の場合は RPS * 2 を使用する。
+	Burst int `yaml:"burst"`
 }
 
 // UpstreamConfig holds the backend API base URL.

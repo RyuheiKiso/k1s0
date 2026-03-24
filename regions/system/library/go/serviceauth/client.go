@@ -28,7 +28,8 @@ type ServiceAuthConfig struct {
 type httpServiceAuthClient struct {
 	config     *ServiceAuthConfig
 	httpClient *http.Client
-	mu         sync.Mutex
+	// RWMutex を使用して読み取り専用パスのロック競合を最小化する
+	mu         sync.RWMutex
 	cached     *ServiceToken
 }
 
@@ -95,18 +96,30 @@ func (c *httpServiceAuthClient) GetToken(ctx context.Context) (*ServiceToken, er
 	}, nil
 }
 
-// GetCachedToken はキャッシュからトークンを返す（期限切れなら再取得）。
-// sync.Mutex で保護し、double-check locking を使用する。
+// GetCachedToken はキャッシュされたトークンを返す。
+// キャッシュが無効な場合は GetToken でトークンを取得してキャッシュを更新する。
+// RWMutex + double-check locking でロック競合を最小化する。
 func (c *httpServiceAuthClient) GetCachedToken(ctx context.Context) (string, error) {
+	// まず読み取りロックでキャッシュを確認（高速パス）
+	c.mu.RLock()
+	if c.cached != nil && !c.cached.ShouldRefresh() {
+		token := c.cached.BearerHeader()
+		c.mu.RUnlock()
+		return token, nil
+	}
+	c.mu.RUnlock()
+
+	// キャッシュが無効な場合、書き込みロックを取得してトークンを更新
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// キャッシュが有効なら返す
+	// double-check: ロック待ち中に別のgoroutineが更新した可能性があるため再確認
 	if c.cached != nil && !c.cached.ShouldRefresh() {
 		return c.cached.BearerHeader(), nil
 	}
 
-	// 新しいトークンを取得
+	// ロック外でネットワーク I/O を行うことが理想だが、
+	// 重複リクエストを防ぐためにロック内で実行する
 	token, err := c.GetToken(ctx)
 	if err != nil {
 		return "", err

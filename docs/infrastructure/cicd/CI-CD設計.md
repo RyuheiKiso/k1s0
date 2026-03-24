@@ -273,9 +273,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
 
+  # H-8対応: paths-filter 条件を廃止し、全 PR で常に Helm lint を実行する。
+  # Library Chart (k1s0-common) の変更はコンシューマーチャートに波及するため、
+  # Helm ファイル変更がない PR でも継続的にバリデーションを実施する。
   helm-lint:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.helm == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -1227,7 +1228,9 @@ services:
 - `@master` 参照によるサプライチェーン攻撃リスク
 - バージョン不一致による脆弱性データベースの差異
 
-**deploy.yaml への SARIF レポート追加**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+**deploy.yaml への SARIF レポート追加 + exit-code 設定（H-07 対応）**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+
+**H-07監査対応（2026-03-24）**: `exit-code: '1'` を追加し、CRITICAL/HIGH 脆弱性検出時に CI を失敗させる。`_service-deploy.yaml`・`security.yaml`・`_validate.yaml` と同等の挙動に統一した。`Upload Trivy SARIF report` ステップには `if: always()` が設定されているため、CI 失敗後もレポートはアーティファクトとして保存される。
 
 ```yaml
 # deploy.yaml build-and-push ジョブ内（ビルド・プッシュ後）
@@ -1238,6 +1241,7 @@ services:
     format: 'sarif'
     output: 'trivy-results.sarif'
     severity: 'CRITICAL,HIGH'
+    exit-code: '1'  # H-07対応: CRITICAL/HIGH 検出時に CI を失敗させる
 - name: Upload Trivy SARIF report
   uses: actions/upload-artifact@v4
   if: always()
@@ -1750,6 +1754,52 @@ gh run list --limit 20 --json databaseId,displayTitle,status,createdAt
 ```
 
 侵害が確認された場合は、Runner が保持していた全シークレット（Kubernetes ServiceAccount トークン・Vault トークン等）を即座にローテーションし、セキュリティチームへ報告すること。
+
+---
+
+## E2E テストワークフロー（M-2 対応）
+
+`tests/e2e/` 配下の Playwright テストを実行する専用ワークフロー。PR ごとの自動実行はリソースコストが高いため、**手動実行のみ**とする。
+
+### ワークフロー概要
+
+| 項目 | 設定 |
+| --- | --- |
+| ファイル | `.github/workflows/e2e.yaml` |
+| トリガー | `workflow_dispatch`（手動実行のみ） |
+| 実行時間 | 最大 30 分 |
+| テストフレームワーク | Playwright（Chromium） |
+| テストスペック | `tests/e2e/specs/`（5 スペック） |
+
+### 実行手順
+
+```bash
+# GitHub Actions の Web UI から手動実行する
+# または gh CLI で実行する
+gh workflow run e2e.yaml
+```
+
+### E2E ワークフローの処理フロー
+
+```
+1. リポジトリチェックアウト
+2. Node.js / pnpm セットアップ
+3. Playwright 依存関係インストール（Chromium のみ）
+4. Docker Compose infra プロファイル起動
+   └── PostgreSQL, Redis, Kafka, Keycloak, Kong
+5. Keycloak 起動待機（最大 120 秒）
+6. Kong JWT 公開鍵セットアップ（setup-kong-jwt.sh）
+7. bff-proxy 等のシステムサービス起動
+8. Playwright E2E テスト実行
+9. テスト結果（HTML レポート）を artifact に保存
+10. Docker Compose クリーンアップ（volumes 含む）
+```
+
+### 今後の拡張計画
+
+- **Phase 2**: `schedule` トリガーを追加して夜間自動実行（例: `cron: '0 1 * * *'`）
+- **Phase 3**: 重要な PR（main へのマージ前）でのトリガー追加を検討
+- **CI リソース改善**: より高速なランナーへの移行でテスト時間を短縮
 
 ---
 

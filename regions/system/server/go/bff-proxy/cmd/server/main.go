@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -135,6 +136,12 @@ func run() error {
 		sessionStore = encStore
 		logger.Info("AES-GCM 暗号化セッションストアを使用します")
 	} else {
+		// SESSION_ENCRYPTION_KEY が未設定の場合のセキュリティチェック
+		// 本番・ステージング環境（dev/development/local 以外）では起動を拒否することで、
+		// セッションデータが平文で Redis に保存されるリスクを防止する（M-04 対応）
+		if !config.IsDevEnvironment(cfg.App.Environment) {
+			log.Fatal("SESSION_ENCRYPTION_KEY must be set in non-development environments")
+		}
 		sessionStore = session.NewRedisStore(redisClient, prefix)
 		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
 	}
@@ -245,6 +252,10 @@ func run() error {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024*1024)
 		c.Next()
 	})
+	// H-1対応: CORS ミドルウェアを最初に適用し、異オリジンリクエストを制御する
+	router.Use(middleware.CORSMiddleware(cfg.CORS))
+	// H-2対応: IP ベースのレート制限を CORS の次に適用する
+	router.Use(middleware.RateLimitMiddleware(cfg.RateLimit))
 	// セキュリティレスポンスヘッダーを全リクエストに付与する
 	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.PrometheusMiddleware())

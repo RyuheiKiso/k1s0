@@ -119,9 +119,11 @@ utoipa-swagger-ui = { version = "9", features = ["axum"] }
 mockall = "0.14"
 tokio-test = "0.4"
 
-# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を禁止する
+# ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]
 unwrap_used = "deny"
+# async fn 内で std::sync::Mutex のロックを await ポイントをまたいで保持することを禁止する
+await_holding_lock = "deny"
 
 [profile.dev]
 debug = 1

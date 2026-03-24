@@ -126,7 +126,7 @@ export class OutboxProcessor {
         markDelivered(msg);
         await this.store.update(msg);
         processed++;
-      } catch (e) {
+      } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : String(e);
         markFailed(msg, errorMessage);
         await this.store.update(msg);

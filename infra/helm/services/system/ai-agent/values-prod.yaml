@@ -13,16 +13,20 @@ autoscaling:
   minReplicas: 3
   maxReplicas: 10
 
+# H-08監査対応: required（ハード制約）から preferred（ソフト制約）に変更。
+# ノード数 < replicaCount の場合でもスケジューリング可能にしつつ、可能な限り分散配置を促す。
 affinity:
   podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-            - key: app.kubernetes.io/name
-              operator: In
-              values:
-                - ai-agent
-        topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - ai-agent
+          topologyKey: kubernetes.io/hostname
 
 config:
   data:

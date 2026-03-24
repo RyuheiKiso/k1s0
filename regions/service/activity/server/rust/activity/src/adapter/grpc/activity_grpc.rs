@@ -222,9 +222,11 @@ impl ActivityService for ActivityGrpcService {
         match self.list_activities_uc.execute(&tenant_id, &filter).await {
             Ok((activities, total)) => {
                 let proto_activities: Vec<_> = activities.into_iter().map(domain_activity_to_proto).collect();
-                let page_size = limit.unwrap_or(proto_activities.len() as i64) as i32;
+                // i64からi32への変換。溢れる場合はi32::MAXを返す（実用上は発生しない範囲だが防御的実装）
+                let page_size = i32::try_from(limit.unwrap_or(proto_activities.len() as i64)).unwrap_or(i32::MAX);
                 let page = if let Some(off) = offset {
-                    (off / limit.unwrap_or(1).max(1) + 1) as i32
+                    // ページ番号の計算。i64→i32 変換時のオーバーフローを防ぐため try_from を使用する
+                    i32::try_from(off / limit.unwrap_or(1).max(1) + 1).unwrap_or(i32::MAX)
                 } else {
                     1
                 };

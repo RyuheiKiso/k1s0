@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use std::path::Path;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+use crate::domain::error::FileError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
@@ -68,8 +71,24 @@ impl FileMetadata {
         self.updated_at = Utc::now();
     }
 
-    pub fn generate_storage_key(tenant_id: &str, filename: &str) -> String {
-        format!("{}/{}", tenant_id, filename)
+    /// ストレージキーを生成する
+    /// パストラバーサル攻撃を防ぐため、ファイル名に親ディレクトリ参照や絶対パスが含まれていないか検証する
+    pub fn generate_storage_key(tenant_id: &str, filename: &str) -> Result<String, FileError> {
+        let path = Path::new(filename);
+        // 絶対パスや親ディレクトリ参照を拒否する（防御的バリデーション）
+        if path.is_absolute()
+            || path.components().any(|c| {
+                matches!(
+                    c,
+                    std::path::Component::ParentDir | std::path::Component::Prefix(_)
+                )
+            })
+        {
+            return Err(FileError::InvalidFileName(
+                "ファイル名にパストラバーサル文字列が含まれています".to_string(),
+            ));
+        }
+        Ok(format!("{}/{}", tenant_id, filename))
     }
 }
 
@@ -166,7 +185,26 @@ mod tests {
 
     #[test]
     fn generate_storage_key_formats_correctly() {
-        let key = FileMetadata::generate_storage_key("tenant-abc", "reports/file.pdf");
+        let key = FileMetadata::generate_storage_key("tenant-abc", "reports/file.pdf")
+            .expect("有効なファイル名のストレージキー生成は成功する");
         assert_eq!(key, "tenant-abc/reports/file.pdf");
+    }
+
+    #[test]
+    fn generate_storage_key_rejects_parent_dir() {
+        // 親ディレクトリ参照を含むファイル名はエラーを返す
+        let result = FileMetadata::generate_storage_key("tenant-abc", "../../../etc/passwd");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            FileError::InvalidFileName(_) => {}
+            e => panic!("expected InvalidFileName, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn generate_storage_key_rejects_absolute_path() {
+        // 絶対パスはエラーを返す（Unix 形式）
+        let result = FileMetadata::generate_storage_key("tenant-abc", "/etc/passwd");
+        assert!(result.is_err());
     }
 }

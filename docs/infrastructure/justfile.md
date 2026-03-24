@@ -102,6 +102,16 @@ just proto
 
 ## 技術監査対応の改善事項
 
+### `local-up` コマンドの修正（C-02 対応）
+
+`just local-up` が `docker-compose.dev.yaml` を使用せず、`KEYCLOAK_ADMIN_PASSWORD` 等の必須環境変数が未定義でエラーになる問題を修正した。
+
+| コマンド | 説明 |
+|---------|------|
+| `just local-up` | `local-up-dev` の別名。開発環境の標準起動コマンド。 |
+| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。 |
+| `just local-up-base` | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
+
 ### Docker Compose プロファイル構成
 
 AI 関連サービス（`ai-gateway-rust`, `ai-agent-rust`）は実験段階のため、`system` プロファイルから分離し `experimental-ai` プロファイルに移動している。

@@ -1,5 +1,6 @@
 {{- define "k1s0-common.pdb" -}}
-{{- if .Values.pdb.enabled }}
+{{/* pdb オブジェクトと enabled フラグの両方が存在する場合のみ PDB リソースを生成する（nil-safe: C-1 対応） */}}
+{{- if and .Values.pdb .Values.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:

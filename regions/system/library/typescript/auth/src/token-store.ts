@@ -52,13 +52,14 @@ export class MemoryTokenStore implements TokenStore {
 }
 
 /**
- * localStorage ベースのトークンストア。
+ * localStorage ベースのトークンストア（開発専用）。
  * ブラウザ環境で使用する。
  * PKCE verifier と state は sessionStorage に保存する（タブ間の分離のため）。
  *
  * @security セキュリティ警告
  *
- * **この実装は開発・テスト用途のみを想定しています。本番環境での使用は推奨しません。**
+ * **この実装は開発・テスト用途のみを想定しています。本番環境での使用は禁止です。**
+ * クラス名の "Dev" プレフィックスはこの制約を明示するためのものです。
  *
  * localStorage はXSS（クロスサイトスクリプティング）攻撃に対して脆弱です。
  * localStorage に保存されたトークンは、ページ上で実行されるすべての JavaScript から
@@ -74,7 +75,7 @@ export class MemoryTokenStore implements TokenStore {
  *
  * 詳細は `docs/architecture/auth/token-storage-security.md` を参照してください。
  */
-export class LocalStorageTokenStore implements TokenStore {
+export class DevLocalStorageTokenStore implements TokenStore {
   private readonly tokenKey = 'k1s0_auth_tokens';
   private readonly verifierKey = 'k1s0_pkce_verifier';
   private readonly stateKey = 'k1s0_oauth_state';

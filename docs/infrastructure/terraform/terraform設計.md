@@ -7,7 +7,7 @@
 - Terraform は Kubernetes リソースの宣言的管理に使用する
 - 物理 / 仮想サーバーの構築・OS 設定は Ansible で行い、Terraform の管理対象外とする
 - 環境（dev / staging / prod）ごとにワークスペースを分離する
-- State はリモートバックエンド（Consul）で管理する
+- State はリモートバックエンド（S3+DynamoDB）で管理する（ADR-0025 参照）
 
 ## 管理対象
 
@@ -64,55 +64,93 @@ infra/terraform/
 
 ## State 管理
 
-State バックエンドには Kubernetes クラスタ外の共有 Consul サービスを使用する。Consul は Ansible で構築・管理される独立したインフラであり、Terraform の管理対象外である（「Ansible との責務分担」セクションを参照）。
+> **移行済み**: 旧 Consul backend から S3+DynamoDB backend へ移行済み（ADR-0025 参照）。
+
+State バックエンドには AWS S3 + DynamoDB を使用する（外部監査 H-08 対応）。
 
 ```hcl
-# environments/dev/backend.tf
+# environments/dev/backend.tf（現在の設定）
 terraform {
-  backend "consul" {
-    address = "consul.internal.example.com:8500"
-    scheme  = "https"
-    path    = "terraform/k1s0/dev"
-    lock    = true
+  backend "s3" {
+    bucket         = "k1s0-terraform-state-dev"
+    key            = "k1s0/dev/terraform.tfstate"
+    region         = "ap-northeast-1"
+    dynamodb_table = "k1s0-terraform-state-lock"
+    encrypt        = true
   }
 }
 ```
 
-| 環境    | State パス                  |
-| ------- | --------------------------- |
-| dev     | `terraform/k1s0/dev`        |
-| staging | `terraform/k1s0/staging`    |
-| prod    | `terraform/k1s0/prod`       |
-
-### Consul HA 構成
-
-| 環境    | 構成                                    | 備考                                        |
-| ------- | --------------------------------------- | ------------------------------------------- |
-| prod    | 3 ノードクラスタ（Server モード）       | Raft コンセンサスプロトコルで冗長化          |
-| staging | 1 ノード                                | 開発用途のため HA 不要                       |
-| dev     | 1 ノード                                | ローカル開発用途のため HA 不要               |
+| 環境    | S3 バケット                        | State キー                     |
+| ------- | ---------------------------------- | ------------------------------ |
+| dev     | `k1s0-terraform-state-dev`         | `k1s0/dev/terraform.tfstate`   |
+| staging | `k1s0-terraform-state-staging`     | `k1s0/staging/terraform.tfstate` |
+| prod    | `k1s0-terraform-state-prod`        | `k1s0/prod/terraform.tfstate`  |
 
 ### State バックアップ・リカバリ
 
-- **バックアップ**: `consul snapshot save` を毎日 CronJob で実行し、Ceph オブジェクトストレージに 7 世代保持する
-- **リカバリ**: `consul snapshot restore` で Terraform State を復元する
-- **手順**: 障害発生時は直近のスナップショットから復元し、`terraform plan` で差分を確認してから運用を再開する
+- **バックアップ**: S3 バージョニングにより State ファイルの全変更履歴が自動保存される
+- **リカバリ**: S3 バージョニングで以前のバージョンを復元後、`terraform plan` で差分を確認してから運用を再開する
+- **手動確認**:
+  ```bash
+  # State バージョン一覧
+  aws s3api list-object-versions --bucket k1s0-terraform-state-prod \
+    --prefix k1s0/prod/terraform.tfstate
+  # 特定バージョンを復元
+  aws s3api copy-object --copy-source "k1s0-terraform-state-prod/k1s0/prod/terraform.tfstate?versionId=<VERSION_ID>" \
+    --bucket k1s0-terraform-state-prod --key k1s0/prod/terraform.tfstate
+  ```
 
 ### State の暗号化
 
 | レイヤー | 暗号化方式 | 備考 |
 | --- | --- | --- |
-| 通信経路 | TLS（Consul の `scheme = "https"`） | State の転送時暗号化 |
-| 保存時 | Consul の暗号化設定（`encrypt` キー） | Raft ログ・スナップショットの暗号化 |
-| バックアップ | PVC ボリュームの暗号化設定 | スナップショットの保存時暗号化（PVC ローカル保存） |
+| 通信経路 | TLS（HTTPS） | S3 API 通信の転送時暗号化 |
+| 保存時（現状） | SSE-S3（AWS 管理キー AES-256） | `encrypt = true` で有効 |
+| 保存時（目標） | SSE-KMS（CMK） | `kms_key_id` 設定で有効化（H-11 対応 TODO） |
+
+#### KMS CMK による追加暗号化（H-11 対応 TODO）
+
+現状は SSE-S3 のみだが、PCI DSS / SOC2 等のコンプライアンス要件では CMK（カスタマー管理キー）が必須の場合がある。以下の手順で KMS CMK を設定すること。
+
+```bash
+# 1. KMS CMK を作成する（prod 環境の例）
+aws kms create-key \
+  --description "k1s0 Terraform State Key (prod)" \
+  --key-usage ENCRYPT_DECRYPT \
+  --enable-key-rotation \
+  --region ap-northeast-1
+
+# 2. キーエイリアスを設定する
+aws kms create-alias \
+  --alias-name alias/k1s0-terraform-state-prod \
+  --target-key-id <key-id>
+```
+
+```hcl
+# backend.tf に kms_key_id を追加する
+backend "s3" {
+  # ... 既存の設定 ...
+  kms_key_id = "arn:aws:kms:ap-northeast-1:<account-id>:alias/k1s0-terraform-state-prod"
+}
+```
+
+#### S3 バージョニング（L-4 対応 TODO）
+
+各 State バケットでバージョニングが有効であることを確認・設定すること。
+
+```bash
+aws s3api put-bucket-versioning \
+  --bucket k1s0-terraform-state-prod \
+  --versioning-configuration Status=Enabled
+```
 
 ### State ロック
 
-Consul バックエンドは `lock = true` でステートロックを有効化する。これにより、複数の `terraform apply` が同時実行された場合に State の競合を防止する。ロックの取得に失敗した場合は、実行中のオペレーションが完了するまで待機する。
+DynamoDB テーブル `k1s0-terraform-state-lock` による条件付き書き込みで State ロックを実現する。複数の `terraform apply` が同時実行された場合に State の競合を防止する。
 
 手動ロック解除が必要な場合:
 ```bash
-# ロック状態の確認
 terraform force-unlock <LOCK_ID>
 ```
 
@@ -120,11 +158,11 @@ terraform force-unlock <LOCK_ID>
 
 | 環境 | アクセス権 | 制御方法 |
 | --- | --- | --- |
-| dev | 開発チーム全員 | Consul ACL トークン（read/write） |
-| staging | インフラチーム + リード | Consul ACL トークン（read/write）、開発チームは read-only |
-| prod | インフラチーム限定 | Consul ACL トークン（read/write）、CI/CD のみ apply 可能 |
+| dev | 開発チーム全員 | IAM ポリシー（read/write） |
+| staging | インフラチーム + リード | IAM ポリシー（read/write）、開発チームは read-only |
+| prod | インフラチーム限定 | IAM ポリシー（read/write）、CI/CD のみ apply 可能 |
 
-CI/CD パイプラインでは GitHub Actions の self-hosted ランナーから Consul に接続し、環境変数 `CONSUL_HTTP_TOKEN` で認証する。トークンは GitHub Secrets で管理する。
+CI/CD パイプラインでは GitHub Actions の OIDC プロバイダー経由で AWS IAM ロールを assume し、S3/DynamoDB へアクセスする。認証情報は GitHub Secrets で管理する。
 
 ## モジュール詳細
 

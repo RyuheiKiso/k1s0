@@ -63,7 +63,9 @@ scrape_configs:
     metrics_path: /metrics
 
   # Kong API Gateway
+  # H-01監査対応: Admin API（8001）ではなく Status API（8100）からメトリクスを収集する。
+  # Status API はメトリクス・ヘルスチェックのみを提供し、設定変更機能を持たないため安全に全NICバインドが可能。
   - job_name: kong
     static_configs:
-      - targets: ["kong:8001"]
+      - targets: ["kong:8100"]
     metrics_path: /metrics

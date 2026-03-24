@@ -99,9 +99,10 @@ fn generate_random_key() -> String {
 /// HMAC-SHA256 を使用して API キーをハッシュ化する。
 /// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
 fn hash_key(raw_key: &str) -> String {
-    // サーバー側ペッパーを環境変数から取得（未設定時は開発用デフォルト）
+    // API_KEY_PEPPER は必須環境変数。未設定の場合は即座にパニックして起動を拒否する。
+    // デフォルト値へのフォールバックを廃止し、ペッパー未設定状態での運用を防ぐ。
     let pepper = std::env::var("API_KEY_PEPPER")
-        .unwrap_or_else(|_| "k1s0-dev-pepper-do-not-use-in-production".to_string());
+        .expect("API_KEY_PEPPER environment variable must be set");
     compute_hmac_hex(raw_key, &pepper)
 }
 
@@ -134,6 +135,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_api_key_success() {
+        // テスト用ペッパーを設定する。hash_key() は API_KEY_PEPPER を必須とするため、
+        // テスト実行前に環境変数を明示的に設定しておく必要がある。
+        std::env::set_var("API_KEY_PEPPER", "test-pepper");
         let mut mock = MockApiKeyRepository::new();
         mock.expect_create().returning(|_| Ok(()));
 
@@ -156,6 +160,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_api_key_empty_name() {
+        // バリデーションエラーの検証。hash_key() は呼ばれないが、環境変数を設定しておく。
+        std::env::set_var("API_KEY_PEPPER", "test-pepper");
         let mock = MockApiKeyRepository::new();
         let uc = CreateApiKeyUseCase::new(Arc::new(mock));
 
@@ -176,6 +182,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_api_key_empty_tenant() {
+        // バリデーションエラーの検証。hash_key() は呼ばれないが、環境変数を設定しておく。
+        std::env::set_var("API_KEY_PEPPER", "test-pepper");
         let mock = MockApiKeyRepository::new();
         let uc = CreateApiKeyUseCase::new(Arc::new(mock));
 

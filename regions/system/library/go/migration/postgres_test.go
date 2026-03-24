@@ -48,7 +48,8 @@ func TestPostgresMigrationRunner_EnsureTableCreated(t *testing.T) {
 	})
 
 	cfg := NewMigrationConfig(dir, "")
-	runner, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	runner, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	require.NoError(t, err)
 	assert.NotNil(t, runner)
 
@@ -70,7 +71,8 @@ func TestPostgresMigrationRunner_RunUp(t *testing.T) {
 	})
 
 	cfg := NewMigrationConfig(dir, "")
-	runner, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	runner, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	require.NoError(t, err)
 
 	report, err := runner.RunUp(context.Background())
@@ -88,7 +90,8 @@ func TestPostgresMigrationRunner_RunUpIdempotent(t *testing.T) {
 	})
 
 	cfg := NewMigrationConfig(dir, "")
-	runner, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	runner, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	require.NoError(t, err)
 
 	_, err = runner.RunUp(context.Background())
@@ -108,7 +111,8 @@ func TestPostgresMigrationRunner_Status(t *testing.T) {
 	})
 
 	cfg := NewMigrationConfig(dir, "")
-	runner, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	runner, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	require.NoError(t, err)
 
 	// Before RunUp: AppliedAt is nil
@@ -139,7 +143,8 @@ func TestPostgresMigrationRunner_Pending(t *testing.T) {
 	})
 
 	cfg := NewMigrationConfig(dir, "")
-	runner, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	runner, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	require.NoError(t, err)
 
 	pending, err := runner.Pending(context.Background())
@@ -158,6 +163,7 @@ func TestPostgresMigrationRunner_Pending(t *testing.T) {
 func TestPostgresMigrationRunner_InvalidDir(t *testing.T) {
 	db := newTestDB(t)
 	cfg := NewMigrationConfig("/nonexistent/path", "")
-	_, err := NewPostgresMigrationRunner(db, cfg)
+	// ctx を渡して deadline のキャンセル伝播を有効にする
+	_, err := NewPostgresMigrationRunner(context.Background(), db, cfg)
 	assert.Error(t, err)
 }

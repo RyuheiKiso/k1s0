@@ -62,6 +62,12 @@ docker-compose.override.yaml
 .helm-tmp/
 .tools/
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
 
 # Generated proto/grpc code
 /gen/

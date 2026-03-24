@@ -38,7 +38,7 @@ describe('validateUUID', () => {
   it('fieldがidであること', () => {
     try {
       validateUUID('bad');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).field).toBe('id');
     }
   });
@@ -57,7 +57,7 @@ describe('validateURL', () => {
   it('fieldがurlであること', () => {
     try {
       validateURL('bad');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).field).toBe('url');
     }
   });
@@ -98,12 +98,12 @@ describe('validatePagination', () => {
   it('エラーコードが正しいこと', () => {
     try {
       validatePagination(0, 10);
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).code).toBe('INVALID_PAGE');
     }
     try {
       validatePagination(1, 0);
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).code).toBe('INVALID_PER_PAGE');
     }
   });
@@ -130,7 +130,7 @@ describe('validateDateRange', () => {
   it('エラーコードが正しいこと', () => {
     try {
       validateDateRange(new Date('2024-12-31'), new Date('2024-01-01'));
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).code).toBe('INVALID_DATE_RANGE');
     }
   });
@@ -140,7 +140,7 @@ describe('ValidationError code', () => {
   it('emailエラーにcodeが含まれる', () => {
     try {
       validateEmail('bad');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as ValidationError).code).toBe('INVALID_EMAIL');
     }
   });

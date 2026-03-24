@@ -7,6 +7,10 @@ use k1s0_server_common::error::{ErrorCode, ServiceError};
 /// File ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum FileError {
+    /// ファイル名が不正（パストラバーサル等）
+    #[error("invalid filename: {0}")]
+    InvalidFileName(String),
+
     /// ファイルが見つからない
     #[error("file '{0}' not found")]
     NotFound(String),
@@ -44,6 +48,11 @@ pub enum FileError {
 impl From<FileError> for ServiceError {
     fn from(err: FileError) -> Self {
         match err {
+            FileError::InvalidFileName(msg) => ServiceError::BadRequest {
+                code: ErrorCode::new("SYS_FILE_INVALID_FILENAME"),
+                message: msg,
+                details: vec![],
+            },
             FileError::NotFound(msg) => ServiceError::NotFound {
                 code: ErrorCode::new("SYS_FILE_NOT_FOUND"),
                 message: msg,

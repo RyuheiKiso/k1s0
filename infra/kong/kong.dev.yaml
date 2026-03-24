@@ -209,29 +209,45 @@ plugins:
       fault_tolerant: false
       hide_client_headers: false
 
-  # JWT Plugin - Keycloak JWKS 連携（ローカル開発用）
+  # H-03監査対応: JWT iss/aud 検証（ローカル開発用）
   # 本番では infra/kong/plugins/auth.yaml で管理
-  # iss クレームを検証することでトークンの発行元（Keycloak レルム）を確認し、
-  # 他のシステムで発行されたトークンによる不正アクセスを防止する
+  # key_claim_name: iss により jwt.claims.iss（"http://keycloak:8080/realms/k1s0"）と
+  # consumer.jwt_secrets[].key（"http://keycloak:8080/realms/k1s0"）を照合する。
+  # iss が一致しないトークンは 401 で拒否される。
+  # aud 検証は post-function access フェーズで実施する（下記参照）。
   - name: jwt
     config:
       uri_param_names: []
       cookie_names: []
-      key_claim_name: kid
+      key_claim_name: iss
       claims_to_verify:
         - exp
-        # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
-        # OIDCプラグイン移行後（ADR-0017）に対応予定。
       header_names:
         - Authorization
 
-  # Post Function - JWT Claims をバックエンドへのリクエストヘッダーに転送
+  # H-03監査対応: JWT aud 検証 + バックエンドリクエストヘッダー転送（ローカル開発用）
+  # access フェーズを使用する理由:
+  #   1. kong.service.request.set_header() は access フェーズでのみ upstream へのヘッダー設定が有効
+  #   2. post-function（priority -1000）は JWT プラグイン（priority 1006）より後に実行されるため
+  #      access フェーズで authenticated_jwt_token が利用可能
   - name: post-function
     config:
-      header_filter:
+      access:
         - |
           local jwt = kong.ctx.shared.authenticated_jwt_token
           if jwt then
+            local aud = jwt.claims.aud
+            local valid = false
+            if type(aud) == "string" then
+              valid = (aud == "k1s0-api")
+            elseif type(aud) == "table" then
+              for _, v in ipairs(aud) do
+                if v == "k1s0-api" then valid = true; break end
+              end
+            end
+            if not valid then
+              return kong.response.exit(401, { message = "Unauthorized: invalid audience" })
+            end
             kong.service.request.set_header("X-User-Id", jwt.claims.sub)
             local roles = ""
             local ra = jwt.claims.realm_access
@@ -270,13 +286,18 @@ consumers:
         # ローカル開発では Keycloak の内部URL を使用
         # JWKS URL: http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
         # 実運用では keycloak:8080/realms/k1s0/protocol/openid-connect/certs から取得した RSA 公開鍵に差し替えること
+        # このプレースホルダーは infra/kong/setup-kong-jwt.sh で自動置換される（C-2 対応）
+        # 使用方法: ./infra/kong/setup-kong-jwt.sh
+        # Keycloak 起動後に実行すると JWKS から公開鍵を取得して自動更新する
+        # PEM 行長は64文字/行が標準（RFC 7468）。Kong はこれを厳密に検証するため、
+        # 非標準の行長（80文字等）では "invalid key" エラーとなりworkerがcrashする
         rsa_public_key: |
           -----BEGIN PUBLIC KEY-----
-          # 開発環境用: keycloak:8080/realms/k1s0/protocol/openid-connect/certs
-          # から取得した RSA 公開鍵を設定すること（RS256アルゴリズム使用時の必須フィールド）
-          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
-          dKNlJOxrGvgBNEaMHQSQBQGQR0ZMjPQFGktflANE6gLROHFGM1PNMT0/zplFNAm
-          vJ3F5udDyJolRQMVFiGnvWkXGXKFUCEKEOXQCCTbMBtMDFqHMq6mFQJmN5WQMXE
-          ....placeholder_replace_with_actual_keycloak_public_key....
-          QIDAQAB
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAywC/vol/IN3sHwV5iVgE
+          4iaQXZbJGq9EOLHu7Z4w71EVEjFECsaMZHP0tQZgBIbVNNacxkEInDkooGbMcVdb
+          bUvmMghbhYAPr+WCUSKOUQVkJKa4b+PGd1RriwyOhmd2edusWxTFH/so7Vur9Hbc
+          16h+AxsnXMLM+LsFx3b2dT2RU1JEVzglp/6kcBJK5SiJBikPVL+aay0gZKwML3On
+          onZr0q6Lfro1xY1H3LfyEXtXX/Gp72aY6oxzkDNKjFj5cKDg0I4CBZbED7fBM0SR
+          lNYK15HYpsvezvyZj1A6gxZYqlTxxGrUcpJ90H/BU+m69O0M2v4YmzFZ6RQihd4T
+          +QIDAQAB
           -----END PUBLIC KEY-----

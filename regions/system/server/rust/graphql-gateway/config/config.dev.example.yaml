@@ -15,6 +15,10 @@ graphql:
 
 auth:
   jwks_url: "http://localhost:8080/jwks"
+  # JWT issuer 検証（ローカル auth サーバーの iss クレームと一致させる）
+  issuer: "k1s0"
+  # JWT audience 検証（ローカル auth サーバーの aud クレームと一致させる）
+  audience: "k1s0-system"
 
 backends:
   tenant:

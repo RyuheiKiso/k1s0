@@ -79,7 +79,9 @@ impl GenerateUploadUrlUseCase {
         }
 
         let file_id = format!("file_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
-        let storage_key = FileMetadata::generate_storage_key(&input.tenant_id, &input.filename);
+        // パストラバーサル検証を含むストレージキー生成。不正なファイル名の場合は Validation エラーを返す
+        let storage_key = FileMetadata::generate_storage_key(&input.tenant_id, &input.filename)
+            .map_err(|e| GenerateUploadUrlError::Validation(e.to_string()))?;
 
         let file = FileMetadata::new(
             file_id.clone(),

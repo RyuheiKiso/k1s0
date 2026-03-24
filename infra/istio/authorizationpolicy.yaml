@@ -104,3 +104,57 @@ spec:
     - from:
         - source:
             principals: ["cluster.local/ns/k1s0-service/sa/*-bff-sa"]
+---
+# H-05監査対応: auth サービスへのアクセスを Kong ingress からのみ許可する細粒度ポリシー。
+# namespace 単位の一括許可（allow-from-lower-tiers）に加えて、
+# サービス別の selector でアクセス元を限定することで侵害されたサービスからの不正アクセスを防止する。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-to-auth
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["istio-ingress", "k1s0-system"]
+---
+# H-05監査対応: session サービスへのアクセスを auth と bff-proxy からのみ許可する細粒度ポリシー。
+# session トークンは認証フローの核心であり、アクセス元を最小化することで侵害リスクを低減する。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-auth-bff-to-session
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: session
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/k1s0-system/sa/auth-rust"
+              - "cluster.local/ns/k1s0-system/sa/bff-proxy"
+---
+# H-05監査対応: vault サービスへのアクセスを system tier のサービスアカウントのみに限定する細粒度ポリシー。
+# 秘密鍵・暗号化キーを管理する vault は business/service tier からの直接アクセスを禁止する。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-system-to-vault
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-system"]

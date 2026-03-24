@@ -13,17 +13,8 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 10
 
-affinity:
-  podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-            - key: app.kubernetes.io/name
-              operator: In
-              values:
-                - graphql-gateway
-        topologyKey: kubernetes.io/hostname
-
+# H-08監査対応: replicaCount: 1 のため、Pod Anti-Affinity は無意味。
+# 単一レプリカ構成ではスケジューリング制約が機能しないため、affinityセクションを削除する。
 config:
   data:
     config.yaml: |
@@ -49,3 +40,11 @@ config:
           level: warn
         trace:
           sample_rate: 0.1
+
+# H-06監査対応: DestinationRule（Circuit Breaker）を有効化する。
+# mTLS・connectionPool・outlierDetection を全サービスに適用し、
+# 障害のカスケードとサービス間の不正通信を防止する。
+istio:
+  enabled: true
+  destinationRule:
+    enabled: true

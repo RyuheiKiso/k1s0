@@ -1,10 +1,12 @@
 {{/*
 k1s0-common.destinationRule - Istio DestinationRule リソースを生成する。
 istio.enabled かつ istio.destinationRule.enabled の場合のみリソースを出力する。
-CircuitBreaker の outlierDetection パラメータを values から注入する。
+H-06監査対応: mTLS（ISTIO_MUTUAL）と connectionPool 設定を追加し、
+全サービスで統一されたサーキットブレーカーを実現する。
 */}}
 {{- define "k1s0-common.destinationRule" -}}
-{{- if and .Values.istio.enabled .Values.istio.destinationRule.enabled }}
+{{/* istio・destinationRule オブジェクトの nil チェックを先行させ、未設定 values.yaml でのテンプレートエラーを防ぐ */}}
+{{- if and .Values.istio .Values.istio.enabled .Values.istio.destinationRule .Values.istio.destinationRule.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
@@ -14,6 +16,17 @@ metadata:
 spec:
   host: {{ include "k1s0-common.fullname" . }}
   trafficPolicy:
+    # mTLS: サービス間通信を Istio マネージド相互 TLS で保護する
+    tls:
+      mode: ISTIO_MUTUAL
+    # connectionPool: バックプレッシャー制御のための接続数上限を設定する
+    connectionPool:
+      tcp:
+        maxConnections: {{ .Values.istio.destinationRule.connectionPool.tcp.maxConnections | default 100 }}
+      http:
+        h2UpgradePolicy: DEFAULT
+        maxRequestsPerConnection: {{ .Values.istio.destinationRule.connectionPool.http.maxRequestsPerConnection | default 0 }}
+    # outlierDetection: 異常なホストを Circuit Breaker でエジェクトする
     outlierDetection:
       consecutiveGatewayErrors: {{ .Values.istio.destinationRule.circuitBreaker.consecutiveGatewayErrors | default 5 }}
       consecutive5xxErrors: {{ .Values.istio.destinationRule.circuitBreaker.consecutive5xxErrors | default 5 }}

@@ -35,7 +35,8 @@ pub trait TenantClient: Send + Sync {
 }
 
 pub struct InMemoryTenantClient {
-    tenants: Arc<std::sync::Mutex<HashMap<String, Tenant>>>,
+    // async コンテキストで await ポイントをまたいでロックを保持するため tokio::sync::Mutex を使用する
+    tenants: Arc<tokio::sync::Mutex<HashMap<String, Tenant>>>,
     members: Arc<tokio::sync::Mutex<HashMap<String, Vec<TenantMember>>>>,
     provisioning: Arc<tokio::sync::Mutex<HashMap<String, ProvisioningStatus>>>,
 }
@@ -43,7 +44,8 @@ pub struct InMemoryTenantClient {
 impl InMemoryTenantClient {
     pub fn new() -> Self {
         Self {
-            tenants: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            // 空の HashMap で tokio::sync::Mutex を初期化する
+            tenants: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             members: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             provisioning: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
@@ -52,17 +54,19 @@ impl InMemoryTenantClient {
     pub fn with_tenants(tenants: Vec<Tenant>) -> Self {
         let map: HashMap<String, Tenant> = tenants.into_iter().map(|t| (t.id.clone(), t)).collect();
         Self {
-            tenants: Arc::new(std::sync::Mutex::new(map)),
+            // 初期テナントデータで tokio::sync::Mutex を初期化する
+            tenants: Arc::new(tokio::sync::Mutex::new(map)),
             members: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
             provisioning: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
     }
 
-    pub fn add_tenant(&self, tenant: Tenant) {
-        // テナントストアへの書き込みロックを取得してテナントを追加する
+    // async コンテキストで安全にロックを取得するため async fn として定義する
+    pub async fn add_tenant(&self, tenant: Tenant) {
+        // テナントストアへの書き込みロックを非同期で取得してテナントを追加する
         self.tenants
             .lock()
-            .expect("テナントストアの Mutex ロック取得")
+            .await
             .insert(tenant.id.clone(), tenant);
     }
 }
@@ -76,11 +80,8 @@ impl Default for InMemoryTenantClient {
 #[async_trait]
 impl TenantClient for InMemoryTenantClient {
     async fn get_tenant(&self, tenant_id: &str) -> Result<Tenant, TenantError> {
-        // テナントストアからの読み取りロックを取得する
-        let tenants = self
-            .tenants
-            .lock()
-            .expect("テナントストアの Mutex ロック取得");
+        // テナントストアからの読み取りロックを非同期で取得する
+        let tenants = self.tenants.lock().await;
         tenants
             .get(tenant_id)
             .cloned()
@@ -88,11 +89,8 @@ impl TenantClient for InMemoryTenantClient {
     }
 
     async fn list_tenants(&self, filter: TenantFilter) -> Result<Vec<Tenant>, TenantError> {
-        // テナントストアからの読み取りロックを取得する
-        let tenants = self
-            .tenants
-            .lock()
-            .expect("テナントストアの Mutex ロック取得");
+        // テナントストアからの読み取りロックを非同期で取得する
+        let tenants = self.tenants.lock().await;
         let result: Vec<Tenant> = tenants
             .values()
             .filter(|t| {
@@ -133,11 +131,8 @@ impl TenantClient for InMemoryTenantClient {
             created_at: chrono::Utc::now(),
         };
         {
-            // テナントストアへの書き込みロックを取得する
-            let mut tenants = self
-                .tenants
-                .lock()
-                .expect("テナントストアの Mutex ロック取得");
+            // テナントストアへの書き込みロックを非同期で取得する
+            let mut tenants = self.tenants.lock().await;
             tenants.insert(tenant.id.clone(), tenant.clone());
         }
         // Set provisioning status to Pending
@@ -154,11 +149,8 @@ impl TenantClient for InMemoryTenantClient {
     ) -> Result<TenantMember, TenantError> {
         // Verify tenant exists
         {
-            // テナント存在確認のため読み取りロックを取得する
-            let tenants = self
-                .tenants
-                .lock()
-                .expect("テナントストアの Mutex ロック取得");
+            // テナント存在確認のため読み取りロックを非同期で取得する
+            let tenants = self.tenants.lock().await;
             if !tenants.contains_key(tenant_id) {
                 return Err(TenantError::NotFound(tenant_id.to_string()));
             }
@@ -567,7 +559,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_tenant() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "enterprise"));
+        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "enterprise")).await;
         let tenant = client.get_tenant("T-001").await.unwrap();
         assert_eq!(tenant.id, "T-001");
         assert_eq!(tenant.status, TenantStatus::Active);
@@ -611,7 +603,7 @@ mod tests {
     #[tokio::test]
     async fn test_is_active_true() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"));
+        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
         assert!(client.is_active("T-001").await.unwrap());
     }
 
@@ -619,7 +611,7 @@ mod tests {
     #[tokio::test]
     async fn test_is_active_false() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic"));
+        client.add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic")).await;
         assert!(!client.is_active("T-001").await.unwrap());
     }
 
@@ -627,7 +619,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_settings() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"));
+        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
         let settings = client.get_settings("T-001").await.unwrap();
         assert_eq!(settings.get("max_users"), Some("100"));
         assert_eq!(settings.get("nonexistent"), None);

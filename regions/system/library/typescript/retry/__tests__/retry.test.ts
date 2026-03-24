@@ -65,7 +65,7 @@ describe('withRetry', () => {
     const config: RetryConfig = { ...defaultRetryConfig, maxAttempts: 2, initialDelayMs: 1, jitter: false };
     try {
       await withRetry(config, op);
-    } catch (e) {
+    } catch (e: unknown) {
       expect(e).toBeInstanceOf(RetryError);
       const retryErr = e as RetryError;
       expect(retryErr.attempts).toBe(2);

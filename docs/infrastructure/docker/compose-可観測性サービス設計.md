@@ -178,6 +178,24 @@ services:
 | ログ形式 | JSON パース |
 | 転送先 | `loki:3100` |
 
+#### docker.sock マウントのセキュリティリスクと代替案（M-8 対応）
+
+`/var/run/docker.sock` をコンテナにマウントすると、Docker デーモンへの**完全なアクセス権**が付与される。悪用された場合、コンテナからホストの全コンテナを操作・停止・削除できる。
+
+| リスク | 影響 |
+| --- | --- |
+| コンテナエスケープ | docker.sock 経由でホスト権限を取得可能 |
+| 任意コンテナ起動 | privileged コンテナを起動してホストへアクセス可能 |
+| サービス妨害 | 全コンテナを停止・削除可能 |
+
+**本番環境での代替案**:
+
+1. **Kubernetes DaemonSet + hostPath**（推奨）: Promtail を DaemonSet として各ノードに配置し、`/var/lib/docker/containers` をマウントして直接ログファイルを読み込む。docker.sock は不要。
+2. **Fluent Bit**（軽量代替）: eBPF ベースのログ収集が可能。docker.sock 不要で最小権限での実行が可能。
+3. **Docker ログドライバー変更**: `logging.driver: syslog` または `gelf` に変更することで Promtail 自体が不要になる。
+
+**ローカル開発環境での判断**: docker.sock マウントは開発環境での手軽さを優先したトレードオフ。本番 Kubernetes 環境では DaemonSet 方式を採用すること。
+
 ### Jaeger 設定
 
 ```yaml
@@ -192,6 +210,64 @@ services:
 | OTLP gRPC | `jaeger:4317` |
 | OTLP HTTP | `jaeger:4318` |
 | UI | `localhost:16686` |
+
+---
+
+## Healthcheck 設定（M-4 対応）
+
+全 observability サービスに Docker Compose の `healthcheck` を設定し、依存サービスが起動完了後に利用可能になるまで待機できるようにする。
+
+| サービス | ヘルスチェックエンドポイント | 用途 |
+| --- | --- | --- |
+| jaeger | `http://localhost:14269/health` | 管理 API ヘルスエンドポイント |
+| prometheus | `http://localhost:9090/-/healthy` | Prometheus 組み込みヘルスエンドポイント |
+| loki | `http://localhost:3100/ready` | Loki ready エンドポイント |
+| promtail | `http://localhost:9080/ready` | Promtail ready エンドポイント |
+| grafana | `http://localhost:3000/api/health` | Grafana API ヘルスエンドポイント |
+
+```yaml
+# 全 observability サービス共通の healthcheck 設定パターン
+healthcheck:
+  test: ["CMD-SHELL", "wget -qO- http://localhost:<PORT>/<PATH> || exit 1"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+```
+
+**`start_period: 30s`** を設定することで、起動直後の false negative（起動中なのに unhealthy 判定）を防止する。
+
+---
+
+## Grafana データベース本番移行方針（M-11 対応）
+
+ローカル開発環境では Grafana は SQLite（デフォルト）を使用する。本番環境では可用性・バックアップ・同時接続性を確保するために PostgreSQL への移行が必要。
+
+### 本番環境への移行手順
+
+1. **PostgreSQL に `grafana` データベースを作成する**
+
+```sql
+CREATE DATABASE grafana;
+CREATE USER grafana WITH PASSWORD '<secret>';
+GRANT ALL PRIVILEGES ON DATABASE grafana TO grafana;
+```
+
+2. **環境変数で Grafana の DB を設定する**（`docker-compose.prod.yaml` または Kubernetes Secret）
+
+```yaml
+environment:
+  GF_DATABASE_TYPE: postgres
+  GF_DATABASE_HOST: <postgres-host>:5432
+  GF_DATABASE_NAME: grafana
+  GF_DATABASE_USER: grafana
+  GF_DATABASE_PASSWORD: <secret>
+  GF_DATABASE_SSL_MODE: require
+```
+
+3. **既存 SQLite データを移行する場合**: [Grafana 公式ドキュメント](https://grafana.com/docs/grafana/latest/setup-grafana/set-up-grafana-monitoring/) の DB migration 手順を参照。
+
+> **注意**: ダッシュボードは `provisioning/` 経由でコード管理しているため、DB 移行不要でダッシュボードは再現できる。ユーザー・アラート設定のみ要移行。
 
 ---
 

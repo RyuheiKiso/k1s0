@@ -2,7 +2,7 @@
   "realm": "k1s0",
   "enabled": true,
   "displayName": "k1s0",
-  "sslRequired": "all",
+  "sslRequired": "external",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
@@ -368,7 +368,7 @@
           "protocolMapper": "oidc-hardcoded-claim-mapper",
           "config": {
             "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "claim.value": "[\"business\", \"service\"]",
             "jsonType.label": "JSON",
             "id.token.claim": "true",
             "access.token.claim": "true",
