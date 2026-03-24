@@ -66,7 +66,7 @@ pub fn router(state: AppState) -> Router {
         // 認証なし（dev モード / テスト）: 従来どおりのルーティング
         Router::new()
             .route("/api/v1/tasks", get(task_handler::list_tasks).post(task_handler::create_task))
-            .route("/api/v1/tasks/{id}", get(task_handler::get_task))
+            .route("/api/v1/tasks/{id}", get(task_handler::get_task).put(task_handler::update_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
             .route("/api/v1/tasks/{id}/checklist", get(task_handler::get_checklist).post(task_handler::create_checklist_item))
             .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))
