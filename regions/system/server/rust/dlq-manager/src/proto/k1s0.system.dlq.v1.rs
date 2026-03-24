@@ -16,6 +16,8 @@ pub struct DlqMessage {
     #[prost(bytes = "vec", tag = "6")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     /// Deprecated: use status_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "7")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "8")]

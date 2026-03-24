@@ -6,6 +6,8 @@ pub struct WorkflowStep {
     #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
     /// Deprecated: use step_type_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "3")]
     pub step_type: ::prost::alloc::string::String,
     #[prost(string, optional, tag = "4")]

@@ -24,6 +24,8 @@ pub struct SendNotificationResponse {
     #[prost(string, tag = "2")]
     pub status: ::prost::alloc::string::String,
     /// Deprecated: created_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "3")]
     pub created_at: ::prost::alloc::string::String,
     /// created_at_ts は created_at の Timestamp 型。
@@ -84,6 +86,8 @@ pub struct NotificationLog {
     #[prost(string, tag = "7")]
     pub body: ::prost::alloc::string::String,
     /// Deprecated: use status_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "8")]
     pub status: ::prost::alloc::string::String,
     #[prost(uint32, tag = "9")]
@@ -91,9 +95,13 @@ pub struct NotificationLog {
     #[prost(string, optional, tag = "10")]
     pub error_message: ::core::option::Option<::prost::alloc::string::String>,
     /// Deprecated: sent_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, optional, tag = "11")]
     pub sent_at: ::core::option::Option<::prost::alloc::string::String>,
     /// Deprecated: created_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "12")]
     pub created_at: ::prost::alloc::string::String,
     /// 通知ステータスの enum 版（status の型付き版）。
@@ -119,9 +127,13 @@ pub struct Channel {
     #[prost(bool, tag = "5")]
     pub enabled: bool,
     /// Deprecated: created_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "6")]
     pub created_at: ::prost::alloc::string::String,
     /// Deprecated: updated_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "7")]
     pub updated_at: ::prost::alloc::string::String,
     /// created_at_ts は created_at の Timestamp 型。
@@ -215,9 +227,13 @@ pub struct Template {
     #[prost(string, tag = "5")]
     pub body_template: ::prost::alloc::string::String,
     /// Deprecated: created_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "6")]
     pub created_at: ::prost::alloc::string::String,
     /// Deprecated: updated_at_ts を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "7")]
     pub updated_at: ::prost::alloc::string::String,
     /// created_at_ts は created_at の Timestamp 型。

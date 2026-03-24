@@ -117,6 +117,8 @@ pub struct RateLimitRule {
     #[prost(int64, tag = "5")]
     pub window_seconds: i64,
     /// Deprecated: use algorithm_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "6")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag = "7")]
@@ -147,6 +149,8 @@ pub struct GetUsageResponse {
     #[prost(int64, tag = "4")]
     pub window_seconds: i64,
     /// Deprecated: use algorithm_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag = "5")]
     pub algorithm: ::prost::alloc::string::String,
     #[prost(bool, tag = "6")]
