@@ -19,6 +19,8 @@ pub trait TaskRepository: Send + Sync {
     async fn create(&self, tenant_id: &str, input: &CreateTask, created_by: &str) -> Result<Task, TaskError>;
     /// チェックリスト取得（RLS テナント分離のため tenant_id を先頭に受け取る）
     async fn find_checklist(&self, tenant_id: &str, task_id: Uuid) -> Result<Vec<TaskChecklistItem>, TaskError>;
+    /// タスク更新（部分更新。RLS テナント分離のため tenant_id を先頭に受け取る）
+    async fn update(&self, tenant_id: &str, id: Uuid, input: &UpdateTask, updated_by: &str) -> Result<Task, TaskError>;
     /// チェックリスト項目追加（RLS テナント分離のため tenant_id を先頭に受け取る）
     async fn add_checklist_item(&self, tenant_id: &str, task_id: Uuid, input: &AddChecklistItem) -> Result<TaskChecklistItem, TaskError>;
     /// チェックリスト項目更新（RLS テナント分離のため tenant_id を先頭に受け取る）
