@@ -16,8 +16,9 @@ on:
 
 jobs:
   # Helm チャートのリント
+  # H-8対応: paths-filter 条件を廃止し、全PRで必ず Helm バリデーションを実行する。
+  # Library Chart の変更はコンシューマーチャートに影響するため、Helm 変更がなくても常に検証が必要。
   helm-lint:
-    if: inputs.helm == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
