@@ -18,7 +18,11 @@ type BFFConfig struct {
 	Auth          AuthConfig          `yaml:"auth" validate:"required"`
 	Session       SessionConfig       `yaml:"session" validate:"required"`
 	CSRF          CSRFConfig          `yaml:"csrf"`
-	Upstream      UpstreamConfig      `yaml:"upstream" validate:"required"`
+	// CORS は Cross-Origin Resource Sharing の設定（H-1対応）
+	CORS CORSConfig `yaml:"cors"`
+	// RateLimit は IP ベースのレート制限設定（H-2対応）
+	RateLimit RateLimitConfig `yaml:"rate_limit"`
+	Upstream  UpstreamConfig  `yaml:"upstream" validate:"required"`
 	// Cookie は Cookie のデフォルト設定。
 	Cookie CookieConfig `yaml:"cookie"`
 }
