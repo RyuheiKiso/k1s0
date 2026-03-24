@@ -1,3 +1,16 @@
+# messaging: デフォルト拒否ポリシー。
+# 他のポリシーで明示的に許可されていないトラフィックを全て遮断する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: messaging
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
 # messaging: 全 Tier からのインバウンドを許可（Kafka アクセス）
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
