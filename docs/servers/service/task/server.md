@@ -125,6 +125,25 @@ service tier のタスク管理サーバーは以下の機能を提供する。
 }
 ```
 
+#### PUT /api/v1/tasks/{task_id}
+
+タスクの属性を部分更新する。未指定フィールドは変更されない。
+
+**リクエスト**
+
+```json
+{
+  "title": "新しいタイトル",
+  "description": "詳細説明",
+  "priority": "high",
+  "assignee_id": "user-uuid",
+  "due_date": "2026-04-01T00:00:00Z",
+  "labels": ["frontend", "bug"]
+}
+```
+
+**レスポンス（200 OK）**: 更新後の `Task` オブジェクトを返す。
+
 #### PUT /api/v1/tasks/{task_id}/status
 
 タスクステータスを遷移させる。ステートマシンのルールに従い、不正な遷移は拒否される。
