@@ -1753,6 +1753,52 @@ gh run list --limit 20 --json databaseId,displayTitle,status,createdAt
 
 ---
 
+## E2E テストワークフロー（M-2 対応）
+
+`tests/e2e/` 配下の Playwright テストを実行する専用ワークフロー。PR ごとの自動実行はリソースコストが高いため、**手動実行のみ**とする。
+
+### ワークフロー概要
+
+| 項目 | 設定 |
+| --- | --- |
+| ファイル | `.github/workflows/e2e.yaml` |
+| トリガー | `workflow_dispatch`（手動実行のみ） |
+| 実行時間 | 最大 30 分 |
+| テストフレームワーク | Playwright（Chromium） |
+| テストスペック | `tests/e2e/specs/`（5 スペック） |
+
+### 実行手順
+
+```bash
+# GitHub Actions の Web UI から手動実行する
+# または gh CLI で実行する
+gh workflow run e2e.yaml
+```
+
+### E2E ワークフローの処理フロー
+
+```
+1. リポジトリチェックアウト
+2. Node.js / pnpm セットアップ
+3. Playwright 依存関係インストール（Chromium のみ）
+4. Docker Compose infra プロファイル起動
+   └── PostgreSQL, Redis, Kafka, Keycloak, Kong
+5. Keycloak 起動待機（最大 120 秒）
+6. Kong JWT 公開鍵セットアップ（setup-kong-jwt.sh）
+7. bff-proxy 等のシステムサービス起動
+8. Playwright E2E テスト実行
+9. テスト結果（HTML レポート）を artifact に保存
+10. Docker Compose クリーンアップ（volumes 含む）
+```
+
+### 今後の拡張計画
+
+- **Phase 2**: `schedule` トリガーを追加して夜間自動実行（例: `cron: '0 1 * * *'`）
+- **Phase 3**: 重要な PR（main へのマージ前）でのトリガー追加を検討
+- **CI リソース改善**: より高速なランナーへの移行でテスト時間を短縮
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

@@ -56,9 +56,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 k1s0-common.serviceAccountName - サービスアカウント名を返す
 */}}
 {{- define "k1s0-common.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
+{{/* serviceAccount オブジェクトが nil の場合は "default" を返す（nil-safe: C-1 対応） */}}
+{{- if and .Values.serviceAccount .Values.serviceAccount.create }}
 {{- default (include "k1s0-common.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
+{{- default "default" ((.Values.serviceAccount).name) }}
 {{- end }}
 {{- end }}

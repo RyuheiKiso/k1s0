@@ -4,7 +4,8 @@ istio.enabled かつ istio.virtualService.enabled の場合のみリソースを
 タイムアウト・リトライ設定を values から注入する。
 */}}
 {{- define "k1s0-common.virtualService" -}}
-{{- if and .Values.istio.enabled .Values.istio.virtualService.enabled }}
+{{/* istio・virtualService オブジェクトの nil チェックを先行させ、未設定 values.yaml でのテンプレートエラーを防ぐ（nil-safe: C-1 対応） */}}
+{{- if and .Values.istio .Values.istio.enabled .Values.istio.virtualService .Values.istio.virtualService.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:

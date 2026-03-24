@@ -106,10 +106,59 @@ terraform {
 | 案 D: HTTP backend（独自実装） | カスタム HTTP サーバーで State を管理 | 独自実装のメンテナンスコストが高く、セキュリティ上のリスクも増える |
 | 案 E: Azure Blob Storage | Azure Storage を State backend に使用 | 案 B と同様に AWS 以外のクラウドサービスへの依存が生じる |
 
+## 未対応事項（外部技術評価 H-11/L-4 指摘）
+
+以下の事項は本 ADR の決定範囲に含まれるが、実装が未完了のため明示的に記録する。
+
+### H-11: KMS CMK による追加暗号化
+
+**現状**: `encrypt = true` による SSE-S3（AWS 管理キー AES-256）で暗号化済み。
+
+**未実施**: KMS CMK（カスタマー管理キー）による追加暗号化レイヤーが未設定。`kms_key_id` が空のまま。
+
+**影響**: PCI DSS / SOC2 等のコンプライアンス要件で CMK が必須の場合、要件を満たせない。
+
+**必要な対応**:
+```hcl
+# 各環境の backend.tf に追加する
+kms_key_id = "arn:aws:kms:ap-northeast-1:<account-id>:alias/k1s0-terraform-state-<env>"
+```
+
+AWS KMS で CMK を作成後（自動ローテーション推奨）、各環境の `backend.tf` に `kms_key_id` を設定すること。
+
+### L-4: S3 バケットバージョニング
+
+**現状**: Terraform `backend.tf` はバケット側の設定を参照するのみで、ファイル内にバージョニング設定を記述できない。
+
+**必要な対応**: 各 State バケットに対して以下を実行し、バージョニングが有効であることを確認・設定すること。
+
+```bash
+# dev 環境
+aws s3api put-bucket-versioning \
+  --bucket k1s0-terraform-state-dev \
+  --versioning-configuration Status=Enabled
+
+# staging 環境
+aws s3api put-bucket-versioning \
+  --bucket k1s0-terraform-state-staging \
+  --versioning-configuration Status=Enabled
+
+# prod 環境
+aws s3api put-bucket-versioning \
+  --bucket k1s0-terraform-state-prod \
+  --versioning-configuration Status=Enabled
+```
+
+バージョニングを有効化することで、誤った `terraform apply` から以前の State へのロールバックが可能になる。
+
+---
+
 ## 参考
 
 - [Terraform S3 Backend 公式ドキュメント](https://developer.hashicorp.com/terraform/language/backend/s3)
 - [Terraform State 管理ベストプラクティス](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-remote)
 - [移行手順書](../../infrastructure/terraform-state-migration.md)
 - 外部監査報告書 H-08: Terraform State Backend の SPOF リスクと暗号化欠如
+- 外部技術評価報告書 H-11: KMS CMK 未設定
+- 外部技術評価報告書 L-4: S3 バージョニング未設定
 - [ADR-0019: Vault ドメイン別シークレット分離](0019-vault-domain-secret-isolation.md)

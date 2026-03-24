@@ -116,7 +116,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cost }),
       });
-    } catch (e) {
+    } catch (e: unknown) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
       throw new RateLimitError(
         isAbort ? 'Request timed out' : 'Network error',
@@ -156,7 +156,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cost }),
       });
-    } catch (e) {
+    } catch (e: unknown) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
       throw new RateLimitError(
         isAbort ? 'Request timed out' : 'Network error',
@@ -190,7 +190,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
     let response: Response;
     try {
       response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/policy`);
-    } catch (e) {
+    } catch (e: unknown) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
       throw new RateLimitError(
         isAbort ? 'Request timed out' : 'Network error',

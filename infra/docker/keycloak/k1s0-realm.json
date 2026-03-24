@@ -2,7 +2,7 @@
   "realm": "k1s0",
   "enabled": true,
   "displayName": "k1s0",
-  "sslRequired": "all",
+  "sslRequired": "external",
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,

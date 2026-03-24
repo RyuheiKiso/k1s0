@@ -34,6 +34,8 @@
 | [ADR-0026](./0026-service-tier-db-integration.md) | Service Tier DB統合設計（board/activity を k1s0_service に統合） | 承認済み |
 | [ADR-0027](./0027-db-app-user-role-separation.md) | DBアプリケーションユーザー権限分離（k1s0 非特権ロール） | 承認済み |
 | [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
+| [ADR-0029](./0029-postgresql-ha-strategy.md) | PostgreSQL HA 戦略 | 承認済み |
+| [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 提案中 |
 
 ## ADR の追加方法
 

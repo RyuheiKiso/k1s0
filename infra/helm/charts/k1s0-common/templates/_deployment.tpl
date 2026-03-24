@@ -6,7 +6,8 @@ metadata:
   labels:
     {{- include "k1s0-common.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+  {{/* autoscaling が未設定または無効の場合に replicas を明示的に指定する（nil-safe: C-1 対応） */}}
+  {{- if not (and .Values.autoscaling .Values.autoscaling.enabled) }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
@@ -45,19 +46,20 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.container.command }}
+          {{/* container オブジェクトが nil の場合は command/args/ports を安全にスキップする（nil-safe: C-1 対応） */}}
+          {{- if and .Values.container .Values.container.command }}
           command:
-            {{- toYaml . | nindent 12 }}
+            {{- toYaml .Values.container.command | nindent 12 }}
           {{- end }}
-          {{- with .Values.container.args }}
+          {{- if and .Values.container .Values.container.args }}
           args:
-            {{- toYaml . | nindent 12 }}
+            {{- toYaml .Values.container.args | nindent 12 }}
           {{- end }}
           ports:
             - name: http
-              containerPort: {{ .Values.container.port }}
+              containerPort: {{ if .Values.container }}{{ .Values.container.port | default 8080 }}{{ else }}8080{{ end }}
               protocol: TCP
-            {{- if .Values.container.grpcPort }}
+            {{- if and .Values.container .Values.container.grpcPort }}
             - name: grpc
               containerPort: {{ .Values.container.grpcPort }}
               protocol: TCP
@@ -84,20 +86,24 @@ spec:
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
           {{- else }}
-          {{- with .Values.probes.liveness }}
+          {{/* probes オブジェクト自体が nil の場合のチェックを先行させ HTTP プローブを安全に展開する（nil-safe: C-1 対応） */}}
+          {{- with .Values.probes }}
+          {{- with .liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.probes.readiness }}
+          {{- with .readiness }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: {{ .Values.config.mountPath }}
+              {{/* config オブジェクトが nil の場合は /etc/app をデフォルトとする（nil-safe: C-1 対応） */}}
+              mountPath: {{ if .Values.config }}{{ .Values.config.mountPath | default "/etc/app" }}{{ else }}/etc/app{{ end }}
               readOnly: true
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}

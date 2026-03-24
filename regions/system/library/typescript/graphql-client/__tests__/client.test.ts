@@ -118,7 +118,7 @@ describe('GraphQlHttpClient', () => {
     } as Response);
     try {
       await client.execute({ query: '{ health }' });
-    } catch (e) {
+    } catch (e: unknown) {
       expect(e).toBeInstanceOf(ClientError);
       expect((e as ClientError).kind).toBe(ClientErrorKind.Request);
     }

@@ -138,8 +138,14 @@ type OAuthClient interface {
 これにより攻撃者が認証前に取得したセッション ID を認証後に再利用できなくなる。
 
 ```go
+// セッション固定化攻撃防止のため既存セッションを削除する（削除失敗は警告ログ出力し処理続行）（H-3 対応）
 if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && existingSessionID != "" {
-    _ = h.sessionStore.Delete(c.Request.Context(), existingSessionID)
+    if err := uc.sessionStore.Delete(ctx, existingSessionID); err != nil {
+        slog.WarnContext(ctx, "既存セッションの削除に失敗しました（処理は続行します）",
+            "session_id", existingSessionID,
+            "error", err,
+        )
+    }
 }
 ```
 

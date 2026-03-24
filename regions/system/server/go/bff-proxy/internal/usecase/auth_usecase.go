@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"log/slog"
 	"net/url"
 	"time"
 
@@ -202,8 +203,13 @@ func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*CallbackOutput, error) {
 	// セッション固定化攻撃を防止するため、認証前の既存セッションを削除する（S-03 対応）
 	if input.ExistingSessionID != "" {
-		// 削除失敗は警告として記録するが処理は続行する
-		_ = uc.sessionStore.Delete(ctx, input.ExistingSessionID)
+		// 削除失敗は警告ログを出力して処理を続行する（H-3 対応）
+		if err := uc.sessionStore.Delete(ctx, input.ExistingSessionID); err != nil {
+			slog.WarnContext(ctx, "既存セッションの削除に失敗しました（処理は続行します）",
+				"session_id", input.ExistingSessionID,
+				"error", err,
+			)
+		}
 	}
 
 	// state パラメータの検証（CSRF 保護）
@@ -308,10 +314,22 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 	}
 
 	// セッションデータを取得し、ID トークンを使って IdP ログアウト URL を構築する
-	sess, _ := uc.sessionStore.Get(ctx, input.SessionID)
+	// 取得失敗は警告ログを出力して処理を続行する（H-3 対応）
+	sess, err := uc.sessionStore.Get(ctx, input.SessionID)
+	if err != nil {
+		slog.WarnContext(ctx, "ログアウト時のセッション取得に失敗しました",
+			"session_id", input.SessionID,
+			"error", err,
+		)
+	}
 
-	// セッションをストアから削除する
-	_ = uc.sessionStore.Delete(ctx, input.SessionID)
+	// セッションをストアから削除する（削除失敗は警告ログを出力して処理を続行する）（H-3 対応）
+	if err := uc.sessionStore.Delete(ctx, input.SessionID); err != nil {
+		slog.WarnContext(ctx, "ログアウト時のセッション削除に失敗しました",
+			"session_id", input.SessionID,
+			"error", err,
+		)
+	}
 
 	// IdP ログアウト URL を構築する（id_token_hint 付き）
 	if sess != nil && sess.IDToken != "" {
@@ -385,8 +403,13 @@ func (uc *AuthUseCase) ExchangeCode(ctx context.Context, input ExchangeInput) (*
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_SESSION_NOT_FOUND"}
 	}
 
-	// 全検証通過後に交換コードを削除する（ワンタイム使用）
-	_ = uc.sessionStore.Delete(ctx, input.Code)
+	// 全検証通過後に交換コードを削除する（ワンタイム使用）（削除失敗は警告ログを出力して処理を続行する）（H-3 対応）
+	if err := uc.sessionStore.Delete(ctx, input.Code); err != nil {
+		slog.WarnContext(ctx, "交換コードの削除に失敗しました",
+			"code", input.Code,
+			"error", err,
+		)
+	}
 
 	return &ExchangeOutput{
 		RealSessionID: realSessionID,

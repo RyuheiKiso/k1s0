@@ -6,7 +6,8 @@ metadata:
   labels:
     {{- include "k1s0-common.labels" . | nindent 4 }}
 data:
-  {{- range $key, $value := .Values.config.data }}
+  {{/* config オブジェクトが nil の場合は range をスキップする（nil-safe: C-1 対応） */}}
+  {{- range $key, $value := ((.Values.config).data) }}
   {{ $key }}: |
 {{ $value | indent 4 }}
   {{- end }}

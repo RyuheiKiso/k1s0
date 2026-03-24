@@ -6,15 +6,16 @@ metadata:
   labels:
     {{- include "k1s0-common.labels" . | nindent 4 }}
 spec:
-  {{/* service.type が未設定の場合は ClusterIP をデフォルトとする */}}
-  type: {{ .Values.service.type | default "ClusterIP" }}
+  {{/* service オブジェクトが nil の場合も含め ClusterIP をデフォルトとする（nil-safe: C-1 対応） */}}
+  type: {{ if .Values.service }}{{ .Values.service.type | default "ClusterIP" }}{{ else }}ClusterIP{{ end }}
   ports:
     - name: http
-      {{/* service.port が未設定の場合は 80 をデフォルトとする */}}
-      port: {{ .Values.service.port | default 80 }}
+      {{/* service.port が未設定の場合は 80 をデフォルトとする（nil-safe: C-1 対応） */}}
+      port: {{ if .Values.service }}{{ .Values.service.port | default 80 }}{{ else }}80{{ end }}
       targetPort: http
       protocol: TCP
-    {{- if .Values.service.grpcPort }}
+    {{/* service オブジェクトと grpcPort の両方が存在する場合のみ gRPC ポートを追加する（nil-safe: C-1 対応） */}}
+    {{- if and .Values.service .Values.service.grpcPort }}
     - name: grpc
       port: {{ .Values.service.grpcPort }}
       targetPort: grpc

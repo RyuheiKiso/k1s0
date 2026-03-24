@@ -29,7 +29,7 @@ describe('InMemoryVaultClient', () => {
     await expect(client.getSecret('missing/path')).rejects.toThrow(VaultError);
     try {
       await client.getSecret('missing/path');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as VaultError).code).toBe('NOT_FOUND');
     }
   });
@@ -127,7 +127,7 @@ describe('HttpVaultClient', () => {
     await expect(client.getSecret('missing')).rejects.toThrow(VaultError);
     try {
       await client.getSecret('missing');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as VaultError).code).toBe('NOT_FOUND');
     }
 
@@ -144,7 +144,7 @@ describe('HttpVaultClient', () => {
     const client = new HttpVaultClient({ serverUrl: 'http://localhost:8080' });
     try {
       await client.getSecret('secret/path');
-    } catch (e) {
+    } catch (e: unknown) {
       expect((e as VaultError).code).toBe('PERMISSION_DENIED');
     }
 

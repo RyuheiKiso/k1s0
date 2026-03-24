@@ -38,11 +38,6 @@ services:
     environment:
       POSTGRES_PASSWORD: dev
 
-  mysql:
-    environment:
-      MYSQL_ROOT_PASSWORD: dev
-      MYSQL_PASSWORD: dev
-
   redis:
     environment:
       REDIS_PASSWORD: dev

@@ -36,7 +36,7 @@ describe('InMemoryIdempotencyStore', () => {
     await store.insert(createIdempotencyRecord('req-dup'));
     try {
       await store.insert(createIdempotencyRecord('req-dup'));
-    } catch (e) {
+    } catch (e: unknown) {
       expect(e).toBeInstanceOf(DuplicateKeyError);
       expect((e as DuplicateKeyError).key).toBe('req-dup');
     }

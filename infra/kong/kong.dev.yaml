@@ -270,10 +270,11 @@ consumers:
         # ローカル開発では Keycloak の内部URL を使用
         # JWKS URL: http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
         # 実運用では keycloak:8080/realms/k1s0/protocol/openid-connect/certs から取得した RSA 公開鍵に差し替えること
+        # このプレースホルダーは infra/kong/setup-kong-jwt.sh で自動置換される（C-2 対応）
+        # 使用方法: ./infra/kong/setup-kong-jwt.sh
+        # Keycloak 起動後に実行すると JWKS から公開鍵を取得して自動更新する
         rsa_public_key: |
           -----BEGIN PUBLIC KEY-----
-          # 開発環境用: keycloak:8080/realms/k1s0/protocol/openid-connect/certs
-          # から取得した RSA 公開鍵を設定すること（RS256アルゴリズム使用時の必須フィールド）
           MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
           dKNlJOxrGvgBNEaMHQSQBQGQR0ZMjPQFGktflANE6gLROHFGM1PNMT0/zplFNAm
           vJ3F5udDyJolRQMVFiGnvWkXGXKFUCEKEOXQCCTbMBtMDFqHMq6mFQJmN5WQMXE

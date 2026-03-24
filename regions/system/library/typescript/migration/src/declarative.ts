@@ -27,7 +27,7 @@ export function tomlToCreateSql(tomlStr: string): string {
   let def: TableDef;
   try {
     def = parse(tomlStr) as unknown as TableDef;
-  } catch (e) {
+  } catch (e: unknown) {
     throw new MigrationError(
       `TOML parse error: ${e instanceof Error ? e.message : String(e)}`,
     );
