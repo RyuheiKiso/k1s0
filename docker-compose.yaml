@@ -369,7 +369,7 @@ services:
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: API Gateway は中程度のリソースを使用
-    mem_limit: 512m
+    mem_limit: 1024m
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Kong運用に必要な最小限のみ付与
     security_opt:
