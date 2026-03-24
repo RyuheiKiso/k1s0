@@ -1,7 +1,8 @@
 # project-master サーバービルド
 # cargo-chef でレイヤーキャッシュを最大化し、distroless イメージで最小化する
 
-FROM --platform=linux/amd64 rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
+ARG TARGETPLATFORM=linux/amd64
+ rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
 RUN cargo install cargo-chef --locked
 RUN apt-get update && apt-get install -y cmake build-essential protobuf-compiler && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
