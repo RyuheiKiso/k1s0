@@ -48,6 +48,7 @@ pub fn router(state: AppState) -> Router {
         // POST/PUT/DELETE -> tasks/write
         let write_routes = Router::new()
             .route("/api/v1/tasks", post(task_handler::create_task))
+            .route("/api/v1/tasks/{id}", put(task_handler::update_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
             .route("/api/v1/tasks/{id}/checklist", post(task_handler::create_checklist_item))
             .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))
