@@ -289,12 +289,15 @@ consumers:
         # このプレースホルダーは infra/kong/setup-kong-jwt.sh で自動置換される（C-2 対応）
         # 使用方法: ./infra/kong/setup-kong-jwt.sh
         # Keycloak 起動後に実行すると JWKS から公開鍵を取得して自動更新する
+        # PEM 行長は64文字/行が標準（RFC 7468）。Kong はこれを厳密に検証するため、
+        # 非標準の行長（80文字等）では "invalid key" エラーとなりworkerがcrashする
         rsa_public_key: |
           -----BEGIN PUBLIC KEY-----
-          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAywC/vol/IN3sHwV5iVgE4iaQXZbJGq9E
-          OLHu7Z4w71EVEjFECsaMZHP0tQZgBIbVNNacxkEInDkooGbMcVdbbUvmMghbhYAPr+WCUSKOUQVk
-          JKa4b+PGd1RriwyOhmd2edusWxTFH/so7Vur9Hbc16h+AxsnXMLM+LsFx3b2dT2RU1JEVzglp/6k
-          cBJK5SiJBikPVL+aay0gZKwML3OnonZr0q6Lfro1xY1H3LfyEXtXX/Gp72aY6oxzkDNKjFj5cKDg
-          0I4CBZbED7fBM0SRlNYK15HYpsvezvyZj1A6gxZYqlTxxGrUcpJ90H/BU+m69O0M2v4YmzFZ6RQi
-          hd4T+QIDAQAB
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAywC/vol/IN3sHwV5iVgE
+          4iaQXZbJGq9EOLHu7Z4w71EVEjFECsaMZHP0tQZgBIbVNNacxkEInDkooGbMcVdb
+          bUvmMghbhYAPr+WCUSKOUQVkJKa4b+PGd1RriwyOhmd2edusWxTFH/so7Vur9Hbc
+          16h+AxsnXMLM+LsFx3b2dT2RU1JEVzglp/6kcBJK5SiJBikPVL+aay0gZKwML3On
+          onZr0q6Lfro1xY1H3LfyEXtXX/Gp72aY6oxzkDNKjFj5cKDg0I4CBZbED7fBM0SR
+          lNYK15HYpsvezvyZj1A6gxZYqlTxxGrUcpJ90H/BU+m69O0M2v4YmzFZ6RQihd4T
+          +QIDAQAB
           -----END PUBLIC KEY-----
