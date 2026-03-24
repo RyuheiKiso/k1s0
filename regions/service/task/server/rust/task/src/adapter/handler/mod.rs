@@ -3,7 +3,7 @@
 pub mod health;
 pub mod task_handler;
 
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::Router;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -18,6 +18,7 @@ pub struct AppState {
     pub get_task_uc: Arc<usecase::get_task::GetTaskUseCase>,
     pub list_tasks_uc: Arc<usecase::list_tasks::ListTasksUseCase>,
     pub update_task_status_uc: Arc<usecase::update_task_status::UpdateTaskStatusUseCase>,
+    pub update_task_uc: Arc<usecase::update_task::UpdateTaskUseCase>,
     pub create_checklist_item_uc: Arc<usecase::create_checklist_item::CreateChecklistItemUseCase>,
     pub update_checklist_item_uc: Arc<usecase::update_checklist_item::UpdateChecklistItemUseCase>,
     pub delete_checklist_item_uc: Arc<usecase::delete_checklist_item::DeleteChecklistItemUseCase>,
@@ -47,6 +48,7 @@ pub fn router(state: AppState) -> Router {
         // POST/PUT/DELETE -> tasks/write
         let write_routes = Router::new()
             .route("/api/v1/tasks", post(task_handler::create_task))
+            .route("/api/v1/tasks/{id}", put(task_handler::update_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
             .route("/api/v1/tasks/{id}/checklist", post(task_handler::create_checklist_item))
             .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))
@@ -64,7 +66,7 @@ pub fn router(state: AppState) -> Router {
         // 認証なし（dev モード / テスト）: 従来どおりのルーティング
         Router::new()
             .route("/api/v1/tasks", get(task_handler::list_tasks).post(task_handler::create_task))
-            .route("/api/v1/tasks/{id}", get(task_handler::get_task))
+            .route("/api/v1/tasks/{id}", get(task_handler::get_task).put(task_handler::update_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
             .route("/api/v1/tasks/{id}/checklist", get(task_handler::get_checklist).post(task_handler::create_checklist_item))
             .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))

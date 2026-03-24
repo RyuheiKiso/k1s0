@@ -4,7 +4,7 @@
 // 戻り値型は TaskError（クリーンアーキテクチャ準拠。anyhow::Error は TaskError::Infrastructure に変換する）。
 use crate::domain::entity::task::{
     AddChecklistItem, CreateTask, ParseError, Task, TaskChecklistItem, TaskFilter,
-    UpdateChecklistItem, UpdateTaskStatus,
+    UpdateChecklistItem, UpdateTask, UpdateTaskStatus,
 };
 use crate::domain::error::TaskError;
 use crate::domain::repository::task_repository::TaskRepository;
@@ -257,6 +257,46 @@ impl TaskRepository for TaskPostgresRepository {
         .map_err(|e| TaskError::Infrastructure(e.into()))?;
         tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
         Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn update(&self, tenant_id: &str, id: Uuid, input: &UpdateTask, updated_by: &str) -> Result<Task, TaskError> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
+        let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        // COALESCE で未指定フィールドは既存値を保持する（部分更新）
+        // labels は jsonb 型のため COALESCE では扱えず、NULL の場合は既存値をそのまま返す
+        let row = sqlx::query_as::<_, TaskRow>(
+            r#"UPDATE task_service.tasks
+               SET title       = COALESCE($2, title),
+                   description = COALESCE($3, description),
+                   priority    = COALESCE($4, priority),
+                   assignee_id = COALESCE($5, assignee_id),
+                   due_date    = COALESCE($6, due_date),
+                   labels      = COALESCE($7::jsonb, labels),
+                   updated_by  = $8,
+                   version     = version + 1,
+                   updated_at  = now()
+               WHERE id = $1
+               RETURNING id, project_id, title, description, status, priority, assignee_id, reporter_id, due_date, labels, created_by, updated_by, version, created_at, updated_at"#,
+        )
+        .bind(id)
+        .bind(&input.title)
+        .bind(&input.description)
+        .bind(input.priority.as_ref().map(|p| p.as_str()))
+        .bind(&input.assignee_id)
+        .bind(input.due_date)
+        .bind(input.labels.as_ref().map(|l| serde_json::to_value(l).ok()))
+        .bind(updated_by)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| TaskError::Infrastructure(e.into()))?
+        .ok_or_else(|| TaskError::NotFound(format!("Task '{}' not found", id)))?;
+        tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        Task::try_from(row).map_err(TaskError::Infrastructure)
     }
 
     async fn add_checklist_item(&self, tenant_id: &str, task_id: Uuid, input: &AddChecklistItem) -> Result<TaskChecklistItem, TaskError> {

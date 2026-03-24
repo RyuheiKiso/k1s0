@@ -79,6 +79,7 @@ pub async fn run() -> anyhow::Result<()> {
     let get_task_uc = Arc::new(usecase::get_task::GetTaskUseCase::new(task_repo.clone()));
     let list_tasks_uc = Arc::new(usecase::list_tasks::ListTasksUseCase::new(task_repo.clone()));
     let update_task_status_uc = Arc::new(usecase::update_task_status::UpdateTaskStatusUseCase::new(task_repo.clone()));
+    let update_task_uc = Arc::new(usecase::update_task::UpdateTaskUseCase::new(task_repo.clone()));
     let create_checklist_item_uc = Arc::new(usecase::create_checklist_item::CreateChecklistItemUseCase::new(task_repo.clone()));
     let update_checklist_item_uc = Arc::new(usecase::update_checklist_item::UpdateChecklistItemUseCase::new(task_repo.clone()));
     let delete_checklist_item_uc = Arc::new(usecase::delete_checklist_item::DeleteChecklistItemUseCase::new(task_repo.clone()));
@@ -122,6 +123,7 @@ pub async fn run() -> anyhow::Result<()> {
         get_task_uc: get_task_uc.clone(),
         list_tasks_uc: list_tasks_uc.clone(),
         update_task_status_uc: update_task_status_uc.clone(),
+        update_task_uc,
         create_checklist_item_uc,
         update_checklist_item_uc,
         delete_checklist_item_uc,

@@ -4,7 +4,7 @@
 // Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
 // 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
-use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTaskStatus};
+use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTask, UpdateTaskStatus};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -130,6 +130,25 @@ pub async fn get_checklist(
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
     let items = state.get_task_uc.get_checklist(tenant_id, id).await.map_err(map_err)?;
     Ok(Json(serde_json::json!({ "checklist": items })))
+}
+
+// タスク更新: リクエスト本体から UpdateTask を受け取り部分更新する
+pub async fn update_task(
+    State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
+    Path(id): Path<Uuid>,
+    Json(input): Json<UpdateTask>,
+) -> Result<impl IntoResponse, ServiceError> {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "system" を使用する
+    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let task = state
+        .update_task_uc
+        .execute(tenant_id, id, &input, &actor)
+        .await
+        .map_err(map_err)?;
+    Ok(Json(task))
 }
 
 // チェックリスト項目追加: リクエスト本体から AddChecklistItem を受け取り追加する
