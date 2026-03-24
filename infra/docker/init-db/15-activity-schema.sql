@@ -55,3 +55,7 @@ ALTER TABLE activity_service.activities FORCE ROW LEVEL SECURITY;
 GRANT USAGE ON SCHEMA activity_service TO k1s0;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA activity_service TO k1s0;
 ALTER DEFAULT PRIVILEGES IN SCHEMA activity_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;
+
+-- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
+ALTER TABLE activity_service.activities OWNER TO k1s0;
+ALTER TABLE activity_service.outbox_events OWNER TO k1s0;

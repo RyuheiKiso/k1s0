@@ -17,7 +17,8 @@ impl GetBoardColumnUseCase {
     // ボードカラム取得の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
     pub async fn execute(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<BoardColumn>> {
-        self.repo.find_by_id(tenant_id, id).await
+        // BoardError を anyhow::Error に変換して戻り値の型を合わせる
+        self.repo.find_by_id(tenant_id, id).await.map_err(anyhow::Error::from)
     }
 }
 

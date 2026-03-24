@@ -1,17 +1,21 @@
 app:
   name: k1s0-workflow-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 server:
   host: "0.0.0.0"
   port: 8080
   grpc_port: 50051
 
-auth:
-  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://keycloak:8080/realms/k1s0"
-  audience: "k1s0-api"
-  jwks_cache_ttl_secs: 300
+# ワークフローDB接続設定
+database:
+  host: "postgres"
+  port: 5432
+  name: "workflow_db"
+  user: "dev"
+  password: "dev"
+  ssl_mode: "disable"
+  max_open_conns: 10
 
 scheduler:
   internal_endpoint: "http://scheduler-rust:8080"
@@ -19,3 +23,11 @@ scheduler:
 overdue_check:
   cron_expression: "*/15 * * * *"
   timezone: "UTC"
+
+# Kafka設定: ワークフロー状態変化イベントと通知リクエストを発行する
+kafka:
+  brokers:
+    - "kafka:9092"
+  state_topic: "k1s0.system.workflow.state.v1"
+  notification_topic: "k1s0.system.notification.requested.v1"
+  security_protocol: "PLAINTEXT"

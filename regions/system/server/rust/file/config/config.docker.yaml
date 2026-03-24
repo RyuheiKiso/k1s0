@@ -1,7 +1,18 @@
 app:
   name: k1s0-file-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 server:
   host: "0.0.0.0"
   port: 8080
+
+# ストレージバックエンド: Docker環境ではインメモリを使用する
+storage:
+  backend: "memory"
+
+# Kafka設定: ファイル操作イベントを発行する
+kafka:
+  brokers:
+    - "kafka:9092"
+  topic_events: "k1s0.system.file.events.v1"
+  security_protocol: "PLAINTEXT"

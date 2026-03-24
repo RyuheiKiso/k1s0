@@ -3,7 +3,7 @@
 app:
   name: k1s0-session-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 
 server:
   host: "0.0.0.0"
@@ -14,16 +14,13 @@ session:
   default_ttl_seconds: 3600
   max_ttl_seconds: 86400
 
+# セッションDB接続: url フィールド形式を使用する
 database:
-  host: "postgres"
-  port: 5432
-  name: "session_db"
-  user: "dev"
-  password: "${DB_PASSWORD:-dev}"
-  ssl_mode: "disable"
+  url: "postgres://dev:dev@postgres:5432/session_db?sslmode=disable"
+  max_connections: 10
 
 # Redis 接続設定: requirepass が有効なため認証情報を含む URL を使用する
 redis:
-  url: "redis://:${REDIS_PASSWORD:-dev}@redis:6379"
+  url: "redis://:dev@redis:6379"
   pool_size: 10
   connect_timeout_seconds: 3

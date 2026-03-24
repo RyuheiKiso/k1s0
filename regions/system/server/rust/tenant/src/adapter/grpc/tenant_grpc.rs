@@ -304,7 +304,7 @@ impl TenantGrpcService {
         let plan = req
             .plan
             .parse::<Plan>()
-            .map_err(GrpcError::InvalidArgument)?;
+            .map_err(|e| GrpcError::InvalidArgument(e.to_string()))?;
         let owner_id = if req.owner_id.is_empty() {
             None
         } else {
@@ -393,7 +393,7 @@ impl TenantGrpcService {
         let plan = req
             .plan
             .parse::<Plan>()
-            .map_err(GrpcError::InvalidArgument)?;
+            .map_err(|e| GrpcError::InvalidArgument(e.to_string()))?;
         let input = UpdateTenantInput {
             id: tenant_id,
             display_name: req.display_name,

@@ -41,10 +41,11 @@ impl TryFrom<ActivityRow> for Activity {
             id: row.id,
             task_id: row.task_id,
             actor_id: row.actor_id,
-            activity_type: row.activity_type.parse().map_err(|e: String| anyhow::anyhow!(e))?,
+            // ParseError は Display を実装しているため format! で文字列化して anyhow::Error に変換する
+            activity_type: row.activity_type.parse().map_err(|e| anyhow::anyhow!("{}", e))?,
             content: row.content,
             duration_minutes: row.duration_minutes,
-            status: row.status.parse().map_err(|e: String| anyhow::anyhow!(e))?,
+            status: row.status.parse().map_err(|e| anyhow::anyhow!("{}", e))?,
             idempotency_key: row.idempotency_key,
             version: row.version,
             created_at: row.created_at,

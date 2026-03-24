@@ -32,7 +32,8 @@ impl UpdateTaskStatusUseCase {
         // ステータス遷移バリデーション
         task.transition_to(input.status.clone())?;
 
-        self.task_repo.update_status(tenant_id, id, input, updated_by).await
+        // TaskError を anyhow::Error に変換して戻り値の型を合わせる
+        self.task_repo.update_status(tenant_id, id, input, updated_by).await.map_err(anyhow::Error::from)
     }
 }
 

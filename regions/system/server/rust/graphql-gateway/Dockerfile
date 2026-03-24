@@ -10,8 +10,10 @@ FROM --platform=$TARGETPLATFORM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632a
 RUN cargo install cargo-chef --locked
 
 # protobuf コンパイラ（tonic-build 用）と cmake + build-essential（rdkafka 用）のインストール
+# libprotobuf-dev: google/protobuf/struct.proto 等のウェルノウン型を含む（tonic-build の依存）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
+    libprotobuf-dev \
     cmake \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -33,8 +35,10 @@ WORKDIR /app/regions/system
 RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-graphql-gateway-server
 
 # builder ステージ: ソースコードのビルド
+# WORKDIR は cook から /app/regions/system を継承しているため、
+# COPY の宛先に絶対パスを指定して正しい場所にソースを配置する
 FROM cook AS builder
-COPY regions/system regions/system
+COPY regions/system /app/regions/system
 
 # ローカル開発用ビルド引数: 認証バイパスを有効化するには
 # CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する

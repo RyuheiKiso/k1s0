@@ -74,14 +74,41 @@ pub async fn run() -> anyhow::Result<()> {
         (store, audit, None)
     } else if let Some(ref db_config) = cfg.database {
         info!("connecting to PostgreSQL for vault storage");
+        // DATABASE_URL 環境変数が設定されている場合は優先して使用する（docker-compose.dev.yaml 対応）
+        let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_config.connection_url());
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_config.max_open_conns)
             .min_connections(db_config.max_idle_conns.min(db_config.max_open_conns))
             .max_lifetime(parse_pool_duration(&db_config.conn_max_lifetime))
-            .connect(&db_config.connection_url())
+            .connect(&url)
             .await?;
         let pool = Arc::new(pool);
         info!("PostgreSQL connection pool established");
+
+        let store: Arc<dyn SecretStore> = Arc::new(
+            crate::adapter::repository::secret_store_postgres::SecretStorePostgresRepository::new(
+                pool.clone(),
+                master_key.clone(),
+            ),
+        );
+        let audit: Arc<dyn AccessLogRepository> = Arc::new(
+            crate::adapter::repository::access_log_postgres::AccessLogPostgresRepository::new(
+                pool.clone(),
+            ),
+        );
+
+        (store, audit, Some(pool.as_ref().clone()))
+    } else if let Ok(url) = std::env::var("DATABASE_URL") {
+        // DATABASE_URL 環境変数のみで PostgreSQL に接続する（config.docker.yaml に database セクションが不要）
+        info!("connecting to PostgreSQL for vault storage from DATABASE_URL");
+        let pool = sqlx::postgres::PgPoolOptions::new()
+            .max_connections(25)
+            .min_connections(5)
+            .max_lifetime(Some(std::time::Duration::from_secs(300)))
+            .connect(&url)
+            .await?;
+        let pool = Arc::new(pool);
+        info!("PostgreSQL connection pool established from DATABASE_URL");
 
         let store: Arc<dyn SecretStore> = Arc::new(
             crate::adapter::repository::secret_store_postgres::SecretStorePostgresRepository::new(

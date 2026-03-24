@@ -77,6 +77,9 @@ CREATE DATABASE saga_db;
 -- master-maintenance 用スキーマ (k1s0_system 内)
 -- master_maintenance スキーマは k1s0_system DB 内で作成される
 
+-- api-registry 用DB
+CREATE DATABASE api_registry_db;
+
 -- app-registry 用DB
 CREATE DATABASE app_registry_db;
 
@@ -106,4 +109,5 @@ GRANT CONNECT ON DATABASE dlq_db TO k1s0;
 GRANT CONNECT ON DATABASE file_db TO k1s0;
 GRANT CONNECT ON DATABASE service_catalog_db TO k1s0;
 GRANT CONNECT ON DATABASE saga_db TO k1s0;
+GRANT CONNECT ON DATABASE api_registry_db TO k1s0;
 GRANT CONNECT ON DATABASE app_registry_db TO k1s0;

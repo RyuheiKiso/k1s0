@@ -1,22 +1,39 @@
+# BFF Proxy Docker環境設定
+# Docker Compose環境での設定値。開発環境専用。
 app:
+  name: "bff-proxy"
+  version: "0.1.0"
+  tier: "system"
   environment: dev
 
 server:
   host: "0.0.0.0"
   port: 8080
 
+observability:
+  log:
+    level: info
+    format: json
+  trace:
+    enabled: false
+    endpoint: "http://jaeger:4317"
+    sample_rate: 1.0
+  metrics:
+    enabled: true
+    path: /metrics
+
 auth:
   discovery_url: "http://keycloak:8080/realms/k1s0"
   client_id: "k1s0-bff"
-  # シークレットはハードコードせず環境変数から取得する
-  client_secret: "${CLIENT_SECRET}"
-  redirect_uri: "http://localhost:8080/auth/callback"
+  # 開発環境ではシークレットを空文字にする（Keycloakのパブリッククライアント設定と合わせること）
+  client_secret: ""
+  redirect_uri: "http://localhost:8082/auth/callback"
 
 session:
   redis:
     addr: "redis-session:6379"
-    # Redis 認証パスワードは環境変数から取得する
-    password: "${REDIS_PASSWORD}"
+    # 開発環境のRedisパスワード
+    password: "dev"
 
 upstream:
   base_url: "http://auth-rust:8080"

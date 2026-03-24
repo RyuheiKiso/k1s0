@@ -18,7 +18,8 @@ impl UpdateWipLimitUseCase {
     #[tracing::instrument(skip(self))]
     pub async fn execute(&self, tenant_id: &str, req: &UpdateWipLimitRequest) -> anyhow::Result<BoardColumn> {
         BoardService::validate_wip_limit(req.wip_limit)?;
-        self.repo.update_wip_limit(tenant_id, req).await
+        // BoardError を anyhow::Error に変換して戻り値の型を合わせる
+        self.repo.update_wip_limit(tenant_id, req).await.map_err(anyhow::Error::from)
     }
 }
 

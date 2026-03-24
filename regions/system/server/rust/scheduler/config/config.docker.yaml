@@ -3,7 +3,7 @@
 app:
   name: k1s0-scheduler-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 
 server:
   host: "0.0.0.0"
@@ -14,7 +14,7 @@ database:
   port: 5432
   name: "scheduler_db"
   user: "dev"
-  password: "${DB_PASSWORD:-dev}"
+  password: "dev"
   ssl_mode: "disable"
 
 kafka:

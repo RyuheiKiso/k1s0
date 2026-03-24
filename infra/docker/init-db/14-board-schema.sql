@@ -49,3 +49,7 @@ ALTER TABLE board_service.board_columns FORCE ROW LEVEL SECURITY;
 GRANT USAGE ON SCHEMA board_service TO k1s0;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA board_service TO k1s0;
 ALTER DEFAULT PRIVILEGES IN SCHEMA board_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;
+
+-- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
+ALTER TABLE board_service.board_columns OWNER TO k1s0;
+ALTER TABLE board_service.outbox_events OWNER TO k1s0;

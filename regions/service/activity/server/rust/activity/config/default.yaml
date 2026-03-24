@@ -5,16 +5,18 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8330
+  # docker-compose のヘルスチェックおよびポートマッピング（8331:8080）に合わせてコンテナ内ポートを8080に設定する
+  port: 8080
   grpc_port: 9330
 
 database:
-  host: localhost
+  host: "postgres"
   port: 5432
   name: k1s0_service
   schema: activity_service
   user: k1s0
-  password: ""
+  # ローカル開発環境のパスワード（init-db/00-create-app-user.sql で設定）
+  password: "changeme_in_production"
   ssl_mode: disable
   max_connections: 25
   max_idle_conns: 5
