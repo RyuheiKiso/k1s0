@@ -184,6 +184,19 @@ pub struct CreateChecklistItem {
     pub sort_order: i32,
 }
 
+/// タスク更新 DTO（REST PUT /tasks/{id} 専用）
+/// 未設定フィールドは変更しない（部分更新）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTask {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub priority: Option<TaskPriority>,
+    pub assignee_id: Option<String>,
+    pub due_date: Option<DateTime<Utc>>,
+    // ラベル一覧を指定した場合は全置換する（None の場合は変更しない）
+    pub labels: Option<Vec<String>>,
+}
+
 /// チェックリスト項目追加 DTO（REST POST /tasks/{id}/checklist 専用）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddChecklistItem {

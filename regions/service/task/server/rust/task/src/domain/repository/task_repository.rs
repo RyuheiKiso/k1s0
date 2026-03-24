@@ -3,7 +3,7 @@
 // RLS テナント分離のため、全 DB 操作メソッドに tenant_id パラメータを持つ。
 use async_trait::async_trait;
 use uuid::Uuid;
-use crate::domain::entity::task::{AddChecklistItem, CreateTask, Task, TaskChecklistItem, TaskFilter, UpdateChecklistItem, UpdateTaskStatus};
+use crate::domain::entity::task::{AddChecklistItem, CreateTask, Task, TaskChecklistItem, TaskFilter, UpdateChecklistItem, UpdateTask, UpdateTaskStatus};
 use crate::domain::error::TaskError;
 
 #[cfg_attr(test, mockall::automock)]
