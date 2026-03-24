@@ -112,8 +112,9 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
-          fail_ci_if_error: true
+          # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
+          # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
+          fail_ci_if_error: false
 
   # Rust ユニットテスト
   test-rust:
@@ -234,8 +235,9 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
-          fail_ci_if_error: true
+          # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
+          # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
+          fail_ci_if_error: false
 
   # コード生成テンプレートのコンパイル検証（golden path compile test）
   golden-path-compile:
@@ -349,8 +351,9 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
-          fail_ci_if_error: true
+          # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
+          # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
+          fail_ci_if_error: false
 
   # Dart/Flutter ユニットテスト + カバレッジ
   test-dart:
@@ -473,5 +476,6 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
         with:
-          # カバレッジアップロード失敗を CI エラーとして扱う: サイレントな品質劣化を検知するため（M-16対応）
-          fail_ci_if_error: true
+          # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
+          # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
+          fail_ci_if_error: false
