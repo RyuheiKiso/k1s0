@@ -1,3 +1,16 @@
+# k1s0-service: デフォルト拒否ポリシー。
+# 他のポリシーで明示的に許可されていないトラフィックを全て遮断する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: k1s0-service
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
 # k1s0-service: Ingress および同一 Namespace からのインバウンドを許可
 # 注意: この NetworkPolicy は L3/L4 レベルで同一 Namespace（tier: service）内の
 # 通信を許可しているが、tier-architecture.md で定義されている「service 層の BFF 間の
