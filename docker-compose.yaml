@@ -207,6 +207,8 @@ services:
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      # M-01監査対応: 0.0.0.0 バインドは Docker ネットワーク内の他コンテナ（kafka-connect等）からアクセスするために必要な設計。
+      # ホスト側は下記 ports 設定で 127.0.0.1:${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081 に限定しており、外部ネットワークへの露出は発生しない。
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_SCHEMA_REGISTRY_LEADER_CONNECT_TIMEOUT_MS: 120000
     ports:
@@ -378,6 +380,9 @@ services:
       KONG_PROXY_LISTEN: "0.0.0.0:8000"
       # Admin API はコンテナ内 localhost のみにバインドし、外部ネットワークからの直接アクセスを防止する（C-02対応）
       KONG_ADMIN_LISTEN: "127.0.0.1:8001"
+      # H-01監査対応: Status API を専用ポート 8100 で全NIC公開し、Prometheus からメトリクスを収集できるようにする。
+      # Admin API（8001）と異なり Status API はメトリクス・ヘルスチェックのみを提供し、設定変更機能を持たないため全NICバインドが安全。
+      KONG_STATUS_LISTEN: "0.0.0.0:8100"
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -1247,9 +1252,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infra/docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
     command: -config.file=/etc/promtail/config.yaml
-    # ヘルスチェック: Promtail の ready エンドポイントで起動完了を確認する（M-4 対応）
+    # H-02監査対応: grafana/promtail:2.9.0 イメージに wget が含まれていないため、nc（netcat）ベースのヘルスチェックに変更する。
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9080/ready || exit 1"]
+      test: ["CMD-SHELL", "printf 'GET /ready HTTP/1.0\\r\\n\\r\\n' | nc -w 3 localhost 9080 | head -1 | grep -q 200"]
       interval: 30s
       timeout: 10s
       retries: 3

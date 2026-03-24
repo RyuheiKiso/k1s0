@@ -209,29 +209,45 @@ plugins:
       fault_tolerant: false
       hide_client_headers: false
 
-  # JWT Plugin - Keycloak JWKS 連携（ローカル開発用）
+  # H-03監査対応: JWT iss/aud 検証（ローカル開発用）
   # 本番では infra/kong/plugins/auth.yaml で管理
-  # iss クレームを検証することでトークンの発行元（Keycloak レルム）を確認し、
-  # 他のシステムで発行されたトークンによる不正アクセスを防止する
+  # key_claim_name: iss により jwt.claims.iss（"http://keycloak:8080/realms/k1s0"）と
+  # consumer.jwt_secrets[].key（"http://keycloak:8080/realms/k1s0"）を照合する。
+  # iss が一致しないトークンは 401 で拒否される。
+  # aud 検証は post-function access フェーズで実施する（下記参照）。
   - name: jwt
     config:
       uri_param_names: []
       cookie_names: []
-      key_claim_name: kid
+      key_claim_name: iss
       claims_to_verify:
         - exp
-        # iss/aud検証はKong 3.xのJWTプラグインでは非対応。
-        # OIDCプラグイン移行後（ADR-0017）に対応予定。
       header_names:
         - Authorization
 
-  # Post Function - JWT Claims をバックエンドへのリクエストヘッダーに転送
+  # H-03監査対応: JWT aud 検証 + バックエンドリクエストヘッダー転送（ローカル開発用）
+  # access フェーズを使用する理由:
+  #   1. kong.service.request.set_header() は access フェーズでのみ upstream へのヘッダー設定が有効
+  #   2. post-function（priority -1000）は JWT プラグイン（priority 1006）より後に実行されるため
+  #      access フェーズで authenticated_jwt_token が利用可能
   - name: post-function
     config:
-      header_filter:
+      access:
         - |
           local jwt = kong.ctx.shared.authenticated_jwt_token
           if jwt then
+            local aud = jwt.claims.aud
+            local valid = false
+            if type(aud) == "string" then
+              valid = (aud == "k1s0-api")
+            elseif type(aud) == "table" then
+              for _, v in ipairs(aud) do
+                if v == "k1s0-api" then valid = true; break end
+              end
+            end
+            if not valid then
+              return kong.response.exit(401, { message = "Unauthorized: invalid audience" })
+            end
             kong.service.request.set_header("X-User-Id", jwt.claims.sub)
             local roles = ""
             local ra = jwt.claims.realm_access

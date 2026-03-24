@@ -166,6 +166,14 @@ istio:
       interval: 30s
       baseEjectionTime: 30s
       maxEjectionPercent: 50
+    # H-06監査対応: connectionPool の設定を追加
+    connectionPool:
+      tcp:
+        # サービスへの最大TCP接続数。超過した場合はバックプレッシャーで接続を拒否する。
+        maxConnections: 100
+      http:
+        # 0 = 無制限（keep-alive）。1 = 毎リクエスト新規接続（HTTP/1.1 互換が必要な場合）
+        maxRequestsPerConnection: 0
 
 # Alertmanager 設定（H-03 対応: PagerDuty エスカレーション通知チャネルを追加）
 # pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない

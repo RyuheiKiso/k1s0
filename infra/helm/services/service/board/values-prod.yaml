@@ -13,16 +13,20 @@ autoscaling:
   minReplicas: 3
   maxReplicas: 10
 
+# H-08監査対応: required（ハード制約）から preferred（ソフト制約）に変更。
+# ノード数 < replicaCount の場合でもスケジューリング可能にしつつ、可能な限り分散配置を促す。
 affinity:
   podAntiAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      - labelSelector:
-          matchExpressions:
-            - key: app.kubernetes.io/name
-              operator: In
-              values:
-                - board
-        topologyKey: kubernetes.io/hostname
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - board
+          topologyKey: kubernetes.io/hostname
 
 config:
   data:
@@ -38,3 +42,11 @@ config:
           level: warn
         trace:
           sample_rate: 0.1
+
+# H-06監査対応: DestinationRule（Circuit Breaker）を有効化する。
+# mTLS・connectionPool・outlierDetection を全サービスに適用し、
+# 障害のカスケードとサービス間の不正通信を防止する。
+istio:
+  enabled: true
+  destinationRule:
+    enabled: true

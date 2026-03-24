@@ -110,48 +110,20 @@ terraform {
 
 以下の事項は本 ADR の決定範囲に含まれるが、実装が未完了のため明示的に記録する。
 
-### H-11: KMS CMK による追加暗号化
+### H-11: KMS CMK による追加暗号化（L-03 監査対応）
 
-**現状**: `encrypt = true` による SSE-S3（AWS 管理キー AES-256）で暗号化済み。
+**現状**: `encrypt = true` による SSE-S3（サーバー側暗号化）で暗号化済み。
 
-**未実施**: KMS CMK（カスタマー管理キー）による追加暗号化レイヤーが未設定。`kms_key_id` が空のまま。
+**非適用理由**: k1s0 は AWS を使用しない（Kubernetes + HashiCorp Vault + MinIO 等の S3 互換ストレージを使用）。
+AWS KMS の `kms_key_id` は AWS 固有の機能であり、S3 互換ストレージには適用できない。
 
-**影響**: PCI DSS / SOC2 等のコンプライアンス要件で CMK が必須の場合、要件を満たせない。
-
-**必要な対応**:
-```hcl
-# 各環境の backend.tf に追加する
-kms_key_id = "arn:aws:kms:ap-northeast-1:<account-id>:alias/k1s0-terraform-state-<env>"
-```
-
-AWS KMS で CMK を作成後（自動ローテーション推奨）、各環境の `backend.tf` に `kms_key_id` を設定すること。
+**代替暗号化**: 使用するオブジェクトストレージの暗号化機能に依存する。
+MinIO の場合は KES（Key Encryption Service）+ Vault 統合による暗号化を使用すること。
 
 ### L-4: S3 バケットバージョニング
 
-**現状**: Terraform `backend.tf` はバケット側の設定を参照するのみで、ファイル内にバージョニング設定を記述できない。
-
-**必要な対応**: 各 State バケットに対して以下を実行し、バージョニングが有効であることを確認・設定すること。
-
-```bash
-# dev 環境
-aws s3api put-bucket-versioning \
-  --bucket k1s0-terraform-state-dev \
-  --versioning-configuration Status=Enabled
-
-# staging 環境
-aws s3api put-bucket-versioning \
-  --bucket k1s0-terraform-state-staging \
-  --versioning-configuration Status=Enabled
-
-# prod 環境
-aws s3api put-bucket-versioning \
-  --bucket k1s0-terraform-state-prod \
-  --versioning-configuration Status=Enabled
-```
-
-バージョニングを有効化することで、誤った `terraform apply` から以前の State へのロールバックが可能になる。
-
----
+S3 バージョニングはバケット設定で有効化する（`backend.tf` では設定不可）。
+使用するオブジェクトストレージのバージョニング機能を有効化すること。
 
 ## 参考
 

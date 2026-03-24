@@ -23,4 +23,8 @@ pub enum MigrationError {
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+
+    // M-04監査対応: テーブル名バリデーション失敗を表すエラーバリアント。
+    #[error("invalid table name: {0}")]
+    InvalidTableName(String),
 }

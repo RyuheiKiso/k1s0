@@ -2,7 +2,19 @@
 
 ## ステータス
 
-提案中
+承認済み（2026-03-24）
+
+## 承認理由
+
+外部監査 H-04 の指摘（全ユーザーが全 Tier へのアクセス権を持つ）の重大度を踏まえ、本 ADR の優先度を引き上げ承認とする。
+RBAC が実質的に機能しない状態は最小権限の原則に違反しており、早急な対応が必要。
+
+## 実施タイムライン
+
+| フェーズ | 内容 | 目標期間 |
+|---------|------|---------|
+| Phase 1 | クライアント別ハードコード: `bff-proxy` クライアントは `["system", "business", "service"]`、`service-client` は `["business", "service"]`、`cli-client` は `["service"]` に変更 | 2026-04 |
+| Phase 2 | Script Mapper 実装: Keycloak のカスタム `ScriptMapper` を実装し、ユーザーロール（`sys_admin`, `biz_operator`, `user`）に基づいて `tier_access` クレームを動的にマッピング | 2026-05 |
 
 ## コンテキスト
 

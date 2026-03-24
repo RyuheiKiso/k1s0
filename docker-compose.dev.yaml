@@ -49,6 +49,9 @@ services:
   keycloak:
     environment:
       KC_DB_PASSWORD: dev
+      # docker-compose.yaml の ${KEYCLOAK_ADMIN_PASSWORD:?...} を満たすためのローカル開発用デフォルト値。
+      # C-03監査対応: .env.example のコメントアウトによりこの変数が未設定になり起動失敗していた問題を修正。
+      KEYCLOAK_ADMIN_PASSWORD: dev
       KC_BOOTSTRAP_ADMIN_PASSWORD: dev
       KC_BFF_CLIENT_SECRET: dev-bff-secret
       KC_SERVICE_CLIENT_SECRET: dev-service-secret

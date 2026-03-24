@@ -85,7 +85,8 @@ fn config_default_table_name() {
 #[test]
 fn config_custom_table_name() {
     let config = MigrationConfig::new(PathBuf::from("./migrations"), "postgres://test".to_string())
-        .with_table_name("schema_versions");
+        .with_table_name("schema_versions")
+        .expect("有効なテーブル名のため Ok が返るはず");
     assert_eq!(config.table_name, "schema_versions");
 }
 

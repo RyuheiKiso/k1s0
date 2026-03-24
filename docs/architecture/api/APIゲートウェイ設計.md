@@ -214,6 +214,27 @@ plugins:
 > - staging: `["https://*.staging.k1s0.internal.example.com"]`
 > - prod: `["https://*.k1s0.internal.example.com"]`
 
+## CORS 本番設定（L-04 監査対応）
+
+開発環境（`kong.dev.yaml`）では `localhost:3000` と `localhost:5173` のみを許可しているが、本番環境では以下の設定が必要。
+
+### 本番環境 CORS 設定方針
+| 設定項目 | 本番値 | 説明 |
+|---------|--------|------|
+| `origins` | `https://app.k1s0.example.com` | 本番フロントエンドのオリジン |
+| `methods` | `GET, POST, PUT, DELETE, PATCH, OPTIONS` | 許可 HTTP メソッド |
+| `headers` | `Authorization, Content-Type, X-Request-ID` | 許可リクエストヘッダー |
+| `credentials` | `true` | Cookie/Authorization ヘッダーの送信を許可 |
+| `max_age` | `3600` | Preflight レスポンスキャッシュ時間（秒） |
+
+### 設定ファイル
+- 開発: `infra/kong/kong.dev.yaml`（CORS プラグイン設定を含む）
+- 本番: `infra/kong/kong.yaml`（本番 CORS オリジンは Helm values または環境変数で注入）
+
+### 注意事項
+- ワイルドカード（`*`）を本番環境の `origins` に使用しないこと
+- `credentials: true` の場合、`origins` にワイルドカードは使用不可（ブラウザが拒否する）
+
 #### Request Size Limiting プラグイン
 
 DoS 攻撃対策として、グローバルレベルで 10MB を超えるリクエストをブロックする。開発環境（`kong.dev.yaml`）でも同一の制限を適用する。

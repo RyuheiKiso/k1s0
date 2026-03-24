@@ -345,11 +345,17 @@ docker-build:
     echo "=== docker build bff-proxy ==="
     docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
 
-# ローカル開発環境を起動（docker compose）
-local-up: _check-env
+# ローカル開発環境を起動（docker compose + dev overrides）
+# C-02監査対応: docker-compose.dev.yaml を自動的に適用し、必須環境変数（KEYCLOAK_ADMIN_PASSWORD 等）の
+# デフォルト値を提供することで、新規開発者が just local-up だけで環境を構築できるよう修正。
+local-up: local-up-dev
+
+# CI・本番確認用 docker-compose.yaml 単体起動（dev overrides を適用しない）
+# 本番同等の起動確認が必要な場合は .env に必須変数を設定した上でこのコマンドを使用すること。
+local-up-base: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== Starting local development environment ==="
+    echo "=== Starting local development environment (base, no dev overrides) ==="
     if [ -f docker-compose.yaml ] || [ -f docker-compose.yml ]; then
         docker compose {{_dc_profiles}} up -d
     elif [ -f infra/docker/docker-compose.yaml ] || [ -f infra/docker/docker-compose.yml ]; then
@@ -371,11 +377,23 @@ local-down: _check-env
     fi
 
 # 認証バイパス付きでローカル開発環境を起動（ローカル開発専用・本番では使用不可）
+# C-01監査対応: Docker Compose 起動後、Keycloak から RSA 公開鍵を取得して Kong に設定する。
+# setup-kong-jwt.sh が Keycloak の起動を最大60秒待機し、kong.dev.yaml のプレースホルダーを置換する。
+# 置換後は Kong を再起動して設定を反映させる。
 local-up-dev: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Starting local dev environment (auth bypass enabled) ==="
     docker compose -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+    echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
+    if bash infra/kong/setup-kong-jwt.sh; then
+        echo "=== Restarting Kong to apply new RSA public key configuration ==="
+        docker compose -f docker-compose.yaml -f docker-compose.dev.yaml restart kong
+        echo "=== Kong JWT setup complete ==="
+    else
+        echo "[WARN] Kong JWT setup failed. Kong may crash with placeholder RSA key." >&2
+        echo "  Keycloak が起動したら手動で実行してください: bash infra/kong/setup-kong-jwt.sh" >&2
+    fi
 
 # 指定プロファイルのみ起動（例: just local-up-profile infra）
 local-up-profile profile: _check-env

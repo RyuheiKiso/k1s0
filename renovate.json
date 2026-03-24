@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "M-03監査対応: Docker ダイジェストおよび GitHub Actions SHA のピン留めを自動更新する。",
+  "extends": [
+    "config:base"
+  ],
+  "enabledManagers": ["dockerfile", "github-actions"],
+  "packageRules": [
+    {
+      "description": "Docker イメージダイジェストの自動更新（セキュリティ対応）",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": false,
+      "labels": ["security", "automated", "dependencies"],
+      "reviewers": ["team:platform"]
+    },
+    {
+      "description": "GitHub Actions SHA ピン留めの自動更新",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "automerge": false,
+      "labels": ["security", "automated", "github-actions"]
+    },
+    {
+      "description": "実験的サービス（AI系）はRenovate対象外",
+      "matchFileNames": ["**/ai-agent/**", "**/ai-gateway/**"],
+      "enabled": false
+    }
+  ],
+  "schedule": ["before 9am on Monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2
+}

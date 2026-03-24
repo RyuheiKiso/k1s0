@@ -1228,7 +1228,9 @@ services:
 - `@master` 参照によるサプライチェーン攻撃リスク
 - バージョン不一致による脆弱性データベースの差異
 
-**deploy.yaml への SARIF レポート追加**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+**deploy.yaml への SARIF レポート追加 + exit-code 設定（H-07 対応）**: `deploy.yaml` の `build-and-push` ジョブに Trivy SARIF レポートの生成・アップロードステップを追加した。ビルド済みイメージに対して CRITICAL/HIGH の脆弱性スキャンを実行し、結果を SARIF 形式でアーティファクトに保存する。
+
+**H-07監査対応（2026-03-24）**: `exit-code: '1'` を追加し、CRITICAL/HIGH 脆弱性検出時に CI を失敗させる。`_service-deploy.yaml`・`security.yaml`・`_validate.yaml` と同等の挙動に統一した。`Upload Trivy SARIF report` ステップには `if: always()` が設定されているため、CI 失敗後もレポートはアーティファクトとして保存される。
 
 ```yaml
 # deploy.yaml build-and-push ジョブ内（ビルド・プッシュ後）
@@ -1239,6 +1241,7 @@ services:
     format: 'sarif'
     output: 'trivy-results.sarif'
     severity: 'CRITICAL,HIGH'
+    exit-code: '1'  # H-07対応: CRITICAL/HIGH 検出時に CI を失敗させる
 - name: Upload Trivy SARIF report
   uses: actions/upload-artifact@v4
   if: always()

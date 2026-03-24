@@ -150,6 +150,9 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          # H-07監査対応: CRITICAL/HIGH 脆弱性を検出した際に CI を失敗させる。
+          # SARIF レポートは exit-code 失敗後も `if: always()` で出力されるため、レポートの可視性は維持される。
+          exit-code: '1'
       # SARIF レポートをアーティファクトとしてアップロードし、セキュリティ監査・追跡に利用する
       - name: Upload Trivy SARIF report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
