@@ -327,23 +327,56 @@ gen-sdk service proto="api/proto":
 
 # --- Docker ---
 
-# 全サービスの Docker イメージをローカルビルド
+# 全サービスの Docker イメージをローカルビルド（並列実行）
 docker-build:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Rust サーバー（system tier）のイメージビルド
+    # BuildKit を明示的に有効化してレイヤーキャッシュとビルドパフォーマンスを最大化する
+    export DOCKER_BUILDKIT=1
+    # 最大同時並列ビルド数（Docker デーモンのリソース過負荷を防ぐ）
+    MAX_PARALLEL=4
+    pids=()
+    names=()
+    failed=0
+
+    # スロット制限付きでバックグラウンドビルドを起動するヘルパー関数
+    # 実行中ジョブが MAX_PARALLEL に達した場合、最古のジョブ完了を待ってからスタートする
+    start_build() {
+        local name="$1"; shift
+        while [ "${#pids[@]}" -ge "$MAX_PARALLEL" ]; do
+            if ! wait "${pids[0]}"; then
+                echo "ERROR: ${names[0]} のビルドが失敗しました" >&2
+                failed=1
+            fi
+            pids=("${pids[@]:1}")
+            names=("${names[@]:1}")
+        done
+        echo "=== [並列] Starting: $name ==="
+        "$@" &
+        pids+=($!)
+        names+=("$name")
+    }
+
+    # Rust サーバー（system tier）のイメージビルド（並列）
     for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
         server_name="$(basename "$(dirname "$dockerfile")")"
-        echo "=== docker build $server_name ==="
         if [ "$server_name" = "graphql-gateway" ]; then
-            docker build -f "$dockerfile" -t "k1s0-$server_name" .
+            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" .
         else
-            docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
+            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
         fi
     done
     # Go サーバー（bff-proxy）のイメージビルド
-    echo "=== docker build bff-proxy ==="
-    docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
+    start_build "bff-proxy" docker build -t k1s0-bff-proxy regions/system/server/go/bff-proxy
+
+    # 残り全ビルドの完了を待機して失敗を集計する
+    for i in "${!pids[@]}"; do
+        if ! wait "${pids[$i]}"; then
+            echo "ERROR: ${names[$i]} のビルドが失敗しました" >&2
+            failed=1
+        fi
+    done
+    [ "$failed" -eq 0 ] || { echo "ERROR: ビルドが失敗したサービスがあります" >&2; exit 1; }
 
 # ローカル開発環境を起動（docker compose + dev overrides）
 # C-02監査対応: docker-compose.dev.yaml を自動的に適用し、必須環境変数（KEYCLOAK_ADMIN_PASSWORD 等）の
