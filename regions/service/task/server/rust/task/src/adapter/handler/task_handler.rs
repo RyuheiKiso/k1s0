@@ -4,7 +4,7 @@
 // Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
 // 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
-use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTaskStatus};
+use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTask, UpdateTaskStatus};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
