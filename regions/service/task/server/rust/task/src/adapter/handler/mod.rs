@@ -18,6 +18,7 @@ pub struct AppState {
     pub get_task_uc: Arc<usecase::get_task::GetTaskUseCase>,
     pub list_tasks_uc: Arc<usecase::list_tasks::ListTasksUseCase>,
     pub update_task_status_uc: Arc<usecase::update_task_status::UpdateTaskStatusUseCase>,
+    pub update_task_uc: Arc<usecase::update_task::UpdateTaskUseCase>,
     pub create_checklist_item_uc: Arc<usecase::create_checklist_item::CreateChecklistItemUseCase>,
     pub update_checklist_item_uc: Arc<usecase::update_checklist_item::UpdateChecklistItemUseCase>,
     pub delete_checklist_item_uc: Arc<usecase::delete_checklist_item::DeleteChecklistItemUseCase>,
