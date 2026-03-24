@@ -3,7 +3,7 @@
 app:
   name: k1s0-search-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 
 server:
   host: "0.0.0.0"
@@ -14,5 +14,13 @@ database:
   port: 5432
   name: "search_db"
   user: "dev"
-  password: "${DB_PASSWORD:-dev}"
+  password: "dev"
   ssl_mode: "disable"
+
+# Kafka設定: 検索インデックス更新イベントを受信する
+kafka:
+  brokers:
+    - "kafka:9092"
+  topic: "k1s0.system.search.index.v1"
+  consumer_group: "search-server.dev"
+  security_protocol: "PLAINTEXT"

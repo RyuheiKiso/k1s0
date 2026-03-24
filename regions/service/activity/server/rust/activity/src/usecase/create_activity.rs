@@ -24,7 +24,8 @@ impl CreateActivityUseCase {
             }
         }
 
-        self.repo.create(tenant_id, input, actor_id).await
+        // ActivityError を anyhow::Error に変換して戻り値の型を合わせる
+        self.repo.create(tenant_id, input, actor_id).await.map_err(anyhow::Error::from)
     }
 }
 

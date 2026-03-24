@@ -5,7 +5,8 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: 8210
+  # docker-compose のヘルスチェックおよびポートマッピング（8211:8080）に合わせてコンテナ内ポートを8080に設定する
+  port: 8080
   grpc_port: 9210
 
 observability:
@@ -18,8 +19,15 @@ database:
   name: "k1s0_business"
   schema: "project_master"
   user: "k1s0"
-  password: ""
+  # ローカル開発環境のパスワード（init-db/00-create-app-user.sql で設定）
+  password: "changeme_in_production"
   ssl_mode: "prefer"
   max_connections: 25
   max_idle_conns: 5
   conn_max_lifetime: 300
+
+auth:
+  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+  issuer: "http://keycloak:8080/realms/k1s0"
+  audience: "k1s0-api"
+  jwks_cache_ttl_secs: 300

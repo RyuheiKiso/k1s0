@@ -1,16 +1,17 @@
 # chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include api/proto for tonic-build)
-# x86_64 ライブラリを直接コピーするためプラットフォームを明示固定
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
-FROM --platform=linux/amd64 rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
+FROM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
 
 # cargo-chef のインストール（依存キャッシュ用）
 RUN cargo install cargo-chef --locked
 
 # protobuf コンパイラ（tonic-build 用）と cmake + build-essential（rdkafka 用）のインストール
+# libprotobuf-dev: google/protobuf/struct.proto 等のウェルノウン型を含む（tonic-build の依存）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
+    libprotobuf-dev \
     cmake \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -32,8 +33,10 @@ WORKDIR /app/regions/system
 RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-graphql-gateway-server
 
 # builder ステージ: ソースコードのビルド
+# WORKDIR は cook から /app/regions/system を継承しているため、
+# COPY の宛先に絶対パスを指定して正しい場所にソースを配置する
 FROM cook AS builder
-COPY regions/system regions/system
+COPY regions/system /app/regions/system
 
 # ローカル開発用ビルド引数: 認証バイパスを有効化するには
 # CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
@@ -46,12 +49,12 @@ RUN if [ -n "${CARGO_FEATURES}" ]; then \
 
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
-FROM --platform=linux/amd64 busybox@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213 AS busybox
+FROM busybox@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213 AS busybox
 
 # runtime ステージ: 最小実行環境
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
-FROM --platform=linux/amd64 gcr.io/distroless/cc-debian12@sha256:7e5b8df2f4d36f5599ef4ab856d7d444922531709becb03f3368c6d797d0a5eb
+FROM gcr.io/distroless/cc-debian12@sha256:7e5b8df2f4d36f5599ef4ab856d7d444922531709becb03f3368c6d797d0a5eb
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/regions/system/target/release/k1s0-graphql-gateway-server /k1s0-graphql-gateway-server

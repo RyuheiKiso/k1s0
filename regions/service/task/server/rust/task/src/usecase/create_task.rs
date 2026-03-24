@@ -18,7 +18,8 @@ impl CreateTaskUseCase {
     #[tracing::instrument(skip(self))]
     pub async fn execute(&self, tenant_id: &str, input: &CreateTask, created_by: &str) -> anyhow::Result<Task> {
         TaskService::validate_title(&input.title)?;
-        self.task_repo.create(tenant_id, input, created_by).await
+        // TaskError を anyhow::Error に変換して戻り値の型を合わせる
+        self.task_repo.create(tenant_id, input, created_by).await.map_err(anyhow::Error::from)
     }
 }
 

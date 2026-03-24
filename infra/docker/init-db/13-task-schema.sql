@@ -81,3 +81,11 @@ ALTER TABLE task_service.task_checklist_items FORCE ROW LEVEL SECURITY;
 GRANT USAGE ON SCHEMA task_service TO k1s0;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA task_service TO k1s0;
 ALTER DEFAULT PRIVILEGES IN SCHEMA task_service GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;
+
+-- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
+ALTER TABLE task_service.tasks OWNER TO k1s0;
+ALTER TABLE task_service.task_checklist_items OWNER TO k1s0;
+ALTER TABLE task_service.outbox_events OWNER TO k1s0;
+
+-- sqlx がスキーマを作成できるように CREATE 権限を付与する
+GRANT CREATE ON DATABASE k1s0_service TO k1s0;

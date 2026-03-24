@@ -22,7 +22,8 @@ impl SubmitActivityUseCase {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
         activity.transition_to(ActivityStatus::Submitted)?;
-        self.repo.update_status(tenant_id, id, "submitted", Some(actor_id.to_string())).await
+        // ActivityError を anyhow::Error に変換して戻り値の型を合わせる
+        self.repo.update_status(tenant_id, id, "submitted", Some(actor_id.to_string())).await.map_err(anyhow::Error::from)
     }
 }
 

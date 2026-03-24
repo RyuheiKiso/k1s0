@@ -31,6 +31,8 @@
 
 # 認証バイパスの共通設定を YAML アンカーで定義する。
 # 全サービスで同一設定を使用するため、ここで一元管理する。
+# 注意: config.docker.yaml の "${DB_PASSWORD:-dev}" は serde_yaml がシェル展開しないため
+# DATABASE_URL を各サービスに個別設定して startup.rs の優先パスを利用する。
 x-dev-auth-bypass: &dev-auth-bypass
   build:
     args:
@@ -52,74 +54,155 @@ services:
   # ============================================================
   # System プロファイル — 認証バイパス有効化
   # ============================================================
+  # 注意: DATABASE_URL を設定して config.docker.yaml の ${DB_PASSWORD:-dev} 未展開問題を回避する。
+  # serde_yaml はシェル変数展開を行わないため、startup.rs の DATABASE_URL 優先パスを利用する。
+  auth-rust:
+    <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/auth_db?sslmode=disable
+
   config-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/config_db?sslmode=disable
 
   saga-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
 
   dlq-manager:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
 
   featureflag-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/featureflag_db?sslmode=disable
 
   ratelimit-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/ratelimit_db?sslmode=disable
 
+  # テナントサービス: config.docker.yaml に database セクションがないため DATABASE_URL で設定する
   tenant-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/tenant_db?sslmode=disable
 
+  # Vault サービス: DATABASE_URL で接続設定を直接指定する
   vault-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/vault_db?sslmode=disable
 
+  # API Registry: DATABASE_URL で接続設定を直接指定する
   api-registry-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/api_registry_db?sslmode=disable
 
   app-registry-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/app_registry_db?sslmode=disable
 
   event-monitor-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      # event-monitor 専用 DB は未作成のため k1s0_system を共用する
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
 
   event-store-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/event_store_db?sslmode=disable
 
   file-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/file_db?sslmode=disable
 
   master-maintenance-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
 
   navigation-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/navigation_db?sslmode=disable
 
   notification-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/notification_db?sslmode=disable
 
   policy-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/policy_db?sslmode=disable
 
   quota-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/quota_db?sslmode=disable
 
   rule-engine-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/rule_engine_db?sslmode=disable
 
   scheduler-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/scheduler_db?sslmode=disable
 
   search-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/search_db?sslmode=disable
 
   service-catalog-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/service_catalog_db?sslmode=disable
 
   session-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/session_db?sslmode=disable
 
   workflow-rust:
     <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/workflow_db?sslmode=disable
 
   # GraphQL Gateway — 認証バイパス有効化
   graphql-gateway-rust:

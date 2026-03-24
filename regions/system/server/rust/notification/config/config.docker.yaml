@@ -3,7 +3,7 @@
 app:
   name: k1s0-notification-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 
 server:
   host: "0.0.0.0"
@@ -14,7 +14,7 @@ database:
   port: 5432
   name: "notification_db"
   user: "dev"
-  password: "${DB_PASSWORD:-dev}"
+  password: "dev"
   ssl_mode: "disable"
 
 kafka:
@@ -22,3 +22,5 @@ kafka:
     - "kafka:9092"
   consumer_group: "notification-server.dev"
   security_protocol: "PLAINTEXT"
+  # 通知リクエストを受信するKafkaトピック
+  topic_requested: "k1s0.system.notification.requested.v1"

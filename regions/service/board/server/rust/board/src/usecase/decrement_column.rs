@@ -16,7 +16,8 @@ impl DecrementColumnUseCase {
     // カラムタスク数減少の全処理をトレースするためにスパンを自動生成する
     #[tracing::instrument(skip(self))]
     pub async fn execute(&self, tenant_id: &str, req: &DecrementColumnRequest) -> anyhow::Result<BoardColumn> {
-        self.repo.decrement(tenant_id, req).await
+        // BoardError を anyhow::Error に変換して戻り値の型を合わせる
+        self.repo.decrement(tenant_id, req).await.map_err(anyhow::Error::from)
     }
 }
 

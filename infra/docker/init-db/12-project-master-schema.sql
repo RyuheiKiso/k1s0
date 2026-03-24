@@ -72,3 +72,17 @@ CREATE TABLE IF NOT EXISTS project_master.tenant_project_extensions (
 
 CREATE INDEX IF NOT EXISTS idx_tenant_project_extensions_tenant ON project_master.tenant_project_extensions(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_tenant_project_extensions_status ON project_master.tenant_project_extensions(status_definition_id);
+
+-- k1s0 アプリユーザーへのスキーマ使用権限とテーブル操作権限を付与する
+GRANT USAGE ON SCHEMA project_master TO k1s0;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA project_master TO k1s0;
+ALTER DEFAULT PRIVILEGES IN SCHEMA project_master GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;
+
+-- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
+ALTER TABLE project_master.project_types OWNER TO k1s0;
+ALTER TABLE project_master.status_definitions OWNER TO k1s0;
+ALTER TABLE project_master.status_definition_versions OWNER TO k1s0;
+ALTER TABLE project_master.tenant_project_extensions OWNER TO k1s0;
+
+-- sqlx がスキーマを作成できるように CREATE 権限を付与する
+GRANT CREATE ON DATABASE k1s0_business TO k1s0;

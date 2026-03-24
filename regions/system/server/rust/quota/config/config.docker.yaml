@@ -1,7 +1,20 @@
 app:
   name: k1s0-quota-server
   version: "0.1.0"
-  environment: docker
+  environment: dev
 server:
   host: "0.0.0.0"
   port: 8080
+
+# クォータDB接続設定
+database:
+  url: "postgres://dev:dev@postgres:5432/quota_db?sslmode=disable"
+  max_connections: 10
+
+# Kafka設定: クォータ超過・閾値到達イベントを発行する
+kafka:
+  brokers:
+    - "kafka:9092"
+  topic_exceeded: "k1s0.system.quota.exceeded.v1"
+  topic_threshold: "k1s0.system.quota.threshold.v1"
+  security_protocol: "PLAINTEXT"

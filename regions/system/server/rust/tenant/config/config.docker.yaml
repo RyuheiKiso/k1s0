@@ -1,7 +1,14 @@
 app:
   name: "tenant-server"
   version: "0.1.0"
+  environment: "dev"
 
 server:
   http_port: 8080
   grpc_port: 50051
+
+# Docker環境: コンテナ内 Kafka ブローカーに接続する
+kafka:
+  brokers:
+    - "kafka:9092"
+  security_protocol: "PLAINTEXT"
