@@ -291,9 +291,10 @@ consumers:
         # Keycloak 起動後に実行すると JWKS から公開鍵を取得して自動更新する
         rsa_public_key: |
           -----BEGIN PUBLIC KEY-----
-          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
-          dKNlJOxrGvgBNEaMHQSQBQGQR0ZMjPQFGktflANE6gLROHFGM1PNMT0/zplFNAm
-          vJ3F5udDyJolRQMVFiGnvWkXGXKFUCEKEOXQCCTbMBtMDFqHMq6mFQJmN5WQMXE
-          ....placeholder_replace_with_actual_keycloak_public_key....
-          QIDAQAB
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAywC/vol/IN3sHwV5iVgE4iaQXZbJGq9E
+          OLHu7Z4w71EVEjFECsaMZHP0tQZgBIbVNNacxkEInDkooGbMcVdbbUvmMghbhYAPr+WCUSKOUQVk
+          JKa4b+PGd1RriwyOhmd2edusWxTFH/so7Vur9Hbc16h+AxsnXMLM+LsFx3b2dT2RU1JEVzglp/6k
+          cBJK5SiJBikPVL+aay0gZKwML3OnonZr0q6Lfro1xY1H3LfyEXtXX/Gp72aY6oxzkDNKjFj5cKDg
+          0I4CBZbED7fBM0SRlNYK15HYpsvezvyZj1A6gxZYqlTxxGrUcpJ90H/BU+m69O0M2v4YmzFZ6RQi
+          hd4T+QIDAQAB
           -----END PUBLIC KEY-----

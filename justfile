@@ -380,15 +380,26 @@ local-down: _check-env
 # C-01監査対応: Docker Compose 起動後、Keycloak から RSA 公開鍵を取得して Kong に設定する。
 # setup-kong-jwt.sh が Keycloak の起動を最大60秒待機し、kong.dev.yaml のプレースホルダーを置換する。
 # 置換後は Kong を再起動して設定を反映させる。
+#
+# --env-file .env.dev を指定する理由:
+#   docker-compose.yaml の ${VAR:?error} 構文はホスト環境変数を参照し、ファイルマージより先に評価される。
+#   docker-compose.dev.yaml の environment セクションはコンテナ環境変数であり、上記 interpolation を解決できない。
+#   .env.dev を --env-file で渡すことでホスト環境変数として展開し、起動エラーを防ぐ。
 local-up-dev: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
+    # .env.dev の存在確認: ない場合は明確なエラーで停止する（サイレントな起動失敗を防止）
+    if [ ! -f ".env.dev" ]; then
+        echo "Error: .env.dev が見つかりません。リポジトリルートに .env.dev が必要です。" >&2
+        echo "  参照: .env.dev はリポジトリに含まれています。git status で確認してください。" >&2
+        exit 1
+    fi
     echo "=== Starting local dev environment (auth bypass enabled) ==="
-    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
     echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
     if bash infra/kong/setup-kong-jwt.sh; then
         echo "=== Restarting Kong to apply new RSA public key configuration ==="
-        docker compose -f docker-compose.yaml -f docker-compose.dev.yaml restart kong
+        docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml restart kong
         echo "=== Kong JWT setup complete ==="
     else
         echo "[WARN] Kong JWT setup failed. Kong may crash with placeholder RSA key." >&2

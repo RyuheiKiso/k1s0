@@ -1,7 +1,11 @@
 # docker-compose.dev.yaml — ローカル開発専用のオーバーライド設定
 #
-# 使用方法: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
-#   または: just local-up-dev
+# 使用方法:
+#   just local-up   （推奨: .env.dev が自動適用される）
+#   または手動:
+#   docker compose --env-file .env.dev \
+#     -f docker-compose.yaml -f docker-compose.dev.yaml \
+#     --profile infra --profile system up -d
 #
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !! WARNING: このファイルは開発環境専用です。                  !!
@@ -9,9 +13,15 @@
 # !! 本番環境や CI では絶対に使用しないでください。             !!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #
-# このファイルは docker-compose.override.yaml から名前を変更しました。
-# Docker Compose の自動マージを防止し、明示的な -f 指定が必要です。
-# これにより `docker compose up` のデフォルト動作では認証バイパスが無効になります。
+# 【ファイルの役割分担】
+#
+#   .env.dev               ホスト環境変数を提供 → docker-compose.yaml の ${VAR:?...} interpolation を解決
+#   docker-compose.dev.yaml  コンテナ設定のオーバーライド → 認証バイパス・Admin API 公開設定
+#
+# 【設計上の背景】
+#   docker-compose.yaml の ${VAR:?error} 構文はファイルマージより先に（ホスト環境変数から）評価されるため、
+#   このオーバーライドファイルの environment セクションでは解決できません。
+#   パスワード等の開発用デフォルト値は .env.dev で一元管理し、--env-file で渡します。
 #
 # CARGO_FEATURES ビルド引数で dev-auth-bypass フィーチャーを有効化し、
 # ALLOW_INSECURE_NO_AUTH=true 環境変数でランタイム時に認証バイパスを発動させる。
@@ -29,47 +39,6 @@ x-dev-auth-bypass: &dev-auth-bypass
     - ALLOW_INSECURE_NO_AUTH=true
 
 services:
-  # ============================================================
-  # インフラ — ローカル開発用デフォルト認証情報
-  # 本番用 docker-compose.yaml では :? でデフォルト値なし必須化しているため、
-  # ローカル開発時はここで dev 用デフォルト値を提供する。
-  # ============================================================
-  postgres:
-    environment:
-      POSTGRES_PASSWORD: dev
-
-  redis:
-    environment:
-      REDIS_PASSWORD: dev
-
-  redis-session:
-    environment:
-      REDIS_SESSION_PASSWORD: dev
-
-  keycloak:
-    environment:
-      KC_DB_PASSWORD: dev
-      # docker-compose.yaml の ${KEYCLOAK_ADMIN_PASSWORD:?...} を満たすためのローカル開発用デフォルト値。
-      # C-03監査対応: .env.example のコメントアウトによりこの変数が未設定になり起動失敗していた問題を修正。
-      KEYCLOAK_ADMIN_PASSWORD: dev
-      KC_BOOTSTRAP_ADMIN_PASSWORD: dev
-      KC_BFF_CLIENT_SECRET: dev-bff-secret
-      KC_SERVICE_CLIENT_SECRET: dev-service-secret
-      KC_TEST_ADMIN_PASSWORD: admin123
-      KC_TEST_USER_PASSWORD: user123
-      KC_TEST_TASK_MGR_PASSWORD: task123
-
-  # Vault dev モード用ルートトークン。
-  # docker-compose.yaml では :? で必須化しているため、ローカル開発時はここでデフォルト値を提供する。
-  # 本番環境や CI では絶対にこのファイルを使用しないこと。
-  vault:
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: dev-token
-
-  grafana:
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: dev
-
   # ============================================================
   # API Gateway — Admin API をループバックインターフェースのみに制限
   # C-04監査対応: 開発環境でも Admin API を 0.0.0.0（全NIC）に公開せず、

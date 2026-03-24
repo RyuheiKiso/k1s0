@@ -8,14 +8,21 @@
 # 認証バイパスやセキュリティ緩和設定は含まれていません。
 #
 # ポート環境変数: 全ホストポートは ${VAR:-default} 形式で外部から変更可能。
-# .env.example を .env にコピーして設定する。.env がない場合はデフォルト値が使われる。
 # 共用開発サーバーでは COMPOSE_PROJECT_NAME でコンテナ・ボリューム・ネットワークを分離する。
 # 詳細: docs/infrastructure/devenv/共用開発サーバー設計.md
 #
-# 開発時の認証バイパス設定は docker-compose.dev.yaml に分離されています。
-# 開発環境では明示的に -f で指定してください:
-#   docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
-# `docker compose up` のデフォルト動作では認証バイパスは無効です。
+# 開発環境の起動方法:
+#   just local-up  （推奨: .env.dev を --env-file で自動適用）
+#   または手動:
+#   docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+#     --profile infra --profile system up -d
+#
+# 【重要】${VAR:?error} と docker-compose.dev.yaml の関係:
+#   このファイルの ${VAR:?...} 構文はホスト環境変数から評価されます（ファイルマージより先）。
+#   開発用デフォルト値は .env.dev で管理し、--env-file で渡してください。
+#   docker-compose.dev.yaml の environment セクションはコンテナ変数であり interpolation を解決できません。
+#
+# `docker compose up` のデフォルト動作では認証バイパスは無効かつ必須変数が未設定でエラーになります。
 
 x-app-service: &app-service-defaults
   # アプリケーションサービス共通設定: 全アプリサービスで共有するセキュリティ・リソース・再起動ポリシー
