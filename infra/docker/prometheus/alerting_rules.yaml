@@ -107,36 +107,37 @@ groups:
           description: "cert-manager 管理の証明書 {{ $labels.name }}（namespace: {{ $labels.namespace }}）の有効期限が 30 日以内です"
           runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/certificate-expiring.md"
 
-# M-09監査対応: Service tier（BFF・外部公開サービス）専用のアラートルールを追加する。
-# system/business tier と分けてアラートを管理することで、Tier 別の SLO 監視を実現する。
-- name: service-tier-alerts
-  rules:
-    - alert: BFFHighResponseTime
-      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"bff.*"}[5m])) > 1.0
-      for: 5m
-      labels:
-        severity: warning
-        tier: service
-      annotations:
-        summary: "BFF レスポンスタイム異常（P95 > 1s）"
-        description: "{{ $labels.job }} の P95 レスポンスタイムが {{ $value | humanizeDuration }} を超えています。"
+      # M-09監査対応: Service tier（BFF・外部公開サービス）専用のアラートルールを追加する。
+      # system/business tier と分けてアラートを管理することで、Tier 別の SLO 監視を実現する。
 
-    - alert: ServiceTierHighErrorRate
-      expr: sum(rate(http_requests_total{job=~"bff.*|task.*|board.*|activity.*", status=~"5.."}[5m])) by (job) / sum(rate(http_requests_total{job=~"bff.*|task.*|board.*|activity.*"}[5m])) by (job) > 0.05
-      for: 5m
-      labels:
-        severity: critical
-        tier: service
-      annotations:
-        summary: "Service tier エラーレート異常（> 5%）"
-        description: "{{ $labels.job }} のエラーレートが {{ $value | humanizePercentage }} を超えています。"
+  - name: service-tier-alerts
+    rules:
+      - alert: BFFHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~"bff.*"}[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          tier: service
+        annotations:
+          summary: "BFF レスポンスタイム異常（P95 > 1s）"
+          description: "{{ $labels.job }} の P95 レスポンスタイムが {{ $value | humanizeDuration }} を超えています。"
 
-    - alert: ServiceTierDown
-      expr: up{job=~"bff.*|task.*|board.*|activity.*"} == 0
-      for: 1m
-      labels:
-        severity: critical
-        tier: service
-      annotations:
-        summary: "Service tier サービスが停止中"
-        description: "{{ $labels.job }} が停止しています。"
+      - alert: ServiceTierHighErrorRate
+        expr: sum(rate(http_requests_total{job=~"bff.*|task.*|board.*|activity.*", status=~"5.."}[5m])) by (job) / sum(rate(http_requests_total{job=~"bff.*|task.*|board.*|activity.*"}[5m])) by (job) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          tier: service
+        annotations:
+          summary: "Service tier エラーレート異常（> 5%）"
+          description: "{{ $labels.job }} のエラーレートが {{ $value | humanizePercentage }} を超えています。"
+
+      - alert: ServiceTierDown
+        expr: up{job=~"bff.*|task.*|board.*|activity.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: service
+        annotations:
+          summary: "Service tier サービスが停止中"
+          description: "{{ $labels.job }} が停止しています。"
