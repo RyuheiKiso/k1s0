@@ -4,7 +4,7 @@
 // 戻り値型は TaskError（クリーンアーキテクチャ準拠。anyhow::Error は TaskError::Infrastructure に変換する）。
 use crate::domain::entity::task::{
     AddChecklistItem, CreateTask, ParseError, Task, TaskChecklistItem, TaskFilter,
-    UpdateChecklistItem, UpdateTaskStatus,
+    UpdateChecklistItem, UpdateTask, UpdateTaskStatus,
 };
 use crate::domain::error::TaskError;
 use crate::domain::repository::task_repository::TaskRepository;
