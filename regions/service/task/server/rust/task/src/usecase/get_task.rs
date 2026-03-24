@@ -113,7 +113,7 @@ mod tests {
         mock.expect_find_by_id()
             .with(always(), eq(task_id))
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database connection error")));
+            .returning(|_, _| Err(crate::domain::error::TaskError::Infrastructure(anyhow::anyhow!("database connection error"))));
 
         let uc = GetTaskUseCase::new(Arc::new(mock));
         let result = uc.execute("system", task_id).await;

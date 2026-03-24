@@ -7,8 +7,10 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
-use crate::proto::k1s0::system::notification::v1::{
+use crate::proto::k1s0::system::common::v1::{
+    PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
+};
+use crate::proto::k1s0::system::notification::v1::{NotificationStatus,
     notification_service_server::NotificationService, Channel as ProtoChannel,
     CreateChannelRequest as ProtoCreateChannelRequest,
     CreateChannelResponse as ProtoCreateChannelResponse,
@@ -45,6 +47,31 @@ use super::notification_grpc::{
     RetryNotificationRequest, SendNotificationRequest, UpdateChannelRequest, UpdateTemplateRequest,
 };
 
+// --- ヘルパー関数 ---
+
+/// ISO 8601 文字列を ProtoTimestamp に変換する。
+/// パース失敗時は None を返す（既存の deprecated 文字列フィールドでカバー）。
+fn str_to_ts(s: &str) -> Option<ProtoTimestamp> {
+    chrono::DateTime::parse_from_rfc3339(s)
+        .ok()
+        .map(|dt| ProtoTimestamp {
+            seconds: dt.timestamp(),
+            nanos: dt.timestamp_subsec_nanos() as i32,
+        })
+}
+
+/// ドメインのステータス文字列を NotificationStatus enum の i32 値に変換する。
+/// 未知の文字列は Unspecified (0) にフォールバックする。
+fn status_str_to_enum(s: &str) -> i32 {
+    match s {
+        "pending" => NotificationStatus::Pending as i32,
+        "sent" => NotificationStatus::Sent as i32,
+        "failed" => NotificationStatus::Failed as i32,
+        "retrying" => NotificationStatus::Retrying as i32,
+        _ => NotificationStatus::Unspecified as i32,
+    }
+}
+
 // --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
@@ -66,11 +93,11 @@ fn channel_to_proto(ch: &super::notification_grpc::PbChannel) -> ProtoChannel {
         channel_type: ch.channel_type.clone(),
         config_json: ch.config_json.clone(),
         enabled: ch.enabled,
+        // dual-write: 旧文字列フィールドと新 Timestamp 型フィールドを同時設定
         created_at: ch.created_at.clone(),
         updated_at: ch.updated_at.clone(),
-        // 後方互換 Timestamp 型フィールド（移行中は None）
-        created_at_ts: None,
-        updated_at_ts: None,
+        created_at_ts: str_to_ts(&ch.created_at),
+        updated_at_ts: str_to_ts(&ch.updated_at),
     }
 }
 
@@ -81,11 +108,11 @@ fn template_to_proto(t: &super::notification_grpc::PbTemplate) -> ProtoTemplate 
         channel_type: t.channel_type.clone(),
         subject_template: t.subject_template.clone(),
         body_template: t.body_template.clone(),
+        // dual-write: 旧文字列フィールドと新 Timestamp 型フィールドを同時設定
         created_at: t.created_at.clone(),
         updated_at: t.updated_at.clone(),
-        // 後方互換 Timestamp 型フィールド（移行中は None）
-        created_at_ts: None,
-        updated_at_ts: None,
+        created_at_ts: str_to_ts(&t.created_at),
+        updated_at_ts: str_to_ts(&t.updated_at),
     }
 }
 
@@ -124,10 +151,10 @@ impl NotificationService for NotificationServiceTonic {
 
         Ok(Response::new(ProtoSendNotificationResponse {
             notification_id: resp.notification_id,
+            // dual-write: 旧文字列フィールドと新 Timestamp 型フィールドを同時設定
             status: resp.status,
-            created_at: resp.created_at,
-            // 後方互換 Timestamp 型フィールド（移行中は None）
-            created_at_ts: None,
+            created_at: resp.created_at.clone(),
+            created_at_ts: str_to_ts(&resp.created_at),
         }))
     }
 
@@ -155,15 +182,15 @@ impl NotificationService for NotificationServiceTonic {
                 recipient: n.recipient,
                 subject: n.subject,
                 body: n.body,
-                status: n.status,
+                // dual-write: 旧文字列フィールドと新 enum/Timestamp フィールドを同時設定
+                status: n.status.clone(),
+                status_enum: status_str_to_enum(&n.status),
                 retry_count: n.retry_count,
                 error_message: n.error_message,
-                sent_at: n.sent_at,
-                created_at: n.created_at,
-                // 後方互換フィールド（移行中は None/0）
-                created_at_ts: None,
-                sent_at_ts: None,
-                status_enum: 0,
+                sent_at: n.sent_at.clone(),
+                sent_at_ts: n.sent_at.as_deref().and_then(str_to_ts),
+                created_at: n.created_at.clone(),
+                created_at_ts: str_to_ts(&n.created_at),
             }),
         }))
     }
@@ -191,15 +218,15 @@ impl NotificationService for NotificationServiceTonic {
                 recipient: n.recipient,
                 subject: n.subject,
                 body: n.body,
-                status: n.status,
+                // dual-write: 旧文字列フィールドと新 enum/Timestamp フィールドを同時設定
+                status: n.status.clone(),
+                status_enum: status_str_to_enum(&n.status),
                 retry_count: n.retry_count,
                 error_message: n.error_message,
-                sent_at: n.sent_at,
-                created_at: n.created_at,
-                // 後方互換フィールド（移行中は None/0）
-                created_at_ts: None,
-                sent_at_ts: None,
-                status_enum: 0,
+                sent_at: n.sent_at.clone(),
+                sent_at_ts: n.sent_at.as_deref().and_then(str_to_ts),
+                created_at: n.created_at.clone(),
+                created_at_ts: str_to_ts(&n.created_at),
             }),
         }))
     }
@@ -243,15 +270,15 @@ impl NotificationService for NotificationServiceTonic {
                     recipient: n.recipient,
                     subject: n.subject,
                     body: n.body,
-                    status: n.status,
+                    // dual-write: 旧文字列フィールドと新 enum/Timestamp フィールドを同時設定
+                    status: n.status.clone(),
+                    status_enum: status_str_to_enum(&n.status),
                     retry_count: n.retry_count,
                     error_message: n.error_message,
-                    sent_at: n.sent_at,
-                    created_at: n.created_at,
-                    // 後方互換フィールド（移行中は None/0）
-                    created_at_ts: None,
-                    sent_at_ts: None,
-                    status_enum: 0,
+                    sent_at: n.sent_at.clone(),
+                    sent_at_ts: n.sent_at.as_deref().and_then(str_to_ts),
+                    created_at: n.created_at.clone(),
+                    created_at_ts: str_to_ts(&n.created_at),
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {

@@ -27,7 +27,7 @@ export const activitySchema = z.object({
   content: z.string().nullable(),
   duration_minutes: z.number().int().nullable(),
   status: activityStatusSchema,
-  metadata: z.record(z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.unknown()).nullable(),
   idempotency_key: z.string().nullable(),
   version: z.number().int(),
   created_at: z.string(),
@@ -41,7 +41,7 @@ export const createActivityInputSchema = z.object({
   activity_type: activityTypeSchema,
   content: z.string().optional(),
   duration_minutes: z.number().int().min(0, '作業時間は0以上にしてください').optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   idempotency_key: z.string().optional(),
 });
 

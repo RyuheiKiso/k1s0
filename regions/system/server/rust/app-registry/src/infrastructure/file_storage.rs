@@ -37,16 +37,4 @@ impl FileStorage {
         Ok(bytes)
     }
 
-    /// 指定された storage_key に対応するファイルが存在するか確認する。
-    pub fn file_exists(&self, storage_key: &str) -> bool {
-        self.resolve_path(storage_key)
-            .map(|p| p.exists())
-            .unwrap_or(false)
-    }
-
-    /// ファイルのバイト単位のサイズを返す。ファイルが存在しない場合は None を返す。
-    pub async fn file_size(&self, storage_key: &str) -> Option<u64> {
-        let path = self.resolve_path(storage_key).ok()?;
-        tokio::fs::metadata(&path).await.ok().map(|m| m.len())
-    }
 }

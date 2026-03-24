@@ -3,7 +3,8 @@
 // outbox テーブルへの書き込みを同一トランザクションで行う Transactional Outbox パターン。
 // 戻り値型は TaskError（クリーンアーキテクチャ準拠。anyhow::Error は TaskError::Infrastructure に変換する）。
 use crate::domain::entity::task::{
-    CreateTask, ParseError, Task, TaskChecklistItem, TaskFilter, UpdateTaskStatus,
+    AddChecklistItem, CreateTask, ParseError, Task, TaskChecklistItem, TaskFilter,
+    UpdateChecklistItem, UpdateTaskStatus,
 };
 use crate::domain::error::TaskError;
 use crate::domain::repository::task_repository::TaskRepository;
@@ -256,6 +257,83 @@ impl TaskRepository for TaskPostgresRepository {
         .map_err(|e| TaskError::Infrastructure(e.into()))?;
         tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
         Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn add_checklist_item(&self, tenant_id: &str, task_id: Uuid, input: &AddChecklistItem) -> Result<TaskChecklistItem, TaskError> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
+        let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        let item_id = Uuid::new_v4();
+        let row = sqlx::query_as::<_, ChecklistRow>(
+            "INSERT INTO task_service.task_checklist_items (id, task_id, title, sort_order) VALUES ($1, $2, $3, $4) RETURNING id, task_id, title, is_completed, sort_order, created_at",
+        )
+        .bind(item_id)
+        .bind(task_id)
+        .bind(&input.title)
+        .bind(input.sort_order)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        Ok(row.into())
+    }
+
+    async fn update_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid, input: &UpdateChecklistItem) -> Result<TaskChecklistItem, TaskError> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
+        let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        // COALESCE で未指定フィールドは既存値を保持する
+        let row = sqlx::query_as::<_, ChecklistRow>(
+            r#"UPDATE task_service.task_checklist_items
+               SET title = COALESCE($3, title),
+                   is_completed = COALESCE($4, is_completed),
+                   sort_order = COALESCE($5, sort_order)
+               WHERE id = $1 AND task_id = $2
+               RETURNING id, task_id, title, is_completed, sort_order, created_at"#,
+        )
+        .bind(item_id)
+        .bind(task_id)
+        .bind(&input.title)
+        .bind(input.is_completed)
+        .bind(input.sort_order)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| TaskError::Infrastructure(e.into()))?
+        .ok_or_else(|| TaskError::NotFound(format!("Checklist item '{}' not found", item_id)))?;
+        tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        Ok(row.into())
+    }
+
+    async fn delete_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid) -> Result<(), TaskError> {
+        // テナント分離のため SET LOCAL でセッション変数を設定してから DELETE を実行する
+        let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        let result = sqlx::query(
+            "DELETE FROM task_service.task_checklist_items WHERE id = $1 AND task_id = $2",
+        )
+        .bind(item_id)
+        .bind(task_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| TaskError::Infrastructure(e.into()))?;
+        // 削除対象が存在しない場合は NotFound エラーを返す
+        if result.rows_affected() == 0 {
+            return Err(TaskError::NotFound(format!("Checklist item '{}' not found", item_id)));
+        }
+        tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
+        Ok(())
     }
 
     async fn update_status(

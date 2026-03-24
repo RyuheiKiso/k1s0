@@ -21,7 +21,7 @@ use crate::proto::k1s0::system::saga::v1::{
     ListWorkflowsResponse as ProtoListWorkflowsResponse,
     RegisterWorkflowRequest as ProtoRegisterWorkflowRequest,
     RegisterWorkflowResponse as ProtoRegisterWorkflowResponse, SagaStateProto as ProtoSagaState,
-    SagaStepLogProto as ProtoSagaStepLog, StartSagaRequest as ProtoStartSagaRequest,
+    SagaStatus, SagaStepLogProto as ProtoSagaStepLog, StartSagaRequest as ProtoStartSagaRequest,
     StartSagaResponse as ProtoStartSagaResponse, WorkflowSummary as ProtoWorkflowSummary,
 };
 
@@ -44,6 +44,19 @@ impl From<GrpcError> for Status {
 }
 
 // --- 変換ヘルパー ---
+
+/// ドメインのサガステータス文字列を SagaStatus enum の i32 値に変換する。
+/// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
+fn saga_status_str_to_enum(s: &str) -> i32 {
+    match s {
+        "RUNNING" => SagaStatus::Running as i32,
+        "COMPLETED" => SagaStatus::Completed as i32,
+        "FAILED" => SagaStatus::Failed as i32,
+        "COMPENSATING" => SagaStatus::Compensating as i32,
+        "COMPENSATED" => SagaStatus::Compensated as i32,
+        _ => SagaStatus::Unspecified as i32,
+    }
+}
 
 /// RFC3339 文字列を proto Timestamp に変換する。
 fn rfc3339_to_proto_timestamp(s: &str) -> Option<ProtoTimestamp> {
@@ -197,19 +210,19 @@ impl SagaService for SagaServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
 
+        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
         let proto_saga = ProtoSagaState {
             id: resp.saga.id,
             workflow_name: resp.saga.workflow_name,
             current_step: resp.saga.current_step,
-            status: resp.saga.status,
+            status: resp.saga.status.clone(),
+            status_enum: saga_status_str_to_enum(&resp.saga.status),
             payload: json_bytes_to_prost_struct(&resp.saga.payload),
             correlation_id: empty_string_to_none(resp.saga.correlation_id),
             initiated_by: empty_string_to_none(resp.saga.initiated_by),
             error_message: empty_string_to_none(resp.saga.error_message),
             created_at: rfc3339_to_proto_timestamp(&resp.saga.created_at),
             updated_at: rfc3339_to_proto_timestamp(&resp.saga.updated_at),
-            // 後方互換フィールド（0 = UNSPECIFIED）
-            status_enum: 0,
         };
 
         let proto_step_logs = resp
@@ -265,19 +278,22 @@ impl SagaService for SagaServiceTonic {
         let proto_sagas = resp
             .sagas
             .into_iter()
-            .map(|saga| ProtoSagaState {
-                id: saga.id,
-                workflow_name: saga.workflow_name,
-                current_step: saga.current_step,
-                status: saga.status,
-                payload: json_bytes_to_prost_struct(&saga.payload),
-                correlation_id: empty_string_to_none(saga.correlation_id),
-                initiated_by: empty_string_to_none(saga.initiated_by),
-                error_message: empty_string_to_none(saga.error_message),
-                created_at: rfc3339_to_proto_timestamp(&saga.created_at),
-                updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
-                // 後方互換フィールド（0 = UNSPECIFIED）
-                status_enum: 0,
+            // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
+            .map(|saga| {
+                let status_enum = saga_status_str_to_enum(&saga.status);
+                ProtoSagaState {
+                    id: saga.id,
+                    workflow_name: saga.workflow_name,
+                    current_step: saga.current_step,
+                    status: saga.status,
+                    status_enum,
+                    payload: json_bytes_to_prost_struct(&saga.payload),
+                    correlation_id: empty_string_to_none(saga.correlation_id),
+                    initiated_by: empty_string_to_none(saga.initiated_by),
+                    error_message: empty_string_to_none(saga.error_message),
+                    created_at: rfc3339_to_proto_timestamp(&saga.created_at),
+                    updated_at: rfc3339_to_proto_timestamp(&saga.updated_at),
+                }
             })
             .collect();
 

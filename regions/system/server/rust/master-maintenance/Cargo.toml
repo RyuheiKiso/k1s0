@@ -52,10 +52,10 @@ opentelemetry = "0.27"
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.27", features = ["grpc-tonic"] }
 tracing-opentelemetry = "0.28"
-prometheus = "0.13"
+prometheus = "0.14"
 
 # Validation
-validator = { version = "0.18", features = ["derive"] }
+validator = { version = "0.20", features = ["derive"] }
 
 # Telemetry library
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }

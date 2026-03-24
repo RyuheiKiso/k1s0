@@ -73,6 +73,16 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- if and .Values.probes .Values.probes.grpcHealthCheck .Values.probes.grpcHealthCheck.enabled }}
+          {{/* gRPC ヘルスチェックが有効な場合: startup/liveness/readiness すべてを gRPC プローブとして展開する */}}
+          {{- with .Values.probes }}
+          {{- with .startup }}
+          startupProbe:
+            grpc:
+              port: {{ $.Values.container.grpcPort }}
+            failureThreshold: {{ .failureThreshold }}
+            periodSeconds: {{ .periodSeconds }}
+          {{- end }}
+          {{- end }}
           livenessProbe:
             grpc:
               port: {{ .Values.container.grpcPort }}
@@ -88,6 +98,11 @@ spec:
           {{- else }}
           {{/* probes オブジェクト自体が nil の場合のチェックを先行させ HTTP プローブを安全に展開する（nil-safe: C-1 対応） */}}
           {{- with .Values.probes }}
+          {{/* startupProbe: コンテナ初回起動時の猶予期間を確保し、liveness の誤検知を防ぐ */}}
+          {{- with .startup }}
+          startupProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .liveness }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

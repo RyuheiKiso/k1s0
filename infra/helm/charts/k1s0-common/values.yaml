@@ -57,6 +57,15 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 5
     failureThreshold: 3
+  # startupProbe: コンテナ起動完了を確認するプローブ。
+  # liveness/readiness より先に評価され、起動完了前に liveness が誤って失敗するのを防ぐ。
+  # failureThreshold × periodSeconds = 50秒の猶予期間を与える。
+  startup:
+    httpGet:
+      path: /healthz
+      port: http
+    failureThreshold: 10
+    periodSeconds: 5
   grpcHealthCheck:
     enabled: false
     port: grpc

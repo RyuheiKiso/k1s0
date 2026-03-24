@@ -10,7 +10,7 @@ opentelemetry-otlp = { version = "0.27", features = ["tonic"] }
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 tracing-opentelemetry = "0.28"
-prometheus = "0.13"
+prometheus = "0.14"
 
 # Instrumentation support (optional)
 sqlx = {workspace = true, optional = true}

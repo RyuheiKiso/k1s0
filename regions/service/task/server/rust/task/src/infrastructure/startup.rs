@@ -79,6 +79,9 @@ pub async fn run() -> anyhow::Result<()> {
     let get_task_uc = Arc::new(usecase::get_task::GetTaskUseCase::new(task_repo.clone()));
     let list_tasks_uc = Arc::new(usecase::list_tasks::ListTasksUseCase::new(task_repo.clone()));
     let update_task_status_uc = Arc::new(usecase::update_task_status::UpdateTaskStatusUseCase::new(task_repo.clone()));
+    let create_checklist_item_uc = Arc::new(usecase::create_checklist_item::CreateChecklistItemUseCase::new(task_repo.clone()));
+    let update_checklist_item_uc = Arc::new(usecase::update_checklist_item::UpdateChecklistItemUseCase::new(task_repo.clone()));
+    let delete_checklist_item_uc = Arc::new(usecase::delete_checklist_item::DeleteChecklistItemUseCase::new(task_repo.clone()));
 
     // Outbox ポーラー（Kafka 設定がある場合のみ起動）
     if let Some(ref kafka_cfg) = cfg.kafka {
@@ -119,6 +122,9 @@ pub async fn run() -> anyhow::Result<()> {
         get_task_uc: get_task_uc.clone(),
         list_tasks_uc: list_tasks_uc.clone(),
         update_task_status_uc: update_task_status_uc.clone(),
+        create_checklist_item_uc,
+        update_checklist_item_uc,
+        delete_checklist_item_uc,
         metrics: metrics.clone(),
         auth_state: auth_state.clone(),
     };

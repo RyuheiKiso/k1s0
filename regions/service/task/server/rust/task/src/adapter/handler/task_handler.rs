@@ -4,7 +4,7 @@
 // Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
 // 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
-use crate::domain::entity::task::{CreateTask, TaskFilter, UpdateTaskStatus};
+use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTaskStatus};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -130,4 +130,54 @@ pub async fn get_checklist(
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
     let items = state.get_task_uc.get_checklist(tenant_id, id).await.map_err(map_err)?;
     Ok(Json(serde_json::json!({ "checklist": items })))
+}
+
+// チェックリスト項目追加: リクエスト本体から AddChecklistItem を受け取り追加する
+pub async fn create_checklist_item(
+    State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
+    Path(task_id): Path<Uuid>,
+    Json(input): Json<AddChecklistItem>,
+) -> Result<impl IntoResponse, ServiceError> {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let item = state
+        .create_checklist_item_uc
+        .execute(tenant_id, task_id, &input)
+        .await
+        .map_err(map_err)?;
+    Ok((StatusCode::CREATED, Json(item)))
+}
+
+// チェックリスト項目更新: リクエスト本体から UpdateChecklistItem を受け取り更新する
+pub async fn update_checklist_item(
+    State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
+    Path((task_id, item_id)): Path<(Uuid, Uuid)>,
+    Json(input): Json<UpdateChecklistItem>,
+) -> Result<impl IntoResponse, ServiceError> {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let item = state
+        .update_checklist_item_uc
+        .execute(tenant_id, task_id, item_id, &input)
+        .await
+        .map_err(map_err)?;
+    Ok(Json(item))
+}
+
+// チェックリスト項目削除: パスパラメータの item_id を削除する
+pub async fn delete_checklist_item(
+    State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<Claims>>,
+    Path((task_id, item_id)): Path<(Uuid, Uuid)>,
+) -> Result<impl IntoResponse, ServiceError> {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    state
+        .delete_checklist_item_uc
+        .execute(tenant_id, task_id, item_id)
+        .await
+        .map_err(map_err)?;
+    Ok(StatusCode::NO_CONTENT)
 }

@@ -29,21 +29,22 @@ final boardRepositoryProvider = Provider<BoardRepository>((ref) {
 });
 
 /// ボードカラム一覧の状態を管理するNotifier
-/// CRUD操作とローディング/エラー状態を統一的に管理する
-class BoardColumnListNotifier extends FamilyNotifier<AsyncValue<List<BoardColumn>>, String> {
+/// Riverpod v3 の FamilyAsyncNotifier を使用し、AsyncValue の手動ラップを排除する
+/// （報告書 4.4 対応: FamilyNotifier<AsyncValue<T>> アンチパターン修正）
+class BoardColumnListNotifier extends FamilyAsyncNotifier<List<BoardColumn>, String> {
   @override
-  AsyncValue<List<BoardColumn>> build(String projectId) {
-    /// 初期化時にカラム一覧を自動取得する
-    load(projectId);
-    return const AsyncValue.loading();
+  FutureOr<List<BoardColumn>> build(String projectId) async {
+    /// 初期化時にカラム一覧をサーバーから取得して返す
+    /// Riverpod が自動で AsyncValue でラップするため手動ラップ不要
+    return await _repository.listColumns(projectId);
   }
 
   /// リポジトリをrefから取得するヘルパー
   BoardRepository get _repository => ref.read(boardRepositoryProvider);
 
-  /// カラム一覧をサーバーから取得する
+  /// カラム一覧をサーバーから再取得する（手動リフレッシュ用）
   Future<void> load(String projectId) async {
-    state = const AsyncValue.loading();
+    state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => _repository.listColumns(projectId),
     );
@@ -79,7 +80,8 @@ class BoardColumnListNotifier extends FamilyNotifier<AsyncValue<List<BoardColumn
 }
 
 /// ボードカラム一覧のProvider（プロジェクトIDをファミリーキーとして使用）
-final boardColumnListProvider = NotifierProviderFamily<
-    BoardColumnListNotifier, AsyncValue<List<BoardColumn>>, String>(
+/// AsyncNotifierProviderFamily を使用し、状態は AsyncValue<List<BoardColumn>> として提供される
+final boardColumnListProvider = AsyncNotifierProviderFamily<
+    BoardColumnListNotifier, List<BoardColumn>, String>(
   BoardColumnListNotifier.new,
 );

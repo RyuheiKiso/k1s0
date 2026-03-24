@@ -51,8 +51,8 @@ opentelemetry = "0.27"
 opentelemetry_sdk = "0.27"
 opentelemetry-otlp = "0.27"
 tracing-opentelemetry = "0.28"
-prometheus = "0.13"
-validator = { version = "0.18", features = ["derive"] }
+prometheus = "0.14"
+validator = { version = "0.20", features = ["derive"] }
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 axum-test = "17"
 

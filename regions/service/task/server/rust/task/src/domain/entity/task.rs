@@ -184,6 +184,21 @@ pub struct CreateChecklistItem {
     pub sort_order: i32,
 }
 
+/// チェックリスト項目追加 DTO（REST POST /tasks/{id}/checklist 専用）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AddChecklistItem {
+    pub title: String,
+    pub sort_order: i32,
+}
+
+/// チェックリスト項目更新 DTO（REST PUT /tasks/{id}/checklist/{item_id} 専用）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateChecklistItem {
+    pub title: Option<String>,
+    pub is_completed: Option<bool>,
+    pub sort_order: Option<i32>,
+}
+
 /// タスクステータス更新 DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateTaskStatus {

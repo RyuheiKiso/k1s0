@@ -8,6 +8,9 @@ importers:
 
   regions/business/taskmanagement/client/react/project-master:
     dependencies:
+      '@k1s0/system-client':
+        specifier: workspace:*
+        version: link:../../../../../system/client/react/system-client
       '@tanstack/react-query':
         specifier: ^5.91.2
         version: 5.91.3(react@19.2.4)
@@ -30,6 +33,9 @@ importers:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.28.0
+        version: 9.39.4
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -121,6 +127,9 @@ importers:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.28.0
+        version: 9.39.4
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -212,6 +221,9 @@ importers:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.28.0
+        version: 9.39.4
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -303,6 +315,9 @@ importers:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.28.0
+        version: 9.39.4
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1
@@ -369,6 +384,9 @@ importers:
 
   regions/system/client/react/app-catalog:
     dependencies:
+      '@k1s0/validation':
+        specifier: workspace:*
+        version: link:../../../library/typescript/validation
       '@tanstack/react-query':
         specifier: ^5.91.2
         version: 5.91.3(react@19.2.4)
@@ -385,6 +403,9 @@ importers:
         specifier: ^7.13.1
         version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.28.0
+        version: 9.39.4
       '@testing-library/jest-dom':
         specifier: ^6.9.1
         version: 6.9.1

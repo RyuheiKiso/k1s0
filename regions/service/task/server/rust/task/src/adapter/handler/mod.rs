@@ -18,6 +18,9 @@ pub struct AppState {
     pub get_task_uc: Arc<usecase::get_task::GetTaskUseCase>,
     pub list_tasks_uc: Arc<usecase::list_tasks::ListTasksUseCase>,
     pub update_task_status_uc: Arc<usecase::update_task_status::UpdateTaskStatusUseCase>,
+    pub create_checklist_item_uc: Arc<usecase::create_checklist_item::CreateChecklistItemUseCase>,
+    pub update_checklist_item_uc: Arc<usecase::update_checklist_item::UpdateChecklistItemUseCase>,
+    pub delete_checklist_item_uc: Arc<usecase::delete_checklist_item::DeleteChecklistItemUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     /// 認証状態。None の場合は認証なし（dev/test 環境のみ許可）
     pub auth_state: Option<AuthState>,
@@ -41,10 +44,12 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tasks/{id}/checklist", get(task_handler::get_checklist))
             .route_layer(axum::middleware::from_fn(require_permission("tasks", "read")));
 
-        // POST/PUT -> tasks/write
+        // POST/PUT/DELETE -> tasks/write
         let write_routes = Router::new()
             .route("/api/v1/tasks", post(task_handler::create_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
+            .route("/api/v1/tasks/{id}/checklist", post(task_handler::create_checklist_item))
+            .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))
             .route_layer(axum::middleware::from_fn(require_permission("tasks", "write")));
 
         // 認証ミドルウェアを全 API ルートに適用する
@@ -61,7 +66,8 @@ pub fn router(state: AppState) -> Router {
             .route("/api/v1/tasks", get(task_handler::list_tasks).post(task_handler::create_task))
             .route("/api/v1/tasks/{id}", get(task_handler::get_task))
             .route("/api/v1/tasks/{id}/status", put(task_handler::update_task_status))
-            .route("/api/v1/tasks/{id}/checklist", get(task_handler::get_checklist))
+            .route("/api/v1/tasks/{id}/checklist", get(task_handler::get_checklist).post(task_handler::create_checklist_item))
+            .route("/api/v1/tasks/{id}/checklist/{item_id}", put(task_handler::update_checklist_item).delete(task_handler::delete_checklist_item))
     };
 
     // 公開ルートと API ルートを結合し、TraceLayer と状態を適用する
