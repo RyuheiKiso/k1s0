@@ -273,9 +273,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
 
+  # H-8対応: paths-filter 条件を廃止し、全 PR で常に Helm lint を実行する。
+  # Library Chart (k1s0-common) の変更はコンシューマーチャートに波及するため、
+  # Helm ファイル変更がない PR でも継続的にバリデーションを実施する。
   helm-lint:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.helm == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
