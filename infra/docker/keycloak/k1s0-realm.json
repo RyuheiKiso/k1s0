@@ -368,7 +368,7 @@
           "protocolMapper": "oidc-hardcoded-claim-mapper",
           "config": {
             "claim.name": "tier_access",
-            "claim.value": "[\"system\", \"business\", \"service\"]",
+            "claim.value": "[\"business\", \"service\"]",
             "jsonType.label": "JSON",
             "id.token.claim": "true",
             "access.token.claim": "true",

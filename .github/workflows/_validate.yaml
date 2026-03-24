@@ -187,11 +187,13 @@ jobs:
         run: terraform fmt -check -recursive infra/terraform/
       - name: Terraform validate (dev)
         working-directory: infra/terraform/environments/dev
+        # CI での HCL 構文検証のみ（-backend=false でバックエンド接続をスキップ）
         run: |
           terraform init -backend=false
           terraform validate
       - name: Terraform validate (prod)
         working-directory: infra/terraform/environments/prod
+        # CI での HCL 構文検証のみ（-backend=false でバックエンド接続をスキップ）
         run: |
           terraform init -backend=false
           terraform validate

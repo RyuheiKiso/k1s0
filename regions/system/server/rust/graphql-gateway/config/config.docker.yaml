@@ -15,6 +15,10 @@ graphql:
 
 auth:
   jwks_url: "http://auth-rust:8080/jwks"
+  # JWT issuer 検証（auth-rust が発行するトークンの iss クレームと一致させる）
+  issuer: "k1s0"
+  # JWT audience 検証（auth-rust が発行するトークンの aud クレームと一致させる）
+  audience: "k1s0-system"
 
 backends:
   # 認証クリティカルパス: タイムアウトを短めに設定してレイテンシ悪化を素早く検出する

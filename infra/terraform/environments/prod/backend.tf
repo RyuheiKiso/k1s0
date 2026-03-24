@@ -9,29 +9,8 @@ terraform {
     region         = "ap-northeast-1"
     dynamodb_table = "k1s0-terraform-state-lock"
     encrypt        = true
-
-    # [H-11] KMS CMK 未設定（TODO: 本番環境では特に優先対応すること）
-    # 現状: SSE-S3（AES-256）による AWS 管理キーで暗号化されている
-    # 問題: PCI DSS / SOC2 等のコンプライアンス要件では CMK（カスタマー管理キー）が必須の場合がある
-    # 本番環境での対応手順:
-    #   1. AWS KMS で Terraform State 用の CMK を作成する（自動ローテーション有効化推奨）
-    #      aws kms create-key --description "k1s0 Terraform State Key (prod)" \
-    #        --key-usage ENCRYPT_DECRYPT --key-spec SYMMETRIC_DEFAULT \
-    #        --enable-key-rotation --region ap-northeast-1
-    #   2. キーエイリアスを設定する
-    #      aws kms create-alias --alias-name alias/k1s0-terraform-state-prod --target-key-id <key-id>
-    #   3. 以下のコメントを外してキー ARN を設定する
-    # kms_key_id = "arn:aws:kms:ap-northeast-1:<account-id>:alias/k1s0-terraform-state-prod"
-    # 詳細: docs/architecture/adr/0025-terraform-state-s3.md「未対応事項」参照
-
-    # [L-4] S3 バージョニング要件
-    # backend.tf での宣言は不可（バージョニングは S3 バケット側の設定）。
-    # バケット k1s0-terraform-state-prod では versioning: Enabled を確認・設定すること:
-    #   aws s3api put-bucket-versioning \
-    #     --bucket k1s0-terraform-state-prod \
-    #     --versioning-configuration Status=Enabled
-    # バージョニングにより誤った apply からの State ロールバックが可能になる。
-    # ACL は bucket-owner-full-control を推奨
+    # S3 バージョニングはバケット設定で有効化すること（backend.tf では設定不可）
+    # S3 互換ストレージ（MinIO 等）を使用する場合、kms_key_id は適用不可
   }
 }
 

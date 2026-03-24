@@ -357,6 +357,16 @@ impl Config {
         if self.server.port == 0 {
             anyhow::bail!("server.port must be > 0");
         }
+        // 本番環境では issuer/audience が設定されていない場合は起動を拒否する。
+        // 開発環境（development/dev）では省略可能とし、後方互換性を維持する。
+        if self.app.environment == "production" {
+            if self.auth.issuer.is_none() {
+                anyhow::bail!("auth.issuer is required in production environment");
+            }
+            if self.auth.audience.is_none() {
+                anyhow::bail!("auth.audience is required in production environment");
+            }
+        }
         Ok(())
     }
 }
