@@ -350,7 +350,7 @@ database:
   name: "k1s0_system"
   user: "app"
   password: ""                 # Vault 経由で注入
-  ssl_mode: "disable"
+  ssl_mode: "require"          # 本番・staging。dev 環境では "disable" に設定
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: "5m"
@@ -375,6 +375,33 @@ observability:
 ```
 
 > **注記**: `observability` セクションは従来のフラット形式（`otlp_endpoint`, `log_level` 等）から構造化形式（`log.level`, `trace.endpoint` 等）に移行した。`k1s0-server-common` の `ObservabilityConfig` 構造体がこの構造化形式に対応している。
+
+---
+
+## k1s0-outbox ライブラリへの移行（TODO）
+
+### 移行状況
+
+service 層の 3 サービス（task / board / activity）では、各リポジトリ実装内で outbox テーブルへ直接書き込む独自実装を使用している。`k1s0-outbox` ライブラリの `OutboxEventPoller` / `OutboxEventHandler` を用いた統一的なポーリング機構への移行が未完了である。
+
+各サービスの `Cargo.toml` に以下の TODO コメントが追加されており、移行タスクを追跡している。
+
+```toml
+# TODO: migrate to use k1s0-outbox::OutboxEventPoller
+# 現在は各リポジトリ実装内で outbox テーブルへ直接書き込んでいる。
+# k1s0-outbox::OutboxEventPoller / OutboxEventHandler を使用した統一的なポーリング機構へ移行すること。
+k1s0-outbox = { path = "../../../../../system/library/rust/outbox" }
+```
+
+| サービス | 対象ファイル | 移行ステータス |
+|---------|------------|--------------|
+| task | `regions/service/task/server/rust/task/Cargo.toml` | TODO（直接書き込み実装） |
+| board | `regions/service/board/server/rust/board/Cargo.toml` | TODO（直接書き込み実装） |
+| activity | `regions/service/activity/server/rust/activity/Cargo.toml` | TODO（直接書き込み実装） |
+
+### 移行後の目標構成
+
+`k1s0-outbox` の `OutboxEventPoller` を用いて、各サービスのポーリングロジックを共通化する。移行完了後は各サービスの `infrastructure/outbox_poller.rs` のインライン実装を削除し、ライブラリに委譲する。
 
 ---
 

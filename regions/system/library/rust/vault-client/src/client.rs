@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
-use std::sync::Mutex;
 
 use crate::config::VaultClientConfig;
 use crate::error::VaultError;
@@ -20,7 +19,8 @@ pub trait VaultClient: Send + Sync {
 
 pub struct InMemoryVaultClient {
     config: VaultClientConfig,
-    store: Mutex<HashMap<String, Secret>>,
+    // async コンテキストで await ポイントをまたいでロックを保持するため tokio::sync::Mutex を使用する
+    store: tokio::sync::Mutex<HashMap<String, Secret>>,
 }
 
 /// InMemoryVaultClient のデフォルト実装（new() と同じ）。
@@ -38,7 +38,8 @@ impl InMemoryVaultClient {
     pub fn with_config(config: VaultClientConfig) -> Self {
         Self {
             config,
-            store: Mutex::new(HashMap::new()),
+            // 空の HashMap で tokio::sync::Mutex を初期化する
+            store: tokio::sync::Mutex::new(HashMap::new()),
         }
     }
 
@@ -46,12 +47,10 @@ impl InMemoryVaultClient {
         &self.config
     }
 
-    pub fn put_secret(&self, secret: Secret) {
-        // シークレットストアへの書き込みロックを取得する
-        let mut store = self
-            .store
-            .lock()
-            .expect("シークレットストアの Mutex ロック取得");
+    // async コンテキストで安全にロックを取得するため async fn として定義する
+    pub async fn put_secret(&self, secret: Secret) {
+        // シークレットストアへの書き込みロックを非同期で取得する
+        let mut store = self.store.lock().await;
         store.insert(secret.path.clone(), secret);
     }
 }
@@ -59,11 +58,8 @@ impl InMemoryVaultClient {
 #[async_trait]
 impl VaultClient for InMemoryVaultClient {
     async fn get_secret(&self, path: &str) -> Result<Secret, VaultError> {
-        // シークレットストアからの読み取りロックを取得する
-        let store = self
-            .store
-            .lock()
-            .expect("シークレットストアの Mutex ロック取得");
+        // シークレットストアからの読み取りロックを非同期で取得する
+        let store = self.store.lock().await;
         store
             .get(path)
             .cloned()
@@ -80,11 +76,8 @@ impl VaultClient for InMemoryVaultClient {
     }
 
     async fn list_secrets(&self, path_prefix: &str) -> Result<Vec<String>, VaultError> {
-        // シークレットストアからの読み取りロックを取得する
-        let store = self
-            .store
-            .lock()
-            .expect("シークレットストアの Mutex ロック取得");
+        // シークレットストアからの読み取りロックを非同期で取得する
+        let store = self.store.lock().await;
         let paths: Vec<String> = store
             .keys()
             .filter(|k| k.starts_with(path_prefix))
@@ -128,7 +121,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_secret_found() {
         let client = InMemoryVaultClient::with_config(make_config());
-        client.put_secret(make_secret("system/database/primary"));
+        client.put_secret(make_secret("system/database/primary")).await;
         let secret = client.get_secret("system/database/primary").await.unwrap();
         assert_eq!(secret.path, "system/database/primary");
         assert_eq!(secret.data.get("password").unwrap(), "s3cr3t");
@@ -146,7 +139,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_secret_value() {
         let client = InMemoryVaultClient::with_config(make_config());
-        client.put_secret(make_secret("system/db"));
+        client.put_secret(make_secret("system/db")).await;
         let value = client
             .get_secret_value("system/db", "password")
             .await
@@ -158,7 +151,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_secret_value_key_not_found() {
         let client = InMemoryVaultClient::with_config(make_config());
-        client.put_secret(make_secret("system/db"));
+        client.put_secret(make_secret("system/db")).await;
         let err = client
             .get_secret_value("system/db", "missing_key")
             .await
@@ -170,9 +163,9 @@ mod tests {
     #[tokio::test]
     async fn test_list_secrets() {
         let client = InMemoryVaultClient::with_config(make_config());
-        client.put_secret(make_secret("system/db/primary"));
-        client.put_secret(make_secret("system/db/replica"));
-        client.put_secret(make_secret("business/api/key"));
+        client.put_secret(make_secret("system/db/primary")).await;
+        client.put_secret(make_secret("system/db/replica")).await;
+        client.put_secret(make_secret("business/api/key")).await;
 
         let paths = client.list_secrets("system/").await.unwrap();
         assert_eq!(paths.len(), 2);

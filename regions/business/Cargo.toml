@@ -11,9 +11,11 @@ members = [
 [workspace.package]
 rust-version = "1.93"
 
-# ワークスペース共通リント: プロダクションコードでの unwrap() 使用を禁止する
+# ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]
 unwrap_used = "deny"
+# async fn 内で std::sync::Mutex のロックを await ポイントをまたいで保持することを禁止する
+await_holding_lock = "deny"
 
 # ワークスペース共通依存関係: 全メンバークレートで統一バージョンを使用する
 [workspace.dependencies]
@@ -39,7 +41,7 @@ chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
-mockall = "0.13"
+mockall = "0.14"
 tokio-test = "0.4"
 opentelemetry = "0.27"
 opentelemetry_sdk = "0.27"
@@ -47,7 +49,7 @@ opentelemetry-otlp = "0.27"
 tracing-opentelemetry = "0.28"
 prometheus = "0.13"
 validator = { version = "0.18", features = ["derive"] }
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+rdkafka = { version = "0.39", features = ["cmake-build"] }
 
 # リリースビルドの最適化設定
 [profile.dev]

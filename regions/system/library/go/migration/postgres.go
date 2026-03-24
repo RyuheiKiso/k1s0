@@ -30,14 +30,16 @@ type PostgresMigrationRunner struct {
 }
 
 // NewPostgresMigrationRunner creates a PostgresMigrationRunner that reads migration files from disk.
-func NewPostgresMigrationRunner(db *sql.DB, config MigrationConfig) (*PostgresMigrationRunner, error) {
+// ctx を受け取ることで、呼び出し元の deadline やキャンセルを ensureTable に伝播させる。
+func NewPostgresMigrationRunner(ctx context.Context, db *sql.DB, config MigrationConfig) (*PostgresMigrationRunner, error) {
 	r := &PostgresMigrationRunner{
 		db:             db,
 		config:         config,
 		downMigrations: make(map[string]migrationFile),
 	}
 
-	if err := r.ensureTable(context.Background()); err != nil {
+	// 呼び出し元の ctx を伝播させることで、deadline 超過時にキャンセルが正しく伝わる
+	if err := r.ensureTable(ctx); err != nil {
 		return nil, err
 	}
 

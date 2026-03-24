@@ -1,9 +1,11 @@
 // ボードカラムリポジトリの PostgreSQL 実装。
 // increment/decrement は楽観的ロックで排他制御する。
 // テナント分離のため全メソッドでトランザクション開始後に SET LOCAL app.current_tenant_id を設定する。
+// 戻り値型は BoardError（クリーンアーキテクチャ準拠。anyhow::Error は BoardError::Infrastructure に変換する）。
 use crate::domain::entity::board_column::{
     BoardColumn, BoardColumnFilter, DecrementColumnRequest, IncrementColumnRequest, UpdateWipLimitRequest,
 };
+use crate::domain::error::BoardError;
 use crate::domain::repository::board_column_repository::BoardColumnRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -48,20 +50,22 @@ impl From<ColumnRow> for BoardColumn {
 
 #[async_trait]
 impl BoardColumnRepository for BoardColumnPostgresRepository {
-    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<BoardColumn>> {
+    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> Result<Option<BoardColumn>, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ColumnRow>(
             "SELECT id, project_id, status_code, wip_limit, task_count, version, created_at, updated_at FROM board_service.board_columns WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&mut *tx)
-        .await?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(row.map(Into::into))
     }
 
@@ -70,31 +74,34 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         tenant_id: &str,
         project_id: Uuid,
         status_code: &str,
-    ) -> anyhow::Result<Option<BoardColumn>> {
+    ) -> Result<Option<BoardColumn>, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ColumnRow>(
             "SELECT id, project_id, status_code, wip_limit, task_count, version, created_at, updated_at FROM board_service.board_columns WHERE project_id = $1 AND status_code = $2",
         )
         .bind(project_id)
         .bind(status_code)
         .fetch_optional(&mut *tx)
-        .await?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(row.map(Into::into))
     }
 
-    async fn find_all(&self, tenant_id: &str, filter: &BoardColumnFilter) -> anyhow::Result<Vec<BoardColumn>> {
+    async fn find_all(&self, tenant_id: &str, filter: &BoardColumnFilter) -> Result<Vec<BoardColumn>, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let rows = sqlx::query_as::<_, ColumnRow>(
             "SELECT id, project_id, status_code, wip_limit, task_count, version, created_at, updated_at FROM board_service.board_columns WHERE ($1::uuid IS NULL OR project_id = $1) AND ($2::text IS NULL OR status_code = $2) ORDER BY status_code LIMIT $3 OFFSET $4",
         )
@@ -103,38 +110,42 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(filter.limit.unwrap_or(50))
         .bind(filter.offset.unwrap_or(0))
         .fetch_all(&mut *tx)
-        .await?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn count(&self, tenant_id: &str, filter: &BoardColumnFilter) -> anyhow::Result<i64> {
+    async fn count(&self, tenant_id: &str, filter: &BoardColumnFilter) -> Result<i64, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから COUNT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM board_service.board_columns WHERE ($1::uuid IS NULL OR project_id = $1) AND ($2::text IS NULL OR status_code = $2)",
         )
         .bind(filter.project_id)
         .bind(&filter.status_code)
         .fetch_one(&mut *tx)
-        .await?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(count)
     }
 
-    async fn increment(&self, tenant_id: &str, req: &IncrementColumnRequest) -> anyhow::Result<BoardColumn> {
+    async fn increment(&self, tenant_id: &str, req: &IncrementColumnRequest) -> Result<BoardColumn, BoardError> {
         // upsert: カラムが存在しなければ作成し、あれば task_count を +1 する
         // WIP 制限チェックは DB 上で行う (task_count < wip_limit OR wip_limit = 0)
         // テナント分離のため SET LOCAL でセッション変数をトランザクション開始直後に設定する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ColumnRow>(
             r#"INSERT INTO board_service.board_columns (id, project_id, status_code, wip_limit, task_count, version)
                VALUES ($1, $2, $3, 0, 1, 1)
@@ -149,8 +160,13 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(req.project_id)
         .bind(&req.status_code)
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("WIP limit exceeded for project '{}' status '{}'", req.project_id, req.status_code))?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?
+        .ok_or_else(|| BoardError::WipLimitExceeded {
+            column_id: format!("project={} status={}", req.project_id, req.status_code),
+            current: 0,
+            limit: 0,
+        })?;
 
         // Outbox イベント
         sqlx::query(
@@ -160,19 +176,21 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(row.id)
         .bind(serde_json::json!({ "column_id": row.id, "project_id": req.project_id, "status_code": req.status_code, "task_count": row.task_count }))
         .execute(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
 
-        tx.commit().await?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(row.into())
     }
 
-    async fn decrement(&self, tenant_id: &str, req: &DecrementColumnRequest) -> anyhow::Result<BoardColumn> {
+    async fn decrement(&self, tenant_id: &str, req: &DecrementColumnRequest) -> Result<BoardColumn, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数をトランザクション開始直後に設定する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ColumnRow>(
             r#"UPDATE board_service.board_columns SET
                task_count = GREATEST(0, task_count - 1),
@@ -184,8 +202,9 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(req.project_id)
         .bind(&req.status_code)
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("BoardColumn not found for project '{}' status '{}'", req.project_id, req.status_code))?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?
+        .ok_or_else(|| BoardError::NotFound(format!("project={} status={}", req.project_id, req.status_code)))?;
 
         sqlx::query(
             "INSERT INTO board_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'board_column', 'BoardColumnUpdated', $3)",
@@ -194,19 +213,21 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(row.id)
         .bind(serde_json::json!({ "column_id": row.id, "task_count": row.task_count }))
         .execute(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?;
 
-        tx.commit().await?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(row.into())
     }
 
-    async fn update_wip_limit(&self, tenant_id: &str, req: &UpdateWipLimitRequest) -> anyhow::Result<BoardColumn> {
+    async fn update_wip_limit(&self, tenant_id: &str, req: &UpdateWipLimitRequest) -> Result<BoardColumn, BoardError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| BoardError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ColumnRow>(
             r#"UPDATE board_service.board_columns SET wip_limit = $2, version = version + 1, updated_at = now()
                WHERE id = $1 AND version = $3
@@ -216,9 +237,10 @@ impl BoardColumnRepository for BoardColumnPostgresRepository {
         .bind(req.wip_limit)
         .bind(req.expected_version)
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("BoardColumn '{}' not found or version conflict", req.column_id))?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| BoardError::Infrastructure(e.into()))?
+        .ok_or_else(|| BoardError::NotFound(format!("BoardColumn '{}'", req.column_id)))?;
+        tx.commit().await.map_err(|e| BoardError::Infrastructure(e.into()))?;
         Ok(row.into())
     }
 }

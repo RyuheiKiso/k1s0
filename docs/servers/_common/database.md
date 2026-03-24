@@ -302,8 +302,9 @@ DROP TABLE auth.audit_logs_2024_01;
 | staging | `require` | K8s クラスター内通信。Istio mTLS（PERMISSIVE モード）で転送路は暗号化されるが、証明書検証まで不要。接続先の正当性より暗号化を優先。 |
 | prod | `verify-full` | K8s クラスター内で Istio STRICT mTLS を採用しており、トランスポート層は Envoy サイドカーにより相互認証済み。アプリ層での TLS は技術的に冗長だが、多層防御（Defense in Depth）の観点から `verify-full` を維持する。PostgreSQL サーバー証明書の CN/SAN 検証により、誤った接続先への意図しないデータ送信を防ぐ。 |
 
-> **注意**: `config/config.yaml` の `ssl_mode: "disable"` はデフォルト値（dev 環境相当）。
-> staging/prod にデプロイする際は、Helm values または環境変数 `DATABASE__SSL_MODE` で上書きすること。
+> **注意**: `config/config.yaml` の `ssl_mode: "require"` が標準設定（staging 相当）。
+> 開発環境（docker-compose）では `ssl_mode: "disable"` を使用する。
+> prod にデプロイする際は、Helm values または環境変数 `DATABASE__SSL_MODE` で `verify-full` に上書きすること。
 
 ### Vault によるクレデンシャル管理
 
@@ -331,7 +332,7 @@ database:
   name: "k1s0_system"
   user: "app"
   password: ""                   # Vault パス: secret/data/k1s0/system/auth/database キー: password
-  ssl_mode: "disable"            # dev 環境。staging: require、prod: verify-full
+  ssl_mode: "require"            # 標準設定（staging）。dev 環境: disable、prod: verify-full
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: "5m"

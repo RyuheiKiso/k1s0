@@ -351,7 +351,7 @@ database:
   name: "k1s0_system"
   user: "app"
   password: ""
-  ssl_mode: "disable"
+  ssl_mode: "require"          # 開発環境では "disable"
   max_open_conns: 10
   max_idle_conns: 3
   conn_max_lifetime: "5m"

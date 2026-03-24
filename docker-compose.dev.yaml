@@ -61,6 +61,13 @@ services:
       KC_TEST_USER_PASSWORD: user123
       KC_TEST_TASK_MGR_PASSWORD: task123
 
+  # Vault dev モード用ルートトークン。
+  # docker-compose.yaml では :? で必須化しているため、ローカル開発時はここでデフォルト値を提供する。
+  # 本番環境や CI では絶対にこのファイルを使用しないこと。
+  vault:
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-token
+
   grafana:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: dev

@@ -27,16 +27,16 @@ impl OutboxPoller {
         }
     }
 
-    /// 未送信イベントを取得してKafkaへ発行し、published フラグを更新する。
+    /// 未送信イベントを取得してKafkaへ発行し、published_at を現在時刻に更新する。
     /// SELECT と UPDATE を同一トランザクション内で実行する。
     /// FOR UPDATE SKIP LOCKED により複数インスタンスの重複処理を防止する。
     async fn poll_once(&self) -> anyhow::Result<()> {
         // トランザクションを開始して SELECT と UPDATE を原子的に実行する
         let mut tx = self.pool.begin().await?;
 
-        // FOR UPDATE SKIP LOCKED で他インスタンスが処理中のレコードをスキップする
+        // published_at IS NULL で未送信レコードのみを対象とし、他インスタンスが処理中のレコードをスキップする
         let rows: Vec<(Uuid, String, serde_json::Value)> = sqlx::query_as(
-            "SELECT id, event_type, payload FROM activity_service.outbox_events WHERE published = false ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
+            "SELECT id, event_type, payload FROM activity_service.outbox_events WHERE published_at IS NULL ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
         )
         .fetch_all(&mut *tx)
         .await?;
@@ -52,14 +52,23 @@ impl OutboxPoller {
                 }
             };
 
+            // ペイロードから activity_id を取得してパーティションキーとして使用する。
+            // activity_id が取得できない場合はイベント ID の文字列をフォールバックキーとして使用する。
+            // 同一アクティビティのイベントを同一パーティションへ送信することで順序保証と負荷分散を両立する。
+            let partition_key_str = payload
+                .get("activity_id")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| id.to_string());
+
             // Kafka 送信失敗時はログを記録して残りのイベント処理を継続する
-            if let Err(e) = self.producer.publish(&event_type, &bytes).await {
+            if let Err(e) = self.producer.publish(&event_type, &bytes, &partition_key_str).await {
                 tracing::error!(error = %e, event_id = %id, event_type = %event_type, "failed to publish outbox event to kafka, skipping");
                 continue;
             }
 
-            // 送信成功したイベントのみ published = true に更新する
-            sqlx::query("UPDATE activity_service.outbox_events SET published = true WHERE id = $1")
+            // 送信成功したイベントのみ published_at を現在時刻に更新する
+            sqlx::query("UPDATE activity_service.outbox_events SET published_at = NOW() WHERE id = $1")
                 .bind(id)
                 .execute(&mut *tx)
                 .await?;

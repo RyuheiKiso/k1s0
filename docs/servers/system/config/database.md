@@ -354,7 +354,7 @@ INSERT INTO config.config_entries (namespace, key, value_json, description, crea
     ('system.auth.database', 'host',     '"localhost"',           'DB ホスト名',          'migration', 'migration'),
     ('system.auth.database', 'port',     '5432',                 'DB ポート番号',        'migration', 'migration'),
     ('system.auth.database', 'name',     '"k1s0_system"',        'DB 名',               'migration', 'migration'),
-    ('system.auth.database', 'ssl_mode', '"disable"',            'SSL モード',           'migration', 'migration')
+    ('system.auth.database', 'ssl_mode', '"require"',            'SSL モード（開発環境では disable）', 'migration', 'migration')
 ON CONFLICT (namespace, key) DO NOTHING;
 
 -- system.auth.server -- auth-server 設定
@@ -369,7 +369,7 @@ INSERT INTO config.config_entries (namespace, key, value_json, description, crea
     ('system.config.database', 'host',     '"localhost"',           'DB ホスト名',          'migration', 'migration'),
     ('system.config.database', 'port',     '5432',                 'DB ポート番号',        'migration', 'migration'),
     ('system.config.database', 'name',     '"k1s0_system"',        'DB 名',               'migration', 'migration'),
-    ('system.config.database', 'ssl_mode', '"disable"',            'SSL モード',           'migration', 'migration')
+    ('system.config.database', 'ssl_mode', '"require"',            'SSL モード（開発環境では disable）', 'migration', 'migration')
 ON CONFLICT (namespace, key) DO NOTHING;
 
 -- system.config.server -- config-server 設定
@@ -445,7 +445,7 @@ database:
   name: "k1s0_system"
   user: "app"
   password: ""
-  ssl_mode: "disable"
+  ssl_mode: "require"          # 開発環境では "disable"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: "5m"

@@ -1,7 +1,9 @@
 // アクティビティリポジトリの PostgreSQL 実装。
 // RLS テナント分離のため、各 DB 操作の先頭で SET LOCAL app.current_tenant_id を発行する。
 // 冪等性キーによる重複チェック付き。Transactional Outbox パターンで outbox テーブルへ書き込む。
+// 戻り値型は ActivityError（クリーンアーキテクチャ準拠。anyhow::Error は ActivityError::Infrastructure に変換する）。
 use crate::domain::entity::activity::{Activity, ActivityFilter, ActivityStatus, ActivityType, CreateActivity};
+use crate::domain::error::ActivityError;
 use crate::domain::repository::activity_repository::ActivityRepository;
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -53,47 +55,52 @@ impl TryFrom<ActivityRow> for Activity {
 
 #[async_trait]
 impl ActivityRepository for ActivityPostgresRepository {
-    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Activity>> {
+    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> Result<Option<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ActivityRow>(
             "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&mut *tx)
-        .await?;
-        tx.commit().await?;
-        row.map(Activity::try_from).transpose()
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        row.map(Activity::try_from).transpose().map_err(ActivityError::Infrastructure)
     }
 
-    async fn find_by_idempotency_key(&self, tenant_id: &str, key: &str) -> anyhow::Result<Option<Activity>> {
+    async fn find_by_idempotency_key(&self, tenant_id: &str, key: &str) -> Result<Option<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let row = sqlx::query_as::<_, ActivityRow>(
             "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE idempotency_key = $1",
         )
         .bind(key)
         .fetch_optional(&mut *tx)
-        .await?;
-        tx.commit().await?;
-        row.map(Activity::try_from).transpose()
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        row.map(Activity::try_from).transpose().map_err(ActivityError::Infrastructure)
     }
 
-    async fn find_all(&self, tenant_id: &str, filter: &ActivityFilter) -> anyhow::Result<Vec<Activity>> {
+    async fn find_all(&self, tenant_id: &str, filter: &ActivityFilter) -> Result<Vec<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let rows = sqlx::query_as::<_, ActivityRow>(
             "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY created_at DESC LIMIT $4 OFFSET $5",
         )
@@ -103,18 +110,20 @@ impl ActivityRepository for ActivityPostgresRepository {
         .bind(filter.limit.unwrap_or(50))
         .bind(filter.offset.unwrap_or(0))
         .fetch_all(&mut *tx)
-        .await?;
-        tx.commit().await?;
-        rows.into_iter().map(Activity::try_from).collect()
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        rows.into_iter().map(|r| Activity::try_from(r).map_err(ActivityError::Infrastructure)).collect()
     }
 
-    async fn count(&self, tenant_id: &str, filter: &ActivityFilter) -> anyhow::Result<i64> {
+    async fn count(&self, tenant_id: &str, filter: &ActivityFilter) -> Result<i64, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから COUNT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3)",
         )
@@ -122,18 +131,20 @@ impl ActivityRepository for ActivityPostgresRepository {
         .bind(&filter.actor_id)
         .bind(filter.status.as_ref().map(|s| s.as_str()))
         .fetch_one(&mut *tx)
-        .await?;
-        tx.commit().await?;
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         Ok(count)
     }
 
-    async fn create(&self, tenant_id: &str, input: &CreateActivity, actor_id: &str) -> anyhow::Result<Activity> {
+    async fn create(&self, tenant_id: &str, input: &CreateActivity, actor_id: &str) -> Result<Activity, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let activity_id = Uuid::new_v4();
 
         let row = sqlx::query_as::<_, ActivityRow>(
@@ -149,7 +160,8 @@ impl ActivityRepository for ActivityPostgresRepository {
         .bind(input.duration_minutes)
         .bind(&input.idempotency_key)
         .fetch_one(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
 
         // Outbox イベント
         sqlx::query(
@@ -159,20 +171,22 @@ impl ActivityRepository for ActivityPostgresRepository {
         .bind(activity_id)
         .bind(serde_json::json!({ "activity_id": activity_id, "task_id": input.task_id, "actor_id": actor_id, "activity_type": input.activity_type.as_str() }))
         .execute(&mut *tx)
-        .await?;
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?;
 
-        tx.commit().await?;
-        Activity::try_from(row)
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        Activity::try_from(row).map_err(ActivityError::Infrastructure)
     }
 
     // updated_by を Option<String> として受け取る（mockall との互換性のため）
-    async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, _updated_by: Option<String>) -> anyhow::Result<Activity> {
+    async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, _updated_by: Option<String>) -> Result<Activity, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
             .bind(tenant_id)
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
 
         let row = sqlx::query_as::<_, ActivityRow>(
             r#"UPDATE activity_service.activities SET status = $2, version = version + 1, updated_at = now()
@@ -182,8 +196,9 @@ impl ActivityRepository for ActivityPostgresRepository {
         .bind(id)
         .bind(status)
         .fetch_optional(&mut *tx)
-        .await?
-        .ok_or_else(|| anyhow::anyhow!("Activity '{}' not found", id))?;
+        .await
+        .map_err(|e| ActivityError::Infrastructure(e.into()))?
+        .ok_or_else(|| ActivityError::NotFound(format!("Activity '{}'", id)))?;
 
         // Approved のみ outbox イベントを発行する
         if status == "approved" {
@@ -194,10 +209,11 @@ impl ActivityRepository for ActivityPostgresRepository {
             .bind(id)
             .bind(serde_json::json!({ "activity_id": id }))
             .execute(&mut *tx)
-            .await?;
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         }
 
-        tx.commit().await?;
-        Activity::try_from(row)
+        tx.commit().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        Activity::try_from(row).map_err(ActivityError::Infrastructure)
     }
 }

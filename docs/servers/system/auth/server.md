@@ -595,7 +595,7 @@ message AuditLog {
 | `name` | string | - | データベース名 |
 | `user` | string | - | 接続ユーザー |
 | `password` | string | - | 接続パスワード（Vault 経由で注入） |
-| `ssl_mode` | string | `disable` | SSL モード |
+| `ssl_mode` | string | `require` | SSL モード（開発環境では `disable`） |
 | `max_open_conns` | int | `25` | 最大接続数 |
 | `max_idle_conns` | int | `5` | 最大アイドル接続数 |
 | `conn_max_lifetime` | string | `5m` | 接続の最大生存時間 |

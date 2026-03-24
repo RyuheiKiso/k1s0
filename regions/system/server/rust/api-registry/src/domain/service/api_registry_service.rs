@@ -209,14 +209,19 @@ impl Default for ApiRegistryDomainService {
     }
 }
 
+// 正規表現はコンパイルコストが高いため LazyLock で初期化を1回のみに制限する
+// フォールバックは意図的に除去: コンパイル失敗は開発時に即座に検知すべきバグであり、
+// デジェネレート正規表現でサイレントにフォールバックすると破壊的変更が検出不能になる（C-05対応）
+static PROTO_FIELD_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);")
+            .expect("protoフィールド抽出用正規表現は有効なパターンであり、コンパイルに失敗することはない")
+    });
+
 fn extract_proto_fields(content: &str) -> Vec<(String, String)> {
     let mut fields = Vec::new();
-    // protoフィールド定義を抽出する正規表現パターン
-    // フォールバックは意図的に除去: コンパイル失敗は開発時に即座に検知すべきバグであり、
-    // デジェネレート正規表現 r"x" でサイレントにフォールバックすると破壊的変更が検出不能になる（C-05対応）
-    let re_field = regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);")
-        .expect("protoフィールド抽出用正規表現は有効なパターンであり、コンパイルに失敗することはない");
-    for cap in re_field.captures_iter(content) {
+    // 事前コンパイル済みの静的正規表現を使用してprotoフィールドを抽出する
+    for cap in PROTO_FIELD_REGEX.captures_iter(content) {
         let field_name = cap
             .get(1)
             .map(|m| m.as_str().to_string())

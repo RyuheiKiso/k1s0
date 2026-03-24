@@ -357,7 +357,9 @@ services:
       # Vault dev モードはインメモリストレージのため再起動でデータが消失する。
       # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理すること。
       # ================================================================
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-dev-token}
+      # Vault dev モードのルートトークン ID。未設定の場合はエラーで起動を阻止する。
+      # ローカル開発時は docker-compose.dev.yaml で VAULT_DEV_ROOT_TOKEN_ID=dev-token を設定すること。
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:?VAULT_DEV_ROOT_TOKEN_ID must be set for Vault dev mode}
       # ヘルスチェックで vault status を実行するために必要な接続先設定
       VAULT_ADDR: "http://127.0.0.1:8200"
       # no-new-privileges + CAP_DROP:ALL 環境での setcap 失敗を回避する

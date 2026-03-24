@@ -36,19 +36,49 @@ pub fn parse_proto(path: &std::path::Path) -> Result<ProtoService, CodegenError>
     parse_proto_content(&content)
 }
 
-pub fn parse_proto_content(content: &str) -> Result<ProtoService, CodegenError> {
-    use regex::Regex;
+// 正規表現はコンパイルコストが高いため LazyLock で初期化を1回のみに制限する
+// proto ファイルのパッケージ宣言を抽出するパターン
+static PACKAGE_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"package\s+([\w.]+)\s*;")
+            .expect("有効な正規表現")
+    });
 
-    let package_re = Regex::new(r"package\s+([\w.]+)\s*;")
-        .map_err(|e| CodegenError::ProtoParse(e.to_string()))?;
-    let service_re = Regex::new(r"service\s+(\w+)\s*\{([^}]*)\}")
-        .map_err(|e| CodegenError::ProtoParse(e.to_string()))?;
-    let rpc_re = Regex::new(r"rpc\s+(\w+)\s*\(\s*(\w+)\s*\)\s*returns\s*\(\s*(\w+)\s*\)")
-        .map_err(|e| CodegenError::ProtoParse(e.to_string()))?;
-    let message_re = Regex::new(r"message\s+(\w+)\s*\{([^}]*)\}")
-        .map_err(|e| CodegenError::ProtoParse(e.to_string()))?;
-    let field_re = Regex::new(r"(\w+)\s+(\w+)\s*=\s*(\d+)\s*;")
-        .map_err(|e| CodegenError::ProtoParse(e.to_string()))?;
+// proto ファイルのサービス定義ブロック（名前とボディ）を抽出するパターン
+static SERVICE_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"service\s+(\w+)\s*\{([^}]*)\}")
+            .expect("有効な正規表現")
+    });
+
+// proto ファイルの RPC メソッド定義（名前・入力型・出力型）を抽出するパターン
+static RPC_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"rpc\s+(\w+)\s*\(\s*(\w+)\s*\)\s*returns\s*\(\s*(\w+)\s*\)")
+            .expect("有効な正規表現")
+    });
+
+// proto ファイルのメッセージ定義ブロック（名前とボディ）を抽出するパターン
+static MESSAGE_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"message\s+(\w+)\s*\{([^}]*)\}")
+            .expect("有効な正規表現")
+    });
+
+// proto ファイルのフィールド定義（型・名前・フィールド番号）を抽出するパターン
+static FIELD_REGEX: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"(\w+)\s+(\w+)\s*=\s*(\d+)\s*;")
+            .expect("有効な正規表現")
+    });
+
+pub fn parse_proto_content(content: &str) -> Result<ProtoService, CodegenError> {
+    // 事前コンパイル済みの静的正規表現を使用してパースする（動的コンパイルによるオーバーヘッドを排除）
+    let package_re = &*PACKAGE_REGEX;
+    let service_re = &*SERVICE_REGEX;
+    let rpc_re = &*RPC_REGEX;
+    let message_re = &*MESSAGE_REGEX;
+    let field_re = &*FIELD_REGEX;
 
     let package = package_re
         .captures(content)

@@ -29,6 +29,8 @@ impl CreateActivityUseCase {
 }
 
 #[cfg(test)]
+// テストコード内の .unwrap() 呼び出しを許容する（テスト失敗時にパニックで意図を明示するため）
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::activity::{ActivityStatus, ActivityType};

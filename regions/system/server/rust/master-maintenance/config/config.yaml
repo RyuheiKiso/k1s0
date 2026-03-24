@@ -15,7 +15,7 @@ database:
   schema: "master_maintenance"
   user: "k1s0"
   password: "${DB_PASSWORD}"
-  ssl_mode: "disable"
+  ssl_mode: "require"
   max_connections: 25
   max_idle_conns: 5
   conn_max_lifetime: 300
@@ -61,7 +61,7 @@ database:
   schema: "master_maintenance"
   user: "app"
   password: ""
-  ssl_mode: "disable"
+  ssl_mode: "require"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: "5m"

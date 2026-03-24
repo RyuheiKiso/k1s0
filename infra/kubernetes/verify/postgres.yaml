@@ -201,6 +201,11 @@ spec:
       labels:
         app: postgres
     spec:
+      # PostgreSQL 17 の公式イメージはエントリポイントが root で起動し gosu で postgres ユーザー (UID 999)
+      # に切り替えるため、runAsNonRoot: true を設定すると起動失敗する。
+      # fsGroup のみ設定し、データディレクトリのグループ所有権を postgres グループに合わせる。
+      securityContext:
+        fsGroup: 999
       containers:
         - name: postgres
           image: postgres:17

@@ -36,7 +36,10 @@ kafka:
   brokers:
     - "kafka:9092"
   task_created_topic: "k1s0.service.task.created.v1"
-  task_status_changed_topic: "k1s0.service.task.status_changed.v1"
+  # TaskUpdated イベント送信先トピック（topics.yaml で定義済み）
+  task_updated_topic: "k1s0.service.task.updated.v1"
+  # TaskCancelled イベント送信先トピック（topics.yaml で定義済み）
+  task_cancelled_topic: "k1s0.service.task.cancelled.v1"
 
 auth:
   jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"

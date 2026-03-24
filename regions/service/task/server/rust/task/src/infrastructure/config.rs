@@ -77,19 +77,24 @@ impl DatabaseConfig {
     }
 }
 
-// Kafkaトピック設定。create-topics.sh のトピック名と一致させる。
+// Kafkaトピック設定。topics.yaml で定義されたトピック名と一致させる。
+// TaskUpdated と TaskCancelled はそれぞれ専用トピックへ送信し、Kafka マニフェストとの整合性を保つ。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_task_created_topic")]
     pub task_created_topic: String,
-    // タスクの更新・キャンセルを統合した status_changed トピック
-    #[serde(default = "default_task_status_changed_topic")]
-    pub task_status_changed_topic: String,
+    // TaskUpdated イベント送信先トピック
+    #[serde(default = "default_task_updated_topic")]
+    pub task_updated_topic: String,
+    // TaskCancelled イベント送信先トピック
+    #[serde(default = "default_task_cancelled_topic")]
+    pub task_cancelled_topic: String,
 }
 
 fn default_task_created_topic() -> String { "k1s0.service.task.created.v1".to_string() }
-fn default_task_status_changed_topic() -> String { "k1s0.service.task.status_changed.v1".to_string() }
+fn default_task_updated_topic() -> String { "k1s0.service.task.updated.v1".to_string() }
+fn default_task_cancelled_topic() -> String { "k1s0.service.task.cancelled.v1".to_string() }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {

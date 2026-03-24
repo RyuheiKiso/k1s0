@@ -362,7 +362,7 @@ proto ファイル参照: `api/proto/k1s0/service/task/v1/task.proto`
 | `schema` | string | `task_service` | スキーマ名 |
 | `user` | string | - | 接続ユーザー |
 | `password` | string | `""` | パスワード |
-| `ssl_mode` | string | `disable` | SSL モード |
+| `ssl_mode` | string | `require` | SSL モード（開発環境では `disable`） |
 | `max_connections` | int | `25` | 最大接続数 |
 
 ### kafka
