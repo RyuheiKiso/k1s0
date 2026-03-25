@@ -1,0 +1,376 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="svc-dep-001" name="サービス依存トポロジー">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="k1s0 サービス依存トポロジー" style="text;html=1;fontSize=22;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="800" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 外部インフラ層（最上段） ===== -->
+        <mxCell id="infra-bg" value="" style="rounded=1;fillColor=#F5F5F5;strokeColor=#999999;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="60" width="1560" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="infra-label" value="外部インフラ" style="text;html=1;fontSize=12;fontStyle=1;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="30" y="65" width="120" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Keycloak: IDプロバイダー -->
+        <mxCell id="keycloak" value="&lt;b&gt;Keycloak&lt;/b&gt;&lt;br&gt;v26 (LTS)&lt;br&gt;IdP / OAuth2 / OIDC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="postgres" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;v17&lt;br&gt;（サービスごと専用DB）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="90" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka -->
+        <mxCell id="kafka" value="&lt;b&gt;Kafka&lt;/b&gt;&lt;br&gt;v3.8 (KRaft)&lt;br&gt;非同期イベントバス" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="90" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="&lt;b&gt;Redis&lt;/b&gt;&lt;br&gt;v7&lt;br&gt;セッション / キャッシュ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="90" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Vault -->
+        <mxCell id="vault-infra" value="&lt;b&gt;HashiCorp Vault&lt;/b&gt;&lt;br&gt;v1.17&lt;br&gt;シークレット管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="770" y="90" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Prometheus + Jaeger -->
+        <mxCell id="observability" value="&lt;b&gt;Prometheus / Jaeger&lt;/b&gt;&lt;br&gt;メトリクス / トレーシング&lt;br&gt;（全サービスに接続）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="950" y="90" width="200" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Kong -->
+        <mxCell id="kong" value="&lt;b&gt;Kong&lt;/b&gt;&lt;br&gt;v3.8&lt;br&gt;API Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="90" width="150" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== System Tier ===== -->
+        <mxCell id="system-bg" value="" style="rounded=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="190" width="1560" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="system-label" value="system Tier  ／  k1s0-system Namespace" style="text;html=1;fontSize=13;fontStyle=1;align=left;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="30" y="195" width="350" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- bff-proxy: クライアント入口 -->
+        <mxCell id="bff-proxy" value="&lt;b&gt;bff-proxy&lt;/b&gt;&lt;br&gt;:8082&lt;br&gt;OAuth/PKCE・セッション管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="230" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- auth: 認証・認可（クリティカル） -->
+        <mxCell id="auth" value="&lt;b&gt;auth&lt;/b&gt; ★CRITICAL&lt;br&gt;:8083 / :50052&lt;br&gt;JWT/JWKS・RBAC・監査" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=10;fontColor=#FFFFFF;strokeWidth=3;" vertex="1" parent="1">
+          <mxGeometry x="230" y="230" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- session -->
+        <mxCell id="session" value="&lt;b&gt;session&lt;/b&gt;&lt;br&gt;:8106 / :50065&lt;br&gt;セッション管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="420" y="230" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- config -->
+        <mxCell id="config" value="&lt;b&gt;config&lt;/b&gt;&lt;br&gt;:8084 / :50054&lt;br&gt;設定管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="580" y="230" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- graphql-gateway: 中核GW -->
+        <mxCell id="graphql-gw" value="&lt;b&gt;graphql-gateway&lt;/b&gt; ★&lt;br&gt;:8092&lt;br&gt;GraphQL統合GW" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=10;fontColor=#FFFFFF;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="730" y="230" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- tenant -->
+        <mxCell id="tenant" value="&lt;b&gt;tenant&lt;/b&gt;&lt;br&gt;:8089 / :50058&lt;br&gt;テナント管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="910" y="230" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- featureflag -->
+        <mxCell id="featureflag" value="&lt;b&gt;featureflag&lt;/b&gt;&lt;br&gt;:8087 / :50056&lt;br&gt;フィーチャーフラグ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="230" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- navigation -->
+        <mxCell id="navigation" value="&lt;b&gt;navigation&lt;/b&gt;&lt;br&gt;:8099 / :50062&lt;br&gt;ナビゲーション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="230" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- saga: 分散トランザクション -->
+        <mxCell id="saga" value="&lt;b&gt;saga&lt;/b&gt;&lt;br&gt;:8085 / :50055&lt;br&gt;Sagaオーケストレーター" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=10;fontColor=#FFFFFF;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- dlq-manager -->
+        <mxCell id="dlq" value="&lt;b&gt;dlq-manager&lt;/b&gt;&lt;br&gt;:8086&lt;br&gt;DLQ管理・再処理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="230" y="360" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- notification -->
+        <mxCell id="notification" value="&lt;b&gt;notification&lt;/b&gt;&lt;br&gt;:8100&lt;br&gt;通知（Email/Push）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="400" y="360" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- scheduler -->
+        <mxCell id="scheduler" value="&lt;b&gt;scheduler&lt;/b&gt;&lt;br&gt;:8104&lt;br&gt;スケジューラー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="560" y="360" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- vault (server) -->
+        <mxCell id="vault-svc" value="&lt;b&gt;vault&lt;/b&gt;&lt;br&gt;:8091 / :50059&lt;br&gt;シークレット管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="710" y="360" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- workflow -->
+        <mxCell id="workflow" value="&lt;b&gt;workflow&lt;/b&gt;&lt;br&gt;:8107&lt;br&gt;ワークフロー" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="860" y="360" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ai-gateway -->
+        <mxCell id="ai-gateway" value="&lt;b&gt;ai-gateway&lt;/b&gt;&lt;br&gt;:8120 / :50071&lt;br&gt;AI Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="360" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ai-agent -->
+        <mxCell id="ai-agent" value="&lt;b&gt;ai-agent&lt;/b&gt;&lt;br&gt;:8121 / :50072&lt;br&gt;AI Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="360" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Business Tier ===== -->
+        <mxCell id="business-bg" value="" style="rounded=1;fillColor=#D5E8D4;strokeColor=#82B366;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="580" width="600" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="business-label" value="business Tier  ／  k1s0-business Namespace" style="text;html=1;fontSize=13;fontStyle=1;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="585" width="360" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- project-master -->
+        <mxCell id="project-master" value="&lt;b&gt;project-master&lt;/b&gt;&lt;br&gt;:8210 / :9210&lt;br&gt;プロジェクトマスタ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6B9A52;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="615" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== Service Tier ===== -->
+        <mxCell id="service-bg" value="" style="rounded=1;fillColor=#FFF2CC;strokeColor=#D6B656;strokeWidth=2;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="710" width="900" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="service-label" value="service Tier  ／  k1s0-service Namespace" style="text;html=1;fontSize=13;fontStyle=1;align=left;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="30" y="715" width="360" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- task -->
+        <mxCell id="task" value="&lt;b&gt;task&lt;/b&gt;&lt;br&gt;:8310 / :9310&lt;br&gt;タスク管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="745" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- board -->
+        <mxCell id="board" value="&lt;b&gt;board&lt;/b&gt;&lt;br&gt;:8320 / :9320&lt;br&gt;ボード管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="210" y="745" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- activity -->
+        <mxCell id="activity" value="&lt;b&gt;activity&lt;/b&gt;&lt;br&gt;:8330 / :9330&lt;br&gt;アクティビティ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="380" y="745" width="140" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== クライアント ===== -->
+        <mxCell id="client" value="&lt;b&gt;クライアント&lt;/b&gt;&lt;br&gt;React / Flutter&lt;br&gt;ブラウザ / モバイル" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFCCCC;strokeColor=#CC0000;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="350" width="170" height="75" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== エッジ（依存関係） ===== -->
+
+        <!-- クライアント → bff-proxy（HTTP経由Kong） -->
+        <mxCell id="e-client-bff" value="HTTP/Cookie&lt;br&gt;(Kong経由)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#CC0000;strokeWidth=2;fontSize=9;" edge="1" source="client" target="bff-proxy" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1465" y="260"/>
+              <mxPoint x="120" y="260"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- クライアント → graphql-gateway -->
+        <mxCell id="e-client-gql" value="GraphQL" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#CC0000;strokeWidth=1;fontSize=9;dashed=1;" edge="1" source="client" target="graphql-gw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- bff-proxy → Keycloak -->
+        <mxCell id="e-bff-kc" value="PKCE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D79B00;strokeWidth=1;fontSize=9;" edge="1" source="bff-proxy" target="keycloak" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- bff-proxy → Redis -->
+        <mxCell id="e-bff-redis" value="Session" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=1;fontSize=9;" edge="1" source="bff-proxy" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="190"/>
+              <mxPoint x="665" y="190"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- bff-proxy → auth -->
+        <mxCell id="e-bff-auth" value="JWT検証" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="bff-proxy" target="auth" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- auth → Keycloak -->
+        <mxCell id="e-auth-kc" value="JWKS" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#D79B00;strokeWidth=1;fontSize=9;" edge="1" source="auth" target="keycloak" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="190"/>
+              <mxPoint x="115" y="190"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- auth → PostgreSQL -->
+        <mxCell id="e-auth-pg" value="auth_db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;fontSize=9;" edge="1" source="auth" target="postgres" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="190"/>
+              <mxPoint x="300" y="190"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- auth → Kafka（監査ログ） -->
+        <mxCell id="e-auth-kafka" value="監査ログ" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=1;fontSize=9;dashed=1;" edge="1" source="auth" target="kafka" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="310" y="180"/>
+              <mxPoint x="485" y="180"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- graphql-gateway → auth, session, tenant, featureflag, config, navigation -->
+        <mxCell id="e-gql-auth" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="auth" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-gql-session" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="session" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-gql-tenant" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="tenant" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-gql-ff" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="featureflag" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-gql-config" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="config" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e-gql-nav" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="graphql-gw" target="navigation" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- saga → Kafka -->
+        <mxCell id="e-saga-kafka" value="subscribe" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=1;fontSize=9;dashed=1;" edge="1" source="saga" target="kafka" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="400"/>
+              <mxPoint x="120" y="170"/>
+              <mxPoint x="485" y="170"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- saga → board gRPC -->
+        <mxCell id="e-saga-board" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="saga" target="board" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="810"/>
+              <mxPoint x="280" y="810"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- saga → activity gRPC -->
+        <mxCell id="e-saga-activity" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="saga" target="activity" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="820"/>
+              <mxPoint x="450" y="820"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- task → Kafka（publish） -->
+        <mxCell id="e-task-kafka" value="publish" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=9;dashed=1;" edge="1" source="task" target="kafka" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="760"/>
+              <mxPoint x="110" y="160"/>
+              <mxPoint x="485" y="160"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- project-master → PostgreSQL -->
+        <mxCell id="e-pm-pg" value="project_db" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6C8EBF;strokeWidth=1;fontSize=9;" edge="1" source="project-master" target="postgres" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="120" y="615"/>
+              <mxPoint x="120" y="185"/>
+              <mxPoint x="300" y="185"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ai-agent → ai-gateway -->
+        <mxCell id="e-agent-gw" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=1;fontSize=9;" edge="1" source="ai-agent" target="ai-gateway" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 凡例 ===== -->
+        <mxCell id="legend-bg" value="" style="rounded=1;fillColor=#F5F5F5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="700" y="710" width="840" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="凡例" style="text;html=1;fontSize=13;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="710" y="715" width="60" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-sys" value="" style="rounded=1;fillColor=#9673A6;strokeColor=#7B4EA6;" vertex="1" parent="1">
+          <mxGeometry x="715" y="745" width="15" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-sys-t" value="★ CRITICAL（障害でシステム全体に影響）" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="738" y="743" width="280" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-biz" value="" style="rounded=1;fillColor=#82B366;strokeColor=#6B9A52;" vertex="1" parent="1">
+          <mxGeometry x="715" y="770" width="15" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-biz-t" value="business Tier サービス" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="738" y="768" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-svc" value="" style="rounded=1;fillColor=#D6B656;strokeColor=#B8962E;" vertex="1" parent="1">
+          <mxGeometry x="715" y="795" width="15" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-svc-t" value="service Tier サービス" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="738" y="793" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-async" value="- - -" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="743" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-async-t" value="非同期（Kafka）" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1068" y="743" width="150" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-sync" value="——" style="text;html=1;fontSize=12;fontStyle=1;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="768" width="40" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-sync-t" value="同期通信（REST / gRPC）" style="text;html=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1068" y="768" width="200" height="20" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

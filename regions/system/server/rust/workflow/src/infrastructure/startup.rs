@@ -66,9 +66,11 @@ pub async fn run() -> anyhow::Result<()> {
         Arc<dyn WorkflowTaskRepository>,
         Option<Arc<sqlx::PgPool>>,
     ) = if let Some(ref db_cfg) = cfg.database {
+        // DATABASE_URL 環境変数が設定されている場合は優先する（serde_yaml はシェル変数を展開しないため）
+        let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.connection_url());
         let pool = Arc::new(
             super::database::create_pool(
-                &db_cfg.connection_url(),
+                &db_url,
                 db_cfg.max_open_conns,
                 db_cfg.max_idle_conns,
                 &db_cfg.conn_max_lifetime,

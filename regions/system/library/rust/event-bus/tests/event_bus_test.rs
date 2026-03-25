@@ -39,7 +39,7 @@ impl EventHandler for CountingHandler {
         &self.event_type
     }
 
-    async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+    async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
         self.call_count.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
@@ -69,8 +69,9 @@ impl EventHandler for CapturingHandler {
         &self.event_type
     }
 
-    async fn handle(&self, event: Event) -> Result<(), EventBusError> {
-        self.captured.write().await.push(event);
+    async fn handle(&self, event: Arc<Event>) -> Result<(), EventBusError> {
+        // Arc の参照先をクローンして格納する（テスト検証用）
+        self.captured.write().await.push((*event).clone());
         Ok(())
     }
 }
@@ -95,7 +96,7 @@ impl EventHandler for FailingHandler {
         &self.event_type
     }
 
-    async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+    async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
         Err(EventBusError::HandlerFailed(self.message.clone()))
     }
 }
@@ -111,7 +112,7 @@ impl EventHandler for SlowHandler {
         &self.event_type
     }
 
-    async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+    async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
         tokio::time::sleep(self.delay).await;
         Ok(())
     }
@@ -414,7 +415,8 @@ async fn eventbus_unsubscribe_one_keeps_others() {
     assert_eq!(c2.load(Ordering::SeqCst), 1);
 }
 
-// EventSubscription が Drop されると自動的に購読解除されることを確認する。
+// EventSubscription が Drop されるとキャンセルフラグが立ち、次回 publish() でスキップされることを確認する。
+// AtomicBool 方式により sleep 不要で即時確認できる（SH-3 監査対応）。
 #[tokio::test]
 async fn eventbus_subscription_drop_auto_unsubscribes() {
     let bus = EventBus::new(EventBusConfig::new());
@@ -422,12 +424,10 @@ async fn eventbus_subscription_drop_auto_unsubscribes() {
 
     {
         let _sub = bus.subscribe(Arc::new(handler)).await;
-        // _sub drops here, triggering auto-unsubscribe via tokio::spawn
+        // _sub drops here, setting the AtomicBool cancellation flag
     }
 
-    // Wait for the spawned cleanup task
-    tokio::time::sleep(Duration::from_millis(50)).await;
-
+    // AtomicBool 方式では Drop 直後にフラグが立つため sleep 不要
     bus.publish(Event::new("drop.test".to_string(), json!({})))
         .await
         .unwrap();
@@ -522,7 +522,7 @@ async fn eventbus_concurrent_publish_subscribe() {
             fn event_type(&self) -> &str {
                 "concurrent"
             }
-            async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+            async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
                 self.count.fetch_add(1, Ordering::SeqCst);
                 Ok(())
             }

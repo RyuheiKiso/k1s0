@@ -22,6 +22,8 @@ User ──(has)──▶ Role ──(grants)──▶ Permission ──(on)─�
 
 ### Tier 別ロール定義
 
+<img src="images/rbac-tier-role-hierarchy.svg" width="1200" />
+
 #### system Tier ロール
 
 | ロール              | 説明                           | Permission                          |

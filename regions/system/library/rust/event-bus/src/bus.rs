@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -39,11 +40,13 @@ impl InMemoryEventBus {
     }
 
     pub async fn publish(&self, event: Event) -> Result<(), EventBusError> {
+        // イベントを Arc で包み、複数ハンドラーへの配信時に Event 全体のクローンを回避する（SL-3 監査対応）
+        let event = Arc::new(event);
         let handlers = self.handlers.read().await;
         if let Some(event_handlers) = handlers.get(&event.event_type) {
             for handler in event_handlers {
                 handler
-                    .handle(event.clone())
+                    .handle(Arc::clone(&event))
                     .await
                     .map_err(|e| EventBusError::HandlerFailed(e.to_string()))?;
             }
@@ -62,8 +65,10 @@ impl Default for InMemoryEventBus {
 /// EventBusConfig で初期化し、EventSubscription で購読を管理する。
 pub struct EventBus {
     config: EventBusConfig,
+    // (subscription_id, cancelled_flag, handler) のタプルで管理する。
+    // cancelled_flag を使うことで Drop 内の非同期処理を不要にする（SH-3 監査対応）。
     #[allow(clippy::type_complexity)]
-    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<dyn EventHandler>)>>>>,
+    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
     next_id: Arc<RwLock<SubscriptionId>>,
 }
 
@@ -83,7 +88,8 @@ impl EventBus {
     }
 
     /// ハンドラーを購読し、EventSubscription を返す。
-    /// EventSubscription が Drop されると自動的に購読解除される。
+    /// EventSubscription が Drop されるとキャンセルフラグが立ち、次回 publish() 時に配信がスキップされる。
+    /// 即時解除が必要な場合は明示的に EventSubscription::unsubscribe() を呼ぶこと。
     pub async fn subscribe(&self, handler: Arc<dyn EventHandler>) -> EventSubscription {
         let event_type = handler.event_type().to_string();
 
@@ -91,27 +97,37 @@ impl EventBus {
         let id = *next_id;
         *next_id += 1;
 
+        // 購読解除フラグ: Drop 内で非同期処理を行わず同期的にキャンセルを通知する（SH-3 監査対応）
+        let cancelled = Arc::new(AtomicBool::new(false));
+
         let mut handlers = self.handlers.write().await;
         handlers
             .entry(event_type.clone())
             .or_insert_with(Vec::new)
-            .push((id, handler));
+            .push((id, Arc::clone(&cancelled), handler));
 
         EventSubscription {
             id,
             event_type,
+            cancelled,
             handlers: self.handlers.clone(),
         }
     }
 
     /// イベントを発行する。
     pub async fn publish(&self, event: Event) -> Result<(), EventBusError> {
+        // イベントを Arc で包み、複数ハンドラーへの配信時に Event 全体のクローンを回避する（SL-3 監査対応）
+        let event = Arc::new(event);
         let handlers = self.handlers.read().await;
         if let Some(event_handlers) = handlers.get(&event.event_type) {
             let timeout = self.config.get_handler_timeout();
-            for (_, handler) in event_handlers {
+            for (_, cancelled, handler) in event_handlers {
+                // Drop によりキャンセルされた購読はスキップする（SH-3 監査対応）
+                if cancelled.load(Ordering::Acquire) {
+                    continue;
+                }
                 let handler = handler.clone();
-                let event = event.clone();
+                let event = Arc::clone(&event);
                 let result = tokio::time::timeout(timeout, handler.handle(event)).await;
                 match result {
                     Ok(Ok(())) => {}
@@ -129,25 +145,30 @@ impl EventBus {
 }
 
 /// イベント購読を表す構造体。
-/// Drop 時に自動的に購読解除される。
+/// Drop 時にキャンセルフラグを立て、次回 publish() 時の配信をスキップさせる。
+/// 即時かつ確実に解除するには明示的に unsubscribe() を呼ぶこと。
 pub struct EventSubscription {
     id: SubscriptionId,
     event_type: String,
+    /// Drop 時に立てるキャンセルフラグ。非同期処理不要で Drop から同期的に通知できる。（SH-3 監査対応）
+    cancelled: Arc<AtomicBool>,
     #[allow(clippy::type_complexity)]
-    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<dyn EventHandler>)>>>>,
+    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
 }
 
 impl EventSubscription {
-    /// 購読を手動で解除する。
+    /// 購読を即時解除する。ハンドラーマップから即座に削除されるため、呼び出し後は配信されない。
     pub async fn unsubscribe(self) {
+        // フラグを立てた上でマップからも削除する（Drop より確実な即時解除）
+        self.cancelled.store(true, Ordering::Release);
         self.remove_handler().await;
-        // self は消費されるので Drop は呼ばれない（ただし安全のために Drop でもチェック）
+        // self は消費されるので Drop は呼ばれない
     }
 
     async fn remove_handler(&self) {
         let mut handlers = self.handlers.write().await;
         if let Some(entries) = handlers.get_mut(&self.event_type) {
-            entries.retain(|(id, _)| *id != self.id);
+            entries.retain(|(id, _, _)| *id != self.id);
             if entries.is_empty() {
                 handlers.remove(&self.event_type);
             }
@@ -157,20 +178,10 @@ impl EventSubscription {
 
 impl Drop for EventSubscription {
     fn drop(&mut self) {
-        let handlers = self.handlers.clone();
-        let event_type = self.event_type.clone();
-        let id = self.id;
-
-        // Drop 内では async を直接使えないので、spawn で非同期処理を行う
-        tokio::spawn(async move {
-            let mut handlers = handlers.write().await;
-            if let Some(entries) = handlers.get_mut(&event_type) {
-                entries.retain(|(sub_id, _)| *sub_id != id);
-                if entries.is_empty() {
-                    handlers.remove(&event_type);
-                }
-            }
-        });
+        // Drop 内では非同期処理を一切行わない（SH-3 監査対応）。
+        // AtomicBool のフラグを立てるだけで十分: publish() がフラグを確認してスキップする。
+        // ハンドラーのマップエントリは次回 publish() または明示的 unsubscribe() で遅延クリーンアップされる。
+        self.cancelled.store(true, Ordering::Release);
     }
 }
 
@@ -207,7 +218,7 @@ mod tests {
             &self.event_type
         }
 
-        async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+        async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
             self.call_count.fetch_add(1, Ordering::SeqCst);
             Ok(())
         }
@@ -288,8 +299,9 @@ mod tests {
             fn event_type(&self) -> &str {
                 &self.event_type
             }
-            async fn handle(&self, event: Event) -> Result<(), EventBusError> {
-                *self.received.write().await = Some(event);
+            async fn handle(&self, event: Arc<Event>) -> Result<(), EventBusError> {
+                // Arc の参照先をクローンして格納する（テスト検証用）
+                *self.received.write().await = Some((*event).clone());
                 Ok(())
             }
         }
@@ -354,7 +366,9 @@ mod tests {
         assert_eq!(count.load(Ordering::SeqCst), 0);
     }
 
-    // EventSubscription がスコープを抜けると Drop により自動的に購読解除されることを確認する。
+    // EventSubscription がスコープを抜けると Drop によりキャンセルフラグが立ち、
+    // 次回 publish() 時にハンドラーがスキップされることを確認する。
+    // AtomicBool 方式により sleep 不要で即時確認できる（SH-3 監査対応）。
     #[tokio::test]
     async fn test_eventbus_subscription_drop_auto_unsubscribe() {
         let bus = EventBus::new(EventBusConfig::new());
@@ -362,12 +376,10 @@ mod tests {
 
         {
             let _sub = bus.subscribe(Arc::new(handler)).await;
-            // _sub がスコープを抜けると Drop で自動解除
+            // _sub がスコープを抜けると Drop でキャンセルフラグが立つ
         }
 
-        // Drop 内の tokio::spawn が完了するのを少し待つ
-        tokio::time::sleep(Duration::from_millis(50)).await;
-
+        // AtomicBool 方式では Drop 直後にフラグが立つため sleep 不要
         let event = Event::new("order.created".to_string(), json!({}));
         bus.publish(event).await.unwrap();
 
@@ -387,7 +399,7 @@ mod tests {
             fn event_type(&self) -> &str {
                 "slow.event"
             }
-            async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+            async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
                 tokio::time::sleep(Duration::from_secs(1)).await;
                 Ok(())
             }
@@ -445,7 +457,7 @@ mod tests {
             fn event_type(&self) -> &str {
                 "fail.event"
             }
-            async fn handle(&self, _event: Event) -> Result<(), EventBusError> {
+            async fn handle(&self, _event: Arc<Event>) -> Result<(), EventBusError> {
                 Err(EventBusError::HandlerFailed("test error".to_string()))
             }
         }

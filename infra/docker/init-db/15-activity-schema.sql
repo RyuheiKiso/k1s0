@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS activity_service.activities (
     duration_minutes INTEGER,
     status           TEXT         NOT NULL DEFAULT 'active',
     metadata         JSONB,
-    idempotency_key  TEXT         UNIQUE,
+    -- idempotency_key はテナントスコープで一意にする（SL-1 監査対応）
+    -- システム全体でユニークにすると異なるテナントが同じキーを使った場合に競合が発生する
+    idempotency_key  TEXT,
     tenant_id        TEXT         NOT NULL DEFAULT 'system',
     version          INTEGER      NOT NULL DEFAULT 1,
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -27,6 +29,12 @@ CREATE INDEX IF NOT EXISTS idx_activities_status ON activity_service.activities(
 CREATE INDEX IF NOT EXISTS idx_activities_created_at ON activity_service.activities(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activities_tenant_id ON activity_service.activities(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_activities_tenant_task ON activity_service.activities(tenant_id, task_id);
+
+-- idempotency_key はテナントスコープで一意にする（SL-1 監査対応）
+-- テナント間で同じキーが衝突しないよう (tenant_id, idempotency_key) の複合 UNIQUE 制約を使用する
+CREATE UNIQUE INDEX IF NOT EXISTS uq_activities_tenant_idempotency
+    ON activity_service.activities(tenant_id, idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
 
 -- Outboxイベントテーブル（アクティビティ変更イベントをKafkaへ送信するためのOutboxパターン）
 CREATE TABLE IF NOT EXISTS activity_service.outbox_events (
@@ -60,5 +68,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA activity_service GRANT SELECT, INSERT, UPDATE
 ALTER TABLE activity_service.activities OWNER TO k1s0;
 ALTER TABLE activity_service.outbox_events OWNER TO k1s0;
 
--- SQLxマイグレーション実行時の_sqlx_migrationsテーブル作成に必要なスキーマ内CREATE権限を付与する
+-- sqlx が k1s0_service 内に新規スキーマを作成できるように DATABASE レベルの CREATE 権限を付与する
 GRANT CREATE ON DATABASE k1s0_service TO k1s0;
+-- sqlx マイグレーションが activity_service スキーマ内に _sqlx_migrations テーブルを作成できるように
+-- スキーマレベルの CREATE 権限を付与する（GRANT CREATE ON DATABASE とは別物）（C-2 監査対応）
+GRANT CREATE ON SCHEMA activity_service TO k1s0;

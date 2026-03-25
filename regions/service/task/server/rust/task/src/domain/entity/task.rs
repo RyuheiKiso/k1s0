@@ -4,6 +4,7 @@ use crate::domain::error::TaskError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 /// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
 #[derive(Debug, thiserror::Error)]
@@ -161,45 +162,61 @@ pub struct TaskChecklistItem {
 
 /// タスク作成 DTO
 /// proto の CreateTaskRequest フィールドに対応し、reporter_id と labels を含む。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// validator クレートを使いスキーマレベルのバリデーションを定義する（SM-3 監査対応）
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CreateTask {
     pub project_id: Uuid,
+    // タイトルは1〜500文字の範囲で必須入力
+    #[validate(length(min = 1, max = 500, message = "タイトルは1〜500文字で指定してください"))]
     pub title: String,
+    // 説明は最大5000文字
+    #[validate(length(max = 5000, message = "説明は5000文字以内で指定してください"))]
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub assignee_id: Option<String>,
     // タスクを報告したユーザーの ID（DB の reporter_id NOT NULL カラムに対応。ハンドラーで設定する）
     pub reporter_id: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
-    // タスクに付与するラベル一覧（proto の labels フィールドに対応）
+    // タスクに付与するラベル一覧（proto の labels フィールドに対応、最大20件）
+    #[validate(length(max = 20, message = "ラベルは最大20件まで指定できます"))]
     pub labels: Vec<String>,
     pub checklist: Vec<CreateChecklistItem>,
 }
 
 
 /// チェックリスト項目作成 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CreateChecklistItem {
+    // チェックリスト項目のタイトルは1〜200文字
+    #[validate(length(min = 1, max = 200, message = "チェックリスト項目は1〜200文字で指定してください"))]
     pub title: String,
     pub sort_order: i32,
 }
 
 /// タスク更新 DTO（REST PUT /tasks/{id} 専用）
 /// 未設定フィールドは変更しない（部分更新）。
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// validator クレートを使いスキーマレベルのバリデーションを定義する（SM-3 監査対応）
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UpdateTask {
+    // タイトルは1〜500文字（指定する場合のみバリデーション）
+    #[validate(length(min = 1, max = 500, message = "タイトルは1〜500文字で指定してください"))]
     pub title: Option<String>,
+    // 説明は最大5000文字
+    #[validate(length(max = 5000, message = "説明は5000文字以内で指定してください"))]
     pub description: Option<String>,
     pub priority: Option<TaskPriority>,
     pub assignee_id: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
-    // ラベル一覧を指定した場合は全置換する（None の場合は変更しない）
+    // ラベル一覧を指定した場合は全置換する（None の場合は変更しない）、最大20件
+    #[validate(length(max = 20, message = "ラベルは最大20件まで指定できます"))]
     pub labels: Option<Vec<String>>,
 }
 
 /// チェックリスト項目追加 DTO（REST POST /tasks/{id}/checklist 専用）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct AddChecklistItem {
+    // チェックリスト項目のタイトルは1〜200文字
+    #[validate(length(min = 1, max = 200, message = "チェックリスト項目は1〜200文字で指定してください"))]
     pub title: String,
     pub sort_order: i32,
 }

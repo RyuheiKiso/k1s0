@@ -1265,13 +1265,12 @@ services:
     cap_drop:
       - ALL
     volumes:
-      # docker.sock マウント: ホストのコンテナログを収集するために必要（M-8 対応）
-      # [セキュリティリスク] docker.sock は Docker デーモンへの完全アクセス権を持つ。
-      # 本番環境では以下の代替案を検討すること:
-      #   1. Fluentd/Fluent Bit: DaemonSet + hostPath で /var/lib/docker/containers をマウント
-      #   2. Kubernetes: Pod ログを直接収集（docker.sock 不要）
-      #   3. syslog ドライバー: Docker ログドライバーを syslog に変更して Promtail 不要化
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # docker.sock を廃止し /var/lib/docker/containers を直接マウントする（SC-2/M-5 監査対応）
+      # docker.sock はホスト Docker デーモンへの完全アクセス権を持つため使用しない。
+      # /var/lib/docker/containers は Docker Desktop on Windows（Linux VM 内）でも利用可能であり
+      # Windows 環境で /var/log/containers が存在しない問題も同時に解消する。
+      # 詳細は docs/architecture/adr/0036-promtail-log-collection-strategy.md を参照。
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./infra/docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
     command: -config.file=/etc/promtail/config.yaml
     # H-02監査対応: grafana/promtail:2.9.0 イメージに wget も nc も含まれていないため、

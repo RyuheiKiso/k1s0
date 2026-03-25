@@ -10,6 +10,10 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 - BFF が必要な場合は **GraphQL** をオプション採用する
 - 全 API に統一的なエラーレスポンス・バージョニング・レート制限を適用する
 
+### APIプロトコル選定フロー
+
+<img src="images/api-protocol-decision-tree.svg" width="1100" />
+
 ---
 
 ## Tier 別 API 種別パターン

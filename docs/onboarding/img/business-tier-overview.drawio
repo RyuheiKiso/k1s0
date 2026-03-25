@@ -1,0 +1,157 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="biz-tier-overview-001" name="Business Tier 全体構造図">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="760" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="k1s0 — 3層アーキテクチャ 依存関係と通信方式" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="1200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== system Tier ===== -->
+        <mxCell id="sys-bg" value="" style="rounded=1;dashed=0;strokeWidth=3;strokeColor=#9673A6;fillColor=#E1D5E7;opacity=40;" vertex="1" parent="1">
+          <mxGeometry x="20" y="55" width="1360" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-label" value="system Tier — 横断的基盤（infrastructure layer）" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#9673A6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-desc" value="認証・設定・可観測性・メッセージングなど全 Tier 共通の基盤を提供する" style="text;html=1;fontSize=11;fontColor=#7B5EA7;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="80" width="600" height="16" as="geometry"/>
+        </mxCell>
+
+        <!-- system サービスボックス -->
+        <mxCell id="sys-auth" value="auth-server&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Keycloak / JWT&lt;br&gt;認証・RBAC&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="105" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-config" value="config-server&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;動的設定管理&lt;br&gt;フィーチャーフラグ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="210" y="105" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-session" value="session-server&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;セッション管理&lt;br&gt;テナント情報&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="380" y="105" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-kafka" value="Kafka&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;イベントバス&lt;br&gt;Schema Registry&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="550" y="105" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-obs" value="observability&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;OpenTelemetry&lt;br&gt;Prometheus / Jaeger&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="720" y="105" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-gw" value="API Gateway&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Kong / Istio&lt;br&gt;ルーティング・レート制限&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="890" y="105" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sys-lib" value="system library&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;authlib / telemetry&lt;br&gt;kafka / config 等&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9673A6;strokeColor=#7B4EA6;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="105" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== business Tier ===== -->
+        <mxCell id="biz-bg" value="" style="rounded=1;dashed=0;strokeWidth=3;strokeColor=#82B366;fillColor=#D5E8D4;opacity=40;" vertex="1" parent="1">
+          <mxGeometry x="20" y="305" width="1360" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz-label" value="business Tier — 業務ドメイン基盤（domain layer）" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#5D9E4B;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="310" width="500" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz-desc" value="業務領域（taskmanagement, fa 等）ごとに独立した基盤を提供する。領域間の直接通信は禁止" style="text;html=1;fontSize=11;fontColor=#5D9E4B;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="330" width="700" height="16" as="geometry"/>
+        </mxCell>
+
+        <!-- business 領域ボックス -->
+        <mxCell id="biz-taskmanagement" value="taskmanagement 領域&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;server / client&lt;br&gt;library / database&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6B9A52;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="355" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz-fa" value="fa 領域（固定資産）&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;server / client&lt;br&gt;library / database&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#82B366;strokeColor=#6B9A52;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="260" y="355" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz-more" value="… 他の業務領域&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;（領域ごとに独立）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A8D08D;strokeColor=#6B9A52;fontSize=11;fontColor=#FFFFFF;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="355" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- 領域間禁止マーク -->
+        <mxCell id="biz-no-direct" value="&lt;b&gt;×&lt;/b&gt; 領域間の直接同期通信は禁止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B85450;fontSize=11;fontColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="720" y="370" width="250" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="biz-kafka-ok" value="✓ 領域間連携は Kafka 経由（非同期）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;fontSize=11;fontColor=#5D9E4B;" vertex="1" parent="1">
+          <mxGeometry x="720" y="415" width="250" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== service Tier ===== -->
+        <mxCell id="svc-bg" value="" style="rounded=1;dashed=0;strokeWidth=3;strokeColor=#D6B656;fillColor=#FFF2CC;opacity=40;" vertex="1" parent="1">
+          <mxGeometry x="20" y="555" width="1360" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc-label" value="service Tier — ドメイン固有実装（application layer）" style="text;html=1;fontSize=13;fontStyle=1;fontColor=#B8962E;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="560" width="600" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc-desc" value="business 領域が提供する基盤の上に、具体的なドメインロジックを実装する。他 service Tier との直接通信は禁止" style="text;html=1;fontSize=11;fontColor=#B8962E;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="580" width="800" height="16" as="geometry"/>
+        </mxCell>
+
+        <!-- service サービスボックス -->
+        <mxCell id="svc-task" value="task-server&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;タスク管理&lt;br&gt;（taskmanagement 領域利用）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="605" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc-board" value="board-server&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ボード管理&lt;br&gt;（taskmanagement 領域利用）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=11;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="260" y="605" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="svc-more" value="… 他のサービス&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;（業務ごとに独立）&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E6C96A;strokeColor=#B8962E;fontSize=11;fontColor=#FFFFFF;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="605" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== 依存方向の矢印 ===== -->
+
+        <!-- business → system（依存） -->
+        <mxCell id="e-biz-sys" value="依存（import / gRPC 呼出）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673A6;strokeWidth=2;fontSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="biz-bg" target="sys-bg" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="700" y="260"/>
+              <mxPoint x="700" y="215"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- service → business（依存） -->
+        <mxCell id="e-svc-biz" value="依存（import / gRPC 呼出）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82B366;strokeWidth=2;fontSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="svc-bg" target="biz-bg" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="510"/>
+              <mxPoint x="300" y="465"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 逆向き禁止（system→businessは禁止） -->
+        <mxCell id="e-no-sys-biz" value="× 逆依存禁止" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#B85450;strokeWidth=2;fontSize=10;dashed=1;fontColor=#B85450;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" source="sys-bg" target="biz-bg" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="215"/>
+              <mxPoint x="1100" y="260"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 通信方式の凡例 -->
+        <mxCell id="legend-bg" value="" style="rounded=1;fillColor=#F5F5F5;strokeColor=#AAAAAA;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="560" width="380" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-title" value="通信方式の凡例" style="text;html=1;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="565" width="360" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="▶ gRPC（同期）: business → system サーバー呼出" style="text;html=1;fontSize=11;align=left;fontColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="590" width="360" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="▶ import: system / business library を依存追加" style="text;html=1;fontSize=11;align=left;fontColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="612" width="360" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="▶ Kafka（非同期）: 領域間・Tier間のイベント連携" style="text;html=1;fontSize=11;align=left;fontColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="634" width="360" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg4" value="× DB 直接アクセス禁止: 必ず API 経由で取得" style="text;html=1;fontSize=11;align=left;fontColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="656" width="360" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg5" value="× 逆方向依存禁止: 上位 Tier が下位 Tier に依存禁止" style="text;html=1;fontSize=11;align=left;fontColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="678" width="360" height="18" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,6 +19,14 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	// CORSが無効の場合はパススルー
 	if !cfg.Enabled {
 		return func(c *gin.Context) { c.Next() }
+	}
+
+	// ワイルドカード "*" が指定されている場合は起動を阻止する（SH-2 監査対応）
+	// "*" を許可すると全オリジンからのリクエストが通過し、CSRF 等の攻撃に対して脆弱になる。
+	for _, o := range cfg.AllowOrigins {
+		if o == "*" {
+			log.Fatalf("CORS設定エラー: AllowOrigins にワイルドカード '*' は使用できません。明示的なオリジンを指定してください。")
+		}
 	}
 
 	// O(1)参照のため許可オリジンをマップに変換する

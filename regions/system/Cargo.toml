@@ -76,7 +76,9 @@ members = [
     "library/rust/vault-client",
     "library/rust/webhook-client",
     "library/rust/websocket",
-    # Building Blocks (7)
+    # Building Blocks (7) — ADR-0018 で非推奨・k1s0-messaging への移行決定済み（M-4 監査対応）
+    # ai-agent サービスが bb-ai-client に依存しているため、ai-agent 移行完了まで削除できない。
+    # 移行完了後に全7クレートをワークスペースから除外・ディレクトリを削除すること。
     "library/rust/bb-core",
     "library/rust/building-blocks",
     "library/rust/bb-pubsub",

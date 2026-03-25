@@ -12,26 +12,38 @@ clients:
 
 scrape_configs:
   # Docker コンテナログをファイルベースで収集する
-  # セキュリティ上の理由から Docker ソケットではなくログファイルを直接マウントする
+  # /var/lib/docker/containers をマウントすることで docker.sock 不要で収集できる
+  # docker.sock マウントは Docker デーモンへの完全アクセス権を持つため廃止する（SC-2/M-5 監査対応）
+  # /var/lib/docker/containers は Docker Desktop on Windows（Linux VM 内）でも利用可能
   - job_name: docker-containers
     static_configs:
       - targets:
           - localhost
         labels:
           job: docker
-          __path__: /var/log/containers/*.log
+          __path__: /var/lib/docker/containers/*/*.log
     pipeline_stages:
-      # JSON ログのパース
+      # Docker JSON ファイル形式（{"log":"...","stream":"...","time":"..."}）をパースする
       - json:
+          expressions:
+            output: log
+            stream: stream
+            timestamp: time
+      # ログ出力内の JSON をさらにパースしてアプリケーションフィールドを取得する
+      - json:
+          source: output
           expressions:
             level: level
             trace_id: trace_id
             span_id: span_id
             msg: msg
             service: service
-            stream: stream
-      # パースした値をラベルとして付与
+      # パースした値をラベルとして付与する
       - labels:
           level:
           trace_id:
           service:
+          stream:
+      # output フィールドをログ本体として出力する
+      - output:
+          source: output

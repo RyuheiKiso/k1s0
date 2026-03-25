@@ -72,18 +72,19 @@ jobs:
       # .env.example から .env を生成して必要な環境変数を設定する
       - name: Start infrastructure services
         run: |
-          # E2E テスト用の最小限の環境変数を設定する
-          cat > .env << 'EOF'
-          POSTGRES_PASSWORD=e2e_test_password
-          REDIS_PASSWORD=e2e_test_password
-          REDIS_SESSION_PASSWORD=e2e_test_password
-          KC_BFF_CLIENT_SECRET=e2e_bff_secret
-          KC_SERVICE_CLIENT_SECRET=e2e_service_secret
-          KC_TEST_ADMIN_PASSWORD=admin123
-          KC_TEST_USER_PASSWORD=user123
-          KC_TEST_TASK_MGR_PASSWORD=task123
-          GF_SECURITY_ADMIN_PASSWORD=admin
-          VAULT_DEV_ROOT_TOKEN_ID=e2e-root-token
+          # E2E テスト用の環境変数を GitHub Secrets から設定する（SH-1 監査対応）
+          # 認証情報をワークフローファイルにハードコードせず、Secrets で安全に管理する
+          cat > .env << EOF
+          POSTGRES_PASSWORD=${{ secrets.E2E_POSTGRES_PASSWORD }}
+          REDIS_PASSWORD=${{ secrets.E2E_REDIS_PASSWORD }}
+          REDIS_SESSION_PASSWORD=${{ secrets.E2E_REDIS_SESSION_PASSWORD }}
+          KC_BFF_CLIENT_SECRET=${{ secrets.E2E_KC_BFF_CLIENT_SECRET }}
+          KC_SERVICE_CLIENT_SECRET=${{ secrets.E2E_KC_SERVICE_CLIENT_SECRET }}
+          KC_TEST_ADMIN_PASSWORD=${{ secrets.E2E_KC_TEST_ADMIN_PASSWORD }}
+          KC_TEST_USER_PASSWORD=${{ secrets.E2E_KC_TEST_USER_PASSWORD }}
+          KC_TEST_TASK_MGR_PASSWORD=${{ secrets.E2E_KC_TEST_TASK_MGR_PASSWORD }}
+          GF_SECURITY_ADMIN_PASSWORD=${{ secrets.E2E_GF_SECURITY_ADMIN_PASSWORD }}
+          VAULT_DEV_ROOT_TOKEN_ID=${{ secrets.E2E_VAULT_DEV_ROOT_TOKEN_ID }}
           EOF
           docker compose --profile infra up -d
 

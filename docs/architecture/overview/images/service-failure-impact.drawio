@@ -1,0 +1,152 @@
+<mxfile host="draw.io" agent="Claude Code" version="24.0" type="device">
+  <diagram id="failure-001" name="障害影響分析マップ">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- タイトル -->
+        <mxCell id="title" value="障害影響分析マップ — SEV レベル別影響範囲" style="text;html=1;fontSize=20;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="300" y="10" width="800" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- SEVレベル凡例 -->
+        <mxCell id="leg-bg" value="" style="rounded=1;fillColor=#F5F5F5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="60" width="280" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-title" value="SEV レベル定義" style="text;html=1;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="65" width="200" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1" value="" style="rounded=1;fillColor=#B85450;strokeColor=#922B21;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="92" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg1t" value="SEV1: システム全体に影響（最緊急）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1138" y="90" width="240" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2" value="" style="rounded=1;fillColor=#FF8C00;strokeColor=#CC7000;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="114" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg2t" value="SEV2: 主要機能の一部に影響" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1138" y="112" width="240" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3" value="" style="rounded=1;fillColor=#D6B656;strokeColor=#B8962E;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="136" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg3t" value="SEV3: 一部機能の劣化（通知/ログ等）" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1138" y="134" width="240" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-spof" value="" style="rounded=1;fillColor=#B85450;strokeColor=#B85450;strokeWidth=3;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="158" width="20" height="15" as="geometry"/>
+        </mxCell>
+        <mxCell id="leg-spof-t" value="SPOF（単一障害点）" style="text;html=1;fontSize=10;fontStyle=1;fontColor=#B85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1138" y="156" width="200" height="18" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SPOF表示 ===== -->
+        <mxCell id="spof-banner" value="⚠ 最大の単一障害点 (SPOF): Keycloak が停止すると全ユーザーのログインが不可になる" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#B85450;strokeWidth=2;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="55" width="1060" height="35" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SEV1 グループ ===== -->
+        <mxCell id="sev1-bg" value="" style="rounded=1;fillColor=#FFEBEE;strokeColor=#B85450;strokeWidth=2;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="20" y="115" width="1360" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="sev1-label" value="SEV 1 — システム全体に影響（全機能停止レベル）" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#B85450;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="120" width="600" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Keycloak障害 -->
+        <mxCell id="f-keycloak" value="&lt;b&gt;Keycloak 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: bff-proxy, auth-server&lt;br&gt;結果: &lt;b&gt;全ユーザーログイン不可&lt;/b&gt;&lt;br&gt;★ SPOF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;strokeWidth=3;fontSize=10;fontColor=#FFFFFF;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="30" y="150" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- auth_db障害 -->
+        <mxCell id="f-auth-db" value="&lt;b&gt;PostgreSQL (auth_db) 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: auth-server&lt;br&gt;結果: 認証履歴・ロール管理不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="240" y="150" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- saga_db障害 -->
+        <mxCell id="f-saga-db" value="&lt;b&gt;PostgreSQL (saga_db) 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: saga-server&lt;br&gt;結果: 分散トランザクション停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="450" y="150" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Kafka障害 -->
+        <mxCell id="f-kafka" value="&lt;b&gt;Kafka 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: auth, config, saga,&lt;br&gt;dlq-manager, task等&lt;br&gt;結果: 非同期処理全停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="660" y="150" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- auth-server障害 -->
+        <mxCell id="f-auth" value="&lt;b&gt;auth-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: 全サービス（認証必須EP）&lt;br&gt;結果: 認証・権限チェック不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="870" y="150" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- graphql-gateway障害 -->
+        <mxCell id="f-gql" value="&lt;b&gt;graphql-gateway 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: フロントエンド全操作&lt;br&gt;結果: GraphQL API全体停止" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B85450;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="150" width="210" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Redis障害（SEV1/2） -->
+        <mxCell id="f-redis" value="&lt;b&gt;Redis 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: bff-proxy, ratelimit&lt;br&gt;結果: セッション喪失&lt;br&gt;（SEV1 or SEV2）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D43900;strokeColor=#922B21;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="150" width="60" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SEV2 グループ ===== -->
+        <mxCell id="sev2-bg" value="" style="rounded=1;fillColor=#FFF3E0;strokeColor=#FF8C00;strokeWidth=2;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="20" y="320" width="1360" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="sev2-label" value="SEV 2 — 主要機能の一部に影響" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#FF8C00;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="325" width="500" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- session-server障害 -->
+        <mxCell id="f-session" value="&lt;b&gt;session-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: graphql-gw, bff-proxy&lt;br&gt;結果: セッション確認不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;strokeColor=#CC7000;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="30" y="360" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- saga-server障害 -->
+        <mxCell id="f-saga" value="&lt;b&gt;saga-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: task, board, activity&lt;br&gt;結果: 分散Txが宙に浮く" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;strokeColor=#CC7000;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="240" y="360" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- dlq-manager障害 -->
+        <mxCell id="f-dlq" value="&lt;b&gt;dlq-manager 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: 各コンシューマー&lt;br&gt;結果: DLQメッセージ蓄積&lt;br&gt;再処理不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;strokeColor=#CC7000;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="450" y="360" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- board-server障害 -->
+        <mxCell id="f-board" value="&lt;b&gt;board-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: task（WIP制限チェック）&lt;br&gt;結果: タスク割当時のWIP確認不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF8C00;strokeColor=#CC7000;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="660" y="360" width="220" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- ===== SEV3 グループ ===== -->
+        <mxCell id="sev3-bg" value="" style="rounded=1;fillColor=#FFFDE7;strokeColor=#D6B656;strokeWidth=2;opacity=50;" vertex="1" parent="1">
+          <mxGeometry x="20" y="525" width="1360" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="sev3-label" value="SEV 3 — 一部機能の劣化（デグレードされた状態で継続稼働）" style="text;html=1;fontSize=14;fontStyle=1;fontColor=#D6B656;align=left;" vertex="1" parent="1">
+          <mxGeometry x="30" y="530" width="700" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- activity-server障害 -->
+        <mxCell id="f-activity" value="&lt;b&gt;activity-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: task（操作履歴）&lt;br&gt;結果: アクティビティ記録不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="30" y="560" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- notification-server障害 -->
+        <mxCell id="f-notify" value="&lt;b&gt;notification-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: scheduler, 各サービス&lt;br&gt;結果: 通知送信不能" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="240" y="560" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- featureflag-server障害 -->
+        <mxCell id="f-ff" value="&lt;b&gt;featureflag-server 障害&lt;/b&gt;&lt;br&gt;&lt;hr&gt;影響: graphql-gw, 各サービス&lt;br&gt;結果: デフォルト値で動作&lt;br&gt;（フラグ評価できず）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D6B656;strokeColor=#B8962E;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="450" y="560" width="190" height="90" as="geometry"/>
+        </mxCell>
+
+        <!-- Runbooks参照 -->
+        <mxCell id="runbooks" value="&lt;b&gt;参照 Runbooks:&lt;/b&gt;&lt;br&gt;• 高エラー率 → high-error-rate.md&lt;br&gt;• サービスダウン → service-down.md&lt;br&gt;• Kafka遅延 → kafka-consumer-lag.md&lt;br&gt;• DBプール枯渇 → db-pool-exhaustion.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#82B366;fontSize=10;align=left;" vertex="1" parent="1">
+          <mxGeometry x="900" y="540" width="460" height="120" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

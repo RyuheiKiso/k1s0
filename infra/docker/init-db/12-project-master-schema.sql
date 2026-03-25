@@ -84,5 +84,8 @@ ALTER TABLE project_master.status_definitions OWNER TO k1s0;
 ALTER TABLE project_master.status_definition_versions OWNER TO k1s0;
 ALTER TABLE project_master.tenant_project_extensions OWNER TO k1s0;
 
--- sqlx がスキーマを作成できるように CREATE 権限を付与する
+-- sqlx が k1s0_business 内に新規スキーマを作成できるように DATABASE レベルの CREATE 権限を付与する
 GRANT CREATE ON DATABASE k1s0_business TO k1s0;
+-- sqlx マイグレーションが project_master スキーマ内に _sqlx_migrations テーブルを作成できるように
+-- スキーマレベルの CREATE 権限を付与する（GRANT CREATE ON DATABASE とは別物）（C-2 監査対応）
+GRANT CREATE ON SCHEMA project_master TO k1s0;

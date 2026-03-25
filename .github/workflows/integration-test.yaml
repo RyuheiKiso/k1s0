@@ -73,6 +73,11 @@ jobs:
       # NOTE: DB認証情報は平文で記載しているが、これはエフェメラルCIランナー上の
       # サービスコンテナ専用であり、テスト完了後に自動破棄される。
       # 本番環境の認証情報は GitHub Secrets / Vault 経由で管理する。
+      #
+      # L-3 監査所見: system tier のテストは現在スタブを使用するため DB/Kafka への実接続は行われない。
+      # DB スキーマ初期化のみ実行している。H-5 対応（実 DB テストへの移行）が完了した時点で
+      # 本スキーマ初期化が実際のテスト検証に使用される。それまでの間はスキーマ初期化の疎通確認として機能する。
+      # H-5 完了後に system tier テストが実 DB を使用するようになれば L-3 は自動解消される。
       postgres:
         image: postgres:17.4
         env:
@@ -132,12 +137,27 @@ jobs:
           workspaces: regions/system
 
       - name: Initialize database schemas
+        # .sh ファイル（00-create-app-user.sh 等）と .sql ファイルをアルファベット順で実行する。
+        # PGHOST/PGPASSWORD 等を設定して .sh スクリプトが CI 環境で正しく接続できるようにする。（H-1 監査対応）
         env:
           PGPASSWORD: dev
+          PGHOST: localhost
+          POSTGRES_USER: dev
+          POSTGRES_DB: dev
+          K1S0_DB_PASSWORD: dev-k1s0-local
         run: |
-          for sql in infra/docker/init-db/*.sql; do
-            echo "=== Running $sql ==="
-            psql -h localhost -U dev -d postgres -f "$sql"
+          for init_file in $(ls infra/docker/init-db/ | sort); do
+            filepath="infra/docker/init-db/$init_file"
+            case "$init_file" in
+              *.sh)
+                echo "=== Running $filepath ==="
+                bash "$filepath"
+                ;;
+              *.sql)
+                echo "=== Running $filepath ==="
+                psql -h localhost -U dev -d postgres -f "$filepath"
+                ;;
+            esac
           done
 
       - name: Derive schema name
@@ -284,12 +304,27 @@ jobs:
           workspaces: regions/business/taskmanagement/server/rust/project-master
 
       - name: Initialize database schemas
+        # .sh ファイル（00-create-app-user.sh 等）と .sql ファイルをアルファベット順で実行する。
+        # PGHOST/PGPASSWORD 等を設定して .sh スクリプトが CI 環境で正しく接続できるようにする。（H-1 監査対応）
         env:
           PGPASSWORD: dev
+          PGHOST: localhost
+          POSTGRES_USER: dev
+          POSTGRES_DB: dev
+          K1S0_DB_PASSWORD: dev-k1s0-local
         run: |
-          for sql in infra/docker/init-db/*.sql; do
-            echo "=== Running $sql ==="
-            psql -h localhost -U dev -d postgres -f "$sql"
+          for init_file in $(ls infra/docker/init-db/ | sort); do
+            filepath="infra/docker/init-db/$init_file"
+            case "$init_file" in
+              *.sh)
+                echo "=== Running $filepath ==="
+                bash "$filepath"
+                ;;
+              *.sql)
+                echo "=== Running $filepath ==="
+                psql -h localhost -U dev -d postgres -f "$filepath"
+                ;;
+            esac
           done
 
       - name: Derive schema name
@@ -425,12 +460,27 @@ jobs:
             regions/service/activity/server/rust/activity
 
       - name: Initialize database schemas
+        # .sh ファイル（00-create-app-user.sh 等）と .sql ファイルをアルファベット順で実行する。
+        # PGHOST/PGPASSWORD 等を設定して .sh スクリプトが CI 環境で正しく接続できるようにする。（H-1 監査対応）
         env:
           PGPASSWORD: dev
+          PGHOST: localhost
+          POSTGRES_USER: dev
+          POSTGRES_DB: dev
+          K1S0_DB_PASSWORD: dev-k1s0-local
         run: |
-          for sql in infra/docker/init-db/*.sql; do
-            echo "=== Running $sql ==="
-            psql -h localhost -U dev -d postgres -f "$sql"
+          for init_file in $(ls infra/docker/init-db/ | sort); do
+            filepath="infra/docker/init-db/$init_file"
+            case "$init_file" in
+              *.sh)
+                echo "=== Running $filepath ==="
+                bash "$filepath"
+                ;;
+              *.sql)
+                echo "=== Running $filepath ==="
+                psql -h localhost -U dev -d postgres -f "$filepath"
+                ;;
+            esac
           done
 
       - name: Derive schema name
