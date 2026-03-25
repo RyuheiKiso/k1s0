@@ -23,6 +23,8 @@ pub struct AppState {
     pub update_checklist_item_uc: Arc<usecase::update_checklist_item::UpdateChecklistItemUseCase>,
     pub delete_checklist_item_uc: Arc<usecase::delete_checklist_item::DeleteChecklistItemUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    /// readyz ハンドラ用の DB 接続プール（SELECT 1 による疎通確認に使用する）
+    pub db_pool: sqlx::PgPool,
     /// 認証状態。None の場合は認証なし（dev/test 環境のみ許可）
     pub auth_state: Option<AuthState>,
 }

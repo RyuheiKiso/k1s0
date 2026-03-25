@@ -5,6 +5,6 @@ expression: sorted
 - README.md
 - go.mod
 - internal/internal.go
-- order-lib.go
-- order-lib_test.go
+- task-lib.go
+- task-lib_test.go
 - tests/integration_test.go

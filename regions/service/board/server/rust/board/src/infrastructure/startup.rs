@@ -122,6 +122,8 @@ pub async fn run() -> anyhow::Result<()> {
         list_board_columns_uc: list_board_columns_uc.clone(),
         update_wip_limit_uc: update_wip_limit_uc.clone(),
         metrics: metrics.clone(),
+        // readyz ハンドラ用に db_pool を渡す（SELECT 1 疎通確認で使用する）
+        db_pool: db_pool.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);

@@ -428,6 +428,71 @@ docker compose down -v
 
 ---
 
+## 10. Docker Desktop でのイメージビルド並列 OOM（M-03 監査対応）
+
+### 症状
+
+`docker compose build` または `docker buildx bake` を実行すると以下のいずれかが発生する:
+
+- ビルド途中で OOM Killer により Docker Desktop が強制再起動する
+- `docker buildx bake` が `exit code 137` で失敗する
+- `docker compose build --parallel` でメモリ使用量が急増してホスト全体が不安定になる
+
+### 原因
+
+k1s0 は 30 以上のサービスを含むモノリポであり、全サービスを並列ビルドすると Docker BuildKit が同時に多数の Rust / Go コンパイラプロセスを起動する。Rust のコンパイルは特にメモリを消費するため、並列度が高いと Docker Desktop に割り当てたメモリを超過する。
+
+### 対処
+
+**方法 1: バッチビルド（推奨）**
+
+サービスを数個ずつ分割してビルドする。以下のように `justfile` のターゲットを活用するか、手動でグループを分けて実行する。
+
+```bash
+# system Tier のサービスをビルドする（推奨: 3〜5 サービスずつ）
+docker compose build auth-rust config-rust master-rust
+
+# service Tier のサービスをビルドする
+docker compose build task-rust board-rust activity-rust
+
+# 1 サービスずつビルドする（最もメモリ消費が少ない）
+docker compose build auth-rust
+docker compose build task-rust
+# ...
+```
+
+**方法 2: `COMPOSE_PARALLEL_LIMIT` で並列数を制限する**
+
+```bash
+# 並列ビルド数を 3 に制限して全サービスをビルドする
+COMPOSE_PARALLEL_LIMIT=3 docker compose build
+
+# .env に恒久設定する場合
+echo "COMPOSE_PARALLEL_LIMIT=3" >> .env
+```
+
+> `COMPOSE_PARALLEL_LIMIT` は Docker Compose v2 でサポートされる環境変数。デフォルト値は 64（事実上無制限）。
+
+**方法 3: Docker Desktop のメモリ割り当てを増やす**
+
+```
+Docker Desktop → Settings → Resources → Memory: 16 GB 以上
+```
+
+8 GB では全並列ビルドには不足する場合がある。WSL2 の場合は `.wslconfig` も合わせて増やすこと（セクション 2 参照）。
+
+**方法 4: 開発中は `docker compose pull` を優先する**
+
+CI/CD でビルド済みのイメージを使用することで、ローカルビルドを避けられる。
+
+```bash
+# レジストリから最新イメージを取得する（ビルド不要）
+docker compose pull
+docker compose up -d
+```
+
+---
+
 ## 関連ドキュメント
 
 - [Windows クイックスタート](./windows-quickstart.md) — 3 つのセットアップ方法と手順

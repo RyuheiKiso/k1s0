@@ -1,7 +1,34 @@
 # Kubernetes 監査ポリシー設定（AuditPolicy）
 # API サーバーへのリクエストを監査ログとして記録するポリシーを定義する。
 # セキュリティインシデントの追跡、コンプライアンス要件への対応、不審な操作の検出を目的とする。
-# kube-apiserver 起動オプション --audit-policy-file に本ファイルを指定すること。
+#
+# ===========================================================================
+# kube-apiserver への適用手順（L-02 監査対応）:
+#   セルフホスト Kubernetes の場合:
+#     1. このファイルを全 Master ノードにコピーする
+#        sudo cp audit-policy.yaml /etc/kubernetes/audit-policy.yaml
+#
+#     2. /etc/kubernetes/manifests/kube-apiserver.yaml に以下の起動オプションを追加する
+#        --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+#        --audit-log-path=/var/log/kubernetes/audit.log
+#        --audit-log-maxage=30
+#        --audit-log-maxbackup=10
+#        --audit-log-maxsize=100
+#
+#     3. kube-apiserver の自動再起動を確認する（静的 Pod は変更後自動で再起動される）
+#        kubectl get pod -n kube-system kube-apiserver-<node-name>
+#
+#     4. 監査ログが出力されているか確認する
+#        tail -f /var/log/kubernetes/audit.log
+#
+#   マネージド Kubernetes（EKS / GKE / AKS）の場合:
+#     各プロバイダーの監査ログ機能を使用すること（このファイルの直接適用は不要）。
+#     - EKS: CloudWatch Logs での Kubernetes 監査ログを有効化
+#     - GKE: Cloud Audit Logs（Data Access 監査ログ）を有効化
+#     - AKS: Azure Monitor の診断設定でクラスタ監査ログを有効化
+#
+# 詳細手順: docs/infrastructure/kubernetes/kubernetes設計.md（デプロイ前チェックリスト）
+# ===========================================================================
 #
 # 監査レベルの定義:
 #   None        - 記録しない

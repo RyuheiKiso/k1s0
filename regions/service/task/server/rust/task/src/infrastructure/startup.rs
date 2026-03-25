@@ -129,6 +129,8 @@ pub async fn run() -> anyhow::Result<()> {
         update_checklist_item_uc,
         delete_checklist_item_uc,
         metrics: metrics.clone(),
+        // readyz ハンドラ用に db_pool を渡す（SELECT 1 疎通確認で使用する）
+        db_pool: db_pool.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);

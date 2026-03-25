@@ -7,14 +7,27 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let filter = crate::domain::entity::task::TaskFilter::default();
-    // ヘルスチェック用途のため tenant_id は "system" を使用する
-    let ok = state.list_tasks_uc.execute("system", &filter).await.is_ok();
-    let status = if ok { StatusCode::OK } else { StatusCode::SERVICE_UNAVAILABLE };
-    (status, Json(serde_json::json!({
-        "status": if ok { "ready" } else { "not_ready" },
-        "checks": { "postgres": if ok { "ok" } else { "error" } }
-    })))
+    // DB 疎通確認には単純な SELECT 1 を使用する。
+    // ビジネスロジック経由の確認は RLS や UC の副作用の影響を受けるため禁止する。
+    match sqlx::query("SELECT 1").execute(&state.db_pool).await {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "ready",
+                "checks": { "postgres": "ok" }
+            })),
+        ),
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: DB ping failed");
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "status": "not_ready",
+                    "checks": { "postgres": "error" }
+                })),
+            )
+        }
+    }
 }
 
 pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {

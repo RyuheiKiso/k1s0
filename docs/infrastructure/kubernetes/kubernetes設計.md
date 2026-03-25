@@ -775,6 +775,57 @@ resources:
 
 ---
 
+## デプロイ前チェックリスト（セルフホスト Kubernetes）
+
+本番クラスタへのデプロイ前に以下の項目を必ず確認すること。
+
+### L-01: etcd 暗号化キー生成・適用（L-01 監査対応）
+
+`infra/kubernetes/security/encryption-config.yaml` の `<REPLACE_WITH_BASE64_32BYTE_KEY>` プレースホルダーを実際のキーに置き換えること。
+
+```bash
+# 32 バイトのランダムキーを生成して base64 エンコードする
+head -c 32 /dev/urandom | base64
+# 出力例: abc123...（43 文字の base64 文字列）
+```
+
+1. 上記コマンドで生成したキーを `encryption-config.yaml` の `secret` に設定する
+2. キーは Vault の `secret/data/k1s0/infra/etcd-encryption-key` に保存し、CI/CD で注入する
+3. **プレースホルダー値 `<REPLACE_WITH_BASE64_32BYTE_KEY>` のままデプロイしないこと**
+
+キーローテーション手順:
+1. 新キーを `providers` の先頭に追加し、旧キーを末尾に残す
+2. kube-apiserver を再起動して新キーで新規書き込みを行う
+3. `kubectl get secrets --all-namespaces -o json | kubectl replace -f -` で既存 Secret を再暗号化する
+4. 全 Secret の再暗号化完了後、旧キーを削除する
+
+### L-02: 監査ポリシー適用（L-02 監査対応）
+
+`infra/kubernetes/security/audit-policy.yaml` を kube-apiserver に適用すること。
+
+```bash
+# 1. ファイルを全 Master ノードにコピーする
+sudo cp infra/kubernetes/security/audit-policy.yaml /etc/kubernetes/audit-policy.yaml
+
+# 2. kube-apiserver の静的 Pod マニフェストに以下の起動オプションを追加する
+# /etc/kubernetes/manifests/kube-apiserver.yaml を編集する:
+#   --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+#   --audit-log-path=/var/log/kubernetes/audit.log
+#   --audit-log-maxage=30
+#   --audit-log-maxbackup=10
+#   --audit-log-maxsize=100
+
+# 3. kube-apiserver の自動再起動を確認する（静的 Pod は変更後自動で再起動される）
+kubectl get pod -n kube-system kube-apiserver-<node-name>
+
+# 4. 監査ログが出力されているか確認する
+tail -f /var/log/kubernetes/audit.log | head -20
+```
+
+> **マネージド Kubernetes（EKS / GKE / AKS）の場合**: 各プロバイダーの監査ログ機能（CloudWatch Logs / Cloud Audit Logs / Azure Monitor）を使用すること。`audit-policy.yaml` の直接適用は不要。
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture](../../architecture/overview/tier-architecture.md)

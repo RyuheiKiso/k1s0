@@ -15,8 +15,8 @@ database:
   name: k1s0_service
   schema: activity_service
   user: k1s0
-  # ローカル開発環境のパスワード（init-db/00-create-app-user.sql で設定）
-  password: "changeme_in_production"
+  # ローカル開発環境のパスワード（init-db/00-create-app-user.sql で設定。init-db の K1S0_DB_PASSWORD デフォルト値と一致させること）
+  password: "dev-k1s0-local"
   ssl_mode: disable
   max_connections: 25
   max_idle_conns: 5

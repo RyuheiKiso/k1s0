@@ -126,8 +126,8 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      # event-monitor 専用 DB は未作成のため k1s0_system を共用する
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
+      # event_monitor スキーマは k1s0_system 内に配置する（18-event-monitor-schema.sql で作成）
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_system?sslmode=disable
 
   event-store-rust:
     <<: *dev-auth-bypass
@@ -216,3 +216,36 @@ services:
 
   ai-agent-rust:
     <<: *dev-auth-bypass
+
+  # ============================================================
+  # Service プロファイル — 認証バイパス有効化 + DATABASE_URL
+  # C-01 監査対応: サービスティアは docker-compose.dev.yaml に記載がなかったため
+  # dev-auth-bypass と DATABASE_URL を明示的に設定する。
+  # k1s0 ユーザーのパスワードは init-db/00-create-app-user.sh のデフォルト値と一致させる。
+  # ============================================================
+  task-rust:
+    <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+
+  board-rust:
+    <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+
+  activity-rust:
+    <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+
+  # ============================================================
+  # Business プロファイル — 認証バイパス有効化 + DATABASE_URL
+  # ============================================================
+  project-master-rust:
+    <<: *dev-auth-bypass
+    environment:
+      - ALLOW_INSECURE_NO_AUTH=true
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_business?sslmode=disable
