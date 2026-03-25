@@ -20,3 +20,7 @@
 # Test artifacts
 **/test-results/
 **/coverage/
+
+# 各サービスの統合テストコード（ビルドコンテキスト削減のため除外）
+# 注: ソースの tests/ モジュール（src/tests/）は除外しないこと
+**/tests/

@@ -476,6 +476,20 @@ pub fn router(state: AppState) -> Router {
 - `acks=all`、`message.timeout.ms=5000`
 - メッセージキー: イベントの `task_id` フィールド
 
+#### Outbox パターン実装状況と k1s0-outbox 移行計画（SUP-06）
+
+**現在の実装**:
+`TaskPostgresRepository::create` がトランザクション内で `tasks` テーブルへの INSERT と同時に `outbox_events` テーブルへ直接書き込んでいる。Outbox イベントのポーリング・Kafka 送信はリポジトリ実装内の独自ロジックで行っている。
+
+**移行 TODO**:
+`Cargo.toml` に `k1s0-outbox` への依存が追加済みである。`k1s0-outbox::OutboxEventPoller` へ移行することで以下が保証される。
+
+- Transactional Outbox パターンの完全な整合性保証
+- Kafka への At-Least-Once 配信保証
+- ポーリング間隔・リトライ戦略の一元管理
+
+移行が完了するまでは、現在の `outbox_events` への直接書き込み方式を維持する。
+
 ---
 
 ## テスト

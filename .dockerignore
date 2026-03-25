@@ -14,6 +14,18 @@
 # Docs (not needed for builds)
 docs/
 
+# CLI ソースコード（サーバービルドに不要）
+CLI/
+
+# GitHub Actions（コンテナイメージ内不要）
+.github/
+
+# スクリプト群（ビルドに不要）
+scripts/
+
+# タスク管理ファイル（ビルドに不要）
+tasks/
+
 # Flutter build artifacts
 **/.dart_tool/
 **/build/

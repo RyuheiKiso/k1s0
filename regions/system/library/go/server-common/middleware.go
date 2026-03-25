@@ -1,7 +1,9 @@
 package servercommon
 
 import (
+	"log/slog"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/google/uuid"
 )
@@ -58,10 +60,20 @@ func CORSMiddleware(allowedOrigins []string) MiddlewareFunc {
 }
 
 // RecoveryMiddleware はパニックをリカバリして 500 を返すミドルウェア。
+// パニック値とスタックトレースを構造化ログに出力し、障害調査を容易にする。
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
+				// パニックの詳細とスタックトレースを構造化ログに出力する
+				requestID := r.Header.Get("X-Request-ID")
+				slog.Error("handler panic recovered",
+					"panic", rec,
+					"stack", string(debug.Stack()),
+					"request_id", requestID,
+					"method", r.Method,
+					"path", r.URL.Path,
+				)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()

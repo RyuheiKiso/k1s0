@@ -13,7 +13,8 @@ database:
   port: 5432
   name: "workflow_db"
   user: "dev"
-  password: "dev"
+  # パスワードは環境変数から取得し、未設定時は開発用デフォルト値 "dev" を使用する
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"
   max_open_conns: 10
 

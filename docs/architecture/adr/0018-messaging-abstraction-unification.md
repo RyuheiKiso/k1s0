@@ -63,3 +63,10 @@ k1s0 モノリポには現在、同種のメッセージング抽象を提供す
 - [可観測性設計.md](../observability/可観測性設計.md) — メッセージング基盤と可観測性の統合方針
 - [ADR-0017: Kong OIDC プラグイン移行](./0017-kong-oidc-migration.md) — 依存ライブラリ統一の先行事例
 - Outbox パターン実装: `regions/service/task/server/rust/task/src/infrastructure/outbox_poller.rs`
+
+## 実装進捗
+
+- [x] messaging ライブラリを正規実装として指定
+- [x] building-blocks, event-bus, bb-pubsub を DEPRECATED マーキング（各 `Cargo.toml` の `description` フィールドに明記）
+- [ ] 既存サービスの building-blocks/event-bus 依存を messaging に移行
+- [ ] building-blocks, event-bus, bb-pubsub ライブラリのアーカイブ

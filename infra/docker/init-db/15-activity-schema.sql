@@ -59,3 +59,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA activity_service GRANT SELECT, INSERT, UPDATE
 -- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
 ALTER TABLE activity_service.activities OWNER TO k1s0;
 ALTER TABLE activity_service.outbox_events OWNER TO k1s0;
+
+-- SQLxマイグレーション実行時の_sqlx_migrationsテーブル作成に必要なスキーマ内CREATE権限を付与する
+GRANT CREATE ON DATABASE k1s0_service TO k1s0;

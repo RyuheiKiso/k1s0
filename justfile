@@ -361,6 +361,9 @@ docker-build:
     for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
         server_name="$(basename "$(dirname "$dockerfile")")"
         if [ "$server_name" = "graphql-gateway" ]; then
+            # graphql-gateway はリポジトリルートをビルドコンテキストとする例外サービス
+            # 理由: tonic-build が api/proto ディレクトリへのアクセスを必要とするため
+            # 詳細: regions/system/server/rust/graphql-gateway/Dockerfile の冒頭コメントを参照
             start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" .
         else
             start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system

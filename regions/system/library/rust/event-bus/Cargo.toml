@@ -1,6 +1,8 @@
 [package]
 name = "k1s0-event-bus"
 version = "0.1.0"
+# このクレートは非推奨です。ADR-0018 に従い k1s0-messaging を使用してください。
+description = "DEPRECATED: Use k1s0-messaging instead. See ADR-0018."
 edition = "2021"
 
 [features]

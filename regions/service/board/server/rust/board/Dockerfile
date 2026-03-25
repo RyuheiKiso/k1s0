@@ -1,7 +1,7 @@
 # chef ベースステージ: cargo-chef とビルド依存のインストール
 # Note: build context is repo root (to include system library dependencies)
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
 
 # cargo-chef のインストール（依存キャッシュ用）
@@ -46,12 +46,12 @@ RUN if [ -n "${CARGO_FEATURES}" ]; then \
     fi
 
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM busybox@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213 AS busybox
 
 # Runtime stage
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM gcr.io/distroless/cc-debian12@sha256:7e5b8df2f4d36f5599ef4ab856d7d444922531709becb03f3368c6d797d0a5eb
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1

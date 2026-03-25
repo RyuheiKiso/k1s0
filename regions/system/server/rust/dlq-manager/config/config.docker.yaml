@@ -11,7 +11,7 @@ server:
 database:
   host: postgres
   port: 5432
-  name: k1s0_system
+  name: dlq_db
   user: dev
   password: "${DB_PASSWORD:-dev}"
   ssl_mode: disable

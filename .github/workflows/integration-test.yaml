@@ -74,7 +74,7 @@ jobs:
       # サービスコンテナ専用であり、テスト完了後に自動破棄される。
       # 本番環境の認証情報は GitHub Secrets / Vault 経由で管理する。
       postgres:
-        image: postgres:17.2
+        image: postgres:17.4
         env:
           POSTGRES_USER: dev
           POSTGRES_PASSWORD: dev
@@ -226,7 +226,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.2
+        image: postgres:17.4
         env:
           POSTGRES_USER: dev
           POSTGRES_PASSWORD: dev
@@ -364,7 +364,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17.2
+        image: postgres:17.4
         env:
           POSTGRES_USER: dev
           POSTGRES_PASSWORD: dev

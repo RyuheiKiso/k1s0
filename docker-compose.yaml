@@ -409,6 +409,9 @@ services:
   # ============================================================
   # System プロファイル
   # ============================================================
+  # system プロファイルのサービスは infra プロファイルの postgres/kafka/keycloak に depends_on する
+  # そのため単独の --profile system ではなく --profile infra --profile system を同時に指定する必要がある
+  # 推奨: just local-up を使用
   auth-rust:
     build:
       context: ./regions/system

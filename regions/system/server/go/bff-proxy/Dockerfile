@@ -1,7 +1,7 @@
 # Build stage
 # go.mod の要求バージョン（go 1.26.1）と整合性を保つため golang@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 を使用する
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM golang@sha256:2389ebfa5b7f43eeafbd6be0c3700cc46690ef842ad962f6c5bd6be49ed82039 AS builder
 
 RUN apk add --no-cache ca-certificates git
@@ -19,12 +19,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bff-proxy ./cmd/serve
 
 # ヘルスチェック用の busybox（distroless には wget/curl が存在しないため）
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM busybox@sha256:3c6ae8008e2c2eedd141725c30b20d9c36b026eb796688f88205845ef17aa213 AS busybox
 
 # Runtime stage
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM gcr.io/distroless/static-debian12@sha256:a9329520abc449e3b14d5bc3a6ffae065bdde0f02667fa10880c49b35c109fd1
 
 COPY --from=builder /bff-proxy /bff-proxy

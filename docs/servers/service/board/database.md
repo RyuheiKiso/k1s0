@@ -268,7 +268,9 @@ CREATE TRIGGER trg_board_columns_updated_at
 
 ## DB 初期化スクリプト
 
-Docker Compose による開発環境起動時に `infra/docker/init-db/16-board-schema.sql` を実行してスキーマを初期化する。
+Docker Compose による開発環境起動時に `infra/docker/init-db/14-board-schema.sql` を実行してスキーマを初期化する。
+
+SQLx マイグレーションが `_sqlx_migrations` テーブルをスキーマ内に作成できるよう、`GRANT CREATE ON DATABASE k1s0_service TO k1s0;` を付与している（CRIT-03 対応）。
 
 ---
 

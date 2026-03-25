@@ -24,14 +24,39 @@
 | business      | business tier のサーバー・クライアント・DB  |
 | service       | service tier のサーバー・クライアント・DB   |
 
+### プロファイル依存チェーン（HIGH-01 対応）
+
+プロファイル間には暗黙の依存関係がある。各プロファイルのサービスは下位プロファイルのサービスに `depends_on` を持つため、**依存先のプロファイルを同時に指定しないとコンテナが起動しない**。
+
+```
+infra → system → business → service
+```
+
+| 起動したいプロファイル | 必要な --profile 指定 |
+| --- | --- |
+| infra のみ | `--profile infra` |
+| system | `--profile infra --profile system` |
+| business | `--profile infra --profile system --profile business` |
+| service | `--profile infra --profile system --profile business --profile service` |
+
+> **注意**: `--profile system` のみを指定して起動すると、`depends_on` で参照する `postgres`・`kafka`・`keycloak`（infra プロファイル）が存在せずエラーになる。必ず依存先のプロファイルを含めて起動すること。
+
+**推奨**: `just local-up` を使用する。`justfile` が `--profile infra --profile system` を自動的に付与する（`_dc_profiles` 変数）。
+
 ### 使用例
 
 ```bash
+# 推奨: just local-up を使用（--profile infra --profile system を自動適用）
+just local-up
+
 # インフラのみ起動（DB・Redis・Kafka）
 docker compose --profile infra up -d
 
 # インフラ + 可観測性
 docker compose --profile infra --profile observability up -d
+
+# infra + system（手動起動例）
+docker compose --profile infra --profile system up -d
 
 # 全サービス起動
 docker compose --profile infra --profile observability --profile system --profile business --profile service up -d
