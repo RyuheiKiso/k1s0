@@ -433,9 +433,10 @@ fn test_go_server_rest_dockerfile() {
     let (tmp, _) = render_server("go", "rest", false, "", false, false);
     let content = read_output(&tmp, "Dockerfile");
 
-    assert!(content.contains("FROM golang:1.24-bookworm AS builder"));
+    // Dockerfileテンプレートはサプライチェーン攻撃対策のため SHA ダイジェスト形式を使用する
+    assert!(content.contains("FROM golang@sha256:"));
     assert!(content.contains("CGO_ENABLED=0 GOOS=linux go build -trimpath"));
-    assert!(content.contains("FROM gcr.io/distroless/static-debian12"));
+    assert!(content.contains("FROM gcr.io/distroless/static-debian12@sha256:"));
     assert!(content.contains("EXPOSE 8080"));
     assert!(content.contains("USER nonroot:nonroot"));
     assert!(content.contains("ENTRYPOINT [\"/server\"]"));
@@ -966,9 +967,10 @@ fn test_rust_server_rest_dockerfile() {
     let (tmp, _) = render_server("rust", "rest", false, "", false, false);
     let content = read_output(&tmp, "Dockerfile");
 
-    assert!(content.contains("FROM rust:1.93-bookworm AS chef"));
+    // Dockerfileテンプレートはサプライチェーン攻撃対策のため SHA ダイジェスト形式を使用する
+    assert!(content.contains("FROM rust@sha256:"));
     assert!(content.contains("cargo build --release"));
-    assert!(content.contains("FROM gcr.io/distroless/cc-debian12"));
+    assert!(content.contains("FROM gcr.io/distroless/cc-debian12@sha256:"));
     assert!(content.contains("/app/target/release/task-api /task-api"));
     assert!(content.contains("EXPOSE 8080"));
     assert!(content.contains("USER nonroot:nonroot"));

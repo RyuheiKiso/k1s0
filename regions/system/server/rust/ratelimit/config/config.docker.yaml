@@ -12,9 +12,11 @@ database:
   port: 5432
   name: ratelimit_db
   user: dev
-  password: "dev"
+  # パスワードは環境変数から取得し、未設定時は開発用デフォルト値 "dev" を使用する
+  password: "${DB_PASSWORD:-dev}"
   ssl_mode: disable
 
 # Redis 接続設定: requirepass が有効なため認証情報を含む URL を使用する
+# Redis パスワードは環境変数から取得し、未設定時は開発用デフォルト値 "dev" を使用する
 redis:
-  url: "redis://:dev@redis:6379"
+  url: "redis://:${REDIS_PASSWORD:-dev}@redis:6379"

@@ -15,9 +15,10 @@
 # See: docs/architecture/api/APIゲートウェイ設計.md（環境別構成セクション）
 #
 # rate-limiting 共通設定（各サービスの rate-limiting config から継承できないため個別に記載）:
-#   redis_host: redis.k1s0-system.svc.cluster.local
-#   redis_database: 1          （デフォルト 0 から変更）
-#   redis_password: ${KONG_REDIS_PASSWORD}
+#   redis:
+#     host: redis.k1s0-system.svc.cluster.local
+#     database: 1          （デフォルト 0 から変更）
+#     password: ${KONG_REDIS_PASSWORD}
 #   fault_tolerant: false      （デフォルト true から変更: DDoS 耐性維持のため Redis 障害時もリミット強制）
 _format_version: "3.0"
 
@@ -33,9 +34,10 @@ services:
           minute: ${KONG_RATE_SYSTEM_MINUTE}
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
     routes:
       - name: auth-v1-route
@@ -51,9 +53,10 @@ services:
             config:
               minute: 30                  # ブルートフォース防止（REST-API設計.md 参照）
               policy: ${KONG_RATE_REDIS_POLICY}
-              redis_host: redis.k1s0-system.svc.cluster.local
-              redis_database: 1
-              redis_password: ${KONG_REDIS_PASSWORD}
+              redis:
+                host: redis.k1s0-system.svc.cluster.local
+                database: 1
+                password: ${KONG_REDIS_PASSWORD}
               fault_tolerant: false
 
   - name: config-v1
@@ -64,9 +67,10 @@ services:
           minute: ${KONG_RATE_SYSTEM_MINUTE}
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
     routes:
       - name: config-v1-route
@@ -82,9 +86,10 @@ services:
           minute: ${KONG_RATE_SYSTEM_MINUTE}
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
     routes:
       - name: master-v1-route
@@ -111,9 +116,10 @@ services:
           minute: ${KONG_RATE_SYSTEM_MINUTE}
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
       - name: jwt
         config:
@@ -139,9 +145,10 @@ services:
           minute: ${KONG_RATE_SYSTEM_MINUTE}
           second: ${KONG_RATE_SYSTEM_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
       - name: jwt
         config:
@@ -165,9 +172,10 @@ services:
           minute: ${KONG_RATE_SERVICE_MINUTE}
           second: ${KONG_RATE_SERVICE_SECOND}
           policy: ${KONG_RATE_REDIS_POLICY}
-          redis_host: redis.k1s0-system.svc.cluster.local
-          redis_database: 1
-          redis_password: ${KONG_REDIS_PASSWORD}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
     routes:
       - name: dashboard-v1-route
@@ -186,9 +194,10 @@ plugins:
       minute: ${KONG_RATE_SERVICE_MINUTE}   # デフォルト（service Tier）
       second: ${KONG_RATE_SERVICE_SECOND}   # 秒あたりの上限（バースト制御）
       policy: ${KONG_RATE_REDIS_POLICY}     # Redis で共有状態を管理
-      redis_host: redis.k1s0-system.svc.cluster.local
-      redis_database: 1
-      redis_password: ${KONG_REDIS_PASSWORD}
+      redis:
+        host: redis.k1s0-system.svc.cluster.local
+        database: 1
+        password: ${KONG_REDIS_PASSWORD}
       fault_tolerant: false                 # Redis 障害時もレートリミットを強制（DDoS 耐性維持）
       hide_client_headers: false            # X-RateLimit-* ヘッダーを返却
 

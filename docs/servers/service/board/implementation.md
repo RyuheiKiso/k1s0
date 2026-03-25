@@ -341,6 +341,20 @@ pub fn router(state: AppState) -> Router {
 - `decrement`: `UPDATE board_columns SET task_count = GREATEST(task_count - 1, 0), version = version + 1 WHERE ...`。task_count が 0 を下回らないよう `GREATEST` を使用
 - `upsert`: `INSERT ... ON CONFLICT (project_id, status_code) DO UPDATE SET ...`
 
+#### Outbox パターン実装状況と k1s0-outbox 移行計画（SUP-06）
+
+**現在の実装**:
+`increment` / `decrement` ユースケース内でボードカラム更新と同時に `outbox_events` テーブルへ直接書き込む方式を採用している（Outbox pattern）。ポーリング・Kafka 送信はリポジトリ実装内の独自ロジックで行っている。
+
+**移行 TODO**:
+`k1s0-outbox::OutboxEventPoller` への移行が TODO として残っている。移行することで以下が保証される。
+
+- Transactional Outbox パターンの完全な整合性保証（Kafka との結果整合性）
+- ポーリング間隔・リトライ戦略の一元管理
+- At-Least-Once 配信保証の標準化
+
+移行が完了するまでは、現在の `outbox_events` への直接書き込み方式を維持する。
+
 ---
 
 ## テスト

@@ -7,6 +7,9 @@ CREATE SCHEMA IF NOT EXISTS task_service;
 -- タスクテーブル（タスクの基本情報を管理する）
 CREATE TABLE IF NOT EXISTS task_service.tasks (
     id            UUID         PRIMARY KEY,
+    -- project_id は project_master スキーマの projects.id を論理的に参照するが FK 制約は設けない（SM-1 監査対応）
+    -- マイクロサービス境界（異なるデータベース/スキーマ）をまたぐ FK は DB 制約で強制できないため、
+    -- アプリケーション層（task ユースケース）で project の存在確認を実施する設計とする。
     project_id    TEXT         NOT NULL,
     title         TEXT         NOT NULL,
     description   TEXT,
@@ -87,5 +90,8 @@ ALTER TABLE task_service.tasks OWNER TO k1s0;
 ALTER TABLE task_service.task_checklist_items OWNER TO k1s0;
 ALTER TABLE task_service.outbox_events OWNER TO k1s0;
 
--- sqlx がスキーマを作成できるように CREATE 権限を付与する
+-- sqlx が k1s0_service 内に新規スキーマを作成できるように DATABASE レベルの CREATE 権限を付与する
 GRANT CREATE ON DATABASE k1s0_service TO k1s0;
+-- sqlx マイグレーションが task_service スキーマ内に _sqlx_migrations テーブルを作成できるように
+-- スキーマレベルの CREATE 権限を付与する（GRANT CREATE ON DATABASE とは別物）（C-2 監査対応）
+GRANT CREATE ON SCHEMA task_service TO k1s0;

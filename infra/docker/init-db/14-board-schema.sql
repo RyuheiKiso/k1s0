@@ -15,7 +15,12 @@ CREATE TABLE IF NOT EXISTS board_service.board_columns (
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_board_columns_project_status UNIQUE (project_id, status_code),
-    CONSTRAINT chk_task_count CHECK (task_count >= 0)
+    CONSTRAINT chk_task_count CHECK (task_count >= 0),
+    -- wip_limit は 0（無制限）または正の整数のみ許可する（SL-2 監査対応）
+    CONSTRAINT chk_wip_limit CHECK (wip_limit >= 0),
+    -- wip_limit が 0 以外の場合、task_count は wip_limit を超えてはならない
+    -- アプリケーション層でも検証するが、DB 制約で二重に防御する
+    CONSTRAINT chk_task_count_within_wip_limit CHECK (wip_limit = 0 OR task_count <= wip_limit)
 );
 
 CREATE INDEX IF NOT EXISTS idx_board_columns_project_id ON board_service.board_columns(project_id);
@@ -53,3 +58,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA board_service GRANT SELECT, INSERT, UPDATE, D
 -- sqlx マイグレーションが ALTER TABLE を実行できるようにテーブルオーナーを k1s0 に変更する
 ALTER TABLE board_service.board_columns OWNER TO k1s0;
 ALTER TABLE board_service.outbox_events OWNER TO k1s0;
+
+-- sqlx が k1s0_service 内に新規スキーマを作成できるように DATABASE レベルの CREATE 権限を付与する
+GRANT CREATE ON DATABASE k1s0_service TO k1s0;
+-- sqlx マイグレーションが board_service スキーマ内に _sqlx_migrations テーブルを作成できるように
+-- スキーマレベルの CREATE 権限を付与する（GRANT CREATE ON DATABASE とは別物）（C-2 監査対応）
+GRANT CREATE ON SCHEMA board_service TO k1s0;

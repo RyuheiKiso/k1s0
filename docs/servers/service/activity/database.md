@@ -298,7 +298,9 @@ CREATE TRIGGER trg_activities_updated_at
 
 ## DB 初期化スクリプト
 
-Docker Compose による開発環境起動時に `infra/docker/init-db/17-activity-schema.sql` を実行してスキーマを初期化する。
+Docker Compose による開発環境起動時に `infra/docker/init-db/15-activity-schema.sql` を実行してスキーマを初期化する。
+
+SQLx マイグレーションが `_sqlx_migrations` テーブルをスキーマ内に作成できるよう、`GRANT CREATE ON DATABASE k1s0_service TO k1s0;` を付与している（CRIT-03 対応）。
 
 ---
 

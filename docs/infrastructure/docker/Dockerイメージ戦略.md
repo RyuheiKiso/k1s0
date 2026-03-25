@@ -147,6 +147,43 @@ harbor.internal.example.com/{プロジェクト}/{サービス名}:{タグ}
 | k1s0-service    | service tier のサーバー・クライアント |
 | k1s0-infra      | カスタムインフライメージ        |
 
+## ビルドコンテキスト最適化（CRIT-02 対応）
+
+### 問題
+
+`regions/system/server/rust/` の全 Rust サービス（27 サービス）をビルドする際、ビルドコンテキストに全サービスのソースコードが含まれると転送量が 3 GB を超える。
+
+### 方針
+
+`.dockerignore` の二層構成で不要ファイルをコンテキストから除外する。
+
+| ファイル | 役割 |
+| --- | --- |
+| リポジトリルート `.dockerignore` | `graphql-gateway` のリポジトリルートビルド時に適用 |
+| `regions/system/.dockerignore` | system tier サービス（`context: ./regions/system`）のビルド時に適用 |
+
+### リポジトリルート `.dockerignore` 除外項目
+
+| 除外パス | 理由 |
+| --- | --- |
+| `CLI/` | Rust CLI ソースはサーバービルドに不要 |
+| `.github/` | GitHub Actions 定義はコンテナ内に不要 |
+| `scripts/` | ビルドスクリプトはコンテナ内に不要 |
+| `tasks/` | タスク管理ファイルはコンテナ内に不要 |
+| `docs/` | ドキュメントはコンテナ内に不要 |
+
+**注意:** `graphql-gateway` は `api/proto` を必要とするため、`api/` ディレクトリは除外してはならない。
+
+### `regions/system/.dockerignore` 除外項目
+
+| 除外パス | 理由 |
+| --- | --- |
+| `**/tests/` | 統合テストコードはランタイムイメージに不要（ソースの `src/tests/` は除外対象外） |
+
+### ADR 参照
+
+Dockerfile テンプレート戦略については [ADR-0035](../../architecture/adr/0035-dockerfile-template-strategy.md) を参照。
+
 ## ベースイメージ ダイジェスト固定（H-05 対応）
 
 ### 目的
@@ -186,10 +223,23 @@ bash scripts/pin-docker-digests.sh
 bash scripts/pin-docker-digests.sh --dry-run
 ```
 
-### CI/CD での定期更新
+### CI/CD での自動更新（MED-06 対応）
 
-- 週次 cron ジョブ等で `scripts/pin-docker-digests.sh` を定期実行し、PR を自動作成する運用を推奨する
-- Renovate / Dependabot の Docker ダイジェスト更新機能を活用してもよい
+ダイジェスト固定の自動更新は `.github/workflows/pin-docker-digests.yaml` で実装済みである。
+
+| 項目 | 内容 |
+| --- | --- |
+| 実行頻度 | 毎週月曜日 09:00 UTC（日本時間 18:00） |
+| 実行内容 | `scripts/pin-docker-digests.sh` でダイジェストを更新し、変更があれば PR を自動作成 |
+| ブランチ | `chore/pin-docker-digests` |
+| ラベル | `security`, `automated` |
+| 手動実行 | `workflow_dispatch` イベントで任意タイミングに実行可能 |
+
+全 Dockerfile の TODO コメントは以下の形式に統一されている。
+
+```dockerfile
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
+```
 
 ## セキュリティ
 
@@ -284,6 +334,7 @@ docker buildx build \
 
 ## 関連ドキュメント
 
+- [ADR-0035: Dockerfile テンプレート戦略](../../architecture/adr/0035-dockerfile-template-strategy.md) — 27 サービス個別 Dockerfile 維持の決定理由
 - [CI-CD設計](../cicd/CI-CD設計.md)
 - [helm設計](../kubernetes/helm設計.md)
 - [devcontainer設計](../devenv/devcontainer設計.md)

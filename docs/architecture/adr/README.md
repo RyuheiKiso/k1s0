@@ -36,6 +36,7 @@
 | [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
 | [ADR-0029](./0029-postgresql-ha-strategy.md) | PostgreSQL HA 戦略 | 承認済み |
 | [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 提案中 |
+| [ADR-0035](./0035-dockerfile-template-strategy.md) | Dockerfile テンプレート戦略（27 サービス個別 Dockerfile の維持方針） | 承認済み |
 
 ## ADR の追加方法
 

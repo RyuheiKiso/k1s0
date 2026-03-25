@@ -451,6 +451,10 @@ kong:
     KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
     KONG_PROXY_LISTEN: "0.0.0.0:8000"
     KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    # Status API はメトリクス・ヘルスチェックのみ提供（設定変更不可）
+    # Docker 内部ネットワーク限定でホストへの ports 公開なし
+    # Admin API（127.0.0.1:8001）とは異なり全 NIC バインドが安全
+    KONG_STATUS_LISTEN: "0.0.0.0:8100"
     KONG_PROXY_ACCESS_LOG: /dev/stdout
     KONG_ADMIN_ACCESS_LOG: /dev/stdout
     KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -459,6 +463,7 @@ kong:
   ports:
     - "8000:8000"    # Proxy
     - "8001:8001"    # Admin API
+    # Status API（8100）は ports に含めず Docker 内部ネットワークのみに限定する
   volumes:
     - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
   healthcheck:
@@ -467,6 +472,8 @@ kong:
     timeout: 5s
     retries: 3
 ```
+
+> **セキュリティ注記（Status API）**: `KONG_STATUS_LISTEN: "0.0.0.0:8100"` は全 NIC にバインドするが、`ports` セクションに 8100 を含めないことでホストへの公開を防止している。Status API はメトリクス取得（`/metrics`）とヘルスチェック（`/status`）のみを提供し、設定変更機能を持たないため、Docker 内部ネットワーク限定であれば全 NIC バインドは安全である。Prometheus は Docker ネットワーク内から直接 `kong:8100/metrics` にアクセスする。
 
 ### kong.yaml と kong.dev.yaml の使い分け
 

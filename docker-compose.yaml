@@ -161,6 +161,9 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
+      # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     ports:
       - "${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
@@ -180,6 +183,9 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
+      # 開発用途に十分な256mに制限してメモリ過剰消費を防止する。
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
     ports:
       - "${KAFKA_UI_HOST_PORT:-8090}:8080"
     # ヘルスチェック: Kafka UI の actuator エンドポイントで起動完了を確認する（M-4 対応）
@@ -218,6 +224,9 @@ services:
       # ホスト側は下記 ports 設定で 127.0.0.1:${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081 に限定しており、外部ネットワークへの露出は発生しない。
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
       SCHEMA_REGISTRY_SCHEMA_REGISTRY_LEADER_CONNECT_TIMEOUT_MS: 120000
+      # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
+      # 開発用途に十分な256mに制限してメモリ過剰消費を防止する。
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms128m -Xmx256m"
     ports:
       # ローカルホストのみにバインドし、共用開発サーバーでの外部アクセスを防止する（H-5 対応）
       - "127.0.0.1:${SCHEMA_REGISTRY_HOST_PORT:-8081}:8081"
@@ -267,6 +276,9 @@ services:
       KC_TEST_ADMIN_PASSWORD: ${KC_TEST_ADMIN_PASSWORD:?KC_TEST_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       KC_TEST_USER_PASSWORD: ${KC_TEST_USER_PASSWORD:?KC_TEST_USER_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
       KC_TEST_TASK_MGR_PASSWORD: ${KC_TEST_TASK_MGR_PASSWORD:?KC_TEST_TASK_MGR_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
+      # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
+      JAVA_OPTS_APPEND: "-Xms256m -Xmx512m"
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
     command: ["start-dev", "--import-realm"]
     ports:
@@ -278,7 +290,9 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'UP'"]
+      # Keycloak 26.x では /health がプライマリエンドポイント（/health/ready はサブエンドポイント）
+      # L-04 監査対応: /health/ready → /health に統一する
+      test: ["CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'UP'"]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -409,6 +423,9 @@ services:
   # ============================================================
   # System プロファイル
   # ============================================================
+  # system プロファイルのサービスは infra プロファイルの postgres/kafka/keycloak に depends_on する
+  # そのため単独の --profile system ではなく --profile infra --profile system を同時に指定する必要がある
+  # 推奨: just local-up を使用
   auth-rust:
     build:
       context: ./regions/system
@@ -1250,13 +1267,12 @@ services:
     cap_drop:
       - ALL
     volumes:
-      # docker.sock マウント: ホストのコンテナログを収集するために必要（M-8 対応）
-      # [セキュリティリスク] docker.sock は Docker デーモンへの完全アクセス権を持つ。
-      # 本番環境では以下の代替案を検討すること:
-      #   1. Fluentd/Fluent Bit: DaemonSet + hostPath で /var/lib/docker/containers をマウント
-      #   2. Kubernetes: Pod ログを直接収集（docker.sock 不要）
-      #   3. syslog ドライバー: Docker ログドライバーを syslog に変更して Promtail 不要化
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # docker.sock を廃止し /var/lib/docker/containers を直接マウントする（SC-2/M-5 監査対応）
+      # docker.sock はホスト Docker デーモンへの完全アクセス権を持つため使用しない。
+      # /var/lib/docker/containers は Docker Desktop on Windows（Linux VM 内）でも利用可能であり
+      # Windows 環境で /var/log/containers が存在しない問題も同時に解消する。
+      # 詳細は docs/architecture/adr/0036-promtail-log-collection-strategy.md を参照。
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./infra/docker/promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
     command: -config.file=/etc/promtail/config.yaml
     # H-02監査対応: grafana/promtail:2.9.0 イメージに wget も nc も含まれていないため、

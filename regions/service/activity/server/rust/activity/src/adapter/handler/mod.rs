@@ -21,6 +21,8 @@ pub struct AppState {
     pub approve_activity_uc: Arc<usecase::approve_activity::ApproveActivityUseCase>,
     pub reject_activity_uc: Arc<usecase::reject_activity::RejectActivityUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    /// readyz ハンドラ用の DB 接続プール（SELECT 1 による疎通確認に使用する）
+    pub db_pool: sqlx::PgPool,
     /// 認証状態。None の場合は認証なし（dev/test 環境のみ許可）
     pub auth_state: Option<AuthState>,
 }

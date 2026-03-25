@@ -3,10 +3,19 @@
 # AES-CBC 方式（aescbc）で暗号化し、etcd への不正アクセス時の情報漏洩を防ぐ。
 # kube-apiserver 起動オプション --encryption-provider-config に本ファイルを指定すること。
 #
-# 重要: 本ファイルの providers[].aescbc.keys[].secret は
-# 実際の運用では Vault や Secret Manager から注入し、リポジトリへのコミットを禁止すること。
-# secret の値は base64 エンコードされた 32 バイトのランダムキーを使用すること。
-# 例: head -c 32 /dev/urandom | base64
+# ===========================================================================
+# WARNING: このファイルにはプレースホルダー値が含まれている。
+#          <REPLACE_WITH_BASE64_32BYTE_KEY> のまま本番環境にデプロイしないこと。
+#
+# 本番デプロイ前に以下を必ず実施すること（L-01 監査対応）:
+#   1. 32 バイトのランダムキーを生成する:
+#      head -c 32 /dev/urandom | base64
+#   2. 生成したキーを Vault の secret/data/k1s0/infra/etcd-encryption-key に保存する
+#   3. CI/CD パイプラインで Vault からキーを注入してこのファイルを生成する
+#   4. 生成したキーをリポジトリにコミットしないこと
+#
+# 詳細手順: docs/infrastructure/kubernetes/kubernetes設計.md（デプロイ前チェックリスト）
+# ===========================================================================
 #
 # 参考: https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/
 apiVersion: apiserver.config.k8s.io/v1

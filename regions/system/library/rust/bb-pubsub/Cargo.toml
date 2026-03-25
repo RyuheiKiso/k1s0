@@ -1,6 +1,8 @@
 [package]
 name = "k1s0-bb-pubsub"
 version = "0.1.0"
+# このクレートは非推奨です。ADR-0018 に従い k1s0-messaging を使用してください。
+description = "DEPRECATED: Use k1s0-messaging instead. See ADR-0018."
 # Rustエディション: プロジェクト全体で統一した edition = "2021" を使用する（ADR-0013参照）
 edition = "2021"
 rust-version = "1.93"

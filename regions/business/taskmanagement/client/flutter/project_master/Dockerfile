@@ -2,7 +2,7 @@
 
 # ステージ1: Flutterビルド環境でWebアプリをビルドする
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM ghcr.io/cirruslabs/flutter@sha256:eeef49aa71066f71c5b53962ff957f6edd84949da6496ea432f7f455db220b08 AS builder
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN flutter build web --release
 
 # ステージ2: nginx上でビルド成果物を配信する
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
-# TODO(ops): CI/CDパイプラインでダイジェスト固定を自動化すること（Renovate/Dependabot + docker inspect --format="{{index .RepoDigests 0}}"）
+# ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM nginx@sha256:f46cb72c7df02710e693e863a983ac42f6a9579058a59a35f1ae36c9958e4ce0
 
 # 非rootユーザーでnginxを実行するためのセキュリティ設定

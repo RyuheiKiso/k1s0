@@ -4,7 +4,7 @@ expression: sorted
 ---
 - README.md
 - analysis_options.yaml
-- lib/order-lib.dart
-- lib/src/order_lib.dart
+- lib/src/task_lib.dart
+- lib/task-lib.dart
 - pubspec.yaml
-- test/order_lib_test.dart
+- test/task_lib_test.dart

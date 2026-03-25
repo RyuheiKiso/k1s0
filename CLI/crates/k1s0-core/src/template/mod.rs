@@ -977,7 +977,8 @@ mod tests {
         let grpc_content =
             fs::read_to_string(output_dir.join("internal/adapter/handler/grpc_handler.go"))
                 .unwrap();
-        assert!(grpc_content.contains("// gRPC for OrderApi"));
+        // テストコンテキストのサービス名 "task-api" を pascal_case 変換した値と一致させる
+        assert!(grpc_content.contains("// gRPC for TaskApi"));
     }
 
     #[test]

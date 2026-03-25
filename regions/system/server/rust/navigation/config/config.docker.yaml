@@ -10,10 +10,6 @@ server:
   port: 8080
   grpc_port: 50051
 
-database:
-  host: "postgres"
-  port: 5432
-  name: "navigation_db"
-  user: "dev"
-  password: "dev"
-  ssl_mode: "disable"
+# database セクションは削除済み
+# navigation サーバーは DB を使用しない（YAML ファイルから直接ルート設定を読み込む）
+# 誤って DB 接続コードが追加された場合の serde_yaml 変数非展開バグを防ぐため削除する（M-2 監査対応）

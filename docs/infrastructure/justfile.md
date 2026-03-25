@@ -102,6 +102,27 @@ just proto
 
 ## 技術監査対応の改善事項
 
+### graphql-gateway Docker ビルドの例外処理（MED-03 / LOW-04 対応）
+
+`docker-build` レシピは全 Rust サービスを `context: regions/system` でビルドするが、`graphql-gateway` のみリポジトリルート（`.`）をビルドコンテキストとする例外がある。
+
+| サービス | ビルドコンテキスト | 理由 |
+| --- | --- | --- |
+| graphql-gateway 以外の全 Rust サービス | `regions/system` | サービス範囲内のソースのみで完結する |
+| `graphql-gateway` | `.`（リポジトリルート） | `tonic-build` が `api/proto` ディレクトリを参照するため |
+
+```bash
+# graphql-gateway は特別なビルドコンテキストを使用
+docker build -f regions/system/server/rust/graphql-gateway/Dockerfile \
+  -t k1s0-graphql-gateway .
+
+# その他の全 Rust サービスは regions/system をコンテキストとする
+docker build -f regions/system/server/rust/auth/Dockerfile \
+  -t k1s0-auth regions/system
+```
+
+`docker-compose.yaml` では `graphql-gateway-rust` サービスの `build.context` が `'.'` に設定されており、この挙動と一致している。詳細は `regions/system/server/rust/graphql-gateway/Dockerfile` の冒頭コメントを参照。
+
 ### `local-up` コマンドの修正（C-02 対応）
 
 `just local-up` が `docker-compose.dev.yaml` を使用せず、`KEYCLOAK_ADMIN_PASSWORD` 等の必須環境変数が未定義でエラーになる問題を修正した。

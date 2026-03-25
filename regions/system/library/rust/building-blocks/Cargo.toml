@@ -1,6 +1,8 @@
 [package]
 name = "k1s0-building-blocks"
 version = "0.1.0"
+# このクレートは非推奨です。ADR-0018 に従い k1s0-messaging を使用してください。
+description = "DEPRECATED: Use k1s0-messaging instead. See ADR-0018."
 # ワークスペース全体の標準 edition に統一する
 edition = "2021"
 rust-version = "1.93"

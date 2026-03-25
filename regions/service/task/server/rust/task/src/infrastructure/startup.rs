@@ -6,6 +6,7 @@ use std::time::Duration;
 use tracing::info;
 use anyhow::Context;
 use tonic::transport::Server;
+use tower_http::limit::RequestBodyLimitLayer;
 
 use crate::adapter;
 use crate::infrastructure;
@@ -128,6 +129,8 @@ pub async fn run() -> anyhow::Result<()> {
         update_checklist_item_uc,
         delete_checklist_item_uc,
         metrics: metrics.clone(),
+        // readyz ハンドラ用に db_pool を渡す（SELECT 1 疎通確認で使用する）
+        db_pool: db_pool.clone(),
         auth_state: auth_state.clone(),
     };
     let app = handler::router(state);
@@ -158,6 +161,9 @@ pub async fn run() -> anyhow::Result<()> {
             .await
             .map_err(|e| anyhow::anyhow!("gRPC error: {}", e))
     };
+
+    // 大きなリクエストボディによるメモリ枯渇攻撃を防ぐため、最大2MBに制限する
+    let app = app.layer(RequestBodyLimitLayer::new(2 * 1024 * 1024));
 
     let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port).parse()?;
     info!("REST server listening on {}", rest_addr);

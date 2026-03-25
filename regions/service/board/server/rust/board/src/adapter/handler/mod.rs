@@ -20,6 +20,8 @@ pub struct AppState {
     pub list_board_columns_uc: Arc<usecase::list_board_columns::ListBoardColumnsUseCase>,
     pub update_wip_limit_uc: Arc<usecase::update_wip_limit::UpdateWipLimitUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
+    /// readyz ハンドラ用の DB 接続プール（SELECT 1 による疎通確認に使用する）
+    pub db_pool: sqlx::PgPool,
     /// 認証状態。None の場合は認証なし（dev/test 環境のみ許可）
     pub auth_state: Option<AuthState>,
 }

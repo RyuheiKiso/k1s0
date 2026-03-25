@@ -605,6 +605,68 @@ pub trait ServerApp: Send + Sync + 'static {
 
 ---
 
+## readyz ハンドラの実装パターン {#readyz-pattern}
+
+K8s の `readinessProbe` から呼び出される `/readyz` エンドポイントは、**単純な DB ping のみで疎通を確認する**こと。ビジネスロジック（ユースケース）経由の確認は禁止する。
+
+### 禁止パターン（ビジネスロジック経由）
+
+```rust
+// NG: list_tasks_uc.execute() はテナント RLS の影響を受け、
+//     エラー詳細がログに記録されず診断不能になる
+let ok = state.list_tasks_uc.execute("system", &filter).await.is_ok();
+```
+
+### 正しいパターン（SELECT 1 ping）
+
+```rust
+// AppState に db_pool: sqlx::PgPool フィールドを追加する
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    // DB 疎通確認には単純な SELECT 1 を使用する
+    match sqlx::query("SELECT 1").execute(&state.db_pool).await {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "ready",
+                "checks": { "postgres": "ok" }
+            })),
+        ),
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: DB ping failed");
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({
+                    "status": "not_ready",
+                    "checks": { "postgres": "error" }
+                })),
+            )
+        }
+    }
+}
+```
+
+startup.rs での `AppState` 構築時に `db_pool: db_pool.clone()` を追加すること。
+
+---
+
+## config.docker.yaml の注意事項（serde_yaml の制約） {#config-docker-yaml}
+
+`serde_yaml` はシェル変数展開 (`${VAR:-default}`) を行わない。`config.docker.yaml` に `"${KC_ADMIN_PASSWORD:-dev}"` のような値を設定すると、リテラル文字列として読み込まれる。
+
+**ルール**:
+- 開発環境の `config.docker.yaml` には具体的な dev 用デフォルト値を直接記載する
+- データベース接続には `DATABASE_URL` 環境変数を docker-compose.dev.yaml でオーバーライドし、startup.rs の DATABASE_URL 優先パスを利用する
+- Keycloak の `admin_password` / `client_secret` 等は docker-compose.dev.yaml からの env override パスが存在しないため、`config.docker.yaml` に直接 dev 用デフォルト値を記載する
+
+```yaml
+# config.docker.yaml — 正しい記述
+keycloak:
+  admin_password: "dev"          # OK: serde_yaml が展開できる直値
+  # admin_password: "${KC_ADMIN_PASSWORD:-dev}"  # NG: リテラル文字列になる
+```
+
+---
+
 ## 関連ドキュメント
 
 - [system-server.md](../auth/server.md) -- auth-server 設計（参考実装）
