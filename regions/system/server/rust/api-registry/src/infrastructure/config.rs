@@ -1,3 +1,5 @@
+// secrecy クレートを使用してデータベースパスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -58,7 +60,8 @@ pub struct DatabaseConfig {
     pub port: u16,
     pub name: String,
     pub user: String,
-    pub password: String,
+    // パスワードは Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    pub password: Secret<String>,
     #[serde(default = "default_ssl_mode")]
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
@@ -83,10 +86,11 @@ fn default_conn_max_lifetime_secs() -> u64 {
 }
 
 impl DatabaseConfig {
+    // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
-            self.user, self.password, self.host, self.port, self.name, self.ssl_mode
+            self.user, self.password.expose_secret(), self.host, self.port, self.name, self.ssl_mode
         )
     }
 }
@@ -246,6 +250,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    // Secret::new() で平文パスワードをラップしてテスト用の DatabaseConfig を構築する
     #[test]
     fn test_database_config_connection_url() {
         let db = DatabaseConfig {
@@ -253,7 +258,7 @@ mod tests {
             port: 5432,
             name: "testdb".to_string(),
             user: "user".to_string(),
-            password: "pass".to_string(),
+            password: Secret::new("pass".to_string()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 10,
             max_idle_conns: 5,

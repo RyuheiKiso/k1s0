@@ -136,6 +136,7 @@ mod tests {
                     .collect(),
             ),
             tier_access: Some(tier_access.into_iter().map(String::from).collect()),
+            tenant_id: String::new(),
         }
     }
 
@@ -280,6 +281,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert!(!has_tier_access(&claims, "system"));
@@ -347,6 +349,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert!(validate_tier_access(&claims, "system").is_err());

@@ -167,6 +167,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         let s = format!("{}", claims);
@@ -192,6 +193,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.audience(), Some("aud1"));
@@ -217,6 +219,7 @@ mod tests {
             }),
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.realm_roles(), &["user", "admin"]);
@@ -248,6 +251,7 @@ mod tests {
             realm_access: None,
             resource_access: Some(ra),
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.resource_roles("task-server"), &["read", "write"]);

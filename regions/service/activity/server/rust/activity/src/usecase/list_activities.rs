@@ -108,7 +108,7 @@ mod tests {
 
         mock.expect_find_all()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection failed").into()));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter::default();
@@ -129,7 +129,7 @@ mod tests {
             .returning(move |_, _| Ok(items.clone()));
         mock.expect_count()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("count query failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("count query failed").into()));
 
         let uc = ListActivitiesUseCase::new(Arc::new(mock));
         let filter = ActivityFilter {

@@ -46,6 +46,13 @@ pub(crate) fn resolve_template_dir(base_dir: &Path) -> PathBuf {
         return sibling_cli_templates;
     }
 
+    // テンプレートディレクトリが見つからなかった場合に警告を出力する
+    // ユーザーがテンプレートなしでのインライン生成であることを認識できるようにする
+    eprintln!(
+        "警告: テンプレートディレクトリが見つかりません。インライン生成にフォールバックします。\
+        \nWarning: Template directory not found, falling back to inline generation."
+    );
+
     // 最終フォールバック
     base_dir
         .join("CLI")
@@ -97,6 +104,14 @@ pub(crate) fn render_scaffold_preview(
 ) -> Result<PathBuf> {
     let output_path = build_output_path(config, base_dir);
     fs::create_dir_all(&output_path)?;
+
+    // テンプレートディレクトリが存在しない場合はインライン生成にフォールバックする
+    if !template_dir.exists() {
+        eprintln!(
+            "警告: テンプレートディレクトリ '{}' が存在しません。インライン生成を使用します。",
+            template_dir.display()
+        );
+    }
 
     // テンプレートエンジンでの生成を試みる
     let template_generated = if template_dir.exists() {

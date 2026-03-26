@@ -89,3 +89,13 @@ GRANT CREATE ON DATABASE k1s0_business TO k1s0;
 -- sqlx マイグレーションが project_master スキーマ内に _sqlx_migrations テーブルを作成できるように
 -- スキーマレベルの CREATE 権限を付与する（GRANT CREATE ON DATABASE とは別物）（C-2 監査対応）
 GRANT CREATE ON SCHEMA project_master TO k1s0;
+
+-- tenant_project_extensions テーブルにテナント分離 RLS を設定する（C-1 監査対応）
+-- project_types / status_definitions はテナント横断共有マスタのため RLS 対象外
+ALTER TABLE project_master.tenant_project_extensions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_isolation ON project_master.tenant_project_extensions;
+CREATE POLICY tenant_isolation ON project_master.tenant_project_extensions
+    USING (tenant_id = current_setting('app.current_tenant_id', true)::TEXT);
+
+-- スーパーユーザーも含む全ユーザーに RLS を強制する
+ALTER TABLE project_master.tenant_project_extensions FORCE ROW LEVEL SECURITY;

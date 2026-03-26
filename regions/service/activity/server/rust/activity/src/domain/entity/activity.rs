@@ -215,4 +215,85 @@ mod tests {
         };
         assert!(input.validate().is_ok());
     }
+
+    // ActivityType の文字列変換が全バリアントで正常に動作することを検証する
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_activity_type_roundtrip() {
+        let variants = [
+            (ActivityType::Comment, "comment"),
+            (ActivityType::TimeEntry, "time_entry"),
+            (ActivityType::StatusChange, "status_change"),
+            (ActivityType::Assignment, "assignment"),
+        ];
+        for (activity_type, s) in &variants {
+            assert_eq!(activity_type.as_str(), *s);
+            let parsed: ActivityType = s.parse().unwrap();
+            assert_eq!(parsed, *activity_type);
+            assert_eq!(format!("{}", activity_type), *s);
+        }
+    }
+
+    // 無効な文字列から ActivityType への変換がエラーを返すことを検証する
+    #[test]
+    fn test_activity_type_invalid_input() {
+        let result: Result<ActivityType, _> = "invalid_type".parse();
+        assert!(result.is_err());
+        let result: Result<ActivityType, _> = "".parse();
+        assert!(result.is_err());
+        // 大文字は無効（大文字小文字を区別する）
+        let result: Result<ActivityType, _> = "Comment".parse();
+        assert!(result.is_err());
+    }
+
+    // ActivityStatus::can_transition_to() が全ての状態遷移の組み合わせで正しく動作することを検証する
+    #[test]
+    fn test_activity_status_transition_matrix() {
+        // 有効な遷移: Active→Submitted
+        assert!(ActivityStatus::Active.can_transition_to(&ActivityStatus::Submitted));
+        // 有効な遷移: Submitted→Approved
+        assert!(ActivityStatus::Submitted.can_transition_to(&ActivityStatus::Approved));
+        // 有効な遷移: Submitted→Rejected
+        assert!(ActivityStatus::Submitted.can_transition_to(&ActivityStatus::Rejected));
+        // 有効な遷移: Rejected→Active（差し戻し後の再提出を許可）
+        assert!(ActivityStatus::Rejected.can_transition_to(&ActivityStatus::Active));
+
+        // 無効な遷移: Active から Approved/Rejected へは直接遷移不可
+        assert!(!ActivityStatus::Active.can_transition_to(&ActivityStatus::Approved));
+        assert!(!ActivityStatus::Active.can_transition_to(&ActivityStatus::Rejected));
+        // 無効な遷移: Approved は終端状態
+        assert!(!ActivityStatus::Approved.can_transition_to(&ActivityStatus::Active));
+        assert!(!ActivityStatus::Approved.can_transition_to(&ActivityStatus::Submitted));
+        assert!(!ActivityStatus::Approved.can_transition_to(&ActivityStatus::Rejected));
+        // 無効な遷移: Rejected から直接 Submitted/Approved へは遷移不可
+        assert!(!ActivityStatus::Rejected.can_transition_to(&ActivityStatus::Submitted));
+        assert!(!ActivityStatus::Rejected.can_transition_to(&ActivityStatus::Approved));
+        // 無効な遷移: Submitted から Active への逆戻りは不可
+        assert!(!ActivityStatus::Submitted.can_transition_to(&ActivityStatus::Active));
+    }
+
+    // ActivityError の Display メッセージが期待通りの形式であることを検証する
+    #[test]
+    fn test_activity_error_display() {
+        // NotFound エラーには ID が含まれること
+        let err = ActivityError::NotFound("activity-456".to_string());
+        assert!(err.to_string().contains("activity-456"));
+
+        // InvalidStatusTransition エラーには from/to のステータス文字列が含まれること
+        let err = ActivityError::InvalidStatusTransition {
+            from: ActivityStatus::Approved.to_string(),
+            to: ActivityStatus::Active.to_string(),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("approved"));
+        assert!(msg.contains("active"));
+
+        // ValidationFailed エラーには検証メッセージが含まれること
+        let err = ActivityError::ValidationFailed("duration_minutes is required".to_string());
+        assert!(err.to_string().contains("duration_minutes is required"));
+
+        // DuplicateIdempotencyKey エラーには冪等性キーが含まれること
+        let err = ActivityError::DuplicateIdempotencyKey("key-xyz".to_string());
+        assert!(err.to_string().contains("key-xyz"));
+    }
 }

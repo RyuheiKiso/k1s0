@@ -2,7 +2,7 @@
 // RLS テナント分離のため、各 DB 操作の先頭で SET LOCAL app.current_tenant_id を発行する。
 // 冪等性キーによる重複チェック付き。Transactional Outbox パターンで outbox テーブルへ書き込む。
 // 戻り値型は ActivityError（クリーンアーキテクチャ準拠。anyhow::Error は ActivityError::Infrastructure に変換する）。
-use crate::domain::entity::activity::{Activity, ActivityFilter, ActivityStatus, ActivityType, CreateActivity};
+use crate::domain::entity::activity::{Activity, ActivityFilter, CreateActivity};
 use crate::domain::error::ActivityError;
 use crate::domain::repository::activity_repository::ActivityRepository;
 use async_trait::async_trait;

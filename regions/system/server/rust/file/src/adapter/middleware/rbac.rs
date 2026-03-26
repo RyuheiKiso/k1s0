@@ -115,6 +115,7 @@ mod tests {
             }),
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         }
     }
 

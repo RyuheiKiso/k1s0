@@ -60,6 +60,7 @@ service tier のタスク管理サーバーは以下の機能を提供する。
 | POST | `/api/v1/tasks` | タスク作成 | `task:write` |
 | GET | `/api/v1/tasks` | タスク一覧取得（フィルター付き） | `task:read` |
 | GET | `/api/v1/tasks/{task_id}` | タスク詳細取得（チェックリスト含む） | `task:read` |
+| GET | `/api/v1/tasks/{task_id}/checklist` | チェックリスト一覧取得 | `task:read` |
 | PUT | `/api/v1/tasks/{task_id}` | タスク更新（タイトル・説明・担当者・優先度・期限） | `task:write` |
 | PUT | `/api/v1/tasks/{task_id}/status` | タスクステータス遷移 | `task:write` |
 | POST | `/api/v1/tasks/{task_id}/checklist` | チェックリストアイテム追加 | `task:write` |
@@ -124,6 +125,38 @@ service tier のタスク管理サーバーは以下の機能を提供する。
   "updated_at": "2026-03-22T00:00:00+00:00"
 }
 ```
+
+#### GET /api/v1/tasks/{task_id}/checklist
+
+指定されたタスクのチェックリストアイテム一覧を取得する。
+
+**パスパラメータ**
+
+| パラメータ | 型 | 説明 |
+| --- | --- | --- |
+| `task_id` | string (UUID) | タスク ID |
+
+**レスポンス**
+
+```json
+[
+  {
+    "id": "uuid",
+    "task_id": "uuid",
+    "title": "チェックリストアイテムのタイトル",
+    "completed": false,
+    "created_at": "2026-01-01T00:00:00Z",
+    "updated_at": "2026-01-01T00:00:00Z"
+  }
+]
+```
+
+| HTTP Status | 条件 |
+| --- | --- |
+| 200 OK | 取得成功（空配列の場合も 200） |
+| 401 Unauthorized | 認証トークンが無効または未設定 |
+| 403 Forbidden | `task:read` 権限がない |
+| 404 Not Found | 指定されたタスクが存在しない |
 
 #### PUT /api/v1/tasks/{task_id}
 

@@ -19,6 +19,8 @@ tower-http = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+# パスワード等の機密情報を Secret<T> でラップしてログ・デバッグ出力から隠蔽する
+secrecy = { workspace = true }
 sqlx = { workspace = true, features = ["migrate"] }
 uuid = { workspace = true }
 chrono = { workspace = true }

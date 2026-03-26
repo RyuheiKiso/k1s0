@@ -91,6 +91,7 @@ mod tests {
                 },
             )])),
             tier_access: Some(vec!["system".to_string(), "business".to_string()]),
+            tenant_id: String::new(),
         };
 
         let server_claims = convert_claims(lib_claims);
@@ -141,6 +142,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         let server_claims = convert_claims(lib_claims);

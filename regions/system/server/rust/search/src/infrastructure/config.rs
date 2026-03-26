@@ -1,3 +1,5 @@
+// secrecy クレートを使用して OpenSearch パスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
+use secrecy::Secret;
 use serde::Deserialize;
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
@@ -85,8 +87,9 @@ pub struct OpenSearchConfig {
     pub url: String,
     #[serde(default)]
     pub username: String,
-    #[serde(default)]
-    pub password: String,
+    // パスワードは Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    // パスワードは必須項目のため serde(default) を設定しない（Secret<String> は Default 未実装）
+    pub password: Secret<String>,
     #[serde(default = "default_index_prefix")]
     pub index_prefix: String,
     /// TLS 証明書検証を無効化するフラグ。本番環境では false を設定すること。

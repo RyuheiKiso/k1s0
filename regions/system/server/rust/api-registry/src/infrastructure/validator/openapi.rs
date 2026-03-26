@@ -36,7 +36,10 @@ impl SchemaValidator for OpenApiSubprocessValidator {
                 if output.status.success() {
                     Ok(vec![])
                 } else {
-                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    // バリデーターの標準エラー出力を UTF-8 でパースする。
+                    // 非 UTF-8 バイトが含まれる場合はサイズ情報をフォールバックメッセージとして使用する。
+                    let stderr = String::from_utf8(output.stderr)
+                        .unwrap_or_else(|e| format!("(non-UTF-8 stderr: {} bytes)", e.into_bytes().len()));
                     let errors = stderr
                         .lines()
                         .filter(|l| !l.trim().is_empty())

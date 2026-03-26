@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,17 +15,18 @@ import (
 // H-1対応: BFF Proxy に明示的な Origin ホワイトリストを設定し、
 // Web UI からの異オリジンリクエストを安全に受け付ける。
 // 許可外のオリジンからのリクエストはCORSヘッダーを付与せず、ブラウザに拒否させる。
-func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
+func CORSMiddleware(cfg config.CORSConfig) (gin.HandlerFunc, error) {
 	// CORSが無効の場合はパススルー
 	if !cfg.Enabled {
-		return func(c *gin.Context) { c.Next() }
+		return func(c *gin.Context) { c.Next() }, nil
 	}
 
 	// ワイルドカード "*" が指定されている場合は起動を阻止する（SH-2 監査対応）
 	// "*" を許可すると全オリジンからのリクエストが通過し、CSRF 等の攻撃に対して脆弱になる。
+	// log.Fatalf の代わりに error を返すことで、defer 登録済みのクリーンアップ関数が確実に実行される。
 	for _, o := range cfg.AllowOrigins {
 		if o == "*" {
-			log.Fatalf("CORS設定エラー: AllowOrigins にワイルドカード '*' は使用できません。明示的なオリジンを指定してください。")
+			return nil, fmt.Errorf("CORS設定エラー: AllowOrigins にワイルドカード '*' は使用できません。明示的なオリジンを指定してください")
 		}
 	}
 
@@ -85,5 +86,5 @@ func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 		}
 
 		c.Next()
-	}
+	}, nil
 }

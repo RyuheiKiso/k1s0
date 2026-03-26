@@ -49,6 +49,7 @@ fn build_claims(
                 .collect(),
         ),
         tier_access: Some(tier_access.into_iter().map(String::from).collect()),
+        tenant_id: String::new(),
     }
 }
 
@@ -69,6 +70,7 @@ fn build_minimal_claims(sub: &str) -> Claims {
         realm_access: None,
         resource_access: None,
         tier_access: None,
+        tenant_id: String::new(),
     }
 }
 
@@ -326,6 +328,7 @@ fn claims_audience_returns_first_audience() {
         realm_access: None,
         resource_access: None,
         tier_access: None,
+        tenant_id: String::new(),
     };
     assert_eq!(claims.audience(), Some("aud1"));
 }

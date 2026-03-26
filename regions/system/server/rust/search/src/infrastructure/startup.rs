@@ -1,4 +1,6 @@
 use anyhow::Context;
+// OpenSearch パスワードを expose_secret() で取り出すために使用する
+use secrecy::ExposeSecret;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -56,7 +58,8 @@ pub async fn run() -> anyhow::Result<()> {
         let repo = SearchOpenSearchRepository::new(
             &os_cfg.url,
             &os_cfg.username,
-            &os_cfg.password,
+            // expose_secret() で OpenSearch パスワードを取り出す。接続後は保持しない。
+            os_cfg.password.expose_secret(),
             &os_cfg.index_prefix,
             os_cfg.tls_insecure,
         )?;
