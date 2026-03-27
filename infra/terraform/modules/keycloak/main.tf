@@ -10,8 +10,10 @@ terraform {
 }
 
 provider "keycloak" {
-  client_id = "admin-cli"
-  url       = var.keycloak_url
+  client_id     = "admin-cli"
+  # H-13 監査対応: admin-cli クライアントシークレットをハードコードせず変数から注入する
+  client_secret = var.keycloak_client_secret
+  url           = var.keycloak_url
 }
 
 resource "keycloak_realm" "k1s0" {

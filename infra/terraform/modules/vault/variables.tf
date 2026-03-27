@@ -65,4 +65,9 @@ variable "ldap_bind_password" {
   description = "LDAP bind password for Vault authentication"
   type        = string
   sensitive   = true
+  validation {
+    # LDAP バインドパスワードは空文字と短すぎるパスワードを拒否する（H-14 監査対応）
+    condition     = length(var.ldap_bind_password) >= 8
+    error_message = "ldap_bind_password は8文字以上である必要があります。"
+  }
 }

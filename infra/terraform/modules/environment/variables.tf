@@ -105,11 +105,7 @@ variable "kafka_broker_replicas" {
   default     = 1
 }
 
-variable "zookeeper_replicas" {
-  description = "ZooKeeper のレプリカ数"
-  type        = number
-  default     = 1
-}
+# M-19 監査対応: zookeeper_replicas 変数を削除。KRaft モード移行済み（ADR-0016 参照）。
 
 variable "kafka_default_replication_factor" {
   description = "Kafka トピックのデフォルトレプリケーションファクター"

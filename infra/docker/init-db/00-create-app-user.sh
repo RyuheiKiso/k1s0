@@ -16,6 +16,8 @@ set -e
 psql -v ON_ERROR_STOP=1 \
   --username "${POSTGRES_USER:-postgres}" \
   --dbname "${POSTGRES_DB:-postgres}" <<-EOSQL
-    CREATE ROLE k1s0 WITH LOGIN PASSWORD '${K1S0_DB_PASSWORD:-dev-k1s0-local}'
+    -- :? 演算子により未設定時はスクリプトが即座に異常終了する（C-6 監査対応）
+    -- デフォルトパスワードを排除し、環境変数が必ず設定されていることを保証する
+    CREATE ROLE k1s0 WITH LOGIN PASSWORD '${K1S0_DB_PASSWORD:?'K1S0_DB_PASSWORD must be set'}'
       NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 EOSQL

@@ -7,9 +7,11 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"html"
 	"log/slog"
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -52,9 +54,12 @@ type AuthHandler struct {
 
 // NewAuthHandler は AuthHandler を生成する。
 // oauthClient と sessionStore を受け取り、AuthUseCase を内部で構築する。
+// exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化ストアで、
+// session.RedisStore または session.EncryptedStore を渡す（H-5 監査対応）。
 func NewAuthHandler(
 	oauthClient OAuthClient,
 	sessionStore port.SessionStore,
+	exchangeCodeStore port.ExchangeCodeStore,
 	sessionTTL time.Duration,
 	postLogoutURI string,
 	secureCookie bool,
@@ -62,7 +67,7 @@ func NewAuthHandler(
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
-		authUseCase:   usecase.NewAuthUseCase(oauthClient, sessionStore),
+		authUseCase:   usecase.NewAuthUseCase(oauthClient, sessionStore, exchangeCodeStore),
 		sessionTTL:    sessionTTL,
 		postLogoutURI: postLogoutURI,
 		secureCookie:  secureCookie,
@@ -116,14 +121,17 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 	verifier, _ := c.Cookie(verifierCookieName)
 
 	// IdP からのエラーレスポンスを確認する
+	// M-8 監査対応: error_description を HTML エスケープ + 256 文字制限でサニタイズしてから
+	// ログ出力およびレスポンスに使用する（未サニタイズでの情報露出・XSS リスクを排除する）
 	if errCode := c.Query("error"); errCode != "" {
+		sanitizedDesc := sanitizeErrorDescription(c.Query("error_description"))
 		h.logger.Warn("OIDC callback error",
 			slog.String("error", errCode),
-			slog.String("description", c.Query("error_description")),
+			slog.String("description", sanitizedDesc),
 		)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error":       "BFF_AUTH_IDP_ERROR",
-			"description": c.Query("error_description"),
+			"description": sanitizedDesc,
 			"request_id":  middleware.GetRequestID(c),
 		})
 		return
@@ -196,13 +204,29 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		sessionID = ""
 	}
 
-	out, _ := h.authUseCase.Logout(c.Request.Context(), usecase.LogoutInput{
+	// H-6 監査対応: Logout エラーを無視せずログに記録する。
+	// ログアウト失敗はユーザー体験に影響しないが（Cookie クリアとリダイレクトは続行する）、
+	// 監視・デバッグのために警告ログを出力する。
+	out, err := h.authUseCase.Logout(c.Request.Context(), usecase.LogoutInput{
 		SessionID:     sessionID,
 		PostLogoutURI: h.postLogoutURI,
 	})
+	if err != nil {
+		h.logger.Warn("Logout エラー（ユーザー体験への影響なし）", "error", err)
+	}
 
-	// セッション Cookie をクリアする
+	// セッション Cookie をクリアする（Logout エラーに関わらず必ずクリアする）
 	c.SetCookie(CookieName, "", -1, "/", h.cookieDomain, h.secureCookie, true)
+
+	// out が nil の場合（Logout エラー時）はフォールバック URI にリダイレクトする
+	if out == nil {
+		if h.postLogoutURI != "" {
+			c.Redirect(http.StatusFound, h.postLogoutURI)
+		} else {
+			c.JSON(http.StatusOK, gin.H{"status": "logged_out"})
+		}
+		return
+	}
 
 	// IdP ログアウト URL が構築できた場合はリダイレクトする
 	if out.IdPLogoutURL != "" {
@@ -319,4 +343,17 @@ func generateRandomString(n int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+// sanitizeErrorDescription は IdP から受け取った error_description をサニタイズする（M-8 監査対応）。
+// XSS 攻撃防止のために HTML エスケープを適用し、
+// ログやレスポンスへの過剰な情報露出を防ぐために 256 文字に切り詰める。
+func sanitizeErrorDescription(desc string) string {
+	// ルーン境界で安全に 256 文字に切り詰める
+	if utf8.RuneCountInString(desc) > 256 {
+		runes := []rune(desc)
+		desc = string(runes[:256])
+	}
+	// HTML エスケープにより XSS インジェクションを防止する
+	return html.EscapeString(desc)
 }

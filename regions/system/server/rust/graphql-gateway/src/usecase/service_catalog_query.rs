@@ -1,16 +1,19 @@
+// service-catalog クエリリゾルバ。
+// service-catalog は REST のみ提供するため ServiceCatalogHttpClient を使用する。
+
 use std::sync::Arc;
 
 use tracing::instrument;
 
 use crate::domain::model::{CatalogServiceConnection, ServiceHealth};
-use crate::infrastructure::grpc::ServiceCatalogGrpcClient;
+use crate::infrastructure::http::ServiceCatalogHttpClient;
 
 pub struct ServiceCatalogQueryResolver {
-    client: Arc<ServiceCatalogGrpcClient>,
+    client: Arc<ServiceCatalogHttpClient>,
 }
 
 impl ServiceCatalogQueryResolver {
-    pub fn new(client: Arc<ServiceCatalogGrpcClient>) -> Self {
+    pub fn new(client: Arc<ServiceCatalogHttpClient>) -> Self {
         Self { client }
     }
 

@@ -12,6 +12,13 @@ container:
 service:
   grpcPort: 50051
 
+# L-10 監査対応: gRPC サービスのヘルスチェックを有効化する。
+# gRPC サービスは HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用すること。
+# Kubernetes の livenessProbe/readinessProbe が gRPC 経由でコンテナの健全性を確認する。
+probes:
+  grpcHealthCheck:
+    enabled: true
+
 vault:
   enabled: true
   role: "system"

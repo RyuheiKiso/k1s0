@@ -93,16 +93,17 @@ func CreateExpiredSession(subject, csrfToken string) *session.SessionData {
 	})
 }
 
-// CreateExchangeCodeEntry はワンタイム交換コードのセッションエントリを生成するヘルパー。
+// CreateExchangeCodeEntry はワンタイム交換コードのエントリを生成するヘルパー（H-5 監査対応）。
 // モバイルフローの /auth/exchange エンドポイントのテストで使用する。
+// H-5 監査対応: SessionData.AccessToken を流用せず、ExchangeCodeData 専用型を使用する。
 // realSessionID には実際のセッション ID を指定する。
-func CreateExchangeCodeEntry(realSessionID string, ttl time.Duration) *session.SessionData {
+func CreateExchangeCodeEntry(realSessionID string, ttl time.Duration) *session.ExchangeCodeData {
 	if ttl == 0 {
 		ttl = 60 * time.Second
 	}
-	return &session.SessionData{
-		// 交換コードエントリでは AccessToken フィールドに実セッション ID を格納する（auth_usecase.go の仕様）
-		AccessToken: realSessionID,
-		ExpiresAt:   time.Now().Add(ttl).Unix(),
+	return &session.ExchangeCodeData{
+		// SessionID フィールドに実セッション ID を格納する（意味論的に正確）
+		SessionID: realSessionID,
+		ExpiresAt: time.Now().Add(ttl).Unix(),
 	}
 }

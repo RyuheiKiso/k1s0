@@ -1,4 +1,6 @@
 {{- define "k1s0-common.deployment" -}}
+{{/* L-8 / L-9 監査対応: 必須 values のバリデーションを実行する */}}
+{{- include "k1s0-common.validateValues" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -64,9 +66,18 @@ spec:
               containerPort: {{ .Values.container.grpcPort }}
               protocol: TCP
             {{- end }}
-          {{- with .Values.env }}
+          {{- if or .Values.env .Values.redis.enabled }}
           env:
+            {{- with .Values.env }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.redis.enabled }}
+            {{- /* Redis 接続情報の環境変数注入（H-2 監査対応）: redis.enabled が true の場合のみ注入する */}}
+            - name: REDIS_HOST
+              value: {{ .Values.redis.host | quote }}
+            - name: REDIS_PORT
+              value: {{ .Values.redis.port | default "6379" | quote }}
+            {{- end }}
           {{- end }}
           {{- with .Values.envFrom }}
           envFrom:

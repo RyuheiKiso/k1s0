@@ -72,12 +72,12 @@ regions/system/server/rust/service-catalog/
 │       │   ├── health_postgres.rs       # HealthRepository PostgreSQL 実装
 │       │   ├── doc_postgres.rs          # DocRepository PostgreSQL 実装
 │       │   └── scorecard_postgres.rs    # ScorecardRepository PostgreSQL 実装
-│       ├── kafka/
+│       ├── kafka/                       # 将来実装予定（現在未実装）
 │       │   ├── mod.rs
-│       │   └── event_publisher.rs       # Kafka イベント発行
-│       ├── cache/
+│       │   └── event_publisher.rs       # Kafka イベント発行（将来実装予定）
+│       ├── cache/                       # 将来実装予定（現在未実装）
 │       │   ├── mod.rs
-│       │   └── redis_cache.rs           # Redis キャッシュ
+│       │   └── redis_cache.rs           # Redis キャッシュ（将来実装予定）
 │       └── health_collector/
 │           ├── mod.rs
 │           └── poller.rs                # バックグラウンドヘルスポーリング
@@ -103,11 +103,11 @@ regions/system/server/rust/service-catalog/
 tonic = "0.12"
 prost = "0.13"
 
-# Kafka
-rdkafka = { version = "0.37", features = ["cmake-build"] }
+# Kafka（将来実装予定・現在未実装）
+# rdkafka = { version = "0.37", features = ["cmake-build"] }
 
-# Redis
-redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+# Redis（将来実装予定・現在未実装）
+# redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 
 [build-dependencies]
 tonic-build = "0.12"
@@ -146,12 +146,14 @@ pub enum Lifecycle {
     Deprecated,
 }
 
+// H-18 監査対応: Tier enum は実装コード（service.rs）の ServiceTier と一致させる。
+// System/Business/Service は旧定義。実装では Critical/Standard/Internal を使用している。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum Tier {
-    System,
-    Business,
-    Service,
+pub enum ServiceTier {
+    Critical,
+    Standard,
+    Internal,
 }
 ```
 
@@ -393,7 +395,9 @@ impl HealthCollector {
 
 ## イベント発行
 
-サービスの登録・更新・削除時に Kafka イベントを発行する。
+> **注意（M-20 監査対応）:** Kafka EventPublisher は将来実装予定です。現在は未実装であり、以下のコードはインターフェース定義のみです。サービスの登録・更新・削除時のイベント発行は実装完了後に有効になります。
+
+サービスの登録・更新・削除時に Kafka イベントを発行する（将来実装予定）。
 
 ### イベントトピック
 
@@ -469,13 +473,13 @@ pub trait HealthRepository: Send + Sync {
 サービスカタログサーバー固有の設定セクション。共通セクション（app/server/database/observability）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
-cache:
-  redis_url: "redis://redis.system.svc.cluster.local:6379/0"
-  ttl_secs: 300
+# cache（将来実装予定・現在未実装）:
+#   redis_url: "redis://redis.system.svc.cluster.local:6379/0"
+#   ttl_secs: 300
 
-kafka:
-  brokers: "kafka.system.svc.cluster.local:9092"
-  topic_prefix: "service-catalog"
+# kafka（将来実装予定・現在未実装）:
+#   brokers: "kafka.system.svc.cluster.local:9092"
+#   topic_prefix: "service-catalog"
 
 health_collector:
   poll_interval_secs: 60

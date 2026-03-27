@@ -1,7 +1,9 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
@@ -17,11 +19,17 @@ type visitorBucket struct {
 	lastSeen time.Time
 }
 
+// maxVisitors はメモリ保護のためにエントリ数の上限を定義する。
+// M-11 監査対応: visitors マップのエントリ数に上限を設け、大量の一意 IP による OOM を防止する。
+const maxVisitors = 10000
+
 // RateLimitMiddleware はIPアドレスベースのトークンバケットアルゴリズムによるレート制限を実装する。
 // H-2対応: BFF Proxy レベルで IP ベースのレート制限を追加し、
 // DDoS攻撃や大量リクエストから保護する。
-// 外部依存なし（標準ライブラリ sync/time のみ使用）。
-func RateLimitMiddleware(cfg config.RateLimitConfig) gin.HandlerFunc {
+// H-3 監査対応: ctx を受け取ることでサーバーシャットダウン時に goroutine を確実に停止する。
+// M-11 監査対応: クリーンアップ間隔を 3 分に短縮し、マップ上限（10000件）を設ける。
+// 外部依存なし（標準ライブラリ context/sync/time のみ使用）。
+func RateLimitMiddleware(ctx context.Context, cfg config.RateLimitConfig) gin.HandlerFunc {
 	// レート制限が無効の場合はパススルー
 	if !cfg.Enabled {
 		return func(c *gin.Context) { c.Next() }
@@ -42,22 +50,63 @@ func RateLimitMiddleware(cfg config.RateLimitConfig) gin.HandlerFunc {
 	// IPアドレスごとのバケットを保持するマップ（sync.Mapはロックフリー読み取り最適化）
 	var visitors sync.Map
 
-	// 古いバケットを定期クリーンアップするゴルーチン（メモリリーク防止）
+	// 古いバケットを定期クリーンアップするゴルーチン（メモリリーク防止）。
+	// H-3 監査対応: ctx.Done() を監視してシャットダウン時に goroutine を停止する。
+	// M-11 監査対応: クリーンアップ間隔を 10 分から 3 分に短縮する。
 	go func() {
-		ticker := time.NewTicker(10 * time.Minute)
+		// クリーンアップ間隔を 3 分に設定する（旧 10 分から短縮）
+		ticker := time.NewTicker(3 * time.Minute)
 		defer ticker.Stop()
-		for range ticker.C {
-			expiry := time.Now().Add(-10 * time.Minute)
-			visitors.Range(func(key, value any) bool {
-				b := value.(*visitorBucket)
-				b.mu.Lock()
-				stale := b.lastSeen.Before(expiry)
-				b.mu.Unlock()
-				if stale {
-					visitors.Delete(key)
+		for {
+			select {
+			case <-ticker.C:
+				// 古いエントリを削除する
+				expiry := time.Now().Add(-10 * time.Minute)
+				visitors.Range(func(key, value any) bool {
+					b := value.(*visitorBucket)
+					b.mu.Lock()
+					stale := b.lastSeen.Before(expiry)
+					b.mu.Unlock()
+					if stale {
+						visitors.Delete(key)
+					}
+					return true
+				})
+
+				// M-11 監査対応: エントリ数が上限を超えた場合、lastSeen が古い順に削除する
+				count := 0
+				visitors.Range(func(_, _ any) bool {
+					count++
+					return true
+				})
+				if count > maxVisitors {
+					// 古い順に削除するために lastSeen でソートする
+					type entry struct {
+						key      any
+						lastSeen time.Time
+					}
+					var entries []entry
+					visitors.Range(func(key, value any) bool {
+						b := value.(*visitorBucket)
+						b.mu.Lock()
+						ls := b.lastSeen
+						b.mu.Unlock()
+						entries = append(entries, entry{key, ls})
+						return true
+					})
+					sort.Slice(entries, func(i, j int) bool {
+						return entries[i].lastSeen.Before(entries[j].lastSeen)
+					})
+					// 超過分のエントリを古い順に削除する
+					for i := 0; i < count-maxVisitors && i < len(entries); i++ {
+						visitors.Delete(entries[i].key)
+					}
 				}
-				return true
-			})
+
+			case <-ctx.Done():
+				// サーバーシャットダウン時に goroutine を停止する（H-3 対応）
+				return
+			}
 		}
 	}()
 

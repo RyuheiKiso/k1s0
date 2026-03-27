@@ -31,6 +31,10 @@ rateLimiting:
       minute: 5000
       second: 200
   redis:
-    policy: local              # dev環境ではRedis不要（local policy）
+    # L-3 監査対応: local ポリシーは Kong インスタンス単位でカウントするため、
+    # 複数レプリカ構成では各 Pod が独立してカウントし、正確なグローバルレート制限を提供しない。
+    # dev 環境（replicaCount: 1）では問題ないが、staging/prod では必ず policy: redis を使用すること。
+    # staging/prod の values.yaml では Redis ポリシーが設定済み（values-staging.yaml / values-prod.yaml 参照）。
+    policy: local              # dev環境ではRedis不要（local policy）※本番では policy: redis を使用すること
     fault_tolerant: true
     hide_client_headers: false

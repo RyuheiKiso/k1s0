@@ -22,6 +22,11 @@ export function cloneConfig(config: ConfigEditorConfig): ConfigEditorConfig {
   };
 }
 
+/**
+ * フィールド値をスキーマに基づいてバリデーションする。
+ * string 型の場合は ReDoS 対策として、パターン長と入力長を制限した上で
+ * try-catch で RegExp 生成エラーを捕捉する（M-15 監査対応）。
+ */
 export function validateFieldValue(schema: ConfigFieldSchema, value: unknown): string | undefined {
   switch (schema.type) {
     case 'integer':
@@ -30,12 +35,26 @@ export function validateFieldValue(schema: ConfigFieldSchema, value: unknown): s
     case 'float':
       if (typeof value !== 'number' || Number.isNaN(value)) return '数値を入力してください';
       return validateNumberRange(schema, value);
-    case 'string':
+    case 'string': {
       if (typeof value !== 'string') return '文字列を入力してください';
-      if (schema.pattern && value && !(new RegExp(schema.pattern).test(value))) {
-        return `パターン ${schema.pattern} に一致しません`;
+      if (schema.pattern && value) {
+        // ReDoS 対策: パターン長と入力長を制限（M-15 監査対応）
+        // パターンが 500 文字超の場合は検証をスキップして安全側に倒す
+        if (schema.pattern.length > 500) return undefined;
+        // 入力値が 1024 文字超の場合は検証失敗として扱う
+        if (value.length > 1024) return `パターン ${schema.pattern} に一致しません`;
+        try {
+          const regex = new RegExp(schema.pattern);
+          if (!regex.test(value)) {
+            return `パターン ${schema.pattern} に一致しません`;
+          }
+        } catch {
+          // 不正なパターンでの RegExp 生成エラーは検証失敗として扱う
+          return `パターン ${schema.pattern} に一致しません`;
+        }
       }
       return undefined;
+    }
     case 'boolean':
       return typeof value === 'boolean' ? undefined : '真偽値を入力してください';
     case 'enum':
@@ -81,8 +100,33 @@ export function updateDirtyField(
   };
 }
 
+/**
+ * 2つの値が深く等価かどうかを判定する。
+ * JSON.stringify による比較はキー順序やシンボル、undefined の扱いで
+ * 誤った結果を返す場合があるため、再帰的な比較に変更（M-14 監査対応）。
+ */
 export function isEqualValue(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return deepEqual(left, right);
+}
+
+/**
+ * ライブラリに依存しない深い等価比較（JSON.stringify の限界を回避）。
+ * プリミティブ値は参照等価（===）で比較し、オブジェクト・配列は
+ * キーを再帰的に比較する。循環参照には対応していない。
+ */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null) return false;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
+  // 配列とオブジェクトを混在させない
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keysA = Object.keys(a as object);
+  const keysB = Object.keys(b as object);
+  if (keysA.length !== keysB.length) return false;
+  return keysA.every(key =>
+    Object.prototype.hasOwnProperty.call(b, key) &&
+    deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+  );
 }
 
 function validateNumberRange(schema: ConfigFieldSchema, value: number): string | undefined {

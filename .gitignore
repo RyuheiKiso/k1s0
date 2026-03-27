@@ -45,6 +45,9 @@ vendor/
 **/config/config.dev.yaml
 **/config/config.local.yaml
 **/config/config.docker.yaml
+# etcd 暗号化設定ファイル（暗号化キーを含むため絶対にコミット禁止）
+# 本番環境では CI/CD が Vault から注入して生成する（C-1 監査対応）
+infra/kubernetes/security/encryption-config.yaml
 
 # Docker
 # docker-compose.dev.yaml は git 管理対象（明示的に -f 指定が必要な開発用オーバーライド）

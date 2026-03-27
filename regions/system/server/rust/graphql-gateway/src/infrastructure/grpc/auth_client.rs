@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
 
+use crate::domain::model::auth::{parse_audit_event_type, parse_audit_result};
 use crate::domain::model::{AuditLog, PermissionCheck, Role, User};
 use crate::infrastructure::config::BackendConfig;
 use crate::infrastructure::grpc_retry::with_retry;
@@ -308,6 +309,9 @@ fn role_from_proto(r: proto::k1s0::system::auth::v1::Role) -> Role {
 }
 
 fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog {
+    // C-9 監査対応: event_type/result 文字列から型安全な enum へ変換し、新フィールドに設定する
+    let event_type_enum = parse_audit_event_type(&l.event_type);
+    let result_enum = parse_audit_result(&l.result);
     AuditLog {
         id: l.id,
         event_type: l.event_type,
@@ -320,6 +324,8 @@ fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog 
         resource_id: l.resource_id,
         trace_id: l.trace_id,
         created_at: timestamp_to_rfc3339(l.created_at),
+        event_type_enum,
+        result_enum,
     }
 }
 

@@ -79,7 +79,8 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		// スライディングウィンドウ: リクエストごとに TTL を延長する
 		if sliding && ttl > 0 {
 			if err := store.Touch(c.Request.Context(), sessionID, ttl); err != nil {
-				slog.Warn("セッション TTL 延長に失敗", "session_id", sessionID, "error", err)
+				// L-5 監査対応: セッション ID は先頭 8 文字のみログに出力してマスクする
+				slog.Warn("セッション TTL 延長に失敗", "session_id", maskSessionID(sessionID), "error", err)
 				// Touch 失敗をメトリクスに記録する（M-012）
 				// 高頻度で発生する場合は Redis 障害を示す可能性があるため、アラート設定を推奨する
 				sessionTouchFailuresTotal.Inc()
@@ -108,4 +109,14 @@ func GetSessionID(c *gin.Context) (string, bool) {
 	}
 	id, ok := val.(string)
 	return id, ok
+}
+
+// maskSessionID はセッション ID を先頭 8 文字 + "..." にマスクして返す（L-5 監査対応）。
+// セッション ID をそのままログに出力するとセッション固定化攻撃やログ漏洩のリスクがある。
+// ログ・エラーレスポンスには必ずこの関数を通した値を使用すること。
+func maskSessionID(id string) string {
+	if len(id) <= 8 {
+		return "..."
+	}
+	return id[:8] + "..."
 }

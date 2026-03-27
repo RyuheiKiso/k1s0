@@ -110,3 +110,70 @@ func (s *RedisStore) Touch(ctx context.Context, id string, ttl time.Duration) er
 	}
 	return nil
 }
+
+// FullStore は session.Store と session.ExchangeCodeStore を合成したインターフェース（H-5 監査対応）。
+// main.go や handler で sessionStore を両用途に使用するための複合インターフェース。
+// session.RedisStore と session.EncryptedStore は両方このインターフェースを実装する。
+type FullStore interface {
+	Store
+	ExchangeCodeStore
+}
+
+// ExchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化インターフェース（H-5 監査対応）。
+// SessionData を流用せず ExchangeCodeData 専用の操作を提供する。
+type ExchangeCodeStore interface {
+	// CreateExchangeCode は交換コードデータを保存し、コードキーを返す。
+	CreateExchangeCode(ctx context.Context, data *ExchangeCodeData, ttl time.Duration) (string, error)
+
+	// GetExchangeCode は交換コードキーに対応するデータを取得する。見つからない場合は nil を返す。
+	GetExchangeCode(ctx context.Context, code string) (*ExchangeCodeData, error)
+
+	// DeleteExchangeCode は交換コードを削除する（ワンタイム使用を保証する）。
+	DeleteExchangeCode(ctx context.Context, code string) error
+}
+
+// exchangeCodePrefix は交換コード専用のキープレフィックス。
+// セッションキーと衝突しないようにプレフィックスを分ける。
+const exchangeCodePrefix = "bff:exchange:"
+
+// CreateExchangeCode は交換コードデータを Redis に保存し、UUID キーを返す。
+func (s *RedisStore) CreateExchangeCode(ctx context.Context, data *ExchangeCodeData, ttl time.Duration) (string, error) {
+	code := uuid.New().String()
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal exchange code data: %w", err)
+	}
+
+	if err := s.client.Set(ctx, exchangeCodePrefix+code, b, ttl).Err(); err != nil {
+		return "", fmt.Errorf("failed to store exchange code: %w", err)
+	}
+
+	return code, nil
+}
+
+// GetExchangeCode は交換コードキーに対応するデータを Redis から取得する。
+func (s *RedisStore) GetExchangeCode(ctx context.Context, code string) (*ExchangeCodeData, error) {
+	val, err := s.client.Get(ctx, exchangeCodePrefix+code).Result()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get exchange code: %w", err)
+	}
+
+	var data ExchangeCodeData
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal exchange code data: %w", err)
+	}
+
+	return &data, nil
+}
+
+// DeleteExchangeCode は交換コードを Redis から削除する。
+func (s *RedisStore) DeleteExchangeCode(ctx context.Context, code string) error {
+	if err := s.client.Del(ctx, exchangeCodePrefix+code).Err(); err != nil {
+		return fmt.Errorf("failed to delete exchange code: %w", err)
+	}
+	return nil
+}

@@ -13,13 +13,13 @@ use axum::{
     Extension, Json, Router,
 };
 
-use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, Claims};
+use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, BearerToken, Claims};
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
 // ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
 use crate::domain::model::{
-    ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
+    ApproveTaskPayload, AuditEventType, AuditLogConnection, AuditResult, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
     CreateSessionPayload, CreateTemplatePayload, CreateTenantPayload, CreateWorkflowPayload,
     DeleteChannelPayload, DeleteJobPayload, DeleteSecretPayload, DeleteServicePayload,
@@ -36,11 +36,14 @@ use crate::domain::model::{
 use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 use crate::infrastructure::auth::JwksVerifier;
 use crate::infrastructure::config::GraphQLConfig;
+// gRPC クライアントと HTTP クライアントをインポートする。
+// service-catalog は REST のみ提供するため ServiceCatalogHttpClient を使用する。
 use crate::infrastructure::grpc::{
     AuthGrpcClient, ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient,
-    NotificationGrpcClient, SchedulerGrpcClient, ServiceCatalogGrpcClient, SessionGrpcClient,
-    TenantGrpcClient, VaultGrpcClient, WorkflowGrpcClient,
+    NotificationGrpcClient, SchedulerGrpcClient, SessionGrpcClient, TenantGrpcClient,
+    VaultGrpcClient, WorkflowGrpcClient,
 };
+use crate::infrastructure::http::ServiceCatalogHttpClient;
 use crate::usecase::{
     AuthMutationResolver, AuthQueryResolver, ConfigQueryResolver, FeatureFlagQueryResolver,
     NavigationQueryResolver, NotificationMutationResolver, NotificationQueryResolver,
@@ -541,13 +544,15 @@ pub struct TaskDecisionInput {
 
 // --- Gateway 構造体: router() の引数爆発を解消する ---
 
-/// gRPC バックエンドクライアント群。readyz ヘルスチェックと DataLoader 生成に使用。
+/// バックエンドクライアント群。readyz ヘルスチェックと DataLoader 生成に使用。
+/// service_catalog は REST クライアント、それ以外は gRPC クライアントを使用する。
 pub struct GatewayClients {
     pub tenant: Arc<TenantGrpcClient>,
     pub feature_flag: Arc<FeatureFlagGrpcClient>,
     pub config: Arc<ConfigGrpcClient>,
     pub navigation: Arc<NavigationGrpcClient>,
-    pub service_catalog: Arc<ServiceCatalogGrpcClient>,
+    // service-catalog は HTTP/axum で実装されており gRPC が存在しないため REST クライアントを使用する
+    pub service_catalog: Arc<ServiceCatalogHttpClient>,
     pub auth: Arc<AuthGrpcClient>,
     pub session: Arc<SessionGrpcClient>,
     pub vault: Arc<VaultGrpcClient>,
@@ -663,13 +668,17 @@ impl QueryRoot {
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
 
-    async fn navigation(
-        &self,
-        ctx: &Context<'_>,
-        bearer_token: Option<String>,
-    ) -> FieldResult<Navigation> {
+    /// M-3 監査対応: bearer_token GraphQL 引数を廃止。
+    /// トークンをクエリ引数に含めるとアクセスログ・サーバーログに記録されるリスクがあるため、
+    /// HTTP Authorization ヘッダー経由で受け取ったトークンをコンテキストから取得して転送する。
+    async fn navigation(&self, ctx: &Context<'_>) -> FieldResult<Navigation> {
         ensure_read_permission(ctx)?;
-        let token = bearer_token.unwrap_or_default();
+        // GraphqlContext から検証済み raw トークンを取得する（引数経由のトークン漏洩防止）
+        let token = ctx
+            .data::<GraphqlContext>()
+            .map(|c| c.bearer_token.as_str())
+            .unwrap_or_default()
+            .to_owned();
         self.navigation_query
             .get_navigation(&token)
             .await
@@ -1746,7 +1755,8 @@ pub struct AppState {
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
     pub config_client: Arc<ConfigGrpcClient>,
     pub navigation_client: Arc<NavigationGrpcClient>,
-    pub service_catalog_client: Arc<ServiceCatalogGrpcClient>,
+    // service-catalog は REST クライアントを使用する
+    pub service_catalog_client: Arc<ServiceCatalogHttpClient>,
     pub auth_client: Arc<AuthGrpcClient>,
     pub session_client: Arc<SessionGrpcClient>,
     pub vault_client: Arc<VaultGrpcClient>,
@@ -1870,6 +1880,8 @@ pub fn router(
 async fn graphql_handler(
     State(state): State<AppState>,
     Extension(claims): Extension<Claims>,
+    // M-3 監査対応: raw トークンをコンテキスト経由で取得し、navigation 等の下流サービスへ転送する
+    Extension(bearer_token): Extension<BearerToken>,
     req: GraphQLRequest,
 ) -> impl IntoResponse {
     let request = req
@@ -1878,6 +1890,7 @@ async fn graphql_handler(
             user_id: claims.sub.clone(),
             roles: claims.roles(),
             request_id: uuid::Uuid::new_v4().to_string(),
+            bearer_token: bearer_token.0,
             tenant_loader: state.tenant_loader.clone(),
             flag_loader: state.flag_loader.clone(),
             config_loader: state.config_loader.clone(),
@@ -1990,7 +2003,8 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "featureflag_grpc": featureflag_status,
                 "config_grpc": config_status,
                 "navigation_grpc": navigation_status,
-                "service_catalog_grpc": service_catalog_status,
+                // service-catalog は REST 接続のため key 名を http に変更
+                "service_catalog_http": service_catalog_status,
                 "auth_grpc": auth_status,
                 "session_grpc": session_status,
                 "vault_grpc": vault_status,
@@ -2048,6 +2062,8 @@ async fn graphql_ws_handler(
                             user_id: claims.sub.clone(),
                             roles: claims.roles(),
                             request_id: uuid::Uuid::new_v4().to_string(),
+                            // WebSocket 接続の場合、token は connection_init ペイロードから取得済み
+                            bearer_token: token.clone(),
                             tenant_loader,
                             flag_loader,
                             config_loader,

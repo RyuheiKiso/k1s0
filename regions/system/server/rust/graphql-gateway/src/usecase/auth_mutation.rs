@@ -1,3 +1,4 @@
+use crate::domain::model::auth::{parse_audit_event_type, parse_audit_result};
 use crate::domain::model::{AuditLog, RecordAuditLogPayload, UserError};
 use crate::infrastructure::grpc::AuthGrpcClient;
 use std::sync::Arc;
@@ -54,6 +55,9 @@ impl AuthMutationResolver {
                     resource_id: resource_id.unwrap_or("").to_string(),
                     trace_id: trace_id.unwrap_or("").to_string(),
                     created_at,
+                    // C-9 監査対応: 記録時も enum フィールドを同時設定する
+                    event_type_enum: parse_audit_event_type(event_type),
+                    result_enum: parse_audit_result(result),
                 }),
                 errors: vec![],
             },

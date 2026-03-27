@@ -55,7 +55,8 @@ autoscaling:
 
 pdb:
   enabled: true
-  minAvailable: 1
+  # M-4 監査対応: 絶対値から相対値に変更し、レプリカ数に依存しない可用性保証を実現する
+  minAvailable: "50%"
 
 ingress:
   enabled: false

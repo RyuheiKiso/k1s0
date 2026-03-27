@@ -142,13 +142,26 @@ fn main() {
                 // scripts/doctor.sh が存在する場合は実行する
                 let script = std::path::Path::new("scripts/doctor.sh");
                 if script.exists() {
-                    let _ = std::process::Command::new("bash")
+                    // L-13 監査対応: exit status を無視せず、非0の場合はエラーを伝播する。
+                    // main() は () を返すため ? は使用できない。match arm の戻り値として Err を返す。
+                    match std::process::Command::new("bash")
                         .arg("scripts/doctor.sh")
-                        .status();
+                        .status()
+                    {
+                        Err(e) => Err(anyhow::anyhow!("doctor.sh の実行に失敗しました: {e}")),
+                        Ok(s) if !s.success() => {
+                            let code = s.code().unwrap_or(-1);
+                            Err(anyhow::anyhow!(
+                                "doctor.sh が終了コード {} で失敗しました",
+                                code
+                            ))
+                        }
+                        Ok(_) => Ok(()),
+                    }
                 } else {
                     eprintln!("doctor.sh が見つかりません: scripts/doctor.sh");
+                    Ok(())
                 }
-                Ok(())
             }
         };
 

@@ -28,6 +28,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   }), [apiBaseURL]);
 
   // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
+  // apiClient は useMemo でメモ化されているため、apiBaseURL が変わらない限り再実行されない（M-13 監査対応）
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -52,8 +53,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
     };
 
     checkSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [apiClient]);
 
   // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする
   const login = useCallback(() => {

@@ -11,6 +11,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::infrastructure::auth::JwksVerifier;
 
+/// raw JWT トークン文字列。
+/// クエリ引数経由でトークンを渡すとアクセスログに記録されるリスクがあるため、
+/// コンテキスト Extension として保持し下流サービスへの転送に使用する（M-3 監査対応）。
+#[derive(Debug, Clone)]
+pub struct BearerToken(pub String);
+
 /// JWT Claims（async-graphql の Extension として GraphQL Context に注入）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
@@ -133,6 +139,8 @@ where
                 }
             };
 
+            // raw トークンを BearerToken Extension として保存し、下流サービスへの転送に使用する
+            req.extensions_mut().insert(BearerToken(token.clone()));
             req.extensions_mut().insert(claims);
             inner.call(req).await
         })

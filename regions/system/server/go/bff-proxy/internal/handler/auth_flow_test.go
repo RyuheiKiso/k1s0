@@ -57,16 +57,21 @@ func (m *mockOAuthClient) ClearDiscoveryCache() {
 	m.discoveryCacheCleared = true
 }
 
-// mockSessionStore は session.Store インターフェースのテスト用モック。
-// インメモリの map でセッションを管理する。
+// mockSessionStore は session.Store と session.ExchangeCodeStore の両インターフェースのテスト用モック。
+// インメモリの map でセッションおよび交換コードを管理する（H-5 監査対応）。
 type mockSessionStore struct {
-	sessions map[string]*session.SessionData
-	counter  int
+	sessions      map[string]*session.SessionData
+	exchangeCodes map[string]*session.ExchangeCodeData
+	counter       int
+	ecCounter     int
 }
 
 // newMockSessionStore はテスト用のセッションストアを生成する。
 func newMockSessionStore() *mockSessionStore {
-	return &mockSessionStore{sessions: make(map[string]*session.SessionData)}
+	return &mockSessionStore{
+		sessions:      make(map[string]*session.SessionData),
+		exchangeCodes: make(map[string]*session.ExchangeCodeData),
+	}
 }
 
 // Create はセッションデータを保存し、連番の ID を返す。
@@ -102,6 +107,28 @@ func (m *mockSessionStore) Touch(_ context.Context, _ string, _ time.Duration) e
 	return nil
 }
 
+// CreateExchangeCode は交換コードデータを保存し、連番のコードを返す（H-5 監査対応）。
+func (m *mockSessionStore) CreateExchangeCode(_ context.Context, data *session.ExchangeCodeData, _ time.Duration) (string, error) {
+	m.ecCounter++
+	code := fmt.Sprintf("test-exchange-code-%d", m.ecCounter)
+	m.exchangeCodes[code] = data
+	return code, nil
+}
+
+// GetExchangeCode は交換コードに対応するデータを取得する（H-5 監査対応）。
+func (m *mockSessionStore) GetExchangeCode(_ context.Context, code string) (*session.ExchangeCodeData, error) {
+	if d, ok := m.exchangeCodes[code]; ok {
+		return d, nil
+	}
+	return nil, nil
+}
+
+// DeleteExchangeCode は交換コードを削除する（H-5 監査対応）。
+func (m *mockSessionStore) DeleteExchangeCode(_ context.Context, code string) error {
+	delete(m.exchangeCodes, code)
+	return nil
+}
+
 // errOnCreateSessionStore は Create を呼び出すと必ずエラーを返すテスト用セッションストア。
 // セッション保存失敗パスの検証に使用する。
 type errOnCreateSessionStore struct {
@@ -134,10 +161,34 @@ func (m *errOnCreateSessionStore) Touch(_ context.Context, _ string, _ time.Dura
 	return nil
 }
 
+// CreateExchangeCode は交換コード作成の空実装（H-5 監査対応）。
+func (m *errOnCreateSessionStore) CreateExchangeCode(_ context.Context, _ *session.ExchangeCodeData, _ time.Duration) (string, error) {
+	return "", nil
+}
+
+// GetExchangeCode は交換コード取得の空実装（H-5 監査対応）。
+func (m *errOnCreateSessionStore) GetExchangeCode(_ context.Context, _ string) (*session.ExchangeCodeData, error) {
+	return nil, nil
+}
+
+// DeleteExchangeCode は交換コード削除の空実装（H-5 監査対応）。
+func (m *errOnCreateSessionStore) DeleteExchangeCode(_ context.Context, _ string) error {
+	return nil
+}
+
+// testStore は session.Store と session.ExchangeCodeStore を合成したテスト用インターフェース（H-5 監査対応）。
+// mockSessionStore と errOnCreateSessionStore の両方がこのインターフェースを実装する。
+type testStore interface {
+	session.Store
+	session.ExchangeCodeStore
+}
+
 // newTestAuthHandler はテスト用の AuthHandler を構築するヘルパー。
-func newTestAuthHandler(oauthClient OAuthClient, store session.Store) *AuthHandler {
+// H-5 監査対応: exchangeCodeStore 引数を追加し、store を両方に渡す。
+func newTestAuthHandler(oauthClient OAuthClient, store testStore) *AuthHandler {
 	return NewAuthHandler(
 		oauthClient,
+		store,
 		store,
 		30*time.Minute,
 		"https://app.example.com",
@@ -607,26 +658,30 @@ func TestCallback_MobileRedirect(t *testing.T) {
 	assert.Contains(t, location, "k1s0://auth/callback")
 	assert.Contains(t, location, "code=")
 
-	// セッションが2つ作成されていること（実セッション + 交換コード用エントリ）
-	assert.GreaterOrEqual(t, len(store.sessions), 2, "should have real session + exchange code entry")
+	// 実セッションが作成されていること（H-5 監査対応: 交換コードは sessions ではなく exchangeCodes に格納）
+	assert.GreaterOrEqual(t, len(store.sessions), 1, "should have real session")
+	// 交換コードが exchangeCodes マップに作成されていること（H-5 監査対応）
+	assert.GreaterOrEqual(t, len(store.exchangeCodes), 1, "should have exchange code entry")
 }
 
 // TestExchange_Valid は有効な交換コードでの Exchange テスト。
 // 交換コードでセッションクッキーが発行されることを検証する。
+// H-5 監査対応: exchangeCodes マップに ExchangeCodeData を格納する。
 func TestExchange_Valid(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 
-	// 実セッションと交換コード用エントリを事前作成する
+	// 実セッションを事前作成する
 	store.sessions["real-session-id"] = &session.SessionData{
 		AccessToken: "access-token-real",
 		Subject:     "user-sub-exchange",
 		CSRFToken:   "csrf-exchange-123",
 		ExpiresAt:   time.Now().Add(1 * time.Hour).Unix(),
 	}
-	store.sessions["exchange-code-id"] = &session.SessionData{
-		AccessToken: "real-session-id",
-		ExpiresAt:   time.Now().Add(60 * time.Second).Unix(),
+	// 交換コード用エントリを ExchangeCodeData として登録する（H-5 監査対応）
+	store.exchangeCodes["exchange-code-id"] = &session.ExchangeCodeData{
+		SessionID: "real-session-id",
+		ExpiresAt: time.Now().Add(60 * time.Second).Unix(),
 	}
 
 	h := newTestAuthHandler(mock, store)
@@ -657,8 +712,8 @@ func TestExchange_Valid(t *testing.T) {
 	}
 	assert.True(t, hasSession, "session cookie should be set")
 
-	// 交換コードが削除されていること（ワンタイム使用）
-	_, exists := store.sessions["exchange-code-id"]
+	// 交換コードが削除されていること（ワンタイム使用）（H-5 監査対応）
+	_, exists := store.exchangeCodes["exchange-code-id"]
 	assert.False(t, exists, "exchange code should be deleted after use")
 }
 
@@ -701,14 +756,15 @@ func TestExchange_MissingCode(t *testing.T) {
 }
 
 // TestExchange_ExpiredCode は期限切れ交換コードでの Exchange テスト。
+// H-5 監査対応: exchangeCodes マップに期限切れの ExchangeCodeData を格納する。
 func TestExchange_ExpiredCode(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 
-	// 期限切れの交換コード用エントリを作成する
-	store.sessions["expired-exchange"] = &session.SessionData{
-		AccessToken: "some-session-id",
-		ExpiresAt:   time.Now().Add(-1 * time.Minute).Unix(),
+	// 期限切れの交換コード用エントリを ExchangeCodeData として作成する（H-5 監査対応）
+	store.exchangeCodes["expired-exchange"] = &session.ExchangeCodeData{
+		SessionID: "some-session-id",
+		ExpiresAt: time.Now().Add(-1 * time.Minute).Unix(),
 	}
 
 	h := newTestAuthHandler(mock, store)

@@ -63,7 +63,7 @@ module "environment" {
 
   strimzi_operator_version         = var.strimzi_operator_version
   kafka_broker_replicas            = var.kafka_broker_replicas
-  zookeeper_replicas               = var.zookeeper_replicas
+  # M-19 監査対応: ZooKeeper 変数を削除。KRaft モード移行済み（ADR-0016 参照）。
   kafka_default_replication_factor = var.kafka_default_replication_factor
   kafka_min_insync_replicas        = var.kafka_min_insync_replicas
 

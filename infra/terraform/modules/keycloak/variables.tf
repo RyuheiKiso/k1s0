@@ -26,3 +26,11 @@ variable "bff_redirect_uris" {
   type        = list(string)
   default     = ["http://localhost:8080/callback"]
 }
+
+# Keycloak プロバイダー認証情報（H-13 監査対応）
+# admin-cli クライアントシークレットをハードコードせず変数で受け取る
+variable "keycloak_client_secret" {
+  description = "Keycloak admin-cli クライアントシークレット"
+  type        = string
+  sensitive   = true
+}

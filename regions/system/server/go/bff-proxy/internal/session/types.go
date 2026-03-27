@@ -37,3 +37,20 @@ func (s *SessionData) IsExpired() bool {
 // Data は SessionData の Go 命名規約準拠の短縮エイリアス（§3.2 監査対応: stutter 命名を解消）。
 // 新しいコードでは session.Data を使用すること。
 type Data = SessionData
+
+// ExchangeCodeData はモバイルフロー用ワンタイム交換コードのデータを表す。
+// SessionData.AccessToken にセッション ID を格納する意味論的誤用を解消するため（H-5 監査対応）、
+// 交換コード専用の構造体として分離する。
+type ExchangeCodeData struct {
+	// SessionID は交換コードが参照する実際のセッション ID。
+	SessionID string
+	// PostAuthRedirect は認証後のリダイレクト先 URL（現在は未使用。将来の拡張用フィールド）。
+	PostAuthRedirect string
+	// ExpiresAt は交換コードの有効期限（Unix タイムスタンプ）。
+	ExpiresAt int64
+}
+
+// IsExpired は交換コードが期限切れかどうかを返す。
+func (e *ExchangeCodeData) IsExpired() bool {
+	return time.Now().Unix() > e.ExpiresAt
+}

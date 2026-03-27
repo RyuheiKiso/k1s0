@@ -132,7 +132,8 @@ mod tests {
         Config {
             app: AppConfig {
                 name: "workflow".to_string(),
-                version: "0.1.0".to_string(),
+                // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+                version: env!("CARGO_PKG_VERSION").to_string(),
                 environment: environment.to_string(),
             },
             server: ServerConfig {

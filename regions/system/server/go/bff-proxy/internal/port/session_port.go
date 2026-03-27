@@ -13,3 +13,12 @@ import (
 // 既存の session.RedisStore や session.EncryptedStore は session.Store を実装しているため、
 // そのまま SessionStore としても使用できる。
 type SessionStore = session.Store
+
+// ExchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化ポートインターフェース（H-5 監査対応）。
+// SessionData を流用せず ExchangeCodeData 専用の操作を提供する。
+// session.RedisStore と session.EncryptedStore は session.ExchangeCodeStore を実装する。
+type ExchangeCodeStore = session.ExchangeCodeStore
+
+// FullStore は SessionStore と ExchangeCodeStore を合成したポートインターフェース（H-5 監査対応）。
+// main.go やテストで単一のストアを両用途に使用するための複合インターフェース。
+type FullStore = session.FullStore

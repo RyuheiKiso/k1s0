@@ -1,0 +1,12 @@
+# Kustomize ベースリソース定義: Kubernetes ネットワークポリシーの管理
+# kubectl apply -k infra/kubernetes/overlays/staging/ などで使用される
+# 各名前空間のネットワークポリシーファイルを resources に列挙する
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - business.yaml
+  - messaging.yaml
+  - observability.yaml
+  - service.yaml
+  - system.yaml

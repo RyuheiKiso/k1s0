@@ -67,3 +67,10 @@ CREATE INDEX IF NOT EXISTS idx_provisioning_jobs_status ON tenant.tenant_provisi
 CREATE TRIGGER trigger_provisioning_jobs_update_updated_at
     BEFORE UPDATE ON tenant.tenant_provisioning_jobs
     FOR EACH ROW EXECUTE FUNCTION tenant.update_updated_at();
+
+-- k1s0ユーザーへのアクセス権限付与（H-17 監査対応）
+-- tenant スキーマへの DML 権限を k1s0_tenant_rw ロールに付与する
+-- k1s0_tenant_rw ロールは 16-roles.sh で作成される
+GRANT USAGE ON SCHEMA tenant TO k1s0_tenant_rw;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA tenant TO k1s0_tenant_rw;
+ALTER DEFAULT PRIVILEGES IN SCHEMA tenant GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_tenant_rw;

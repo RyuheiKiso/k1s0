@@ -14,6 +14,11 @@ pub enum CreateApiKeyError {
 
     #[error("internal error: {0}")]
     Internal(String),
+
+    /// API_KEY_PEPPER 環境変数が未設定の場合のエラー（C-5 監査対応）。
+    /// パニックではなくエラーとして伝播することで、呼び出し元が適切に処理できるようにする。
+    #[error("pepper not configured")]
+    PepperNotConfigured,
 }
 
 /// CreateApiKeyUseCase は API キー作成ユースケース。
@@ -44,7 +49,8 @@ impl CreateApiKeyUseCase {
         let id = Uuid::new_v4();
         let raw_key = format!("k1s0_{}", generate_random_key());
         let prefix = raw_key[..13].to_string();
-        let key_hash = hash_key(&raw_key);
+        // ペッパーが未設定の場合は PepperNotConfigured エラーを返す（C-5 監査対応: expect() パニックを除去）
+        let key_hash = hash_key(&raw_key)?;
         let now = Utc::now();
 
         let api_key = ApiKey {
@@ -98,12 +104,13 @@ fn generate_random_key() -> String {
 
 /// HMAC-SHA256 を使用して API キーをハッシュ化する。
 /// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
-fn hash_key(raw_key: &str) -> String {
-    // API_KEY_PEPPER は必須環境変数。未設定の場合は即座にパニックして起動を拒否する。
-    // デフォルト値へのフォールバックを廃止し、ペッパー未設定状態での運用を防ぐ。
-    let pepper =
-        std::env::var("API_KEY_PEPPER").expect("API_KEY_PEPPER environment variable must be set");
-    compute_hmac_hex(raw_key, &pepper)
+/// ペッパーが未設定の場合はエラーを返す（C-5 監査対応: expect() パニックを除去）。
+fn hash_key(raw_key: &str) -> Result<String, CreateApiKeyError> {
+    // API_KEY_PEPPER は必須環境変数。未設定時はパニックせずエラーを返す（C-5 監査対応）。
+    // デフォルト値へのフォールバックを行わず、ペッパー未設定状態での運用を防ぐ。
+    let pepper = std::env::var("API_KEY_PEPPER")
+        .map_err(|_| CreateApiKeyError::PepperNotConfigured)?;
+    Ok(compute_hmac_hex(raw_key, &pepper))
 }
 
 /// HMAC-SHA256 ハッシュ計算の内部実装。

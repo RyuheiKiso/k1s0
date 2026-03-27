@@ -134,8 +134,9 @@ services:
   # staging/prod では SASL_SSL を使用し、Strimzi Operator が証明書管理を行う。
   # ローカルと staging/prod でセキュリティプロトコルが異なるため、
   # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
+  # M-1 監査対応: 本番 Strimzi バージョンと統一するため 3.6.1 を使用する（infra/terraform/modules/messaging/main.tf の version = "3.6.1" に合わせる）。
   kafka:
-    image: apache/kafka:3.8.0
+    image: apache/kafka:3.6.1
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -164,7 +165,7 @@ services:
       # 開発環境では固定値を使用（コンテナ再起動後もトピック/オフセットを引き継ぐため一定値が必要）。
       # 本番 K8s 環境は Strimzi Operator が自動生成するため、この値は開発専用。
       # チームで共通の CLUSTER_ID を使うことでローカル環境間のデータ互換性を維持する。
-      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.8.0 /opt/kafka/bin/kafka-storage.sh random-uuid
+      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.6.1 /opt/kafka/bin/kafka-storage.sh random-uuid
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -1151,8 +1152,9 @@ services:
   # [Business Tier]
   #   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1       → topics.yaml: 同名
   #   k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1  → topics.yaml: 同名
+  # M-1 監査対応: 本番 Strimzi バージョンと統一するため 3.6.1 を使用する（kafka サービスと同一バージョン）。
   kafka-init:
-    image: apache/kafka:3.8.0
+    image: apache/kafka:3.6.1
     profiles: [infra]
     # リソース制限: 初期化タスクは軽量（一時的に実行されるだけ）
     mem_limit: 256m

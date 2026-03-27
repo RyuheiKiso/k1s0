@@ -70,16 +70,38 @@ spec:
         - namespaceSelector:
             matchLabels:
               tier: system
+      # M-7 監査対応: system Tier への通信に明示的なポート指定を追加する
+      ports:
+        - protocol: TCP
+          port: 8080    # HTTP REST API（Keycloak 等）
+        - protocol: TCP
+          port: 50051   # gRPC（認証・設定取得）
+        - protocol: TCP
+          port: 8200    # Vault
     # business Tier への通信を許可
     - to:
         - namespaceSelector:
             matchLabels:
               tier: business
+      # M-7 監査対応: business Tier への通信に明示的なポート指定を追加する
+      ports:
+        - protocol: TCP
+          port: 8080    # HTTP REST API
+        - protocol: TCP
+          port: 50051   # gRPC
     # observability Namespace（メトリクス・トレース送信）への通信を許可
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: observability
+      # M-7 監査対応: OTEL Collector gRPC（4317）および HTTP（4318）ポートを明示的に指定する
+      ports:
+        - protocol: TCP
+          port: 4317    # OTEL Collector gRPC（メトリクス・トレース送信）
+        - protocol: TCP
+          port: 4318    # OTEL Collector HTTP（メトリクス・トレース送信）
+        - protocol: TCP
+          port: 9090    # Prometheus スクレイプ
     # messaging Namespace（Kafka ブローカー）への通信を許可（M-5 監査対応）
     # service Tier サービスも Kafka を使用するため egress ルールが必要（business.yaml と同様）
     # TLS リスナー（9093）のみ許可する（M-7 対応で plain リスナー 9092 は廃止）

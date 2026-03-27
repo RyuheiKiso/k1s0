@@ -54,7 +54,8 @@ autoscaling:
 
 pdb:
   enabled: true
-  minAvailable: 1
+  # M-4 監査対応: 絶対値から相対値に変更し、レプリカ数に依存しない可用性保証を実現する
+  minAvailable: "50%"
 
 ingress:
   enabled: false
@@ -90,10 +91,13 @@ tolerations: []
 affinity: {}
 
 # Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
-# NOTE: bff-proxy は service Tier の auth role に登録されている
+# H-1 監査対応: SA 名を "bff-proxy-sa"（k1s0-system namespace）に統一する。
+#   - infra/kubernetes/rbac/service-accounts.yaml: name=bff-proxy-sa, namespace=k1s0-system
+#   - infra/terraform/modules/vault/auth.tf: system ロールの bound_service_account_names に "bff-proxy-sa" を追加済み
+#   - vault.role は "system" で統一済み
 serviceAccount:
   create: true
-  name: "bff-proxy"
+  name: "bff-proxy-sa"
   annotations: {}
 
 podAnnotations: {}

@@ -1,7 +1,14 @@
 # GraphQL スキーマ定義
 # このファイルは api/graphql/schema.graphql が参照用スキーマ。
 # 実装は async-graphql のコードファーストアプローチで graphql_handler.rs に定義されている。
-# 最終更新: 2026-03-26（外部監査 M-4 対応: Tenant フィールド欠落修正・AuditLog @deprecated 追加）
+# 最終更新: 2026-03-27（外部監査 C-9 対応: AuditEventType/AuditResult enum 追加・M-3 対応: navigation bearerToken 引数除去）
+# L-15 監査対応: DateTime スカラー型を追加。RFC 3339 形式（例: "2026-03-27T12:00:00Z"）で表現する。
+# createdAt / updatedAt 等の日時フィールドは String! ではなく DateTime! を使用すること。
+
+# L-15 監査対応: DateTime カスタムスカラー定義。
+# ISO 8601 / RFC 3339 形式の日時文字列（例: "2026-03-27T12:34:56Z"）を表す。
+# async-graphql の実装側では chrono::DateTime<Utc> にマッピングされる。
+scalar DateTime
 
 type Query {
   # --- Tenant ---
@@ -16,7 +23,12 @@ type Query {
   config(key: String!): ConfigEntry
 
   # --- Navigation ---
-  navigation(bearerToken: String): Navigation!
+  """
+  ナビゲーション情報を返す。
+  M-3 監査対応: bearerToken 引数を除去。認証はHTTPヘッダー（Authorization: Bearer ...）で行うこと。
+  クエリ引数にトークンを含めるとアクセスログ・サーバーログに記録される危険性がある。
+  """
+  navigation: Navigation!
 
   # --- ServiceCatalog ---
   catalogService(id: ID!): CatalogService
@@ -28,6 +40,9 @@ type Query {
   users(first: Int, after: Int, search: String, enabled: Boolean): [User!]!
   userRoles(userId: ID!): [Role!]!
   checkPermission(permission: String!, resource: String!, roles: [String!]!, userId: String): PermissionCheck!
+  # L-2 監査対応: eventType/result 引数は C-9 対応で追加された AuditEventType/AuditResult enum への移行を推奨する。
+  # 新規クライアントは eventTypeEnum/resultEnum フィールドを使用すること（searchAuditLogs は引数変更予定）。
+  # 現在は後方互換性のため文字列引数を維持するが、将来のメジャーバージョンで enum 型引数に変更される予定。
   searchAuditLogs(first: Int, after: Int, userId: String, eventType: String, result: String): AuditLogConnection!
 
   # --- Session ---
@@ -146,8 +161,8 @@ type Tenant {
   dbSchema: String
   # Keycloak realm 名（認証プロバイダー連携に使用）
   keycloakRealm: String
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 enum TenantStatus {
@@ -181,7 +196,7 @@ type FeatureFlag {
 type ConfigEntry {
   key: String!
   value: String!
-  updatedAt: String!
+  updatedAt: DateTime!
 }
 
 # ===========================================================================
@@ -258,8 +273,8 @@ type CatalogService {
   healthUrl: String!
   status: String!
   metadata: [MetadataEntry!]!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type MetadataEntry {
@@ -279,7 +294,7 @@ type ServiceHealth {
   status: String!
   responseTimeMs: Int
   errorMessage: String
-  checkedAt: String!
+  checkedAt: DateTime!
 }
 
 # ===========================================================================
@@ -294,7 +309,7 @@ type User {
   lastName: String!
   enabled: Boolean!
   emailVerified: Boolean!
-  createdAt: String!
+  createdAt: DateTime!
 }
 
 type Role {
@@ -308,20 +323,58 @@ type PermissionCheck {
   reason: String!
 }
 
+"""
+監査ログのイベント種別（C-9 監査対応: 文字列フィールドを型安全な enum に移行）。
+新規クライアントは eventType（文字列）の代わりにこの enum を使用すること。
+"""
+enum AuditEventType {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  READ
+  PERMISSION_DENIED
+  API_KEY_CREATED
+  API_KEY_REVOKED
+  SECRET_ACCESSED
+  SECRET_ROTATED
+}
+
+"""
+監査ログの実行結果（C-9 監査対応: 文字列フィールドを型安全な enum に移行）。
+新規クライアントは result（文字列）の代わりにこの enum を使用すること。
+"""
+enum AuditResult {
+  SUCCESS
+  FAILURE
+  PARTIAL
+}
+
 type AuditLog {
   id: String!
   # M-4 監査対応: proto の event_type は enum 型フィールドへ移行済みのため @deprecated を付与
-  eventType: String! @deprecated(reason: "enum 型の eventTypeEnum フィールドへ移行してください（A-4 対応）")
+  eventType: String! @deprecated(reason: "enum 型の eventTypeEnum フィールドへ移行してください（C-9 対応）")
   userId: String!
   ipAddress: String!
   userAgent: String!
   resource: String!
   action: String!
   # M-4 監査対応: proto の result は enum 型フィールドへ移行済みのため @deprecated を付与
-  result: String! @deprecated(reason: "enum 型の resultEnum フィールドへ移行してください（A-4 対応）")
+  result: String! @deprecated(reason: "enum 型の resultEnum フィールドへ移行してください（C-9 対応）")
   resourceId: String!
   traceId: String!
-  createdAt: String!
+  createdAt: DateTime!
+  """
+  C-9 監査対応: eventType の型安全な enum バージョン。
+  eventType（文字列）から移行する。新規クライアントはこのフィールドを使用すること。
+  """
+  eventTypeEnum: AuditEventType
+  """
+  C-9 監査対応: result の型安全な enum バージョン。
+  result（文字列）から移行する。新規クライアントはこのフィールドを使用すること。
+  """
+  resultEnum: AuditResult
 }
 
 type AuditLogConnection {
@@ -349,7 +402,7 @@ type Session {
   ipAddress: String
   status: SessionStatus!
   expiresAt: String!
-  createdAt: String!
+  createdAt: DateTime!
   lastAccessedAt: String
 }
 
@@ -361,8 +414,8 @@ type SecretMetadata {
   path: String!
   currentVersion: Int!
   versionCount: Int!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type VaultAuditLogEntry {
@@ -373,7 +426,7 @@ type VaultAuditLogEntry {
   ipAddress: String!
   success: Boolean!
   errorMsg: String
-  createdAt: String!
+  createdAt: DateTime!
 }
 
 # ===========================================================================
@@ -391,8 +444,8 @@ type Job {
   status: String!
   nextRunAt: String
   lastRunAt: String
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type JobExecution {
@@ -422,7 +475,7 @@ type NotificationLog {
   retryCount: Int!
   errorMessage: String
   sentAt: String
-  createdAt: String!
+  createdAt: DateTime!
 }
 
 type NotificationChannel {
@@ -431,8 +484,8 @@ type NotificationChannel {
   channelType: String!
   configJson: String!
   enabled: Boolean!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type NotificationTemplate {
@@ -441,8 +494,8 @@ type NotificationTemplate {
   channelType: String!
   subjectTemplate: String
   bodyTemplate: String!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 # ===========================================================================
@@ -466,8 +519,8 @@ type WorkflowDefinition {
   version: Int!
   enabled: Boolean!
   steps: [WorkflowStep!]!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type WorkflowInstance {
@@ -481,7 +534,7 @@ type WorkflowInstance {
   contextJson: String
   startedAt: String!
   completedAt: String
-  createdAt: String
+  createdAt: DateTime
 }
 
 type WorkflowTask {
@@ -495,8 +548,8 @@ type WorkflowTask {
   comment: String
   actorId: String
   decidedAt: String
-  createdAt: String!
-  updatedAt: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 # ===========================================================================

@@ -152,14 +152,20 @@ type AuthUseCase struct {
 	oauthClient AuthOAuthClient
 	// sessionStore はセッションデータの永続化を担うポートインターフェース。
 	sessionStore port.SessionStore
+	// exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化を担うポートインターフェース（H-5 監査対応）。
+	// SessionData.AccessToken へのセッション ID 格納という意味論的誤用を解消するために分離する。
+	exchangeCodeStore port.ExchangeCodeStore
 }
 
 // NewAuthUseCase は AuthUseCase のコンストラクタ。
 // 依存するポートインターフェースを注入する。
-func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore) *AuthUseCase {
+// exchangeCodeStore は ExchangeCodeStore インターフェースを実装する必要がある。
+// session.RedisStore と session.EncryptedStore は両方このインターフェースを実装している。
+func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore, exchangeCodeStore port.ExchangeCodeStore) *AuthUseCase {
 	return &AuthUseCase{
-		oauthClient:  oauthClient,
-		sessionStore: sessionStore,
+		oauthClient:       oauthClient,
+		sessionStore:      sessionStore,
+		exchangeCodeStore: exchangeCodeStore,
 	}
 }
 
@@ -216,13 +222,17 @@ func validateCallbackInput(input CallbackInput) error {
 
 // buildMobileRedirectOutput はモバイルフロー用のワンタイム交換コードを生成して CallbackOutput を返す。
 // モバイル固有のロジックを分離することで Callback の循環複雑度を削減する（§3.2 監査対応）。
+// H-5 監査対応: SessionData.AccessToken へのセッション ID 格納という意味論的誤用を解消し、
+// ExchangeCodeData 専用型を使用する。
 func (uc *AuthUseCase) buildMobileRedirectOutput(ctx context.Context, sessionID, csrfToken, postAuthRedirect string) (*CallbackOutput, error) {
-	// ワンタイム交換コード: セッション ID への参照を短命なエントリとして保存する
-	exchangeData := &session.SessionData{
-		AccessToken: sessionID,
-		ExpiresAt:   time.Now().Add(exchangeCodeTTL).Unix(),
+	// ワンタイム交換コード: ExchangeCodeData 専用型でセッション ID を保存する（H-5 監査対応）
+	// SessionData.AccessToken を流用せず、意味論的に正確な ExchangeCodeData を使用する。
+	exchangeData := &session.ExchangeCodeData{
+		SessionID:        sessionID,
+		PostAuthRedirect: postAuthRedirect,
+		ExpiresAt:        time.Now().Add(exchangeCodeTTL).Unix(),
 	}
-	exchangeCode, err := uc.sessionStore.Create(ctx, exchangeData, exchangeCodeTTL)
+	exchangeCode, err := uc.exchangeCodeStore.CreateExchangeCode(ctx, exchangeData, exchangeCodeTTL)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CREATE_FAILED", Err: err}
 	}
@@ -299,7 +309,13 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 	}
 
 	// モバイルフロー: PostAuthRedirect が設定されている場合はワンタイム交換コードを発行する
+	// M-9 監査対応: Cookie から取得した postAuthRedirect を UseCase 側でも再検証する。
+	// handler 側での Cookie 設定時の検証（Login の isAllowedRedirectScheme）に加え、
+	// UseCase 入口でも再検証することで多層防御を実現し、オープンリダイレクト攻撃を防ぐ。
 	if input.PostAuthRedirect != "" {
+		if !isAllowedRedirectScheme(input.PostAuthRedirect) {
+			return nil, &AuthUseCaseError{Code: "BFF_AUTH_REDIRECT_URL_INVALID"}
+		}
 		return uc.buildMobileRedirectOutput(ctx, sessionID, csrfToken, input.PostAuthRedirect)
 	}
 
@@ -388,13 +404,15 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 
 // ExchangeCode はワンタイム交換コードを検証し、実際のセッション ID を返す。
 // モバイルクライアントが OAuth 認証完了後にセッションを確立するために使用する。
+// H-5 監査対応: ExchangeCodeStore から ExchangeCodeData を取得し、意味論的に正確なフィールドを使用する。
 func (uc *AuthUseCase) ExchangeCode(ctx context.Context, input ExchangeInput) (*ExchangeOutput, error) {
 	if input.Code == "" {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CODE_MISSING"}
 	}
 
-	// 交換コードに対応するエントリをセッションストアから取得する
-	exchangeData, err := uc.sessionStore.Get(ctx, input.Code)
+	// 交換コードに対応するエントリを ExchangeCodeStore から取得する（H-5 監査対応）
+	// SessionData.AccessToken を流用せず、ExchangeCodeData.SessionID フィールドを使用する。
+	exchangeData, err := uc.exchangeCodeStore.GetExchangeCode(ctx, input.Code)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_ERROR", Err: err}
 	}
@@ -404,8 +422,8 @@ func (uc *AuthUseCase) ExchangeCode(ctx context.Context, input ExchangeInput) (*
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CODE_INVALID"}
 	}
 
-	// 実際のセッション ID を取得する（AccessToken フィールドに格納されている）
-	realSessionID := exchangeData.AccessToken
+	// 意味論的に正確な SessionID フィールドから実際のセッション ID を取得する（H-5 監査対応）
+	realSessionID := exchangeData.SessionID
 
 	// 実際のセッションがまだ有効か確認する（交換コード削除より前に検証し、
 	// セッション無効時に交換コードが消費されてしまう問題を防ぐ）
@@ -415,7 +433,7 @@ func (uc *AuthUseCase) ExchangeCode(ctx context.Context, input ExchangeInput) (*
 	}
 
 	// 全検証通過後に交換コードを削除する（ワンタイム使用）（削除失敗は警告ログを出力して処理を続行する）（H-3 対応）
-	if err := uc.sessionStore.Delete(ctx, input.Code); err != nil {
+	if err := uc.exchangeCodeStore.DeleteExchangeCode(ctx, input.Code); err != nil {
 		slog.WarnContext(ctx, "交換コードの削除に失敗しました",
 			"code", input.Code,
 			"error", err,

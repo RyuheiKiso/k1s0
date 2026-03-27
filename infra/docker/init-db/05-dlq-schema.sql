@@ -49,3 +49,10 @@ BEGIN
       AND updated_at < NOW() - INTERVAL '30 days';
 END;
 $$;
+
+-- k1s0ユーザーへのアクセス権限付与（H-17 監査対応）
+-- dlq スキーマへの DML 権限を k1s0_dlq_rw ロールに付与する
+-- k1s0_dlq_rw ロールは 16-roles.sh で作成される
+GRANT USAGE ON SCHEMA dlq TO k1s0_dlq_rw;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA dlq TO k1s0_dlq_rw;
+ALTER DEFAULT PRIVILEGES IN SCHEMA dlq GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_dlq_rw;

@@ -36,8 +36,9 @@ pub struct AppConfig {
     pub environment: String,
 }
 
+// Cargo.toml の package.version からバージョンを取得する（M-16 監査対応: ハードコード解消）
 fn default_version() -> String {
-    "0.1.0".to_string()
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 fn default_environment() -> String {

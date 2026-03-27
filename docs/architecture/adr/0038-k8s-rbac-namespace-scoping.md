@@ -18,13 +18,14 @@ k1s0 アプリケーションが利用する Namespace は `k1s0-system`、`k1s0
 
 1. **RBAC 操作権限を分離**: `k1s0-admin` から `clusterroles`/`clusterrolebindings` への CRUD 権限を除外し、新規 `k1s0-security-admin` ClusterRole に分離する。
 2. **ClusterRoleBinding → RoleBinding**: `k1s0-admin-binding` と `k1s0-operator-binding` を ClusterRoleBinding から k1s0 関連 Namespace（k1s0-system, k1s0-business, k1s0-service）への RoleBinding に変更する。
-3. **developer と readonly は ClusterRoleBinding を維持**: これらは参照のみ（`get, list, watch`）のため、クラスタ全体での閲覧権限は許容する。
+3. **developer と readonly も RoleBinding に変更（H-15 監査対応）**: 2026-03-27 の外部監査（H-15）で指摘を受け、`k1s0-developer-binding` と `readonly-binding` を ClusterRoleBinding から各 k1s0 Namespace の RoleBinding に変更する。参照のみの権限であっても、クラスタ全体の機密 Namespace（kube-system 等）へのアクセスは不要であり、最小権限の原則に従い Namespace スコープに限定する。
 
 ## 理由
 
 - **最小権限の原則（PoLP）**: アプリケーション管理者は自分たちのアプリケーション Namespace のみ操作できれば十分。クラスタ全体への書き込み権限は不要。
 - **権限エスカレーション防止**: RBAC リソース自体の操作権限と一般的な管理権限を分離することで、意図しない権限昇格を防ぐ。
 - **Namespace 分離**: k1s0 の3Tier（system/business/service）は明確に分離されており、各 Namespace に RoleBinding を適用することでより細粒度な制御が可能。
+- **参照権限も Namespace 限定（H-15 対応）**: developer や readonly であっても kube-system 等の機密 Namespace を参照できる必要はなく、k1s0 アプリケーション Namespace のみへのアクセスで十分。
 
 ## 影響
 
@@ -58,3 +59,4 @@ k1s0 アプリケーションが利用する Namespace は `k1s0-system`、`k1s0
 | 日付 | 変更内容 | 変更者 |
 |------|---------|-------|
 | 2026-03-26 | 初版作成（外部監査 H-6 対応） | k1s0 team |
+| 2026-03-27 | developer/readonly も RoleBinding に変更（外部監査 H-15 対応） | k1s0 team |

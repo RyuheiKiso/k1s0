@@ -45,3 +45,10 @@ CREATE INDEX idx_saga_states_workflow_name ON saga.saga_states(workflow_name);
 CREATE INDEX idx_saga_states_correlation_id ON saga.saga_states(correlation_id) WHERE correlation_id IS NOT NULL;
 CREATE INDEX idx_saga_states_created_at ON saga.saga_states(created_at);
 CREATE INDEX idx_saga_step_logs_saga_id_step_index ON saga.saga_step_logs(saga_id, step_index);
+
+-- k1s0ユーザーへのアクセス権限付与（H-17 監査対応）
+-- saga スキーマへの DML 権限を k1s0_saga_rw ロールに付与する
+-- k1s0_saga_rw ロールは 16-roles.sh で作成される
+GRANT USAGE ON SCHEMA saga TO k1s0_saga_rw;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA saga TO k1s0_saga_rw;
+ALTER DEFAULT PRIVILEGES IN SCHEMA saga GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_saga_rw;

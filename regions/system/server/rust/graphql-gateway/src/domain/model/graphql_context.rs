@@ -16,6 +16,8 @@ pub struct GraphqlContext {
     pub roles: Vec<String>,
     /// リクエスト追跡 ID（X-Request-Id ヘッダーまたは UUID 自動生成）
     pub request_id: String,
+    /// 検証済み raw JWT トークン。下流 gRPC サービスへの転送用（M-3 監査対応: クエリ引数からコンテキストへ移動）
+    pub bearer_token: String,
     /// テナントバッチローダー
     pub tenant_loader: Arc<DataLoader<TenantLoader>>,
     /// フィーチャーフラグバッチローダー

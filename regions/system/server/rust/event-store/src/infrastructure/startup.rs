@@ -14,6 +14,7 @@ use super::in_memory::{
 use super::kafka::EventPublisher;
 use super::persistence::{
     EventPostgresRepository, SnapshotPostgresRepository, StreamPostgresRepository,
+    TransactionalAppendAdapter,
 };
 use crate::adapter::grpc::EventStoreGrpcService;
 use crate::adapter::handler::{self, AppState};
@@ -27,7 +28,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-event-store-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -119,12 +121,16 @@ pub async fn run() -> anyhow::Result<()> {
     };
 
     // Use cases
-    // PgPool がある場合は REPEATABLE READ トランザクションで原子性を保証する
+    // PgPool がある場合は TransactionalAppendAdapter（TransactionalAppendPort の実装）を
+    // 経由して REPEATABLE READ トランザクションで原子性を保証する。
+    // usecase 層は domain トレイト（TransactionalAppendPort）に依存し、
+    // infrastructure 具体型（TransactionalAppendAdapter）には依存しない。
     let append_events_uc = Arc::new(if let Some(ref pool) = db_pool {
-        usecase::AppendEventsUseCase::new_with_pool(
+        let transactional_port = Arc::new(TransactionalAppendAdapter::new(pool.clone()));
+        usecase::AppendEventsUseCase::new_with_transactional_port(
             stream_repo.clone(),
             event_repo.clone(),
-            pool.clone(),
+            transactional_port,
         )
     } else {
         usecase::AppendEventsUseCase::new(stream_repo.clone(), event_repo.clone())

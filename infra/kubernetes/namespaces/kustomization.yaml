@@ -1,0 +1,16 @@
+# Kustomize ベースリソース定義: Kubernetes 名前空間の管理
+# kubectl apply -k infra/kubernetes/overlays/staging/ などで使用される
+# 各名前空間の定義ファイルを resources に列挙する
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - cert-manager.yaml
+  - harbor.yaml
+  - ingress.yaml
+  - k1s0-business.yaml
+  - k1s0-service.yaml
+  - k1s0-system.yaml
+  - messaging.yaml
+  - observability.yaml
+  - service-mesh.yaml

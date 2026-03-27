@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -95,8 +96,8 @@ func run() error {
 		}()
 	}
 
-	// Gin ルーターを設定する
-	router, err := initRouter(cfg, redisClient, oauthClient, oidcReady, sessionStore, sessionTTL, logger)
+	// Gin ルーターを設定する（H-3 対応: ctx を渡して goroutine リークを防止する）
+	router, err := initRouter(ctx, cfg, redisClient, oauthClient, oidcReady, sessionStore, sessionTTL, logger)
 	if err != nil {
 		return err
 	}
@@ -161,12 +162,13 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 // initSessionStore は Redis クライアントからセッションストアを初期化する。
 // SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
 // 非開発環境で SESSION_ENCRYPTION_KEY が未設定の場合は起動を拒否する（M-04 対応）。
-func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *slog.Logger) (session.Store, time.Duration, error) {
+// H-5 監査対応: session.FullStore を返すことで ExchangeCodeStore も単一ストアで提供できる。
+func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *slog.Logger) (session.FullStore, time.Duration, error) {
 	prefix := cfg.Session.Prefix
 	if prefix == "" {
 		prefix = "bff:session:"
 	}
-	var sessionStore session.Store
+	var sessionStore session.FullStore
 	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
 		encKey, err := hex.DecodeString(encKeyHex)
 		if err != nil || len(encKey) != 32 {
@@ -221,20 +223,26 @@ func initOIDC(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) (
 }
 
 // initRouter はハンドラを生成し、Gin ルーターに全ミドルウェアとルートを登録する。
-// G-01/G-02/G-06/H-1/H-2/M-09 各対応のミドルウェアを適用する。
+// G-01/G-02/G-06/H-1/H-2/H-3/M-09/M-11 各対応のミドルウェアを適用する。
+// H-3 監査対応: ctx を受け取り RateLimitMiddleware の goroutine をシャットダウン時に停止する。
+// H-5 監査対応: sessionStore を session.FullStore 型で受け取ることで、
+// ExchangeCodeStore としても使用できる。
 func initRouter(
+	ctx context.Context,
 	cfg *config.BFFConfig,
 	redisClient redis.Cmdable,
 	oauthClient *oauth.Client,
 	oidcReady *atomic.Bool,
-	sessionStore session.Store,
+	sessionStore session.FullStore,
 	sessionTTL time.Duration,
 	logger *slog.Logger,
 ) (*gin.Engine, error) {
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
-	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
+	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
 	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
 	if err != nil {
@@ -262,7 +270,8 @@ func initRouter(
 	}
 	router.Use(corsHandler)
 	// H-2 対応: IP ベースレート制限を CORS の次に適用する
-	router.Use(middleware.RateLimitMiddleware(cfg.RateLimit))
+	// H-3 監査対応: ctx を渡してシャットダウン時に goroutine を停止する
+	router.Use(middleware.RateLimitMiddleware(ctx, cfg.RateLimit))
 	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.PrometheusMiddleware())
 	router.Use(otelgin.Middleware("bff-proxy"))
@@ -283,6 +292,12 @@ func initRouter(
 	router.GET("/auth/session", authHandler.Session)
 	router.GET("/auth/exchange", authHandler.Exchange)
 	router.POST("/auth/logout", authHandler.Logout)
+
+	// H-7 監査対応: 本番環境では CSRF 保護を強制的に有効化する。
+	// csrf.enabled を false に設定したまま本番運用されるリスクを防ぐ。
+	if !config.IsDevEnvironment(cfg.App.Environment) && !cfg.CSRF.Enabled {
+		log.Fatal("本番環境では CSRF 保護を無効化できません。csrf.enabled を true に設定してください")
+	}
 
 	api := router.Group("/api")
 	api.Use(middleware.SessionMiddleware(sessionStore, handler.CookieName, sessionTTL, cfg.Session.Sliding))

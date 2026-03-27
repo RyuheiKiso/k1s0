@@ -1,0 +1,8 @@
+# Kustomize ベースリソース定義: Kubernetes リソースクォータの管理
+# kubectl apply -k infra/kubernetes/overlays/staging/ などで使用される
+# 名前空間ごとのリソース使用上限（CPU/メモリ/Pod数）を resources に列挙する
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace-quotas.yaml

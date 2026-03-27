@@ -36,6 +36,10 @@
 | [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
 | [ADR-0029](./0029-postgresql-ha-strategy.md) | PostgreSQL HA 戦略 | 承認済み |
 | [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 提案中 |
+| [ADR-0031](./0031-etcd-encryption-at-rest.md) | etcd encryption-at-rest（保存時暗号化）の採用 | 採用済み |
+| [ADR-0032](./0032-zod-v4-record-key-schema.md) | zod v4 API移行方針 — record キースキーマ必須化 | 採用済み |
+| [ADR-0033](./0033-riverpod-v3-family-async-notifier.md) | Riverpod v3 FamilyNotifier → FamilyAsyncNotifier 移行 | 採用済み |
+| [ADR-0034](./0034-deprecated-proto-field-dual-write.md) | deprecated proto フィールド dual-write 移行戦略 | 採用済み |
 | [ADR-0035](./0035-dockerfile-template-strategy.md) | Dockerfile テンプレート戦略（27 サービス個別 Dockerfile の維持方針） | 承認済み |
 | [ADR-0036](./0036-promtail-log-collection-strategy.md) | Promtail ログ収集戦略 | 承認済み |
 | [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 承認済み |

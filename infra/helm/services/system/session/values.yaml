@@ -12,6 +12,12 @@ container:
 service:
   grpcPort: 50051
 
+# L-10 監査対応: gRPC サービスのヘルスチェックを有効化する。
+# gRPC サービスは HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用すること。
+probes:
+  grpcHealthCheck:
+    enabled: true
+
 vault:
   enabled: true
   role: "system"
@@ -32,3 +38,6 @@ kafka:
 
 redis:
   enabled: true
+  # L-9 監査対応: redis.enabled=true の場合、redis.host は必須。
+  # 環境変数 REDIS_HOST として REDIS_PORT と共にコンテナへ注入される。
+  host: redis.k1s0-system.svc.cluster.local

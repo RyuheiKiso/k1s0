@@ -9,11 +9,8 @@ variable "kafka_broker_replicas" {
   default     = 3
 }
 
-variable "zookeeper_replicas" {
-  description = "Number of ZooKeeper replicas"
-  type        = number
-  default     = 3
-}
+# M-19 監査対応: ZooKeeper 変数を削除。KRaft モード移行済み（ADR-0016 参照）。
+# zookeeper_replicas と zookeeper_storage_size はここから削除済み。
 
 variable "kafka_default_replication_factor" {
   description = "Default replication factor for Kafka topics"
@@ -31,12 +28,6 @@ variable "kafka_storage_size" {
   description = "Storage size for each Kafka broker"
   type        = string
   default     = "50Gi"
-}
-
-variable "zookeeper_storage_size" {
-  description = "Storage size for each ZooKeeper node"
-  type        = string
-  default     = "10Gi"
 }
 
 variable "kafka_memory_request" {

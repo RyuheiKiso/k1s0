@@ -135,6 +135,33 @@ CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_05 PARTITION OF auth.audit_logs
 CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_06 PARTITION OF auth.audit_logs
     FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
 
+-- audit_logs 2026-07以降パーティション（M-17 監査対応: パーティション枯渇防止）
+-- 2026-07 から 2027-06 までの12ヶ月分を事前に作成し、パーティション枯渇によるデータ消失を防ぐ
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_07 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-07-01') TO ('2026-08-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_08 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_09 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-09-01') TO ('2026-10-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_10 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-10-01') TO ('2026-11-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_11 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-11-01') TO ('2026-12-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2026_12 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2026-12-01') TO ('2027-01-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_01 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-01-01') TO ('2027-02-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_02 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-02-01') TO ('2027-03-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_03 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-03-01') TO ('2027-04-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_04 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-04-01') TO ('2027-05-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_05 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-05-01') TO ('2027-06-01');
+CREATE TABLE IF NOT EXISTS auth.audit_logs_2027_06 PARTITION OF auth.audit_logs
+    FOR VALUES FROM ('2027-06-01') TO ('2027-07-01');
+
 CREATE TABLE IF NOT EXISTS auth.audit_logs_default PARTITION OF auth.audit_logs DEFAULT;
 
 -- 007: api_keys テーブル
