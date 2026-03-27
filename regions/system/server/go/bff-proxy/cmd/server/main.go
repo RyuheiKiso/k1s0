@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -295,8 +294,9 @@ func initRouter(
 
 	// H-7 監査対応: 本番環境では CSRF 保護を強制的に有効化する。
 	// csrf.enabled を false に設定したまま本番運用されるリスクを防ぐ。
+	// log.Fatal ではなく error を返すことで defer によるクリーンアップ（OTel シャットダウン等）が実行される。
 	if !config.IsDevEnvironment(cfg.App.Environment) && !cfg.CSRF.Enabled {
-		log.Fatal("本番環境では CSRF 保護を無効化できません。csrf.enabled を true に設定してください")
+		return nil, fmt.Errorf("本番環境では CSRF 保護を無効化できません。csrf.enabled を true に設定してください")
 	}
 
 	api := router.Group("/api")
@@ -365,10 +365,13 @@ func initTracerProvider(
 		endpoint = "localhost:4317"
 	}
 
+	// gRPC トレースエクスポーターのオプションを構築する（HIGH-11 対応）
+	// 変更前: strings.HasPrefix(endpoint, "https://") による不完全な判定（gRPC はスキームを使わない）
+	// 変更後: 明示的な設定フラグ OTLPInsecure で制御し、意図しない insecure 接続を防止する
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
 	}
-	if !strings.HasPrefix(endpoint, "https://") {
+	if traceCfg.OTLPInsecure {
 		opts = append(opts, otlptracegrpc.WithInsecure())
 	}
 

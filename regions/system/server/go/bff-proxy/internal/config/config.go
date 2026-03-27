@@ -68,6 +68,11 @@ type TraceConfig struct {
 	Enabled    bool    `yaml:"enabled"`
 	Endpoint   string  `yaml:"endpoint"`
 	SampleRate float64 `yaml:"sample_rate" validate:"min=0,max=1"`
+	// OTLPInsecure は gRPC トレースエクスポーターを insecure モード（TLS なし）で接続するかどうかを制御する（HIGH-11 対応）。
+	// エンドポイントの URL スキームによる自動判定は不完全なため、明示的なフラグで制御する。
+	// 本番環境では false に設定し、TLS による暗号化通信を使用すること。
+	// 開発・テスト環境でローカルの OTLP コレクターに接続する場合のみ true にすること。
+	OTLPInsecure bool `yaml:"otlp_insecure"`
 }
 
 // MetricsConfig configures Prometheus metrics.

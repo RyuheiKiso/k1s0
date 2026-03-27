@@ -74,8 +74,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${PG_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
@@ -116,8 +117,9 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
     # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${REDIS_HOST_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
     # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
     # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
     # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
@@ -134,9 +136,10 @@ services:
   # staging/prod では SASL_SSL を使用し、Strimzi Operator が証明書管理を行う。
   # ローカルと staging/prod でセキュリティプロトコルが異なるため、
   # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
-  # M-1 監査対応: 本番 Strimzi バージョンと統一するため 3.6.1 を使用する（infra/terraform/modules/messaging/main.tf の version = "3.6.1" に合わせる）。
+  # 監査対応: apache/kafka:3.6.1 は Docker Hub に存在しないため 3.8.0 に更新。
+  # Strimzi 内部バージョンと Docker Hub 公開バージョンは別管理であることに注意。
   kafka:
-    image: apache/kafka:3.6.1
+    image: apache/kafka:3.8.0
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -290,10 +293,12 @@ services:
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       JAVA_OPTS_APPEND: "-Xms256m -Xmx512m"
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
-    command: ["start-dev", "--import-realm"]
+    # start コマンドは docker-compose.dev.yaml の keycloak セクションで上書きされる。
+    # 本番では "start" コマンドを使用する（TLS終端・クラスター設定が必要）。
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
-      - "${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8180}:8080"
+      - "127.0.0.1:${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -367,19 +372,17 @@ services:
       - SETUID
     environment:
       # ================================================================
-      # ⚠️ 本番環境では dev モードを絶対に使用しないこと。
-      # Vault dev モードはインメモリストレージのため再起動でデータが消失する。
-      # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理すること。
+      # VAULT_DEV_ROOT_TOKEN_ID はここに記載しない。
+      # dev モードはローカル開発専用であり、docker-compose.dev.yaml で設定する。
+      # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理する。
       # ================================================================
-      # Vault dev モードのルートトークン ID。未設定の場合はエラーで起動を阻止する。
-      # ローカル開発時は docker-compose.dev.yaml で VAULT_DEV_ROOT_TOKEN_ID=dev-token を設定すること。
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:?VAULT_DEV_ROOT_TOKEN_ID must be set for Vault dev mode}
       # ヘルスチェックで vault status を実行するために必要な接続先設定
       VAULT_ADDR: "http://127.0.0.1:8200"
       # no-new-privileges + CAP_DROP:ALL 環境での setcap 失敗を回避する
       SKIP_SETCAP: "true"
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${VAULT_HOST_PORT:-8200}:8200"
+      - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
     # Vault のシールド状態と初期化状態を確認するヘルスチェック
     healthcheck:
       test: ["CMD", "vault", "status"]
@@ -428,6 +431,9 @@ services:
     ports:
       - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
       # Admin API ポートは docker-compose.dev.yaml で定義（開発時のみ公開）
+      # Kong Status ポート（8100）はホストにマッピングしない。
+      # Prometheus が同一 Docker ネットワーク内から直接 http://kong:8100/metrics にアクセスするため、
+      # ホストへの公開は不要であり、外部からのメトリクスエンドポイント露出を防止する。
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
@@ -1152,9 +1158,9 @@ services:
   # [Business Tier]
   #   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1       → topics.yaml: 同名
   #   k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1  → topics.yaml: 同名
-  # M-1 監査対応: 本番 Strimzi バージョンと統一するため 3.6.1 を使用する（kafka サービスと同一バージョン）。
+  # 監査対応: apache/kafka:3.6.1 は Docker Hub に存在しないため 3.8.0 に更新（kafka サービスと同一バージョン）。
   kafka-init:
-    image: apache/kafka:3.6.1
+    image: apache/kafka:3.8.0
     profiles: [infra]
     # リソース制限: 初期化タスクは軽量（一時的に実行されるだけ）
     mem_limit: 256m

@@ -16,8 +16,11 @@ observability:
     format: json
   trace:
     enabled: false
-    endpoint: "http://jaeger:4317"
+    endpoint: "jaeger:4317"
     sample_rate: 1.0
+    # 開発環境ではローカルの Jaeger に TLS なしで接続するため true にする（HIGH-11 対応）
+    # gRPC エンドポイントは "host:port" 形式を使用し、スキームは含めないこと
+    otlp_insecure: true
   metrics:
     enabled: true
     path: /metrics

@@ -28,20 +28,20 @@ pub struct BuildConfig {
     pub mode: BuildMode,
 }
 
-/// Execute builds for the selected targets.
+/// 選択されたターゲットのビルドを実行する。
 ///
 /// # Errors
 ///
-/// Returns an error when no targets are selected or any build command fails.
+/// ターゲットが未選択またはビルドコマンドが失敗した場合にエラーを返す。
 pub fn execute_build(config: &BuildConfig) -> Result<()> {
     execute_build_internal(config, Option::<&fn(ProgressEvent)>::None)
 }
 
-/// Execute builds for the selected targets while emitting progress events.
+/// 進捗イベントを送出しながら選択されたターゲットのビルドを実行する。
 ///
 /// # Errors
 ///
-/// Returns an error when no targets are selected or any build command fails.
+/// ターゲットが未選択またはビルドコマンドが失敗した場合にエラーを返す。
 pub fn execute_build_with_progress(
     config: &BuildConfig,
     on_progress: impl Fn(ProgressEvent),

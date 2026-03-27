@@ -144,10 +144,11 @@ variable "mysql_chart_version" {
   default     = "9.0.0"
 }
 
+# L-17 対応: postgresql_version を "17" に更新し Docker Compose の postgres:17 イメージと統一する
 variable "postgresql_version" {
   description = "PostgreSQL image version"
   type        = string
-  default     = "16"
+  default     = "17"
 }
 
 variable "mysql_version" {

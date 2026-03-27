@@ -15,6 +15,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
 // PrepareProxyInput は PrepareProxy ユースケースの入力パラメータ。
@@ -102,11 +103,12 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 				)
 			}
 			// リフレッシュ失敗時に無効なセッションを削除し、再利用を防止する（H-003）
+			// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 			if delErr := uc.sessionStore.Delete(ctx, input.SessionID); delErr != nil {
 				if uc.logger != nil {
 					uc.logger.Error("期限切れセッションの削除に失敗しました",
 						slog.String("error", delErr.Error()),
-						slog.String("session_id", input.SessionID),
+						slog.String("session_id", util.MaskSessionID(input.SessionID)),
 					)
 				}
 			}
@@ -155,10 +157,11 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 		tempSess.CSRFToken = newCSRFToken
 
 		// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
+		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 		if err := uc.sessionStore.Update(ctx, input.SessionID, &tempSess, uc.sessionTTL); err != nil {
 			if uc.logger != nil {
 				uc.logger.Error("リフレッシュ後のセッション更新に失敗しました",
-					slog.String("session_id", input.SessionID),
+					slog.String("session_id", util.MaskSessionID(input.SessionID)),
 					slog.String("error", err.Error()),
 				)
 			}

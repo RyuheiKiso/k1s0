@@ -107,10 +107,15 @@ ingress:
   tls: []
 
 # セキュリティコンテキスト
+# CRITICAL-8 対応: PSS restricted プロファイルでは seccompProfile の明示的な指定が必須。
+# RuntimeDefault を設定することで、ノードのデフォルト seccomp プロファイルを適用し
+# PSS restricted 違反によるPod 起動不可問題を解消する。
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532              # distroless nonroot ユーザー
   fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault        # PSS restricted 準拠: seccompProfile 必須フィールド
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false

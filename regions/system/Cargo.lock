@@ -3266,7 +3266,6 @@ name = "k1s0-graphql-client"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "mockall",
  "reqwest",
  "serde",
  "serde_json",

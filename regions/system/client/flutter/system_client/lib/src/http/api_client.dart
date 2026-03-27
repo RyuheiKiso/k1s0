@@ -95,6 +95,10 @@ class SessionCookieInterceptor extends Interceptor {
   }
 }
 
+/// 401 Unauthorized を検出した際に呼び出すコールバック型
+/// 認証状態のリセット処理を呼び出し元が注入できるようにする
+typedef UnauthorizedCallback = void Function();
+
 class ApiClient {
   ApiClient._();
 
@@ -104,6 +108,8 @@ class ApiClient {
     Duration receiveTimeout = const Duration(seconds: 30),
     CsrfTokenProvider? csrfTokenProvider,
     SessionCookieInterceptor? sessionCookieInterceptor,
+    // 401 Unauthorized 発生時に認証状態をリセットするコールバック
+    UnauthorizedCallback? onUnauthorized,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -129,9 +135,14 @@ class ApiClient {
     }
 
     // エラーハンドリングインターセプター
+    // 401 Unauthorized を検出した場合はセッションをクリアして認証状態をリセットする
     dio.interceptors.add(
       InterceptorsWrapper(
         onError: (error, handler) {
+          // 401 Unauthorized はセッション切れまたは未認証を示すため、認証状態をリセットする
+          if (error.response?.statusCode == 401 && onUnauthorized != null) {
+            onUnauthorized();
+          }
           handler.next(error);
         },
       ),

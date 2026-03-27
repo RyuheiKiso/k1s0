@@ -36,6 +36,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "k1s0-common.serviceAccountName" . }}
+      # サービスアカウントトークンの自動マウントを無効化する（MEDIUM-9 対応）
+      # Pod が Kubernetes API サーバーに不要なアクセス権を持つリスクを排除する。
+      # Vault や外部シークレット管理を使用するため、トークンの自動マウントは不要。
+      automountServiceAccountToken: false
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -90,6 +94,11 @@ spec:
           startupProbe:
             grpc:
               port: {{ $.Values.container.grpcPort }}
+            {{- /* CRITICAL-8 対応: initialDelaySeconds が nil の場合に nil pointer エラーが発生するため
+                   nil-safe パターンで条件付き出力する。値が設定されている場合のみレンダリングする。 */}}
+            {{- if .initialDelaySeconds }}
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            {{- end }}
             failureThreshold: {{ .failureThreshold }}
             periodSeconds: {{ .periodSeconds }}
           {{- end }}

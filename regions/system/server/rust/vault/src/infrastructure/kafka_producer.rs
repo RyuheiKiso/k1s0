@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+// secrecy クレートを使用して Kafka SASL パスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ（H-1 監査対応）。
+use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 
 /// VaultAccessEvent は vault アクセス時に Kafka へ発行するイベント。
@@ -44,14 +46,25 @@ fn default_security_protocol() -> String {
 }
 
 /// SaslConfig は SASL 認証の設定を表す。
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct SaslConfig {
     #[serde(default)]
     pub mechanism: String,
     #[serde(default)]
     pub username: String,
-    #[serde(default)]
-    pub password: String,
+    // SASL パスワードは Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    pub password: Secret<String>,
+}
+
+impl Default for SaslConfig {
+    fn default() -> Self {
+        Self {
+            mechanism: String::new(),
+            username: String::new(),
+            // デフォルト値は空文字列で初期化する
+            password: Secret::new(String::new()),
+        }
+    }
 }
 
 /// TopicsConfig はトピック設定を表す。
@@ -129,7 +142,8 @@ impl KafkaProducer {
         if !config.sasl.mechanism.is_empty() {
             client_config.set("sasl.mechanism", &config.sasl.mechanism);
             client_config.set("sasl.username", &config.sasl.username);
-            client_config.set("sasl.password", &config.sasl.password);
+            // expose_secret() で SASL パスワードを取り出して rdkafka に設定する
+            client_config.set("sasl.password", config.sasl.password.expose_secret());
         }
 
         let producer: rdkafka::producer::FutureProducer = client_config.create()?;

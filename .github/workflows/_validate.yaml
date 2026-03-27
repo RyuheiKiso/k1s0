@@ -211,7 +211,9 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          severity: HIGH,CRITICAL
+          # L-20 対応: security.yaml との整合性を保つため MEDIUM も含めてスキャンする
+          # サプライチェーン攻撃は MEDIUM 脆弱性の悪用から始まることが多い（M-23対応）
+          severity: MEDIUM,HIGH,CRITICAL
           exit-code: 1
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---

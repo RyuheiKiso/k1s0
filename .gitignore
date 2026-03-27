@@ -42,6 +42,8 @@ vendor/
 .env
 .env.local
 .env.*.local
+# 開発用固定値を含む環境ファイル（.env.dev.example をテンプレートとして使用する）
+.env.dev
 **/config/config.dev.yaml
 **/config/config.local.yaml
 **/config/config.docker.yaml

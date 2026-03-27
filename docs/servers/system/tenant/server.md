@@ -488,7 +488,7 @@ syntax = "proto3";
 
 package k1s0.system.tenant.v1;
 
-option go_package = "github.com/k1s0-platform/system-proto-go/tenant/v1;tenantv1";
+option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/tenant/v1;tenantv1";
 
 import "k1s0/system/common/v1/types.proto";
 

@@ -75,7 +75,9 @@ impl FeatureFlagClient for InMemoryFeatureFlagClient {
     }
 }
 
+// テストコードでは unwrap() を許可する（unwrap_used = "deny" はプロダクションコード向け）
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::flag::FlagVariant;

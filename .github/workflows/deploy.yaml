@@ -61,7 +61,8 @@ jobs:
                 business/*/*/Chart.yaml|business/*/*.yaml) echo "business/$(echo "$path" | cut -d'/' -f2)/server" ;;
                 service/*/Chart.yaml|service/*/*.yaml) echo "service/$(echo "$path" | cut -d'/' -f2)/server" ;;
               esac
-            done | sort -u | head -20)
+            # head -20 の制限を撤廃: 共通ライブラリ変更時に21件以上が影響を受けても全サービスをデプロイする
+            done | sort -u)
           echo "services=$(echo "$CHANGED" | jq -R -s -c 'split("\n") | map(select(. != ""))')" >> "$GITHUB_OUTPUT"
 
   # Docker イメージのビルド・プッシュ・署名
@@ -239,6 +240,9 @@ jobs:
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
+      # 注意（MEDIUM-8）: values-dev.yaml には SSL 無効化等の開発専用設定が含まれる。
+      # このステップは dev 環境専用であり、staging/prod では絶対に values-dev.yaml を使用してはならない。
+      # staging は values-staging.yaml、prod は values-prod.yaml を明示的に指定すること。
       - name: Deploy to dev
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
@@ -312,6 +316,8 @@ jobs:
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
+      # 注意（MEDIUM-8）: staging 環境は values-staging.yaml を使用する。
+      # values-dev.yaml（SSL無効化等の開発専用設定）をここで使用してはならない。
       - name: Deploy to staging
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \
@@ -390,6 +396,8 @@ jobs:
         with:
           version: "3.16"   # devcontainer設計.md の Helm バージョンと同期
       # --atomic: デプロイ失敗時に自動ロールバック、--wait: Pod Ready まで待機、--timeout: 最大待機時間
+      # 注意（MEDIUM-8）: prod 環境は values-prod.yaml を使用する。
+      # values-dev.yaml（SSL無効化等の開発専用設定）をここで使用してはならない。
       - name: Deploy to prod
         run: |
           helm upgrade --install ${{ steps.meta.outputs.service_name }} \

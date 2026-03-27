@@ -87,21 +87,25 @@ pub struct PermissionCheck {
 #[derive(Debug, Clone, SimpleObject)]
 pub struct AuditLog {
     pub id: String,
-    /// 後方互換性のため文字列フィールドを維持する（@deprecated: event_type_enum を使用すること）
+    /// 後方互換性のため文字列フィールドを維持する（非推奨: `event_type_enum` フィールドを使用すること）
+    // async-graphql の deprecation 属性で GraphQL スキーマに廃止予定の旨を通知する
+    #[graphql(deprecation = "event_type_enum フィールドを使用してください")]
     pub event_type: String,
     pub user_id: String,
     pub ip_address: String,
     pub user_agent: String,
     pub resource: String,
     pub action: String,
-    /// 後方互換性のため文字列フィールドを維持する（@deprecated: result_enum を使用すること）
+    /// 後方互換性のため文字列フィールドを維持する（非推奨: `result_enum` フィールドを使用すること）
+    // async-graphql の deprecation 属性で GraphQL スキーマに廃止予定の旨を通知する
+    #[graphql(deprecation = "result_enum フィールドを使用してください")]
     pub result: String,
     pub resource_id: String,
     pub trace_id: String,
     pub created_at: String,
-    /// C-9 監査対応: event_type の型安全な enum バージョン。新規クライアントはこのフィールドを使用すること
+    /// C-9 監査対応: `event_type` の型安全な enum バージョン。新規クライアントはこのフィールドを使用すること
     pub event_type_enum: Option<AuditEventType>,
-    /// C-9 監査対応: result の型安全な enum バージョン。新規クライアントはこのフィールドを使用すること
+    /// C-9 監査対応: `result` の型安全な enum バージョン。新規クライアントはこのフィールドを使用すること
     pub result_enum: Option<AuditResult>,
 }
 

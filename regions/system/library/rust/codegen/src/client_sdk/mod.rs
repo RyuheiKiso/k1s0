@@ -187,8 +187,8 @@ pub use types::*;
     )
 }
 
-fn generate_error_rs(config: &ClientSdkConfig) -> String {
-    let _ = config;
+/// エラー型定義ファイルを生成する（サービス設定に依存しない固定コンテンツ）
+fn generate_error_rs(_config: &ClientSdkConfig) -> String {
     r#"use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -15,7 +15,21 @@ service:
 # L-10 監査対応: gRPC サービスのヘルスチェックを有効化する。
 # gRPC サービスは HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用すること。
 # Kubernetes の livenessProbe/readinessProbe が gRPC 経由でコンテナの健全性を確認する。
+# CRITICAL-8 対応: grpcHealthCheck.enabled: true の場合、テンプレートが liveness/readiness/startup の
+# 各フィールドを直接参照するため、nil pointer エラーを防ぐために明示的なデフォルト値を設定する。
 probes:
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
   grpcHealthCheck:
     enabled: true
 

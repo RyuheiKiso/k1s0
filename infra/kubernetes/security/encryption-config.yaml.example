@@ -1,6 +1,7 @@
 # etcd 保存データの暗号化設定（EncryptionConfiguration）テンプレート
 # ===========================================================================
-# このファイルは encryption-config.yaml のサンプルです。
+# HIGH-3 監査対応: 本番キーは .gitignore で除外され Vault で管理される。
+# このファイルは encryption-config.yaml のサンプルであり、実際のキーを含まない。
 # 実際の encryption-config.yaml は .gitignore で除外されており、
 # CI/CD パイプラインが Vault からキーを取得して自動生成します。
 #

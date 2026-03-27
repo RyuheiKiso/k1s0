@@ -8,11 +8,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # ベースリソース: 全 Namespace の共通設定（NetworkPolicy, RBAC 等）
+# limit-ranges: staging 環境でもコンテナのリソース上限を強制し、暴走コンテナによるノード枯渇を防止する（L-14 対応）
 resources:
   - ../../namespaces
   - ../../network-policies
   - ../../rbac
   - ../../resource-quotas
+  - ../../limit-ranges
 
 # staging 環境のリソースクォータを 2x に上書きする（dev の 2 倍スケール）
 patches:

@@ -151,15 +151,14 @@ fn is_server_dir(path: &Path) -> bool {
 // gRPC 依存解析
 // ============================================================================
 
-/// protoファイルのimport文からサービス間依存を検出する。
+/// proto ファイルの import 文からサービス間の gRPC 依存を検出する。
 ///
 /// パターン: `import "k1s0/{tier}/{domain}/v{n}/{file}.proto"`
 /// → ターゲット: `{domain}-server` ({tier})
-/// Scan gRPC dependencies from imported proto files.
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
@@ -394,14 +393,13 @@ fn extract_topics(
 // REST/GraphQL 依存解析
 // ============================================================================
 
-/// ソースコード内のHTTPクライアントURLパターンからサービス間依存を検出する。
+/// ソースコード内の HTTP クライアント URL パターンからサービス間の REST/GraphQL 依存を検出する。
 ///
 /// パターン: `{service-name}.k1s0-{tier}`
-/// Scan REST and GraphQL dependencies from source files.
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
@@ -476,18 +474,16 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 // ライブラリ依存解析
 // ============================================================================
 
-/// パッケージ定義ファイルからk1s0系ライブラリ依存を検出する。
+/// パッケージ定義ファイルから k1s0 系ライブラリ依存を検出する。
 ///
-/// - Cargo.toml: `k1s0-{lib}` パス依存
-/// - go.mod: `k1s0/regions/system/library/go/`
-/// - package.json: `@k1s0/`
-/// - pubspec.yaml: `k1s0_`
-///
-/// Scan shared-library dependencies from package manifests.
+/// - `Cargo.toml`: `k1s0-{lib}` パス依存
+/// - `go.mod`: `k1s0/regions/system/library/go/`
+/// - `package.json`: `@k1s0/`
+/// - `pubspec.yaml`: `k1s0_`
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 

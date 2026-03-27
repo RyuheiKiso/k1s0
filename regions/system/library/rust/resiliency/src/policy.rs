@@ -268,7 +268,9 @@ mod featureflag_support {
     }
 }
 
+// テストコードでは unwrap() を許可する（unwrap_used = "deny" はプロダクションコード向け）
 #[cfg(all(test, feature = "hot-reload"))]
+#[allow(clippy::unwrap_used)]
 mod featureflag_tests {
     use super::*;
     use k1s0_featureflag::{FeatureFlag, FlagVariant, InMemoryFeatureFlagClient};

@@ -15,6 +15,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
 // exchangeCodeTTL はワンタイム交換コードの有効期間（60秒）。
@@ -261,9 +262,10 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 	// セッション固定化攻撃を防止するため、認証前の既存セッションを削除する（S-03 対応）
 	if input.ExistingSessionID != "" {
 		// 削除失敗は警告ログを出力して処理を続行する（H-3 対応）
+		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 		if err := uc.sessionStore.Delete(ctx, input.ExistingSessionID); err != nil {
 			slog.WarnContext(ctx, "既存セッションの削除に失敗しました（処理は続行します）",
-				"session_id", input.ExistingSessionID,
+				"session_id", util.MaskSessionID(input.ExistingSessionID),
 				"error", err,
 			)
 		}
@@ -342,18 +344,20 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 
 	// セッションデータを取得し、ID トークンを使って IdP ログアウト URL を構築する
 	// 取得失敗は警告ログを出力して処理を続行する（H-3 対応）
+	// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 	sess, err := uc.sessionStore.Get(ctx, input.SessionID)
 	if err != nil {
 		slog.WarnContext(ctx, "ログアウト時のセッション取得に失敗しました",
-			"session_id", input.SessionID,
+			"session_id", util.MaskSessionID(input.SessionID),
 			"error", err,
 		)
 	}
 
 	// セッションをストアから削除する（削除失敗は警告ログを出力して処理を続行する）（H-3 対応）
+	// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 	if err := uc.sessionStore.Delete(ctx, input.SessionID); err != nil {
 		slog.WarnContext(ctx, "ログアウト時のセッション削除に失敗しました",
-			"session_id", input.SessionID,
+			"session_id", util.MaskSessionID(input.SessionID),
 			"error", err,
 		)
 	}

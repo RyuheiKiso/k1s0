@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-mock = ["dep:mockall"]
+mock = []
 grpc = ["dep:reqwest"]
 
 [dependencies]
@@ -15,7 +15,6 @@ serde_json = {workspace = true}
 thiserror = {workspace = true}
 tokio = {workspace = true}
 tokio-stream = "0.1"
-mockall = {workspace = true, optional = true}
 reqwest = {workspace = true, optional = true}
 
 [dev-dependencies]

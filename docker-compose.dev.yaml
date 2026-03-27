@@ -227,19 +227,22 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+      # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dtask_service
 
   board-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+      # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dboard_service
 
   activity-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable
+      # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dactivity_service
 
   # ============================================================
   # Business プロファイル — 認証バイパス有効化 + DATABASE_URL
@@ -248,4 +251,24 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_business?sslmode=disable
+      # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
+      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_business?sslmode=disable&options=--search_path%3Dproject_master
+
+  # ============================================================
+  # Vault — 開発環境専用の dev モード設定（L-13 監査対応）
+  # ============================================================
+  # VAULT_DEV_ROOT_TOKEN_ID は dev モードを有効化する環境変数。
+  # dev モードはインメモリストレージのため再起動でデータが消失する。
+  # 本番 Vault は infra/terraform/modules/vault/ で管理し、Docker Compose を使用しない。
+  vault:
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_DEV_ROOT_TOKEN_ID:?VAULT_DEV_ROOT_TOKEN_ID must be set in .env.dev for Vault dev mode}
+
+  # ============================================================
+  # Keycloak — 開発環境専用の起動コマンド
+  # ============================================================
+  # start-dev は開発環境のみで使用するコマンド。
+  # 本番環境では "start" コマンドを使用すること（TLS終端・クラスター設定が必要）。
+  # --import-realm: 起動時に /opt/keycloak/data/import 内の realm 設定を自動インポートする
+  keycloak:
+    command: ["start-dev", "--import-realm"]

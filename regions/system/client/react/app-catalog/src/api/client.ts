@@ -9,9 +9,9 @@ import type {
   VersionListResponse,
 } from './types';
 
-// 未認証時のリダイレクト処理をコールバックで注入する
+// BFF プロキシ経由でリクエストを送信する（CSRF保護・セッション管理を有効化するため /bff/api/v1 を使用する）
 const api = createApiClient({
-  baseURL: '/api/v1',
+  baseURL: '/bff/api/v1',
   onUnauthorized: () => { window.location.href = '/auth/login'; },
 });
 

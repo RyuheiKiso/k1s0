@@ -138,7 +138,8 @@ class Task {
       assigneeId: json['assignee_id'] as String?,
       reporterId: json['reporter_id'] as String,
       dueDate: json['due_date'] as String?,
-      labels: (json['labels'] as List<dynamic>).cast<String>(),
+      // labels フィールドが null の場合は空リストを使用し、NullPointerException を防ぐ
+      labels: (json['labels'] as List<dynamic>?)?.cast<String>() ?? [],
       createdBy: json['created_by'] as String,
       updatedBy: json['updated_by'] as String,
       version: json['version'] as int,

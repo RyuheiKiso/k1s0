@@ -46,10 +46,11 @@ impl TungsteniteWsClient {
 #[async_trait]
 impl WsClient for TungsteniteWsClient {
     async fn connect(&mut self) -> Result<(), WsError> {
-        if *self.state.read().unwrap() != ConnectionState::Disconnected {
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        if *self.state.read().unwrap_or_else(|e| e.into_inner()) != ConnectionState::Disconnected {
             return Err(WsError::AlreadyConnected);
         }
-        *self.state.write().unwrap() = ConnectionState::Connecting;
+        *self.state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Connecting;
 
         // 送受信チャネルを作成する
         let (send_tx, send_rx) = mpsc::channel::<TungsteniteMessage>(100);
@@ -81,10 +82,11 @@ impl WsClient for TungsteniteWsClient {
     }
 
     async fn disconnect(&mut self) -> Result<(), WsError> {
-        if *self.state.read().unwrap() == ConnectionState::Disconnected {
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        if *self.state.read().unwrap_or_else(|e| e.into_inner()) == ConnectionState::Disconnected {
             return Err(WsError::NotConnected);
         }
-        *self.state.write().unwrap() = ConnectionState::Closing;
+        *self.state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Closing;
 
         // send_tx を drop するとバックグラウンドタスクの送信ループが終了する
         self.send_tx = None;
@@ -96,12 +98,13 @@ impl WsClient for TungsteniteWsClient {
             let _ = handle.await;
         }
 
-        *self.state.write().unwrap() = ConnectionState::Disconnected;
+        *self.state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Disconnected;
         Ok(())
     }
 
     async fn send(&self, message: WsMessage) -> Result<(), WsError> {
-        if *self.state.read().unwrap() != ConnectionState::Connected {
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        if *self.state.read().unwrap_or_else(|e| e.into_inner()) != ConnectionState::Connected {
             return Err(WsError::NotConnected);
         }
 
@@ -117,7 +120,8 @@ impl WsClient for TungsteniteWsClient {
     }
 
     async fn receive(&self) -> Result<WsMessage, WsError> {
-        if *self.state.read().unwrap() != ConnectionState::Connected {
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        if *self.state.read().unwrap_or_else(|e| e.into_inner()) != ConnectionState::Connected {
             return Err(WsError::NotConnected);
         }
 
@@ -131,7 +135,8 @@ impl WsClient for TungsteniteWsClient {
     }
 
     fn state(&self) -> ConnectionState {
-        *self.state.read().unwrap()
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        *self.state.read().unwrap_or_else(|e| e.into_inner())
     }
 }
 
@@ -148,13 +153,15 @@ async fn connection_loop(
     let ws = match connect_async(&config.url).await {
         Ok((ws, _)) => ws,
         Err(e) => {
-            *state.write().unwrap() = ConnectionState::Disconnected;
+            // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+            *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Disconnected;
             let _ = connected_tx.send(Err(WsError::ConnectionError(e.to_string())));
             return;
         }
     };
 
-    *state.write().unwrap() = ConnectionState::Connected;
+    // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+    *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Connected;
     // 接続成功を通知する（send が失敗した場合は connect() 側がタイムアウトしている）
     let _ = connected_tx.send(Ok(()));
 
@@ -226,12 +233,14 @@ async fn reconnect_loop(
     recv_tx: mpsc::Sender<WsMessage>,
 ) {
     if !config.reconnect {
-        *state.write().unwrap() = ConnectionState::Disconnected;
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Disconnected;
         return;
     }
 
     for _attempt in 0..config.max_reconnect_attempts {
-        *state.write().unwrap() = ConnectionState::Reconnecting;
+        // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+        *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Reconnecting;
 
         // 再接続前に待機する
         tokio::time::sleep(tokio::time::Duration::from_millis(
@@ -241,7 +250,8 @@ async fn reconnect_loop(
 
         match connect_async(&config.url).await {
             Ok((ws, _)) => {
-                *state.write().unwrap() = ConnectionState::Connected;
+                // RwLock のポイズニングが発生した場合でも安全に値を取り出してリカバリする
+                *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Connected;
                 let (mut ws_write, mut ws_read) = ws.split();
 
                 let mut ping_interval = config
@@ -295,8 +305,8 @@ async fn reconnect_loop(
         }
     }
 
-    // 最大試行回数に達した場合は Disconnected に遷移する
-    *state.write().unwrap() = ConnectionState::Disconnected;
+    // 最大試行回数に達した場合は Disconnected に遷移する（ポイズニング時もリカバリする）
+    *state.write().unwrap_or_else(|e| e.into_inner()) = ConnectionState::Disconnected;
 }
 
 /// ws_to_tungstenite は WsMessage を tungstenite の Message に変換する。

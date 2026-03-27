@@ -86,6 +86,65 @@ jobs:
         if: ${{ !inputs.standalone }}
         run: cargo test --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all
 
+  # テストカバレッジ計測（cargo-tarpaulin）
+  # test ジョブ完了後にカバレッジを計測し、結果を Artifact として保存する
+  coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+        with:
+          toolchain: ${{ inputs.rust-version }}
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: ${{ inputs.workspace-path }}
+      # cargo-tarpaulin をプリビルドバイナリからインストールする（ビルド時間の削減）
+      - name: cargo-tarpaulin インストール（プリビルドバイナリ）
+        run: |
+          TARPAULIN_VERSION="0.31.2"
+          curl -sL "https://github.com/xd009642/tarpaulin/releases/download/${TARPAULIN_VERSION}/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz" \
+            | tar xz -C "$HOME/.cargo/bin"
+          chmod +x "$HOME/.cargo/bin/cargo-tarpaulin"
+      # カバレッジ計測を実行する（standalone / workspace モード対応）
+      - name: カバレッジ計測 (standalone)
+        if: inputs.standalone
+        run: |
+          mkdir -p coverage
+          cargo tarpaulin \
+            --manifest-path ${{ inputs.service-path }}/Cargo.toml \
+            --exclude-files "*/tests/*" "*/proto/*" \
+            --skip-clean \
+            --timeout 300 \
+            --out Json Html \
+            --output-dir coverage
+      # カバレッジ計測を実行する（workspace モード: -p でパッケージ指定）
+      - name: カバレッジ計測 (workspace)
+        if: ${{ !inputs.standalone }}
+        run: |
+          mkdir -p coverage
+          cargo tarpaulin \
+            --manifest-path ${{ inputs.workspace-path }}/Cargo.toml \
+            --packages ${{ inputs.package-name }} \
+            --exclude-files "*/tests/*" "*/proto/*" \
+            --skip-clean \
+            --timeout 300 \
+            --out Json Html \
+            --output-dir coverage
+      # カバレッジレポートを Artifact として保存し後から参照できるようにする
+      - name: カバレッジレポートをアップロード
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-coverage-${{ inputs.package-name }}
+          path: coverage/
+          retention-days: 7
+
   # リリースビルド検証
   build:
     needs: test

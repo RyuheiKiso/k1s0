@@ -29,6 +29,8 @@ service TenantService {
   rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
   // RemoveMember はテナントからメンバーを削除する。
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
+  // UpdateMemberRole はテナントメンバーのロールを更新する。
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse);
   // GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
   // WatchTenant はテナント変更の監視（Server-Side Streaming）。
@@ -122,6 +124,19 @@ message RemoveMemberRequest {
 
 message RemoveMemberResponse {
   bool success = 1;
+}
+
+// UpdateMemberRoleRequest はテナントメンバーのロール更新リクエスト。
+// 有効なロール: owner, admin, member, viewer
+message UpdateMemberRoleRequest {
+  string tenant_id = 1;
+  string user_id = 2;
+  string role = 3;
+}
+
+// UpdateMemberRoleResponse はテナントメンバーのロール更新レスポンス。
+message UpdateMemberRoleResponse {
+  TenantMember member = 1;
 }
 
 message GetProvisioningStatusRequest {
