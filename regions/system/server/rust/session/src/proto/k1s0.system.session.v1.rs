@@ -50,8 +50,9 @@ pub struct CreateSessionResponse {
     pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "11")]
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(string, tag = "12")]
-    pub status: ::prost::alloc::string::String,
+    /// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+    #[prost(enumeration = "SessionStatus", tag = "12")]
+    pub status: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSessionRequest {
@@ -99,9 +100,9 @@ pub struct RefreshSessionResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "12")]
     pub last_accessed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// valid values: "active", "revoked"
-    #[prost(string, tag = "13")]
-    pub status: ::prost::alloc::string::String,
+    /// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+    #[prost(enumeration = "SessionStatus", tag = "13")]
+    pub status: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RevokeSessionRequest {
@@ -151,9 +152,9 @@ pub struct Session {
     pub user_agent: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "7")]
     pub ip_address: ::core::option::Option<::prost::alloc::string::String>,
-    /// valid values: "active", "revoked"
-    #[prost(string, tag = "8")]
-    pub status: ::prost::alloc::string::String,
+    /// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+    #[prost(enumeration = "SessionStatus", tag = "8")]
+    pub status: i32,
     #[prost(message, optional, tag = "9")]
     pub expires_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag = "10")]
@@ -162,6 +163,37 @@ pub struct Session {
     pub last_accessed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(string, tag = "12")]
     pub token: ::prost::alloc::string::String,
+}
+/// SessionStatus はセッションの状態を表す enum。
+/// string 型の代わりに使用することで型安全性を確保する。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum SessionStatus {
+    Unspecified = 0,
+    Active = 1,
+    Revoked = 2,
+}
+impl SessionStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "SESSION_STATUS_UNSPECIFIED",
+            Self::Active => "SESSION_STATUS_ACTIVE",
+            Self::Revoked => "SESSION_STATUS_REVOKED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "SESSION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "SESSION_STATUS_ACTIVE" => Some(Self::Active),
+            "SESSION_STATUS_REVOKED" => Some(Self::Revoked),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod session_service_server {

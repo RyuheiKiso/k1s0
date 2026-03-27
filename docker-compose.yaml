@@ -74,6 +74,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      # アプリケーションユーザー k1s0 のパスワード（00-create-app-user.sh が参照する）
+      # init-db スクリプトはコンテナ内で実行されるため、ホスト環境変数を環境変数として明示的に渡す必要がある
+      K1S0_DB_PASSWORD: ${K1S0_DB_PASSWORD:?K1S0_DB_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"

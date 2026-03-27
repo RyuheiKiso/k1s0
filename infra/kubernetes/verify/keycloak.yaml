@@ -4,6 +4,12 @@
 #
 # NOTE: Docker版 (infra/docker/keycloak/k1s0-realm.json) を正本とし、
 # この設定はそれに同期して管理する。差分が出た場合はDocker版を基に更新する。
+# Keycloak realm 同期について（MEDIUM-INFRA-04 監査対応）:
+# Docker 版 (infra/keycloak/realm-k1s0.json) が正本。この ConfigMap はその内容をコピーしている。
+# 差分が発生した場合は Docker 版を基に更新すること。
+# 将来的には CI で自動同期チェックを実装予定:
+#   scripts/check-keycloak-realm-sync.sh で Docker 版と k8s 版の diff を検出し、
+#   差分がある場合は CI を fail させる。
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -481,6 +487,8 @@ spec:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.0
           args:
+            # verify 環境専用: start-dev は TLS 無効・セキュリティ緩和モード（HIGH-SEC-07 監査対応）
+            # 本番環境では "start" コマンドを使用し、TLS と適切なセキュリティ設定を有効にすること
             - start-dev
             - --import-realm
           env:

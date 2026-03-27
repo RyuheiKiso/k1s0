@@ -239,6 +239,21 @@ GUI 単体で認証を再現できるよう、`Auth` ページに以下の要件
 - GUI で確定した OIDC 設定はローカル端末に保持し、次回起動時に再利用する
 - `K1S0_GUI_OIDC_DISCOVERY_URL`、`K1S0_GUI_OIDC_CLIENT_ID`、`K1S0_GUI_OIDC_SCOPE` は初期値上書き用途としてのみ扱い、GUI から確認できる状態にする
 
+## セキュリティ設計
+
+### Content Security Policy（CSP）
+
+`tauri.conf.json` の CSP は `style-src 'self' 'unsafe-inline'` を含む。
+
+`unsafe-inline` が `style-src` に必要な理由（CRITICAL-GUI-01 監査対応）:
+- React コンポーネントの `style={{ }}` 属性（動的アニメーション値）
+- Tailwind CSS 4 のランタイムスタイル注入
+- Radix UI コンポーネントの内部スタイル管理
+
+`script-src` には `'unsafe-inline'` を含めていないため、JavaScript インジェクションのリスクは排除されている。
+Tauri アプリケーションはローカル実行であり、IPC ブリッジ経由でのみバックエンドと通信するため、
+CSS injection によるデータ漏洩リスクは極めて限定的である。
+
 ## セキュリティ
 
 ### IPC コマンドのパストラバーサル防止
@@ -270,6 +285,38 @@ if backup_id.contains("..") || backup_id.contains('/') || backup_id.contains('\\
     return Err(format!("Invalid backup_id: '{}'", backup_id));
 }
 ```
+
+## ビルド前提条件（HIGH-GUI-02 監査対応）
+
+### 必要なツール
+
+| ツール | バージョン | 用途 |
+|--------|----------|------|
+| Rust | stable (latest) | Tauri バックエンド |
+| Node.js | 20+ | フロントエンドビルド |
+| npm | 10+ | パッケージ管理 |
+
+### ビルド手順
+
+```bash
+# フロントエンド依存のインストール
+cd CLI/crates/k1s0-gui/ui
+npm install
+
+# 開発モードで起動（ホットリロード）
+cd CLI
+cargo run -p k1s0-gui -- dev
+
+# リリースビルド
+cd CLI
+cargo build --release -p k1s0-gui
+```
+
+### プラットフォーム別の追加要件
+
+- **Windows**: WebView2 ランタイム（Windows 10/11 に標準搭載）
+- **macOS**: Xcode Command Line Tools
+- **Linux**: `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev`
 
 ## Flutter クライアントとの棲み分け
 

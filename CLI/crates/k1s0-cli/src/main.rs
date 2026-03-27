@@ -152,8 +152,7 @@ fn main() {
                         Ok(s) if !s.success() => {
                             let code = s.code().unwrap_or(-1);
                             Err(anyhow::anyhow!(
-                                "doctor.sh が終了コード {} で失敗しました",
-                                code
+                                "doctor.sh が終了コード {code} で失敗しました"
                             ))
                         }
                         Ok(_) => Ok(()),

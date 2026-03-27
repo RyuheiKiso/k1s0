@@ -39,7 +39,7 @@ k1s0-telemetry = { path = "../../../../../system/library/rust/telemetry", featur
 k1s0-auth = { path = "../../../../../system/library/rust/auth" }
 k1s0-server-common = { path = "../../../../../system/library/rust/server-common", features = ["auth", "grpc-auth", "shutdown"] }
 k1s0-correlation = { path = "../../../../../system/library/rust/correlation", features = ["tower-layer"] }
-# TODO: migrate to use k1s0-outbox::OutboxEventPoller
+# TODO: k1s0-outbox::OutboxEventPoller に移行する（ADR-0018 参照、MEDIUM-CODE-01 監査対応）
 # 現在は各リポジトリ実装内で outbox テーブルへ直接書き込んでいる。
 # k1s0-outbox::OutboxEventPoller / OutboxEventHandler を使用した統一的なポーリング機構へ移行すること。
 k1s0-outbox = { path = "../../../../../system/library/rust/outbox" }

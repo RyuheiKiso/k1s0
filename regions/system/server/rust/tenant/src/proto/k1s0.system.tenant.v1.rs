@@ -117,6 +117,23 @@ pub struct RemoveMemberResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
 }
+/// UpdateMemberRoleRequest はテナントメンバーのロール更新リクエスト。
+/// 有効なロール: owner, admin, member, viewer
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateMemberRoleRequest {
+    #[prost(string, tag = "1")]
+    pub tenant_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub role: ::prost::alloc::string::String,
+}
+/// UpdateMemberRoleResponse はテナントメンバーのロール更新レスポンス。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateMemberRoleResponse {
+    #[prost(message, optional, tag = "1")]
+    pub member: ::core::option::Option<TenantMember>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetProvisioningStatusRequest {
     #[prost(string, tag = "1")]
@@ -293,6 +310,14 @@ pub mod tenant_service_server {
             request: tonic::Request<super::RemoveMemberRequest>,
         ) -> std::result::Result<
             tonic::Response<super::RemoveMemberResponse>,
+            tonic::Status,
+        >;
+        /// UpdateMemberRole はテナントメンバーのロールを更新する。
+        async fn update_member_role(
+            &self,
+            request: tonic::Request<super::UpdateMemberRoleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateMemberRoleResponse>,
             tonic::Status,
         >;
         /// GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
@@ -831,6 +856,52 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RemoveMemberSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/UpdateMemberRole" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateMemberRoleSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::UpdateMemberRoleRequest>
+                    for UpdateMemberRoleSvc<T> {
+                        type Response = super::UpdateMemberRoleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateMemberRoleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::update_member_role(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateMemberRoleSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

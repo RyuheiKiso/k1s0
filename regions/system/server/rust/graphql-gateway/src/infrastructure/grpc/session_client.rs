@@ -121,7 +121,8 @@ impl SessionGrpcClient {
             device_type: resp.device_type.filter(|s| !s.is_empty()),
             user_agent: resp.user_agent.filter(|s| !s.is_empty()),
             ip_address: resp.ip_address.filter(|s| !s.is_empty()),
-            status: SessionStatus::from(resp.status.as_str()),
+            // proto の i32 ステータス値をドメインモデルの SessionStatus に変換する
+            status: proto_status_to_domain(resp.status),
             expires_at: timestamp_to_rfc3339(resp.expires_at),
             created_at: timestamp_to_rfc3339(resp.created_at),
             last_accessed_at: None,
@@ -159,7 +160,8 @@ impl SessionGrpcClient {
             device_type: resp.device_type.filter(|s| !s.is_empty()),
             user_agent: resp.user_agent.filter(|s| !s.is_empty()),
             ip_address: resp.ip_address.filter(|s| !s.is_empty()),
-            status: SessionStatus::from(resp.status.as_str()),
+            // proto の i32 ステータス値をドメインモデルの SessionStatus に変換する
+            status: proto_status_to_domain(resp.status),
             expires_at: timestamp_to_rfc3339(resp.expires_at),
             created_at: timestamp_to_rfc3339(resp.created_at),
             last_accessed_at: resp
@@ -212,6 +214,16 @@ impl SessionGrpcClient {
     }
 }
 
+/// proto の SessionStatus i32 値をドメインモデルの SessionStatus に変換するヘルパー関数。
+/// 1 = Active、2 = Revoked、その他はデフォルトで Active を返す（既存の動作を維持）。
+fn proto_status_to_domain(v: i32) -> SessionStatus {
+    match v {
+        1 => SessionStatus::Active,
+        2 => SessionStatus::Revoked,
+        _ => SessionStatus::Active,
+    }
+}
+
 fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
     Session {
         session_id: s.session_id,
@@ -221,7 +233,8 @@ fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
         device_type: s.device_type.filter(|v| !v.is_empty()),
         user_agent: s.user_agent.filter(|v| !v.is_empty()),
         ip_address: s.ip_address.filter(|v| !v.is_empty()),
-        status: SessionStatus::from(s.status.as_str()),
+        // proto の i32 ステータス値をドメインモデルの SessionStatus に変換する
+        status: proto_status_to_domain(s.status),
         expires_at: timestamp_to_rfc3339(s.expires_at),
         created_at: timestamp_to_rfc3339(s.created_at),
         last_accessed_at: s.last_accessed_at.map(|ts| {

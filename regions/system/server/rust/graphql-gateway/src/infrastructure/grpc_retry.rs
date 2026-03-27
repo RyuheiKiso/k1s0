@@ -40,6 +40,13 @@ where
     F: Fn() -> Fut,
     Fut: Future<Output = Result<T, Status>>,
 {
+    // max_attempts が 0 の場合はパニックを回避するため事前にエラーを返す（CRITICAL-CODE-01 監査対応）
+    if max_attempts == 0 {
+        return Err(Status::internal(format!(
+            "{}: max_attempts must be >= 1",
+            operation_name
+        )));
+    }
     let mut delay_ms = 100u64;
     for attempt in 1..=max_attempts {
         match op().await {
@@ -131,5 +138,18 @@ mod tests {
         assert!(result.is_err());
         // max_attempts=2 なので2回呼ばれる
         assert_eq!(call_count.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn test_zero_max_attempts_returns_error() {
+        // max_attempts = 0 の場合はパニックせずに即座にエラーを返すことを確認する
+        let result = with_retry("test-op", 0, || async {
+            Ok::<u32, _>(42)
+        })
+        .await;
+
+        // クロージャは一切呼ばれず、internal エラーが返されることを検証する
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), tonic::Code::Internal);
     }
 }

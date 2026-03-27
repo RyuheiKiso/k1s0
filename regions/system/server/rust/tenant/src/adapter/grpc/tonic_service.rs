@@ -28,7 +28,10 @@ use crate::proto::k1s0::system::tenant::v1::{
     RemoveMemberResponse as ProtoRemoveMemberResponse,
     SuspendTenantRequest as ProtoSuspendTenantRequest,
     SuspendTenantResponse as ProtoSuspendTenantResponse, Tenant as ProtoTenant,
-    TenantMember as ProtoTenantMember, UpdateTenantRequest as ProtoUpdateTenantRequest,
+    TenantMember as ProtoTenantMember,
+    UpdateMemberRoleRequest as ProtoUpdateMemberRoleRequest,
+    UpdateMemberRoleResponse as ProtoUpdateMemberRoleResponse,
+    UpdateTenantRequest as ProtoUpdateTenantRequest,
     UpdateTenantResponse as ProtoUpdateTenantResponse,
     WatchTenantRequest as ProtoWatchTenantRequest, WatchTenantResponse as ProtoWatchTenantResponse,
 };
@@ -37,7 +40,7 @@ use super::tenant_grpc::{
     ActivateTenantRequest, AddMemberRequest, CreateTenantRequest, DeleteTenantRequest,
     GetProvisioningStatusRequest, GetTenantRequest, GrpcError, ListMembersRequest,
     ListTenantsRequest, RemoveMemberRequest, SuspendTenantRequest, TenantGrpcService,
-    UpdateTenantRequest,
+    UpdateMemberRoleRequest, UpdateTenantRequest,
 };
 
 // --- GrpcError -> tonic::Status 変換 ---
@@ -379,6 +382,28 @@ impl TenantService for TenantServiceTonic {
 
         Ok(Response::new(ProtoRemoveMemberResponse {
             success: resp.success,
+        }))
+    }
+
+    /// メンバーのロールを更新するgRPCメソッド。proto定義のTenantServiceトレイトを実装する。
+    async fn update_member_role(
+        &self,
+        request: Request<ProtoUpdateMemberRoleRequest>,
+    ) -> Result<Response<ProtoUpdateMemberRoleResponse>, Status> {
+        let inner = request.into_inner();
+        let req = UpdateMemberRoleRequest {
+            tenant_id: inner.tenant_id,
+            user_id: inner.user_id,
+            role: inner.role,
+        };
+        let resp = self
+            .inner
+            .update_member_role(req)
+            .await
+            .map_err(Into::<Status>::into)?;
+
+        Ok(Response::new(ProtoUpdateMemberRoleResponse {
+            member: resp.member.as_ref().map(pb_member_to_proto),
         }))
     }
 

@@ -145,7 +145,7 @@ pub struct DatabaseConfig {
     pub conn_max_lifetime: String,
 }
 
-/// DatabaseConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `DatabaseConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for DatabaseConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DatabaseConfig")
@@ -201,7 +201,7 @@ pub struct KafkaSaslConfig {
     pub password: Secret<String>,
 }
 
-/// KafkaSaslConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `KafkaSaslConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for KafkaSaslConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KafkaSaslConfig")
@@ -248,7 +248,7 @@ pub struct RedisConfig {
     pub pool_size: u32,
 }
 
-/// RedisConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `RedisConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for RedisConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RedisConfig")
@@ -284,7 +284,7 @@ pub struct RedisSessionConfig {
     pub password: Secret<String>,
 }
 
-/// RedisSessionConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `RedisSessionConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for RedisSessionConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RedisSessionConfig")

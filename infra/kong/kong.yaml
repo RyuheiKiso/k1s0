@@ -19,7 +19,7 @@
 #     host: redis.k1s0-system.svc.cluster.local
 #     database: 1          （デフォルト 0 から変更）
 #     password: ${KONG_REDIS_PASSWORD}
-#   fault_tolerant: false      （デフォルト true から変更: DDoS 耐性維持のため Redis 障害時もリミット強制）
+#   fault_tolerant: false      （デフォルト true から変更: Redis 障害時は全リクエストを 500 エラーで拒否し、レート制限バイパスを防止する、HIGH-SEC-03 監査対応）
 _format_version: "3.0"
 
 services:
@@ -198,7 +198,8 @@ plugins:
         host: redis.k1s0-system.svc.cluster.local
         database: 1
         password: ${KONG_REDIS_PASSWORD}
-      fault_tolerant: false                 # Redis 障害時もレートリミットを強制（DDoS 耐性維持）
+      # fault_tolerant: false: Redis 障害時は全リクエストを 500 エラーで拒否し、レート制限バイパスを防止する（HIGH-SEC-03 監査対応）
+      fault_tolerant: false
       hide_client_headers: false            # X-RateLimit-* ヘッダーを返却
 
   # JWT - Keycloak JWKS 連携

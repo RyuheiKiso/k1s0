@@ -567,6 +567,10 @@ ci: lint test build
 # 全言語セキュリティスキャン
 security: security-go security-rust security-ts security-dart security-infra
 
+# プレースホルダー値が残っていないか検証する（CI/CD デプロイ前チェック）
+check-secrets:
+    bash scripts/check-placeholder-secrets.sh
+
 # インフラセキュリティチェック: プレースホルダーが本番ファイルに残っていないことを確認する（H-4 監査対応）
 # etcd 暗号化キー等のプレースホルダーが CI/CD でデプロイされることを防ぐための防護策
 security-infra:

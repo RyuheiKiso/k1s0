@@ -191,7 +191,17 @@ impl KeycloakClient {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("missing access_token in response"))?
             .to_string();
-        let expires_in = body["expires_in"].as_i64().unwrap_or(300);
+        // Keycloak レスポンスに expires_in が含まれない場合はデフォルト 300 秒にフォールバックする
+        // フォールバック使用時は警告ログを出力し、Keycloak 設定の確認を促す（HIGH-CODE-01 監査対応）
+        let expires_in = match body["expires_in"].as_i64() {
+            Some(v) => v,
+            None => {
+                tracing::warn!(
+                    "Keycloak トークンレスポンスに expires_in が含まれていません。デフォルト値 300 秒を使用します。Keycloak の設定を確認してください。"
+                );
+                300
+            }
+        };
 
         *cache = Some(CachedToken {
             token: token.clone(),

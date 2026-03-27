@@ -42,14 +42,14 @@ vendor/
 .env
 .env.local
 .env.*.local
-# 開発用固定値を含む環境ファイル（.env.dev.example をテンプレートとして使用する）
-.env.dev
+# .env.dev は意図的に git 管理対象とする（開発専用の固定値のみ記載。実秘密情報は Vault で管理、CRITICAL-SEC-05 監査対応）
 **/config/config.dev.yaml
 **/config/config.local.yaml
 **/config/config.docker.yaml
-# etcd 暗号化設定ファイル（暗号化キーを含むため絶対にコミット禁止）
-# 本番環境では CI/CD が Vault から注入して生成する（C-1 監査対応）
+# etcd 暗号化設定ファイル（暗号化キーを含むため絶対にコミット禁止、CRITICAL-SEC-01 監査対応）
+# 本番環境では CI/CD が Vault から注入して生成する。テンプレート（.template.yaml）は追跡対象とする
 infra/kubernetes/security/encryption-config.yaml
+!infra/kubernetes/security/encryption-config.template.yaml
 
 # Docker
 # docker-compose.dev.yaml は git 管理対象（明示的に -f 指定が必要な開発用オーバーライド）

@@ -1,0 +1,28 @@
+# Grafana 用 KongConsumer リソース（MEDIUM-INFRA-02 監査対応）
+# ingress.yaml の key-auth プラグインに対応するコンシューマー定義
+# 本番環境では apiKey を Kubernetes Secret から参照し、Vault / SealedSecret で管理すること
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: grafana-consumer
+  namespace: ingress
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: grafana-monitor
+credentials:
+  - grafana-key-auth-secret
+---
+# Grafana API キー Secret テンプレート
+# 本番環境では <REPLACE_WITH_GRAFANA_API_KEY> を実際の値に置き換え、
+# Vault Agent Injector または External Secrets Operator で管理すること
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-key-auth-secret
+  namespace: ingress
+  labels:
+    konghq.com/credential: key-auth
+type: Opaque
+stringData:
+  key: "<REPLACE_WITH_GRAFANA_API_KEY>"

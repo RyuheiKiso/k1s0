@@ -278,6 +278,8 @@ pub async fn run() -> anyhow::Result<()> {
         add_member_uc.clone(),
         list_members_uc.clone(),
         remove_member_uc.clone(),
+        // メンバーロール更新ユースケースをgRPCサービスに注入する
+        update_member_role_uc.clone(),
         get_provisioning_status_uc,
         watch_tx,
     ));
@@ -388,10 +390,12 @@ pub async fn run() -> anyhow::Result<()> {
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
 /// CreateTenant / UpdateTenant / DeleteTenant / SuspendTenant / ActivateTenant /
 /// AddMember / RemoveMember は write、それ以外は read。
+/// gRPC メソッド名から RBAC アクション文字列を返す。
+/// 書き込み系メソッドは "write"、それ以外は "read" を返す。
 fn tenant_grpc_action(method: &str) -> &'static str {
     match method {
         "CreateTenant" | "UpdateTenant" | "DeleteTenant" | "SuspendTenant" | "ActivateTenant"
-        | "AddMember" | "RemoveMember" => "write",
+        | "AddMember" | "RemoveMember" | "UpdateMemberRole" => "write",
         _ => "read",
     }
 }

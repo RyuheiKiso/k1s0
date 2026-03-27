@@ -91,6 +91,12 @@ spec:
                   memory: 512Mi
           volumes:
             - name: etcd-certs
+              # etcd 証明書マウント（HIGH-SEC-01 監査対応）
+              # hostPath マウントは etcd バックアップに必要。以下のハードニングを適用:
+              # - readOnly: true で書き込み不可
+              # - runAsNonRoot: true, readOnlyRootFilesystem: true
+              # - capabilities: drop ALL
+              # - seccompProfile: RuntimeDefault
               hostPath:
                 path: /etc/kubernetes/pki/etcd
                 type: Directory

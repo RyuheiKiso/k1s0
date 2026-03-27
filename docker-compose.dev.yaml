@@ -56,6 +56,7 @@ services:
   # ============================================================
   # 注意: DATABASE_URL を設定して config.docker.yaml の ${DB_PASSWORD:-dev} 未展開問題を回避する。
   # serde_yaml はシェル変数展開を行わないため、startup.rs の DATABASE_URL 優先パスを利用する。
+  # 開発環境専用: sslmode=disable は開発効率のため。本番環境では sslmode=require または sslmode=verify-full を使用（HIGH-SEC-08 監査対応）
   auth-rust:
     <<: *dev-auth-bypass
     environment:

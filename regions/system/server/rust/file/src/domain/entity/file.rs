@@ -202,9 +202,18 @@ mod tests {
     }
 
     #[test]
-    fn generate_storage_key_rejects_absolute_path() {
-        // 絶対パスはエラーを返す（Unix 形式）
+    #[cfg(unix)]
+    fn generate_storage_key_rejects_absolute_path_unix() {
+        // Unix 形式の絶対パスはエラーを返すことを検証する（LOW-TEST-04 監査対応: Windows 環境との互換性）
         let result = FileMetadata::generate_storage_key("tenant-abc", "/etc/passwd");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn generate_storage_key_rejects_absolute_path_windows() {
+        // Windows 形式の絶対パスはエラーを返すことを検証する（LOW-TEST-04 監査対応: Unix 環境との互換性）
+        let result = FileMetadata::generate_storage_key("tenant-abc", r"C:\Windows\System32\config");
         assert!(result.is_err());
     }
 }
