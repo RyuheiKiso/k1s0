@@ -92,8 +92,9 @@ mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
 tower = {workspace = true}
-testcontainers = "0.24"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+# workspace で一元管理するバージョンを参照する（H-2 監査対応: バージョン競合解消）
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
 wiremock = "0.6"
 
 [lints]

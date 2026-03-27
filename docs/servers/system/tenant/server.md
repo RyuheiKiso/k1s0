@@ -517,6 +517,9 @@ service TenantService {
   rpc RemoveMember(RemoveMemberRequest) returns (RemoveMemberResponse);
   // GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
   rpc GetProvisioningStatus(GetProvisioningStatusRequest) returns (GetProvisioningStatusResponse);
+  // WatchTenant はテナント変更の監視（Server-Side Streaming）。
+  // M-10 監査対応: proto に定義されている WatchTenant RPC を追記
+  rpc WatchTenant(WatchTenantRequest) returns (stream WatchTenantResponse);
 }
 
 message CreateTenantRequest {
@@ -646,6 +649,21 @@ message ProvisioningJob {
   string error_message = 5;
   k1s0.system.common.v1.Timestamp created_at = 6;
   k1s0.system.common.v1.Timestamp updated_at = 7;
+}
+
+// M-10 監査対応: WatchTenant（Server-Side Streaming）メッセージを追記
+// 監視対象のテナント ID（空の場合は全テナントの変更を受け取る）
+message WatchTenantRequest {
+  string tenant_id = 1;
+}
+
+// テナント変更の監視レスポンス（ストリーミング）
+// change_type: CREATED / UPDATED / SUSPENDED / ACTIVATED / DELETED
+message WatchTenantResponse {
+  string tenant_id = 1;
+  string change_type = 2;
+  Tenant tenant = 3;
+  k1s0.system.common.v1.Timestamp changed_at = 4;
 }
 ```
 
@@ -921,14 +939,14 @@ vault:
 
 ## 詳細設計ドキュメント
 
-- [system-tenant-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-tenant-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-tenant-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-tenant-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ---
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-saga-server.md](../saga/server.md) -- Saga パターンによるプロビジョニング
 - [REST-API設計.md](../../architecture/api/REST-API設計.md) -- D-007 統一エラーレスポンス
@@ -957,4 +975,4 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

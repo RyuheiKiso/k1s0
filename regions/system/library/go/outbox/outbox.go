@@ -206,3 +206,29 @@ type OutboxPublisher interface {
 	// Publish はメッセージを Kafka に送信する。
 	Publish(ctx context.Context, msg *OutboxMessage) error
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは outbox.Status / Message / Store / Publisher 等を使用すること。
+// ---------------------------------------------------------------------------
+
+// Status は OutboxStatus の短縮エイリアス。
+type Status = OutboxStatus
+
+// Message は OutboxMessage の短縮エイリアス。
+type Message = OutboxMessage
+
+// MessageOption は OutboxMessageOption の短縮エイリアス。
+type MessageOption = OutboxMessageOption
+
+// Err は OutboxError の短縮エイリアス（builtin error との混同を避けるため Err を使用）。
+type Err = OutboxError
+
+// ErrorKind は OutboxErrorKind の短縮エイリアス。
+type ErrorKind = OutboxErrorKind
+
+// Store は OutboxStore の短縮エイリアス。
+type Store = OutboxStore
+
+// Publisher は OutboxPublisher の短縮エイリアス。
+type Publisher = OutboxPublisher

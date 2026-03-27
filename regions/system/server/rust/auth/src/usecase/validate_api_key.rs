@@ -87,8 +87,8 @@ impl ValidateApiKeyUseCase {
 /// ペッパーが未設定の場合はエラーを返し、デフォルト値へのフォールバックを行わない。
 fn hash_key(raw_key: &str) -> Result<String, ValidateApiKeyError> {
     // サーバー側ペッパーを環境変数から取得（未設定時はエラー）
-    let pepper = std::env::var("API_KEY_PEPPER")
-        .map_err(|_| ValidateApiKeyError::PepperNotConfigured)?;
+    let pepper =
+        std::env::var("API_KEY_PEPPER").map_err(|_| ValidateApiKeyError::PepperNotConfigured)?;
     Ok(compute_hmac_hex(raw_key, &pepper))
 }
 
@@ -99,8 +99,8 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     use sha2::Sha256;
     type HmacSha256 = Hmac<Sha256>;
 
-    let mut mac = HmacSha256::new_from_slice(pepper.as_bytes())
-        .expect("HMAC accepts any key length");
+    let mut mac =
+        HmacSha256::new_from_slice(pepper.as_bytes()).expect("HMAC accepts any key length");
     mac.update(raw_key.as_bytes());
     let result = mac.finalize();
     let digest = result.into_bytes();
@@ -273,10 +273,7 @@ mod tests {
         let key = "k1s0_pepper_test_key_12345";
         let h_first = compute_hmac_hex(key, TEST_PEPPER);
         let h_custom = compute_hmac_hex(key, "custom-test-pepper");
-        assert_ne!(
-            h_first, h_custom,
-            "ペッパーが異なればハッシュも異なるべき"
-        );
+        assert_ne!(h_first, h_custom, "ペッパーが異なればハッシュも異なるべき");
     }
 
     /// ペッパーが未設定の場合に hash_key がエラーを返すことを確認する。
@@ -291,7 +288,10 @@ mod tests {
             let _permit = PEPPER_SEM.acquire().await.unwrap();
             std::env::remove_var("API_KEY_PEPPER");
             let result = hash_key("k1s0_test_key_12345");
-            assert!(matches!(result, Err(ValidateApiKeyError::PepperNotConfigured)));
+            assert!(matches!(
+                result,
+                Err(ValidateApiKeyError::PepperNotConfigured)
+            ));
             // permit がここでドロップされ、セマフォが解放される
         });
     }

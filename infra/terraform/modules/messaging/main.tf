@@ -27,13 +27,11 @@ resource "kubernetes_manifest" "kafka_cluster" {
       kafka = {
         version  = "3.6.1"
         replicas = var.kafka_broker_replicas
+        # M-7 監査対応: plain（非暗号化）リスナーを廃止し TLS リスナーのみにする。
+        # ゼロトラストアーキテクチャの観点から内部通信も暗号化する。
+        # docker-compose 開発環境は PLAINTEXT を継続使用（本番 K8s 環境のみ TLS 強制）。
+        # 参照: ADR-0016（Kafka KRaft移行）
         listeners = [
-          {
-            name = "plain"
-            port = 9092
-            type = "internal"
-            tls  = false
-          },
           {
             name = "tls"
             port = 9093

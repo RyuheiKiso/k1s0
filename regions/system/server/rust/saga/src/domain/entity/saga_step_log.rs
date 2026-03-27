@@ -147,7 +147,8 @@ mod tests {
     #[test]
     fn test_new_compensate() {
         let saga_id = Uuid::new_v4();
-        let log = SagaStepLog::new_compensate(saga_id, 1, "decrement-board-column".to_string(), None);
+        let log =
+            SagaStepLog::new_compensate(saga_id, 1, "decrement-board-column".to_string(), None);
         assert_eq!(log.action, StepAction::Compensate);
     }
 

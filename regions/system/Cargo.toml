@@ -122,6 +122,10 @@ utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 mockall = "0.14"
 tokio-test = "0.4"
+# テストコンテナ: バージョン競合防止のため workspace で一元管理する（H-2 監査対応）
+# testcontainers-modules 0.11.x は testcontainers 0.24.x を要求するため、バージョンを統一する
+testcontainers = "0.24"
+testcontainers-modules = { version = "0.11", features = ["postgres"] }
 
 # ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]

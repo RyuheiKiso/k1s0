@@ -891,6 +891,9 @@ type WatchConfigResponse struct {
 	ChangedBy  string `protobuf:"bytes,7,opt,name=changed_by,json=changedBy,proto3" json:"changed_by,omitempty"`
 	// Deprecated: use change_type_enum instead.
 	// CREATED, UPDATED, DELETED
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/config/v1/config.proto.
 	ChangeType string        `protobuf:"bytes,8,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
 	ChangedAt  *v1.Timestamp `protobuf:"bytes,9,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
 	// 変更操作の種別（change_type の enum 版）。
@@ -978,6 +981,7 @@ func (x *WatchConfigResponse) GetChangedBy() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/config/v1/config.proto.
 func (x *WatchConfigResponse) GetChangeType() string {
 	if x != nil {
 		return x.ChangeType
@@ -1599,7 +1603,7 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\x12WatchConfigRequest\x12\x1e\n" +
 	"\n" +
 	"namespaces\x18\x01 \x03(\tR\n" +
-	"namespaces\"\x8f\x03\n" +
+	"namespaces\"\x93\x03\n" +
 	"\x13WatchConfigResponse\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x1b\n" +
@@ -1610,8 +1614,8 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\vnew_version\x18\x06 \x01(\x05R\n" +
 	"newVersion\x12\x1d\n" +
 	"\n" +
-	"changed_by\x18\a \x01(\tR\tchangedBy\x12\x1f\n" +
-	"\vchange_type\x18\b \x01(\tR\n" +
+	"changed_by\x18\a \x01(\tR\tchangedBy\x12#\n" +
+	"\vchange_type\x18\b \x01(\tB\x02\x18\x01R\n" +
 	"changeType\x12?\n" +
 	"\n" +
 	"changed_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tchangedAt\x12K\n" +

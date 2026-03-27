@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildFieldId,
-  cloneConfig,
   validateFieldValue,
   findEntryForField,
   updateDirtyField,
   isEqualValue,
 } from './utils';
 import type {
-  ConfigEditorConfig,
   ConfigFieldSchema,
   ConfigFieldValue,
   ServiceConfigEntryResponse,
@@ -129,13 +127,12 @@ describe('validateFieldValue', () => {
 // findEntryForField テスト
 
 describe('findEntryForField', () => {
+  // ServiceConfigEntryResponse の必須フィールドに合わせて定義する（M-2 監査対応: 型不整合を修正）
   const entry: ServiceConfigEntryResponse = {
     namespace: 'app.general',
     key: 'timeout',
     value: 30,
-    value_type: 'integer',
-    created_at: '',
-    updated_at: '',
+    version: 1,
   };
 
   it('最初に一致するネームスペースのエントリを返す', () => {
@@ -153,9 +150,15 @@ describe('findEntryForField', () => {
 // updateDirtyField テスト
 
 describe('updateDirtyField', () => {
+  // ConfigFieldValue の必須フィールドを全て明示する（M-2 監査対応: 型不整合を修正）
   const baseField: ConfigFieldValue = {
+    id: 'app.general::timeout',
+    key: 'timeout',
+    namespace: 'app.general',
     value: 30,
     originalValue: 30,
+    version: 1,
+    originalVersion: 1,
     isDirty: false,
   };
 

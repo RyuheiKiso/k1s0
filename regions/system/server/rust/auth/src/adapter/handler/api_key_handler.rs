@@ -246,7 +246,10 @@ pub async fn validate_api_key(
         }
         // ペッパーが未設定の場合はサーバー設定エラーとして 500 を返す
         Err(ValidateApiKeyError::PepperNotConfigured) => {
-            let err = ErrorResponse::new("SYS_AUTH_PEPPER_NOT_CONFIGURED", "server configuration error");
+            let err = ErrorResponse::new(
+                "SYS_AUTH_PEPPER_NOT_CONFIGURED",
+                "server configuration error",
+            );
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

@@ -6,8 +6,8 @@ use tracing::info;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::BindingError;
 use crate::traits::{BindingData, BindingResponse, InputBinding, OutputBinding};
+use crate::BindingError;
 
 /// InMemoryInputBinding はテスト・開発用のインメモリ InputBinding 実装。
 pub struct InMemoryInputBinding {

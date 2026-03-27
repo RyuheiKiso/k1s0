@@ -29,7 +29,9 @@ struct StubPolicyRepo {
 
 impl StubPolicyRepo {
     fn new() -> Self {
-        Self { policies: RwLock::new(Vec::new()) }
+        Self {
+            policies: RwLock::new(Vec::new()),
+        }
     }
 }
 
@@ -85,14 +87,22 @@ struct StubBundleRepo {
 
 impl StubBundleRepo {
     fn new() -> Self {
-        Self { bundles: RwLock::new(Vec::new()) }
+        Self {
+            bundles: RwLock::new(Vec::new()),
+        }
     }
 }
 
 #[async_trait]
 impl PolicyBundleRepository for StubBundleRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
-        Ok(self.bundles.read().await.iter().find(|b| b.id == *id).cloned())
+        Ok(self
+            .bundles
+            .read()
+            .await
+            .iter()
+            .find(|b| b.id == *id)
+            .cloned())
     }
     async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
         Ok(self.bundles.read().await.clone())

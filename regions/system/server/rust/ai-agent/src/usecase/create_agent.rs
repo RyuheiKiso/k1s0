@@ -108,7 +108,11 @@ mod tests {
 
         assert!(result.is_err());
         // err().unwrap() を使うことでDebugトレイト不要でエラーを取得する
-        assert!(result.err().unwrap().to_string().contains("データベース接続エラー"));
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("データベース接続エラー"));
     }
 
     // フィールド自動設定: id, enabled, created_at, updated_at が正しく設定される

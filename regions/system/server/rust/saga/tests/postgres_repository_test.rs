@@ -150,23 +150,14 @@ mod tests {
         repo.create(&saga).await.unwrap();
 
         // ステップ0: 成功
-        let mut log0 = SagaStepLog::new_execute(
-            saga_id,
-            0,
-            "create-task".to_string(),
-            None,
-        );
+        let mut log0 = SagaStepLog::new_execute(saga_id, 0, "create-task".to_string(), None);
         log0.mark_success(Some(serde_json::json!({"ok": true})));
         saga.advance_step();
         repo.update_with_step_log(&saga, &log0).await.unwrap();
 
         // ステップ1: 失敗
-        let mut log1 = SagaStepLog::new_execute(
-            saga_id,
-            1,
-            "increment-board-column".to_string(),
-            None,
-        );
+        let mut log1 =
+            SagaStepLog::new_execute(saga_id, 1, "increment-board-column".to_string(), None);
         log1.mark_failed("board column increment failed".to_string());
         saga.start_compensation("step 'increment-board-column' failed".to_string());
         repo.update_with_step_log(&saga, &log1).await.unwrap();

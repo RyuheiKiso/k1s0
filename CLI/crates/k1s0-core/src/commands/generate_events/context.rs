@@ -298,7 +298,10 @@ mod tests {
             event["topic"],
             "k1s0.business.taskmanagement.master-item-created.v1"
         );
-        assert_eq!(event["proto_package"], "k1s0.event.business.taskmanagement.v1");
+        assert_eq!(
+            event["proto_package"],
+            "k1s0.event.business.taskmanagement.v1"
+        );
         assert_eq!(event["partition_key_pascal"], "ItemId");
 
         let fields = event["fields"].as_array().unwrap();
@@ -309,7 +312,10 @@ mod tests {
         assert_eq!(fields[1]["name_pascal"], "Amount");
 
         let consumers = event["consumers"].as_array().unwrap();
-        assert_eq!(consumers[0]["handler"], "on_taskmanagement_master_item_created");
+        assert_eq!(
+            consumers[0]["handler"],
+            "on_taskmanagement_master_item_created"
+        );
         assert_eq!(
             consumers[0]["handler_pascal"],
             "OnTaskmanagementMasterItemCreated"

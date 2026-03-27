@@ -168,7 +168,9 @@ mod tests {
     #[tokio::test]
     async fn evaluate_flag_with_variant_returns_variant_name() {
         let client = InMemoryFeatureFlagClient::new();
-        client.set_flag(make_flag_with_variant("flag-var", true, "beta")).await;
+        client
+            .set_flag(make_flag_with_variant("flag-var", true, "beta"))
+            .await;
         let ctx = EvaluationContext::new();
         let result = client.evaluate("flag-var", &ctx).await.unwrap();
         assert_eq!(result.variant, Some("beta".to_string()));

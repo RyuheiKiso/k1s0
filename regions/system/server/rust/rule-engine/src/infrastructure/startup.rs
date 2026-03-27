@@ -65,9 +65,11 @@ pub async fn run() -> anyhow::Result<()> {
     // Repositories: InMemory fallback (PostgreSQL would be similar to policy-server)
     // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
     // cfg.database または DATABASE_URL が設定されている場合は "present" として扱う
-    let db_present = cfg.database.as_ref().map(|_| ()).or_else(|| {
-        std::env::var("DATABASE_URL").ok().map(|_| ())
-    });
+    let db_present = cfg
+        .database
+        .as_ref()
+        .map(|_| ())
+        .or_else(|| std::env::var("DATABASE_URL").ok().map(|_| ()));
     k1s0_server_common::require_infra(
         "rule-engine",
         k1s0_server_common::InfraKind::Database,
@@ -201,7 +203,8 @@ pub async fn run() -> anyhow::Result<()> {
         backend_kind,
     };
     // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, rule_engine_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, rule_engine_grpc_action);
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
     }
@@ -267,14 +270,8 @@ pub async fn run() -> anyhow::Result<()> {
 /// PublishRuleSet / RollbackRuleSet は write、それ以外は read。
 fn rule_engine_grpc_action(method: &str) -> &'static str {
     match method {
-        "CreateRule"
-        | "UpdateRule"
-        | "DeleteRule"
-        | "CreateRuleSet"
-        | "UpdateRuleSet"
-        | "DeleteRuleSet"
-        | "PublishRuleSet"
-        | "RollbackRuleSet" => "write",
+        "CreateRule" | "UpdateRule" | "DeleteRule" | "CreateRuleSet" | "UpdateRuleSet"
+        | "DeleteRuleSet" | "PublishRuleSet" | "RollbackRuleSet" => "write",
         _ => "read",
     }
 }

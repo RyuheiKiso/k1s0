@@ -92,10 +92,14 @@ pdb:
   enabled: true
   minAvailable: "50%"
 
-# Ingress（Kong 経由のため通常は無効）
+# L-9 監査対応: Ingress はデフォルト無効。
+# 外部トラフィックは原則として k1s0-system の Kong Gateway 経由でルーティングする。
+# 直接 Ingress を使用する場合（管理系 UI 等）のみ enabled: true に設定すること。
+# ingressClassName: nginx → nginx Ingress Controller 経由（Kubernetes 管理系 UI 向け）
+# ingressClassName: kong  → Kong Ingress Controller 経由（API ゲートウェイ連携が必要な場合）
 ingress:
   enabled: false
-  ingressClassName: nginx       # nginx or kong（管理系UIは nginx を指定）
+  ingressClassName: nginx       # 管理系UI は nginx、APIは原則 Kong Gateway 経由を使用すること
   annotations: {}
   hosts: []
   tls: []

@@ -13,7 +13,10 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
   backend            = vault_auth_backend.kubernetes.path
   # Kubernetes API サーバーのエンドポイントを変数から参照する
   kubernetes_host    = var.kubernetes_host
-  kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+  # H-5 監査対応: CA 証明書パスのハードコードを解消。
+  # var.kubernetes_ca_cert が空文字列の場合は Kubernetes Pod 内のサービスアカウントマウントパスから読み込む。
+  # ローカル/CI 環境からの terraform apply 時は kubernetes_ca_cert 変数で PEM 内容を渡すこと。
+  kubernetes_ca_cert = var.kubernetes_ca_cert != "" ? var.kubernetes_ca_cert : file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 }
 
 # system Tier role - サービス別SA名で最小権限を適用

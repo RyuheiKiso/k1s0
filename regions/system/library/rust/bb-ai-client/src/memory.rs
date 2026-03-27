@@ -84,7 +84,10 @@ mod tests {
             id: "resp-1".to_string(),
             model: "test-model".to_string(),
             content: content.to_string(),
-            usage: crate::types::Usage { input_tokens: 10, output_tokens: 5 },
+            usage: crate::types::Usage {
+                input_tokens: 10,
+                output_tokens: 5,
+            },
         }
     }
 
@@ -98,7 +101,10 @@ mod tests {
     fn make_complete_req() -> CompleteRequest {
         CompleteRequest {
             model: "test-model".to_string(),
-            messages: vec![crate::types::ChatMessage { role: "user".to_string(), content: "hello".to_string() }],
+            messages: vec![crate::types::ChatMessage {
+                role: "user".to_string(),
+                content: "hello".to_string(),
+            }],
             max_tokens: None,
             temperature: None,
             stream: None,
@@ -126,7 +132,10 @@ mod tests {
     #[tokio::test]
     async fn embed_returns_queued_response() {
         let client = InMemoryAiClient::new(vec![], vec![make_embed_response()]);
-        let req = EmbedRequest { model: "embed-model".to_string(), texts: vec!["hello".to_string()] };
+        let req = EmbedRequest {
+            model: "embed-model".to_string(),
+            texts: vec!["hello".to_string()],
+        };
         let resp = client.embed(&req).await.unwrap();
         assert_eq!(resp.model, "embed-model");
         assert_eq!(resp.embeddings.len(), 1);
@@ -136,7 +145,10 @@ mod tests {
     #[tokio::test]
     async fn embed_empty_queue_returns_unavailable() {
         let client = InMemoryAiClient::new(vec![], vec![]);
-        let req = EmbedRequest { model: "embed-model".to_string(), texts: vec![] };
+        let req = EmbedRequest {
+            model: "embed-model".to_string(),
+            texts: vec![],
+        };
         let err = client.embed(&req).await.unwrap_err();
         assert!(matches!(err, AiClientError::Unavailable(_)));
     }
@@ -144,9 +156,11 @@ mod tests {
     /// list_models がモデル一覧を返す
     #[tokio::test]
     async fn list_models_returns_configured_models() {
-        let models = vec![
-            ModelInfo { id: "m1".to_string(), name: "Model 1".to_string(), description: "desc".to_string() },
-        ];
+        let models = vec![ModelInfo {
+            id: "m1".to_string(),
+            name: "Model 1".to_string(),
+            description: "desc".to_string(),
+        }];
         let client = InMemoryAiClient::with_models(vec![], vec![], models);
         let result = client.list_models().await.unwrap();
         assert_eq!(result.len(), 1);

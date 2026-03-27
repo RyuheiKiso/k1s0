@@ -109,7 +109,12 @@ impl DatabaseConfig {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
             // expose_secret() でパスワードを取り出す
-            self.user, self.password.expose_secret(), self.host, self.port, self.name, self.ssl_mode
+            self.user,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.name,
+            self.ssl_mode
         )
     }
 }

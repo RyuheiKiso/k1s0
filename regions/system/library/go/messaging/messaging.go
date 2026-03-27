@@ -9,14 +9,14 @@ import (
 
 // EventMetadata はイベントのメタデータ。
 type EventMetadata struct {
-	// EventId はイベントの一意識別子。
-	EventId string
+	// EventID はイベントの一意識別子（L-3 監査対応: EventId → EventID に改名）。
+	EventID string
 	// EventType はイベント種別。例: "user.created.v1"
 	EventType string
-	// CorrelationId はリクエスト相関 ID。
-	CorrelationId string
-	// TraceId は分散トレーシング用トレース ID。
-	TraceId string
+	// CorrelationID はリクエスト相関 ID（L-3 監査対応: CorrelationId → CorrelationID に改名）。
+	CorrelationID string
+	// TraceID は分散トレーシング用トレース ID（L-3 監査対応: TraceId → TraceID に改名）。
+	TraceID string
 	// Timestamp はイベント発生日時。
 	Timestamp time.Time
 	// Source はイベント発行元サービス名。
@@ -26,20 +26,21 @@ type EventMetadata struct {
 }
 
 // NewEventMetadata は新しい EventMetadata を生成する。
-func NewEventMetadata(eventType, correlationId, source string) EventMetadata {
+func NewEventMetadata(eventType, correlationID, source string) EventMetadata {
 	return EventMetadata{
-		EventId:       uuid.New().String(),
+		EventID:       uuid.New().String(),
 		EventType:     eventType,
-		CorrelationId: correlationId,
+		CorrelationID: correlationID,
 		Timestamp:     time.Now().UTC(),
 		Source:        source,
 		SchemaVersion: 1,
 	}
 }
 
-// WithTraceId sets TraceId and returns a copied metadata instance (builder-style).
-func (m EventMetadata) WithTraceId(traceId string) EventMetadata {
-	m.TraceId = traceId
+// WithTraceID はトレース ID を設定して EventMetadata のコピーを返す（builder スタイル）。
+// L-3 監査対応: WithTraceId → WithTraceID に改名。
+func (m EventMetadata) WithTraceID(traceID string) EventMetadata {
+	m.TraceID = traceID
 	return m
 }
 
@@ -94,3 +95,8 @@ func (e *MessagingError) Error() string {
 func (e *MessagingError) Unwrap() error {
 	return e.Err
 }
+
+// Err は MessagingError の短縮エイリアス（L-3 監査対応: stutter 命名解消）。
+// 注意: builtin error との混同を避けるため Err を使用する。
+// 新しいコードでは messaging.Err を使用すること。
+type Err = MessagingError

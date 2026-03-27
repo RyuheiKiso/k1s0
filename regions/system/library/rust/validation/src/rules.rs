@@ -35,7 +35,11 @@ pub fn validate_email(field: &str, email: &str) -> Result<(), ValidationError> {
         Ok(())
     } else {
         // PII 保護: エラーメッセージにユーザー入力値を含めない
-        Err(err(field, "INVALID_EMAIL", "invalid email format".to_string()))
+        Err(err(
+            field,
+            "INVALID_EMAIL",
+            "invalid email format".to_string(),
+        ))
     }
 }
 
@@ -45,7 +49,11 @@ pub fn validate_uuid(field: &str, id: &str) -> Result<(), ValidationError> {
         Ok(())
     } else {
         // PII 保護: エラーメッセージにユーザー入力値を含めない
-        Err(err(field, "INVALID_UUID", "invalid uuid v4 format".to_string()))
+        Err(err(
+            field,
+            "INVALID_UUID",
+            "invalid uuid v4 format".to_string(),
+        ))
     }
 }
 

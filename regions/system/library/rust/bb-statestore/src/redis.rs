@@ -9,8 +9,8 @@ use uuid::Uuid;
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_cache::CacheClient;
 
-use crate::StateStoreError;
 use crate::traits::{StateEntry, StateStore};
+use crate::StateStoreError;
 
 /// RedisStateStore は Redis ベースの StateStore 実装。
 /// k1s0-cache の CacheClient をラップする。

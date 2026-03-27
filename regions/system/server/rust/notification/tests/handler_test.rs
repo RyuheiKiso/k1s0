@@ -31,14 +31,22 @@ struct StubChannelRepo {
 
 impl StubChannelRepo {
     fn new() -> Self {
-        Self { channels: RwLock::new(Vec::new()) }
+        Self {
+            channels: RwLock::new(Vec::new()),
+        }
     }
 }
 
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
-        Ok(self.channels.read().await.iter().find(|c| c.id == id).cloned())
+        Ok(self
+            .channels
+            .read()
+            .await
+            .iter()
+            .find(|c| c.id == id)
+            .cloned())
     }
     async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
         Ok(self.channels.read().await.clone())
@@ -83,14 +91,22 @@ struct StubTemplateRepo {
 
 impl StubTemplateRepo {
     fn new() -> Self {
-        Self { templates: RwLock::new(Vec::new()) }
+        Self {
+            templates: RwLock::new(Vec::new()),
+        }
     }
 }
 
 #[async_trait]
 impl NotificationTemplateRepository for StubTemplateRepo {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
-        Ok(self.templates.read().await.iter().find(|t| t.id == id).cloned())
+        Ok(self
+            .templates
+            .read()
+            .await
+            .iter()
+            .find(|t| t.id == id)
+            .cloned())
     }
     async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
         Ok(self.templates.read().await.clone())
@@ -134,7 +150,9 @@ struct StubLogRepo {
 
 impl StubLogRepo {
     fn new() -> Self {
-        Self { logs: RwLock::new(Vec::new()) }
+        Self {
+            logs: RwLock::new(Vec::new()),
+        }
     }
 }
 
@@ -144,7 +162,14 @@ impl NotificationLogRepository for StubLogRepo {
         Ok(self.logs.read().await.iter().find(|l| l.id == id).cloned())
     }
     async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
-        Ok(self.logs.read().await.iter().filter(|l| l.channel_id == channel_id).cloned().collect())
+        Ok(self
+            .logs
+            .read()
+            .await
+            .iter()
+            .filter(|l| l.channel_id == channel_id)
+            .cloned()
+            .collect())
     }
     async fn find_all_paginated(
         &self,

@@ -195,12 +195,10 @@ pub async fn run() -> anyhow::Result<()> {
 
         // バックグラウンドリフレッシュタスク用の CancellationToken を作成する
         let bg_cancel = tokio_util::sync::CancellationToken::new();
-        let _bg_handle = table
-            .clone()
-            .start_background_refresh(
-                std::time::Duration::from_secs(cfg.keycloak_admin.refresh_interval_secs),
-                bg_cancel.clone(),
-            );
+        let _bg_handle = table.clone().start_background_refresh(
+            std::time::Duration::from_secs(cfg.keycloak_admin.refresh_interval_secs),
+            bg_cancel.clone(),
+        );
 
         // シャットダウンシグナル受信時にバックグラウンドタスクをキャンセルするタスクを起動する
         tokio::spawn(async move {

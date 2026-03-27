@@ -94,23 +94,23 @@ var (
 		603: "EVENT_TYPE_ACTIVITY_DELETED",
 	}
 	EventType_value = map[string]int32{
-		"EVENT_TYPE_UNSPECIFIED":               0,
-		"EVENT_TYPE_AUTH_LOGIN":                100,
-		"EVENT_TYPE_AUTH_TOKEN_VALIDATION":     101,
-		"EVENT_TYPE_AUTH_PERMISSION_CHECK":     102,
-		"EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED":   103,
-		"EVENT_TYPE_CONFIG_CHANGED":            200,
+		"EVENT_TYPE_UNSPECIFIED":                              0,
+		"EVENT_TYPE_AUTH_LOGIN":                               100,
+		"EVENT_TYPE_AUTH_TOKEN_VALIDATION":                    101,
+		"EVENT_TYPE_AUTH_PERMISSION_CHECK":                    102,
+		"EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED":                  103,
+		"EVENT_TYPE_CONFIG_CHANGED":                           200,
 		"EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED":      300,
 		"EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED": 301,
-		"EVENT_TYPE_TASK_CREATED":              400,
-		"EVENT_TYPE_TASK_STATUS_CHANGED":       401,
-		"EVENT_TYPE_TASK_CANCELLED":            402,
-		"EVENT_TYPE_BOARD_COLUMN_INCREMENTED":  500,
-		"EVENT_TYPE_BOARD_COLUMN_DECREMENTED":  501,
-		"EVENT_TYPE_ACTIVITY_CREATED":          600,
-		"EVENT_TYPE_ACTIVITY_APPROVED":         601,
-		"EVENT_TYPE_ACTIVITY_REJECTED":         602,
-		"EVENT_TYPE_ACTIVITY_DELETED":          603,
+		"EVENT_TYPE_TASK_CREATED":                             400,
+		"EVENT_TYPE_TASK_STATUS_CHANGED":                      401,
+		"EVENT_TYPE_TASK_CANCELLED":                           402,
+		"EVENT_TYPE_BOARD_COLUMN_INCREMENTED":                 500,
+		"EVENT_TYPE_BOARD_COLUMN_DECREMENTED":                 501,
+		"EVENT_TYPE_ACTIVITY_CREATED":                         600,
+		"EVENT_TYPE_ACTIVITY_APPROVED":                        601,
+		"EVENT_TYPE_ACTIVITY_REJECTED":                        602,
+		"EVENT_TYPE_ACTIVITY_DELETED":                         603,
 	}
 )
 
@@ -145,25 +145,25 @@ var File_k1s0_system_common_v1_event_types_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_common_v1_event_types_proto_rawDesc = "" +
 	"\n" +
-	"'k1s0/system/common/v1/event_types.proto\x12\x15k1s0.system.common.v1*\x82\x06\n" +
+	"'k1s0/system/common/v1/event_types.proto\x12\x15k1s0.system.common.v1*\x86\x05\n" +
 	"\tEventType\x12\x1a\n" +
 	"\x16EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15EVENT_TYPE_AUTH_LOGIN\x10d\x12$\n" +
 	" EVENT_TYPE_AUTH_TOKEN_VALIDATION\x10e\x12$\n" +
 	" EVENT_TYPE_AUTH_PERMISSION_CHECK\x10f\x12&\n" +
 	"\"EVENT_TYPE_AUTH_AUDIT_LOG_RECORDED\x10g\x12\x1e\n" +
-	"\x19EVENT_TYPE_CONFIG_CHANGED\x10\xc8\x01\x120\n" +
-	"+EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED\x10\xac\x02\x124\n" +
-	"/EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED\x10\xad\x02\x12\x1b\n" +
-	"\x17EVENT_TYPE_TASK_CREATED\x10\x90\x03\x12\x1f\n" +
-	"\x1bEVENT_TYPE_TASK_STATUS_CHANGED\x10\x91\x03\x12\x1d\n" +
-	"\x19EVENT_TYPE_TASK_CANCELLED\x10\x92\x03\x12#\n" +
-	"\x1fEVENT_TYPE_BOARD_COLUMN_INCREMENTED\x10\xf4\x03\x12#\n" +
-	"\x1fEVENT_TYPE_BOARD_COLUMN_DECREMENTED\x10\xf5\x03\x12\x1d\n" +
-	"\x19EVENT_TYPE_ACTIVITY_CREATED\x10\xd8\x04\x12\x1f\n" +
-	"\x1bEVENT_TYPE_ACTIVITY_APPROVED\x10\xd9\x04\x12\x1f\n" +
-	"\x1bEVENT_TYPE_ACTIVITY_REJECTED\x10\xda\x04\x12\x1e\n" +
-	"\x1aEVENT_TYPE_ACTIVITY_DELETED\x10\xdb\x04BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
+	"\x19EVENT_TYPE_CONFIG_CHANGED\x10\xc8\x01\x123\n" +
+	".EVENT_TYPE_TASKMANAGEMENT_PROJECT_TYPE_CHANGED\x10\xac\x02\x128\n" +
+	"3EVENT_TYPE_TASKMANAGEMENT_STATUS_DEFINITION_CHANGED\x10\xad\x02\x12\x1c\n" +
+	"\x17EVENT_TYPE_TASK_CREATED\x10\x90\x03\x12#\n" +
+	"\x1eEVENT_TYPE_TASK_STATUS_CHANGED\x10\x91\x03\x12\x1e\n" +
+	"\x19EVENT_TYPE_TASK_CANCELLED\x10\x92\x03\x12(\n" +
+	"#EVENT_TYPE_BOARD_COLUMN_INCREMENTED\x10\xf4\x03\x12(\n" +
+	"#EVENT_TYPE_BOARD_COLUMN_DECREMENTED\x10\xf5\x03\x12 \n" +
+	"\x1bEVENT_TYPE_ACTIVITY_CREATED\x10\xd8\x04\x12!\n" +
+	"\x1cEVENT_TYPE_ACTIVITY_APPROVED\x10\xd9\x04\x12!\n" +
+	"\x1cEVENT_TYPE_ACTIVITY_REJECTED\x10\xda\x04\x12 \n" +
+	"\x1bEVENT_TYPE_ACTIVITY_DELETED\x10\xdb\x04BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
 
 var (
 	file_k1s0_system_common_v1_event_types_proto_rawDescOnce sync.Once

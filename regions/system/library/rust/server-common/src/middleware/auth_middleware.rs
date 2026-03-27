@@ -28,9 +28,7 @@ pub async fn auth_middleware(
     // verify_token をタイムアウト付きで実行し、応答遅延時は 503 を返す
     let claims = timeout(VERIFY_TIMEOUT, state.verifier.verify_token(&token))
         .await
-        .map_err(|_| {
-            ServiceError::service_unavailable("AUTH", "Token verification timed out")
-        })?
+        .map_err(|_| ServiceError::service_unavailable("AUTH", "Token verification timed out"))?
         .map_err(|_| ServiceError::unauthorized("AUTH", "Invalid or expired token"))?;
 
     req.extensions_mut().insert(claims);

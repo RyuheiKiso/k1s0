@@ -1,0 +1,87 @@
+# M-11 監査対応: staging 環境用 Kustomize overlay
+# namespace-quotas.yaml のコメントアウト済みの staging(2x) 設定を overlay として分離した。
+# base に対して ResourceQuota をパッチして staging 相当の値（dev の 2x）に上書きする。
+#
+# 適用方法:
+#   kubectl apply -k infra/kubernetes/overlays/staging/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ベースリソース: 全 Namespace の共通設定（NetworkPolicy, RBAC 等）
+resources:
+  - ../../namespaces
+  - ../../network-policies
+  - ../../rbac
+  - ../../resource-quotas
+
+# staging 環境のリソースクォータを 2x に上書きする（dev の 2 倍スケール）
+patches:
+  - target:
+      kind: ResourceQuota
+      name: namespace-quota
+      namespace: k1s0-system
+    patch: |-
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "16"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 32Gi
+      - op: replace
+        path: /spec/hard/limits.cpu
+        value: "32"
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 64Gi
+      - op: replace
+        path: /spec/hard/pods
+        value: "100"
+      - op: replace
+        path: /spec/hard/persistentvolumeclaims
+        value: "40"
+  - target:
+      kind: ResourceQuota
+      name: namespace-quota
+      namespace: k1s0-business
+    patch: |-
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "32"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 64Gi
+      - op: replace
+        path: /spec/hard/limits.cpu
+        value: "64"
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 128Gi
+      - op: replace
+        path: /spec/hard/pods
+        value: "200"
+      - op: replace
+        path: /spec/hard/persistentvolumeclaims
+        value: "80"
+  - target:
+      kind: ResourceQuota
+      name: namespace-quota
+      namespace: k1s0-service
+    patch: |-
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "16"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 32Gi
+      - op: replace
+        path: /spec/hard/limits.cpu
+        value: "32"
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 64Gi
+      - op: replace
+        path: /spec/hard/pods
+        value: "100"
+      - op: replace
+        path: /spec/hard/persistentvolumeclaims
+        value: "40"

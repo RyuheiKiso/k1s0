@@ -930,7 +930,7 @@ vault:
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [GraphQL設計.md](../../architecture/api/GraphQL設計.md) -- GraphQL 設計ガイドライン
@@ -945,7 +945,7 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 
 ---
 

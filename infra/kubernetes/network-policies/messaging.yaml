@@ -33,11 +33,10 @@ spec:
             matchLabels:
               tier: service
       # I-1 対応: ポート制限を追加し、Kafka および Schema Registry 以外のポートへのアクセスを遮断
+      # M-7 監査対応: plain リスナー（9092）を廃止し TLS リスナー（9093）のみを許可する
       ports:
         - protocol: TCP
-          port: 9092    # Kafka ブローカーポート（プレーンテキスト）
-        - protocol: TCP
-          port: 9093    # Kafka ブローカーポート（TLS）
+          port: 9093    # Kafka ブローカーポート（TLS のみ。plain リスナー 9092 は廃止済み）
         - protocol: TCP
           port: 8081    # Schema Registry ポート
 ---

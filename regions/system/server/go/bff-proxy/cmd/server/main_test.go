@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
@@ -64,7 +65,8 @@ func TestNewLoggerLevel(t *testing.T) {
 			t.Errorf("newLogger returned nil for level=%q", tc.level)
 			continue
 		}
-		if !logger.Enabled(nil, tc.expectedLevel) {
+		// SA1012: context.Background() を使用して nil コンテキストを回避する（§3.2 監査対応）
+		if !logger.Enabled(context.Background(), tc.expectedLevel) {
 			t.Errorf("newLogger(level=%q): expected level %v to be enabled", tc.level, tc.expectedLevel)
 		}
 	}

@@ -288,7 +288,8 @@ events:
     fn schema_registry_output() {
         let config = sample_config();
         let yaml = generate_schema_registry_config(&config);
-        assert!(yaml.contains("subject: \"k1s0.business.taskmanagement.project-type-changed.v1-value\""));
+        assert!(yaml
+            .contains("subject: \"k1s0.business.taskmanagement.project-type-changed.v1-value\""));
         assert!(yaml.contains("type: PROTOBUF"));
         assert!(yaml.contains("message: \"ProjectTypeChanged\""));
     }

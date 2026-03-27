@@ -212,11 +212,11 @@ impl Default for ApiRegistryDomainService {
 // 正規表現はコンパイルコストが高いため LazyLock で初期化を1回のみに制限する
 // フォールバックは意図的に除去: コンパイル失敗は開発時に即座に検知すべきバグであり、
 // デジェネレート正規表現でサイレントにフォールバックすると破壊的変更が検出不能になる（C-05対応）
-static PROTO_FIELD_REGEX: std::sync::LazyLock<regex::Regex> =
-    std::sync::LazyLock::new(|| {
-        regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);")
-            .expect("protoフィールド抽出用正規表現は有効なパターンであり、コンパイルに失敗することはない")
-    });
+static PROTO_FIELD_REGEX: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+    regex::Regex::new(r"\s+\w+\s+(\w+)\s*=\s*(\d+);").expect(
+        "protoフィールド抽出用正規表現は有効なパターンであり、コンパイルに失敗することはない",
+    )
+});
 
 fn extract_proto_fields(content: &str) -> Vec<(String, String)> {
     let mut fields = Vec::new();

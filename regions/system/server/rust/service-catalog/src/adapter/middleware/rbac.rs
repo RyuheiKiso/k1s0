@@ -1,9 +1,9 @@
 use axum::{
-    Json,
     extract::State,
     http::{Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
+    Json,
 };
 use k1s0_server_common::ErrorResponse;
 
@@ -51,7 +51,7 @@ pub fn make_rbac_middleware(
     Request<axum::body::Body>,
     Next,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-+ Clone {
+       + Clone {
     move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
         Box::pin(rbac_check(state, req, next, resource, action))
     }
@@ -66,7 +66,7 @@ pub fn make_method_rbac_middleware(
     Request<axum::body::Body>,
     Next,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Response> + Send>>
-+ Clone {
+       + Clone {
     move |State(state): State<AppState>, req: Request<axum::body::Body>, next: Next| {
         let action = match *req.method() {
             axum::http::Method::GET | axum::http::Method::HEAD => "read",

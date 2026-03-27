@@ -93,3 +93,21 @@ func NewExpiredError(key string) *IdempotencyError {
 		Message: fmt.Sprintf("idempotency key expired: %s", key),
 	}
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは idempotency.Status / Record / Store / Error を使用すること。
+// ---------------------------------------------------------------------------
+
+// Status は IdempotencyStatus の短縮エイリアス。
+type Status = IdempotencyStatus
+
+// Record は IdempotencyRecord の短縮エイリアス。
+type Record = IdempotencyRecord
+
+// Store は IdempotencyStore の短縮エイリアス。
+type Store = IdempotencyStore
+
+// Err は IdempotencyError の短縮エイリアス。
+// 注意: builtin error インターフェースとの混同を避けるため Err を使用する。
+type Err = IdempotencyError

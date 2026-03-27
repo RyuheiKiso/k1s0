@@ -1,4 +1,4 @@
-//! テストモジュール — unwrap() の使用を許可する
+//! テストモジュール — `unwrap()` の使用を許可する
 #![allow(clippy::unwrap_used)]
 /// CI/CD テンプレートのレンダリング統合テスト。
 ///
@@ -314,9 +314,7 @@ fn test_cicd_service_name_in_workflow_name() {
     let content = read_output(&tmp, ci_file);
 
     assert!(
-        content.contains("task-api")
-            || content.contains("TaskApi")
-            || content.contains("task_api"),
+        content.contains("task-api") || content.contains("TaskApi") || content.contains("task_api"),
         "service_name not found in workflow name"
     );
 }

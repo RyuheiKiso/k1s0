@@ -48,7 +48,9 @@ struct StubTableRepo {
 
 impl StubTableRepo {
     fn new() -> Self {
-        Self { tables: RwLock::new(Vec::new()) }
+        Self {
+            tables: RwLock::new(Vec::new()),
+        }
     }
 }
 
@@ -68,11 +70,23 @@ impl TableDefinitionRepository for StubTableRepo {
         name: &str,
         _domain_scope: Option<&str>,
     ) -> anyhow::Result<Option<TableDefinition>> {
-        Ok(self.tables.read().await.iter().find(|t| t.name == name).cloned())
+        Ok(self
+            .tables
+            .read()
+            .await
+            .iter()
+            .find(|t| t.name == name)
+            .cloned())
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>> {
-        Ok(self.tables.read().await.iter().find(|t| t.id == id).cloned())
+        Ok(self
+            .tables
+            .read()
+            .await
+            .iter()
+            .find(|t| t.id == id)
+            .cloned())
     }
 
     async fn create(
@@ -269,11 +283,7 @@ impl DynamicRecordRepository for StubDynamicRecordRepo {
         Ok(data.clone())
     }
 
-    async fn delete(
-        &self,
-        _table_def: &TableDefinition,
-        _record_id: &str,
-    ) -> anyhow::Result<()> {
+    async fn delete(&self, _table_def: &TableDefinition, _record_id: &str) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -473,10 +483,7 @@ impl TableRelationshipRepository for StubRelationshipRepo {
         Ok(vec![])
     }
 
-    async fn create(
-        &self,
-        relationship: &TableRelationship,
-    ) -> anyhow::Result<TableRelationship> {
+    async fn create(&self, relationship: &TableRelationship) -> anyhow::Result<TableRelationship> {
         Ok(relationship.clone())
     }
 
@@ -503,7 +510,9 @@ struct StubImportJobRepo {
 
 impl StubImportJobRepo {
     fn new() -> Self {
-        Self { jobs: RwLock::new(Vec::new()) }
+        Self {
+            jobs: RwLock::new(Vec::new()),
+        }
     }
 }
 
@@ -542,7 +551,9 @@ fn build_state() -> AppState {
     let schema_manager = Arc::new(StubSchemaManager);
     let relationship_repo = Arc::new(StubRelationshipRepo);
     let import_job_repo = Arc::new(StubImportJobRepo::new());
-    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("master-maintenance-test"));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new(
+        "master-maintenance-test",
+    ));
 
     let crud_records_uc = Arc::new(usecase::crud_records::CrudRecordsUseCase::new(
         table_repo.clone(),
@@ -554,16 +565,20 @@ fn build_state() -> AppState {
     ));
 
     AppState {
-        manage_tables_uc: Arc::new(usecase::manage_table_definitions::ManageTableDefinitionsUseCase::new(
-            table_repo.clone(),
-            column_repo.clone(),
-            schema_manager.clone(),
-        )),
-        manage_columns_uc: Arc::new(usecase::manage_column_definitions::ManageColumnDefinitionsUseCase::new(
-            table_repo.clone(),
-            column_repo.clone(),
-            schema_manager.clone(),
-        )),
+        manage_tables_uc: Arc::new(
+            usecase::manage_table_definitions::ManageTableDefinitionsUseCase::new(
+                table_repo.clone(),
+                column_repo.clone(),
+                schema_manager.clone(),
+            ),
+        ),
+        manage_columns_uc: Arc::new(
+            usecase::manage_column_definitions::ManageColumnDefinitionsUseCase::new(
+                table_repo.clone(),
+                column_repo.clone(),
+                schema_manager.clone(),
+            ),
+        ),
         crud_records_uc: crud_records_uc.clone(),
         manage_rules_uc: Arc::new(usecase::manage_rules::ManageRulesUseCase::new(
             table_repo.clone(),
@@ -579,17 +594,21 @@ fn build_state() -> AppState {
         get_audit_logs_uc: Arc::new(usecase::get_audit_logs::GetAuditLogsUseCase::new(
             change_log_repo.clone(),
         )),
-        manage_relationships_uc: Arc::new(usecase::manage_relationships::ManageRelationshipsUseCase::new(
-            table_repo.clone(),
-            relationship_repo.clone(),
-            record_repo.clone(),
-            column_repo.clone(),
-            schema_manager.clone(),
-        )),
-        manage_display_configs_uc: Arc::new(usecase::manage_display_configs::ManageDisplayConfigsUseCase::new(
-            table_repo.clone(),
-            display_config_repo.clone(),
-        )),
+        manage_relationships_uc: Arc::new(
+            usecase::manage_relationships::ManageRelationshipsUseCase::new(
+                table_repo.clone(),
+                relationship_repo.clone(),
+                record_repo.clone(),
+                column_repo.clone(),
+                schema_manager.clone(),
+            ),
+        ),
+        manage_display_configs_uc: Arc::new(
+            usecase::manage_display_configs::ManageDisplayConfigsUseCase::new(
+                table_repo.clone(),
+                display_config_repo.clone(),
+            ),
+        ),
         import_export_uc: Arc::new(usecase::import_export::ImportExportUseCase::new(
             table_repo.clone(),
             column_repo.clone(),

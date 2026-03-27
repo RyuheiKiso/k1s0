@@ -236,3 +236,17 @@ func calculateBackoff(attempt int, baseDelay, maxDelay time.Duration) time.Durat
 	}
 	return delay
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは resiliency.Err / Policy / Decorator を使用すること。
+// ---------------------------------------------------------------------------
+
+// Err は ResiliencyError の短縮エイリアス（builtin error との混同を避けるため Err を使用）。
+type Err = ResiliencyError
+
+// Policy は ResiliencyPolicy の短縮エイリアス。
+type Policy = ResiliencyPolicy
+
+// Decorator は ResiliencyDecorator の短縮エイリアス。
+type Decorator = ResiliencyDecorator

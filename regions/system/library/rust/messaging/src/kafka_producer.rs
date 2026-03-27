@@ -25,7 +25,10 @@ impl KafkaEventProducer {
 
     /// ブローカーリストとタイムアウト（ミリ秒）を指定して KafkaEventProducer を生成する。
     /// タイムアウトを設定ファイルから制御したい場合は with_config を使用すること。
-    pub fn new_with_timeout(brokers: &str, message_timeout_ms: u64) -> Result<Self, MessagingError> {
+    pub fn new_with_timeout(
+        brokers: &str,
+        message_timeout_ms: u64,
+    ) -> Result<Self, MessagingError> {
         // 冪等プロデューサーを有効化し、メッセージの重複送信を防止する
         let producer: FutureProducer = ClientConfig::new()
             .set("bootstrap.servers", brokers)
@@ -35,7 +38,10 @@ impl KafkaEventProducer {
             .map_err(|e| MessagingError::ConnectionError(e.to_string()))?;
         // send() のタイムアウトは message.timeout.ms と同じ値を使用する
         let send_timeout = Duration::from_millis(message_timeout_ms);
-        Ok(Self { producer, send_timeout })
+        Ok(Self {
+            producer,
+            send_timeout,
+        })
     }
 
     /// MessagingConfig から KafkaEventProducer を生成する。

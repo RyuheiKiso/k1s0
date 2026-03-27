@@ -197,7 +197,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, api_registry_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, api_registry_grpc_action);
 
     // REST app state
     let mut state = adapter::handler::AppState {

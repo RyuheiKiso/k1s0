@@ -15,16 +15,19 @@ pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
 
 #[cfg(test)]
 mod tests {
+    use secrecy::Secret;
+
     use super::super::config::DatabaseConfig;
 
     #[test]
     fn test_connection_url_format() {
+        // password フィールドは Secret<String> 型のため Secret::new() でラップする（H-2 監査対応）
         let cfg = DatabaseConfig {
             host: "localhost".to_string(),
             port: 5432,
             name: "k1s0_system".to_string(),
             user: "app".to_string(),
-            password: "pass".to_string(),
+            password: Secret::new("pass".to_string()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
             max_idle_conns: 5,

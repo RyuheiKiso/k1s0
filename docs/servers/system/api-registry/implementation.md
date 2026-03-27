@@ -1,6 +1,6 @@
 # system-api-registry-server 実装設計
 
-> **注記**: 本ドキュメントは api-registry-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../_common/Rust共通実装.md) を参照。
+> **注記**: 本ドキュメントは api-registry-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../../_common/Rust共通実装.md) を参照。
 
 system-api-registry-server（API レジストリサーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [server.md](server.md) を参照。
 
@@ -128,4 +128,4 @@ regions/system/server/rust/api-registry/
 ## 関連ドキュメント
 
 - [server.md](server.md) -- 概要・API 定義
-- [Rust共通実装.md](../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存
+- [Rust共通実装.md](../../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存

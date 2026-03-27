@@ -389,13 +389,8 @@ pub async fn run() -> anyhow::Result<()> {
 /// AddMember / RemoveMember は write、それ以外は read。
 fn tenant_grpc_action(method: &str) -> &'static str {
     match method {
-        "CreateTenant"
-        | "UpdateTenant"
-        | "DeleteTenant"
-        | "SuspendTenant"
-        | "ActivateTenant"
-        | "AddMember"
-        | "RemoveMember" => "write",
+        "CreateTenant" | "UpdateTenant" | "DeleteTenant" | "SuspendTenant" | "ActivateTenant"
+        | "AddMember" | "RemoveMember" => "write",
         _ => "read",
     }
 }

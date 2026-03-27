@@ -233,6 +233,11 @@ pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 /// config.yamlのkafka.topicsセクションからpublish/subscribeを解析する。
 ///
 /// トピック命名: `k1s0.{tier}.{domain}.{event}.v{n}`
+///
+/// # Panics
+///
+/// トピック名照合用の静的正規表現の初期化に失敗した場合（正規表現構文エラー）にパニックする。
+/// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
 pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // トピック名→公開元サービスのマップ
@@ -296,7 +301,7 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
                         detail: Some(topic.clone()),
                     });
                 }
-            } else if let Some(ref re) = topic_re {
+            } else if let Some(re) = topic_re {
                 // パブリッシャーがいない場合、トピック名からターゲットを推測
                 if let Some(cap) = re.captures(topic) {
                     let target_tier = &cap[1];
@@ -681,7 +686,9 @@ mod tests {
     #[test]
     fn test_scan_services_business_tier() {
         let tmp = TempDir::new().unwrap();
-        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        let tm_dir = tmp
+            .path()
+            .join("regions/business/taskmanagement/server/rust");
         fs::create_dir_all(&tm_dir).unwrap();
         fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 
@@ -717,7 +724,9 @@ mod tests {
         fs::write(auth_dir.join("Cargo.toml"), "[package]").unwrap();
 
         // business
-        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        let tm_dir = tmp
+            .path()
+            .join("regions/business/taskmanagement/server/rust");
         fs::create_dir_all(&tm_dir).unwrap();
         fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 

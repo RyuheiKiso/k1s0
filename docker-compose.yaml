@@ -118,8 +118,12 @@ services:
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "${REDIS_HOST_PORT:-6379}:6379"
-    volumes:
-      - redis-data:/data
+    # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
+    # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
+    # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
+    # 開発環境ではデータ永続性より起動安定性を優先するため tmpfs で代替する。
+    tmpfs:
+      - /data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
@@ -156,6 +160,11 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # L-11 監査対応: CLUSTER_ID は KRaft クラスター識別子。
+      # 開発環境では固定値を使用（コンテナ再起動後もトピック/オフセットを引き継ぐため一定値が必要）。
+      # 本番 K8s 環境は Strimzi Operator が自動生成するため、この値は開発専用。
+      # チームで共通の CLUSTER_ID を使うことでローカル環境間のデータ互換性を維持する。
+      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.8.0 /opt/kafka/bin/kafka-storage.sh random-uuid
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -325,8 +334,12 @@ services:
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
-    volumes:
-      - redis-session-data:/data
+    # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
+    # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
+    # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
+    # 開発環境ではデータ永続性より起動安定性を優先するため tmpfs で代替する。
+    tmpfs:
+      - /data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
@@ -1334,8 +1347,7 @@ services:
 
 volumes:
   postgres-data:
-  redis-data:
-  redis-session-data:
+  # redis-data, redis-session-data は L-7 監査対応で tmpfs に移行済みのため削除
   kafka-data:
   prometheus-data:
   loki-data:

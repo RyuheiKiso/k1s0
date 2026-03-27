@@ -68,7 +68,7 @@ regions/system/server/rust/app-registry/
 
 ### Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 # SHA-256 チェックサム計算（ファイル整合性検証）
@@ -213,7 +213,7 @@ pub enum Platform {
 
 ## config.yaml
 
-アプリレジストリサーバー固有の設定セクション。共通セクション（app/server/database/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
+アプリレジストリサーバー固有の設定セクション。共通セクション（app/server/database/observability）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
 storage:

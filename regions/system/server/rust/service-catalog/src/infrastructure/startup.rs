@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use super::config::{Config, parse_pool_duration};
+use super::config::{parse_pool_duration, Config};
 use super::health_collector::HealthCollector;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
 use crate::adapter::repository::dependency_postgres::DependencyPostgresRepository;

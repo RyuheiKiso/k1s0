@@ -26,7 +26,10 @@ impl PostgresEventStore {
     /// * `database_url` - PostgreSQL connection URL
     ///   (e.g., "postgres://user:pass@localhost:5432/dbname")
     /// * `max_connections` - 接続プールの最大接続数。None の場合はデフォルト値 (10) を使用する
-    pub async fn new(database_url: &str, max_connections: Option<u32>) -> Result<Self, EventStoreError> {
+    pub async fn new(
+        database_url: &str,
+        max_connections: Option<u32>,
+    ) -> Result<Self, EventStoreError> {
         // 接続プールサイズを設定可能にすることで、環境に応じた最適化を可能にする
         let pool = PgPoolOptions::new()
             .max_connections(max_connections.unwrap_or(DEFAULT_MAX_CONNECTIONS))

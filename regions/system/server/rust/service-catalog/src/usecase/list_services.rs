@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::domain::entity::service::Service;
-use crate::domain::repository::ServiceRepository;
 use crate::domain::repository::service_repository::ServiceListFilters;
+use crate::domain::repository::ServiceRepository;
 
 /// ListServicesUseCase はサービス一覧取得ユースケース。
 pub struct ListServicesUseCase {
@@ -64,7 +64,8 @@ mod tests {
         let services = vec![make_service(), make_service(), make_service()];
         let services_clone = services.clone();
         let mut mock = MockServiceRepository::new();
-        mock.expect_list().returning(move |_| Ok(services_clone.clone()));
+        mock.expect_list()
+            .returning(move |_| Ok(services_clone.clone()));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
         let result = uc.execute(ServiceListFilters::default()).await.unwrap();

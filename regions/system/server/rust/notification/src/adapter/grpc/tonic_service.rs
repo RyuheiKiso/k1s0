@@ -3,6 +3,10 @@
 //! proto 生成コード (`src/proto/`) の NotificationService トレイトを実装する。
 //! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の NotificationGrpcService に委譲する。
 
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
+// 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
@@ -10,7 +14,7 @@ use tonic::{Request, Response, Status};
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
 };
-use crate::proto::k1s0::system::notification::v1::{NotificationStatus,
+use crate::proto::k1s0::system::notification::v1::{
     notification_service_server::NotificationService, Channel as ProtoChannel,
     CreateChannelRequest as ProtoCreateChannelRequest,
     CreateChannelResponse as ProtoCreateChannelResponse,
@@ -30,7 +34,7 @@ use crate::proto::k1s0::system::notification::v1::{NotificationStatus,
     ListNotificationsResponse as ProtoListNotificationsResponse,
     ListTemplatesRequest as ProtoListTemplatesRequest,
     ListTemplatesResponse as ProtoListTemplatesResponse, NotificationLog as ProtoNotificationLog,
-    RetryNotificationRequest as ProtoRetryNotificationRequest,
+    NotificationStatus, RetryNotificationRequest as ProtoRetryNotificationRequest,
     RetryNotificationResponse as ProtoRetryNotificationResponse,
     SendNotificationRequest as ProtoSendNotificationRequest,
     SendNotificationResponse as ProtoSendNotificationResponse, Template as ProtoTemplate,

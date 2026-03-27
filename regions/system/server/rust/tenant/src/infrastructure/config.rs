@@ -201,7 +201,12 @@ impl DatabaseConfig {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
             // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
-            self.user, self.password.expose_secret(), self.host, self.port, self.name, self.ssl_mode
+            self.user,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.name,
+            self.ssl_mode
         )
     }
 }

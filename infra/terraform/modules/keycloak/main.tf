@@ -1,8 +1,10 @@
 terraform {
   required_providers {
     keycloak = {
-      source  = "mrparkers/keycloak"
-      version = ">= 4.0.0"
+      source = "mrparkers/keycloak"
+      # M-12 監査対応: バージョン上限を設定しメジャーバージョン自動アップグレードによる破壊的変更を防ぐ。
+      # ~> 4.0 はパッチ/マイナーバージョンのアップデートを許可し、5.x 以上は拒否する。
+      version = "~> 4.0"
     }
   }
 }

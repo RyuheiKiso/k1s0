@@ -20,9 +20,14 @@ impl FileStorage {
     /// パストラバーサル攻撃を防ぐため、root_path 外へのパスは拒否する。
     pub fn resolve_path(&self, storage_key: &str) -> anyhow::Result<PathBuf> {
         let key_path = Path::new(storage_key);
-        if key_path.is_absolute() || key_path.components().any(|c| {
-            matches!(c, std::path::Component::ParentDir | std::path::Component::Prefix(_))
-        }) {
+        if key_path.is_absolute()
+            || key_path.components().any(|c| {
+                matches!(
+                    c,
+                    std::path::Component::ParentDir | std::path::Component::Prefix(_)
+                )
+            })
+        {
             anyhow::bail!("不正なストレージキー: {}", storage_key);
         }
         Ok(self.root_path.join(key_path))
@@ -36,5 +41,4 @@ impl FileStorage {
             .map_err(|e| anyhow::anyhow!("ファイルの読み取りに失敗: {} ({})", storage_key, e))?;
         Ok(bytes)
     }
-
 }

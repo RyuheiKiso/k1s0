@@ -544,7 +544,10 @@ mod tests {
 
         // max_stale_duration=0: 初回フェッチ失敗はキャッシュなしのためエラー
         let result = verifier_zero_stale.verify_token(&token).await;
-        assert!(result.is_err(), "フェッチ失敗かつ stale キャッシュなしはエラーになること");
+        assert!(
+            result.is_err(),
+            "フェッチ失敗かつ stale キャッシュなしはエラーになること"
+        );
         match result.unwrap_err() {
             AuthError::JwksFetchFailed(_) => {}
             other => panic!("JwksFetchFailed が期待されるが: {:?}", other),

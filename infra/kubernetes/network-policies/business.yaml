@@ -71,13 +71,12 @@ spec:
             matchLabels:
               tier: system
     # messaging Namespace（Kafka ブローカー）への通信を許可
+    # M-7 監査対応: plain リスナー（9092）を廃止し TLS リスナー（9093）のみを許可する
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: messaging
       ports:
-        - protocol: TCP
-          port: 9092
         - protocol: TCP
           port: 9093
     # observability Namespace（メトリクス・トレース送信）への通信を許可

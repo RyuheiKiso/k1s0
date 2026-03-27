@@ -35,7 +35,7 @@ pub(crate) fn generate_helm_chart(
     // テンプレートディレクトリの正規パスを基準とし、パストラバーサルを防止する
     let canonical_tpl_dir = helm_tpl_dir
         .canonicalize()
-        .map_err(|e| anyhow::anyhow!("helm_tpl_dir の canonicalize に失敗しました: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("helm_tpl_dir の canonicalize に失敗しました: {e}"))?;
 
     // .tera ファイルを再帰的に走査（シンボリックリンクは follow_links=false でスキップ）
     for entry in walkdir::WalkDir::new(helm_tpl_dir)
@@ -51,7 +51,7 @@ pub(crate) fn generate_helm_chart(
 
         // テンプレートファイルの正規パスを検証し、テンプレートディレクトリ外への逸脱を防止する
         let canonical_path = path.canonicalize().map_err(|e| {
-            anyhow::anyhow!("テンプレートファイルの canonicalize に失敗しました: {}", e)
+            anyhow::anyhow!("テンプレートファイルの canonicalize に失敗しました: {e}")
         })?;
         if !canonical_path.starts_with(&canonical_tpl_dir) {
             return Err(anyhow::anyhow!(

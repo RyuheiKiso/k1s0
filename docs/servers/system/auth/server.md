@@ -727,7 +727,7 @@ Realm: `k1s0`
 
 デプロイに関する詳細（Dockerfile・Helm values・Kubernetes マニフェスト・ヘルスチェック設定等）は以下を参照。
 
-- [system-server-deploy.md](../_common/deploy.md)
+- [system-server-deploy.md](../../_common/deploy.md)
 
 ポート構成:
 
@@ -1208,7 +1208,7 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-config-server.md](../config/server.md) -- 設定管理サーバー設計（同 tier の参考実装）
 
@@ -1230,4 +1230,4 @@ moka を使用したインメモリキャッシュで RBAC 判定結果をキャ
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

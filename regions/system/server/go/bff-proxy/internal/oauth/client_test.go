@@ -25,7 +25,8 @@ func TestClient_Discover(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/.well-known/openid-configuration", r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(oidcCfg)
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(oidcCfg)
 	}))
 	defer srv.Close()
 
@@ -44,7 +45,8 @@ func TestClient_Discover_Cached(t *testing.T) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
 		// M-3 対応後: キャッシュテストでも必須フィールドをすべて含める
-		json.NewEncoder(w).Encode(OIDCConfig{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
 			TokenEndpoint:         "https://idp.example.com/token",
@@ -101,7 +103,8 @@ func TestClient_ExchangeCode(t *testing.T) {
 		assert.Equal(t, "verifier-xyz", r.PostForm.Get("code_verifier"))
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tokenResp)
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(tokenResp)
 	}))
 	defer srv.Close()
 
@@ -138,7 +141,8 @@ func TestClient_IsDiscovered_After(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// M-3 対応後: 必須フィールドをすべて含める
-		json.NewEncoder(w).Encode(OIDCConfig{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
 			TokenEndpoint:         "https://idp.example.com/token",
@@ -169,7 +173,8 @@ func TestDiscover_MissingJwksURI(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// jwks_uri を意図的に省略した Discovery レスポンスを返す
-		json.NewEncoder(w).Encode(OIDCConfig{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
 			TokenEndpoint:         "https://idp.example.com/token",
@@ -191,7 +196,8 @@ func TestDiscover_MissingTokenEndpoint(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// token_endpoint を意図的に省略した Discovery レスポンスを返す
-		json.NewEncoder(w).Encode(OIDCConfig{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
 			JwksURI:               "https://idp.example.com/jwks",
@@ -213,7 +219,8 @@ func TestExchangeCode_EmptyAccessToken(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// access_token が空のトークンレスポンスを返す（異常系を模擬）
-		json.NewEncoder(w).Encode(TokenResponse{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(TokenResponse{
 			// AccessToken: 空のまま（欠落を模擬）
 			RefreshToken: "refresh-456",
 			TokenType:    "Bearer",
@@ -237,7 +244,8 @@ func TestClient_ClearDiscoveryCache(t *testing.T) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
 		// M-3 対応後: 必須フィールドをすべて含める
-		json.NewEncoder(w).Encode(OIDCConfig{
+		// errcheck: テストハンドラのエンコードエラーは無視する（§3.2 監査対応）
+		_ = json.NewEncoder(w).Encode(OIDCConfig{
 			Issuer:                "https://idp.example.com",
 			AuthorizationEndpoint: "https://idp.example.com/authorize",
 			TokenEndpoint:         "https://idp.example.com/token",

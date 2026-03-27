@@ -47,7 +47,10 @@ impl std::str::FromStr for DependencyType {
             "runtime" => Ok(DependencyType::Runtime),
             "build" => Ok(DependencyType::Build),
             "optional" => Ok(DependencyType::Optional),
-            _ => Err(ParseError::InvalidValue(format!("invalid dependency type: {}", s))),
+            _ => Err(ParseError::InvalidValue(format!(
+                "invalid dependency type: {}",
+                s
+            ))),
         }
     }
 }
@@ -68,17 +71,32 @@ mod tests {
     #[test]
     fn test_dependency_type_from_str_valid() {
         use std::str::FromStr;
-        assert_eq!(DependencyType::from_str("runtime").unwrap(), DependencyType::Runtime);
-        assert_eq!(DependencyType::from_str("build").unwrap(), DependencyType::Build);
-        assert_eq!(DependencyType::from_str("optional").unwrap(), DependencyType::Optional);
+        assert_eq!(
+            DependencyType::from_str("runtime").unwrap(),
+            DependencyType::Runtime
+        );
+        assert_eq!(
+            DependencyType::from_str("build").unwrap(),
+            DependencyType::Build
+        );
+        assert_eq!(
+            DependencyType::from_str("optional").unwrap(),
+            DependencyType::Optional
+        );
     }
 
     /// DependencyType の FromStr は大文字小文字を区別しない
     #[test]
     fn test_dependency_type_from_str_case_insensitive() {
         use std::str::FromStr;
-        assert_eq!(DependencyType::from_str("RUNTIME").unwrap(), DependencyType::Runtime);
-        assert_eq!(DependencyType::from_str("Build").unwrap(), DependencyType::Build);
+        assert_eq!(
+            DependencyType::from_str("RUNTIME").unwrap(),
+            DependencyType::Runtime
+        );
+        assert_eq!(
+            DependencyType::from_str("Build").unwrap(),
+            DependencyType::Build
+        );
     }
 
     /// 不明な文字列は Err を返す

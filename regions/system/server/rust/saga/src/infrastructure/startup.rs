@@ -284,7 +284,10 @@ pub async fn run() -> anyhow::Result<()> {
     // 超過した場合でもタスクは Tokio ランタイムのシャットダウンで強制終了される。
     let active = task_tracker.active_count();
     if active > 0 {
-        info!(active_tasks = active, "waiting for in-progress saga tasks to complete (max 30s)");
+        info!(
+            active_tasks = active,
+            "waiting for in-progress saga tasks to complete (max 30s)"
+        );
         let _ = tokio::time::timeout(
             std::time::Duration::from_secs(30),
             task_tracker.wait_for_completion(),

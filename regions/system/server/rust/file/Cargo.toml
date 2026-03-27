@@ -49,6 +49,8 @@ mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
 tower = {workspace = true}
+# local_fs_storage.rs のテストで一時ディレクトリ作成に使用する（H-2 監査対応: 未宣言依存の追加）
+tempfile = "3"
 
 [lints]
 workspace = true

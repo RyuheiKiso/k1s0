@@ -64,9 +64,8 @@ mod tests {
     #[tokio::test]
     async fn search_with_query() {
         let mut mock = MockServiceRepository::new();
-        mock.expect_search().returning(|_, _, _| {
-            Ok(vec![sample_service("auth-service")])
-        });
+        mock.expect_search()
+            .returning(|_, _, _| Ok(vec![sample_service("auth-service")]));
 
         let uc = SearchServicesUseCase::new(Arc::new(mock));
         let result = uc

@@ -121,10 +121,7 @@ pub async fn run() -> anyhow::Result<()> {
                 timeout_ms = dlq_cfg.timeout_ms,
                 "dlq_manager config found, creating gRPC DLQ client"
             );
-            let client = GrpcDlqClient::new(
-                dlq_cfg.grpc_endpoint.clone(),
-                dlq_cfg.timeout_ms,
-            );
+            let client = GrpcDlqClient::new(dlq_cfg.grpc_endpoint.clone(), dlq_cfg.timeout_ms);
             (Arc::new(client), false)
         } else {
             info!("no dlq_manager config, using no-op DLQ client");
@@ -206,7 +203,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_monitor_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_monitor_grpc_action);
 
     let mut state = crate::adapter::handler::AppState {
         list_events_uc,

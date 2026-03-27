@@ -274,9 +274,13 @@ pub fn parse_pool_duration(raw: &str) -> Option<std::time::Duration> {
     }
     // 単位別に分岐して Duration に変換する
     if let Some(h) = raw.strip_suffix('h') {
-        h.parse::<u64>().ok().map(|v| std::time::Duration::from_secs(v * 3600))
+        h.parse::<u64>()
+            .ok()
+            .map(|v| std::time::Duration::from_secs(v * 3600))
     } else if let Some(m) = raw.strip_suffix('m') {
-        m.parse::<u64>().ok().map(|v| std::time::Duration::from_secs(v * 60))
+        m.parse::<u64>()
+            .ok()
+            .map(|v| std::time::Duration::from_secs(v * 60))
     } else if let Some(ms) = raw.strip_suffix("ms") {
         ms.parse::<u64>().ok().map(std::time::Duration::from_millis)
     } else if let Some(s) = raw.strip_suffix('s') {

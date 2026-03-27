@@ -12,7 +12,7 @@ pub trait DependencyRepository: Send + Sync {
 
     /// 指定サービスの依存関係を一括設定する（既存を置換）。
     async fn set_dependencies(&self, service_id: Uuid, deps: Vec<Dependency>)
-    -> anyhow::Result<()>;
+        -> anyhow::Result<()>;
 
     /// 全依存関係を取得する（サイクル検出用）。
     async fn get_all_dependencies(&self) -> anyhow::Result<Vec<Dependency>>;

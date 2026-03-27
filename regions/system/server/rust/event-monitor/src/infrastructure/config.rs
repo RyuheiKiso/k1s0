@@ -125,7 +125,12 @@ impl DatabaseConfig {
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
-            self.user, self.password.expose_secret(), self.host, self.port, self.name, self.ssl_mode
+            self.user,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.name,
+            self.ssl_mode
         )
     }
 }

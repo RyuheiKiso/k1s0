@@ -27,3 +27,17 @@ type NoOpKafkaHealthChecker struct {
 func (n *NoOpKafkaHealthChecker) HealthCheck(ctx context.Context) (*KafkaHealthStatus, error) {
 	return n.Status, n.Err
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは kafka.HealthStatus / HealthChecker / NoOpChecker を使用すること。
+// ---------------------------------------------------------------------------
+
+// HealthStatus は KafkaHealthStatus の短縮エイリアス。
+type HealthStatus = KafkaHealthStatus
+
+// HealthChecker は KafkaHealthChecker の短縮エイリアス。
+type HealthChecker = KafkaHealthChecker
+
+// NoOpChecker は NoOpKafkaHealthChecker の短縮エイリアス。
+type NoOpChecker = NoOpKafkaHealthChecker

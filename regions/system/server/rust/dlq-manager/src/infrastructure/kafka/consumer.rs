@@ -83,8 +83,9 @@ impl DlqKafkaConsumer {
                                 );
                                 // ポイズンピルのバイト列を UTF-8 文字列に変換する。
                                 // 非 UTF-8 バイトが含まれる場合は長さをフォールバックメッセージとして使用する。
-                                let raw = String::from_utf8(bytes.to_vec())
-                                    .unwrap_or_else(|_| format!("(non-UTF-8 bytes: {} bytes)", bytes.len()));
+                                let raw = String::from_utf8(bytes.to_vec()).unwrap_or_else(|_| {
+                                    format!("(non-UTF-8 bytes: {} bytes)", bytes.len())
+                                });
                                 (serde_json::json!({"raw_payload": raw}), true)
                             }
                         },
@@ -100,7 +101,8 @@ impl DlqKafkaConsumer {
                                     // Kafka ヘッダーの error 値を UTF-8 文字列に変換する。
                                     // 非 UTF-8 バイトの場合は空文字列を返す。
                                     return Some(
-                                        header.value
+                                        header
+                                            .value
                                             .and_then(|v| String::from_utf8(v.to_vec()).ok())
                                             .unwrap_or_default(),
                                     );

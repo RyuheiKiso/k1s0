@@ -196,6 +196,53 @@ func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 	}, nil
 }
 
+// validateCallbackInput は Callback 入力パラメータの存在確認と整合性検証を行う。
+// 検証ロジックを分離することで Callback の循環複雑度を削減する（§3.2 監査対応: cc=14 → cc<12）。
+func validateCallbackInput(input CallbackInput) error {
+	if input.CookieState == "" {
+		return &AuthUseCaseError{Code: "BFF_AUTH_STATE_MISSING"}
+	}
+	if input.State != input.CookieState {
+		return &AuthUseCaseError{Code: "BFF_AUTH_STATE_MISMATCH"}
+	}
+	if input.Code == "" {
+		return &AuthUseCaseError{Code: "BFF_AUTH_CODE_MISSING"}
+	}
+	if input.CodeVerifier == "" {
+		return &AuthUseCaseError{Code: "BFF_AUTH_VERIFIER_MISSING"}
+	}
+	return nil
+}
+
+// buildMobileRedirectOutput はモバイルフロー用のワンタイム交換コードを生成して CallbackOutput を返す。
+// モバイル固有のロジックを分離することで Callback の循環複雑度を削減する（§3.2 監査対応）。
+func (uc *AuthUseCase) buildMobileRedirectOutput(ctx context.Context, sessionID, csrfToken, postAuthRedirect string) (*CallbackOutput, error) {
+	// ワンタイム交換コード: セッション ID への参照を短命なエントリとして保存する
+	exchangeData := &session.SessionData{
+		AccessToken: sessionID,
+		ExpiresAt:   time.Now().Add(exchangeCodeTTL).Unix(),
+	}
+	exchangeCode, err := uc.sessionStore.Create(ctx, exchangeData, exchangeCodeTTL)
+	if err != nil {
+		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CREATE_FAILED", Err: err}
+	}
+
+	// リダイレクト先 URL に交換コードを付与する（S-05 対応: url.Parse のエラーを検証する）
+	redirectURL, err := url.Parse(postAuthRedirect)
+	if err != nil {
+		return nil, &AuthUseCaseError{Code: "BFF_AUTH_REDIRECT_URL_INVALID", Err: err}
+	}
+	q := redirectURL.Query()
+	q.Set("code", exchangeCode)
+	redirectURL.RawQuery = q.Encode()
+
+	return &CallbackOutput{
+		SessionID:         sessionID,
+		CSRFToken:         csrfToken,
+		MobileRedirectURL: redirectURL.String(),
+	}, nil
+}
+
 // Callback は IdP からの認可コードコールバックを処理する。
 // セッション固定化攻撃防止のために既存セッションを削除し、
 // 認可コードをトークンに交換してセッションを作成する。
@@ -212,22 +259,9 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 		}
 	}
 
-	// state パラメータの検証（CSRF 保護）
-	if input.CookieState == "" {
-		return nil, &AuthUseCaseError{Code: "BFF_AUTH_STATE_MISSING"}
-	}
-	if input.State != input.CookieState {
-		return nil, &AuthUseCaseError{Code: "BFF_AUTH_STATE_MISMATCH"}
-	}
-
-	// 認可コードの存在確認
-	if input.Code == "" {
-		return nil, &AuthUseCaseError{Code: "BFF_AUTH_CODE_MISSING"}
-	}
-
-	// PKCE verifier の存在確認
-	if input.CodeVerifier == "" {
-		return nil, &AuthUseCaseError{Code: "BFF_AUTH_VERIFIER_MISSING"}
+	// 入力パラメータの検証（state/code/verifier の存在確認と整合性チェック）
+	if err := validateCallbackInput(input); err != nil {
+		return nil, err
 	}
 
 	// 認可コードとトークンの交換
@@ -266,30 +300,7 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 
 	// モバイルフロー: PostAuthRedirect が設定されている場合はワンタイム交換コードを発行する
 	if input.PostAuthRedirect != "" {
-		// ワンタイム交換コード: セッション ID への参照を短命なエントリとして保存する
-		exchangeData := &session.SessionData{
-			AccessToken: sessionID,
-			ExpiresAt:   time.Now().Add(exchangeCodeTTL).Unix(),
-		}
-		exchangeCode, err := uc.sessionStore.Create(ctx, exchangeData, exchangeCodeTTL)
-		if err != nil {
-			return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CREATE_FAILED", Err: err}
-		}
-
-		// リダイレクト先 URL に交換コードを付与する（S-05 対応: url.Parse のエラーを検証する）
-		redirectURL, err := url.Parse(input.PostAuthRedirect)
-		if err != nil {
-			return nil, &AuthUseCaseError{Code: "BFF_AUTH_REDIRECT_URL_INVALID", Err: err}
-		}
-		q := redirectURL.Query()
-		q.Set("code", exchangeCode)
-		redirectURL.RawQuery = q.Encode()
-
-		return &CallbackOutput{
-			SessionID:         sessionID,
-			CSRFToken:         csrfToken,
-			MobileRedirectURL: redirectURL.String(),
-		}, nil
+		return uc.buildMobileRedirectOutput(ctx, sessionID, csrfToken, input.PostAuthRedirect)
 	}
 
 	// ブラウザフロー: モバイルリダイレクトなし

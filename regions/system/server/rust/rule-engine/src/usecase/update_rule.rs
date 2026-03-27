@@ -154,14 +154,16 @@ mod tests {
         mock.expect_find_by_id().returning(|_| Ok(None));
 
         let uc = UpdateRuleUseCase::new(Arc::new(mock));
-        let result = uc.execute(&UpdateRuleInput {
-            id: Uuid::new_v4(),
-            description: None,
-            priority: None,
-            when_condition: None,
-            then_result: None,
-            enabled: None,
-        }).await;
+        let result = uc
+            .execute(&UpdateRuleInput {
+                id: Uuid::new_v4(),
+                description: None,
+                priority: None,
+                when_condition: None,
+                then_result: None,
+                enabled: None,
+            })
+            .await;
         assert!(matches!(result, Err(UpdateRuleError::NotFound(_))));
     }
 
@@ -173,14 +175,16 @@ mod tests {
             .returning(move |_| Ok(Some(sample_rule())));
 
         let uc = UpdateRuleUseCase::new(Arc::new(mock));
-        let result = uc.execute(&UpdateRuleInput {
-            id: Uuid::new_v4(),
-            description: None,
-            priority: Some(9999),
-            when_condition: None,
-            then_result: None,
-            enabled: None,
-        }).await;
+        let result = uc
+            .execute(&UpdateRuleInput {
+                id: Uuid::new_v4(),
+                description: None,
+                priority: Some(9999),
+                when_condition: None,
+                then_result: None,
+                enabled: None,
+            })
+            .await;
         assert!(matches!(result, Err(UpdateRuleError::Validation(_))));
     }
 
@@ -192,14 +196,18 @@ mod tests {
             .returning(move |_| Ok(Some(sample_rule())));
 
         let uc = UpdateRuleUseCase::new(Arc::new(mock));
-        let result = uc.execute(&UpdateRuleInput {
-            id: Uuid::new_v4(),
-            description: None,
-            priority: None,
-            when_condition: Some(serde_json::json!({"field": "x", "operator": "unknown_op", "value": 1})),
-            then_result: None,
-            enabled: None,
-        }).await;
+        let result = uc
+            .execute(&UpdateRuleInput {
+                id: Uuid::new_v4(),
+                description: None,
+                priority: None,
+                when_condition: Some(
+                    serde_json::json!({"field": "x", "operator": "unknown_op", "value": 1}),
+                ),
+                then_result: None,
+                enabled: None,
+            })
+            .await;
         assert!(matches!(result, Err(UpdateRuleError::InvalidCondition(_))));
     }
 }

@@ -121,7 +121,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_secret_found() {
         let client = InMemoryVaultClient::with_config(make_config());
-        client.put_secret(make_secret("system/database/primary")).await;
+        client
+            .put_secret(make_secret("system/database/primary"))
+            .await;
         let secret = client.get_secret("system/database/primary").await.unwrap();
         assert_eq!(secret.path, "system/database/primary");
         assert_eq!(secret.data.get("password").unwrap(), "s3cr3t");

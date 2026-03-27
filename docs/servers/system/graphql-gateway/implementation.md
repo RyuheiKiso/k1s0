@@ -86,7 +86,7 @@ regions/system/server/rust/graphql-gateway/
 
 ## 依存クレート
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。
 
 | クレート | バージョン | 用途 |
 | --- | --- | --- |
@@ -120,7 +120,7 @@ gRPC クライアント側のため `build_server(false)` / `build_client(true)`
 
 ## Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 # axum に WebSocket サポートを追加
@@ -148,7 +148,7 @@ axum-test = "17"
 
 ## src/main.rs
 
-> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。graphql-gateway は DB/Kafka を使用せず、REST サーバーのみ起動する。以下はサービス固有の DI:
+> 起動シーケンスは [Rust共通実装.md](../../_common/Rust共通実装.md#共通mainrs) を参照。graphql-gateway は DB/Kafka を使用せず、REST サーバーのみ起動する。以下はサービス固有の DI:
 
 ```rust
     // --- gRPC クライアント ---
@@ -1207,7 +1207,7 @@ gRPC クライアント実装（TenantService、FeatureFlagService、ConfigServi
 
 ## 設定ファイル例
 
-> 共通セクション（app/server/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。graphql-gateway は database/kafka を使用しない。サービス固有セクション:
+> 共通セクション（app/server/observability）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。graphql-gateway は database/kafka を使用しない。サービス固有セクション:
 
 ```yaml
 graphql:

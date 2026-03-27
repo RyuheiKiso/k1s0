@@ -108,3 +108,7 @@ func (p *OutboxProcessor) Run(ctx context.Context, interval time.Duration) {
 		}
 	}
 }
+
+// Processor は OutboxProcessor の短縮エイリアス（L-3 監査対応: stutter 命名解消）。
+// 新しいコードでは outbox.Processor を使用すること。
+type Processor = OutboxProcessor

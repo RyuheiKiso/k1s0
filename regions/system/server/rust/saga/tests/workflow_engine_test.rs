@@ -85,10 +85,7 @@ steps:
     }
 
     /// テスト用のSagaStateを作成しリポジトリに永続化するヘルパー
-    async fn create_saga(
-        repo: &InMemorySagaRepository,
-        workflow_name: &str,
-    ) -> SagaState {
+    async fn create_saga(repo: &InMemorySagaRepository, workflow_name: &str) -> SagaState {
         let saga = SagaState::new(
             workflow_name.to_string(),
             serde_json::json!({"task_id": "TASK-001", "assignee_id": "user-001"}),
@@ -246,10 +243,22 @@ steps:
         let workflow = WorkflowDefinition::from_yaml(yaml).unwrap();
         assert_eq!(workflow.version, 1, "デフォルトバージョンは1");
         assert!(workflow.enabled, "デフォルトで有効");
-        assert_eq!(workflow.total_timeout_secs, 300, "デフォルトタイムアウトは300秒");
-        assert_eq!(workflow.steps[0].timeout_secs, 30, "ステップのデフォルトタイムアウトは30秒");
-        assert!(workflow.steps[0].compensate.is_none(), "補償メソッドはデフォルトでなし");
-        assert!(workflow.steps[0].retry.is_none(), "リトライ設定はデフォルトでなし");
+        assert_eq!(
+            workflow.total_timeout_secs, 300,
+            "デフォルトタイムアウトは300秒"
+        );
+        assert_eq!(
+            workflow.steps[0].timeout_secs, 30,
+            "ステップのデフォルトタイムアウトは30秒"
+        );
+        assert!(
+            workflow.steps[0].compensate.is_none(),
+            "補償メソッドはデフォルトでなし"
+        );
+        assert!(
+            workflow.steps[0].retry.is_none(),
+            "リトライ設定はデフォルトでなし"
+        );
     }
 
     /// 全ステップ成功時にSagaが COMPLETED になることを検証する
@@ -293,7 +302,10 @@ steps:
         // イベントが発行されていることを検証する
         let events = publisher.recorded_events().await;
         let event_types: Vec<&str> = events.iter().map(|(_, t, _)| t.as_str()).collect();
-        assert!(event_types.contains(&"SAGA_RUNNING"), "SAGA_RUNNING イベントが発行される");
+        assert!(
+            event_types.contains(&"SAGA_RUNNING"),
+            "SAGA_RUNNING イベントが発行される"
+        );
         assert!(
             event_types.contains(&"SAGA_COMPLETED"),
             "SAGA_COMPLETED イベントが発行される"
@@ -327,7 +339,10 @@ steps:
         // 最終ステータスが FAILED であることを検証する
         let final_state = repo.find_by_id(saga_id).await.unwrap().unwrap();
         assert_eq!(final_state.status, SagaStatus::Failed);
-        assert!(final_state.error_message.is_some(), "エラーメッセージが設定される");
+        assert!(
+            final_state.error_message.is_some(),
+            "エラーメッセージが設定される"
+        );
 
         // ステップログに実行と補償の両方が記録されていることを検証する
         let logs = repo.find_step_logs(saga_id).await.unwrap();
@@ -440,7 +455,11 @@ steps:
             .iter()
             .filter(|l| l.action == StepAction::Execute)
             .collect();
-        assert_eq!(execute_logs.len(), 2, "step-1成功 + step-2失敗 = 2件の実行ログ");
+        assert_eq!(
+            execute_logs.len(),
+            2,
+            "step-1成功 + step-2失敗 = 2件の実行ログ"
+        );
 
         // step-1 は成功していることを検証する
         assert_eq!(execute_logs[0].step_name, "step-1");
@@ -455,10 +474,7 @@ steps:
             .iter()
             .filter(|l| l.action == StepAction::Compensate)
             .collect();
-        assert!(
-            !compensate_logs.is_empty(),
-            "補償ステップのログが存在する"
-        );
+        assert!(!compensate_logs.is_empty(), "補償ステップのログが存在する");
     }
 
     /// publisher なしでもSaga実行が正常に完了することを検証する

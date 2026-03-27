@@ -21,12 +21,16 @@ type MigrationRunner interface {
 }
 
 // MigrationConfig holds the configuration for migration operations.
-type MigrationConfig struct {
+type MigrationConfig struct { //nolint:revive // 既存の公開 API との互換性のため MigrationConfig を維持する
 	MigrationsDir string
 	DatabaseURL   string
 	TableName     string
 	Driver        string
 }
+
+// Config は MigrationConfig の Go 命名規約準拠の短縮エイリアス（L-3 監査対応: stutter 命名を解消）。
+// 新しいコードでは migration.Config を使用すること。
+type Config = MigrationConfig
 
 // NewMigrationConfig creates a MigrationConfig with default values.
 func NewMigrationConfig(migrationsDir, databaseURL string) MigrationConfig {

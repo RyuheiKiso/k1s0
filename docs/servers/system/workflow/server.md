@@ -474,8 +474,8 @@ CREATE INDEX idx_workflow_tasks_due_at ON workflow.workflow_tasks(due_at)
 
 ## 詳細設計ドキュメント
 
-- [system-workflow-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-workflow-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-workflow-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-workflow-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ---
 
@@ -1073,7 +1073,7 @@ vault:
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-notification-server.md](../notification/server.md) -- 通知連携先
@@ -1101,4 +1101,4 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

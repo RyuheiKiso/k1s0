@@ -359,7 +359,7 @@ database:
 
 ## 関連ドキュメント
 
-- [system-database設計](../_common/database.md) -- auth-db テーブル設計（参照パターン）
+- [system-database設計](../../_common/database.md) -- auth-db テーブル設計（参照パターン）
 - [tier-architecture](../../architecture/overview/tier-architecture.md) -- Tier アーキテクチャ・データベースアクセスルール
 - [docker-compose設計](../../infrastructure/docker/docker-compose設計.md) -- ローカル開発用 PostgreSQL
 - [可観測性設計](../../architecture/observability/可観測性設計.md) -- OpenTelemetry トレース ID 連携

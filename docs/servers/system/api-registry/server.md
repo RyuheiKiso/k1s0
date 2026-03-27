@@ -1116,7 +1116,7 @@ vault:
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
 - [system-library-schemaregistry.md](../../libraries/data/schemaregistry.md) -- Kafka Avro スキーマレジストリライブラリ（Kafka 向け、当サーバーは REST/gRPC 向け）
@@ -1145,5 +1145,5 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 

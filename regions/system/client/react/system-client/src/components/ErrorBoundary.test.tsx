@@ -3,7 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
 
 // エラーをスローするコンポーネント（テスト用）
-function ThrowError({ message }: { message: string }) {
+// 常に例外をスローするため戻り値型は never を明示する（M-2 監査対応）
+function ThrowError({ message }: { message: string }): never {
   throw new Error(message);
 }
 

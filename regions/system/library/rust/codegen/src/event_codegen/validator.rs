@@ -240,7 +240,10 @@ events:
     // スキーマフィールドに存在しない partition_key を指定した場合にエラーになることを確認する。
     #[test]
     fn invalid_partition_key_fails() {
-        let yaml = valid_yaml().replace("partition_key: project_type_id", "partition_key: nonexistent");
+        let yaml = valid_yaml().replace(
+            "partition_key: project_type_id",
+            "partition_key: nonexistent",
+        );
         let config = parse_event_config_str(&yaml).unwrap();
         let err = validate_event_config(&config).unwrap_err();
         assert!(err.to_string().contains("partition_key"));

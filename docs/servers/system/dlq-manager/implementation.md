@@ -57,7 +57,7 @@ regions/system/server/rust/dlq-manager/
 
 ### Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 async-trait = "0.1"

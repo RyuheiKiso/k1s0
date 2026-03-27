@@ -1078,14 +1078,14 @@ vault:
 
 ## 詳細設計ドキュメント
 
-- [system-rule-engine-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-rule-engine-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-rule-engine-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-rule-engine-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ---
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-policy-server.md](../policy/server.md) -- アクセス制御ポリシー評価サーバー（本サーバーとの役割分担）
 - [system-featureflag-server.md](../featureflag/server.md) -- フィーチャーフラグ（A/B テスト連携先）
@@ -1097,7 +1097,7 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 
 ### サービス固有メトリクス
 

@@ -76,7 +76,7 @@ regions/system/server/rust/saga/
 
 ### Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 async-trait = "0.1"
@@ -116,7 +116,7 @@ tempfile = "3"
 
 ### build.rs
 
-> build.rs パターンは [Rust共通実装.md](../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/saga/v1/saga.proto`
+> build.rs パターンは [Rust共通実装.md](../../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/saga/v1/saga.proto`
 
 saga-server では proto ファイル未存在時や protoc 未インストール時にスキップする条件付きビルドを採用。`out_dir("src/proto")` で生成先を明示指定する。
 
@@ -495,7 +495,7 @@ pub struct Config {
 
 ### config.yaml サービス固有セクション例
 
-> 共通セクション（app/server/database/kafka）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。
+> 共通セクション（app/server/database/kafka）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。
 
 ```yaml
 services:
@@ -676,7 +676,7 @@ Kafka イベント一覧:
 ## 関連ドキュメント
 
 - [system-saga-server.md](server.md) -- 概要・API 定義・アーキテクチャ
-- [system-server-implementation.md](../_common/implementation.md) -- auth-server 実装設計（同一パターン）
+- [system-server-implementation.md](../../_common/implementation.md) -- auth-server 実装設計（同一パターン）
 - [system-saga-database.md](database.md) -- Saga データベーススキーマ
 - [メッセージング設計.md](../../architecture/messaging/メッセージング設計.md) -- Saga パターンの基本方針
 - [テンプレート仕様-サーバー.md](../../templates/server/サーバー.md) -- サーバーテンプレート仕様

@@ -13,24 +13,24 @@ use k1s0_master_maintenance_server::domain::entity::column_definition::{
 };
 use k1s0_master_maintenance_server::domain::entity::consistency_rule::ConsistencyRule;
 use k1s0_master_maintenance_server::domain::entity::display_config::DisplayConfig;
+use k1s0_master_maintenance_server::domain::entity::import_job::ImportJob;
 use k1s0_master_maintenance_server::domain::entity::rule_condition::RuleCondition;
 use k1s0_master_maintenance_server::domain::entity::table_definition::{
     CreateTableDefinition, TableDefinition, UpdateTableDefinition,
 };
+use k1s0_master_maintenance_server::domain::entity::table_relationship::TableRelationship;
 use k1s0_master_maintenance_server::domain::repository::change_log_repository::ChangeLogRepository;
 use k1s0_master_maintenance_server::domain::repository::column_definition_repository::ColumnDefinitionRepository;
 use k1s0_master_maintenance_server::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
 use k1s0_master_maintenance_server::domain::repository::display_config_repository::DisplayConfigRepository;
 use k1s0_master_maintenance_server::domain::repository::dynamic_record_repository::DynamicRecordRepository;
+use k1s0_master_maintenance_server::domain::repository::import_job_repository::ImportJobRepository;
 use k1s0_master_maintenance_server::domain::repository::table_definition_repository::TableDefinitionRepository;
+use k1s0_master_maintenance_server::domain::repository::table_relationship_repository::TableRelationshipRepository;
 use k1s0_master_maintenance_server::domain::service::rule_engine_service::RuleEngineService;
 use k1s0_master_maintenance_server::domain::value_object::domain_filter::DomainFilter;
-use k1s0_master_maintenance_server::domain::value_object::rule_result::RuleResult;
-use k1s0_master_maintenance_server::domain::entity::import_job::ImportJob;
-use k1s0_master_maintenance_server::domain::entity::table_relationship::TableRelationship;
-use k1s0_master_maintenance_server::domain::repository::import_job_repository::ImportJobRepository;
-use k1s0_master_maintenance_server::domain::repository::table_relationship_repository::TableRelationshipRepository;
 use k1s0_master_maintenance_server::domain::value_object::relationship_type::RelationshipType;
+use k1s0_master_maintenance_server::domain::value_object::rule_result::RuleResult;
 use k1s0_master_maintenance_server::infrastructure::schema::SchemaManager;
 
 // ---------------------------------------------------------------------------
@@ -2188,7 +2188,9 @@ mod manage_table_definitions {
     #[tokio::test]
     async fn get_table_found() {
         let table = make_table("customers");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
         let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
@@ -2216,11 +2218,8 @@ mod manage_table_definitions {
         let table_repo = Arc::new(StubTableDefinitionRepository::new());
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
-        let uc = ManageTableDefinitionsUseCase::new(
-            table_repo.clone(),
-            column_repo,
-            schema_manager,
-        );
+        let uc =
+            ManageTableDefinitionsUseCase::new(table_repo.clone(), column_repo, schema_manager);
 
         let input = CreateTableDefinition {
             name: "inventory".to_string(),
@@ -2250,14 +2249,13 @@ mod manage_table_definitions {
     #[tokio::test]
     async fn delete_table_success() {
         let table = make_table("temp_table");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
-        let uc = ManageTableDefinitionsUseCase::new(
-            table_repo.clone(),
-            column_repo,
-            schema_manager,
-        );
+        let uc =
+            ManageTableDefinitionsUseCase::new(table_repo.clone(), column_repo, schema_manager);
 
         uc.delete_table("temp_table", None).await.unwrap();
         let found = uc.get_table("temp_table", None).await.unwrap();
@@ -2280,7 +2278,9 @@ mod manage_table_definitions {
     #[tokio::test]
     async fn update_table_display_name() {
         let table = make_table("products");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
         let uc = ManageTableDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
@@ -2329,8 +2329,12 @@ mod manage_column_definitions {
     async fn list_columns_success() {
         let table = make_table("employees");
         let col = make_column(table.id, "name", false, true, true);
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
-        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![col.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![
+            col.clone()
+        ]));
         let schema_manager = Arc::new(StubSchemaManager);
         let uc = ManageColumnDefinitionsUseCase::new(table_repo, column_repo, schema_manager);
 
@@ -2355,14 +2359,13 @@ mod manage_column_definitions {
     #[tokio::test]
     async fn create_columns_success() {
         let table = make_table("items");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
-        let uc = ManageColumnDefinitionsUseCase::new(
-            table_repo,
-            column_repo.clone(),
-            schema_manager,
-        );
+        let uc =
+            ManageColumnDefinitionsUseCase::new(table_repo, column_repo.clone(), schema_manager);
 
         let input = serde_json::json!({
             "columns": [{
@@ -2381,14 +2384,15 @@ mod manage_column_definitions {
     async fn delete_column_success() {
         let table = make_table("orders");
         let col = make_column(table.id, "notes", false, true, true);
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
-        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![col.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
+        let column_repo = Arc::new(StubColumnDefinitionRepository::with_columns(vec![
+            col.clone()
+        ]));
         let schema_manager = Arc::new(StubSchemaManager);
-        let uc = ManageColumnDefinitionsUseCase::new(
-            table_repo,
-            column_repo.clone(),
-            schema_manager,
-        );
+        let uc =
+            ManageColumnDefinitionsUseCase::new(table_repo, column_repo.clone(), schema_manager);
 
         uc.delete_column("orders", "notes", None).await.unwrap();
 
@@ -2468,7 +2472,9 @@ mod check_consistency {
     #[tokio::test]
     async fn check_all_rules_no_rules_returns_pass() {
         let table = make_table("suppliers");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let rule_repo = Arc::new(StubConsistencyRuleRepository::new());
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
@@ -2490,7 +2496,9 @@ mod check_consistency {
     #[tokio::test]
     async fn execute_rule_with_no_records_returns_pass() {
         let table = make_table("warehouses");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let rule = make_rule("test-rule", table.id, "field_presence");
         let rule_id = rule.id;
@@ -2515,7 +2523,9 @@ mod check_consistency {
     #[tokio::test]
     async fn check_rules_with_specific_ids() {
         let table = make_table("vendors");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let rule1 = make_rule("rule-a", table.id, "field_presence");
         let rule1_id = rule1.id.to_string();
@@ -2535,10 +2545,7 @@ mod check_consistency {
         );
 
         // rule-a だけを対象に実行（レコードなしなのでpass）
-        let results = uc
-            .check_rules("vendors", &[rule1_id], None)
-            .await
-            .unwrap();
+        let results = uc.check_rules("vendors", &[rule1_id], None).await.unwrap();
         assert!(!results.is_empty());
         assert!(results.iter().all(|r| r.passed));
     }
@@ -2582,7 +2589,9 @@ mod manage_relationships {
             t1.clone(),
             t2.clone(),
         ]));
-        let rel_repo = Arc::new(StubTableRelationshipRepository::with_relationships(vec![rel]));
+        let rel_repo = Arc::new(StubTableRelationshipRepository::with_relationships(vec![
+            rel,
+        ]));
         let record_repo = Arc::new(StubDynamicRecordRepository::new());
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let schema_manager = Arc::new(StubSchemaManager);
@@ -2737,16 +2746,13 @@ mod import_export {
     #[tokio::test]
     async fn import_records_success() {
         let table = make_table("parts");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
         let import_job_repo = Arc::new(StubImportJobRepository::new());
-        let uc = ImportExportUseCase::new(
-            table_repo,
-            column_repo,
-            import_job_repo,
-            crud_uc,
-        );
+        let uc = ImportExportUseCase::new(table_repo, column_repo, import_job_repo, crud_uc);
 
         let data = serde_json::json!({
             "records": [
@@ -2781,7 +2787,9 @@ mod import_export {
     #[tokio::test]
     async fn export_records_empty_table() {
         let table = make_table("archived_orders");
-        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![table.clone()]));
+        let table_repo = Arc::new(StubTableDefinitionRepository::with_tables(vec![
+            table.clone()
+        ]));
         let column_repo = Arc::new(StubColumnDefinitionRepository::new());
         let crud_uc = build_crud_uc(table_repo.clone(), column_repo.clone());
         let import_job_repo = Arc::new(StubImportJobRepository::new());

@@ -3,6 +3,10 @@
 //! proto 生成コード (`src/proto/`) の SagaService トレイトを実装する。
 //! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の SagaGrpcService に委譲する。
 
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
+// 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -531,9 +535,7 @@ steps:
 
         let req = Request::new(ProtoStartSagaRequest {
             workflow_name: "test-workflow".to_string(),
-            payload: Some(json_to_prost_struct(
-                &serde_json::json!({"task_id": "123"}),
-            )),
+            payload: Some(json_to_prost_struct(&serde_json::json!({"task_id": "123"}))),
             correlation_id: "corr-001".to_string(),
             initiated_by: "user-1".to_string(),
         });

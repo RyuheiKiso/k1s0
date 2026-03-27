@@ -18,7 +18,6 @@ use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
 // ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
-use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 use crate::domain::model::{
     ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
@@ -34,6 +33,7 @@ use crate::domain::model::{
     UpdateServicePayload, UpdateTemplatePayload, UpdateTenantPayload, UpdateWorkflowPayload, User,
     UserError, VaultAuditLogEntry, WorkflowDefinition, WorkflowInstance, WorkflowTask,
 };
+use crate::domain::port::{ConfigPort, FeatureFlagPort, TenantPort};
 use crate::infrastructure::auth::JwksVerifier;
 use crate::infrastructure::config::GraphQLConfig;
 use crate::infrastructure::grpc::{

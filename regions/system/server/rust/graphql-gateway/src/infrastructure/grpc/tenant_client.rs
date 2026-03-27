@@ -264,7 +264,10 @@ impl TenantGrpcClient {
     /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。
     /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_tenant(&self, tenant_id: &str) -> anyhow::Result<impl Stream<Item = Tenant>> {
+    pub async fn watch_tenant(
+        &self,
+        tenant_id: &str,
+    ) -> anyhow::Result<impl Stream<Item = Tenant>> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::WatchTenantRequest {
             tenant_id: tenant_id.to_owned(),
         });
@@ -280,25 +283,28 @@ impl TenantGrpcClient {
         // WatchTenant ストリームの各レスポンスを Tenant ドメインモデルに変換する。
         // tenant フィールドが None の場合（バックエンドの不整合）はイベントをスキップして次へ進む。
         // 空のデフォルト値で構築するとサイレントなデータ欠損を招くため、None はスキップが正しい。
-        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
-            loop {
-                match stream.message().await {
-                    Ok(Some(resp)) => {
-                        // tenant フィールドが存在する場合のみドメインモデルに変換して返す
-                        if let Some(t) = resp.tenant {
-                            return Some((Self::tenant_from_proto(t), stream));
+        Ok(async_graphql::futures_util::stream::unfold(
+            stream,
+            |mut stream| async move {
+                loop {
+                    match stream.message().await {
+                        Ok(Some(resp)) => {
+                            // tenant フィールドが存在する場合のみドメインモデルに変換して返す
+                            if let Some(t) = resp.tenant {
+                                return Some((Self::tenant_from_proto(t), stream));
+                            }
+                            // tenant フィールドが None の場合はスキップして次のメッセージを待つ
+                            tracing::warn!(
+                                tenant_id = %resp.tenant_id,
+                                "WatchTenant: received event with no tenant payload, skipping"
+                            );
+                            // loop を継続して次のメッセージを取得する
                         }
-                        // tenant フィールドが None の場合はスキップして次のメッセージを待つ
-                        tracing::warn!(
-                            tenant_id = %resp.tenant_id,
-                            "WatchTenant: received event with no tenant payload, skipping"
-                        );
-                        // loop を継続して次のメッセージを取得する
+                        _ => return None,
                     }
-                    _ => return None,
                 }
-            }
-        }))
+            },
+        ))
     }
 }
 

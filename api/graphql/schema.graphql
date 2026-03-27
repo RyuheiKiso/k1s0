@@ -1,7 +1,7 @@
 # GraphQL スキーマ定義
 # このファイルは api/graphql/schema.graphql が参照用スキーマ。
 # 実装は async-graphql のコードファーストアプローチで graphql_handler.rs に定義されている。
-# 最終更新: 2026-03-23（外部監査 C-05 対応）
+# 最終更新: 2026-03-26（外部監査 M-4 対応: Tenant フィールド欠落修正・AuditLog @deprecated 追加）
 
 type Query {
   # --- Tenant ---
@@ -135,7 +135,17 @@ type Subscription {
 type Tenant {
   id: ID!
   name: String!
+  # M-4 監査対応: proto の display_name, plan, owner_id, settings, db_schema, keycloak_realm を追加
+  displayName: String!
   status: TenantStatus!
+  plan: String!
+  ownerId: String!
+  # テナント設定を JSON 文字列で保持する（将来的に専用型に移行予定）
+  settings: String
+  # テナントごとの DB スキーマ名（マルチテナント DB 分離に使用）
+  dbSchema: String
+  # Keycloak realm 名（認証プロバイダー連携に使用）
+  keycloakRealm: String
   createdAt: String!
   updatedAt: String!
 }
@@ -300,13 +310,15 @@ type PermissionCheck {
 
 type AuditLog {
   id: String!
-  eventType: String!
+  # M-4 監査対応: proto の event_type は enum 型フィールドへ移行済みのため @deprecated を付与
+  eventType: String! @deprecated(reason: "enum 型の eventTypeEnum フィールドへ移行してください（A-4 対応）")
   userId: String!
   ipAddress: String!
   userAgent: String!
   resource: String!
   action: String!
-  result: String!
+  # M-4 監査対応: proto の result は enum 型フィールドへ移行済みのため @deprecated を付与
+  result: String! @deprecated(reason: "enum 型の resultEnum フィールドへ移行してください（A-4 対応）")
   resourceId: String!
   traceId: String!
   createdAt: String!
@@ -502,6 +514,10 @@ type UserError {
 
 input CreateTenantInput {
   name: String!
+  # M-4 監査対応: proto の CreateTenantRequest に合わせて display_name, owner_id, plan を追加
+  displayName: String!
+  ownerId: String!
+  plan: String!
 }
 
 input UpdateTenantInput {

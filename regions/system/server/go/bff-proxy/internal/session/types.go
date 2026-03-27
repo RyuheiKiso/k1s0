@@ -33,3 +33,7 @@ type SessionData struct {
 func (s *SessionData) IsExpired() bool {
 	return time.Now().Unix() > s.ExpiresAt
 }
+
+// Data は SessionData の Go 命名規約準拠の短縮エイリアス（§3.2 監査対応: stutter 命名を解消）。
+// 新しいコードでは session.Data を使用すること。
+type Data = SessionData

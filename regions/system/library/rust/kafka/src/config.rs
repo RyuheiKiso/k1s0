@@ -389,7 +389,13 @@ mod tests {
             .build()
             .unwrap();
         let debug_output = format!("{:?}", cfg);
-        assert!(!debug_output.contains("super-secret-password"), "Debug 出力にパスワードが含まれていはいけない");
-        assert!(debug_output.contains("***"), "Debug 出力にマスク文字列が含まれるべき");
+        assert!(
+            !debug_output.contains("super-secret-password"),
+            "Debug 出力にパスワードが含まれていはいけない"
+        );
+        assert!(
+            debug_output.contains("***"),
+            "Debug 出力にマスク文字列が含まれるべき"
+        );
     }
 }

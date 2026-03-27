@@ -1,4 +1,4 @@
-//! テストモジュール — unwrap() の使用を許可する
+//! テストモジュール — `unwrap()` の使用を許可する
 #![allow(clippy::unwrap_used)]
 /// テンプレートレンダリング結果のスナップショットテスト。
 ///
@@ -255,8 +255,8 @@ fn render_cicd(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder = TemplateContextBuilder::new("task-api", "service", lang, kind_for_ctx)
-        .api_style(api_style);
+    let mut builder =
+        TemplateContextBuilder::new("task-api", "service", lang, kind_for_ctx).api_style(api_style);
 
     if has_database {
         builder = builder.with_database(database_type);

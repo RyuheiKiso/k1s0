@@ -64,9 +64,9 @@ infra/terraform/
 
 ## State 管理
 
-> **移行済み**: 旧 Consul backend から S3+DynamoDB backend へ移行済み（ADR-0025 参照）。
+> **移行済み**: 旧 Consul backend から Ceph RGW（S3互換）backend へ移行済み（ADR-0025 参照）。
 
-State バックエンドには AWS S3 + DynamoDB を使用する（外部監査 H-08 対応）。
+State バックエンドには Ceph RGW（S3互換）を使用する（外部監査 H-08 対応）。k1s0 は AWS を使用しないため、既存の Ceph クラスタの RGW を利用する。
 
 ```hcl
 # environments/dev/backend.tf（現在の設定）
@@ -74,8 +74,10 @@ terraform {
   backend "s3" {
     bucket         = "k1s0-terraform-state-dev"
     key            = "k1s0/dev/terraform.tfstate"
-    region         = "ap-northeast-1"
-    dynamodb_table = "k1s0-terraform-state-lock"
+    region         = "dummy"        # Ceph RGW では使用しないが required フィールドのためダミー値を設定
+    endpoint       = "https://rgw.internal.example.com"  # Ceph RGW エンドポイント
+    use_path_style = true           # Ceph RGW はパススタイル URL を使用
+    use_lockfile   = true           # S3 上にロックファイルを作成（DynamoDB 不要）
     encrypt        = true
   }
 }
@@ -89,65 +91,38 @@ terraform {
 
 ### State バックアップ・リカバリ
 
-- **バックアップ**: S3 バージョニングにより State ファイルの全変更履歴が自動保存される
-- **リカバリ**: S3 バージョニングで以前のバージョンを復元後、`terraform plan` で差分を確認してから運用を再開する
+- **バックアップ**: Ceph バケットバージョニングにより State ファイルの全変更履歴が自動保存される
+- **リカバリ**: バージョニングで以前のバージョンを復元後、`terraform plan` で差分を確認してから運用を再開する
 - **手動確認**:
   ```bash
   # State バージョン一覧
-  aws s3api list-object-versions --bucket k1s0-terraform-state-prod \
-    --prefix k1s0/prod/terraform.tfstate
+  mc ls --versions ceph-rgw/k1s0-terraform-state-prod/k1s0/prod/terraform.tfstate
   # 特定バージョンを復元
-  aws s3api copy-object --copy-source "k1s0-terraform-state-prod/k1s0/prod/terraform.tfstate?versionId=<VERSION_ID>" \
-    --bucket k1s0-terraform-state-prod --key k1s0/prod/terraform.tfstate
+  mc cp --version-id <VERSION_ID> \
+    ceph-rgw/k1s0-terraform-state-prod/k1s0/prod/terraform.tfstate \
+    ceph-rgw/k1s0-terraform-state-prod/k1s0/prod/terraform.tfstate
   ```
 
 ### State の暗号化
 
 | レイヤー | 暗号化方式 | 備考 |
 | --- | --- | --- |
-| 通信経路 | TLS（HTTPS） | S3 API 通信の転送時暗号化 |
-| 保存時（現状） | SSE-S3（AWS 管理キー AES-256） | `encrypt = true` で有効 |
-| 保存時（目標） | SSE-KMS（CMK） | `kms_key_id` 設定で有効化（H-11 対応 TODO） |
+| 通信経路 | TLS（HTTPS） | S3 互換 API 通信の転送時暗号化 |
+| 保存時 | Ceph OSD レベルの at-rest encryption | インフラチームが管理・確認 |
+| 追加（推奨） | Ceph KES + Vault 統合 | KES（Key Encryption Service）による鍵管理強化 |
 
-#### KMS CMK による追加暗号化（H-11 対応 TODO）
-
-現状は SSE-S3 のみだが、PCI DSS / SOC2 等のコンプライアンス要件では CMK（カスタマー管理キー）が必須の場合がある。以下の手順で KMS CMK を設定すること。
-
-```bash
-# 1. KMS CMK を作成する（prod 環境の例）
-aws kms create-key \
-  --description "k1s0 Terraform State Key (prod)" \
-  --key-usage ENCRYPT_DECRYPT \
-  --enable-key-rotation \
-  --region ap-northeast-1
-
-# 2. キーエイリアスを設定する
-aws kms create-alias \
-  --alias-name alias/k1s0-terraform-state-prod \
-  --target-key-id <key-id>
-```
-
-```hcl
-# backend.tf に kms_key_id を追加する
-backend "s3" {
-  # ... 既存の設定 ...
-  kms_key_id = "arn:aws:kms:ap-northeast-1:<account-id>:alias/k1s0-terraform-state-prod"
-}
-```
-
-#### S3 バージョニング（L-4 対応 TODO）
+#### Ceph バージョニング（L-4 対応）
 
 各 State バケットでバージョニングが有効であることを確認・設定すること。
 
 ```bash
-aws s3api put-bucket-versioning \
-  --bucket k1s0-terraform-state-prod \
-  --versioning-configuration Status=Enabled
+# MinIO Client（mc）でバージョニングを有効化
+mc version enable ceph-rgw/k1s0-terraform-state-prod
 ```
 
 ### State ロック
 
-DynamoDB テーブル `k1s0-terraform-state-lock` による条件付き書き込みで State ロックを実現する。複数の `terraform apply` が同時実行された場合に State の競合を防止する。
+`use_lockfile = true`（Terraform 1.10+）により、S3 上にロックファイル（`{key}.tflock`）を作成して並行実行を防止する。DynamoDB は使用しない（Ceph RGW は DynamoDB API 非対応）。
 
 手動ロック解除が必要な場合:
 ```bash
@@ -158,11 +133,11 @@ terraform force-unlock <LOCK_ID>
 
 | 環境 | アクセス権 | 制御方法 |
 | --- | --- | --- |
-| dev | 開発チーム全員 | IAM ポリシー（read/write） |
-| staging | インフラチーム + リード | IAM ポリシー（read/write）、開発チームは read-only |
-| prod | インフラチーム限定 | IAM ポリシー（read/write）、CI/CD のみ apply 可能 |
+| dev | 開発チーム全員 | Ceph RGW ユーザーポリシー（read/write） |
+| staging | インフラチーム + リード | Ceph RGW ユーザーポリシー（read/write）、開発チームは read-only |
+| prod | インフラチーム限定 | Ceph RGW ユーザーポリシー（read/write）、CI/CD のみ apply 可能 |
 
-CI/CD パイプラインでは GitHub Actions の OIDC プロバイダー経由で AWS IAM ロールを assume し、S3/DynamoDB へアクセスする。認証情報は GitHub Secrets で管理する。
+CI/CD パイプラインでは Ceph RGW の認証情報（access_key / secret_key）を環境変数 `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` で渡す。認証情報は Vault で管理し、GitHub Secrets 経由で CI/CD に注入する。
 
 ## モジュール詳細
 

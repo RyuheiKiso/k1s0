@@ -80,3 +80,13 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: observability
+    # messaging Namespace（Kafka ブローカー）への通信を許可（M-5 監査対応）
+    # service Tier サービスも Kafka を使用するため egress ルールが必要（business.yaml と同様）
+    # TLS リスナー（9093）のみ許可する（M-7 対応で plain リスナー 9092 は廃止）
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: messaging
+      ports:
+        - protocol: TCP
+          port: 9093

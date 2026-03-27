@@ -192,7 +192,9 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                         let column = columns
                             .iter()
                             .find(|c| c.column_name == col_name)
-                            .ok_or_else(|| anyhow::anyhow!("カラム '{}' が定義に見つかりません", col_name))?;
+                            .ok_or_else(|| {
+                                anyhow::anyhow!("カラム '{}' が定義に見つかりません", col_name)
+                            })?;
                         validate_identifier(col_name)?;
                         where_clauses.push(format!(
                             "{} = {}",

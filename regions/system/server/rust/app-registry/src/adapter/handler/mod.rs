@@ -20,7 +20,6 @@ use crate::usecase::{
     ListAppsUseCase, ListVersionsUseCase, UpdateAppUseCase,
 };
 
-
 /// ValidateTokenUseCase はトークン検証のためのユースケース。
 /// auth server の ValidateTokenUseCase と同等だが、app-registry 用に簡略化。
 pub struct ValidateTokenUseCase {

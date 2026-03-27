@@ -64,10 +64,7 @@ impl InMemoryTenantClient {
     // async コンテキストで安全にロックを取得するため async fn として定義する
     pub async fn add_tenant(&self, tenant: Tenant) {
         // テナントストアへの書き込みロックを非同期で取得してテナントを追加する
-        self.tenants
-            .lock()
-            .await
-            .insert(tenant.id.clone(), tenant);
+        self.tenants.lock().await.insert(tenant.id.clone(), tenant);
     }
 }
 
@@ -559,7 +556,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_tenant() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "enterprise")).await;
+        client
+            .add_tenant(make_tenant("T-001", TenantStatus::Active, "enterprise"))
+            .await;
         let tenant = client.get_tenant("T-001").await.unwrap();
         assert_eq!(tenant.id, "T-001");
         assert_eq!(tenant.status, TenantStatus::Active);
@@ -603,7 +602,9 @@ mod tests {
     #[tokio::test]
     async fn test_is_active_true() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+        client
+            .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+            .await;
         assert!(client.is_active("T-001").await.unwrap());
     }
 
@@ -611,7 +612,9 @@ mod tests {
     #[tokio::test]
     async fn test_is_active_false() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic")).await;
+        client
+            .add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic"))
+            .await;
         assert!(!client.is_active("T-001").await.unwrap());
     }
 
@@ -619,7 +622,9 @@ mod tests {
     #[tokio::test]
     async fn test_get_settings() {
         let client = InMemoryTenantClient::new();
-        client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+        client
+            .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+            .await;
         let settings = client.get_settings("T-001").await.unwrap();
         assert_eq!(settings.get("max_users"), Some("100"));
         assert_eq!(settings.get("nonexistent"), None);

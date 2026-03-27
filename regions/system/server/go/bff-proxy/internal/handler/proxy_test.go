@@ -71,7 +71,8 @@ func TestProxyHandler_InjectsAuthHeader(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "Bearer test-access-token", r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"result": "ok"}`))
+		// errcheck: テストハンドラの書き込みエラーは無視する（§3.2 監査対応）
+		_, _ = w.Write([]byte(`{"result": "ok"}`))
 	}))
 	defer upstream.Close()
 

@@ -1,6 +1,6 @@
 # system-search-server 実装設計
 
-> **注記**: 本ドキュメントは search-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../_common/Rust共通実装.md) を参照。
+> **注記**: 本ドキュメントは search-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../../_common/Rust共通実装.md) を参照。
 
 system-search-server（全文検索サーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [server.md](server.md) を参照。
 
@@ -139,4 +139,4 @@ Repository の選択順序は `OpenSearch -> PostgreSQL -> InMemory`。OpenSearc
 ## 関連ドキュメント
 
 - [server.md](server.md) -- 概要・API 定義・Kafka メッセージング設計
-- [Rust共通実装.md](../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存
+- [Rust共通実装.md](../../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存

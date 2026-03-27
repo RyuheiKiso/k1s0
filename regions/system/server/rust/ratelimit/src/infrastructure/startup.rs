@@ -224,7 +224,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー（未認証アクセスを middleware レベルでブロック）
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, ratelimit_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, ratelimit_grpc_action);
 
     // AppState (REST handler 用)
     let mut state = AppState::new(

@@ -323,8 +323,13 @@ impl TemplateContextBuilder {
 
     /// 必須コンテキスト変数が設定されているかバリデーションし、未設定の場合はエラーを返す。
     ///
-    /// service_name, tier, language, kind が空文字列でないことを検証する。
+    /// `service_name`, `tier`, `language`, `kind` が空文字列でないことを検証する。
     /// business tier の場合は domain も必須とする。
+    ///
+    /// # Errors
+    ///
+    /// `service_name`, `tier`, `language`, `kind` のいずれかが空の場合にエラーを返す。
+    /// business tier の場合は `domain` が空の場合もエラーを返す。
     pub fn validate(&self) -> Result<(), String> {
         let mut missing = Vec::new();
         if self.service_name.is_empty() {
@@ -356,6 +361,10 @@ impl TemplateContextBuilder {
     /// `TemplateContext` を構築する（Result 版）。
     ///
     /// 必須変数のバリデーションを実行し、不正な場合はエラーを返す。
+    ///
+    /// # Errors
+    ///
+    /// `validate()` が失敗した場合（必須変数が未設定）にエラーを返す。
     pub fn try_build(self) -> Result<TemplateContext, String> {
         self.validate()?;
         Ok(self.build_inner())
@@ -365,6 +374,11 @@ impl TemplateContextBuilder {
     ///
     /// 入力値から導出ルールに従って全変数を自動計算する。
     /// 必須変数のバリデーションを事前に実行し、不正な場合はパニックする。
+    ///
+    /// # Panics
+    ///
+    /// `service_name`, `tier`, `language`, `kind` のいずれかが未設定の場合にパニックする。
+    /// 必ず `try_build()` またはバリデーション済みの入力で呼び出すこと。
     pub fn build(self) -> TemplateContext {
         // 必須変数の事前バリデーション
         if let Err(e) = self.validate() {

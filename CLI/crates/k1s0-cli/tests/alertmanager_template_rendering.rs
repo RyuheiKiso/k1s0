@@ -1,4 +1,4 @@
-//! テストモジュール — unwrap() の使用を許可する
+//! テストモジュール — `unwrap()` の使用を許可する
 #![allow(clippy::unwrap_used)]
 /// Alertmanager テンプレートのレンダリング統合テスト。
 use std::fs;

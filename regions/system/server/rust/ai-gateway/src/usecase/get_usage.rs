@@ -72,7 +72,13 @@ mod tests {
     use crate::domain::repository::usage_repository::MockUsageRepository;
 
     // テスト用の使用量レコードを生成するヘルパー
-    fn sample_record(id: &str, tenant_id: &str, prompt: i32, completion: i32, cost: f64) -> UsageRecord {
+    fn sample_record(
+        id: &str,
+        tenant_id: &str,
+        prompt: i32,
+        completion: i32,
+        cost: f64,
+    ) -> UsageRecord {
         UsageRecord::new(
             id.to_string(),
             tenant_id.to_string(),

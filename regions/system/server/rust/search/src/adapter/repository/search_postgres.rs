@@ -380,9 +380,15 @@ mod tests {
     fn test_facet_row_to_map() {
         // FacetRow の val が None の行はファセット集計から除外されることを確認
         let rows = vec![
-            FacetRow { val: Some("electronics".to_string()), cnt: 5 },
+            FacetRow {
+                val: Some("electronics".to_string()),
+                cnt: 5,
+            },
             FacetRow { val: None, cnt: 3 },
-            FacetRow { val: Some("books".to_string()), cnt: 2 },
+            FacetRow {
+                val: Some("books".to_string()),
+                cnt: 2,
+            },
         ];
         let map: HashMap<String, u64> = rows
             .into_iter()

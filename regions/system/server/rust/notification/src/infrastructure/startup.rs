@@ -298,7 +298,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, notification_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, notification_grpc_action);
 
     let mut state = adapter::handler::AppState {
         send_notification_uc,
@@ -376,14 +377,8 @@ pub async fn run() -> anyhow::Result<()> {
 /// 通知送信・リトライ・チャンネル/テンプレートの作成・更新・削除は write、それ以外は read とする。
 fn notification_grpc_action(method: &str) -> &'static str {
     match method {
-        "SendNotification"
-        | "RetryNotification"
-        | "CreateChannel"
-        | "UpdateChannel"
-        | "DeleteChannel"
-        | "CreateTemplate"
-        | "UpdateTemplate"
-        | "DeleteTemplate" => "write",
+        "SendNotification" | "RetryNotification" | "CreateChannel" | "UpdateChannel"
+        | "DeleteChannel" | "CreateTemplate" | "UpdateTemplate" | "DeleteTemplate" => "write",
         _ => "read",
     }
 }

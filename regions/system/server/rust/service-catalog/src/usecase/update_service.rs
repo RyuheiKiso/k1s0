@@ -129,7 +129,8 @@ mod tests {
         let svc = make_service(id);
         let svc_clone = svc.clone();
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(move |_| Ok(Some(svc_clone.clone())));
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(svc_clone.clone())));
         mock.expect_update().returning(|svc| Ok(svc.clone()));
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
@@ -160,7 +161,8 @@ mod tests {
         let id = Uuid::new_v4();
         let svc = make_service(id);
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(move |_| Ok(Some(svc.clone())));
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(svc.clone())));
 
         let uc = UpdateServiceUseCase::new(Arc::new(mock));
         let result = uc

@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::PubSubError;
 use crate::traits::{Message, MessageHandler, PubSub};
+use crate::PubSubError;
 
 struct Subscription {
     topic: String,
@@ -134,8 +134,8 @@ impl PubSub for InMemoryPubSub {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     struct CountingHandler {
         count: Arc<AtomicUsize>,

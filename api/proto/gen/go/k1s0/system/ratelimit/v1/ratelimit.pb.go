@@ -796,6 +796,9 @@ type RateLimitRule struct {
 	Limit             int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	WindowSeconds     int64                  `protobuf:"varint,5,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
 	// Deprecated: use algorithm_enum instead.
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/ratelimit/v1/ratelimit.proto.
 	Algorithm string        `protobuf:"bytes,6,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
 	Enabled   bool          `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	CreatedAt *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -872,6 +875,7 @@ func (x *RateLimitRule) GetWindowSeconds() int64 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/ratelimit/v1/ratelimit.proto.
 func (x *RateLimitRule) GetAlgorithm() string {
 	if x != nil {
 		return x.Algorithm
@@ -965,6 +969,9 @@ type GetUsageResponse struct {
 	Limit         int64                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
 	WindowSeconds int64                  `protobuf:"varint,4,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
 	// Deprecated: use algorithm_enum instead.
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/ratelimit/v1/ratelimit.proto.
 	Algorithm string `protobuf:"bytes,5,opt,name=algorithm,proto3" json:"algorithm,omitempty"`
 	Enabled   bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	Used      *int64 `protobuf:"varint,7,opt,name=used,proto3,oneof" json:"used,omitempty"`
@@ -1034,6 +1041,7 @@ func (x *GetUsageResponse) GetWindowSeconds() int64 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/ratelimit/v1/ratelimit.proto.
 func (x *GetUsageResponse) GetAlgorithm() string {
 	if x != nil {
 		return x.Algorithm
@@ -1231,14 +1239,14 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\x05rules\x18\x01 \x03(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x05rules\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xc4\x03\n" +
+	"pagination\"\xc8\x03\n" +
 	"\rRateLimitRule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05scope\x18\x02 \x01(\tR\x05scope\x12-\n" +
 	"\x12identifier_pattern\x18\x03 \x01(\tR\x11identifierPattern\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x03R\x05limit\x12%\n" +
-	"\x0ewindow_seconds\x18\x05 \x01(\x03R\rwindowSeconds\x12\x1c\n" +
-	"\talgorithm\x18\x06 \x01(\tR\talgorithm\x12\x18\n" +
+	"\x0ewindow_seconds\x18\x05 \x01(\x03R\rwindowSeconds\x12 \n" +
+	"\talgorithm\x18\x06 \x01(\tB\x02\x18\x01R\talgorithm\x12\x18\n" +
 	"\aenabled\x18\a \x01(\bR\aenabled\x12?\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
@@ -1248,13 +1256,13 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	" \x01(\tR\x04name\x12S\n" +
 	"\x0ealgorithm_enum\x18\v \x01(\x0e2,.k1s0.system.ratelimit.v1.RateLimitAlgorithmR\ralgorithmEnum\"*\n" +
 	"\x0fGetUsageRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\x92\x03\n" +
+	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\x96\x03\n" +
 	"\x10GetUsageResponse\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x1b\n" +
 	"\trule_name\x18\x02 \x01(\tR\bruleName\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x03R\x05limit\x12%\n" +
-	"\x0ewindow_seconds\x18\x04 \x01(\x03R\rwindowSeconds\x12\x1c\n" +
-	"\talgorithm\x18\x05 \x01(\tR\talgorithm\x12\x18\n" +
+	"\x0ewindow_seconds\x18\x04 \x01(\x03R\rwindowSeconds\x12 \n" +
+	"\talgorithm\x18\x05 \x01(\tB\x02\x18\x01R\talgorithm\x12\x18\n" +
 	"\aenabled\x18\x06 \x01(\bR\aenabled\x12\x17\n" +
 	"\x04used\x18\a \x01(\x03H\x00R\x04used\x88\x01\x01\x12!\n" +
 	"\tremaining\x18\b \x01(\x03H\x01R\tremaining\x88\x01\x01\x12\x1e\n" +

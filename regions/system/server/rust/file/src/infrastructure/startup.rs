@@ -10,8 +10,8 @@ use k1s0_server_common::middleware::rbac::Tier;
 
 use super::config::Config;
 use super::in_memory::{InMemoryFileMetadataRepository, InMemoryFileStorageRepository};
-use super::local_fs_storage::LocalFsStorageRepository;
 use super::kafka_producer::{FileEventPublisher, FileKafkaProducer, NoopFileEventPublisher};
+use super::local_fs_storage::LocalFsStorageRepository;
 use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use crate::proto::k1s0::system::file::v1::file_service_server::FileServiceServer;
 use crate::usecase;
@@ -98,9 +98,7 @@ pub async fn run() -> anyhow::Result<()> {
             let base_url = storage_cfg
                 .base_url
                 .clone()
-                .unwrap_or_else(|| {
-                    format!("http://{}:{}", cfg.server.host, cfg.server.port)
-                });
+                .unwrap_or_else(|| format!("http://{}:{}", cfg.server.host, cfg.server.port));
             info!(root_path = %root_path, "initializing local filesystem storage backend");
             Arc::new(LocalFsStorageRepository::new(
                 std::path::PathBuf::from(root_path),

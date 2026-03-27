@@ -7,13 +7,21 @@ image:
   repository: kong
   tag: "3.8"
 
+# env は k1s0-common の _deployment.tpl が toYaml で直接展開するため、
+# Kubernetes の []EnvVar リスト形式で記述する必要がある（dict形式は不可）。
+# Kong はデフォルトで KONG_ プレフィックス付きの環境変数から設定を読み込む。
 env:
-  database: postgres
-  pg_host: postgresql.k1s0-system.svc.cluster.local
-  pg_port: "5432"
-  pg_user: kong
-  pg_database: kong
-  pg_password:
+  - name: KONG_DATABASE
+    value: postgres
+  - name: KONG_PG_HOST
+    value: postgresql.k1s0-system.svc.cluster.local
+  - name: KONG_PG_PORT
+    value: "5432"
+  - name: KONG_PG_USER
+    value: kong
+  - name: KONG_PG_DATABASE
+    value: kong
+  - name: KONG_PG_PASSWORD
     valueFrom:
       secretKeyRef:
         name: kong-db-secret

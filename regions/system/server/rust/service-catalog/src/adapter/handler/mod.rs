@@ -8,9 +8,9 @@ pub mod team;
 
 use std::sync::Arc;
 
-use axum::Router;
 use axum::middleware;
 use axum::routing::get;
+use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 

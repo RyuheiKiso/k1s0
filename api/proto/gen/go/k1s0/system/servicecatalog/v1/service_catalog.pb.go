@@ -30,7 +30,7 @@ type ServiceInfo struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// サービス UUID
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// サービス名（例: auth, tenant, order）
+	// サービス名（例: auth, tenant, task）
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// 表示名
 	DisplayName string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`

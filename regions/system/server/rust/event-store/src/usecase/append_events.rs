@@ -101,7 +101,9 @@ impl AppendEventsUseCase {
         input: &AppendEventsInput,
         pool: &sqlx::PgPool,
     ) -> Result<AppendEventsOutput, AppendEventsError> {
-        use crate::infrastructure::persistence::{EventPostgresRepository, StreamPostgresRepository};
+        use crate::infrastructure::persistence::{
+            EventPostgresRepository, StreamPostgresRepository,
+        };
         use sqlx::Executor;
 
         // REPEATABLE READ でトランザクションを開始してファントムリードを防止する
@@ -115,7 +117,16 @@ impl AppendEventsUseCase {
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 
         // トランザクション内でストリームの現在状態を取得する
-        let stream = sqlx::query_as::<_, (String, String, i64, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(
+        let stream = sqlx::query_as::<
+            _,
+            (
+                String,
+                String,
+                i64,
+                chrono::DateTime<chrono::Utc>,
+                chrono::DateTime<chrono::Utc>,
+            ),
+        >(
             r#"SELECT id, aggregate_type, current_version, created_at, updated_at
                FROM eventstore.event_streams WHERE id = $1"#,
         )
@@ -123,13 +134,15 @@ impl AppendEventsUseCase {
         .fetch_optional(&mut *tx)
         .await
         .map_err(|e| AppendEventsError::Internal(e.to_string()))?
-        .map(|(id, aggregate_type, current_version, created_at, updated_at)| EventStream {
-            id,
-            aggregate_type,
-            current_version,
-            created_at,
-            updated_at,
-        });
+        .map(
+            |(id, aggregate_type, current_version, created_at, updated_at)| EventStream {
+                id,
+                aggregate_type,
+                current_version,
+                created_at,
+                updated_at,
+            },
+        );
 
         // バージョン検証を実行する
         match EventStoreDomainService::validate_append(

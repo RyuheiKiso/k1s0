@@ -24,3 +24,8 @@ func (e *KafkaError) Error() string {
 func (e *KafkaError) Unwrap() error {
 	return e.Err
 }
+
+// Err は KafkaError の短縮エイリアス（L-3 監査対応: stutter 命名解消）。
+// 注意: builtin error との混同を避けるため Err を使用する。
+// 新しいコードでは kafka.Err を使用すること。
+type Err = KafkaError

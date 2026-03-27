@@ -134,7 +134,10 @@ mod tests {
     async fn mark_completed_sets_status() {
         let store = InMemoryIdempotencyStore::new();
         store.set(make_record("comp-key")).await.unwrap();
-        store.mark_completed("comp-key", Some(r#"{"ok":true}"#.to_string()), Some(200)).await.unwrap();
+        store
+            .mark_completed("comp-key", Some(r#"{"ok":true}"#.to_string()), Some(200))
+            .await
+            .unwrap();
         let record = store.get("comp-key").await.unwrap().unwrap();
         assert_eq!(record.status, IdempotencyStatus::Completed);
         assert_eq!(record.response_status, Some(200));
@@ -145,7 +148,10 @@ mod tests {
     async fn mark_failed_sets_status() {
         let store = InMemoryIdempotencyStore::new();
         store.set(make_record("fail-key")).await.unwrap();
-        store.mark_failed("fail-key", Some("error message".to_string()), Some(500)).await.unwrap();
+        store
+            .mark_failed("fail-key", Some("error message".to_string()), Some(500))
+            .await
+            .unwrap();
         let record = store.get("fail-key").await.unwrap().unwrap();
         assert_eq!(record.status, IdempotencyStatus::Failed);
         assert_eq!(record.response_body, Some("error message".to_string()));

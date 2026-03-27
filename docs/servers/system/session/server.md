@@ -599,12 +599,12 @@ kafka:
 
 ## 詳細設計ドキュメント
 
-- [system-session-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-session-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-session-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-session-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [認証設計.md](../../architecture/auth/認証設計.md) -- 認証設計
 - [JWT設計.md](../../architecture/auth/JWT設計.md) -- JWT 設計
@@ -630,4 +630,4 @@ kafka:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

@@ -6,8 +6,8 @@ use tracing::info;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::SecretStoreError;
 use crate::traits::{SecretStore, SecretValue};
+use crate::SecretStoreError;
 
 /// InMemorySecretStore はテスト・開発用のインメモリ SecretStore 実装。
 pub struct InMemorySecretStore {

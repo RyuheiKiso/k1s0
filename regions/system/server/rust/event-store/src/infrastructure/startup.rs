@@ -196,7 +196,8 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?,
     )?;
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_store_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, event_store_grpc_action);
 
     let grpc_auth_state =
         auth_state

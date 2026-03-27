@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	commonv1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	configv1 "github.com/k1s0-platform/api/gen/go/k1s0/system/config/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,7 +18,9 @@ type ConfigChangeEvent struct {
 	Key        string
 	OldValue   []byte
 	NewValue   []byte
-	ChangeType string
+	// ChangeType は変更種別を表す enum。CHANGE_TYPE_CREATED / UPDATED / DELETED 等。
+	// 旧フィールド（deprecated string）から enum 型に移行済み（L-5 監査対応: SA1019 解消）。
+	ChangeType commonv1.ChangeType
 }
 
 // WatchConfigClient wraps the gRPC ConfigServiceClient for streaming config changes.
@@ -83,11 +86,12 @@ func (w *WatchConfigClient) Watch(ctx context.Context, namespaces []string) (<-c
 				return
 			}
 			event := ConfigChangeEvent{
-				Namespace:  resp.GetNamespace(),
-				Key:        resp.GetKey(),
-				OldValue:   resp.GetOldValue(),
-				NewValue:   resp.GetNewValue(),
-				ChangeType: resp.GetChangeType(),
+				Namespace: resp.GetNamespace(),
+				Key:       resp.GetKey(),
+				OldValue:  resp.GetOldValue(),
+				NewValue:  resp.GetNewValue(),
+				// GetChangeTypeEnum() を使用して deprecated GetChangeType() を回避する（L-5 監査対応）
+				ChangeType: resp.GetChangeTypeEnum(),
 			}
 			// ctx キャンセル時にチャネル送信でブロックしないよう select でバックプレッシャーを制御する
 			select {

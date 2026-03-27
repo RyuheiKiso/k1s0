@@ -358,7 +358,7 @@ PostgreSQL・Redis への接続を確認する。
 
 デプロイに関する詳細（Dockerfile・Helm values・Kubernetes マニフェスト・ヘルスチェック設定等）は以下を参照。
 
-- [system-server-deploy.md](../_common/deploy.md)
+- [system-server-deploy.md](../../_common/deploy.md)
 
 ポート構成:
 
@@ -371,7 +371,7 @@ PostgreSQL・Redis への接続を確認する。
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-auth-server.md](../auth/server.md) -- 認証サーバー設計（JWT 認証の参考）
 - [implementation.md](implementation.md) -- Rust 実装詳細

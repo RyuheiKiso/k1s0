@@ -594,7 +594,10 @@ mod tests {
 
         assert_eq!(restored_config.kind, Kind::Client);
         assert_eq!(restored_config.tier, Tier::Business);
-        assert_eq!(restored_config.placement, Some("taskmanagement".to_string()));
+        assert_eq!(
+            restored_config.placement,
+            Some("taskmanagement".to_string())
+        );
         assert!(matches!(
             restored_config.lang_fw,
             LangFw::Framework(Framework::React)

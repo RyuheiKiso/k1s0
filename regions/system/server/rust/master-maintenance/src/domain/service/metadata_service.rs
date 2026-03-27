@@ -120,7 +120,12 @@ mod tests {
         }
     }
 
-    fn sample_column(table_id: Uuid, name: &str, data_type: &str, is_form: bool) -> ColumnDefinition {
+    fn sample_column(
+        table_id: Uuid,
+        name: &str,
+        data_type: &str,
+        is_form: bool,
+    ) -> ColumnDefinition {
         let now = Utc::now();
         ColumnDefinition {
             id: Uuid::new_v4(),

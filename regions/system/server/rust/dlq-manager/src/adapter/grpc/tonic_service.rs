@@ -1,5 +1,9 @@
 //! tonic gRPC サービス実装。
 
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
+// 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};

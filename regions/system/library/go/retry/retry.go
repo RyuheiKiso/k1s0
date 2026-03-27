@@ -81,3 +81,14 @@ func WithRetry[T any](ctx context.Context, config *RetryConfig, operation func(c
 	}
 	return zero, &RetryError{Attempts: config.MaxAttempts, LastError: lastErr}
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは retry.Config / Err を使用すること。
+// ---------------------------------------------------------------------------
+
+// Config は RetryConfig の短縮エイリアス。
+type Config = RetryConfig
+
+// Err は RetryError の短縮エイリアス（builtin error との混同を避けるため Err を使用）。
+type Err = RetryError

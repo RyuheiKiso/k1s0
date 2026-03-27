@@ -12,6 +12,15 @@ variable "kubernetes_host" {
   default     = "https://kubernetes.default.svc"
 }
 
+# H-5 監査対応: CA 証明書パスのハードコードを解消する。
+# kubernetes_ca_cert が空文字列の場合は Pod 内のサービスアカウントパスから読み込む（Kubernetes Pod内実行時のデフォルト動作）。
+# ローカル開発/CI 環境では data source や変数で証明書 PEM を渡してください。
+variable "kubernetes_ca_cert" {
+  description = "Kubernetes CA certificate PEM content. Empty = read from Pod service account path (/var/run/secrets/kubernetes.io/serviceaccount/ca.crt)"
+  type        = string
+  default     = ""
+}
+
 variable "ldap_url" {
   description = "LDAP server URL (LDAPS)"
   type        = string

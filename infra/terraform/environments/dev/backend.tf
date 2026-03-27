@@ -1,25 +1,25 @@
-# Terraform State を S3+DynamoDB で管理する
-# S3: バージョニング・暗号化・アクセスログを有効化し State を安全に保存
-# DynamoDB: State ロックにより並行実行による競合を防止
+# Terraform State を Ceph RGW（S3互換）で管理する
+# S3互換: Ceph RGW の S3 API を使用して State を保存・バージョニング
+# ロック: use_lockfile = true により S3 上にロックファイルを作成して並行実行を防止（Terraform 1.10+）
 # 旧 Consul backend からの移行: docs/infrastructure/terraform-state-migration.md 参照
 terraform {
   backend "s3" {
     bucket         = "k1s0-terraform-state-dev"
     key            = "k1s0/dev/terraform.tfstate"
-    region         = "ap-northeast-1"
-    dynamodb_table = "k1s0-terraform-state-lock"
+    region         = "dummy"        # Ceph RGW では使用しないが required フィールドのためダミー値を設定
+    endpoint       = "https://rgw.internal.example.com"  # Ceph RGW エンドポイント
+    use_path_style = true           # Ceph RGW はパススタイル URL を使用
+    use_lockfile   = true           # S3 上にロックファイルを作成（DynamoDB 不要）
     encrypt        = true
-    # encrypt = true: SSE (Server-Side Encryption) を有効化する
-    # 本プロジェクトは Ceph S3 互換ストレージを使用しているため AWS KMS (kms_key_id) は適用不可
+    # encrypt = true: Ceph RGW の SSE (Server-Side Encryption) を有効化する
     # Ceph OSD レベルの at-rest encryption はインフラチームが管理・確認する
-    # AWS S3 へ移行する場合は kms_key_id の追加が必須（セキュリティ要件）
     # S3 バージョニングはバケット設定で有効化すること（backend.tf では設定不可）
-    # S3 互換ストレージ（MinIO 等）を使用する場合、kms_key_id は適用不可
+    # 認証情報は環境変数 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY で設定すること
   }
 }
 
 # ── 旧 Consul backend 設定（ロールバック参考用・使用禁止）──────────────────
-# 外部監査 H-08 対応により S3+DynamoDB backend へ移行済み
+# 外部監査 H-08 対応により Ceph RGW backend へ移行済み
 # Consul は SPOF リスクおよび at-rest encryption 非対応のため廃止
 #
 # terraform {

@@ -215,7 +215,9 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
+            return Err(
+                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+            );
         }
 
         let kc_user: KeycloakUser = resp.error_for_status()?.json().await?;
@@ -299,7 +301,9 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
+            return Err(
+                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+            );
         }
 
         let realm_roles: Vec<KeycloakRole> = resp.error_for_status()?.json().await?;

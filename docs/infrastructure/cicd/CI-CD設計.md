@@ -65,6 +65,25 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定。失敗時は `::warning::` アノテーションで既知課題である旨を通知する |
 | `iac-validation` | IaC 検証: `infra/terraform/` の `terraform fmt -check` および dev/prod 環境の `terraform validate`（バックエンド初期化なし）を実行し、Terraform 構文・フォーマット不整合を CI で検出する |
 
+### justfile security レシピ変更（H-4 監査対応）
+
+`just security` が `security-infra` レシピを含むように拡張された。
+
+| レシピ | 内容 |
+| --- | --- |
+| `security-infra` | `infra/kubernetes/` 配下の YAML ファイルに `REPLACE_WITH_` プレースホルダーが残存していないことを確認する。etcd 暗号化キー等が未設定のままデプロイされることを防ぐ（H-4 対応）。 |
+
+**実行コマンド:**
+```bash
+# インフラセキュリティチェック単体実行
+just security-infra
+
+# 全言語セキュリティスキャン（security-infra を含む）
+just security
+```
+
+**エラー条件:** `infra/kubernetes/` 内の YAML ファイルに `REPLACE_WITH_` 文字列が検出された場合、終了コード 1 でエラーを返す。CI パイプラインでは `just security` を通じてこのチェックが自動的に実行される。
+
 ### TypeScript パッケージマネージャー（pnpm 採用）
 
 TypeScript/React パッケージのインストールは `npm ci` から `pnpm install --frozen-lockfile` へ移行した。

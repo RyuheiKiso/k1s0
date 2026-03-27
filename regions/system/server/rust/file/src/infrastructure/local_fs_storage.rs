@@ -18,7 +18,10 @@ impl LocalFsStorageRepository {
     /// 新しい LocalFsStorageRepository を作成する。
     /// root_path にファイルを保存し、base_url を使って URL を生成する。
     pub fn new(root_path: PathBuf, base_url: String) -> Self {
-        Self { root_path, base_url }
+        Self {
+            root_path,
+            base_url,
+        }
     }
 
     /// storage_key をファイルシステムのフルパスに変換する。
@@ -26,9 +29,14 @@ impl LocalFsStorageRepository {
     fn resolve_path(&self, storage_key: &str) -> anyhow::Result<PathBuf> {
         let key_path = PathBuf::from(storage_key);
         // 絶対パスやパストラバーサル（../）を含むキーを拒否する
-        if key_path.is_absolute() || key_path.components().any(|c| {
-            matches!(c, std::path::Component::ParentDir | std::path::Component::Prefix(_))
-        }) {
+        if key_path.is_absolute()
+            || key_path.components().any(|c| {
+                matches!(
+                    c,
+                    std::path::Component::ParentDir | std::path::Component::Prefix(_)
+                )
+            })
+        {
             anyhow::bail!("不正なストレージキー: {}", storage_key);
         }
         Ok(self.root_path.join(key_path))
@@ -51,7 +59,10 @@ impl FileStorageRepository for LocalFsStorageRepository {
             tokio::fs::create_dir_all(parent).await?;
         }
         // ローカル FS の場合は file-server 自身のエンドポイントへの URL を返す
-        Ok(format!("{}/internal/storage/{}", self.base_url, storage_key))
+        Ok(format!(
+            "{}/internal/storage/{}",
+            self.base_url, storage_key
+        ))
     }
 
     /// ファイルのダウンロード URL を生成する。
@@ -65,7 +76,10 @@ impl FileStorageRepository for LocalFsStorageRepository {
         if !full_path.exists() {
             anyhow::bail!("ファイルが存在しません: {}", storage_key);
         }
-        Ok(format!("{}/internal/storage/{}", self.base_url, storage_key))
+        Ok(format!(
+            "{}/internal/storage/{}",
+            self.base_url, storage_key
+        ))
     }
 
     /// 指定された storage_key に対応するファイルを削除する。
@@ -110,10 +124,7 @@ mod tests {
     use tempfile::tempdir;
 
     fn make_repo(dir: &std::path::Path) -> LocalFsStorageRepository {
-        LocalFsStorageRepository::new(
-            dir.to_path_buf(),
-            "http://localhost:8098".to_string(),
-        )
+        LocalFsStorageRepository::new(dir.to_path_buf(), "http://localhost:8098".to_string())
     }
 
     #[tokio::test]
@@ -135,8 +146,12 @@ mod tests {
         let dir = tempdir().unwrap();
         let key = "tenant-abc/test.pdf";
         let file_path = dir.path().join("tenant-abc/test.pdf");
-        tokio::fs::create_dir_all(file_path.parent().unwrap()).await.unwrap();
-        tokio::fs::write(&file_path, b"dummy content").await.unwrap();
+        tokio::fs::create_dir_all(file_path.parent().unwrap())
+            .await
+            .unwrap();
+        tokio::fs::write(&file_path, b"dummy content")
+            .await
+            .unwrap();
 
         let repo = make_repo(dir.path());
         let url = repo.generate_download_url(key, 3600).await.unwrap();
@@ -148,7 +163,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let repo = make_repo(dir.path());
 
-        let result = repo.generate_download_url("nonexistent/file.pdf", 3600).await;
+        let result = repo
+            .generate_download_url("nonexistent/file.pdf", 3600)
+            .await;
         assert!(result.is_err());
     }
 
@@ -176,7 +193,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let repo = make_repo(dir.path());
 
-        let result = repo.generate_upload_url("../outside/file.txt", "text/plain", 3600).await;
+        let result = repo
+            .generate_upload_url("../outside/file.txt", "text/plain", 3600)
+            .await;
         assert!(result.is_err());
     }
 }
