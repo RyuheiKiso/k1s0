@@ -1,3 +1,9 @@
+// H-20 監査対応: パスワードフィールドを Secret<String> でラップしてデバッグ出力への漏洩を防ぐ。
+// secrecy クレートの Secret<T> は Debug トレイトを "Secret([REDACTED])" で実装するため、
+// ログや panic 出力にパスワードが平文で現れることを防止する。
+// Secret<String> を使用してパスワードを保護する（H-20 監査対応）
+// ExposeSecret は password フィールドを使う側（接続文字列生成等）でインポートして使用すること
+use secrecy::Secret;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -121,18 +127,39 @@ impl Default for GrpcConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// H-20 監査対応: DatabaseConfig の password を Secret<String> でラップする。
+// Debug 出力では password フィールドを "***" でマスクし、ログへの漏洩を防ぐ。
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct DatabaseConfig {
     pub host: String,
     pub port: u16,
     pub name: String,
     pub user: String,
-    pub password: String,
+    // パスワードは Secret<String> で保持し、Debug 出力やシリアライズ時にマスクする
+    #[serde(skip_serializing)]
+    pub password: Secret<String>,
     pub ssl_mode: String,
     pub max_open_conns: u32,
     pub max_idle_conns: u32,
     pub conn_max_lifetime: String,
+}
+
+/// DatabaseConfig の Debug 実装: password フィールドを "***" でマスクする。
+impl std::fmt::Debug for DatabaseConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("name", &self.name)
+            .field("user", &self.user)
+            .field("password", &"***")
+            .field("ssl_mode", &self.ssl_mode)
+            .field("max_open_conns", &self.max_open_conns)
+            .field("max_idle_conns", &self.max_idle_conns)
+            .field("conn_max_lifetime", &self.conn_max_lifetime)
+            .finish()
+    }
 }
 
 impl Default for DatabaseConfig {
@@ -142,7 +169,7 @@ impl Default for DatabaseConfig {
             port: 5432,
             name: String::new(),
             user: String::new(),
-            password: String::new(),
+            password: Secret::new(String::new()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
             max_idle_conns: 5,
@@ -162,12 +189,37 @@ pub struct KafkaConfig {
     pub topics: KafkaTopics,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+// H-20 監査対応: KafkaSaslConfig の password を Secret<String> でラップする。
+// Default derive を削除し、Secret::new(String::new()) を使った手動実装に変更する。
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct KafkaSaslConfig {
     pub mechanism: String,
     pub username: String,
-    pub password: String,
+    // SASL パスワードは Secret<String> で保持し、ログへの漏洩を防ぐ
+    #[serde(skip_serializing)]
+    pub password: Secret<String>,
+}
+
+/// KafkaSaslConfig の Debug 実装: password フィールドを "***" でマスクする。
+impl std::fmt::Debug for KafkaSaslConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KafkaSaslConfig")
+            .field("mechanism", &self.mechanism)
+            .field("username", &self.username)
+            .field("password", &"***")
+            .finish()
+    }
+}
+
+impl Default for KafkaSaslConfig {
+    fn default() -> Self {
+        Self {
+            mechanism: String::new(),
+            username: String::new(),
+            password: Secret::new(String::new()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -183,14 +235,30 @@ pub struct KafkaTopics {
     pub subscribe: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// H-20 監査対応: RedisConfig の password を Secret<String> でラップする。
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RedisConfig {
     pub host: String,
     pub port: u16,
-    pub password: String,
+    // Redis パスワードは Secret<String> で保持し、ログへの漏洩を防ぐ
+    #[serde(skip_serializing)]
+    pub password: Secret<String>,
     pub db: u32,
     pub pool_size: u32,
+}
+
+/// RedisConfig の Debug 実装: password フィールドを "***" でマスクする。
+impl std::fmt::Debug for RedisConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RedisConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("password", &"***")
+            .field("db", &self.db)
+            .field("pool_size", &self.pool_size)
+            .finish()
+    }
 }
 
 impl Default for RedisConfig {
@@ -198,19 +266,33 @@ impl Default for RedisConfig {
         Self {
             host: String::new(),
             port: 6379,
-            password: String::new(),
+            password: Secret::new(String::new()),
             db: 0,
             pool_size: 10,
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// H-20 監査対応: RedisSessionConfig の password を Secret<String> でラップする。
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct RedisSessionConfig {
     pub host: String,
     pub port: u16,
-    pub password: String,
+    // セッション Redis パスワードは Secret<String> で保持し、ログへの漏洩を防ぐ
+    #[serde(skip_serializing)]
+    pub password: Secret<String>,
+}
+
+/// RedisSessionConfig の Debug 実装: password フィールドを "***" でマスクする。
+impl std::fmt::Debug for RedisSessionConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RedisSessionConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("password", &"***")
+            .finish()
+    }
 }
 
 impl Default for RedisSessionConfig {
@@ -218,7 +300,7 @@ impl Default for RedisSessionConfig {
         Self {
             host: String::new(),
             port: 6380,
-            password: String::new(),
+            password: Secret::new(String::new()),
         }
     }
 }

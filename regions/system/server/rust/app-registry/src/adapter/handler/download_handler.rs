@@ -127,8 +127,7 @@ pub async fn download_version(
     {
         Ok(result) => {
             // ファイルをバイナリとして直接ストリーミング配信する
-            let content_disposition =
-                format!("attachment; filename=\"{}\"", result.filename);
+            let content_disposition = format!("attachment; filename=\"{}\"", result.filename);
             (
                 StatusCode::OK,
                 [

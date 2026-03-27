@@ -42,7 +42,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-auth-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -195,12 +196,10 @@ pub async fn run() -> anyhow::Result<()> {
 
         // バックグラウンドリフレッシュタスク用の CancellationToken を作成する
         let bg_cancel = tokio_util::sync::CancellationToken::new();
-        let _bg_handle = table
-            .clone()
-            .start_background_refresh(
-                std::time::Duration::from_secs(cfg.keycloak_admin.refresh_interval_secs),
-                bg_cancel.clone(),
-            );
+        let _bg_handle = table.clone().start_background_refresh(
+            std::time::Duration::from_secs(cfg.keycloak_admin.refresh_interval_secs),
+            bg_cancel.clone(),
+        );
 
         // シャットダウンシグナル受信時にバックグラウンドタスクをキャンセルするタスクを起動する
         tokio::spawn(async move {

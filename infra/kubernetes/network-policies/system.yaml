@@ -68,19 +68,34 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # 同一 Namespace 内の通信を許可
+    # 同一 Namespace 内の通信を許可（PostgreSQL: 5432, Redis: 6379/6380, Vault: 8200, Keycloak: 8080）
     - to:
         - namespaceSelector:
             matchLabels:
               tier: system
+      # M-7 監査対応: 同一 Tier 内の通信に明示的なポート指定を追加し、不要なポートを遮断する
+      ports:
+        - protocol: TCP
+          port: 5432    # PostgreSQL
+        - protocol: TCP
+          port: 6379    # Redis（プライマリ）
+        - protocol: TCP
+          port: 6380    # Redis（レプリカ/TLS）
+        - protocol: TCP
+          port: 8200    # Vault
+        - protocol: TCP
+          port: 8080    # Keycloak HTTP
+        - protocol: TCP
+          port: 8080    # サービス間 HTTP REST API
+        - protocol: TCP
+          port: 50051   # サービス間 gRPC
     # messaging Namespace（Kafka ブローカー）への通信を許可
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: messaging
+      # M-7 監査対応: plain リスナー（9092）を廃止し TLS リスナー（9093）のみを許可する
       ports:
-        - protocol: TCP
-          port: 9092
         - protocol: TCP
           port: 9093
     # observability Namespace（メトリクス・トレース送信）への通信を許可
@@ -88,3 +103,11 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: observability
+      # M-7 監査対応: OTEL Collector グRPC（4317）および HTTP（4318）ポートを明示的に指定する
+      ports:
+        - protocol: TCP
+          port: 4317    # OTEL Collector gRPC（メトリクス・トレース送信）
+        - protocol: TCP
+          port: 4318    # OTEL Collector HTTP（メトリクス・トレース送信）
+        - protocol: TCP
+          port: 9090    # Prometheus スクレイプ

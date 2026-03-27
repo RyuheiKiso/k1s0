@@ -7,10 +7,20 @@ interface ApiClientOptions {
   onUnauthorized?: () => void;
 }
 
-// モジュールレベルの CSRF トークンストア（/auth/session レスポンスから取得した値を保持する）
+/**
+ * CSRFトークンのモジュールレベルキャッシュ（H-11 監査対応）
+ * SPA（シングルページアプリケーション）ではモジュールインスタンスが1つのみ存在するため、
+ * モジュールスコープ変数は安全に使用できる。
+ * SSRを導入する場合はリクエストスコープへの移行が必要。
+ */
 let _csrfToken: string | null = null;
 
-// CSRF トークンをプログラム的に設定する（BFF セッションレスポンスから取得した値を保持）
+/**
+ * CSRFトークンをモジュールキャッシュに設定する。
+ * BFF の /auth/session レスポンスから取得したトークンを保持し、
+ * 以降のすべてのリクエストインターセプターで利用される。
+ * ログアウト時は null を渡してクリアすること。
+ */
 export function setCsrfToken(token: string | null): void {
   _csrfToken = token;
 }
@@ -56,7 +66,12 @@ export function createApiClient({ baseURL, timeout = 30000, onUnauthorized }: Ap
   return client;
 }
 
-// CSRF トークンを取得する（プログラム的に設定されたトークンを優先し、なければ meta タグから取得）
+/**
+ * CSRFトークンを取得する。
+ * モジュールキャッシュに値があればそれを優先し、なければ
+ * HTML の <meta name="csrf-token"> タグにフォールバックする。
+ * SSR 環境（document が未定義）では null を返す。
+ */
 function getCsrfToken(): string | null {
   if (_csrfToken) return _csrfToken;
   if (typeof document === 'undefined') return null;

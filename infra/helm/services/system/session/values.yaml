@@ -1,5 +1,6 @@
 # k1s0-common からのデフォルトを継承し、session サービス固有の値のみ上書きする
 # 共通デフォルト値は infra/helm/charts/k1s0-common/values.yaml を参照
+# L-8 監査対応: image.registry, autoscaling, resources は k1s0-common のデフォルトを継承
 
 image:
   repository: k1s0-system/session
@@ -10,6 +11,26 @@ container:
 
 service:
   grpcPort: 50051
+
+# L-10 監査対応: gRPC サービスのヘルスチェックを有効化する。
+# gRPC サービスは HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用すること。
+# CRITICAL-8 対応: grpcHealthCheck.enabled: true の場合、テンプレートが liveness/readiness/startup の
+# 各フィールドを直接参照するため、nil pointer エラーを防ぐために明示的なデフォルト値を設定する。
+probes:
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+  grpcHealthCheck:
+    enabled: true
 
 vault:
   enabled: true
@@ -31,3 +52,6 @@ kafka:
 
 redis:
   enabled: true
+  # L-9 監査対応: redis.enabled=true の場合、redis.host は必須。
+  # 環境変数 REDIS_HOST として REDIS_PORT と共にコンテナへ注入される。
+  host: redis.k1s0-system.svc.cluster.local

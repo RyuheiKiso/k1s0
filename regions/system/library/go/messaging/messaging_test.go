@@ -13,9 +13,9 @@ import (
 // NewEventMetadataがイベントメタデータを正しく生成することを確認する。
 func TestNewEventMetadata(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-123", "auth-service")
-	assert.NotEmpty(t, meta.EventId)
+	assert.NotEmpty(t, meta.EventID)
 	assert.Equal(t, "user.created.v1", meta.EventType)
-	assert.Equal(t, "corr-123", meta.CorrelationId)
+	assert.Equal(t, "corr-123", meta.CorrelationID)
 	assert.Equal(t, "auth-service", meta.Source)
 	assert.Equal(t, int32(1), meta.SchemaVersion)
 	assert.False(t, meta.Timestamp.IsZero())
@@ -25,7 +25,7 @@ func TestNewEventMetadata(t *testing.T) {
 func TestNewEventMetadata_UniqueIds(t *testing.T) {
 	meta1 := messaging.NewEventMetadata("event.v1", "corr-1", "svc")
 	meta2 := messaging.NewEventMetadata("event.v1", "corr-1", "svc")
-	assert.NotEqual(t, meta1.EventId, meta2.EventId)
+	assert.NotEqual(t, meta1.EventID, meta2.EventID)
 }
 
 // NoOpEventProducerのPublishがエラーなしでイベントを受け付け、カウントを増加することを確認する。
@@ -132,20 +132,20 @@ func TestEventProducer_InterfaceCompliance(t *testing.T) {
 	var _ messaging.EventProducer = &messaging.NoOpEventProducer{}
 }
 
-// NewEventMetadataで生成されたメタデータにTraceIdフィールドが存在することを確認する。
+// NewEventMetadataで生成されたメタデータにTraceIDフィールドが存在することを確認する。
 func TestNewEventMetadata_HasTraceId(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
-	// TraceId 縺ｯ繝・ヵ繧ｩ繝ｫ繝育ｩｺ・亥､夜Κ縺九ｉ險ｭ螳夲ｼ・
-	_ = meta.TraceId // 繝輔ぅ繝ｼ繝ｫ繝峨′蟄伜惠縺吶ｋ縺薙→繧堤｢ｺ隱・
+	// TraceID はデフォルト空（外部から設定）
+	_ = meta.TraceID // フィールドが存在することを確認
 }
 
-// WithTraceIdが元のメタデータを変更せず新しいメタデータにトレースIDを設定することを確認する。
+// WithTraceIDが元のメタデータを変更せず新しいメタデータにトレースIDを設定することを確認する。
 func TestEventMetadata_WithTraceId(t *testing.T) {
 	meta := messaging.NewEventMetadata("user.created.v1", "corr-001", "auth-service")
-	withTrace := meta.WithTraceId("trace-abc-123")
+	withTrace := meta.WithTraceID("trace-abc-123")
 
-	assert.Equal(t, "trace-abc-123", withTrace.TraceId)
-	assert.Empty(t, meta.TraceId)
+	assert.Equal(t, "trace-abc-123", withTrace.TraceID)
+	assert.Empty(t, meta.TraceID)
 }
 
 // EventEnvelopeの全フィールド（Topic、Payload、Headers）が正しく設定されることを確認する。

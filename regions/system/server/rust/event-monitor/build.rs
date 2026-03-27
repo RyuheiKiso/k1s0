@@ -43,10 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("cargo:warning=tonic-build succeeded for dlq proto (client)");
             }
             Err(e) => {
-                println!(
-                    "cargo:warning=tonic-build failed for dlq proto: {}",
-                    e
-                );
+                println!("cargo:warning=tonic-build failed for dlq proto: {}", e);
             }
         }
     } else {

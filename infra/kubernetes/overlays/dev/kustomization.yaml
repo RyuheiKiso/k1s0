@@ -1,0 +1,82 @@
+# HIGH-10 監査対応: dev 環境用 Kustomize overlay
+# namespace-quotas.yaml に定義された dev(1x) の基準値をベースとして使用し、
+# 開発環境向けのリソース制限緩和パッチを適用する。
+# staging(2x)・prod(4x) に対して dev(1x) は最小構成で動作し、開発効率を優先する。
+#
+# スケール比率:
+#   dev(本 overlay): 1x（基準値 / ResourceQuota はベースのまま使用）
+#   staging:         2x（infra/kubernetes/overlays/staging/）
+#   prod:            4x（infra/kubernetes/overlays/prod/）
+#
+# 適用方法:
+#   kubectl apply -k infra/kubernetes/overlays/dev/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ベースリソース: 全 Namespace の共通設定（NetworkPolicy, RBAC 等）
+# dev 環境は namespace-quotas.yaml の dev(1x) 値をそのまま使用するため ResourceQuota のパッチは不要
+resources:
+  - ../../namespaces
+  - ../../network-policies
+  - ../../rbac
+  - ../../resource-quotas
+  - ../../limit-ranges
+
+# dev 環境向けパッチ: LimitRange のデフォルト制限を dev 向けに軽量化する
+# dev では本番より低いリソースデフォルト値を設定して開発マシン上での動作を容易にする
+# prod/staging より低い値を設定し、開発者がローカルクラスタで試行錯誤できるようにする
+patches:
+  # k1s0-system: dev 環境ではデフォルト制限を本番の 50% に軽量化する
+  - target:
+      kind: LimitRange
+      name: default-limits
+      namespace: k1s0-system
+    patch: |-
+      - op: replace
+        path: /spec/limits/0/default/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/limits/0/default/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/limits/0/defaultRequest/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/limits/0/defaultRequest/memory
+        value: 128Mi
+  # k1s0-business: dev 環境ではデフォルト制限を本番の 50% に軽量化する
+  - target:
+      kind: LimitRange
+      name: default-limits
+      namespace: k1s0-business
+    patch: |-
+      - op: replace
+        path: /spec/limits/0/default/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/limits/0/default/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/limits/0/defaultRequest/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/limits/0/defaultRequest/memory
+        value: 128Mi
+  # k1s0-service: dev 環境ではデフォルト制限を本番の 50% に軽量化する
+  - target:
+      kind: LimitRange
+      name: default-limits
+      namespace: k1s0-service
+    patch: |-
+      - op: replace
+        path: /spec/limits/0/default/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/limits/0/default/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/limits/0/defaultRequest/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/limits/0/defaultRequest/memory
+        value: 128Mi

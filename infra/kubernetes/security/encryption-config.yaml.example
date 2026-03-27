@@ -1,0 +1,57 @@
+# etcd 保存データの暗号化設定（EncryptionConfiguration）テンプレート
+# ===========================================================================
+# HIGH-3 監査対応: 本番キーは .gitignore で除外され Vault で管理される。
+# このファイルは encryption-config.yaml のサンプルであり、実際のキーを含まない。
+# 実際の encryption-config.yaml は .gitignore で除外されており、
+# CI/CD パイプラインが Vault からキーを取得して自動生成します。
+#
+# ローカル開発での使用方法:
+#   1. このファイルを encryption-config.yaml にコピーする:
+#      cp infra/kubernetes/security/encryption-config.yaml.example \
+#         infra/kubernetes/security/encryption-config.yaml
+#   2. <REPLACE_WITH_BASE64_32BYTE_KEY> を実際のキーに置換する:
+#      head -c 32 /dev/urandom | base64
+#   3. 生成した encryption-config.yaml を絶対にコミットしないこと
+#
+# 本番デプロイ前に以下を必ず実施すること（L-01 監査対応）:
+#   1. 32 バイトのランダムキーを生成する:
+#      head -c 32 /dev/urandom | base64
+#   2. 生成したキーを Vault の secret/data/k1s0/infra/etcd-encryption-key に保存する
+#   3. CI/CD パイプラインで Vault からキーを注入してこのファイルを生成する
+#   4. 生成したキーをリポジトリにコミットしないこと
+#
+# 詳細手順: docs/infrastructure/kubernetes/kubernetes設計.md（デプロイ前チェックリスト）
+# ===========================================================================
+#
+# 参考: https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  # Secrets の暗号化: 認証情報・APIキーなど機密性の高いデータを保護する
+  - resources:
+      - secrets
+    providers:
+      # aescbc: AES-CBC 方式（Kubernetes 標準の推奨暗号化方式）
+      # キーローテーション時は新しいキーを先頭に追加し、古いキーを末尾に残して段階的に移行する
+      - aescbc:
+          keys:
+            # プライマリキー: 現在の暗号化に使用されるアクティブキー
+            # secret の値は Vault 経由で注入すること（プレースホルダー値は使用禁止）
+            # H-4 監査対応: Secrets/ConfigMaps には必ず異なるキーを使用すること（同一キー流出時の被害拡大を防ぐ）
+            - name: secrets-key1
+              secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
+      # identity: 暗号化なし（フォールバック用。新規リソースは aescbc で暗号化されるため末尾に配置）
+      - identity: {}
+
+  # ConfigMaps の暗号化: 設定情報に混入した機密値（接続文字列等）を保護する
+  - resources:
+      - configmaps
+    providers:
+      # aescbc: ConfigMaps 専用キーを使用する（H-4 監査対応: Secrets キーと分離して影響範囲を限定する）
+      - aescbc:
+          keys:
+            # プライマリキー: Secrets とは異なるキーを使用すること（キー名で明示的に区別する）
+            - name: configmaps-key1
+              secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
+      # identity: 暗号化なし（フォールバック用）
+      - identity: {}

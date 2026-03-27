@@ -1,3 +1,7 @@
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な change_type 文字列フィールドと
+// 新 change_type_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -56,7 +56,10 @@ pub enum MasterMaintenanceError {
 
     /// テーブルの操作権限がない（Create/Update/Delete not allowed）
     #[error("{operation} not allowed for table '{table_name}'")]
-    OperationNotAllowed { table_name: String, operation: String },
+    OperationNotAllowed {
+        table_name: String,
+        operation: String,
+    },
 
     /// テーブル名が重複している
     #[error("table already exists: {0}")]
@@ -137,12 +140,13 @@ impl From<MasterMaintenanceError> for ServiceError {
                 code: ErrorCode::new("SYS_MM_COLUMN_NOT_FOUND"),
                 message: msg,
             },
-            MasterMaintenanceError::OperationNotAllowed { table_name, operation } => {
-                ServiceError::Forbidden {
-                    code: ErrorCode::new("SYS_MM_OPERATION_NOT_ALLOWED"),
-                    message: format!("{} not allowed for table '{}'", operation, table_name),
-                }
-            }
+            MasterMaintenanceError::OperationNotAllowed {
+                table_name,
+                operation,
+            } => ServiceError::Forbidden {
+                code: ErrorCode::new("SYS_MM_OPERATION_NOT_ALLOWED"),
+                message: format!("{} not allowed for table '{}'", operation, table_name),
+            },
             MasterMaintenanceError::DuplicateTable(msg) => ServiceError::Conflict {
                 code: ErrorCode::new("SYS_MM_DUPLICATE_TABLE"),
                 message: msg,

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react
 import { AuthContext, type User } from './AuthContext';
 import { createApiClient, setCsrfToken } from '../http/apiClient';
 import { navigateTo } from './navigation';
+// ローディング中のスピナー表示に使用する既存コンポーネントをインポートする
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -28,6 +30,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   }), [apiBaseURL]);
 
   // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
+  // apiClient は useMemo でメモ化されているため、apiBaseURL が変わらない限り再実行されない（M-13 監査対応）
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -52,8 +55,7 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
     };
 
     checkSession();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [apiClient]);
 
   // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする
   const login = useCallback(() => {
@@ -61,14 +63,21 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   }, [apiBaseURL]);
 
   // ログアウト時に CSRF トークンもクリアする
+  // ネットワークエラーが発生してもクライアント側の認証状態は必ずクリアする（finally で保証）
   const logout = useCallback(async () => {
-    await apiClient.post('/auth/logout');
-    setCsrfToken(null);
-    setUser(null);
+    try {
+      await apiClient.post('/auth/logout');
+    } catch {
+      // サーバー側のログアウトが失敗してもクライアント側のセッションは必ずクリアする
+    } finally {
+      setCsrfToken(null);
+      setUser(null);
+    }
   }, [apiClient]);
 
+  // セッション確認が完了するまでローディングスピナーを表示し、null を返してコンテンツが消えるのを防ぐ
   if (loading) {
-    return null;
+    return <LoadingSpinner message="認証情報を確認中..." />;
   }
 
   return (

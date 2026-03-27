@@ -1204,6 +1204,9 @@ type RecordAuditLogRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
 	// Deprecated: event_type_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	IpAddress string `protobuf:"bytes,3,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
@@ -1214,6 +1217,9 @@ type RecordAuditLogRequest struct {
 	Action string `protobuf:"bytes,6,opt,name=action,proto3" json:"action,omitempty"`
 	// SUCCESS / FAILURE
 	// Deprecated: result_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	Result string `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
 	// 操作の詳細情報（client_id, grant_type 等）
 	Detail *structpb.Struct `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
@@ -1259,6 +1265,7 @@ func (*RecordAuditLogRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_auth_v1_auth_proto_rawDescGZIP(), []int{17}
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *RecordAuditLogRequest) GetEventType() string {
 	if x != nil {
 		return x.EventType
@@ -1301,6 +1308,7 @@ func (x *RecordAuditLogRequest) GetAction() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *RecordAuditLogRequest) GetResult() string {
 	if x != nil {
 		return x.Result
@@ -1403,11 +1411,17 @@ type SearchAuditLogsRequest struct {
 	Pagination *v1.Pagination         `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	UserId     string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Deprecated: event_type_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	EventType string        `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	From      *v1.Timestamp `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
 	To        *v1.Timestamp `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
 	// SUCCESS / FAILURE
 	// Deprecated: result_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	Result string `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
 	// 監査イベント種別フィルタ（enum）
 	EventTypeEnum AuditEventType `protobuf:"varint,7,opt,name=event_type_enum,json=eventTypeEnum,proto3,enum=k1s0.system.auth.v1.AuditEventType" json:"event_type_enum,omitempty"`
@@ -1461,6 +1475,7 @@ func (x *SearchAuditLogsRequest) GetUserId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *SearchAuditLogsRequest) GetEventType() string {
 	if x != nil {
 		return x.EventType
@@ -1482,6 +1497,7 @@ func (x *SearchAuditLogsRequest) GetTo() *v1.Timestamp {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *SearchAuditLogsRequest) GetResult() string {
 	if x != nil {
 		return x.Result
@@ -1561,6 +1577,9 @@ type AuditLog struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Deprecated: event_type_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	EventType string `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
 	UserId    string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	IpAddress string `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
@@ -1568,6 +1587,9 @@ type AuditLog struct {
 	Resource  string `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
 	Action    string `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
 	// Deprecated: result_enum を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 	Result string `protobuf:"bytes,8,opt,name=result,proto3" json:"result,omitempty"`
 	// 操作の詳細情報（変更前後の値等）
 	Detail    *structpb.Struct `protobuf:"bytes,9,opt,name=detail,proto3" json:"detail,omitempty"`
@@ -1621,6 +1643,7 @@ func (x *AuditLog) GetId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *AuditLog) GetEventType() string {
 	if x != nil {
 		return x.EventType
@@ -1663,6 +1686,7 @@ func (x *AuditLog) GetAction() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
 func (x *AuditLog) GetResult() string {
 	if x != nil {
 		return x.Result
@@ -1813,18 +1837,18 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\b_user_id\"K\n" +
 	"\x17CheckPermissionResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xd6\x03\n" +
-	"\x15RecordAuditLogRequest\x12\x1d\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xde\x03\n" +
+	"\x15RecordAuditLogRequest\x12!\n" +
 	"\n" +
-	"event_type\x18\x01 \x01(\tR\teventType\x12\x17\n" +
+	"event_type\x18\x01 \x01(\tB\x02\x18\x01R\teventType\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"ip_address\x18\x03 \x01(\tR\tipAddress\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x04 \x01(\tR\tuserAgent\x12\x1a\n" +
 	"\bresource\x18\x05 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\x06 \x01(\tR\x06action\x12\x16\n" +
-	"\x06result\x18\a \x01(\tR\x06result\x12/\n" +
+	"\x06action\x18\x06 \x01(\tR\x06action\x12\x1a\n" +
+	"\x06result\x18\a \x01(\tB\x02\x18\x01R\x06result\x12/\n" +
 	"\x06detail\x18\b \x01(\v2\x17.google.protobuf.StructR\x06detail\x12\x1f\n" +
 	"\vresource_id\x18\t \x01(\tR\n" +
 	"resourceId\x12\x19\n" +
@@ -1836,17 +1860,17 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x16RecordAuditLogResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12?\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xa3\x03\n" +
+	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xab\x03\n" +
 	"\x16SearchAuditLogsRequest\x12A\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
 	"\n" +
-	"event_type\x18\x03 \x01(\tR\teventType\x124\n" +
+	"event_type\x18\x03 \x01(\tB\x02\x18\x01R\teventType\x124\n" +
 	"\x04from\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\x04from\x120\n" +
-	"\x02to\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\x02to\x12\x16\n" +
-	"\x06result\x18\x06 \x01(\tR\x06result\x12K\n" +
+	"\x02to\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\x02to\x12\x1a\n" +
+	"\x06result\x18\x06 \x01(\tB\x02\x18\x01R\x06result\x12K\n" +
 	"\x0fevent_type_enum\x18\a \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
 	"\vresult_enum\x18\b \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
 	"resultEnum\"\x95\x01\n" +
@@ -1854,19 +1878,19 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x04logs\x18\x01 \x03(\v2\x1d.k1s0.system.auth.v1.AuditLogR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x9a\x04\n" +
+	"pagination\"\xa2\x04\n" +
 	"\bAuditLog\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\n" +
-	"event_type\x18\x02 \x01(\tR\teventType\x12\x17\n" +
+	"event_type\x18\x02 \x01(\tB\x02\x18\x01R\teventType\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x05 \x01(\tR\tuserAgent\x12\x1a\n" +
 	"\bresource\x18\x06 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\a \x01(\tR\x06action\x12\x16\n" +
-	"\x06result\x18\b \x01(\tR\x06result\x12/\n" +
+	"\x06action\x18\a \x01(\tR\x06action\x12\x1a\n" +
+	"\x06result\x18\b \x01(\tB\x02\x18\x01R\x06result\x12/\n" +
 	"\x06detail\x18\t \x01(\v2\x17.google.protobuf.StructR\x06detail\x12?\n" +
 	"\n" +
 	"created_at\x18\n" +

@@ -714,18 +714,18 @@ vault:
 
 ## 詳細設計ドキュメント
 
-- [system-file-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-file-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-file-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-file-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ---
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [RBAC設計.md](../../architecture/auth/RBAC設計.md) -- RBAC ロールモデル
 - [system-server.md](../auth/server.md) -- system tier サーバー一覧
-- [system-server-implementation.md](../_common/implementation.md) -- system tier 実装設計
+- [system-server-implementation.md](../../_common/implementation.md) -- system tier 実装設計
 
 ## Doc Sync (2026-03-03)
 
@@ -740,4 +740,4 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

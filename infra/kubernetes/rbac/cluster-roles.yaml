@@ -53,9 +53,10 @@ rules:
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses", "networkpolicies"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # RBAC リソースの管理
+  # RBAC リソースの管理（H-6 監査対応: clusterroles/clusterrolebindings の操作権限は k1s0-security-admin に分離）
+  # k1s0-admin は Namespace スコープの roles/rolebindings のみ操作可能にし、権限エスカレーションリスクを軽減する
   - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    resources: ["roles", "rolebindings"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   # オートスケーリングの管理
   - apiGroups: ["autoscaling"]
@@ -64,6 +65,19 @@ rules:
   # ストレージの管理
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses", "persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# セキュリティ管理者用 Role（H-6 監査対応: ADR-0038）
+# ClusterRole/ClusterRoleBinding への操作権限を分離し、セキュリティチームのみに付与する。
+# k1s0-admin と分離することで権限エスカレーションリスクを排除する。
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k1s0-security-admin
+rules:
+  # RBAC クラスタリソースの管理（専用権限として k1s0-admin から分離）
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles", "clusterrolebindings"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 # 運用監視用 readonly Role

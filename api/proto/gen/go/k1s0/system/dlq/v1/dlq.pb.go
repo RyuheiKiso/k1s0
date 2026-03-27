@@ -89,6 +89,9 @@ type DlqMessage struct {
 	// JSON-encoded payload bytes.
 	Payload []byte `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
 	// Deprecated: use status_enum instead.
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/dlq/v1/dlq.proto.
 	Status      string        `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
 	CreatedAt   *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt   *v1.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
@@ -171,6 +174,7 @@ func (x *DlqMessage) GetPayload() []byte {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/dlq/v1/dlq.proto.
 func (x *DlqMessage) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -685,7 +689,7 @@ var File_k1s0_system_dlq_v1_dlq_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\n" +
-	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\"\x82\x04\n" +
+	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\"\x86\x04\n" +
 	"\n" +
 	"DlqMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
@@ -695,8 +699,8 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"retryCount\x12\x1f\n" +
 	"\vmax_retries\x18\x05 \x01(\x05R\n" +
 	"maxRetries\x12\x18\n" +
-	"\apayload\x18\x06 \x01(\fR\apayload\x12\x16\n" +
-	"\x06status\x18\a \x01(\tR\x06status\x12?\n" +
+	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1a\n" +
+	"\x06status\x18\a \x01(\tB\x02\x18\x01R\x06status\x12?\n" +
 	"\n" +
 	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +

@@ -3,6 +3,10 @@
 //! proto 生成コード (`src/proto/`) の FeatureFlagService トレイトを実装する。
 //! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の FeatureFlagGrpcService に委譲する。
 
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な change_type 文字列フィールドと
+// 新 change_type_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};

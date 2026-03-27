@@ -90,7 +90,7 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error").into()));
 
         let uc = GetActivityUseCase::new(Arc::new(mock));
         let result = uc.execute("tenant1", Uuid::new_v4()).await;

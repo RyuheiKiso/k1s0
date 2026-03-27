@@ -222,10 +222,7 @@ mod tests {
 
         let mut mock_exec_repo = MockExecutionRepository::new();
         // save は Running→Completed の2回呼ばれる
-        mock_exec_repo
-            .expect_save()
-            .times(2)
-            .returning(|_| Ok(()));
+        mock_exec_repo.expect_save().times(2).returning(|_| Ok(()));
 
         let uc = ExecuteAgentUseCase::new(
             Arc::new(mock_agent_repo),
@@ -262,7 +259,11 @@ mod tests {
         let result = uc.execute(sample_request("no-such-agent")).await;
         assert!(result.is_err());
         // err().unwrap() を使うことでDebugトレイト不要でエラーを取得する
-        assert!(result.err().unwrap().to_string().contains("Agent not found"));
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Agent not found"));
     }
 
     // 異常系: ReActエンジン内でAIクライアントがエラーを返した場合にFailedで保存される
@@ -280,10 +281,7 @@ mod tests {
 
         let mut mock_exec_repo = MockExecutionRepository::new();
         // Running状態で1回目のsave、Failed状態で2回目のsave
-        mock_exec_repo
-            .expect_save()
-            .times(2)
-            .returning(|_| Ok(()));
+        mock_exec_repo.expect_save().times(2).returning(|_| Ok(()));
 
         // AIクライアントがエラーを返すスタブを使用
         // ReActエンジンは内部でエラーをキャッチしてstepsにエラーを記録し、正常終了する
@@ -376,10 +374,7 @@ mod tests {
             .returning(move |_| Ok(Some(agent_clone.clone())));
 
         let mut mock_exec_repo = MockExecutionRepository::new();
-        mock_exec_repo
-            .expect_save()
-            .times(2)
-            .returning(|_| Ok(()));
+        mock_exec_repo.expect_save().times(2).returning(|_| Ok(()));
 
         let uc = ExecuteAgentUseCase::new(
             Arc::new(mock_agent_repo),

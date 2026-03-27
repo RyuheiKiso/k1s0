@@ -20,7 +20,10 @@ impl MigrationConfig {
 
     // M-04監査対応: テーブル名を SQL クエリに直接埋め込むため、SQL インジェクション防止のために正規表現でバリデーションする。
     // 英数字とアンダースコアのみ許可し、先頭は英字またはアンダースコアに限定する。
-    pub fn with_table_name(mut self, table_name: impl Into<String>) -> Result<Self, MigrationError> {
+    pub fn with_table_name(
+        mut self,
+        table_name: impl Into<String>,
+    ) -> Result<Self, MigrationError> {
         let name = table_name.into();
         let valid = {
             let mut chars = name.chars();

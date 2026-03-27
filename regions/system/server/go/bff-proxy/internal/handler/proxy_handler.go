@@ -88,6 +88,12 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// アップストリーム向けに Authorization ヘッダーを付加する
 	c.Request.Header.Set("Authorization", "Bearer "+out.AccessToken)
 
+	// H-10 監査対応: トークンリフレッシュが発生した場合、新しい CSRF トークンをレスポンスヘッダーに設定する。
+	// クライアントはこのヘッダーを検出して保持している CSRF トークンを更新する必要がある。
+	if out.TokenRefreshed && out.CSRFToken != "" {
+		c.Header("X-CSRF-Token", out.CSRFToken)
+	}
+
 	// 相関ヘッダーをアップストリームに伝播する
 	if cid, ok := c.Get(middleware.CorrelationIDKey); ok {
 		// 型アサーションの安全化: comma-ok パターンで string 型を確認する（M-3）

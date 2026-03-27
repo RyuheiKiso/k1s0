@@ -41,9 +41,8 @@ mod tests {
     #[tokio::test]
     async fn returns_teams() {
         let mut mock = MockTeamRepository::new();
-        mock.expect_list().returning(|| {
-            Ok(vec![sample_team("platform"), sample_team("backend")])
-        });
+        mock.expect_list()
+            .returning(|| Ok(vec![sample_team("platform"), sample_team("backend")]));
 
         let uc = ListTeamsUseCase::new(Arc::new(mock));
         let result = uc.execute().await.unwrap();

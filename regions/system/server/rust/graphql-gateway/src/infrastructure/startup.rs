@@ -7,11 +7,14 @@ use tracing::info;
 
 use super::auth::JwksVerifier;
 use super::config::Config;
+// gRPC クライアントと HTTP クライアントをインポートする。
+// service-catalog は REST のみ提供するため ServiceCatalogHttpClient を使用する。
 use super::grpc::{
     AuthGrpcClient, ConfigGrpcClient, FeatureFlagGrpcClient, NavigationGrpcClient,
-    NotificationGrpcClient, SchedulerGrpcClient, ServiceCatalogGrpcClient, SessionGrpcClient,
-    TenantGrpcClient, VaultGrpcClient, WorkflowGrpcClient,
+    NotificationGrpcClient, SchedulerGrpcClient, SessionGrpcClient, TenantGrpcClient,
+    VaultGrpcClient, WorkflowGrpcClient,
 };
+use super::http::ServiceCatalogHttpClient;
 use crate::adapter::graphql_handler::{self, GatewayClients, GatewayResolvers};
 use crate::adapter::middleware::ratelimit_middleware::RateLimitLayer;
 use crate::usecase::{
@@ -31,7 +34,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-graphql-gateway-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -60,19 +64,19 @@ pub async fn run() -> anyhow::Result<()> {
     // connect_lazy() により起動時のバックエンド接続依存を排除する。
     // 実際の接続は最初のRPCリクエスト時に確立されるため、バックエンドサービスの起動順序に依存しない。
     let tenant_client = Arc::new(TenantGrpcClient::new(&cfg.backends.tenant)?);
-    let feature_flag_client =
-        Arc::new(FeatureFlagGrpcClient::new(&cfg.backends.featureflag)?);
+    let feature_flag_client = Arc::new(FeatureFlagGrpcClient::new(&cfg.backends.featureflag)?);
     let config_client = Arc::new(ConfigGrpcClient::new(&cfg.backends.config)?);
-    let navigation_client =
-        Arc::new(NavigationGrpcClient::new(&cfg.backends.navigation)?);
-    let service_catalog_client =
-        Arc::new(ServiceCatalogGrpcClient::new(&cfg.backends.service_catalog)?);
+    let navigation_client = Arc::new(NavigationGrpcClient::new(&cfg.backends.navigation)?);
+    // service-catalog は HTTP/axum で実装されており gRPC サーバーが存在しないため、
+    // reqwest ベースの REST クライアントを使用する
+    let service_catalog_client = Arc::new(ServiceCatalogHttpClient::new(
+        &cfg.backends.service_catalog,
+    )?);
     let auth_client = Arc::new(AuthGrpcClient::new(&cfg.backends.auth)?);
     let session_client = Arc::new(SessionGrpcClient::new(&cfg.backends.session)?);
     let vault_client = Arc::new(VaultGrpcClient::new(&cfg.backends.vault)?);
     let scheduler_client = Arc::new(SchedulerGrpcClient::new(&cfg.backends.scheduler)?);
-    let notification_client =
-        Arc::new(NotificationGrpcClient::new(&cfg.backends.notification)?);
+    let notification_client = Arc::new(NotificationGrpcClient::new(&cfg.backends.notification)?);
     let workflow_client = Arc::new(WorkflowGrpcClient::new(&cfg.backends.workflow)?);
 
     // --- JWT 検証 ---

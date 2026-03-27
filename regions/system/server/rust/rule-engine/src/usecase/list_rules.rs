@@ -81,9 +81,8 @@ mod tests {
     #[tokio::test]
     async fn returns_rules_with_pagination() {
         let mut mock = MockRuleRepository::new();
-        mock.expect_find_all_paginated().returning(|_, _, _, _| {
-            Ok((vec![sample_rule("r1"), sample_rule("r2")], 5))
-        });
+        mock.expect_find_all_paginated()
+            .returning(|_, _, _, _| Ok((vec![sample_rule("r1"), sample_rule("r2")], 5)));
 
         let uc = ListRulesUseCase::new(Arc::new(mock));
         let input = ListRulesInput {
@@ -103,9 +102,8 @@ mod tests {
     #[tokio::test]
     async fn has_next_true_when_more_items() {
         let mut mock = MockRuleRepository::new();
-        mock.expect_find_all_paginated().returning(|_, _, _, _| {
-            Ok((vec![sample_rule("r1")], 10))
-        });
+        mock.expect_find_all_paginated()
+            .returning(|_, _, _, _| Ok((vec![sample_rule("r1")], 10)));
 
         let uc = ListRulesUseCase::new(Arc::new(mock));
         let input = ListRulesInput {
@@ -123,9 +121,8 @@ mod tests {
     #[tokio::test]
     async fn has_next_false_when_last_page() {
         let mut mock = MockRuleRepository::new();
-        mock.expect_find_all_paginated().returning(|_, _, _, _| {
-            Ok((vec![sample_rule("r1")], 3))
-        });
+        mock.expect_find_all_paginated()
+            .returning(|_, _, _, _| Ok((vec![sample_rule("r1")], 3)));
 
         let uc = ListRulesUseCase::new(Arc::new(mock));
         let input = ListRulesInput {

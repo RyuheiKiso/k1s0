@@ -8,8 +8,8 @@ use tracing::info;
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use k1s0_messaging::{EventEnvelope, EventProducer};
 
-use crate::PubSubError;
 use crate::traits::{MessageHandler, PubSub};
+use crate::PubSubError;
 
 /// KafkaPubSub は Kafka ベースの PubSub 実装。
 /// k1s0-messaging の EventProducer をラップする。

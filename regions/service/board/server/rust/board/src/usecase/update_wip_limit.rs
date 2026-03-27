@@ -114,7 +114,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("column not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("column not found").into()));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {
@@ -134,7 +134,7 @@ mod tests {
 
         mock.expect_update_wip_limit()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error").into()));
 
         let uc = UpdateWipLimitUseCase::new(Arc::new(mock));
         let req = UpdateWipLimitRequest {

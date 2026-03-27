@@ -1,5 +1,7 @@
 pub mod client;
 pub mod error;
+#[cfg(feature = "mock")]
+pub mod mock;
 pub mod query;
 
 #[cfg(feature = "grpc")]

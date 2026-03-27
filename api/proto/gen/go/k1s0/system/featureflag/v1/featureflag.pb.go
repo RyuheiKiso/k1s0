@@ -981,6 +981,9 @@ type WatchFeatureFlagResponse struct {
 	FlagKey string                 `protobuf:"bytes,1,opt,name=flag_key,json=flagKey,proto3" json:"flag_key,omitempty"`
 	// Deprecated: use change_type_enum instead.
 	// CREATED, UPDATED, DELETED
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/featureflag/v1/featureflag.proto.
 	ChangeType string        `protobuf:"bytes,2,opt,name=change_type,json=changeType,proto3" json:"change_type,omitempty"`
 	Flag       *FeatureFlag  `protobuf:"bytes,3,opt,name=flag,proto3" json:"flag,omitempty"`
 	ChangedAt  *v1.Timestamp `protobuf:"bytes,4,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"`
@@ -1027,6 +1030,7 @@ func (x *WatchFeatureFlagResponse) GetFlagKey() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/featureflag/v1/featureflag.proto.
 func (x *WatchFeatureFlagResponse) GetChangeType() string {
 	if x != nil {
 		return x.ChangeType
@@ -1134,10 +1138,10 @@ const file_k1s0_system_featureflag_v1_featureflag_proto_rawDesc = "" +
 	"\x05value\x18\x03 \x01(\tR\x05value\x12\x18\n" +
 	"\avariant\x18\x04 \x01(\tR\avariant\"4\n" +
 	"\x17WatchFeatureFlagRequest\x12\x19\n" +
-	"\bflag_key\x18\x01 \x01(\tR\aflagKey\"\xa1\x02\n" +
+	"\bflag_key\x18\x01 \x01(\tR\aflagKey\"\xa5\x02\n" +
 	"\x18WatchFeatureFlagResponse\x12\x19\n" +
-	"\bflag_key\x18\x01 \x01(\tR\aflagKey\x12\x1f\n" +
-	"\vchange_type\x18\x02 \x01(\tR\n" +
+	"\bflag_key\x18\x01 \x01(\tR\aflagKey\x12#\n" +
+	"\vchange_type\x18\x02 \x01(\tB\x02\x18\x01R\n" +
 	"changeType\x12;\n" +
 	"\x04flag\x18\x03 \x01(\v2'.k1s0.system.featureflag.v1.FeatureFlagR\x04flag\x12?\n" +
 	"\n" +

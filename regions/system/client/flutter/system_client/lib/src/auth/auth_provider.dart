@@ -49,9 +49,20 @@ class AuthNotifier extends Notifier<AuthState> {
       csrfTokenProvider: () async => _csrfToken,
       // モバイルでのセッションクッキー管理
       sessionCookieInterceptor: kIsWeb ? null : _sessionCookieInterceptor,
+      // 401 Unauthorized 検出時にクライアント側の認証状態をリセットするコールバック
+      onUnauthorized: _handleUnauthorized,
     );
     _checkSession();
     return const AuthUnauthenticated();
+  }
+
+  /// 401 Unauthorized を検出した際にクライアント側のセッション情報をリセットする
+  /// ApiClient から同期的に呼び出されるため、非同期処理は行わない
+  void _handleUnauthorized() {
+    _csrfToken = null;
+    if (ref.mounted) {
+      state = const AuthUnauthenticated();
+    }
   }
 
   /// BFF の /auth/session エンドポイントでセッションを確認する
@@ -139,14 +150,21 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  /// BFF のログアウトエンドポイントを呼び出してセッションを破棄する
+  /// BFF のログアウトエンドポイントを呼び出してセッションを破棄する。
+  /// ネットワークエラーが発生してもクライアント側のセッション情報は必ず削除する（finally で保証）。
   Future<void> logout() async {
-    await _apiClient.post<void>('/auth/logout');
-    _csrfToken = null;
-    if (!kIsWeb) {
-      _sessionCookieInterceptor.clearSession();
+    try {
+      await _apiClient.post<void>('/auth/logout');
+    } catch (_) {
+      // サーバー側のログアウトが失敗してもクライアント側のセッションは必ずクリアする
+    } finally {
+      _csrfToken = null;
+      if (!kIsWeb) {
+        // clearSession() は非同期メソッドのため await が必須
+        await _sessionCookieInterceptor.clearSession();
+      }
+      state = const AuthUnauthenticated();
     }
-    state = const AuthUnauthenticated();
   }
 }
 

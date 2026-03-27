@@ -279,6 +279,46 @@ tokio::spawn(async move {
 
 ---
 
+## パスワードの安全な管理 {#パスワード安全管理}
+
+データベースパスワードは `secrecy::Secret<String>` で保持し、`Debug` トレイトによる意図しない露出を防ぐ。
+
+```rust
+use secrecy::{ExposeSecret, Secret};
+
+pub struct DatabaseConfig {
+    pub password: Secret<String>,  // Debug で [REDACTED] 表示
+}
+
+impl DatabaseConfig {
+    pub fn connection_url(&self) -> String {
+        format!("postgres://{}:{}@...", self.user, self.password.expose_secret())
+    }
+}
+```
+
+`connection_url()` の戻り値はパスワードを含むため、ログ出力しないこと。
+
+### 依存クレートの追加方法
+
+各ワークスペース `Cargo.toml` の `[workspace.dependencies]` に追加済み:
+
+```toml
+secrecy = { version = "0.10", features = ["serde"] }
+```
+
+各サービスの `Cargo.toml` `[dependencies]` に追加:
+
+```toml
+secrecy = { workspace = true }
+```
+
+### serde との連携
+
+`secrecy` の `serde` feature により、YAML 設定ファイルからのデシリアライズは通常の `String` と同様に動作する。テストでは `Secret::new("password".to_string())` でラップする。
+
+---
+
 ## 共通 ObservabilityConfig モジュール {#共通observabilityconfig}
 
 技術監査対応により、全サーバーで重複していた可観測性設定構造体を `k1s0-server-common` の `config` モジュールに集約した。各サーバーの `config.rs` にローカル定義されていた `ObservabilityConfig` / `LogConfig` / `TraceConfig` / `MetricsConfig` を廃止し、共通クレートからインポートする。

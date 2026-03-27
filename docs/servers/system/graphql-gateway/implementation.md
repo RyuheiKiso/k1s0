@@ -69,6 +69,9 @@ regions/system/server/rust/graphql-gateway/
 │       │   ├── scheduler_client.rs # SchedulerGrpcClient
 │       │   ├── notification_client.rs # NotificationGrpcClient
 │       │   └── workflow_client.rs  # WorkflowGrpcClient
+│       ├── http/
+│       │   ├── mod.rs
+│       │   └── service_catalog_client.rs  # ServiceCatalogHttpClient (reqwest/REST)
 │       └── auth/
 │           └── jwks.rs            # JWKS 取得・JWT 検証
 ├── api/
@@ -86,7 +89,7 @@ regions/system/server/rust/graphql-gateway/
 
 ## 依存クレート
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。
 
 | クレート | バージョン | 用途 |
 | --- | --- | --- |
@@ -101,7 +104,9 @@ regions/system/server/rust/graphql-gateway/
 
 ### build.rs
 
-gRPC クライアント側のため `build_server(false)` / `build_client(true)`。proto パス: `tenant.proto`, `featureflag.proto`, `config.proto`, `navigation.proto`, `service_catalog.proto`, `auth.proto`, `session.proto`, `vault.proto`, `scheduler.proto`, `notification.proto`, `workflow.proto`。
+gRPC クライアント側のため `build_server(false)` / `build_client(true)`。proto パス: `tenant.proto`, `featureflag.proto`, `config.proto`, `navigation.proto`, `auth.proto`, `session.proto`, `vault.proto`, `scheduler.proto`, `notification.proto`, `workflow.proto`。
+
+> **注記（監査 C-4 対応）**: `service_catalog.proto` は削除済み。service-catalog サーバーは HTTP/axum で実装されており gRPC を提供しないため、`infrastructure/http/service_catalog_client.rs` に reqwest ベースの REST クライアントを用意している（[ADR-0039](../../../architecture/adr/0039-service-catalog-rest-client.md)）。
 
 ---
 
@@ -120,7 +125,7 @@ gRPC クライアント側のため `build_server(false)` / `build_client(true)`
 
 ## Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 # axum に WebSocket サポートを追加
@@ -148,7 +153,7 @@ axum-test = "17"
 
 ## src/main.rs
 
-> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。graphql-gateway は DB/Kafka を使用せず、REST サーバーのみ起動する。以下はサービス固有の DI:
+> 起動シーケンスは [Rust共通実装.md](../../_common/Rust共通実装.md#共通mainrs) を参照。graphql-gateway は DB/Kafka を使用せず、REST サーバーのみ起動する。以下はサービス固有の DI:
 
 ```rust
     // --- gRPC クライアント ---
@@ -156,7 +161,8 @@ axum-test = "17"
     let feature_flag_client = Arc::new(FeatureFlagGrpcClient::connect(&cfg.backends.featureflag).await?);
     let config_client = Arc::new(ConfigGrpcClient::connect(&cfg.backends.config).await?);
     let navigation_client = Arc::new(NavigationGrpcClient::connect(&cfg.backends.navigation).await?);
-    let service_catalog_client = Arc::new(ServiceCatalogGrpcClient::connect(&cfg.backends.service_catalog).await?);
+    // service-catalog は REST のみ提供するため ServiceCatalogHttpClient を使用する（ADR-0039）
+    let service_catalog_client = Arc::new(ServiceCatalogHttpClient::new(&cfg.backends.service_catalog)?);
     let auth_client = Arc::new(AuthGrpcClient::connect(&cfg.backends.auth).await?);
     let session_client = Arc::new(SessionGrpcClient::connect(&cfg.backends.session).await?);
     let vault_client = Arc::new(VaultGrpcClient::connect(&cfg.backends.vault).await?);
@@ -712,7 +718,8 @@ pub struct AppState {
     pub feature_flag_client: Arc<FeatureFlagGrpcClient>,
     pub config_client: Arc<ConfigGrpcClient>,
     pub navigation_client: Arc<NavigationGrpcClient>,
-    pub service_catalog_client: Arc<ServiceCatalogGrpcClient>,
+    // service-catalog は REST クライアント（ADR-0039）
+    pub service_catalog_client: Arc<ServiceCatalogHttpClient>,
     pub auth_client: Arc<AuthGrpcClient>,
     pub session_client: Arc<SessionGrpcClient>,
     pub vault_client: Arc<VaultGrpcClient>,
@@ -1207,7 +1214,7 @@ gRPC クライアント実装（TenantService、FeatureFlagService、ConfigServi
 
 ## 設定ファイル例
 
-> 共通セクション（app/server/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。graphql-gateway は database/kafka を使用しない。サービス固有セクション:
+> 共通セクション（app/server/observability）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。graphql-gateway は database/kafka を使用しない。サービス固有セクション:
 
 ```yaml
 graphql:
@@ -1233,8 +1240,9 @@ backends:
   navigation:
     address: "http://navigation-server.k1s0-system.svc.cluster.local:50051"
     timeout_ms: 3000
+  # service-catalog は REST エンドポイントを使用する（ADR-0039）
   service_catalog:
-    address: "http://service-catalog-server.k1s0-system.svc.cluster.local:50051"
+    address: "http://service-catalog-server.k1s0-system.svc.cluster.local:8080"
     timeout_ms: 3000
   auth:
     address: "http://auth-server.k1s0-system.svc.cluster.local:50051"

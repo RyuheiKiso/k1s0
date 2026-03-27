@@ -58,7 +58,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-ratelimit-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -224,7 +225,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー（未認証アクセスを middleware レベルでブロック）
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, ratelimit_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, ratelimit_grpc_action);
 
     // AppState (REST handler 用)
     let mut state = AppState::new(

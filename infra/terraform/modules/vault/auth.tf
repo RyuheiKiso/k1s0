@@ -13,15 +13,22 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
   backend            = vault_auth_backend.kubernetes.path
   # Kubernetes API サーバーのエンドポイントを変数から参照する
   kubernetes_host    = var.kubernetes_host
-  kubernetes_ca_cert = file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+  # H-5 監査対応: CA 証明書パスのハードコードを解消。
+  # var.kubernetes_ca_cert が空文字列の場合は Kubernetes Pod 内のサービスアカウントマウントパスから読み込む。
+  # ローカル/CI 環境からの terraform apply 時は kubernetes_ca_cert 変数で PEM 内容を渡すこと。
+  kubernetes_ca_cert = var.kubernetes_ca_cert != "" ? var.kubernetes_ca_cert : file("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 }
 
 # system Tier role - サービス別SA名で最小権限を適用
+# H-1 監査対応: bff-proxy の Vault 認証を system ロールに統一する。
+#   - service-accounts.yaml の SA 名は "bff-proxy-sa"（namespace: k1s0-system）
+#   - values.yaml の vault.role は "system" に設定済み
+#   → bound_service_account_names に "bff-proxy-sa" を追加し、service ロールから削除する
 resource "vault_kubernetes_auth_backend_role" "system" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "system"
   bound_service_account_names      = [
-    "auth-rust", "config-rust", "dlq-manager", "event-store-rust",
+    "auth-rust", "bff-proxy-sa", "config-rust", "dlq-manager", "event-store-rust",
     "featureflag-rust", "file-rust", "graphql-gateway", "master-maintenance",
     "navigation-rust", "notification-rust", "policy-rust", "quota-rust",
     "ratelimit-rust", "rule-engine-rust", "saga-rust", "scheduler-rust",
@@ -32,8 +39,8 @@ resource "vault_kubernetes_auth_backend_role" "system" {
   bound_service_account_namespaces = ["k1s0-system"]
   token_policies                   = ["system"]
   token_ttl                        = 3600
-  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
-  token_max_ttl                    = 86400
+  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
 }
 
 # business Tier role - サービス別SA名で最小権限を適用
@@ -46,22 +53,25 @@ resource "vault_kubernetes_auth_backend_role" "business" {
   bound_service_account_namespaces = ["k1s0-business"]
   token_policies                   = ["business"]
   token_ttl                        = 3600
-  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
-  token_max_ttl                    = 86400
+  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
 }
 
 # service Tier role - サービス別SA名で最小権限を適用
+# H-1 監査対応: bff-proxy の SA は "bff-proxy-sa" (namespace: k1s0-system) であり、
+#   service ロール（namespace: k1s0-service）には属さない。
+#   "bff-proxy" を削除し、system ロールの "bff-proxy-sa" に統一する。
 resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"
   bound_service_account_names      = [
-    "task-rust", "board-rust", "activity-rust", "bff-proxy",
+    "task-rust", "board-rust", "activity-rust",
   ]
   bound_service_account_namespaces = ["k1s0-service"]
   token_policies                   = ["service"]
   token_ttl                        = 3600
-  # トークンの最大有効期限を24時間に制限する（m-03対応: token_max_ttl 未設定の修正）
-  token_max_ttl                    = 86400
+  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
 }
 
 # ============================================================

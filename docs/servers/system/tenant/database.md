@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS tenant.tenants (
     status          VARCHAR(50)  NOT NULL DEFAULT 'provisioning',
     plan            VARCHAR(50)  NOT NULL DEFAULT 'free',
     settings        JSONB        NOT NULL DEFAULT '{}',
-    owner_id        VARCHAR(255),
+    -- テナントオーナーのユーザーIDはUUID型で統一する（006_change_owner_id_type.up.sql にて VARCHAR(255) から変更）
+    owner_id        UUID,
     keycloak_realm  VARCHAR(255),
     db_schema       VARCHAR(255),
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -63,7 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenant.tenants (status);
 | status | VARCHAR(50) | NOT NULL, DEFAULT 'provisioning' | ステータス（provisioning/active/suspended/deleted） |
 | plan | VARCHAR(50) | NOT NULL, DEFAULT 'free' | プラン（free/starter/professional/enterprise） |
 | settings | JSONB | NOT NULL, DEFAULT '{}' | テナント設定 |
-| owner_id | VARCHAR(255) | | テナントオーナーのユーザー ID |
+| owner_id | UUID | | テナントオーナーのユーザー ID（UUID 型で auth.users.id と整合） |
 | keycloak_realm | VARCHAR(255) | | Keycloak realm 名 |
 | db_schema | VARCHAR(255) | | データベーススキーマ名 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
@@ -117,6 +118,8 @@ CREATE INDEX IF NOT EXISTS idx_tenant_members_user_id ON tenant.tenant_members (
 | `004_add_tenant_fields.down.sql` | カラム削除 |
 | `005_add_owner_id.up.sql` | owner_id カラム追加 |
 | `005_add_owner_id.down.sql` | カラム削除 |
+| `006_change_owner_id_type.up.sql` | owner_id 型を VARCHAR(255) → UUID に変更（auth.users.id との型統一） |
+| `006_change_owner_id_type.down.sql` | owner_id 型を UUID → VARCHAR(255) に戻す |
 
 ---
 

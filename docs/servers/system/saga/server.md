@@ -1309,7 +1309,7 @@ vault:
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-server.md](../auth/server.md) -- auth-server 設計（同一パターン）
 - [system-saga-database.md](database.md) -- Saga データベーススキーマ・状態管理テーブル
@@ -1324,7 +1324,7 @@ vault:
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |

@@ -203,7 +203,9 @@ fn generate_go_producer_stub(config: &EventConfig) -> String {
         lines.push(format!(
             "// Publish は {type_name} イベントを Kafka に発行します。"
         ));
-        lines.push(format!("// ctx にはキャンセルやタイムアウトを含むコンテキストを渡してください。"));
+        lines.push(format!(
+            "// ctx にはキャンセルやタイムアウトを含むコンテキストを渡してください。"
+        ));
         lines.push(format!(
             "func (p *{type_name}Producer) Publish(ctx context.Context, event *{type_name}) error {{"
         ));
@@ -243,7 +245,10 @@ fn generate_go_consumer_stub(
             } else {
                 format!(" // {}", f.description)
             };
-            format!("//   - {} {} ({}){}\n", f.name, f.field_type, f.number, desc)
+            format!(
+                "//   - {} {} ({}){}\n",
+                f.name, f.field_type, f.number, desc
+            )
         })
         .collect();
 
@@ -420,8 +425,9 @@ events:
         assert!(created_names.contains(&"src/events/types.rs".to_string()));
         assert!(created_names.contains(&"src/events/producer.rs".to_string()));
         assert!(created_names.contains(&"src/events/consumers/mod.rs".to_string()));
-        assert!(created_names
-            .contains(&"src/events/consumers/on_taskmanagement_project_type_changed.rs".to_string()));
+        assert!(created_names.contains(
+            &"src/events/consumers/on_taskmanagement_project_type_changed.rs".to_string()
+        ));
         assert!(created_names.contains(&"migrations/001_create_outbox.up.sql".to_string()));
         assert!(created_names.contains(&"migrations/001_create_outbox.down.sql".to_string()));
         assert!(created_names.contains(&"config/schema-registry.yaml".to_string()));

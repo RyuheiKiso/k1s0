@@ -57,3 +57,17 @@ type StartSagaResponse struct {
 	SagaID string `json:"saga_id"`
 	Status string `json:"status"`
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは saga.Status / State / StepLog を使用すること。
+// ---------------------------------------------------------------------------
+
+// Status は SagaStatus の短縮エイリアス。
+type Status = SagaStatus
+
+// State は SagaState の短縮エイリアス。
+type State = SagaState
+
+// StepLog は SagaStepLog の短縮エイリアス。
+type StepLog = SagaStepLog

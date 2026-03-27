@@ -167,6 +167,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         let s = format!("{}", claims);
@@ -192,6 +193,7 @@ mod tests {
             realm_access: None,
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.audience(), Some("aud1"));
@@ -217,6 +219,7 @@ mod tests {
             }),
             resource_access: None,
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.realm_roles(), &["user", "admin"]);
@@ -248,6 +251,7 @@ mod tests {
             realm_access: None,
             resource_access: Some(ra),
             tier_access: None,
+            tenant_id: String::new(),
         };
 
         assert_eq!(claims.resource_roles("task-server"), &["read", "write"]);
@@ -540,7 +544,10 @@ mod tests {
 
         // max_stale_duration=0: 初回フェッチ失敗はキャッシュなしのためエラー
         let result = verifier_zero_stale.verify_token(&token).await;
-        assert!(result.is_err(), "フェッチ失敗かつ stale キャッシュなしはエラーになること");
+        assert!(
+            result.is_err(),
+            "フェッチ失敗かつ stale キャッシュなしはエラーになること"
+        );
         match result.unwrap_err() {
             AuthError::JwksFetchFailed(_) => {}
             other => panic!("JwksFetchFailed が期待されるが: {:?}", other),

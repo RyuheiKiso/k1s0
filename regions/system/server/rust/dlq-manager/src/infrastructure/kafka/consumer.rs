@@ -81,8 +81,11 @@ impl DlqKafkaConsumer {
                                     error = %parse_err,
                                     "ポイズンピル検出: デシリアライズ失敗、即座に Dead としてマーク"
                                 );
-                                // パースエラー時は生バイトを文字列として保持する
-                                let raw = String::from_utf8_lossy(bytes).to_string();
+                                // ポイズンピルのバイト列を UTF-8 文字列に変換する。
+                                // 非 UTF-8 バイトが含まれる場合は長さをフォールバックメッセージとして使用する。
+                                let raw = String::from_utf8(bytes.to_vec()).unwrap_or_else(|_| {
+                                    format!("(non-UTF-8 bytes: {} bytes)", bytes.len())
+                                });
                                 (serde_json::json!({"raw_payload": raw}), true)
                             }
                         },
@@ -95,9 +98,13 @@ impl DlqKafkaConsumer {
                             for i in 0..h.count() {
                                 let header = h.get(i);
                                 if header.key == "error" {
+                                    // Kafka ヘッダーの error 値を UTF-8 文字列に変換する。
+                                    // 非 UTF-8 バイトの場合は空文字列を返す。
                                     return Some(
-                                        String::from_utf8_lossy(header.value.unwrap_or(b""))
-                                            .to_string(),
+                                        header
+                                            .value
+                                            .and_then(|v| String::from_utf8(v.to_vec()).ok())
+                                            .unwrap_or_default(),
                                     );
                                 }
                             }

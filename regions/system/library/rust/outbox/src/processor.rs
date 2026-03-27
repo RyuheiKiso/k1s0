@@ -15,8 +15,13 @@ pub trait OutboxPublisher: Send + Sync {
 /// デフォルトの並列処理数
 const DEFAULT_CONCURRENCY: usize = 4;
 
+/// PROCESSING 状態のスタックを検出するデフォルト閾値（分）
+/// この時間を超えて PROCESSING のままのメッセージをリカバリ対象とする（M-12 監査対応）
+const DEFAULT_STALE_PROCESSING_MINUTES: u32 = 10;
+
 /// OutboxProcessor はアウトボックスメッセージの定期処理を担う。
 /// fetch_pending → publish → update のサイクルを並列実行する。
+/// M-12 監査対応: PROCESSING スタックを防ぐためリカバリ処理も定期実行する。
 pub struct OutboxProcessor {
     store: Arc<dyn OutboxStore>,
     publisher: Arc<dyn OutboxPublisher>,
@@ -24,6 +29,8 @@ pub struct OutboxProcessor {
     batch_size: u32,
     /// 並列処理数（デフォルト: 4）
     concurrency: usize,
+    /// PROCESSING スタック検出閾値（分）。この分数を超えた PROCESSING メッセージを PENDING に戻す（M-12 監査対応）
+    stale_processing_minutes: u32,
 }
 
 impl OutboxProcessor {
@@ -37,6 +44,7 @@ impl OutboxProcessor {
             publisher,
             batch_size,
             concurrency: DEFAULT_CONCURRENCY,
+            stale_processing_minutes: DEFAULT_STALE_PROCESSING_MINUTES,
         }
     }
 
@@ -44,6 +52,14 @@ impl OutboxProcessor {
     #[allow(dead_code)]
     pub fn with_concurrency(mut self, concurrency: usize) -> Self {
         self.concurrency = concurrency;
+        self
+    }
+
+    /// PROCESSING スタック検出閾値を設定する（M-12 監査対応）。
+    /// デフォルトは DEFAULT_STALE_PROCESSING_MINUTES 分。
+    #[allow(dead_code)]
+    pub fn with_stale_processing_minutes(mut self, minutes: u32) -> Self {
+        self.stale_processing_minutes = minutes;
         self
     }
 
@@ -75,8 +91,21 @@ impl OutboxProcessor {
                     match publisher.publish(&message).await {
                         Ok(()) => {
                             message.mark_delivered();
-                            store.update(&message).await?;
-                            Ok(true)
+                            // M-12 監査対応: mark_delivered 後の DB Update 失敗を安全に処理する。
+                            // ? で即時伝播すると PROCESSING 状態が永続化される（Dead Silence）ため、
+                            // エラーをログに記録し Ok(false) を返して次のリカバリサイクルに委ねる。
+                            // recover_stale_processing が定期的に PROCESSING スタックを PENDING に戻す。
+                            match store.update(&message).await {
+                                Ok(()) => Ok(true),
+                                Err(e) => {
+                                    tracing::error!(
+                                        error = %e,
+                                        message_id = %message.id,
+                                        "mark_delivered 後の DB Update 失敗: メッセージが PROCESSING 状態でスタックする可能性あり。リカバリサイクルで自動復旧される"
+                                    );
+                                    Ok(false)
+                                }
+                            }
                         }
                         Err(e) => {
                             message.mark_failed(e.to_string());
@@ -105,7 +134,31 @@ impl OutboxProcessor {
         Ok(processed)
     }
 
+    /// PROCESSING 状態でスタックしたメッセージを PENDING に戻すリカバリ処理（M-12 監査対応）。
+    /// mark_delivered 後の DB Update 失敗によって PROCESSING のまま残ったメッセージを自動復旧する。
+    pub async fn recover_stale_messages(&self) -> Result<(), OutboxError> {
+        match self
+            .store
+            .recover_stale_processing(self.stale_processing_minutes)
+            .await
+        {
+            Ok(count) if count > 0 => {
+                tracing::warn!(
+                    count = count,
+                    stale_minutes = self.stale_processing_minutes,
+                    "PROCESSING スタックメッセージをリカバリしました（M-12）"
+                );
+            }
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!(error = %e, "PROCESSING スタックメッセージのリカバリに失敗しました");
+            }
+        }
+        Ok(())
+    }
+
     /// process_batch を interval ごとに実行する。
+    /// M-12 監査対応: リカバリ処理も定期実行し PROCESSING スタックを自動解消する。
     /// cancellation_token がキャンセルされたら終了する。
     pub async fn run(
         &self,
@@ -113,11 +166,19 @@ impl OutboxProcessor {
         cancellation_token: CancellationToken,
     ) -> Result<(), OutboxError> {
         let mut ticker = tokio::time::interval(interval);
+        // リカバリは処理インターバルの10倍周期で実行する（過剰なDB負荷を避けるため）
+        let mut recovery_tick_count: u64 = 0;
+        const RECOVERY_INTERVAL_TICKS: u64 = 10;
         loop {
             tokio::select! {
                 _ = cancellation_token.cancelled() => break,
                 _ = ticker.tick() => {
                     self.process_batch().await?;
+                    recovery_tick_count += 1;
+                    // 一定周期ごとに PROCESSING スタックメッセージをリカバリする（M-12 監査対応）
+                    if recovery_tick_count % RECOVERY_INTERVAL_TICKS == 0 {
+                        self.recover_stale_messages().await?;
+                    }
                 }
             }
         }

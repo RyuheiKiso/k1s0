@@ -39,6 +39,9 @@ utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 moka = { version = "0.12", features = ["future"] }
+
+# パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
+secrecy = {workspace = true}
 aes-gcm = "0.10"
 hex = "0.4"
 vaultrs = "0.7"

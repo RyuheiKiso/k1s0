@@ -200,27 +200,63 @@ impl IdempotencyStore for RedisIdempotencyStore {
     ) -> Result<(), IdempotencyError> {
         #[cfg(feature = "redis")]
         {
-            use deadpool_redis::redis::AsyncCommands;
+            use deadpool_redis::redis::Script;
 
-            let mut record = self
-                .get(key)
-                .await?
-                .ok_or_else(|| IdempotencyError::NotFound {
-                    key: key.to_string(),
-                })?;
-            record.status = IdempotencyStatus::Completed;
-            record.response_body = response_body;
-            record.response_status = response_status;
-            record.completed_at = Some(chrono::Utc::now());
+            // M-3 監査対応: GET → 更新 → SET を Lua スクリプトでアトミックに実行し TOCTOU 競合を排除する。
+            // 非アトミックな GET/SET 分離では並行リクエストが中間状態を上書きするリスクがあるため、
+            // Lua スクリプトにより Redis サーバー側で単一アトミック操作として処理する。
+            // KEYS[1]: idempotency プレフィックス付きキー
+            // ARGV[1]: response_body（空文字列は JSON null として扱う）
+            // ARGV[2]: response_status（"0" は JSON null として扱う）
+            // ARGV[3]: completed_at（RFC3339 形式の文字列）
+            let script = Script::new(
+                r#"
+local raw = redis.call('GET', KEYS[1])
+if raw == false then
+  return redis.error_reply('not_found')
+end
+local record = cjson.decode(raw)
+record['status'] = 'Completed'
+if ARGV[1] ~= '' then
+  record['response_body'] = ARGV[1]
+else
+  record['response_body'] = cjson.null
+end
+if ARGV[2] ~= '0' then
+  record['response_status'] = tonumber(ARGV[2])
+else
+  record['response_status'] = cjson.null
+end
+record['completed_at'] = ARGV[3]
+redis.call('SET', KEYS[1], cjson.encode(record), 'KEEPTTL')
+return 1
+"#,
+            );
 
             let redis_key = Self::redis_key(key);
-            let payload = serde_json::to_string(&record)?;
+            let response_body_arg = response_body.unwrap_or_default();
+            let response_status_arg = response_status
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "0".to_string());
+            let completed_at_arg = chrono::Utc::now().to_rfc3339();
             let mut conn = self.connection().await?;
-            let _: () = conn.set(&redis_key, payload).await.map_err(redis_error)?;
-            if let Some(ttl) = remaining_ttl_secs(&record) {
-                let _: bool = conn.expire(&redis_key, ttl).await.map_err(redis_error)?;
-            }
-            return Ok(());
+
+            let result: Result<i32, _> = script
+                .prepare_invoke()
+                .key(&redis_key)
+                .arg(&response_body_arg)
+                .arg(&response_status_arg)
+                .arg(&completed_at_arg)
+                .invoke_async(&mut *conn)
+                .await;
+
+            return match result {
+                Ok(_) => Ok(()),
+                Err(e) if e.to_string().contains("not_found") => Err(IdempotencyError::NotFound {
+                    key: key.to_string(),
+                }),
+                Err(e) => Err(redis_error(e)),
+            };
         }
 
         #[cfg(not(feature = "redis"))]
@@ -239,27 +275,61 @@ impl IdempotencyStore for RedisIdempotencyStore {
     ) -> Result<(), IdempotencyError> {
         #[cfg(feature = "redis")]
         {
-            use deadpool_redis::redis::AsyncCommands;
+            use deadpool_redis::redis::Script;
 
-            let mut record = self
-                .get(key)
-                .await?
-                .ok_or_else(|| IdempotencyError::NotFound {
-                    key: key.to_string(),
-                })?;
-            record.status = IdempotencyStatus::Failed;
-            record.response_body = error_body;
-            record.response_status = response_status;
-            record.completed_at = Some(chrono::Utc::now());
+            // M-3 監査対応: GET → 更新 → SET を Lua スクリプトでアトミックに実行し TOCTOU 競合を排除する。
+            // KEYS[1]: idempotency プレフィックス付きキー
+            // ARGV[1]: error_body（空文字列は JSON null として扱う）
+            // ARGV[2]: response_status（"0" は JSON null として扱う）
+            // ARGV[3]: completed_at（RFC3339 形式の文字列）
+            let script = Script::new(
+                r#"
+local raw = redis.call('GET', KEYS[1])
+if raw == false then
+  return redis.error_reply('not_found')
+end
+local record = cjson.decode(raw)
+record['status'] = 'Failed'
+if ARGV[1] ~= '' then
+  record['response_body'] = ARGV[1]
+else
+  record['response_body'] = cjson.null
+end
+if ARGV[2] ~= '0' then
+  record['response_status'] = tonumber(ARGV[2])
+else
+  record['response_status'] = cjson.null
+end
+record['completed_at'] = ARGV[3]
+redis.call('SET', KEYS[1], cjson.encode(record), 'KEEPTTL')
+return 1
+"#,
+            );
 
             let redis_key = Self::redis_key(key);
-            let payload = serde_json::to_string(&record)?;
+            let error_body_arg = error_body.unwrap_or_default();
+            let response_status_arg = response_status
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "0".to_string());
+            let completed_at_arg = chrono::Utc::now().to_rfc3339();
             let mut conn = self.connection().await?;
-            let _: () = conn.set(&redis_key, payload).await.map_err(redis_error)?;
-            if let Some(ttl) = remaining_ttl_secs(&record) {
-                let _: bool = conn.expire(&redis_key, ttl).await.map_err(redis_error)?;
-            }
-            return Ok(());
+
+            let result: Result<i32, _> = script
+                .prepare_invoke()
+                .key(&redis_key)
+                .arg(&error_body_arg)
+                .arg(&response_status_arg)
+                .arg(&completed_at_arg)
+                .invoke_async(&mut *conn)
+                .await;
+
+            return match result {
+                Ok(_) => Ok(()),
+                Err(e) if e.to_string().contains("not_found") => Err(IdempotencyError::NotFound {
+                    key: key.to_string(),
+                }),
+                Err(e) => Err(redis_error(e)),
+            };
         }
 
         #[cfg(not(feature = "redis"))]
@@ -299,7 +369,10 @@ pub struct PostgresIdempotencyStore {
 impl PostgresIdempotencyStore {
     /// 接続プールの最大接続数を指定して新しい PostgresIdempotencyStore を生成する。
     /// max_connections が None の場合はデフォルト値 (10) を使用する。
-    pub async fn new(database_url: impl Into<String>, max_connections: Option<u32>) -> Result<Self, IdempotencyError> {
+    pub async fn new(
+        database_url: impl Into<String>,
+        max_connections: Option<u32>,
+    ) -> Result<Self, IdempotencyError> {
         let database_url = database_url.into();
         if database_url.trim().is_empty() {
             return Err(IdempotencyError::StorageError(

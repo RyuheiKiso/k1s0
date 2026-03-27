@@ -12,7 +12,7 @@ pub mod tenant;
 pub mod vault;
 pub mod workflow;
 
-pub use auth::{AuditLog, AuditLogConnection, PermissionCheck, Role, User};
+pub use auth::{AuditEventType, AuditLog, AuditLogConnection, AuditResult, PermissionCheck, Role, User};
 pub use catalog_service::{CatalogService, CatalogServiceConnection, MetadataEntry, ServiceHealth};
 pub use config_entry::ConfigEntry;
 pub use feature_flag::FeatureFlag;

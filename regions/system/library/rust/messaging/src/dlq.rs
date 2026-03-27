@@ -99,8 +99,8 @@ where
                 // 最終リトライ以外はエクスポネンシャルバックオフで待機する。
                 // 一時的な障害（DB 瞬断等）からの自動回復率を高めるため。
                 if attempt + 1 < retries {
-                    let delay_ms = (RETRY_INITIAL_DELAY_MS * 2u64.pow(attempt))
-                        .min(RETRY_MAX_DELAY_MS);
+                    let delay_ms =
+                        (RETRY_INITIAL_DELAY_MS * 2u64.pow(attempt)).min(RETRY_MAX_DELAY_MS);
                     tokio::time::sleep(Duration::from_millis(delay_ms)).await;
                 }
             }

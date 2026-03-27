@@ -288,7 +288,11 @@ impl SagaGrpcService {
         // payload のシリアライズ失敗はデバッグ困難なエラーになるため、黙殺せず Internal エラーとして伝播させる
         // unwrap_or_default() では失敗が無音になり、クライアントが空バイト列を受け取っても原因調査ができない
         let saga_payload = serde_json::to_vec(&saga.payload).map_err(|e| {
-            tracing::error!("saga payload シリアライズ失敗: saga_id={}, error={}", saga.saga_id, e);
+            tracing::error!(
+                "saga payload シリアライズ失敗: saga_id={}, error={}",
+                saga.saga_id,
+                e
+            );
             GrpcError::Internal("saga payload の変換に失敗しました".to_string())
         })?;
 

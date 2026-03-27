@@ -1,3 +1,6 @@
+// service-catalog ミューテーションリゾルバ。
+// service-catalog は REST のみ提供するため ServiceCatalogHttpClient を使用する。
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,14 +9,14 @@ use tracing::instrument;
 use crate::domain::model::{
     DeleteServicePayload, RegisterServicePayload, UpdateServicePayload, UserError,
 };
-use crate::infrastructure::grpc::ServiceCatalogGrpcClient;
+use crate::infrastructure::http::ServiceCatalogHttpClient;
 
 pub struct ServiceCatalogMutationResolver {
-    client: Arc<ServiceCatalogGrpcClient>,
+    client: Arc<ServiceCatalogHttpClient>,
 }
 
 impl ServiceCatalogMutationResolver {
-    pub fn new(client: Arc<ServiceCatalogGrpcClient>) -> Self {
+    pub fn new(client: Arc<ServiceCatalogHttpClient>) -> Self {
         Self { client }
     }
 

@@ -44,6 +44,18 @@ upstream:
 - Readiness: `GET /readyz`
 - Metrics: `GET /metrics`
 
+## Vault 認証設定（H-1 / M-18 監査対応）
+
+| 項目 | 値 |
+|------|-----|
+| Vault ロール | `system` |
+| ServiceAccount 名 | `bff-proxy-sa` |
+| namespace | `k1s0-system` |
+| token_max_ttl | 14400（4h） |
+
+`infra/terraform/modules/vault/auth.tf` の `system` ロールに `bound_service_account_names = ["bff-proxy-sa", ...]` が設定されていること。
+`infra/helm/services/system/bff-proxy/values.yaml` の `serviceAccount.name = "bff-proxy-sa"` / `vault.role = "system"` と一致させること。
+
 ## セキュリティ設定
 
 - Cookie は `HttpOnly`, `Secure`, `SameSite=Lax`（本番）。

@@ -105,11 +105,7 @@ variable "kafka_broker_replicas" {
   default     = 3
 }
 
-variable "zookeeper_replicas" {
-  description = "Number of ZooKeeper replicas"
-  type        = number
-  default     = 3
-}
+# M-19 監査対応: zookeeper_replicas 変数を削除。KRaft モード移行済み（ADR-0016 参照）。
 
 variable "kafka_default_replication_factor" {
   description = "Default replication factor for Kafka topics"
@@ -148,10 +144,11 @@ variable "mysql_chart_version" {
   default     = "9.0.0"
 }
 
+# L-17 対応: postgresql_version を "17" に更新し Docker Compose の postgres:17 イメージと統一する
 variable "postgresql_version" {
   description = "PostgreSQL image version"
   type        = string
-  default     = "16"
+  default     = "17"
 }
 
 variable "mysql_version" {

@@ -1,6 +1,8 @@
 // ProjectMasterService gRPC 実装。
 // tonic サービストレイトを実装してクライアントからの RPC 呼び出しを処理する。
 use std::sync::Arc;
+// tonic-build が生成するトレイト impl の追加時に使用する（現時点ではトレイト実装待ち）
+#[allow(unused_imports)]
 use tonic::{Request, Response, Status};
 
 use crate::usecase::manage_project_types::ManageProjectTypesUseCase;

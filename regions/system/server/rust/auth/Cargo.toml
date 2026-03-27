@@ -61,6 +61,9 @@ futures = "0.3"
 # Kafka
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 
+# パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
+secrecy = {workspace = true}
+
 # HTTP client (for Keycloak)
 reqwest = {workspace = true, features = ["rustls-tls"]}
 
@@ -92,8 +95,9 @@ mockall = {workspace = true}
 tokio-test = {workspace = true}
 axum-test = "17"
 tower = {workspace = true}
-testcontainers = "0.24"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+# workspace で一元管理するバージョンを参照する（H-2 監査対応: バージョン競合解消）
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
 wiremock = "0.6"
 
 [lints]

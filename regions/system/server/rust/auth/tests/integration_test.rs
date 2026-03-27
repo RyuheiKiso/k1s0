@@ -219,7 +219,11 @@ async fn test_full_health_check_flow() {
         .uri("/healthz")
         .body(Body::empty())
         .expect("healthz リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("healthz リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("healthz リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 
     // readyz エンドポイントが 200 を返すことを確認する
@@ -227,7 +231,11 @@ async fn test_full_health_check_flow() {
         .uri("/readyz")
         .body(Body::empty())
         .expect("readyz リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("readyz リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("readyz リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 
     // metrics エンドポイントが 200 を返すことを確認する
@@ -235,7 +243,10 @@ async fn test_full_health_check_flow() {
         .uri("/metrics")
         .body(Body::empty())
         .expect("metrics リクエストの構築に失敗");
-    let resp = app.oneshot(req).await.expect("metrics リクエストの送信に失敗");
+    let resp = app
+        .oneshot(req)
+        .await
+        .expect("metrics リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
@@ -250,12 +261,17 @@ async fn test_token_validate_and_introspect_flow() {
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"test-valid-token"}"#))
         .expect("validate リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("validate リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("validate リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("validate レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("validate レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("validate レスポンスの JSON パースに失敗");
     assert_eq!(json["valid"], true);
     assert_eq!(json["claims"]["sub"], "test-user-1");
 
@@ -266,12 +282,16 @@ async fn test_token_validate_and_introspect_flow() {
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"test-valid-token"}"#))
         .expect("introspect リクエストの構築に失敗");
-    let resp = app.oneshot(req).await.expect("introspect リクエストの送信に失敗");
+    let resp = app
+        .oneshot(req)
+        .await
+        .expect("introspect リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("introspect レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("introspect レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("introspect レスポンスの JSON パースに失敗");
     assert_eq!(json["active"], true);
 }
 
@@ -286,7 +306,11 @@ async fn test_token_validate_failure_flow() {
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"invalid-token"}"#))
         .expect("validate 失敗リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("validate 失敗リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("validate 失敗リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 
     // introspect エンドポイントが無効なトークンで active: false を返すことを確認する
@@ -296,12 +320,16 @@ async fn test_token_validate_failure_flow() {
         .header("content-type", "application/json")
         .body(Body::from(r#"{"token":"invalid-token"}"#))
         .expect("introspect 失敗リクエストの構築に失敗");
-    let resp = app.oneshot(req).await.expect("introspect 失敗リクエストの送信に失敗");
+    let resp = app
+        .oneshot(req)
+        .await
+        .expect("introspect 失敗リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("introspect 失敗レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("introspect 失敗レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("introspect 失敗レスポンスの JSON パースに失敗");
     assert_eq!(json["active"], false);
 }
 
@@ -315,12 +343,17 @@ async fn test_user_crud_flow() {
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .expect("ユーザー取得リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("ユーザー取得リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("ユーザー取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("ユーザー取得レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザー取得レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("ユーザー取得レスポンスの JSON パースに失敗");
     assert_eq!(json["id"], "existing-user");
     assert_eq!(json["username"], "integration.test");
 
@@ -330,7 +363,11 @@ async fn test_user_crud_flow() {
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .expect("不在ユーザー取得リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("不在ユーザー取得リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("不在ユーザー取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
 
     // ユーザー一覧の取得が成功することを確認する
@@ -339,13 +376,21 @@ async fn test_user_crud_flow() {
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .expect("ユーザー一覧リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("ユーザー一覧リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("ユーザー一覧リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("ユーザー一覧レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザー一覧レスポンスの JSON パースに失敗");
-    assert!(!json["users"].as_array().expect("users フィールドが配列でない").is_empty());
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("ユーザー一覧レスポンスの JSON パースに失敗");
+    assert!(!json["users"]
+        .as_array()
+        .expect("users フィールドが配列でない")
+        .is_empty());
 
     // ユーザーロール取得が成功することを確認する
     let req = Request::builder()
@@ -353,12 +398,16 @@ async fn test_user_crud_flow() {
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .expect("ユーザーロール取得リクエストの構築に失敗");
-    let resp = app.oneshot(req).await.expect("ユーザーロール取得リクエストの送信に失敗");
+    let resp = app
+        .oneshot(req)
+        .await
+        .expect("ユーザーロール取得リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("ユーザーロール取得レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("ユーザーロール取得レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&body).expect("ユーザーロール取得レスポンスの JSON パースに失敗");
     assert_eq!(json["user_id"], "existing-user");
 }
 
@@ -397,14 +446,21 @@ async fn test_audit_log_record_and_search_flow() {
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).expect("監査ログボディの JSON シリアライズに失敗")))
+        .body(Body::from(
+            serde_json::to_string(&body).expect("監査ログボディの JSON シリアライズに失敗"),
+        ))
         .expect("監査ログ記録リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("監査ログ記録リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("監査ログ記録リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::CREATED);
     let resp_body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("監査ログ記録レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&resp_body).expect("監査ログ記録レスポンスの JSON パースに失敗");
+    let json: serde_json::Value =
+        serde_json::from_slice(&resp_body).expect("監査ログ記録レスポンスの JSON パースに失敗");
     assert!(json["id"].is_string());
 
     // 監査ログ検索リクエストを構築して送信する
@@ -413,13 +469,24 @@ async fn test_audit_log_record_and_search_flow() {
         .header("Authorization", "Bearer test-token")
         .body(Body::empty())
         .expect("監査ログ検索リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("監査ログ検索リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("監査ログ検索リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let resp_body = axum::body::to_bytes(resp.into_body(), usize::MAX)
         .await
         .expect("監査ログ検索レスポンスボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&resp_body).expect("監査ログ検索レスポンスの JSON パースに失敗");
-    assert_eq!(json["logs"].as_array().expect("logs フィールドが配列でない").len(), 1);
+    let json: serde_json::Value =
+        serde_json::from_slice(&resp_body).expect("監査ログ検索レスポンスの JSON パースに失敗");
+    assert_eq!(
+        json["logs"]
+            .as_array()
+            .expect("logs フィールドが配列でない")
+            .len(),
+        1
+    );
     assert_eq!(json["pagination"]["total_count"], 1);
 }
 
@@ -442,9 +509,15 @@ async fn test_audit_log_validation_errors() {
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).expect("バリデーションエラーテスト1 ボディの JSON シリアライズに失敗")))
+        .body(Body::from(serde_json::to_string(&body).expect(
+            "バリデーションエラーテスト1 ボディの JSON シリアライズに失敗",
+        )))
         .expect("バリデーションエラーテスト1 リクエストの構築に失敗");
-    let resp = app.clone().oneshot(req).await.expect("バリデーションエラーテスト1 リクエストの送信に失敗");
+    let resp = app
+        .clone()
+        .oneshot(req)
+        .await
+        .expect("バリデーションエラーテスト1 リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 
     // result 値が無効な場合に 400 を返すことを確認する
@@ -462,8 +535,13 @@ async fn test_audit_log_validation_errors() {
         .uri("/api/v1/audit/logs")
         .header("content-type", "application/json")
         .header("Authorization", "Bearer test-token")
-        .body(Body::from(serde_json::to_string(&body).expect("バリデーションエラーテスト2 ボディの JSON シリアライズに失敗")))
+        .body(Body::from(serde_json::to_string(&body).expect(
+            "バリデーションエラーテスト2 ボディの JSON シリアライズに失敗",
+        )))
         .expect("バリデーションエラーテスト2 リクエストの構築に失敗");
-    let resp = app.oneshot(req).await.expect("バリデーションエラーテスト2 リクエストの送信に失敗");
+    let resp = app
+        .oneshot(req)
+        .await
+        .expect("バリデーションエラーテスト2 リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
 }

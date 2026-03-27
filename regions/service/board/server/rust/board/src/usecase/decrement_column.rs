@@ -74,7 +74,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database connection failed")));
+            .returning(|_, _| Err(anyhow::anyhow!("database connection failed").into()));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {
@@ -95,7 +95,7 @@ mod tests {
 
         mock.expect_decrement()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("column not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("column not found").into()));
 
         let uc = DecrementColumnUseCase::new(Arc::new(mock));
         let req = DecrementColumnRequest {

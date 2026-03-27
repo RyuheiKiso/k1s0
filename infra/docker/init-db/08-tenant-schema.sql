@@ -1,69 +1,29 @@
 -- infra/docker/init-db/08-tenant-schema.sql
+-- スキーマ定義はマイグレーション（tenant-db/migrations/）が担当する。
+-- 本ファイルは DB 接続先の切り替えとスキーマ・拡張機能の初期作成・権限設定のみを行う。
+-- CREATE TABLE / ALTER TABLE / CREATE INDEX / CREATE TRIGGER は含まない。
+-- 対応マイグレーション:
+--   001_create_schema         : スキーマ・拡張機能・updated_at トリガー関数
+--   002_create_tenants        : tenants テーブル（settings JSONB, plan VARCHAR(50) + CHECK）
+--   003_create_tenant_members : tenant_members テーブル（role CHECK あり）
+--   004_add_tenant_fields     : keycloak_realm, db_schema カラム追加
+--   005_add_owner_id          : owner_id カラム追加（VARCHAR(255)）
+--   006_change_owner_id_to_uuid : owner_id を UUID 型に変更
+--   007_conditional_unique    : tenants.name を条件付きユニーク制約に変更（削除済みを除外）
 
 \c tenant_db;
 
+-- pgcrypto 拡張（gen_random_uuid 関数に必要）
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- tenant スキーマの作成（マイグレーション実行前にスキーマが存在する必要がある）
 CREATE SCHEMA IF NOT EXISTS tenant;
 
-CREATE OR REPLACE FUNCTION tenant.update_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TABLE IF NOT EXISTS tenant.tenants (
-    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    name         VARCHAR(255) UNIQUE NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    status       VARCHAR(50)  NOT NULL DEFAULT 'provisioning',
-    plan         VARCHAR(100) NOT NULL DEFAULT 'free',
-    realm_name   VARCHAR(255),
-    owner_id     UUID,
-    metadata     JSONB        NOT NULL DEFAULT '{}',
-    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT chk_tenants_status CHECK (status IN ('provisioning', 'active', 'suspended', 'deleted'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenant.tenants (status);
-CREATE INDEX IF NOT EXISTS idx_tenants_name ON tenant.tenants (name);
-
-CREATE TRIGGER trigger_tenants_update_updated_at
-    BEFORE UPDATE ON tenant.tenants
-    FOR EACH ROW EXECUTE FUNCTION tenant.update_updated_at();
-
-CREATE TABLE IF NOT EXISTS tenant.tenant_members (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id   UUID         NOT NULL REFERENCES tenant.tenants(id) ON DELETE CASCADE,
-    user_id     UUID         NOT NULL,
-    role        VARCHAR(100) NOT NULL DEFAULT 'member',
-    joined_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT uq_tenant_members_tenant_user UNIQUE (tenant_id, user_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_tenant_members_tenant_id ON tenant.tenant_members (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_tenant_members_user_id ON tenant.tenant_members (user_id);
-
-CREATE TABLE IF NOT EXISTS tenant.tenant_provisioning_jobs (
-    id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id     UUID         NOT NULL REFERENCES tenant.tenants(id) ON DELETE CASCADE,
-    status        VARCHAR(50)  NOT NULL DEFAULT 'pending',
-    current_step  VARCHAR(255),
-    error_message TEXT,
-    metadata      JSONB        NOT NULL DEFAULT '{}',
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT chk_provisioning_status CHECK (status IN ('pending', 'running', 'completed', 'failed'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_provisioning_jobs_tenant_id ON tenant.tenant_provisioning_jobs (tenant_id);
-CREATE INDEX IF NOT EXISTS idx_provisioning_jobs_status ON tenant.tenant_provisioning_jobs (status);
-
-CREATE TRIGGER trigger_provisioning_jobs_update_updated_at
-    BEFORE UPDATE ON tenant.tenant_provisioning_jobs
-    FOR EACH ROW EXECUTE FUNCTION tenant.update_updated_at();
+-- k1s0_tenant_rw ロールへの権限付与（H-17 監査対応）
+-- k1s0_tenant_rw ロールは 16-roles.sh で作成される
+-- tenant スキーマの利用権限を付与する
+GRANT USAGE ON SCHEMA tenant TO k1s0_tenant_rw;
+-- 全テーブルへの DML 権限を付与する
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA tenant TO k1s0_tenant_rw;
+-- 今後作成されるテーブルへの DML 権限をデフォルトで付与する
+ALTER DEFAULT PRIVILEGES IN SCHEMA tenant GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_tenant_rw;

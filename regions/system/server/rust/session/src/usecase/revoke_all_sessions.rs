@@ -119,12 +119,8 @@ mod tests {
         use crate::adapter::repository::session_metadata_postgres::MockSessionMetadataRepository;
 
         let mut mock = MockSessionRepository::new();
-        mock.expect_find_by_user_id().returning(|_| {
-            Ok(vec![
-                make_session("s1", false),
-                make_session("s2", false),
-            ])
-        });
+        mock.expect_find_by_user_id()
+            .returning(|_| Ok(vec![make_session("s1", false), make_session("s2", false)]));
         mock.expect_save().returning(|_| Ok(()));
 
         // mark_revoked が常にエラーを返すモックを設定する

@@ -88,6 +88,9 @@ type WorkflowStep struct {
 	StepId string                 `protobuf:"bytes,1,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
 	Name   string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Deprecated: use step_type_enum instead.
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
 	StepType     string  `protobuf:"bytes,3,opt,name=step_type,json=stepType,proto3" json:"step_type,omitempty"`
 	AssigneeRole *string `protobuf:"bytes,4,opt,name=assignee_role,json=assigneeRole,proto3,oneof" json:"assignee_role,omitempty"`
 	TimeoutHours *uint32 `protobuf:"varint,5,opt,name=timeout_hours,json=timeoutHours,proto3,oneof" json:"timeout_hours,omitempty"`
@@ -143,6 +146,7 @@ func (x *WorkflowStep) GetName() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
 func (x *WorkflowStep) GetStepType() string {
 	if x != nil {
 		return x.StepType
@@ -2101,11 +2105,11 @@ var File_k1s0_system_workflow_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\"\x84\x03\n" +
+	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\"\x88\x03\n" +
 	"\fWorkflowStep\x12\x17\n" +
 	"\astep_id\x18\x01 \x01(\tR\x06stepId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
-	"\tstep_type\x18\x03 \x01(\tR\bstepType\x12(\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
+	"\tstep_type\x18\x03 \x01(\tB\x02\x18\x01R\bstepType\x12(\n" +
 	"\rassignee_role\x18\x04 \x01(\tH\x00R\fassigneeRole\x88\x01\x01\x12(\n" +
 	"\rtimeout_hours\x18\x05 \x01(\rH\x01R\ftimeoutHours\x88\x01\x01\x12\"\n" +
 	"\n" +

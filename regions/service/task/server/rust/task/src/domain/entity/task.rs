@@ -275,4 +275,78 @@ mod tests {
             assert_eq!(parsed.as_str(), *status);
         }
     }
+
+    // TaskPriority の文字列変換が全バリアントで正常に動作することを検証する
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_task_priority_roundtrip() {
+        let variants = [
+            (TaskPriority::Low, "low"),
+            (TaskPriority::Medium, "medium"),
+            (TaskPriority::High, "high"),
+            (TaskPriority::Critical, "critical"),
+        ];
+        for (priority, s) in &variants {
+            assert_eq!(priority.as_str(), *s);
+            let parsed: TaskPriority = s.parse().unwrap();
+            assert_eq!(parsed, *priority);
+            assert_eq!(format!("{}", priority), *s);
+        }
+    }
+
+    // 無効な文字列から TaskPriority への変換がエラーを返すことを検証する
+    #[test]
+    fn test_task_priority_invalid_input() {
+        let result: Result<TaskPriority, _> = "invalid".parse();
+        assert!(result.is_err());
+        let result: Result<TaskPriority, _> = "".parse();
+        assert!(result.is_err());
+        // 大文字は無効（大文字小文字を区別する）
+        let result: Result<TaskPriority, _> = "HIGH".parse();
+        assert!(result.is_err());
+    }
+
+    // TaskStatus::can_transition_to() が全ての有効・無効な状態遷移で正しく動作することを検証する
+    #[test]
+    fn test_task_transition_valid_transitions() {
+        // Open から遷移できる状態
+        assert!(TaskStatus::Open.can_transition_to(&TaskStatus::InProgress));
+        assert!(TaskStatus::Open.can_transition_to(&TaskStatus::Cancelled));
+
+        // InProgress から遷移できる状態
+        assert!(TaskStatus::InProgress.can_transition_to(&TaskStatus::Review));
+        assert!(TaskStatus::InProgress.can_transition_to(&TaskStatus::Cancelled));
+
+        // Review から遷移できる状態
+        assert!(TaskStatus::Review.can_transition_to(&TaskStatus::Done));
+        assert!(TaskStatus::Review.can_transition_to(&TaskStatus::InProgress));
+        assert!(TaskStatus::Review.can_transition_to(&TaskStatus::Cancelled));
+
+        // Done と Cancelled は終端状態
+        assert!(!TaskStatus::Done.can_transition_to(&TaskStatus::Open));
+        assert!(!TaskStatus::Done.can_transition_to(&TaskStatus::InProgress));
+        assert!(!TaskStatus::Cancelled.can_transition_to(&TaskStatus::Open));
+        assert!(!TaskStatus::Cancelled.can_transition_to(&TaskStatus::InProgress));
+    }
+
+    // TaskError の Display メッセージが期待通りの形式であることを検証する
+    #[test]
+    fn test_task_error_display() {
+        // NotFound エラーには ID が含まれること
+        let err = TaskError::NotFound("task-123".to_string());
+        assert!(err.to_string().contains("task-123"));
+
+        // InvalidStatusTransition エラーには from/to のステータス文字列が含まれること
+        let err = TaskError::InvalidStatusTransition {
+            from: TaskStatus::Done.to_string(),
+            to: TaskStatus::Open.to_string(),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("done"));
+        assert!(msg.contains("open"));
+
+        // ValidationFailed エラーには検証メッセージが含まれること
+        let err = TaskError::ValidationFailed("title is required".to_string());
+        assert!(err.to_string().contains("title is required"));
+    }
 }

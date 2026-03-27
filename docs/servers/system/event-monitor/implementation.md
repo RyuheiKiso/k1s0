@@ -1,6 +1,6 @@
 # system-event-monitor-server 実装設計
 
-> **注記**: 本ドキュメントは event-monitor-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../_common/Rust共通実装.md) を参照。
+> **注記**: 本ドキュメントは event-monitor-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../../_common/Rust共通実装.md) を参照。
 
 system-event-monitor-server（イベントモニタリングサーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [server.md](server.md) を参照。
 
@@ -141,4 +141,4 @@ regions/system/server/rust/event-monitor/
 ## 関連ドキュメント
 
 - [server.md](server.md) -- 概要・API 定義・フロー定義形式
-- [Rust共通実装.md](../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存
+- [Rust共通実装.md](../../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存

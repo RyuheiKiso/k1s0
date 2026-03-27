@@ -57,7 +57,10 @@ impl std::str::FromStr for ServiceTier {
             "critical" => Ok(ServiceTier::Critical),
             "standard" => Ok(ServiceTier::Standard),
             "internal" => Ok(ServiceTier::Internal),
-            _ => Err(ParseError::InvalidValue(format!("invalid service tier: {}", s))),
+            _ => Err(ParseError::InvalidValue(format!(
+                "invalid service tier: {}",
+                s
+            ))),
         }
     }
 }
@@ -96,7 +99,10 @@ impl std::str::FromStr for ServiceLifecycle {
             "production" => Ok(ServiceLifecycle::Production),
             "deprecated" => Ok(ServiceLifecycle::Deprecated),
             "decommissioned" => Ok(ServiceLifecycle::Decommissioned),
-            _ => Err(ParseError::InvalidValue(format!("invalid service lifecycle: {}", s))),
+            _ => Err(ParseError::InvalidValue(format!(
+                "invalid service lifecycle: {}",
+                s
+            ))),
         }
     }
 }

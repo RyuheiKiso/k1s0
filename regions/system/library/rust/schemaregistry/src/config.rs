@@ -100,9 +100,13 @@ mod tests {
     // ビジネス層トピック名からサブジェクト名が正しく生成されることを確認する。
     #[test]
     fn test_subject_name_business_topic() {
-        let subject =
-            SchemaRegistryConfig::subject_name("k1s0.business.taskmanagement.project-type-changed.v1");
-        assert_eq!(subject, "k1s0.business.taskmanagement.project-type-changed.v1-value");
+        let subject = SchemaRegistryConfig::subject_name(
+            "k1s0.business.taskmanagement.project-type-changed.v1",
+        );
+        assert_eq!(
+            subject,
+            "k1s0.business.taskmanagement.project-type-changed.v1-value"
+        );
     }
 
     // URLのみ指定した JSON からデシリアライズしたとき、デフォルト値が適用されることを確認する。

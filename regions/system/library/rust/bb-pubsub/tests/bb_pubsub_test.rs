@@ -3,8 +3,8 @@
 // InMemoryPubSub の publish/subscribe ラウンドトリップを検証する。
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use k1s0_bb_core::{Component, ComponentStatus};
 use k1s0_bb_pubsub::{InMemoryPubSub, Message, MessageHandler, PubSub, PubSubError};

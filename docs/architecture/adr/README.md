@@ -30,13 +30,20 @@
 | [ADR-0022](./0022-grpc-message-validation-plan.md) | gRPCメッセージ検証計画 | 承認済み |
 | [ADR-0023](./0023-helm-oci-registry.md) | Helm OCIレジストリ | 承認済み |
 | [ADR-0024](./0024-service-account-isolation.md) | サービスアカウント分離 | 承認済み |
-| [ADR-0025](./0025-terraform-state-s3.md) | TerraformステートS3 | 承認済み |
+| [ADR-0025](./0025-terraform-state-s3.md) | Terraform State Backend を Ceph RGW（S3互換）に移行 | 承認済み |
 | [ADR-0026](./0026-service-tier-db-integration.md) | Service Tier DB統合設計（board/activity を k1s0_service に統合） | 承認済み |
 | [ADR-0027](./0027-db-app-user-role-separation.md) | DBアプリケーションユーザー権限分離（k1s0 非特権ロール） | 承認済み |
 | [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
 | [ADR-0029](./0029-postgresql-ha-strategy.md) | PostgreSQL HA 戦略 | 承認済み |
 | [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 提案中 |
+| [ADR-0031](./0031-etcd-encryption-at-rest.md) | etcd encryption-at-rest（保存時暗号化）の採用 | 採用済み |
+| [ADR-0032](./0032-zod-v4-record-key-schema.md) | zod v4 API移行方針 — record キースキーマ必須化 | 採用済み |
+| [ADR-0033](./0033-riverpod-v3-family-async-notifier.md) | Riverpod v3 FamilyNotifier → FamilyAsyncNotifier 移行 | 採用済み |
+| [ADR-0034](./0034-deprecated-proto-field-dual-write.md) | deprecated proto フィールド dual-write 移行戦略 | 採用済み |
 | [ADR-0035](./0035-dockerfile-template-strategy.md) | Dockerfile テンプレート戦略（27 サービス個別 Dockerfile の維持方針） | 承認済み |
+| [ADR-0036](./0036-promtail-log-collection-strategy.md) | Promtail ログ収集戦略 | 承認済み |
+| [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 承認済み |
+| [ADR-0038](./0038-k8s-rbac-namespace-scoping.md) | Kubernetes RBAC 権限の Namespace スコープ化（ClusterRoleBinding → RoleBinding） | 承認済み |
 
 ## ADR の追加方法
 

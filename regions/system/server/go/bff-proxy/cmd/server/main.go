@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -40,185 +39,48 @@ func main() {
 	}
 }
 
+// run はアプリケーションの起動・実行・シャットダウンを管理する。
+// L-4 監査対応: initRedis, initSessionStore, initOIDC, initRouter, startServer に分割し
+// 関数の行数と循環的複雑度を削減した。
 func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Load configuration.
+	// 設定ファイルの読み込みとバリデーション
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
 		configPath = "config/config.yaml"
 	}
-	envConfigPath := os.Getenv("ENV_CONFIG_PATH")
-
-	cfg, err := config.Load(configPath, envConfigPath)
+	cfg, err := config.Load(configPath, os.Getenv("ENV_CONFIG_PATH"))
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-
-	// 設定値のバリデーション（validateタグによる必須・範囲チェック）
 	validate := validator.New()
 	if err := validate.Struct(cfg); err != nil {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
-
-	// Initialize logger.
 	logger := newLogger(cfg.Observability.Log)
 
-	// Initialize Redis client.
-	// コネクションプール設定を適用する（M-011）。
-	// PoolSize=0 の場合は redis/go-redis のデフォルト値（CPU数 * 10）が使われる。
-	redisCfg := cfg.Session.Redis
-	redisDialTimeout := config.ParseDuration(redisCfg.DialTimeout, 5*time.Second)
-	redisReadTimeout := config.ParseDuration(redisCfg.ReadTimeout, 3*time.Second)
-	redisWriteTimeout := config.ParseDuration(redisCfg.WriteTimeout, 3*time.Second)
-	var redisClient redis.Cmdable
-	if redisCfg.MasterName != "" {
-		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    redisCfg.MasterName,
-			SentinelAddrs: []string{redisCfg.Addr},
-			Password:      redisCfg.Password,
-			DB:            redisCfg.DB,
-			PoolSize:      redisCfg.PoolSize,
-			MinIdleConns:  redisCfg.MinIdleConns,
-			MaxRetries:    redisCfg.MaxRetries,
-			DialTimeout:   redisDialTimeout,
-			ReadTimeout:   redisReadTimeout,
-			WriteTimeout:  redisWriteTimeout,
-		})
-	} else {
-		redisClient = redis.NewClient(&redis.Options{
-			Addr:         redisCfg.Addr,
-			Password:     redisCfg.Password,
-			DB:           redisCfg.DB,
-			PoolSize:     redisCfg.PoolSize,
-			MinIdleConns: redisCfg.MinIdleConns,
-			MaxRetries:   redisCfg.MaxRetries,
-			DialTimeout:  redisDialTimeout,
-			ReadTimeout:  redisReadTimeout,
-			WriteTimeout: redisWriteTimeout,
-		})
-	}
-
-	// Redis接続を確認する。
-	// redis.Cmdable インターフェース経由で Ping を呼び出すことで、
-	// スタンドアロン・Sentinel どちらのモードでも安全に動作する。
-	// ALLOW_REDIS_SKIP は dev/development/local 環境のみ有効。production/staging では無視してエラーで終了する。
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		env := cfg.App.Environment
-		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
-		if allowSkip {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
-		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
-			return fmt.Errorf("Redis接続に失敗しました: %w", err)
-		}
-	}
-
-	// Initialize session store.
-	// SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
-	// 鍵は hex エンコードされた 32 バイト（AES-256）を期待する。
-	// 未設定の場合は暗号化なしの RedisStore を使用し、本番環境向け警告を出力する。
-	prefix := cfg.Session.Prefix
-	if prefix == "" {
-		prefix = "bff:session:"
-	}
-	var sessionStore session.Store
-	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
-		encKey, err := hex.DecodeString(encKeyHex)
-		if err != nil || len(encKey) != 32 {
-			return fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
-		}
-		encStore, err := session.NewEncryptedStore(redisClient, prefix, encKey)
-		if err != nil {
-			return fmt.Errorf("暗号化セッションストアの初期化に失敗: %w", err)
-		}
-		sessionStore = encStore
-		logger.Info("AES-GCM 暗号化セッションストアを使用します")
-	} else {
-		// SESSION_ENCRYPTION_KEY が未設定の場合のセキュリティチェック
-		// 本番・ステージング環境（dev/development/local 以外）では起動を拒否することで、
-		// セッションデータが平文で Redis に保存されるリスクを防止する（M-04 対応）
-		if !config.IsDevEnvironment(cfg.App.Environment) {
-			log.Fatal("SESSION_ENCRYPTION_KEY must be set in non-development environments")
-		}
-		sessionStore = session.NewRedisStore(redisClient, prefix)
-		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
-	}
-	sessionTTL := config.ParseDuration(cfg.Session.TTL, 30*time.Minute)
-
-	// OIDC クライアントを初期化する。
-	// ctx（アプリケーションレベルのコンテキスト）を渡すことで、シャットダウン時に
-	// JWKS バックグラウンドフェッチがキャンセルされるようになる。
-	oauthClient := oauth.NewClient(
-		ctx,
-		cfg.Auth.DiscoveryURL,
-		cfg.Auth.ClientID,
-		cfg.Auth.ClientSecret,
-		cfg.Auth.RedirectURI,
-		cfg.Auth.Scopes,
-	)
-
-	// OIDC DiscoveryURL が HTTPS でない場合は環境に応じて処理を分岐する。
-	// 本番環境では IdP との通信に TLS が必須のため、非 HTTPS 設定をエラーとして返す（M-09 対応）。
-	// os.Exit(1) の代わりに error を返すことで、defer 登録済みのクリーンアップ関数が確実に実行される。
-	if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
-		// 本番環境では HTTPS が必須のためエラーを返して run() を終了する
-		if isProductionEnvironment(cfg.App.Environment) {
-			return fmt.Errorf("OIDC discovery_url が TLS (https) を使用していません: %s", cfg.Auth.DiscoveryURL)
-		}
-		// 開発・ステージング環境では警告のみ
-		logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
-			slog.String("discovery_url", cfg.Auth.DiscoveryURL),
-			slog.String("environment", cfg.App.Environment),
-		)
-	}
-
-	// OIDC discoveryを実行する。失敗した場合はバックグラウンドで再試行する。
-	// WaitGroupでゴルーチンのライフサイクルを追跡し、シャットダウン時に安全に完了を待機する。
-	// H-07 対応: oidcReady フラグでバックグラウンドリトライの成否を外部から参照可能にする。
-	// HealthHandler がこのフラグを参照し、/readyz で Kubernetes にトラフィック制御の判断を委ねる。
-	var oidcWg sync.WaitGroup
-	// H-07 対応: OIDC discovery の最終的な成否を追跡する atomic フラグ。
-	// 初期値は false。成功時のみ true に更新される。全リトライ失敗時は false のまま維持される。
-	var oidcReady atomic.Bool
-	if _, err := oauthClient.Discover(ctx); err != nil {
-		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))
-		// discoveryが未完了の場合、バックグラウンドで定期的に再試行するゴルーチンを起動する
-		oidcWg.Add(1)
-		go func() {
-			defer oidcWg.Done()
-			// H-07 対応: oidcReady ポインタを渡し、リトライ成功時に true を格納させる
-			retryOIDCDiscovery(ctx, oauthClient, logger, &oidcReady)
-		}()
-	} else {
-		// 起動時の初回 discovery が成功した場合はフラグを即座に true にする
-		oidcReady.Store(true)
-	}
-
-	// 開発環境（dev/development/local）では secure フラグを外す。
-	// IsDevEnvironment で統一的に判定することで dev/development の不一致を防ぐ。
-	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
-
-	// ハンドラを初期化する。HealthHandlerにはRedisとOIDCクライアント、OIDCreadyフラグを渡す。
-	// H-07 対応: oidcReady を HealthHandler に渡すことで、バックグラウンドリトライの
-	// 全失敗時に /readyz が 503 を返し、Kubernetes がトラフィックを遮断できるようにする。
-	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, &oidcReady)
-	authHandler := handler.NewAuthHandler(
-		oauthClient, sessionStore, sessionTTL,
-		cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger,
-	)
-
-	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
-	proxyHandler, err := handler.NewProxyHandler(
-		cfg.Upstream.BaseURL, sessionStore, oauthClient,
-		sessionTTL, upstreamTimeout, logger,
-	)
+	// Redis クライアントを初期化する
+	redisClient, err := initRedis(ctx, cfg, logger)
 	if err != nil {
-		return fmt.Errorf("failed to create proxy handler: %w", err)
+		return err
 	}
 
-	// Initialize OpenTelemetry tracer provider.
+	// セッションストアを初期化する
+	sessionStore, sessionTTL, err := initSessionStore(cfg, redisClient, logger)
+	if err != nil {
+		return err
+	}
+
+	// OIDC クライアントを初期化しバックグラウンド discovery を開始する
+	oauthClient, oidcWg, oidcReady, err := initOIDC(ctx, cfg, logger)
+	if err != nil {
+		return err
+	}
+
+	// OpenTelemetry トレーサープロバイダーを初期化する
+	// defer による shutdown が必要なため run() に残す
 	tp, err := initTracerProvider(ctx, cfg.Observability.Trace, cfg.App)
 	if err != nil {
 		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました", slog.String("error", err.Error()))
@@ -233,37 +95,188 @@ func run() error {
 		}()
 	}
 
-	// Set up Gin router.
+	// Gin ルーターを設定する（H-3 対応: ctx を渡して goroutine リークを防止する）
+	router, err := initRouter(ctx, cfg, redisClient, oauthClient, oidcReady, sessionStore, sessionTTL, logger)
+	if err != nil {
+		return err
+	}
+
+	// HTTP サーバーを起動してシグナル待機・グレースフルシャットダウンを行う
+	return startServer(ctx, cfg, router, logger, oidcWg)
+}
+
+// initRedis は設定から Redis クライアントを生成し、接続確認 Ping を実行する。
+// コネクションプール設定を適用する（M-011）。
+// ALLOW_REDIS_SKIP=true かつ dev 環境の場合のみ接続失敗を無視する。
+func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) (redis.Cmdable, error) {
+	redisCfg := cfg.Session.Redis
+	redisDialTimeout := config.ParseDuration(redisCfg.DialTimeout, 5*time.Second)
+	redisReadTimeout := config.ParseDuration(redisCfg.ReadTimeout, 3*time.Second)
+	redisWriteTimeout := config.ParseDuration(redisCfg.WriteTimeout, 3*time.Second)
+
+	var redisClient redis.Cmdable
+	if redisCfg.MasterName != "" {
+		// Sentinel モード: MasterName が設定されている場合はフェイルオーバークライアントを使用する
+		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    redisCfg.MasterName,
+			SentinelAddrs: []string{redisCfg.Addr},
+			Password:      redisCfg.Password,
+			DB:            redisCfg.DB,
+			PoolSize:      redisCfg.PoolSize,
+			MinIdleConns:  redisCfg.MinIdleConns,
+			MaxRetries:    redisCfg.MaxRetries,
+			DialTimeout:   redisDialTimeout,
+			ReadTimeout:   redisReadTimeout,
+			WriteTimeout:  redisWriteTimeout,
+		})
+	} else {
+		// スタンドアロンモード
+		redisClient = redis.NewClient(&redis.Options{
+			Addr:         redisCfg.Addr,
+			Password:     redisCfg.Password,
+			DB:           redisCfg.DB,
+			PoolSize:     redisCfg.PoolSize,
+			MinIdleConns: redisCfg.MinIdleConns,
+			MaxRetries:   redisCfg.MaxRetries,
+			DialTimeout:  redisDialTimeout,
+			ReadTimeout:  redisReadTimeout,
+			WriteTimeout: redisWriteTimeout,
+		})
+	}
+
+	// Redis 接続確認: redis.Cmdable 経由で Ping を呼び出す
+	if err := redisClient.Ping(ctx).Err(); err != nil {
+		env := cfg.App.Environment
+		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
+		if allowSkip {
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
+		} else {
+			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
+			return nil, fmt.Errorf("Redis接続に失敗しました: %w", err)
+		}
+	}
+	return redisClient, nil
+}
+
+// initSessionStore は Redis クライアントからセッションストアを初期化する。
+// SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
+// 非開発環境で SESSION_ENCRYPTION_KEY が未設定の場合は起動を拒否する（M-04 対応）。
+// H-5 監査対応: session.FullStore を返すことで ExchangeCodeStore も単一ストアで提供できる。
+func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *slog.Logger) (session.FullStore, time.Duration, error) {
+	prefix := cfg.Session.Prefix
+	if prefix == "" {
+		prefix = "bff:session:"
+	}
+	var sessionStore session.FullStore
+	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
+		encKey, err := hex.DecodeString(encKeyHex)
+		if err != nil || len(encKey) != 32 {
+			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
+		}
+		encStore, err := session.NewEncryptedStore(redisClient, prefix, encKey)
+		if err != nil {
+			return nil, 0, fmt.Errorf("暗号化セッションストアの初期化に失敗: %w", err)
+		}
+		sessionStore = encStore
+		logger.Info("AES-GCM 暗号化セッションストアを使用します")
+	} else {
+		if !config.IsDevEnvironment(cfg.App.Environment) {
+			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は非開発環境では必須です（SESSION_ENCRYPTION_KEY must be set in non-development environments）")
+		}
+		sessionStore = session.NewRedisStore(redisClient, prefix)
+		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
+	}
+	return sessionStore, config.ParseDuration(cfg.Session.TTL, 30*time.Minute), nil
+}
+
+// initOIDC は OIDC クライアントを生成し、discovery が失敗した場合はバックグラウンドリトライを開始する。
+// H-07 対応: oidcReady を返すことで /readyz が discovery 完了を確認できる。
+// M-09 対応: 本番環境では discovery_url が HTTPS でない場合にエラーを返す。
+func initOIDC(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) (*oauth.Client, *sync.WaitGroup, *atomic.Bool, error) {
+	// 本番環境では HTTPS が必須のためエラーを返す
+	if !strings.HasPrefix(cfg.Auth.DiscoveryURL, "https://") {
+		if isProductionEnvironment(cfg.App.Environment) {
+			return nil, nil, nil, fmt.Errorf("OIDC discovery_url が TLS (https) を使用していません: %s", cfg.Auth.DiscoveryURL)
+		}
+		logger.Warn("OIDC discovery_url が TLS (https) を使用していません。本番環境では https を使用してください",
+			slog.String("discovery_url", cfg.Auth.DiscoveryURL),
+			slog.String("environment", cfg.App.Environment),
+		)
+	}
+
+	oauthClient := oauth.NewClient(ctx, cfg.Auth.DiscoveryURL, cfg.Auth.ClientID, cfg.Auth.ClientSecret, cfg.Auth.RedirectURI, cfg.Auth.Scopes)
+
+	var oidcWg sync.WaitGroup
+	var oidcReady atomic.Bool
+	if _, err := oauthClient.Discover(ctx); err != nil {
+		logger.Warn("OIDC discovery failed at startup, will retry in background", slog.String("error", err.Error()))
+		oidcWg.Add(1)
+		go func() {
+			defer oidcWg.Done()
+			retryOIDCDiscovery(ctx, oauthClient, logger, &oidcReady)
+		}()
+	} else {
+		oidcReady.Store(true)
+	}
+	return oauthClient, &oidcWg, &oidcReady, nil
+}
+
+// initRouter はハンドラを生成し、Gin ルーターに全ミドルウェアとルートを登録する。
+// G-01/G-02/G-06/H-1/H-2/H-3/M-09/M-11 各対応のミドルウェアを適用する。
+// H-3 監査対応: ctx を受け取り RateLimitMiddleware の goroutine をシャットダウン時に停止する。
+// H-5 監査対応: sessionStore を session.FullStore 型で受け取ることで、
+// ExchangeCodeStore としても使用できる。
+func initRouter(
+	ctx context.Context,
+	cfg *config.BFFConfig,
+	redisClient redis.Cmdable,
+	oauthClient *oauth.Client,
+	oidcReady *atomic.Bool,
+	sessionStore session.FullStore,
+	sessionTTL time.Duration,
+	logger *slog.Logger,
+) (*gin.Engine, error) {
+	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
+	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
+	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
+	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
+	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
+	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create proxy handler: %w", err)
+	}
+
 	if isProductionEnvironment(cfg.App.Environment) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	router := gin.New()
-	// G-06 対応: リバースプロキシ信頼設定を明示的に行う。
-	// nil を指定することでプロキシを信頼せず、X-Forwarded-For 等のヘッダーを
-	// 直接の接続元 IP で上書きする。ロードバランサー配下では適切な CIDR に変更すること。
-	// 例: router.SetTrustedProxies([]string{"10.0.0.0/8"})
+	// G-06 対応: nil を指定することでプロキシを信頼せず X-Forwarded-For 等を直接 IP で上書きする
 	if err := router.SetTrustedProxies(nil); err != nil {
 		logger.Warn("SetTrustedProxies 設定に失敗しました", slog.String("error", err.Error()))
 	}
 	router.Use(gin.Recovery())
-	// G-02 対応: リクエストボディサイズを 64MB に制限する。
-	// 無制限のリクエストボディによる DoS 攻撃や OOM を防止する。
+	// G-02 対応: リクエストボディを 64MB に制限して DoS/OOM を防止する
 	router.Use(func(c *gin.Context) {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 64*1024*1024)
 		c.Next()
 	})
-	// H-1対応: CORS ミドルウェアを最初に適用し、異オリジンリクエストを制御する
-	router.Use(middleware.CORSMiddleware(cfg.CORS))
-	// H-2対応: IP ベースのレート制限を CORS の次に適用する
-	router.Use(middleware.RateLimitMiddleware(cfg.RateLimit))
-	// セキュリティレスポンスヘッダーを全リクエストに付与する
+	// H-1 対応: CORS を最初に適用する
+	corsHandler, err := middleware.CORSMiddleware(cfg.CORS)
+	if err != nil {
+		return nil, fmt.Errorf("CORS ミドルウェアの初期化に失敗しました: %w", err)
+	}
+	router.Use(corsHandler)
+	// H-2 対応: IP ベースレート制限を CORS の次に適用する
+	// H-3 監査対応: ctx を渡してシャットダウン時に goroutine を停止する
+	router.Use(middleware.RateLimitMiddleware(ctx, cfg.RateLimit))
 	router.Use(middleware.SecurityHeadersMiddleware())
 	router.Use(middleware.PrometheusMiddleware())
 	router.Use(otelgin.Middleware("bff-proxy"))
 	router.Use(middleware.OTelTraceIDMiddleware())
 	router.Use(middleware.CorrelationMiddleware())
 
-	// Health / Metrics endpoints (no auth required).
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
 	if cfg.Observability.Metrics.Enabled {
@@ -273,15 +286,19 @@ func run() error {
 		}
 		router.GET(metricsPath, gin.WrapH(promhttp.Handler()))
 	}
-
-	// Auth endpoints (no session required).
 	router.GET("/auth/login", authHandler.Login)
 	router.GET("/auth/callback", authHandler.Callback)
 	router.GET("/auth/session", authHandler.Session)
 	router.GET("/auth/exchange", authHandler.Exchange)
 	router.POST("/auth/logout", authHandler.Logout)
 
-	// Proxy endpoints (session + CSRF required).
+	// H-7 監査対応: 本番環境では CSRF 保護を強制的に有効化する。
+	// csrf.enabled を false に設定したまま本番運用されるリスクを防ぐ。
+	// log.Fatal ではなく error を返すことで defer によるクリーンアップ（OTel シャットダウン等）が実行される。
+	if !config.IsDevEnvironment(cfg.App.Environment) && !cfg.CSRF.Enabled {
+		return nil, fmt.Errorf("本番環境では CSRF 保護を無効化できません。csrf.enabled を true に設定してください")
+	}
+
 	api := router.Group("/api")
 	api.Use(middleware.SessionMiddleware(sessionStore, handler.CookieName, sessionTTL, cfg.Session.Sliding))
 	if cfg.CSRF.Enabled {
@@ -292,11 +309,12 @@ func run() error {
 		api.Use(middleware.CSRFMiddleware(sessionStore, csrfHeader, handler.CookieName))
 	}
 	api.Any("/*path", proxyHandler.Handle)
+	return router, nil
+}
 
-	// Start HTTP server.
-	// G-01 対応: タイムアウトをプロキシ用途に合わせて調整する。
-	// ReadTimeout=60s: 大きなリクエストボディやスロークライアントに対応する。
-	// WriteTimeout=120s: 上流サービスの応答時間（upstreamTimeout 30s + バッファ）を考慮する。
+// startServer は HTTP サーバーを起動し、シグナルを待機してグレースフルにシャットダウンする。
+// G-01 対応: ReadTimeout=60s（大きなリクエストボディ対応）、WriteTimeout=120s（上流応答時間バッファ）。
+func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine, logger *slog.Logger, oidcWg *sync.WaitGroup) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
 		Addr:         addr,
@@ -305,7 +323,6 @@ func run() error {
 		WriteTimeout: config.ParseDuration(cfg.Server.WriteTimeout, 120*time.Second),
 	}
 
-	// Start server in a goroutine.
 	errCh := make(chan error, 1)
 	go func() {
 		logger.Info("BFF Proxy starting", slog.String("addr", addr))
@@ -314,7 +331,6 @@ func run() error {
 		}
 	}()
 
-	// Wait for shutdown signal.
 	select {
 	case <-ctx.Done():
 		logger.Info("シャットダウンシグナルを受信しました")
@@ -322,18 +338,15 @@ func run() error {
 		return fmt.Errorf("server error: %w", err)
 	}
 
-	// Graceful shutdown.
 	shutdownTimeout := config.ParseDuration(cfg.Server.ShutdownTimeout, 15*time.Second)
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
-	// OIDCリトライゴルーチンの完了を待機する（コンテキストキャンセル済みのため速やかに終了する）
+	// OIDC リトライゴルーチンの完了を待機する（コンテキストキャンセル済みのため速やかに終了する）
 	oidcWg.Wait()
-
 	logger.Info("BFF Proxy stopped")
 	return nil
 }
@@ -352,10 +365,13 @@ func initTracerProvider(
 		endpoint = "localhost:4317"
 	}
 
+	// gRPC トレースエクスポーターのオプションを構築する（HIGH-11 対応）
+	// 変更前: strings.HasPrefix(endpoint, "https://") による不完全な判定（gRPC はスキームを使わない）
+	// 変更後: 明示的な設定フラグ OTLPInsecure で制御し、意図しない insecure 接続を防止する
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
 	}
-	if !strings.HasPrefix(endpoint, "https://") {
+	if traceCfg.OTLPInsecure {
 		opts = append(opts, otlptracegrpc.WithInsecure())
 	}
 

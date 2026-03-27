@@ -1,6 +1,6 @@
 # system-auth-server デプロイ設計
 
-system-auth-server の Dockerfile・テスト・CI/CD パイプライン・設定ファイル・Helm values を定義する。概要・API 定義・アーキテクチャは [system-auth-server.md](server.md) を参照。データベースマイグレーション・テスト方針の詳細は [共通デプロイ設計](../_common/deploy.md) を参照。
+system-auth-server の Dockerfile・テスト・CI/CD パイプライン・設定ファイル・Helm values を定義する。概要・API 定義・アーキテクチャは [system-auth-server.md](server.md) を参照。データベースマイグレーション・テスト方針の詳細は [共通デプロイ設計](../../_common/deploy.md) を参照。
 
 ---
 
@@ -344,7 +344,7 @@ readinessProbe:
 
 - [system-auth-server.md](server.md) -- 概要・API 定義・アーキテクチャ
 - [auth データベース設計](database.md) -- データベーススキーマ・マイグレーション
-- [共通デプロイ設計](../_common/deploy.md) -- データベースマイグレーション・テスト方針
+- [共通デプロイ設計](../../_common/deploy.md) -- データベースマイグレーション・テスト方針
 - [Dockerイメージ戦略.md](../../infrastructure/docker/Dockerイメージ戦略.md) -- マルチステージビルド・ベースイメージ
 - [helm設計.md](../../infrastructure/kubernetes/helm設計.md) -- Helm Chart・Vault Agent Injector
 - [可観測性設計.md](../../architecture/observability/可観測性設計.md) -- OpenTelemetry・Prometheus・構造化ログ

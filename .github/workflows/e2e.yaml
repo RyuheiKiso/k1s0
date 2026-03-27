@@ -12,7 +12,11 @@
 name: e2e
 
 on:
-  # 手動実行のみ（M-2 対応: まず骨格を整備し、段階的に拡充する）
+  # 夜間自動実行: main ブランチを毎日 JST 02:00（UTC 17:00）に検証する（MEDIUM-4 対応）
+  # E2E は Docker Compose フルスタック起動を伴うため PR ごとの実行ではなく夜間バッチとする
+  schedule:
+    - cron: "0 17 * * *"
+  # 手動実行: 任意のタイミングで環境を指定して実行できる
   workflow_dispatch:
     inputs:
       environment:
@@ -43,8 +47,9 @@ jobs:
 
     steps:
       # リポジトリをチェックアウトする
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       # Node.js をセットアップする（Playwright 実行用）
       - name: Setup Node.js

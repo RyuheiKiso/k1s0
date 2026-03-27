@@ -1,3 +1,7 @@
+// §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な algorithm 文字列フィールドと
+// 新 algorithm_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
+#![allow(deprecated)]
+
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
@@ -54,11 +58,7 @@ fn algorithm_str_to_enum(s: &str) -> i32 {
     }
 }
 
-fn algorithm_opt_to_enum(algo: &Option<String>) -> i32 {
-    algo.as_deref()
-        .map(algorithm_str_to_enum)
-        .unwrap_or(RateLimitAlgorithm::Unspecified as i32)
-}
+// L-10 監査対応: algorithm_opt_to_enum は未使用のため削除
 
 pub struct RateLimitServiceTonic {
     inner: Arc<RateLimitGrpcService>,

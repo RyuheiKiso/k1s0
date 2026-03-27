@@ -68,7 +68,8 @@ pub struct EventBus {
     // (subscription_id, cancelled_flag, handler) のタプルで管理する。
     // cancelled_flag を使うことで Drop 内の非同期処理を不要にする（SH-3 監査対応）。
     #[allow(clippy::type_complexity)]
-    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
+    handlers:
+        Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
     next_id: Arc<RwLock<SubscriptionId>>,
 }
 
@@ -153,7 +154,8 @@ pub struct EventSubscription {
     /// Drop 時に立てるキャンセルフラグ。非同期処理不要で Drop から同期的に通知できる。（SH-3 監査対応）
     cancelled: Arc<AtomicBool>,
     #[allow(clippy::type_complexity)]
-    handlers: Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
+    handlers:
+        Arc<RwLock<HashMap<String, Vec<(SubscriptionId, Arc<AtomicBool>, Arc<dyn EventHandler>)>>>>,
 }
 
 impl EventSubscription {

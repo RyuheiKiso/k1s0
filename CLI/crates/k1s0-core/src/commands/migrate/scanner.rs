@@ -123,6 +123,11 @@ fn detect_db_name(path: &Path) -> Option<String> {
 /// # Errors
 ///
 /// ディレクトリの読み込みに失敗した場合にエラーを返す。
+///
+/// # Panics
+///
+/// マイグレーションファイル名照合用の静的正規表現の初期化に失敗した場合にパニックする。
+/// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
 pub fn scan_migration_files(migrations_dir: &Path) -> Result<Vec<MigrationFile>> {
     let mut files = Vec::new();
 
@@ -193,7 +198,7 @@ pub fn next_sequence_number(files: &[MigrationFile]) -> u32 {
 
 /// マイグレーション名のバリデーション。
 ///
-/// 英小文字・数字・アンダースコアのみ許可（[a-z0-9_]+）。
+/// 英小文字・数字・アンダースコアのみ許可（`[a-z0-9_]+`）。
 /// Validate a migration name.
 ///
 /// Only lowercase alphanumeric characters and underscores are allowed.
@@ -202,6 +207,11 @@ pub fn next_sequence_number(files: &[MigrationFile]) -> u32 {
 ///
 /// Returns an error when the name is empty, contains unsupported characters,
 /// or the validation pattern cannot be constructed.
+///
+/// # Panics
+///
+/// マイグレーション名バリデーション用の静的正規表現の初期化に失敗した場合にパニックする。
+/// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
 pub fn validate_migration_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("マイグレーション名を入力してください".to_string());

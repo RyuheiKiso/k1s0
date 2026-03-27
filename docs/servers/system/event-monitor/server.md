@@ -61,7 +61,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | フロー定義 | 業務フロー（期待されるイベントチェーン）を JSON で定義。例: `TaskCreated → BoardReserved → ActivityProcessed → TaskCompleted` |
 | SLO 定義 | フロー別に「完了までの目標時間」「許容エラー率」を定義。バーンレート計算で違反を早期検出 |
 | correlation-id | k1s0-correlation ライブラリの correlation_id をキーとして、フロー横断のイベントチェーンを構築 |
-| DB スキーマ | PostgreSQL の `event_monitor` スキーマ（event_records, flow_definitions, flow_instances, flow_slos テーブル） |
+| DB スキーマ | PostgreSQL の `event_monitor` スキーマ（event_records, flow_definitions, flow_instances テーブル）。SLO 設定は flow_definitions のカラムとして統合済み（別テーブルなし） |
 | Kafka | コンシューマー（全ドメインイベント購読）。プロデューサーなし |
 | ポート | 8112（REST）/ 50051（gRPC） |
 
@@ -466,7 +466,8 @@ gRPC ポート: **50051**
 
 ```protobuf
 syntax = "proto3";
-package k1s0.system.event_monitor.v1;
+// M-9 監査対応: パッケージ名を event_monitor → eventmonitor に修正（proto ファイルの正式パッケージ名に合わせる）
+package k1s0.system.eventmonitor.v1;
 
 import "k1s0/system/common/v1/types.proto";
 
@@ -478,8 +479,7 @@ service EventMonitorService {
   rpc CreateFlow(CreateFlowRequest) returns (CreateFlowResponse);
   rpc UpdateFlow(UpdateFlowRequest) returns (UpdateFlowResponse);
   rpc DeleteFlow(DeleteFlowRequest) returns (DeleteFlowResponse);
-  rpc GetFlowInstance(GetFlowInstanceRequest) returns (GetFlowInstanceResponse);
-  rpc ListFlowInstances(ListFlowInstancesRequest) returns (ListFlowInstancesResponse);
+  // M-9 監査対応: GetFlowInstance, ListFlowInstances は proto に存在しないため削除
   rpc GetFlowKpi(GetFlowKpiRequest) returns (GetFlowKpiResponse);
   rpc GetKpiSummary(GetKpiSummaryRequest) returns (GetKpiSummaryResponse);
   rpc GetSloStatus(GetSloStatusRequest) returns (GetSloStatusResponse);
@@ -494,7 +494,8 @@ message EventRecord {
   string id = 1;
   string correlation_id = 2;
   string event_type = 3;
-  string source_service = 4;
+  // M-9 監査対応: フィールド名を source_service → source に修正（proto の正式フィールド名に合わせる）
+  string source = 4;
   string domain = 5;
   string trace_id = 6;
   k1s0.system.common.v1.Timestamp timestamp = 7;
@@ -633,37 +634,8 @@ message DeleteFlowResponse {
   string message = 2;
 }
 
-// --- FlowInstance messages ---
-
-message GetFlowInstanceRequest {
-  string instance_id = 1;
-}
-
-message GetFlowInstanceResponse {
-  FlowInstance instance = 1;
-}
-
-message ListFlowInstancesRequest {
-  string flow_id = 1;
-  k1s0.system.common.v1.Pagination pagination = 2;
-  optional string status = 3;
-}
-
-message ListFlowInstancesResponse {
-  repeated FlowInstance instances = 1;
-  k1s0.system.common.v1.PaginationResult pagination = 2;
-}
-
-message FlowInstance {
-  string id = 1;
-  string flow_definition_id = 2;
-  string correlation_id = 3;
-  string status = 4;
-  int32 current_step_index = 5;
-  k1s0.system.common.v1.Timestamp started_at = 6;
-  optional k1s0.system.common.v1.Timestamp completed_at = 7;
-  optional int64 duration_ms = 8;
-}
+// M-9 監査対応: GetFlowInstance, ListFlowInstances, FlowInstance メッセージは proto に存在しないため削除済み
+// フローインスタンス情報は TraceByCorrelation RPC の FlowSummary から取得する
 
 // --- KPI messages ---
 
@@ -1005,7 +977,7 @@ CREATE TABLE event_monitor.event_records (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     correlation_id   TEXT NOT NULL,
     event_type       TEXT NOT NULL,
-    source_service   TEXT NOT NULL,
+    source           TEXT NOT NULL,
     domain           TEXT NOT NULL,
     trace_id         TEXT NOT NULL DEFAULT '',
     timestamp        TIMESTAMPTZ NOT NULL,
@@ -1176,14 +1148,14 @@ CREATE TABLE event_monitor.event_records (
 
 ## 詳細設計ドキュメント
 
-- [system-event-monitor-server-implementation.md](../_common/implementation.md) -- 実装設計の詳細
-- [system-event-monitor-server-deploy.md](../_common/deploy.md) -- デプロイ設計の詳細
+- [system-event-monitor-server-implementation.md](../../_common/implementation.md) -- 実装設計の詳細
+- [system-event-monitor-server-deploy.md](../../_common/deploy.md) -- デプロイ設計の詳細
 
 ---
 
 ## 関連ドキュメント
 
-> 共通関連ドキュメントは [deploy.md](../_common/deploy.md#共通関連ドキュメント) を参照。
+> 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。
 
 - [system-dlq-manager-server.md](../dlq-manager/server.md) -- DLQ 管理サーバー（リプレイ連携先）
 - [system-event-store-server.md](../event-store/server.md) -- イベントストア（イベントソーシング基盤）
@@ -1199,7 +1171,7 @@ CREATE TABLE event_monitor.event_records (
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
 
 ### サービス固有メトリクス
 

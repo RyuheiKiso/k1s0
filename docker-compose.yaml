@@ -74,8 +74,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${PG_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./infra/docker/init-db:/docker-entrypoint-initdb.d
@@ -116,10 +117,15 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
     # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${REDIS_HOST_PORT:-6379}:6379"
-    volumes:
-      - redis-data:/data
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
+    # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
+    # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
+    # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
+    # 開発環境ではデータ永続性より起動安定性を優先するため tmpfs で代替する。
+    tmpfs:
+      - /data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
@@ -130,6 +136,8 @@ services:
   # staging/prod では SASL_SSL を使用し、Strimzi Operator が証明書管理を行う。
   # ローカルと staging/prod でセキュリティプロトコルが異なるため、
   # 接続設定は必ず config.yaml 経由で環境ごとに切り替えること。
+  # 監査対応: apache/kafka:3.6.1 は Docker Hub に存在しないため 3.8.0 に更新。
+  # Strimzi 内部バージョンと Docker Hub 公開バージョンは別管理であることに注意。
   kafka:
     image: apache/kafka:3.8.0
     profiles: [infra]
@@ -156,6 +164,11 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # L-11 監査対応: CLUSTER_ID は KRaft クラスター識別子。
+      # 開発環境では固定値を使用（コンテナ再起動後もトピック/オフセットを引き継ぐため一定値が必要）。
+      # 本番 K8s 環境は Strimzi Operator が自動生成するため、この値は開発専用。
+      # チームで共通の CLUSTER_ID を使うことでローカル環境間のデータ互換性を維持する。
+      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.6.1 /opt/kafka/bin/kafka-storage.sh random-uuid
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -280,10 +293,12 @@ services:
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       JAVA_OPTS_APPEND: "-Xms256m -Xmx512m"
     entrypoint: ["/bin/bash", "/opt/keycloak/data/import/docker-entrypoint-wrapper.sh"]
-    command: ["start-dev", "--import-realm"]
+    # start コマンドは docker-compose.dev.yaml の keycloak セクションで上書きされる。
+    # 本番では "start" コマンドを使用する（TLS終端・クラスター設定が必要）。
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${KEYCLOAK_HOST_PORT:-8180}:8080"
-      - "${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8180}:8080"
+      - "127.0.0.1:${KEYCLOAK_MGMT_HOST_PORT:-9000}:9000"
     volumes:
       - ./infra/docker/keycloak:/opt/keycloak/data/import    # realm k1s0 の初期設定。config.dev.yaml の auth.jwt.issuer（realms/k1s0）と一致させること
     depends_on:
@@ -325,8 +340,12 @@ services:
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
       - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
-    volumes:
-      - redis-session-data:/data
+    # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
+    # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
+    # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
+    # 開発環境ではデータ永続性より起動安定性を優先するため tmpfs で代替する。
+    tmpfs:
+      - /data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 5s
@@ -353,19 +372,17 @@ services:
       - SETUID
     environment:
       # ================================================================
-      # ⚠️ 本番環境では dev モードを絶対に使用しないこと。
-      # Vault dev モードはインメモリストレージのため再起動でデータが消失する。
-      # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理すること。
+      # VAULT_DEV_ROOT_TOKEN_ID はここに記載しない。
+      # dev モードはローカル開発専用であり、docker-compose.dev.yaml で設定する。
+      # 本番用 Vault 設定は infra/terraform/modules/vault/ で管理する。
       # ================================================================
-      # Vault dev モードのルートトークン ID。未設定の場合はエラーで起動を阻止する。
-      # ローカル開発時は docker-compose.dev.yaml で VAULT_DEV_ROOT_TOKEN_ID=dev-token を設定すること。
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:?VAULT_DEV_ROOT_TOKEN_ID must be set for Vault dev mode}
       # ヘルスチェックで vault status を実行するために必要な接続先設定
       VAULT_ADDR: "http://127.0.0.1:8200"
       # no-new-privileges + CAP_DROP:ALL 環境での setcap 失敗を回避する
       SKIP_SETCAP: "true"
+    # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
-      - "${VAULT_HOST_PORT:-8200}:8200"
+      - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
     # Vault のシールド状態と初期化状態を確認するヘルスチェック
     healthcheck:
       test: ["CMD", "vault", "status"]
@@ -414,6 +431,9 @@ services:
     ports:
       - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
       # Admin API ポートは docker-compose.dev.yaml で定義（開発時のみ公開）
+      # Kong Status ポート（8100）はホストにマッピングしない。
+      # Prometheus が同一 Docker ネットワーク内から直接 http://kong:8100/metrics にアクセスするため、
+      # ホストへの公開は不要であり、外部からのメトリクスエンドポイント露出を防止する。
     healthcheck:
       test: ["CMD", "kong", "health"]
       interval: 10s
@@ -1138,6 +1158,7 @@ services:
   # [Business Tier]
   #   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1       → topics.yaml: 同名
   #   k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1  → topics.yaml: 同名
+  # 監査対応: apache/kafka:3.6.1 は Docker Hub に存在しないため 3.8.0 に更新（kafka サービスと同一バージョン）。
   kafka-init:
     image: apache/kafka:3.8.0
     profiles: [infra]
@@ -1334,8 +1355,7 @@ services:
 
 volumes:
   postgres-data:
-  redis-data:
-  redis-session-data:
+  # redis-data, redis-session-data は L-7 監査対応で tmpfs に移行済みのため削除
   kafka-data:
   prometheus-data:
   loki-data:

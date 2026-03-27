@@ -18,6 +18,11 @@ pub trait OutboxStore: Send + Sync {
 
     /// 配信完了メッセージを削除する（保持期間超過後）。
     async fn delete_delivered(&self, older_than_days: u32) -> Result<u64, OutboxError>;
+
+    /// 一定時間以上 PROCESSING 状態のままのメッセージを PENDING に戻す（M-12 監査対応）。
+    /// mark_delivered 後の DB Update 失敗によりスタックしたメッセージのリカバリに使用する。
+    /// stale_minutes: この分数以上 PROCESSING のままのメッセージをリカバリ対象とする（推奨: 5〜15分）。
+    async fn recover_stale_processing(&self, stale_minutes: u32) -> Result<u64, OutboxError>;
 }
 
 #[cfg(test)]

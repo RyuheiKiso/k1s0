@@ -53,6 +53,39 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+k1s0-common.validateValues - 必須 values のバリデーションを行う（L-8 / L-9 / L-22 監査対応）
+
+L-8 対応: alertmanager.webhookUrl が空の場合に本番環境（prod）では必須エラーを発生させる。
+  空のまま本番デプロイすると Microsoft Teams への障害通知が欠落し、インシデント対応が遅延するリスクがある。
+  開発・staging 環境では空を許容するが、本番では環境別 values.yaml で必ず設定すること。
+
+L-9 対応: redis.enabled が true の場合に redis.host が空文字でないことを検証する。
+  redis.host が空だと REDIS_HOST 環境変数に空文字が注入され、Redis 接続先未指定で起動するリスクがある。
+
+L-22 対応: image.tag が空文字の場合にエラーを発生させる。
+  image.tag が未設定のまま helm install すると "latest" タグと同等の動作になり、
+  意図しないイメージバージョンが使用されるリスクがある。CI/CD で必ず --set image.tag=<version> を渡すこと。
+*/}}
+{{- define "k1s0-common.validateValues" -}}
+{{/* L-8: alertmanager.required=true の場合に webhookUrl を必須チェックする。
+     本番環境の values.yaml では alertmanager.required: true を設定すること。
+     空のまま本番デプロイすると Microsoft Teams への障害通知が欠落し、インシデント対応が遅延するリスクがある。 */}}
+{{- if and .Values.alertmanager .Values.alertmanager.required (not .Values.alertmanager.webhookUrl) -}}
+{{- fail "alertmanager.required が true の場合、alertmanager.webhookUrl は必須です。本番環境の values.yaml に alertmanager.webhookUrl を設定してください。" -}}
+{{- end -}}
+{{/* L-9: redis.enabled=true の場合に redis.host を必須チェックする */}}
+{{- if and .Values.redis .Values.redis.enabled (not .Values.redis.host) -}}
+{{- fail "redis.enabled が true の場合、redis.host は必須です。values.yaml に redis.host を設定してください。" -}}
+{{- end -}}
+{{/* L-22: image.tag が空文字の場合にエラーを発生させる。
+     image.tag が未設定のまま helm install/upgrade を実行するとイメージ参照が不完全になるため必須とする。
+     CI/CD パイプラインでは --set image.tag=<git-sha または semver> を必ず渡すこと。 */}}
+{{- if not .Values.image.tag -}}
+{{- fail "image.tag は必須です。helm install/upgrade 時に --set image.tag=<version> を指定してください。" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 k1s0-common.serviceAccountName - サービスアカウント名を返す
 */}}
 {{- define "k1s0-common.serviceAccountName" -}}

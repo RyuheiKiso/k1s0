@@ -87,7 +87,7 @@ impl ReviewStepUseCase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entity::{Execution, ExecutionStep, ExecutionStatus};
+    use crate::domain::entity::{Execution, ExecutionStatus, ExecutionStep};
     use crate::domain::repository::execution_repository::MockExecutionRepository;
     use chrono::Utc;
     use uuid::Uuid;
@@ -195,7 +195,11 @@ mod tests {
 
         assert!(result.is_err());
         // err().unwrap() を使うことでDebugトレイト不要でエラーを取得する
-        assert!(result.err().unwrap().to_string().contains("Execution not found"));
+        assert!(result
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Execution not found"));
     }
 
     // ステップ状態更新: 承認/拒否後にステップのstatusが正しく変更される

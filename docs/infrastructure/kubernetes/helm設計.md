@@ -924,10 +924,49 @@ helm template task infra/helm/services/service/task \
 
 ローカル Kubernetes クラスタ（kind または minikube）で `--dry-run=server` を使用すると、サーバーサイドのバリデーションも確認できる。
 
+#### 3-1. ローカル開発環境向け CRD インストール手順
+
+cert-manager および Istio の CRD がインストールされていない環境では `kubectl apply --dry-run=client` が `unknown field` エラーで失敗する。
+以下の手順で事前に CRD をインストールしてからドライランを実行すること。
+
 ```bash
 # kind クラスタを作成する（初回のみ）
 kind create cluster --name k1s0-local
 
+# ---- cert-manager CRD のインストール ----
+# cert-manager v1.x の CRD を一括インストールする（infra/kubernetes/cert-manager/ が依存）
+# 本番環境と同じ cert-manager.io/v1 API バージョンを使用
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml
+
+# CRD の登録が完了するまで待機する（established 状態になるまで）
+kubectl wait --for=condition=established --timeout=60s \
+  crd/certificates.cert-manager.io \
+  crd/clusterissuers.cert-manager.io \
+  crd/issuers.cert-manager.io
+
+# ---- Istio CRD のインストール ----
+# 本プロジェクトは Istio 1.20.0 を使用する（infra/terraform/environments/dev/variables.tf 参照）
+helm repo add istio https://istio-release.storage.googleapis.com/charts
+helm repo update
+
+# istio-base チャートで Istio の CRD（VirtualService, DestinationRule, PeerAuthentication 等）を登録する
+helm upgrade --install istio-base istio/base \
+  --version 1.20.0 \
+  --namespace service-mesh \
+  --create-namespace \
+  --dry-run=false
+
+# CRD の登録を確認する
+kubectl wait --for=condition=established --timeout=60s \
+  crd/virtualservices.networking.istio.io \
+  crd/destinationrules.networking.istio.io \
+  crd/peerauthentications.security.istio.io \
+  crd/authorizationpolicies.security.istio.io
+```
+
+#### 3-2. CRD インストール後のドライラン
+
+```bash
 # Namespace を作成する
 kubectl create namespace k1s0-service --dry-run=client -o yaml | kubectl apply -f -
 
@@ -937,6 +976,12 @@ helm upgrade --install task infra/helm/services/service/task \
   -f infra/helm/services/service/task/values-dev.yaml \
   --set image.tag=local \
   --dry-run=server
+
+# cert-manager マニフェストのドライラン（CRD インストール後に実行可能）
+kubectl apply --dry-run=client -f infra/kubernetes/cert-manager/
+
+# Istio マニフェストのドライラン（CRD インストール後に実行可能）
+kubectl apply --dry-run=client -f infra/istio/
 
 # 検証後にクラスタを削除する
 kind delete cluster --name k1s0-local
@@ -949,7 +994,8 @@ kind delete cluster --name k1s0-local
 | `Error: unable to build kubernetes objects` | values.yaml の型ミスマッチ | `helm template` でレンダリング結果を確認する |
 | `required value "xxx" not set` | 必須 values の未設定 | `values-dev.yaml` に該当フィールドを追加する |
 | `template: ... cannot use nil as string` | nil ガード不足 | `_deployment.tpl` の nil チェックパターンを参照する（テンプレート修正時の規約を参照） |
-| `unknown field "xxx"` | CRD の未インストール | kind クラスタに必要な CRD（Istio 等）をインストールしてから再実行する |
+| `unknown field "xxx"` (cert-manager リソース) | cert-manager CRD の未インストール | 3-1 節の cert-manager CRD インストール手順を実行してから再試行する |
+| `unknown field "xxx"` (Istio リソース) | Istio CRD の未インストール | 3-1 節の Istio CRD インストール手順を実行してから再試行する |
 
 ## 関連ドキュメント
 

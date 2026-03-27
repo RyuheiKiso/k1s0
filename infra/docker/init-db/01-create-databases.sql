@@ -32,7 +32,9 @@ CREATE DATABASE tenant_db;
 -- vault-server 用DB
 CREATE DATABASE vault_db;
 
--- task-server 用DB
+-- task-server 用DB（M-2 監査対応: 使用意図を明記）
+-- k1s0_task は将来実装予定の task-server サービスが使用するデータベース
+-- 現時点では未実装のため孤立状態だが、将来的にタスク管理機能を提供するサービスで利用される予定
 CREATE DATABASE k1s0_task;
 
 -- event-store-server 用DB
@@ -71,7 +73,9 @@ CREATE DATABASE file_db;
 -- service-catalog 用DB
 CREATE DATABASE service_catalog_db;
 
--- saga-server 用DB
+-- saga-server 用DB（M-2 監査対応: 使用意図を明記）
+-- saga_db は Saga オーケストレーションサービス（regions/system/server/go/saga）が使用するデータベース
+-- Saga パターンによる分散トランザクション管理のための専用データベース（04-saga-schema.sql でスキーマを定義）
 CREATE DATABASE saga_db;
 
 -- master-maintenance 用スキーマ (k1s0_system 内)

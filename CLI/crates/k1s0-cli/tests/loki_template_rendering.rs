@@ -1,4 +1,4 @@
-//! テストモジュール — unwrap() の使用を許可する
+//! テストモジュール — `unwrap()` の使用を許可する
 #![allow(clippy::unwrap_used)]
 /// Loki ログ収集テンプレートのレンダリング統合テスト。
 use std::fs;
@@ -24,8 +24,8 @@ fn render_loki(service_name: &str, tier: &str, server_port: u16) -> Option<(Temp
     fs::create_dir_all(&output_dir).unwrap();
 
     // business tier では domain が必須のため、テスト用ドメインを設定する
-    let mut builder = TemplateContextBuilder::new(service_name, tier, "go", "loki")
-        .server_port(server_port);
+    let mut builder =
+        TemplateContextBuilder::new(service_name, tier, "go", "loki").server_port(server_port);
     if tier == "business" {
         builder = builder.domain("task");
     }

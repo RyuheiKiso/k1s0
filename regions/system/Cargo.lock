@@ -2541,6 +2541,7 @@ dependencies = [
  "prost",
  "prost-types",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2577,6 +2578,7 @@ dependencies = [
  "redis",
  "regex",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -2612,6 +2614,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "regex",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3087,6 +3090,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3189,6 +3193,7 @@ dependencies = [
  "prost",
  "prost-types",
  "rdkafka",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3243,6 +3248,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tokio-test",
@@ -3260,7 +3266,6 @@ name = "k1s0-graphql-client"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "mockall",
  "reqwest",
  "serde",
  "serde_json",
@@ -3501,6 +3506,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3566,6 +3572,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3743,6 +3750,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "regex",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3856,6 +3864,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3922,6 +3931,7 @@ dependencies = [
  "prost",
  "prost-types",
  "rdkafka",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -4126,6 +4136,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -4288,6 +4299,7 @@ dependencies = [
  "prost-types",
  "rdkafka",
  "reqwest",
+ "secrecy",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -6192,6 +6204,16 @@ name = "seahash"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
+
+[[package]]
+name = "secrecy"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bd1c54ea06cfd2f6b63219704de0b9b4f72dcc2b8fdef820be6cd799780e91e"
+dependencies = [
+ "serde",
+ "zeroize",
+]
 
 [[package]]
 name = "security-framework"

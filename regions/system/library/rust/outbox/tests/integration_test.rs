@@ -120,6 +120,8 @@ mock! {
         async fn fetch_pending(&self, limit: u32) -> Result<Vec<OutboxMessage>, OutboxError>;
         async fn update(&self, message: &OutboxMessage) -> Result<(), OutboxError>;
         async fn delete_delivered(&self, older_than_days: u32) -> Result<u64, OutboxError>;
+        // M-12 監査対応: PROCESSING スタックメッセージのリカバリメソッドを追加
+        async fn recover_stale_processing(&self, stale_minutes: u32) -> Result<u64, OutboxError>;
     }
 }
 

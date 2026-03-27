@@ -78,5 +78,5 @@ Navigation はこの判断を Auth に委譲する。
 ## 参考
 
 - [認証認可設計.md](../auth/認証認可設計.md) — Auth サービスの API 設計・認可フロー
-- [docs/servers/auth/server.md](../../servers/auth/server.md) — Auth サービス詳細設計
-- [docs/servers/navigation/server.md](../../servers/navigation/server.md) — Navigation サービス詳細設計
+- [docs/servers/system/auth/server.md](../../servers/system/auth/server.md) — Auth サービス詳細設計
+- [docs/servers/system/navigation/server.md](../../servers/system/navigation/server.md) — Navigation サービス詳細設計

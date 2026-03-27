@@ -103,7 +103,10 @@ events:
     fn proto_path() {
         let config = sample_config();
         let path = proto_rel_path(&config, &config.events[0]);
-        assert_eq!(path, "proto/taskmanagement/events/v1/project_type_changed.proto");
+        assert_eq!(
+            path,
+            "proto/taskmanagement/events/v1/project_type_changed.proto"
+        );
     }
 
     #[test]

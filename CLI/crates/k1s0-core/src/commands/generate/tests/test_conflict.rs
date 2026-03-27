@@ -120,10 +120,7 @@ fn test_execute_generate_at_allows_service_server_and_client_to_coexist() {
 
     let result = execute_generate_at(&client_config, tmp.path());
     assert!(result.is_ok());
-    assert!(tmp
-        .path()
-        .join("regions/service/task/server/rust")
-        .is_dir());
+    assert!(tmp.path().join("regions/service/task/server/rust").is_dir());
     assert!(tmp
         .path()
         .join("regions/service/task/client/react")

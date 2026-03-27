@@ -7,7 +7,7 @@ use chrono::Utc;
 use tower::ServiceExt;
 use uuid::Uuid;
 
-use k1s0_service_catalog::adapter::handler::{AppState, ValidateTokenUseCase, router};
+use k1s0_service_catalog::adapter::handler::{router, AppState, ValidateTokenUseCase};
 use k1s0_service_catalog::domain::entity::claims::{Claims, RealmAccess};
 use k1s0_service_catalog::domain::entity::dependency::Dependency;
 use k1s0_service_catalog::domain::entity::health::HealthStatus;

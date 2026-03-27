@@ -4,13 +4,13 @@ use std::collections::HashSet;
 use std::fs;
 use std::sync::OnceLock;
 
-use super::types::EventsConfig;
+use super::types::{EventDefinition, EventsConfig};
 
 /// kebab-case パターンの正規表現キャッシュ
 static KEBAB_RE: OnceLock<Regex> = OnceLock::new();
 /// イベント名パターンの正規表現キャッシュ
 static EVENT_NAME_RE: OnceLock<Regex> = OnceLock::new();
-/// snake_case パターンの正規表現キャッシュ
+/// `snake_case` パターンの正規表現キャッシュ
 static SNAKE_RE: OnceLock<Regex> = OnceLock::new();
 
 /// 許可されるフィールド型 (proto3)
@@ -103,80 +103,90 @@ pub fn validate(config: &EventsConfig) -> Result<()> {
         if !event_names.insert(&event.name) {
             bail!("イベント名 '{}' が重複しています", event.name);
         }
+        validate_event(event, event_name_re, snake_re)?;
+    }
 
-        // event.name
-        if !event_name_re.is_match(&event.name) {
+    Ok(())
+}
+
+/// 単一イベントのバリデーションを行う。
+///
+/// # Errors
+///
+/// イベント定義がバリデーションルールに違反する場合にエラーを返す。
+fn validate_event(event: &EventDefinition, event_name_re: &Regex, snake_re: &Regex) -> Result<()> {
+    // event.name
+    if !event_name_re.is_match(&event.name) {
+        bail!(
+            "event.name '{}' は kebab-case + ドット区切り (例: master-item.created) でなければなりません",
+            event.name
+        );
+    }
+
+    // event.version
+    if event.version < 1 {
+        bail!(
+            "event '{}' の version は 1 以上でなければなりません",
+            event.name
+        );
+    }
+
+    // schema.fields: 1つ以上
+    if event.schema.fields.is_empty() {
+        bail!(
+            "event '{}' の schema.fields は1つ以上定義する必要があります",
+            event.name
+        );
+    }
+
+    // field.number の重複チェック + 型チェック
+    let mut field_numbers = HashSet::new();
+    let mut field_names = HashSet::new();
+    for field in &event.schema.fields {
+        if field.number < 1 {
             bail!(
-                "event.name '{}' は kebab-case + ドット区切り (例: master-item.created) でなければなりません",
-                event.name
-            );
-        }
-
-        // event.version
-        if event.version < 1 {
-            bail!(
-                "event '{}' の version は 1 以上でなければなりません",
-                event.name
-            );
-        }
-
-        // schema.fields: 1つ以上
-        if event.schema.fields.is_empty() {
-            bail!(
-                "event '{}' の schema.fields は1つ以上定義する必要があります",
-                event.name
-            );
-        }
-
-        // field.number の重複チェック + 型チェック
-        let mut field_numbers = HashSet::new();
-        let mut field_names = HashSet::new();
-        for field in &event.schema.fields {
-            if field.number < 1 {
-                bail!(
-                    "event '{}' の field '{}' の number は 1 以上でなければなりません",
-                    event.name,
-                    field.name
-                );
-            }
-            if !field_numbers.insert(field.number) {
-                bail!(
-                    "event '{}' の field number {} が重複しています",
-                    event.name,
-                    field.number
-                );
-            }
-            field_names.insert(field.name.as_str());
-
-            if !VALID_FIELD_TYPES.contains(&field.field_type.as_str()) {
-                bail!(
-                    "event '{}' の field '{}' の type '{}' は無効です。有効な型: {}",
-                    event.name,
-                    field.name,
-                    field.field_type,
-                    VALID_FIELD_TYPES.join(", ")
-                );
-            }
-        }
-
-        // partition_key がフィールドに存在するか
-        if !field_names.contains(event.partition_key.as_str()) {
-            bail!(
-                "event '{}' の partition_key '{}' は schema.fields に定義されていません",
+                "event '{}' の field '{}' の number は 1 以上でなければなりません",
                 event.name,
-                event.partition_key
+                field.name
             );
         }
+        if !field_numbers.insert(field.number) {
+            bail!(
+                "event '{}' の field number {} が重複しています",
+                event.name,
+                field.number
+            );
+        }
+        field_names.insert(field.name.as_str());
 
-        // consumer.handler のバリデーション
-        for consumer in &event.consumers {
-            if !snake_re.is_match(&consumer.handler) {
-                bail!(
-                    "event '{}' の consumer handler '{}' は snake_case でなければなりません",
-                    event.name,
-                    consumer.handler
-                );
-            }
+        if !VALID_FIELD_TYPES.contains(&field.field_type.as_str()) {
+            bail!(
+                "event '{}' の field '{}' の type '{}' は無効です。有効な型: {}",
+                event.name,
+                field.name,
+                field.field_type,
+                VALID_FIELD_TYPES.join(", ")
+            );
+        }
+    }
+
+    // partition_key がフィールドに存在するか
+    if !field_names.contains(event.partition_key.as_str()) {
+        bail!(
+            "event '{}' の partition_key '{}' は schema.fields に定義されていません",
+            event.name,
+            event.partition_key
+        );
+    }
+
+    // consumer.handler のバリデーション
+    for consumer in &event.consumers {
+        if !snake_re.is_match(&consumer.handler) {
+            bail!(
+                "event '{}' の consumer handler '{}' は snake_case でなければなりません",
+                event.name,
+                consumer.handler
+            );
         }
     }
 

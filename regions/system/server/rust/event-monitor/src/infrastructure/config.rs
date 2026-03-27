@@ -1,3 +1,5 @@
+// secrecy クレートを使用してデータベースパスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 // アプリケーション設定のルート構造体。startup.rs から Config::load() で使用される。
@@ -45,8 +47,9 @@ pub struct AppConfig {
     pub environment: String,
 }
 
+// Cargo.toml の package.version からバージョンを取得する（M-16 監査対応: ハードコード解消）
 fn default_version() -> String {
-    "0.1.0".to_string()
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 fn default_environment() -> String {
@@ -85,8 +88,9 @@ pub struct DatabaseConfig {
     pub port: u16,
     pub name: String,
     pub user: String,
-    #[serde(default)]
-    pub password: String,
+    // パスワードは Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    // パスワードは必須項目のため serde(default) を設定しない（Secret<String> は Default 未実装）
+    pub password: Secret<String>,
     #[serde(default = "default_ssl_mode")]
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
@@ -118,10 +122,16 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
+    // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
-            self.user, self.password, self.host, self.port, self.name, self.ssl_mode
+            self.user,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.name,
+            self.ssl_mode
         )
     }
 }
@@ -384,6 +394,7 @@ mod tests {
         assert_eq!(cfg.timeout_seconds, 5);
     }
 
+    // Secret::new() で平文パスワードをラップしてテスト用の DatabaseConfig を構築する
     #[test]
     fn test_database_connection_url() {
         let cfg = DatabaseConfig {
@@ -391,7 +402,7 @@ mod tests {
             port: 5432,
             name: "k1s0_system".to_string(),
             user: "app".to_string(),
-            password: "pass".to_string(),
+            password: Secret::new("pass".to_string()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
             max_idle_conns: 5,

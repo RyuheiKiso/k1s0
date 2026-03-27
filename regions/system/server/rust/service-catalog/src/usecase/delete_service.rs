@@ -71,7 +71,8 @@ mod tests {
         let id = Uuid::new_v4();
         let svc = make_service(id);
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(move |_| Ok(Some(svc.clone())));
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(svc.clone())));
         mock.expect_delete().returning(|_| Ok(()));
 
         let uc = DeleteServiceUseCase::new(Arc::new(mock));

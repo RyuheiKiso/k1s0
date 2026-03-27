@@ -4,8 +4,8 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{error, info};
 
-use crate::ComponentError;
 use crate::component::{Component, ComponentStatus};
+use crate::ComponentError;
 
 /// ComponentRegistry はビルディングブロックの登録・管理を行うレジストリ。
 pub struct ComponentRegistry {

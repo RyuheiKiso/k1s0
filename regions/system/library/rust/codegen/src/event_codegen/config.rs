@@ -140,6 +140,9 @@ events:
     fn topic_name_format() {
         let config: EventConfig = serde_yaml::from_str(sample_yaml()).unwrap();
         let topic = config.topic_name(&config.events[0]);
-        assert_eq!(topic, "k1s0.business.taskmanagement.project-type-changed.v1");
+        assert_eq!(
+            topic,
+            "k1s0.business.taskmanagement.project-type-changed.v1"
+        );
     }
 }

@@ -151,15 +151,14 @@ fn is_server_dir(path: &Path) -> bool {
 // gRPC 依存解析
 // ============================================================================
 
-/// protoファイルのimport文からサービス間依存を検出する。
+/// proto ファイルの import 文からサービス間の gRPC 依存を検出する。
 ///
 /// パターン: `import "k1s0/{tier}/{domain}/v{n}/{file}.proto"`
 /// → ターゲット: `{domain}-server` ({tier})
-/// Scan gRPC dependencies from imported proto files.
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
@@ -233,6 +232,11 @@ pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 /// config.yamlのkafka.topicsセクションからpublish/subscribeを解析する。
 ///
 /// トピック命名: `k1s0.{tier}.{domain}.{event}.v{n}`
+///
+/// # Panics
+///
+/// トピック名照合用の静的正規表現の初期化に失敗した場合（正規表現構文エラー）にパニックする。
+/// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
 pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // トピック名→公開元サービスのマップ
@@ -296,7 +300,7 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
                         detail: Some(topic.clone()),
                     });
                 }
-            } else if let Some(ref re) = topic_re {
+            } else if let Some(re) = topic_re {
                 // パブリッシャーがいない場合、トピック名からターゲットを推測
                 if let Some(cap) = re.captures(topic) {
                     let target_tier = &cap[1];
@@ -389,14 +393,13 @@ fn extract_topics(
 // REST/GraphQL 依存解析
 // ============================================================================
 
-/// ソースコード内のHTTPクライアントURLパターンからサービス間依存を検出する。
+/// ソースコード内の HTTP クライアント URL パターンからサービス間の REST/GraphQL 依存を検出する。
 ///
 /// パターン: `{service-name}.k1s0-{tier}`
-/// Scan REST and GraphQL dependencies from source files.
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
@@ -471,18 +474,16 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
 // ライブラリ依存解析
 // ============================================================================
 
-/// パッケージ定義ファイルからk1s0系ライブラリ依存を検出する。
+/// パッケージ定義ファイルから k1s0 系ライブラリ依存を検出する。
 ///
-/// - Cargo.toml: `k1s0-{lib}` パス依存
-/// - go.mod: `k1s0/regions/system/library/go/`
-/// - package.json: `@k1s0/`
-/// - pubspec.yaml: `k1s0_`
-///
-/// Scan shared-library dependencies from package manifests.
+/// - `Cargo.toml`: `k1s0-{lib}` パス依存
+/// - `go.mod`: `k1s0/regions/system/library/go/`
+/// - `package.json`: `@k1s0/`
+/// - `pubspec.yaml`: `k1s0_`
 ///
 /// # Panics
 ///
-/// Panics only if a hard-coded regular expression becomes invalid.
+/// ハードコードされた正規表現が無効になった場合のみパニックする。
 pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec<Dependency> {
     let mut deps = Vec::new();
 
@@ -681,7 +682,9 @@ mod tests {
     #[test]
     fn test_scan_services_business_tier() {
         let tmp = TempDir::new().unwrap();
-        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        let tm_dir = tmp
+            .path()
+            .join("regions/business/taskmanagement/server/rust");
         fs::create_dir_all(&tm_dir).unwrap();
         fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 
@@ -717,7 +720,9 @@ mod tests {
         fs::write(auth_dir.join("Cargo.toml"), "[package]").unwrap();
 
         // business
-        let tm_dir = tmp.path().join("regions/business/taskmanagement/server/rust");
+        let tm_dir = tmp
+            .path()
+            .join("regions/business/taskmanagement/server/rust");
         fs::create_dir_all(&tm_dir).unwrap();
         fs::write(tm_dir.join("Cargo.toml"), "[package]").unwrap();
 

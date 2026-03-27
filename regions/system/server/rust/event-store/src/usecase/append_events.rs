@@ -1,7 +1,13 @@
+// イベント追記ユースケース。
+// クリーンアーキテクチャの原則により、usecase 層は domain トレイトにのみ依存する。
+// 旧実装では execute_with_tx 内で infrastructure 具体型（EventPostgresRepository,
+// StreamPostgresRepository）を直接インポートしており C-8 違反であった。
+// TransactionalAppendPort を導入してトランザクション処理を抽象化した。
+
 use std::sync::Arc;
 
 use crate::domain::entity::event::{EventData, EventMetadata, EventStream, StoredEvent};
-use crate::domain::repository::{EventRepository, EventStreamRepository};
+use crate::domain::repository::{EventRepository, EventStreamRepository, TransactionalAppendPort};
 use crate::domain::service::{EventStoreDomainError, EventStoreDomainService};
 
 #[derive(Debug, Clone)]
@@ -38,13 +44,14 @@ pub enum AppendEventsError {
 }
 
 /// AppendEventsUseCase はイベントの追記ユースケースを実装する。
-/// PgPool が存在する場合は REPEATABLE READ トランザクションを使用して
-/// ストリーム作成・イベント追記・バージョン更新を単一の原子操作として実行する。
+/// TransactionalAppendPort が設定されている場合は REPEATABLE READ トランザクションを
+/// 使用してストリーム作成・イベント追記・バージョン更新を単一の原子操作として実行する。
+/// usecase 層は domain トレイトにのみ依存し、infrastructure 具体型には依存しない。
 pub struct AppendEventsUseCase {
     stream_repo: Arc<dyn EventStreamRepository>,
     event_repo: Arc<dyn EventRepository>,
-    /// DB トランザクション管理用のコネクションプール（PostgreSQL 使用時に設定）
-    pool: Option<sqlx::PgPool>,
+    /// トランザクション型追記のドメインポート（PostgreSQL 使用時に設定）
+    transactional_port: Option<Arc<dyn TransactionalAppendPort>>,
 }
 
 impl AppendEventsUseCase {
@@ -56,22 +63,44 @@ impl AppendEventsUseCase {
         Self {
             stream_repo,
             event_repo,
-            pool: None,
+            transactional_port: None,
         }
     }
 
-    /// PgPool を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
-    /// pool が設定されている場合、execute() は REPEATABLE READ トランザクションで
+    /// TransactionalAppendPort を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
+    /// transactional_port が設定されている場合、execute() は REPEATABLE READ トランザクションで
     /// ストリーム作成・イベント追記・バージョン更新を単一操作として実行する。
+    /// domain トレイトを介することで usecase 層の infrastructure 依存を排除する。
+    pub fn new_with_transactional_port(
+        stream_repo: Arc<dyn EventStreamRepository>,
+        event_repo: Arc<dyn EventRepository>,
+        transactional_port: Arc<dyn TransactionalAppendPort>,
+    ) -> Self {
+        Self {
+            stream_repo,
+            event_repo,
+            transactional_port: Some(transactional_port),
+        }
+    }
+
+    /// 後方互換のために PgPool を受け取るコンストラクタを維持する。
+    /// 内部で TransactionalAppendAdapter を生成して transactional_port に設定する。
+    #[deprecated(
+        since = "0.2.0",
+        note = "代わりに new_with_transactional_port を使用してください"
+    )]
+    #[allow(dead_code)]
     pub fn new_with_pool(
         stream_repo: Arc<dyn EventStreamRepository>,
         event_repo: Arc<dyn EventRepository>,
         pool: sqlx::PgPool,
     ) -> Self {
+        use crate::infrastructure::persistence::TransactionalAppendAdapter;
+        let port = Arc::new(TransactionalAppendAdapter::new(pool));
         Self {
             stream_repo,
             event_repo,
-            pool: Some(pool),
+            transactional_port: Some(port),
         }
     }
 
@@ -85,51 +114,28 @@ impl AppendEventsUseCase {
             ));
         }
 
-        // PgPool がある場合は単一 REPEATABLE READ トランザクションで実行する
-        if let Some(pool) = &self.pool {
-            return self.execute_with_tx(input, pool).await;
+        // TransactionalAppendPort が設定されている場合は単一トランザクションで実行する
+        if let Some(port) = &self.transactional_port {
+            return self.execute_with_port(input, port.as_ref()).await;
         }
 
         // インメモリリポジトリ利用時はトランザクションなしで実行する
         self.execute_without_tx(input).await
     }
 
-    /// REPEATABLE READ トランザクション内でストリーム作成・イベント追記・バージョン更新を実行する。
-    /// ファントムリードを防止し、バージョンチェックから書き込みまでの一貫性を保証する。
-    async fn execute_with_tx(
+    /// TransactionalAppendPort（domain トレイト）を介してトランザクション内で実行する。
+    /// infrastructure 具体型には依存せず、クリーンアーキテクチャの依存方向を維持する。
+    async fn execute_with_port(
         &self,
         input: &AppendEventsInput,
-        pool: &sqlx::PgPool,
+        port: &dyn TransactionalAppendPort,
     ) -> Result<AppendEventsOutput, AppendEventsError> {
-        use crate::infrastructure::persistence::{EventPostgresRepository, StreamPostgresRepository};
-        use sqlx::Executor;
-
-        // REPEATABLE READ でトランザクションを開始してファントムリードを防止する
-        let mut tx = pool
-            .begin()
+        // まずトランザクション外でストリームの現在状態を取得してバージョン検証を行う
+        let stream = self
+            .stream_repo
+            .find_by_id(&input.stream_id)
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-        // トランザクション分離レベルを REPEATABLE READ に設定してファントムリードを防止する
-        tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-            .await
-            .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-
-        // トランザクション内でストリームの現在状態を取得する
-        let stream = sqlx::query_as::<_, (String, String, i64, chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>)>(
-            r#"SELECT id, aggregate_type, current_version, created_at, updated_at
-               FROM eventstore.event_streams WHERE id = $1"#,
-        )
-        .bind(&input.stream_id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(|e| AppendEventsError::Internal(e.to_string()))?
-        .map(|(id, aggregate_type, current_version, created_at, updated_at)| EventStream {
-            id,
-            aggregate_type,
-            current_version,
-            created_at,
-            updated_at,
-        });
 
         // バージョン検証を実行する
         match EventStoreDomainService::validate_append(
@@ -155,16 +161,15 @@ impl AppendEventsUseCase {
             }
         }
 
-        // 新規ストリームの場合はトランザクション内でストリームを作成する
-        if input.expected_version == -1 {
-            let new_stream = EventStream::new(
+        // 新規ストリームの場合はストリームエンティティを生成する
+        let new_stream = if input.expected_version == -1 {
+            Some(EventStream::new(
                 input.stream_id.clone(),
                 input.aggregate_type.clone().unwrap_or_default(),
-            );
-            StreamPostgresRepository::create_in_tx(&new_stream, &mut tx)
-                .await
-                .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-        }
+            ))
+        } else {
+            None
+        };
 
         let base_version = if input.expected_version == -1 {
             0
@@ -195,19 +200,14 @@ impl AppendEventsUseCase {
 
         let new_version = base_version + input.events.len() as i64;
 
-        // トランザクション内でイベントを一括INSERTする
-        let persisted =
-            EventPostgresRepository::append_in_tx(&input.stream_id, stored_events, &mut tx)
-                .await
-                .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-
-        // トランザクション内でストリームのバージョンを更新する
-        StreamPostgresRepository::update_version_in_tx(&input.stream_id, new_version, &mut tx)
-            .await
-            .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
-
-        // 全操作成功後にコミットして原子性を保証する
-        tx.commit()
+        // TransactionalAppendPort を介してトランザクション内で原子操作を実行する
+        let persisted = port
+            .append_in_transaction(
+                new_stream.as_ref(),
+                &input.stream_id,
+                stored_events,
+                new_version,
+            )
             .await
             .map_err(|e| AppendEventsError::Internal(e.to_string()))?;
 

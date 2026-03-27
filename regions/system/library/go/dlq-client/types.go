@@ -45,3 +45,14 @@ type RetryDlqMessageResponse struct {
 	MessageID string    `json:"message_id"`
 	Status    DlqStatus `json:"status"`
 }
+
+// ---------------------------------------------------------------------------
+// L-3 監査対応: Go 命名規約準拠の短縮型エイリアス（stutter 命名解消）
+// 新しいコードでは dlq.Status / Message を使用すること。
+// ---------------------------------------------------------------------------
+
+// Status は DlqStatus の短縮エイリアス。
+type Status = DlqStatus
+
+// Message は DlqMessage の短縮エイリアス。
+type Message = DlqMessage

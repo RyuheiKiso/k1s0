@@ -58,7 +58,8 @@ impl TelemetryConfigBuilder {
     pub fn new(service_name: impl Into<String>) -> Self {
         Self {
             service_name: service_name.into(),
-            version: "0.1.0".to_string(),
+            // Cargo.toml の package.version からバージョンを取得する（M-16 監査対応: ハードコード解消）
+            version: env!("CARGO_PKG_VERSION").to_string(),
             tier: "system".to_string(),
             environment: "dev".to_string(),
             trace_endpoint: None,

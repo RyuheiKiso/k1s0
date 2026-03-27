@@ -48,7 +48,8 @@ pub fn run() -> Result<()> {
     }
 
     // config サーバーへのプッシュ有無をユーザーに確認する
-    let Some(push) = prompt::yes_no_prompt("config サーバーにスキーマをプッシュしますか？")? else {
+    let Some(push) = prompt::yes_no_prompt("config サーバーにスキーマをプッシュしますか？")?
+    else {
         return Ok(());
     };
 
@@ -86,9 +87,8 @@ pub fn run() -> Result<()> {
 
     // config サーバーへのスキーマプッシュ処理
     if let Some(url) = &server_url {
-        let token = std::env::var("K1S0_TOKEN").map_err(|_| {
-            anyhow::anyhow!("プッシュが有効な場合は K1S0_TOKEN 環境変数が必要です")
-        })?;
+        let token = std::env::var("K1S0_TOKEN")
+            .map_err(|_| anyhow::anyhow!("プッシュが有効な場合は K1S0_TOKEN 環境変数が必要です"))?;
         println!("\nスキーマをプッシュしています...");
         push_config_schema(&schema, url, &token).map_err(|error| anyhow::anyhow!("{error}"))?;
         println!(

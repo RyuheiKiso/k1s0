@@ -1,6 +1,6 @@
 # system-vault-server 実装設計
 
-> **注記**: 本ドキュメントは vault-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../_common/Rust共通実装.md) を参照。
+> **注記**: 本ドキュメントは vault-server の実装仕様を含む。共通パターンは [Rust共通実装.md](../../_common/Rust共通実装.md) を参照。
 
 system-vault-server（シークレット管理サーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [server.md](server.md) を参照。
 
@@ -149,4 +149,4 @@ regions/system/server/rust/vault/
 ## 関連ドキュメント
 
 - [server.md](server.md) -- 概要・API 定義・キャッシュ設計
-- [Rust共通実装.md](../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存
+- [Rust共通実装.md](../../_common/Rust共通実装.md) -- 共通起動シーケンス・Cargo 依存

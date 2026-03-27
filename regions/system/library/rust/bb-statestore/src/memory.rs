@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 
-use crate::StateStoreError;
 use crate::traits::{StateEntry, StateStore};
+use crate::StateStoreError;
 
 struct Entry {
     value: Vec<u8>,

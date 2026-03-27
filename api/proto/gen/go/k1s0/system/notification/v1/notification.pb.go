@@ -175,6 +175,9 @@ type SendNotificationResponse struct {
 	NotificationId string                 `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
 	Status         string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	// Deprecated: created_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	CreatedAt string `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// created_at_ts は created_at の Timestamp 型。
 	CreatedAtTs   *v1.Timestamp `protobuf:"bytes,4,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
@@ -226,6 +229,7 @@ func (x *SendNotificationResponse) GetStatus() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *SendNotificationResponse) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
@@ -539,12 +543,21 @@ type NotificationLog struct {
 	Subject     *string                `protobuf:"bytes,6,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
 	Body        string                 `protobuf:"bytes,7,opt,name=body,proto3" json:"body,omitempty"`
 	// Deprecated: use status_enum instead.
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	Status       string  `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
 	RetryCount   uint32  `protobuf:"varint,9,opt,name=retry_count,json=retryCount,proto3" json:"retry_count,omitempty"`
 	ErrorMessage *string `protobuf:"bytes,10,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
 	// Deprecated: sent_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	SentAt *string `protobuf:"bytes,11,opt,name=sent_at,json=sentAt,proto3,oneof" json:"sent_at,omitempty"`
 	// Deprecated: created_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	CreatedAt string `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// 通知ステータスの enum 版（status の型付き版）。
 	StatusEnum NotificationStatus `protobuf:"varint,13,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.notification.v1.NotificationStatus" json:"status_enum,omitempty"`
@@ -635,6 +648,7 @@ func (x *NotificationLog) GetBody() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *NotificationLog) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -656,6 +670,7 @@ func (x *NotificationLog) GetErrorMessage() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *NotificationLog) GetSentAt() string {
 	if x != nil && x.SentAt != nil {
 		return *x.SentAt
@@ -663,6 +678,7 @@ func (x *NotificationLog) GetSentAt() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *NotificationLog) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
@@ -699,8 +715,14 @@ type Channel struct {
 	ConfigJson  string                 `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
 	Enabled     bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Deprecated: created_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Deprecated: updated_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	UpdatedAt string `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// created_at_ts は created_at の Timestamp 型。
 	CreatedAtTs *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
@@ -775,6 +797,7 @@ func (x *Channel) GetEnabled() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *Channel) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
@@ -782,6 +805,7 @@ func (x *Channel) GetCreatedAt() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *Channel) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
@@ -1332,8 +1356,14 @@ type Template struct {
 	SubjectTemplate *string                `protobuf:"bytes,4,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
 	BodyTemplate    string                 `protobuf:"bytes,5,opt,name=body_template,json=bodyTemplate,proto3" json:"body_template,omitempty"`
 	// Deprecated: created_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Deprecated: updated_at_ts を使用すること。
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 	UpdatedAt string `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// created_at_ts は created_at の Timestamp 型。
 	CreatedAtTs *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at_ts,json=createdAtTs,proto3" json:"created_at_ts,omitempty"`
@@ -1408,6 +1438,7 @@ func (x *Template) GetBodyTemplate() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *Template) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
@@ -1415,6 +1446,7 @@ func (x *Template) GetCreatedAt() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/notification/v1/notification.proto.
 func (x *Template) GetUpdatedAt() string {
 	if x != nil {
 		return x.UpdatedAt
@@ -1969,12 +2001,12 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\f_template_idB\n" +
 	"\n" +
 	"\b_subjectB\a\n" +
-	"\x05_body\"\xc0\x01\n" +
+	"\x05_body\"\xc4\x01\n" +
 	"\x18SendNotificationResponse\x12'\n" +
 	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1d\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12!\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12D\n" +
+	"created_at\x18\x03 \x01(\tB\x02\x18\x01R\tcreatedAt\x12D\n" +
 	"\rcreated_at_ts\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\"A\n" +
 	"\x16GetNotificationRequest\x12'\n" +
 	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"k\n" +
@@ -1997,7 +2029,7 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\rnotifications\x18\x01 \x03(\v2,.k1s0.system.notification.v1.NotificationLogR\rnotifications\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xa0\x05\n" +
+	"pagination\"\xac\x05\n" +
 	"\x0fNotificationLog\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -2007,15 +2039,15 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"templateId\x88\x01\x01\x12\x1c\n" +
 	"\trecipient\x18\x05 \x01(\tR\trecipient\x12\x1d\n" +
 	"\asubject\x18\x06 \x01(\tH\x01R\asubject\x88\x01\x01\x12\x12\n" +
-	"\x04body\x18\a \x01(\tR\x04body\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06status\x12\x1f\n" +
+	"\x04body\x18\a \x01(\tR\x04body\x12\x1a\n" +
+	"\x06status\x18\b \x01(\tB\x02\x18\x01R\x06status\x12\x1f\n" +
 	"\vretry_count\x18\t \x01(\rR\n" +
 	"retryCount\x12(\n" +
 	"\rerror_message\x18\n" +
-	" \x01(\tH\x02R\ferrorMessage\x88\x01\x01\x12\x1c\n" +
-	"\asent_at\x18\v \x01(\tH\x03R\x06sentAt\x88\x01\x01\x12\x1d\n" +
+	" \x01(\tH\x02R\ferrorMessage\x88\x01\x01\x12 \n" +
+	"\asent_at\x18\v \x01(\tB\x02\x18\x01H\x03R\x06sentAt\x88\x01\x01\x12!\n" +
 	"\n" +
-	"created_at\x18\f \x01(\tR\tcreatedAt\x12P\n" +
+	"created_at\x18\f \x01(\tB\x02\x18\x01R\tcreatedAt\x12P\n" +
 	"\vstatus_enum\x18\r \x01(\x0e2/.k1s0.system.notification.v1.NotificationStatusR\n" +
 	"statusEnum\x12C\n" +
 	"\n" +
@@ -2027,18 +2059,18 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x0e_error_messageB\n" +
 	"\n" +
 	"\b_sent_atB\r\n" +
-	"\v_sent_at_ts\"\xd5\x02\n" +
+	"\v_sent_at_ts\"\xdd\x02\n" +
 	"\aChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fchannel_type\x18\x03 \x01(\tR\vchannelType\x12\x1f\n" +
 	"\vconfig_json\x18\x04 \x01(\tR\n" +
 	"configJson\x12\x18\n" +
-	"\aenabled\x18\x05 \x01(\bR\aenabled\x12\x1d\n" +
+	"\aenabled\x18\x05 \x01(\bR\aenabled\x12!\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\tB\x02\x18\x01R\tcreatedAt\x12!\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\tR\tupdatedAt\x12D\n" +
+	"updated_at\x18\a \x01(\tB\x02\x18\x01R\tupdatedAt\x12D\n" +
 	"\rcreated_at_ts\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\x12D\n" +
 	"\rupdated_at_ts\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\vupdatedAtTs\"\xc5\x01\n" +
 	"\x13ListChannelsRequest\x12&\n" +
@@ -2081,17 +2113,17 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
 	"\x15DeleteChannelResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x85\x03\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x8d\x03\n" +
 	"\bTemplate\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fchannel_type\x18\x03 \x01(\tR\vchannelType\x12.\n" +
 	"\x10subject_template\x18\x04 \x01(\tH\x00R\x0fsubjectTemplate\x88\x01\x01\x12#\n" +
-	"\rbody_template\x18\x05 \x01(\tR\fbodyTemplate\x12\x1d\n" +
+	"\rbody_template\x18\x05 \x01(\tR\fbodyTemplate\x12!\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\tB\x02\x18\x01R\tcreatedAt\x12!\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\tR\tupdatedAt\x12D\n" +
+	"updated_at\x18\a \x01(\tB\x02\x18\x01R\tupdatedAt\x12D\n" +
 	"\rcreated_at_ts\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\x12D\n" +
 	"\rupdated_at_ts\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\vupdatedAtTsB\x13\n" +
 	"\x11_subject_template\"\xa3\x01\n" +

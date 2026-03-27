@@ -31,7 +31,8 @@ resources:
           keys:
             # プライマリキー: 現在の暗号化に使用されるアクティブキー
             # secret の値は Vault 経由で注入すること（プレースホルダー値は使用禁止）
-            - name: key1
+            # H-4 監査対応: Secrets/ConfigMaps には必ず異なるキーを使用すること（同一キー流出時の被害拡大を防ぐ）
+            - name: secrets-key1
               secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
       # identity: 暗号化なし（フォールバック用。新規リソースは aescbc で暗号化されるため末尾に配置）
       - identity: {}
@@ -40,11 +41,11 @@ resources:
   - resources:
       - configmaps
     providers:
-      # aescbc: Secrets と同一キーを使用してコスト効率よく暗号化する
+      # aescbc: ConfigMaps 専用キーを使用する（H-4 監査対応: Secrets キーと分離して影響範囲を限定する）
       - aescbc:
           keys:
-            # プライマリキー: Secrets と同一のキー管理ポリシーを適用する
-            - name: key1
+            # プライマリキー: Secrets とは異なるキーを使用すること（キー名で明示的に区別する）
+            - name: configmaps-key1
               secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
       # identity: 暗号化なし（フォールバック用）
       - identity: {}

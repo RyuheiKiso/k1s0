@@ -23,7 +23,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-dlq-manager".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -173,7 +174,8 @@ pub async fn run() -> anyhow::Result<()> {
     )?;
 
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, dlq_manager_grpc_action);
+    let grpc_auth_layer =
+        GrpcAuthLayer::new(auth_state.clone(), Tier::System, dlq_manager_grpc_action);
 
     // AppState
     let mut state = AppState {

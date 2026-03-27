@@ -195,20 +195,20 @@ struct DeployPlan {
     full_image_tag: String,
 }
 
-/// Execute deployment for the selected targets.
+/// 選択されたターゲットのデプロイを実行する。
 ///
 /// # Errors
 ///
-/// Returns an error when target validation fails or any deployment command fails.
+/// ターゲットのバリデーション失敗またはデプロイコマンドが失敗した場合にエラーを返す。
 pub fn execute_deploy(config: &DeployConfig) -> Result<()> {
     execute_deploy_internal(config, Option::<&fn(ProgressEvent)>::None)
 }
 
-/// Execute deployment for the selected targets while emitting progress events.
+/// 進捗イベントを送出しながら選択されたターゲットのデプロイを実行する。
 ///
 /// # Errors
 ///
-/// Returns an error when target validation fails or any deployment command fails.
+/// ターゲットのバリデーション失敗またはデプロイコマンドが失敗した場合にエラーを返す。
 pub fn execute_deploy_with_progress(
     config: &DeployConfig,
     on_progress: impl Fn(ProgressEvent),
@@ -216,11 +216,11 @@ pub fn execute_deploy_with_progress(
     execute_deploy_internal(config, Some(&on_progress))
 }
 
-/// Roll back the most recent production Helm release for a target.
+/// 対象の最新 Helm リリースをロールバックする。
 ///
 /// # Errors
 ///
-/// Returns an error when the deploy plan cannot be resolved or the Helm command fails.
+/// デプロイプランの解決失敗または Helm コマンドが失敗した場合にエラーを返す。
 pub fn execute_deploy_rollback(target: &str) -> Result<String> {
     let plan = build_deploy_plan(Path::new(target), Environment::Prod)?;
     let args = build_helm_rollback_args(&plan.service_name, &plan.tier);

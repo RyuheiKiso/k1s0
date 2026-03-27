@@ -66,8 +66,18 @@ mod tests {
     /// 複数のチャンネルは異なる ID を持つ
     #[test]
     fn unique_ids() {
-        let ch1 = NotificationChannel::new("a".to_string(), "email".to_string(), serde_json::json!({}), true);
-        let ch2 = NotificationChannel::new("b".to_string(), "email".to_string(), serde_json::json!({}), true);
+        let ch1 = NotificationChannel::new(
+            "a".to_string(),
+            "email".to_string(),
+            serde_json::json!({}),
+            true,
+        );
+        let ch2 = NotificationChannel::new(
+            "b".to_string(),
+            "email".to_string(),
+            serde_json::json!({}),
+            true,
+        );
         assert_ne!(ch1.id, ch2.id);
     }
 }

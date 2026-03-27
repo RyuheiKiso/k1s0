@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use k1s0_circuit_breaker::{CircuitBreaker, CircuitBreakerConfig};
+// secrecy クレートを使用して Keycloak パスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ（H-1 監査対応）。
+use secrecy::{ExposeSecret, Secret};
 use tokio::sync::{RwLock, Semaphore};
 
 use crate::domain::entity::user::{Pagination, Role, User, UserListResult, UserRoles};
@@ -14,16 +16,17 @@ pub struct KeycloakConfig {
     pub base_url: String,
     pub realm: String,
     pub client_id: String,
-    #[serde(default)]
-    pub client_secret: String,
+    // client_secret は Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    // クライアントシークレットは必須項目のため serde(default) を設定しない（Secret<String> は Default 未実装）
+    pub client_secret: Secret<String>,
     #[serde(default = "default_admin_realm")]
     pub admin_realm: String,
     #[serde(default = "default_admin_client_id")]
     pub admin_client_id: String,
     #[serde(default)]
     pub admin_username: String,
-    #[serde(default)]
-    pub admin_password: String,
+    // admin_password は Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    pub admin_password: Secret<String>,
 }
 
 fn default_admin_realm() -> String {
@@ -35,8 +38,9 @@ fn default_admin_client_id() -> String {
 }
 
 impl KeycloakConfig {
+    /// admin_password が設定されている場合は Resource Owner Password Grant を使用する。
     fn uses_admin_password_grant(&self) -> bool {
-        !self.admin_username.is_empty() && !self.admin_password.is_empty()
+        !self.admin_username.is_empty() && !self.admin_password.expose_secret().is_empty()
     }
 
     pub(crate) fn admin_token_url(&self) -> String {
@@ -57,13 +61,15 @@ impl KeycloakConfig {
                 ("grant_type", "password".to_string()),
                 ("client_id", self.admin_client_id.clone()),
                 ("username", self.admin_username.clone()),
-                ("password", self.admin_password.clone()),
+                // expose_secret() でパスワードを取り出してフォームに設定する
+                ("password", self.admin_password.expose_secret().to_string()),
             ]
         } else {
             vec![
                 ("grant_type", "client_credentials".to_string()),
                 ("client_id", self.client_id.clone()),
-                ("client_secret", self.client_secret.clone()),
+                // expose_secret() でクライアントシークレットを取り出してフォームに設定する
+                ("client_secret", self.client_secret.expose_secret().to_string()),
             ]
         }
     }
@@ -215,7 +221,9 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
+            return Err(
+                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+            );
         }
 
         let kc_user: KeycloakUser = resp.error_for_status()?.json().await?;
@@ -299,7 +307,9 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into());
+            return Err(
+                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+            );
         }
 
         let realm_roles: Vec<KeycloakRole> = resp.error_for_status()?.json().await?;
@@ -429,6 +439,7 @@ base_url: "https://auth.k1s0.internal.example.com"
 realm: "k1s0"
 client_id: "auth-server"
 client_secret: "secret"
+admin_password: ""
 "#;
         let config: KeycloakConfig =
             serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");

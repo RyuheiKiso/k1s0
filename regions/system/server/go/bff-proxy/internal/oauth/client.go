@@ -125,7 +125,8 @@ func (c *Client) Discover(ctx context.Context) (*OIDCConfig, error) {
 		return nil, fmt.Errorf("OIDC discovery がステータス %d を返しました", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// 1MB でボディサイズを制限（OOM 攻撃対策）（H-9 監査対応）
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("discovery レスポンスの読み込みに失敗しました: %w", err)
 	}
@@ -259,7 +260,8 @@ func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Val
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	// 1MB でボディサイズを制限（OOM 攻撃対策）（H-9 監査対応）
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("トークンレスポンスの読み込みに失敗しました: %w", err)
 	}

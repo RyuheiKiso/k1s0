@@ -111,11 +111,7 @@ mod tests {
 
     #[test]
     fn test_match_event_disabled_flow_skipped() {
-        let flow = make_flow(
-            "disabled_flow",
-            vec![("TaskCreated", "task-server")],
-            false,
-        );
+        let flow = make_flow("disabled_flow", vec![("TaskCreated", "task-server")], false);
         let event = make_event("TaskCreated", "task-server");
         let result = FlowMatchingService::match_event(&event, &[flow]);
         assert!(result.is_none());

@@ -8,9 +8,7 @@
 
 #[cfg(test)]
 mod tests {
-    use k1s0_saga_server::infrastructure::kafka_producer::{
-        KafkaConfig, SaslConfig, TopicsConfig,
-    };
+    use k1s0_saga_server::infrastructure::kafka_producer::{KafkaConfig, SaslConfig, TopicsConfig};
 
     // =========================================================================
     // ユニットテスト（外部サービス不要）
@@ -58,10 +56,22 @@ brokers:
         // 最小構成のデシリアライズ: デフォルト値が正しく適用されることを検証する
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.security_protocol, "SASL_SSL", "デフォルトはSASL_SSL");
-        assert!(config.consumer_group.is_empty(), "consumer_group デフォルトは空文字");
-        assert!(config.sasl.mechanism.is_empty(), "SASL mechanism デフォルトは空文字");
-        assert!(config.topics.publish.is_empty(), "publish topics デフォルトは空");
-        assert!(config.topics.subscribe.is_empty(), "subscribe topics デフォルトは空");
+        assert!(
+            config.consumer_group.is_empty(),
+            "consumer_group デフォルトは空文字"
+        );
+        assert!(
+            config.sasl.mechanism.is_empty(),
+            "SASL mechanism デフォルトは空文字"
+        );
+        assert!(
+            config.topics.publish.is_empty(),
+            "publish topics デフォルトは空"
+        );
+        assert!(
+            config.topics.subscribe.is_empty(),
+            "subscribe topics デフォルトは空"
+        );
     }
 
     /// KafkaConfig の security_protocol を明示的に PLAINTEXT に設定可能か検証する

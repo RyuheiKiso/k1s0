@@ -93,6 +93,22 @@ impl OutboxStore for PostgresOutboxStore {
         .map_err(|e| OutboxError::StoreError(e.to_string()))?;
         Ok(result.rows_affected())
     }
+
+    /// 指定分数以上 PROCESSING 状態のメッセージを PENDING に戻してリカバリする。
+    /// process_after を基準時刻として使用し、処理タイムアウトしたメッセージを検出する。
+    async fn recover_stale_processing(&self, stale_minutes: u32) -> Result<u64, OutboxError> {
+        let result = sqlx::query(
+            r#"UPDATE outbox.outbox_messages
+               SET status = 'PENDING'
+               WHERE status = 'PROCESSING'
+               AND process_after < NOW() - ($1 || ' minutes')::interval"#,
+        )
+        .bind(stale_minutes as i32)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| OutboxError::StoreError(e.to_string()))?;
+        Ok(result.rows_affected())
+    }
 }
 
 /// DB行と OutboxMessage の変換用中間構造体。

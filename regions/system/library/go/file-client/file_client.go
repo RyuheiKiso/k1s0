@@ -152,10 +152,14 @@ func (c *InMemoryFileClient) StoredFiles() []*FileMetadata {
 
 // FileClientConfig はファイルクライアントの設定。
 // S3/AWS SDK 依存を除去し、file-server 経由のみをサポートする。
-type FileClientConfig struct {
+type FileClientConfig struct { //nolint:revive // 既存の公開 API との互換性のため FileClientConfig を維持する
 	ServerURL string
 	Timeout   time.Duration
 }
+
+// Config は FileClientConfig の Go 命名規約準拠の短縮エイリアス（L-3 監査対応: stutter 命名を解消）。
+// 新しいコードでは fileclient.Config を使用すること。
+type Config = FileClientConfig
 
 // Option は FileClientConfig を変更するオプション関数。
 type Option func(*FileClientConfig)

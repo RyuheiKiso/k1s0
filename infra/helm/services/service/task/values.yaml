@@ -1,5 +1,6 @@
 # k1s0-common からのデフォルトを継承し、task サービス固有の値のみ上書きする
 # 共通デフォルト値は infra/helm/charts/k1s0-common/values.yaml を参照
+# L-8 監査対応: image.registry, autoscaling, resources は k1s0-common のデフォルトを継承
 
 image:
   repository: k1s0-service/task

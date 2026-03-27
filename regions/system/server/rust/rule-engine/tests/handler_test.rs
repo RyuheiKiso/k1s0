@@ -12,9 +12,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_rule_engine_server::adapter::handler::{router, AppState};
-use k1s0_rule_engine_server::domain::entity::rule::{
-    EvaluationLog, Rule, RuleSet, RuleSetVersion,
-};
+use k1s0_rule_engine_server::domain::entity::rule::{EvaluationLog, Rule, RuleSet, RuleSetVersion};
 use k1s0_rule_engine_server::domain::repository::{
     EvaluationLogRepository, RuleRepository, RuleSetRepository, RuleSetVersionRepository,
 };
@@ -50,7 +48,13 @@ impl StubRuleRepo {
 #[async_trait]
 impl RuleRepository for StubRuleRepo {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Rule>> {
-        Ok(self.rules.read().await.iter().find(|r| &r.id == id).cloned())
+        Ok(self
+            .rules
+            .read()
+            .await
+            .iter()
+            .find(|r| &r.id == id)
+            .cloned())
     }
 
     async fn find_all(&self) -> anyhow::Result<Vec<Rule>> {
@@ -256,10 +260,7 @@ impl EvaluationLogRepository for StubEvalLogRepo {
 // AppState ビルダーヘルパー
 // ---------------------------------------------------------------------------
 
-fn build_state(
-    rule_repo: Arc<StubRuleRepo>,
-    rule_set_repo: Arc<StubRuleSetRepo>,
-) -> AppState {
+fn build_state(rule_repo: Arc<StubRuleRepo>, rule_set_repo: Arc<StubRuleSetRepo>) -> AppState {
     let version_repo = Arc::new(StubVersionRepo);
     let eval_log_repo: Arc<dyn EvaluationLogRepository> = Arc::new(StubEvalLogRepo);
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("rule-engine-test"));
@@ -315,7 +316,10 @@ fn make_rule(name: &str) -> Rule {
 /// GET /healthz は {"status": "ok"} を返す
 #[tokio::test]
 async fn healthz_returns_ok() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -336,7 +340,10 @@ async fn healthz_returns_ok() {
 /// GET /readyz はin-memoryバックエンドのとき degraded を返す
 #[tokio::test]
 async fn readyz_in_memory_returns_degraded() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -362,7 +369,10 @@ async fn readyz_in_memory_returns_degraded() {
 /// GET /api/v1/rules はルールが0件の場合に空リストを返す
 #[tokio::test]
 async fn list_rules_empty() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -384,7 +394,10 @@ async fn list_rules_empty() {
 /// GET /api/v1/rules/{id} は存在しないIDに対して404を返す
 #[tokio::test]
 async fn get_rule_not_found() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -429,7 +442,10 @@ async fn get_rule_found() {
 /// POST /api/v1/rules は正常なボディで201を返す
 #[tokio::test]
 async fn create_rule_success() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let body = serde_json::json!({
@@ -506,7 +522,10 @@ async fn delete_rule_success() {
 /// DELETE /api/v1/rules/{id} は存在しないルールに対して404を返す
 #[tokio::test]
 async fn delete_rule_not_found() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -526,7 +545,10 @@ async fn delete_rule_not_found() {
 /// GET /api/v1/rule-sets はルールセットが0件の場合に空リストを返す
 #[tokio::test]
 async fn list_rule_sets_empty() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -547,7 +569,10 @@ async fn list_rule_sets_empty() {
 /// GET /api/v1/rule-sets/{id} は存在しないIDに対して404を返す
 #[tokio::test]
 async fn get_rule_set_not_found() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -566,7 +591,10 @@ async fn get_rule_set_not_found() {
 /// POST /api/v1/evaluate はルールセットが存在しない場合に404を返す
 #[tokio::test]
 async fn evaluate_rule_set_not_found() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let body = serde_json::json!({
@@ -598,7 +626,10 @@ async fn evaluate_rule_set_not_found() {
 /// GET /api/v1/evaluation-logs はログが0件の場合に空リストを返す
 #[tokio::test]
 async fn list_evaluation_logs_empty() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()
@@ -619,7 +650,10 @@ async fn list_evaluation_logs_empty() {
 /// GET /api/v1/rules?rule_set_id=invalid は400を返す
 #[tokio::test]
 async fn list_rules_invalid_rule_set_id_returns_bad_request() {
-    let state = build_state(Arc::new(StubRuleRepo::new()), Arc::new(StubRuleSetRepo::new()));
+    let state = build_state(
+        Arc::new(StubRuleRepo::new()),
+        Arc::new(StubRuleSetRepo::new()),
+    );
     let app = router(state);
 
     let req = Request::builder()

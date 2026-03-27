@@ -46,8 +46,9 @@ resource "vault_database_secret_backend_role" "task_rw" {
     "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
     "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
-  default_ttl         = 86400  # 24 hours
-  max_ttl             = 172800 # 48 hours
+  # ゼロトラスト設計に基づき TTL を短縮する（漏洩時のリスク期間を最小化）
+  default_ttl         = 3600   # 1 hour
+  max_ttl             = 14400  # 4 hours
 }
 
 # Task service - Read-Only role
@@ -63,8 +64,9 @@ resource "vault_database_secret_backend_role" "task_ro" {
     "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
     "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
-  default_ttl         = 86400  # 24 hours
-  max_ttl             = 172800 # 48 hours
+  # ゼロトラスト設計に基づき TTL を短縮する（漏洩時のリスク期間を最小化）
+  default_ttl         = 3600   # 1 hour
+  max_ttl             = 14400  # 4 hours
 }
 
 # Auth service - Read/Write role
@@ -80,8 +82,9 @@ resource "vault_database_secret_backend_role" "auth_rw" {
     "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
     "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
-  default_ttl         = 86400  # 24 hours
-  max_ttl             = 172800 # 48 hours
+  # ゼロトラスト設計に基づき TTL を短縮する（漏洩時のリスク期間を最小化）
+  default_ttl         = 3600   # 1 hour
+  max_ttl             = 14400  # 4 hours
 }
 
 # Auth service - Read-Only role
@@ -97,6 +100,7 @@ resource "vault_database_secret_backend_role" "auth_ro" {
     "REVOKE USAGE ON SCHEMA public FROM \"{{name}}\";",
     "DROP ROLE IF EXISTS \"{{name}}\";"
   ]
-  default_ttl         = 86400  # 24 hours
-  max_ttl             = 172800 # 48 hours
+  # ゼロトラスト設計に基づき TTL を短縮する（漏洩時のリスク期間を最小化）
+  default_ttl         = 3600   # 1 hour
+  max_ttl             = 14400  # 4 hours
 }

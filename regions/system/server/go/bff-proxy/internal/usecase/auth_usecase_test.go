@@ -74,21 +74,27 @@ func (m *mockAuthOAuthClient) ClearDiscoveryCache() {
 	m.discoveryCacheCleared = true
 }
 
-// mockSessionStoreForAuth は session.Store インターフェースのテスト用モック。
-// インメモリ map でセッションを管理し、Create 失敗シミュレートを関数フィールドで提供する。
+// mockSessionStoreForAuth は session.Store と session.ExchangeCodeStore の両インターフェースのテスト用モック。
+// インメモリ map でセッションおよび交換コードを管理し、Create 失敗シミュレートを関数フィールドで提供する。
+// H-5 監査対応: ExchangeCodeStore インターフェースを実装し、交換コード専用の操作を提供する。
 type mockSessionStoreForAuth struct {
 	// sessions はインメモリのセッションデータストア。
 	sessions map[string]*session.SessionData
+	// exchangeCodes はインメモリの交換コードデータストア（H-5 監査対応）。
+	exchangeCodes map[string]*session.ExchangeCodeData
 	// counter は Create のたびにインクリメントされる連番（一意な ID 生成用）。
 	counter int
 	// createFn は Create の振る舞いを上書きする。nil の場合はデフォルト動作。
 	createFn func(ctx context.Context, data *session.SessionData, ttl time.Duration) (string, error)
+	// exchangeCodeCounter は CreateExchangeCode のたびにインクリメントされる連番。
+	exchangeCodeCounter int
 }
 
 // newMockSessionStoreForAuth はテスト用インメモリセッションストアを生成する。
 func newMockSessionStoreForAuth() *mockSessionStoreForAuth {
 	return &mockSessionStoreForAuth{
-		sessions: make(map[string]*session.SessionData),
+		sessions:      make(map[string]*session.SessionData),
+		exchangeCodes: make(map[string]*session.ExchangeCodeData),
 	}
 }
 
@@ -128,6 +134,28 @@ func (m *mockSessionStoreForAuth) Touch(_ context.Context, _ string, _ time.Dura
 	return nil
 }
 
+// CreateExchangeCode はモバイルフロー用交換コードデータを保存し、連番のコードキーを返す（H-5 監査対応）。
+func (m *mockSessionStoreForAuth) CreateExchangeCode(_ context.Context, data *session.ExchangeCodeData, _ time.Duration) (string, error) {
+	m.exchangeCodeCounter++
+	code := "exchange-code-" + string(rune('0'+m.exchangeCodeCounter))
+	m.exchangeCodes[code] = data
+	return code, nil
+}
+
+// GetExchangeCode は交換コードキーに対応する ExchangeCodeData を取得する（H-5 監査対応）。
+func (m *mockSessionStoreForAuth) GetExchangeCode(_ context.Context, code string) (*session.ExchangeCodeData, error) {
+	if d, ok := m.exchangeCodes[code]; ok {
+		return d, nil
+	}
+	return nil, nil
+}
+
+// DeleteExchangeCode は交換コードを削除する（H-5 監査対応）。
+func (m *mockSessionStoreForAuth) DeleteExchangeCode(_ context.Context, code string) error {
+	delete(m.exchangeCodes, code)
+	return nil
+}
+
 // ── Login テスト ──────────────────────────────────────────────
 
 // TestLogin_Success は認可コードフローの開始処理が正常に動作することを検証する。
@@ -139,7 +167,7 @@ func TestLogin_Success(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		RedirectTo: "",
@@ -174,7 +202,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_WithValidMobileRedirect(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		// k1s0:// スキームは許可リストに含まれる
@@ -194,7 +222,7 @@ func TestLogin_WithValidMobileRedirect(t *testing.T) {
 func TestLogin_WithInvalidMobileRedirect(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		// https:// スキームは許可リストに含まれない
@@ -219,7 +247,7 @@ func TestLogin_AuthCodeURLError(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Login(context.Background(), LoginInput{})
 
@@ -265,7 +293,7 @@ func TestCallback_BrowserFlow_Success(t *testing.T) {
 	existingSess := testutil.CreateTestSession(testutil.SessionOptions{})
 	store.sessions["old-session-id"] = existingSess
 
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Callback(context.Background(), CallbackInput{
 		ExistingSessionID: "old-session-id",
@@ -318,7 +346,7 @@ func TestCallback_MobileFlow_Success(t *testing.T) {
 	}
 
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Callback(context.Background(), CallbackInput{
 		State:            "state-value",
@@ -368,7 +396,7 @@ func contains(s, target string) bool {
 func TestCallback_StateMissing(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:       "some-state",
@@ -393,7 +421,7 @@ func TestCallback_StateMissing(t *testing.T) {
 func TestCallback_StateMismatch(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:        "request-state",
@@ -423,7 +451,7 @@ func TestCallback_TokenExchangeFailure(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:        "state",
@@ -463,7 +491,7 @@ func TestLogout_Success(t *testing.T) {
 	})
 	store.sessions["logout-session-id"] = sess
 
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "logout-session-id",
@@ -495,7 +523,7 @@ func TestLogout_Success(t *testing.T) {
 func TestLogout_NoSession(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "", // セッション ID なし
@@ -531,7 +559,7 @@ func TestLogout_IdPLogoutURLError(t *testing.T) {
 	sess := testutil.CreateTestSession(testutil.SessionOptions{IDToken: "id-token"})
 	store.sessions["session-with-idp-error"] = sess
 
-	uc := NewAuthUseCase(mockClient, store)
+	uc := NewAuthUseCase(mockClient, store, store)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "session-with-idp-error",
@@ -563,7 +591,7 @@ func TestCheckSession_Success(t *testing.T) {
 	})
 	store.sessions["valid-session-id"] = sess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	out, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "valid-session-id",
@@ -589,7 +617,7 @@ func TestCheckSession_Success(t *testing.T) {
 // TestCheckSession_NotFound はセッション ID が空の場合にエラーが返ることを検証する。
 func TestCheckSession_NotFound(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	_, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "", // 空の SessionID
@@ -614,7 +642,7 @@ func TestCheckSession_Expired(t *testing.T) {
 	expiredSess := testutil.CreateExpiredSession("expired-subject", "expired-csrf")
 	store.sessions["expired-session-id"] = expiredSess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	_, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "expired-session-id",
@@ -644,7 +672,7 @@ func TestCheckSession_RolesNilToEmpty(t *testing.T) {
 	}
 	store.sessions["nil-roles-session"] = sess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	out, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "nil-roles-session",
@@ -666,6 +694,7 @@ func TestCheckSession_RolesNilToEmpty(t *testing.T) {
 
 // TestExchangeCode_Success はワンタイム交換コードが有効な場合に
 // 実際のセッション ID と subject が返ることを検証する。
+// H-5 監査対応: exchangeCodes マップに ExchangeCodeData を格納し、SessionData.AccessToken を使わない。
 func TestExchangeCode_Success(t *testing.T) {
 	store := newMockSessionStoreForAuth()
 
@@ -676,11 +705,12 @@ func TestExchangeCode_Success(t *testing.T) {
 	})
 	store.sessions["real-session-id"] = realSess
 
-	// 交換コードエントリを登録する（AccessToken に実セッション ID を格納）
+	// 交換コードエントリを ExchangeCodeData として登録する（H-5 監査対応）
+	// sessions マップではなく exchangeCodes マップに格納する
 	exchangeEntry := testutil.CreateExchangeCodeEntry("real-session-id", 60*time.Second)
-	store.sessions["one-time-code"] = exchangeEntry
+	store.exchangeCodes["one-time-code"] = exchangeEntry
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	out, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code:       "one-time-code",
@@ -702,8 +732,8 @@ func TestExchangeCode_Success(t *testing.T) {
 	if out.CSRFToken != "exchange-csrf-token" {
 		t.Errorf("CSRFToken: want %q, got %q", "exchange-csrf-token", out.CSRFToken)
 	}
-	// ワンタイム使用: 交換コードがストアから削除されていること
-	if _, exists := store.sessions["one-time-code"]; exists {
+	// ワンタイム使用: 交換コードが exchangeCodes ストアから削除されていること（H-5 監査対応）
+	if _, exists := store.exchangeCodes["one-time-code"]; exists {
 		t.Error("交換コードはワンタイム使用のため、使用後は削除されるべき")
 	}
 }
@@ -711,7 +741,7 @@ func TestExchangeCode_Success(t *testing.T) {
 // TestExchangeCode_InvalidCode は存在しない交換コードの場合にエラーが返ることを検証する。
 func TestExchangeCode_InvalidCode(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	_, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code:       "nonexistent-code",
@@ -733,7 +763,7 @@ func TestExchangeCode_InvalidCode(t *testing.T) {
 // TestExchangeCode_EmptyCode は交換コードが空の場合にエラーが返ることを検証する。
 func TestExchangeCode_EmptyCode(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
 
 	_, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code: "", // 空コード

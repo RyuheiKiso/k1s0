@@ -219,8 +219,19 @@ mod tests {
         rs
     }
 
-    fn make_rule(name: &str, priority: i32, condition: serde_json::Value, result: serde_json::Value) -> Rule {
-        Rule::new(name.to_string(), "desc".to_string(), priority, condition, result)
+    fn make_rule(
+        name: &str,
+        priority: i32,
+        condition: serde_json::Value,
+        result: serde_json::Value,
+    ) -> Rule {
+        Rule::new(
+            name.to_string(),
+            "desc".to_string(),
+            priority,
+            condition,
+            result,
+        )
     }
 
     fn make_uc(
@@ -243,12 +254,14 @@ mod tests {
             MockRuleRepository::new(),
             MockEvaluationLogRepository::new(),
         );
-        let result = uc.execute(&EvaluateInput {
-            rule_set: "no-dot-here".to_string(),
-            input: serde_json::json!({}),
-            context: serde_json::json!({}),
-            dry_run: true,
-        }).await;
+        let result = uc
+            .execute(&EvaluateInput {
+                rule_set: "no-dot-here".to_string(),
+                input: serde_json::json!({}),
+                context: serde_json::json!({}),
+                dry_run: true,
+            })
+            .await;
         assert!(matches!(result, Err(EvaluateError::EvaluationError(_))));
     }
 
@@ -256,14 +269,22 @@ mod tests {
     #[tokio::test]
     async fn rule_set_not_found() {
         let mut rs_mock = MockRuleSetRepository::new();
-        rs_mock.expect_find_by_domain_and_name().returning(|_, _| Ok(None));
-        let uc = make_uc(rs_mock, MockRuleRepository::new(), MockEvaluationLogRepository::new());
-        let result = uc.execute(&EvaluateInput {
-            rule_set: "sales.discount".to_string(),
-            input: serde_json::json!({}),
-            context: serde_json::json!({}),
-            dry_run: true,
-        }).await;
+        rs_mock
+            .expect_find_by_domain_and_name()
+            .returning(|_, _| Ok(None));
+        let uc = make_uc(
+            rs_mock,
+            MockRuleRepository::new(),
+            MockEvaluationLogRepository::new(),
+        );
+        let result = uc
+            .execute(&EvaluateInput {
+                rule_set: "sales.discount".to_string(),
+                input: serde_json::json!({}),
+                context: serde_json::json!({}),
+                dry_run: true,
+            })
+            .await;
         assert!(matches!(result, Err(EvaluateError::RuleSetNotFound(_))));
     }
 
@@ -281,21 +302,28 @@ mod tests {
         rs.rule_ids = vec![rule_id];
 
         let mut rs_mock = MockRuleSetRepository::new();
-        rs_mock.expect_find_by_domain_and_name().returning(move |_, _| Ok(Some(rs.clone())));
+        rs_mock
+            .expect_find_by_domain_and_name()
+            .returning(move |_, _| Ok(Some(rs.clone())));
 
         let mut r_mock = MockRuleRepository::new();
-        r_mock.expect_find_by_ids().returning(move |_| Ok(vec![rule.clone()]));
+        r_mock
+            .expect_find_by_ids()
+            .returning(move |_| Ok(vec![rule.clone()]));
 
         let mut log_mock = MockEvaluationLogRepository::new();
         log_mock.expect_create().returning(|_| Ok(()));
 
         let uc = make_uc(rs_mock, r_mock, log_mock);
-        let output = uc.execute(&EvaluateInput {
-            rule_set: "sales.discount".to_string(),
-            input: serde_json::json!({"amount": 150}),
-            context: serde_json::json!({}),
-            dry_run: false,
-        }).await.unwrap();
+        let output = uc
+            .execute(&EvaluateInput {
+                rule_set: "sales.discount".to_string(),
+                input: serde_json::json!({"amount": 150}),
+                context: serde_json::json!({}),
+                dry_run: false,
+            })
+            .await
+            .unwrap();
 
         assert_eq!(output.matched_rules.len(), 1);
         assert_eq!(output.result, serde_json::json!({"discount": 20}));
@@ -316,18 +344,25 @@ mod tests {
         rs.rule_ids = vec![rule_id];
 
         let mut rs_mock = MockRuleSetRepository::new();
-        rs_mock.expect_find_by_domain_and_name().returning(move |_, _| Ok(Some(rs.clone())));
+        rs_mock
+            .expect_find_by_domain_and_name()
+            .returning(move |_, _| Ok(Some(rs.clone())));
 
         let mut r_mock = MockRuleRepository::new();
-        r_mock.expect_find_by_ids().returning(move |_| Ok(vec![rule.clone()]));
+        r_mock
+            .expect_find_by_ids()
+            .returning(move |_| Ok(vec![rule.clone()]));
 
         let uc = make_uc(rs_mock, r_mock, MockEvaluationLogRepository::new());
-        let output = uc.execute(&EvaluateInput {
-            rule_set: "sales.discount".to_string(),
-            input: serde_json::json!({"amount": 50}),  // 100未満なのでマッチしない
-            context: serde_json::json!({}),
-            dry_run: true,
-        }).await.unwrap();
+        let output = uc
+            .execute(&EvaluateInput {
+                rule_set: "sales.discount".to_string(),
+                input: serde_json::json!({"amount": 50}), // 100未満なのでマッチしない
+                context: serde_json::json!({}),
+                dry_run: true,
+            })
+            .await
+            .unwrap();
 
         assert!(output.matched_rules.is_empty());
         assert_eq!(output.result, serde_json::json!({"discount": 0}));

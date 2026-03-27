@@ -78,15 +78,27 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-system
+      ports:
+        - protocol: TCP
+          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-business
+      ports:
+        - protocol: TCP
+          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-service
+      ports:
+        - protocol: TCP
+          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: messaging
+      ports:
+        - protocol: TCP
+          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可

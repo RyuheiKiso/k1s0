@@ -34,7 +34,9 @@ impl GetServiceUseCase {
     }
 }
 
+// テストコードでは unwrap() を許可する（unwrap_used = "deny" はプロダクションコード向け）
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::entity::service::{ServiceLifecycle, ServiceTier};
@@ -67,7 +69,8 @@ mod tests {
         let svc = make_service(id);
         let svc_clone = svc.clone();
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(move |_| Ok(Some(svc_clone.clone())));
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(svc_clone.clone())));
 
         let uc = GetServiceUseCase::new(Arc::new(mock));
         let result = uc.execute(id).await.unwrap();

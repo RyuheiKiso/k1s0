@@ -92,7 +92,7 @@ regions/system/server/rust/config/
 
 ### Cargo.toml
 
-> 共通依存は [Rust共通実装.md](../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
+> 共通依存は [Rust共通実装.md](../../_common/Rust共通実装.md#共通cargo依存) を参照。サービス固有の追加依存:
 
 ```toml
 # キャッシュ
@@ -101,7 +101,7 @@ moka = { version = "0.12", features = ["future"] }
 
 ### build.rs
 
-> build.rs パターンは [Rust共通実装.md](../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/config/v1/config.proto`
+> build.rs パターンは [Rust共通実装.md](../../_common/Rust共通実装.md#共通buildrs) を参照。proto パス: `api/proto/k1s0/system/config/v1/config.proto`
 
 ---
 
@@ -124,7 +124,7 @@ moka = { version = "0.12", features = ["future"] }
 
 ## src/main.rs サービス固有の DI
 
-> 起動シーケンスは [Rust共通実装.md](../_common/Rust共通実装.md#共通mainrs) を参照。以下はサービス固有の DI:
+> 起動シーケンスは [Rust共通実装.md](../../_common/Rust共通実装.md#共通mainrs) を参照。以下はサービス固有の DI:
 
 ```rust
     // --- Cache ---
@@ -818,7 +818,7 @@ impl ConfigService for ConfigServiceImpl {
 
 ## config.yaml サービス固有セクション
 
-> 共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../_common/Rust共通実装.md#共通configyaml) を参照。サービス固有セクション:
+> 共通セクション（app/server/database/kafka/observability）は [Rust共通実装.md](../../_common/Rust共通実装.md#共通configyaml) を参照。サービス固有セクション:
 
 ```yaml
 # 設定管理サーバー固有設定

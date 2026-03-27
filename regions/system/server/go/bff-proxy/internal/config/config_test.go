@@ -37,7 +37,8 @@ upstream:
 `
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "config.yaml")
-	err := os.WriteFile(cfgPath, []byte(yaml), 0644)
+	// gosec G306: テスト用一時ファイルは所有者のみ読み書き可能なパーミッションを設定する（§3.2 監査対応）
+	err := os.WriteFile(cfgPath, []byte(yaml), 0600)
 	require.NoError(t, err)
 
 	cfg, err := Load(cfgPath)

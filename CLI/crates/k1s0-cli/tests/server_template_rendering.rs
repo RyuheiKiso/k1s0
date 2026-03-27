@@ -1,4 +1,4 @@
-//! テストモジュール — unwrap() の使用を許可する
+//! テストモジュール — `unwrap()` の使用を許可する
 #![allow(clippy::unwrap_used)]
 /// サーバーテンプレートのレンダリング統合テスト。
 ///
@@ -281,7 +281,9 @@ fn test_go_server_rest_usecase() {
     assert!(content.contains("func NewTaskApiUseCase("));
     assert!(content.contains("func (uc *TaskApiUseCase) GetByID(ctx context.Context, id string) (*model.TaskApiEntity, error)"));
     assert!(content.contains("return uc.repo.FindByID(ctx, id)"));
-    assert!(content.contains("func (uc *TaskApiUseCase) Create(ctx context.Context, entity *model.TaskApiEntity) error"));
+    assert!(content.contains(
+        "func (uc *TaskApiUseCase) Create(ctx context.Context, entity *model.TaskApiEntity) error"
+    ));
     assert!(content.contains("return uc.repo.Create(ctx, entity)"));
 }
 
@@ -566,7 +568,9 @@ fn test_go_server_graphql_resolver() {
     assert!(content.contains("func (r *Resolver) Query() QueryResolver"));
     assert!(content.contains("type queryResolver struct{ *Resolver }"));
     assert!(content.contains("func (r *queryResolver) TaskApi(ctx context.Context, id string) (*model.TaskApiEntity, error)"));
-    assert!(content.contains("func (r *queryResolver) TaskApiList(ctx context.Context) ([]*model.TaskApiEntity, error)"));
+    assert!(content.contains(
+        "func (r *queryResolver) TaskApiList(ctx context.Context) ([]*model.TaskApiEntity, error)"
+    ));
 }
 
 #[test]
@@ -1074,9 +1078,8 @@ fn test_rust_server_graphql_handler() {
     assert!(content.contains("#[Object]"));
     assert!(content.contains("async fn task_api("));
     assert!(content.contains("async fn task_api_list("));
-    assert!(content.contains(
-        "pub type TaskApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"
-    ));
+    assert!(content
+        .contains("pub type TaskApiSchema = Schema<QueryRoot, EmptyMutation, EmptySubscription>;"));
     assert!(content.contains("pub fn build_schema(uc: TaskApiUseCase) -> TaskApiSchema"));
 }
 

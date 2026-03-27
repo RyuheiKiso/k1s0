@@ -5,6 +5,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"time"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
 // PrepareProxyInput は PrepareProxy ユースケースの入力パラメータ。
@@ -32,6 +35,13 @@ type PrepareProxyInput struct {
 type PrepareProxyOutput struct {
 	// AccessToken は上流 API へのリクエストに使用するアクセストークン。
 	AccessToken string
+	// CSRFToken はトークンリフレッシュ後に再生成された CSRF トークン（H-10 監査対応）。
+	// リフレッシュが発生しなかった場合は空文字列。
+	// 非空の場合、handler は X-CSRF-Token レスポンスヘッダーに設定してクライアントに通知する。
+	CSRFToken string
+	// TokenRefreshed はトークンリフレッシュが発生したかどうか（H-10 監査対応）。
+	// true の場合、クライアントは新しい CSRFToken を受け取り更新する必要がある。
+	TokenRefreshed bool
 }
 
 // ProxyUseCase はリバースプロキシ処理のビジネスロジックを提供する。
@@ -93,11 +103,12 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 				)
 			}
 			// リフレッシュ失敗時に無効なセッションを削除し、再利用を防止する（H-003）
+			// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 			if delErr := uc.sessionStore.Delete(ctx, input.SessionID); delErr != nil {
 				if uc.logger != nil {
 					uc.logger.Error("期限切れセッションの削除に失敗しました",
 						slog.String("error", delErr.Error()),
-						slog.String("session_id", input.SessionID),
+						slog.String("session_id", util.MaskSessionID(input.SessionID)),
 					)
 				}
 			}
@@ -123,34 +134,70 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 			updatedIDToken = tokenResp.IDToken
 		}
 
+		// H-10 監査対応: トークンリフレッシュ後に CSRF トークンを再生成する。
+		// 長期間同一の CSRF トークンが使われ続けるリスクを軽減する。
+		newCSRFToken, csrfErr := generateProxyRandomHex(32)
+		if csrfErr != nil {
+			// CSRF 再生成に失敗しても既存トークンを継続使用し、処理は続行する
+			if uc.logger != nil {
+				uc.logger.Warn("リフレッシュ後の CSRF トークン再生成に失敗しました（既存トークンを継続使用）",
+					slog.String("error", csrfErr.Error()),
+				)
+			}
+			newCSRFToken = sess.CSRFToken
+		}
+
 		// 一時オブジェクトで Redis を先に更新する（shallow copy: SessionData にポインタフィールドなし）
 		tempSess := *sess
 		tempSess.AccessToken = updatedAccessToken
 		tempSess.RefreshToken = updatedRefreshToken
 		tempSess.IDToken = updatedIDToken
 		tempSess.ExpiresAt = updatedExpiresAt
+		// H-10 監査対応: 更新したセッションに新しい CSRF トークンを格納する
+		tempSess.CSRFToken = newCSRFToken
 
 		// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
+		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
 		if err := uc.sessionStore.Update(ctx, input.SessionID, &tempSess, uc.sessionTTL); err != nil {
 			if uc.logger != nil {
 				uc.logger.Error("リフレッシュ後のセッション更新に失敗しました",
-					slog.String("session_id", input.SessionID),
+					slog.String("session_id", util.MaskSessionID(input.SessionID)),
 					slog.String("error", err.Error()),
 				)
 			}
 			return nil, &ProxyUseCaseError{Code: "BFF_PROXY_SESSION_UPDATE_FAILED", Err: err}
 		}
 
-		// Redis 更新成功後にメモリ上のセッションを更新する
+		// Redis 更新成功後にメモリ上のセッションを更新する（M-10 監査対応）。
+		// tempSess ローカルコピーで Redis を先に更新し、成功後のみ元のポインタ (*sess) を変更する。
+		// これにより Redis 失敗時の状態乖離を防ぐ（副作用による不具合リスクを最小化する）。
 		sess.AccessToken = updatedAccessToken
 		sess.RefreshToken = updatedRefreshToken
 		sess.IDToken = updatedIDToken
 		sess.ExpiresAt = updatedExpiresAt
+		// H-10 監査対応: メモリ上のセッションにも新しい CSRF トークンを反映する
+		sess.CSRFToken = newCSRFToken
+
+		return &PrepareProxyOutput{
+			AccessToken:    sess.AccessToken,
+			CSRFToken:      newCSRFToken,
+			TokenRefreshed: true,
+		}, nil
 	}
 
 	return &PrepareProxyOutput{
 		AccessToken: sess.AccessToken,
 	}, nil
+}
+
+// generateProxyRandomHex はバイト長 n のランダムな hex エンコード文字列を生成する（H-10 監査対応）。
+// CSRF トークン再生成に使用する。proxy_usecase パッケージ内でのみ使用する。
+func generateProxyRandomHex(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 // ProxyUseCaseError は ProxyUseCase が返すエラー型。

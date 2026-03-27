@@ -212,7 +212,10 @@ impl FeatureFlagGrpcClient {
     /// WatchFeatureFlag Server-Side Streaming を購読し、変更イベントを FeatureFlag として返す。
     /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn watch_feature_flag(&self, key: &str) -> anyhow::Result<impl Stream<Item = FeatureFlag>> {
+    pub async fn watch_feature_flag(
+        &self,
+        key: &str,
+    ) -> anyhow::Result<impl Stream<Item = FeatureFlag>> {
         let request = tonic::Request::new(
             proto::k1s0::system::featureflag::v1::WatchFeatureFlagRequest {
                 flag_key: key.to_owned(),
@@ -230,25 +233,28 @@ impl FeatureFlagGrpcClient {
         // WatchFeatureFlag ストリームの各レスポンスを FeatureFlag ドメインモデルに変換する。
         // flag フィールドが None の場合（バックエンドの不整合）はイベントをスキップして次へ進む。
         // 空のデフォルト値で構築するとサイレントなデータ欠損を招くため、None はスキップが正しい。
-        Ok(async_graphql::futures_util::stream::unfold(stream, |mut stream| async move {
-            loop {
-                match stream.message().await {
-                    Ok(Some(resp)) => {
-                        // flag フィールドが存在する場合のみドメインモデルに変換して返す
-                        if let Some(f) = resp.flag {
-                            return Some((Self::to_domain_flag(f, None, None), stream));
+        Ok(async_graphql::futures_util::stream::unfold(
+            stream,
+            |mut stream| async move {
+                loop {
+                    match stream.message().await {
+                        Ok(Some(resp)) => {
+                            // flag フィールドが存在する場合のみドメインモデルに変換して返す
+                            if let Some(f) = resp.flag {
+                                return Some((Self::to_domain_flag(f, None, None), stream));
+                            }
+                            // flag フィールドが None の場合はスキップして次のメッセージを待つ
+                            tracing::warn!(
+                                flag_key = %resp.flag_key,
+                                "WatchFeatureFlag: received event with no flag payload, skipping"
+                            );
+                            // loop を継続して次のメッセージを取得する
                         }
-                        // flag フィールドが None の場合はスキップして次のメッセージを待つ
-                        tracing::warn!(
-                            flag_key = %resp.flag_key,
-                            "WatchFeatureFlag: received event with no flag payload, skipping"
-                        );
-                        // loop を継続して次のメッセージを取得する
+                        _ => return None,
                     }
-                    _ => return None,
                 }
-            }
-        }))
+            },
+        ))
     }
 }
 

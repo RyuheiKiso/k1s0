@@ -8,6 +8,17 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/featureflag
 
 import "k1s0/system/common/v1/types.proto";
 
+// Operator はフラグルールの比較演算子を表す enum。
+// string 型の代わりに使用することで型安全性と一貫性を確保する。
+enum Operator {
+  OPERATOR_UNSPECIFIED = 0;
+  OPERATOR_EQ = 1;
+  OPERATOR_NE = 2;
+  OPERATOR_CONTAINS = 3;
+  OPERATOR_GT = 4;
+  OPERATOR_LT = 5;
+}
+
 service FeatureFlagService {
   rpc EvaluateFlag(EvaluateFlagRequest) returns (EvaluateFlagResponse);
   rpc GetFlag(GetFlagRequest) returns (GetFlagResponse);
@@ -45,7 +56,14 @@ message GetFlagResponse {
   FeatureFlag flag = 1;
 }
 
-message ListFlagsRequest {}
+// ListFlagsRequest はフラグ一覧取得リクエスト。
+// ページネーションにより大量のフラグを効率的に取得できる。
+message ListFlagsRequest {
+  // 1ページあたりの取得件数（0 の場合はサーバーデフォルト値を使用）
+  int32 page_size = 1;
+  // ページトークン（前回レスポンスの next_page_token を指定）
+  string page_token = 2;
+}
 
 message ListFlagsResponse {
   repeated FeatureFlag flags = 1;
@@ -102,7 +120,8 @@ message FlagVariant {
 
 message FlagRule {
   string attribute = 1;
-  string operator = 2;
+  // 比較演算子（OPERATOR_EQ / OPERATOR_NE / OPERATOR_CONTAINS / OPERATOR_GT / OPERATOR_LT）
+  Operator operator = 2;
   string value = 3;
   string variant = 4;
 }

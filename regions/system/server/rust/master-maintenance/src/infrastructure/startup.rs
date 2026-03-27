@@ -23,7 +23,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-master-maintenance-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -133,10 +134,9 @@ pub async fn run() -> anyhow::Result<()> {
     // 7. Rule Engine
     let rule_engine =
         Arc::new(infrastructure::rule_engine::zen_engine_adapter::ZenEngineAdapter::new());
-    let schema_manager: Arc<dyn crate::infrastructure::schema::SchemaManager> =
-        Arc::new(infrastructure::schema::PhysicalSchemaManager::new(
-            db_pool.clone(),
-        ));
+    let schema_manager: Arc<dyn crate::infrastructure::schema::SchemaManager> = Arc::new(
+        infrastructure::schema::PhysicalSchemaManager::new(db_pool.clone()),
+    );
 
     // 8. Use Cases
     let manage_tables_uc = Arc::new(

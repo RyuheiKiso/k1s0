@@ -124,3 +124,37 @@ SET LOCAL app.current_tenant_id = '{tenant_id}';
 - `outbox_events` テーブルはシステム内部イベントバスのため、RLS 対象外（サービスロールが全件アクセスする）
 - `app.current_tenant_id` が未設定のセッションは `current_setting(..., true)` が `NULL` を返すため、RLS によって全行が非表示になる
 - サービスロール（アプリケーション DB ユーザー）は `SET LOCAL` でセッション変数を設定する責務を持つ
+
+## RLS 適用状況一覧
+
+各データベースの RLS 適用状況と除外理由を以下に示す。
+
+### RLS 適用済みデータベース
+
+| データベース | スキーマ | 対象テーブル | 備考 |
+|---|---|---|---|
+| event-store-db | eventstore | event_streams, events, snapshots | System tier Phase 2 対応済み |
+| saga-db | saga | saga_states, saga_step_logs | System tier Phase 2 対応済み |
+| task-db | task_service | tasks, task_checklist_items | Service tier Phase 1 対応済み |
+| activity-db | activity_service | activities | Service tier Phase 1 対応済み |
+| board-db | board_service | board_columns | Service tier Phase 1 対応済み |
+| project-master-db | project_master | tenant_project_extensions | Business tier Phase 3 対応済み |
+
+### RLS 除外データベース（設計上の意図）
+
+| データベース | 除外理由 |
+|---|---|
+| tenant-db | テナント管理 DB 自体。テナントプロビジョニングサービスが全テナントへのアクセスを必要とするため、RLS は不適切 |
+| auth-db | テナント非依存の認証インフラ。tenant_id カラムが存在しない |
+| config-db | システム全体設定。テナント非依存 |
+| dlq-db | Dead Letter Queue。システムインフラ。tenant_id カラムなし |
+| ratelimit-db | レートリミット管理。システムインフラ。tenant_id カラムなし |
+| featureflag-db | ADR-0012 により設計上除外。グローバル設定として管理。flag_evaluations の tenant_id はコンテキスト記録用 |
+| api-registry-db | ADR-0012 により設計上除外 |
+| outbox テーブル群 | システム内部イベントバスとして機能するため、RLS 対象外（multi-tenancy.md 設計方針） |
+
+### 将来検討対象
+
+| データベース | 検討内容 |
+|---|---|
+| vault-db | secret_access_logs の tenant_id は nullable（監査ログ用）。RLS 適用には NOT NULL 制約追加とスキーマ整合が前提 |

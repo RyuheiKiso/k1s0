@@ -188,7 +188,10 @@ async fn test_validate_token_grpc_success() {
         .expect("有効なトークンで validate_token gRPC 呼び出しが失敗しました");
 
     // 検証結果が有効であることを確認する
-    assert!(resp.valid, "有効なトークンであれば valid フィールドが true でなければならない");
+    assert!(
+        resp.valid,
+        "有効なトークンであれば valid フィールドが true でなければならない"
+    );
     // クレームが返ることを確認する
     let claims = resp
         .claims

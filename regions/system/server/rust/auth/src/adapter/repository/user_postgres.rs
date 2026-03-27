@@ -157,8 +157,7 @@ impl UserRepository for UserPostgresRepository {
 
         // COUNT クエリ: QueryBuilder で WHERE 句を動的に組み立てる
         // format! によるプレースホルダー番号の手動管理を排除し、保守性を向上させる
-        let mut count_qb =
-            sqlx::QueryBuilder::new("SELECT COUNT(*) FROM auth.users WHERE 1=1");
+        let mut count_qb = sqlx::QueryBuilder::new("SELECT COUNT(*) FROM auth.users WHERE 1=1");
 
         if let Some(ref s) = search {
             // ILIKE による部分一致検索: username / email / display_name を対象とする
@@ -175,14 +174,13 @@ impl UserRepository for UserPostgresRepository {
         if let Some(en) = enabled {
             // enabled フラグを DB の status 文字列に変換して絞り込む
             let status = if en { "active" } else { "inactive" };
-            count_qb.push(" AND status = ").push_bind(status.to_string());
+            count_qb
+                .push(" AND status = ")
+                .push_bind(status.to_string());
         }
 
         let start = std::time::Instant::now();
-        let total_count: i64 = count_qb
-            .build_query_scalar()
-            .fetch_one(&self.pool)
-            .await?;
+        let total_count: i64 = count_qb.build_query_scalar().fetch_one(&self.pool).await?;
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("list_count", "users", start.elapsed().as_secs_f64());
         }

@@ -8,6 +8,14 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/event/system/auth/
 
 import "k1s0/system/common/v1/event_metadata.proto";
 
+// AuditResult は認証・監査イベントの結果を表す enum。
+// string 型の代わりに使用することで型安全性と一貫性を確保する。
+enum AuditResult {
+  AUDIT_RESULT_UNSPECIFIED = 0;
+  AUDIT_RESULT_SUCCESS = 1;
+  AUDIT_RESULT_FAILURE = 2;
+}
+
 // LoginEvent はログイン成功/失敗イベント。
 // Kafka トピック: k1s0.system.auth.login.v1
 // パーティションキー: user_id
@@ -18,8 +26,8 @@ message LoginEvent {
   string client_id = 4;
   string ip_address = 5;
   string user_agent = 6;
-  // SUCCESS / FAILURE
-  string result = 7;
+  // ログイン結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+  AuditResult result = 7;
   // 失敗時のみ
   string failure_reason = 8;
 }
@@ -60,5 +68,6 @@ message AuditLogRecordedEvent {
   string ip_address = 5;
   string resource = 6;
   string action = 7;
-  string result = 8;
+  // 監査結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+  AuditResult result = 8;
 }

@@ -35,6 +35,9 @@ thiserror = {workspace = true}
 async-trait = {workspace = true}
 sha2 = "0.10"
 
+# パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
+secrecy = {workspace = true}
+
 # Logging / Tracing
 tracing = {workspace = true}
 tracing-subscriber = {workspace = true}

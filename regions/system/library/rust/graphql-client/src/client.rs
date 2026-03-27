@@ -10,9 +10,6 @@ use crate::error::ClientError;
 use crate::query::{GraphQlQuery, GraphQlResponse};
 
 #[async_trait]
-#[cfg_attr(feature = "mock", mockall::automock(
-    type T = serde_json::Value;
-))]
 pub trait GraphQlClient: Send + Sync {
     async fn execute<T: DeserializeOwned + Send>(
         &self,
@@ -24,7 +21,8 @@ pub trait GraphQlClient: Send + Sync {
         mutation: GraphQlQuery,
     ) -> Result<GraphQlResponse<T>, ClientError>;
 
-    async fn subscribe<T: DeserializeOwned + Send>(
+    // subscribe は返却する Stream が 'static な T を持つ必要があるため T: 'static を要求する。
+    async fn subscribe<T: DeserializeOwned + Send + 'static>(
         &self,
         subscription: GraphQlQuery,
     ) -> Result<
@@ -142,7 +140,7 @@ impl GraphQlClient for GraphQlHttpClient {
         self.send(mutation).await
     }
 
-    async fn subscribe<T: DeserializeOwned + Send>(
+    async fn subscribe<T: DeserializeOwned + Send + 'static>(
         &self,
         _subscription: GraphQlQuery,
     ) -> Result<
@@ -191,7 +189,7 @@ impl GraphQlClient for InMemoryGraphQlClient {
         self.execute(mutation).await
     }
 
-    async fn subscribe<T: DeserializeOwned + Send>(
+    async fn subscribe<T: DeserializeOwned + Send + 'static>(
         &self,
         subscription: GraphQlQuery,
     ) -> Result<

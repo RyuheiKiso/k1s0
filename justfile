@@ -565,7 +565,17 @@ ci: lint test build
 # --- Security ---
 
 # 全言語セキュリティスキャン
-security: security-go security-rust security-ts security-dart
+security: security-go security-rust security-ts security-dart security-infra
+
+# インフラセキュリティチェック: プレースホルダーが本番ファイルに残っていないことを確認する（H-4 監査対応）
+# etcd 暗号化キー等のプレースホルダーが CI/CD でデプロイされることを防ぐための防護策
+security-infra:
+    @echo "==> infra セキュリティチェック: プレースホルダー検出..."
+    @if grep -r "REPLACE_WITH_" infra/kubernetes/ --include="*.yaml" --include="*.yml" -l 2>/dev/null; then \
+        echo "ERROR: infra/kubernetes/ にプレースホルダーが残存しています。デプロイ前に実際の値に置換してください。"; \
+        exit 1; \
+    fi
+    @echo "OK: プレースホルダーは検出されませんでした。"
 
 # Go 脆弱性スキャン
 security-go:

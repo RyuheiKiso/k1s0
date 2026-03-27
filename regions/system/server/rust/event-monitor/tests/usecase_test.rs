@@ -1246,7 +1246,12 @@ async fn test_list_events_with_domain_filter() {
             "activity-server",
             "service.activity",
         ),
-        make_event_record("corr-003", "TaskManagementUpdated", "task-server", "service.task"),
+        make_event_record(
+            "corr-003",
+            "TaskManagementUpdated",
+            "task-server",
+            "service.task",
+        ),
     ];
     let repo = Arc::new(StubEventRecordRepository::with_records(records));
 
@@ -1273,7 +1278,12 @@ async fn test_list_events_with_event_type_filter() {
     let records = vec![
         make_event_record("corr-001", "TaskCreated", "task-server", "service.task"),
         make_event_record("corr-002", "TaskCreated", "task-server", "service.task"),
-        make_event_record("corr-003", "TaskManagementUpdated", "task-server", "service.task"),
+        make_event_record(
+            "corr-003",
+            "TaskManagementUpdated",
+            "task-server",
+            "service.task",
+        ),
     ];
     let repo = Arc::new(StubEventRecordRepository::with_records(records));
 

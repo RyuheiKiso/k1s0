@@ -32,7 +32,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-saga-server".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -284,7 +285,10 @@ pub async fn run() -> anyhow::Result<()> {
     // 超過した場合でもタスクは Tokio ランタイムのシャットダウンで強制終了される。
     let active = task_tracker.active_count();
     if active > 0 {
-        info!(active_tasks = active, "waiting for in-progress saga tasks to complete (max 30s)");
+        info!(
+            active_tasks = active,
+            "waiting for in-progress saga tasks to complete (max 30s)"
+        );
         let _ = tokio::time::timeout(
             std::time::Duration::from_secs(30),
             task_tracker.wait_for_completion(),

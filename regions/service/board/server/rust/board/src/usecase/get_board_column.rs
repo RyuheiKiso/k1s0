@@ -87,7 +87,7 @@ mod tests {
 
         mock.expect_find_by_id()
             .times(1)
-            .returning(|_, _| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error").into()));
 
         let uc = GetBoardColumnUseCase::new(Arc::new(mock));
         let result = uc.execute("test-tenant", Uuid::new_v4()).await;

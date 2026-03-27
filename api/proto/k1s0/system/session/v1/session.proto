@@ -8,6 +8,14 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/session/v1;
 
 import "k1s0/system/common/v1/types.proto";
 
+// SessionStatus はセッションの状態を表す enum。
+// string 型の代わりに使用することで型安全性を確保する。
+enum SessionStatus {
+  SESSION_STATUS_UNSPECIFIED = 0;
+  SESSION_STATUS_ACTIVE = 1;
+  SESSION_STATUS_REVOKED = 2;
+}
+
 service SessionService {
   rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
   rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
@@ -41,7 +49,8 @@ message CreateSessionResponse {
   optional string device_type = 9;
   optional string user_agent = 10;
   optional string ip_address = 11;
-  string status = 12;
+  // セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+  SessionStatus status = 12;
 }
 
 message GetSessionRequest {
@@ -70,8 +79,8 @@ message RefreshSessionResponse {
   map<string, string> metadata = 10;
   k1s0.system.common.v1.Timestamp created_at = 11;
   optional k1s0.system.common.v1.Timestamp last_accessed_at = 12;
-  // valid values: "active", "revoked"
-  string status = 13;
+  // セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+  SessionStatus status = 13;
 }
 
 message RevokeSessionRequest {
@@ -107,8 +116,8 @@ message Session {
   optional string device_type = 5;
   optional string user_agent = 6;
   optional string ip_address = 7;
-  // valid values: "active", "revoked"
-  string status = 8;
+  // セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+  SessionStatus status = 8;
   k1s0.system.common.v1.Timestamp expires_at = 9;
   k1s0.system.common.v1.Timestamp created_at = 10;
   optional k1s0.system.common.v1.Timestamp last_accessed_at = 11;

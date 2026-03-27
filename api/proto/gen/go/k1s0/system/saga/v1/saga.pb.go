@@ -96,6 +96,9 @@ type SagaStateProto struct {
 	CurrentStep int32 `protobuf:"varint,3,opt,name=current_step,json=currentStep,proto3" json:"current_step,omitempty"`
 	// Deprecated: use status_enum instead.
 	// ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
+	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/saga/v1/saga.proto.
 	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	// 各ステップに渡す JSON ペイロード
 	Payload *structpb.Struct `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
@@ -164,6 +167,7 @@ func (x *SagaStateProto) GetCurrentStep() int32 {
 	return 0
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/saga/v1/saga.proto.
 func (x *SagaStateProto) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -1168,12 +1172,12 @@ var File_k1s0_system_saga_v1_saga_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_saga_v1_saga_proto_rawDesc = "" +
 	"\n" +
-	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xab\x04\n" +
+	"\x1ek1s0/system/saga/v1/saga.proto\x12\x13k1s0.system.saga.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xaf\x04\n" +
 	"\x0eSagaStateProto\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12#\n" +
 	"\rworkflow_name\x18\x02 \x01(\tR\fworkflowName\x12!\n" +
-	"\fcurrent_step\x18\x03 \x01(\x05R\vcurrentStep\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\x121\n" +
+	"\fcurrent_step\x18\x03 \x01(\x05R\vcurrentStep\x12\x1a\n" +
+	"\x06status\x18\x04 \x01(\tB\x02\x18\x01R\x06status\x121\n" +
 	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayload\x12*\n" +
 	"\x0ecorrelation_id\x18\x06 \x01(\tH\x00R\rcorrelationId\x88\x01\x01\x12&\n" +
 	"\finitiated_by\x18\a \x01(\tH\x01R\vinitiatedBy\x88\x01\x01\x12(\n" +

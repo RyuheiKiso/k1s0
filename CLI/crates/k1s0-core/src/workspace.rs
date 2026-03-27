@@ -23,7 +23,9 @@ pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
     })
 }
 
+// テストコードでは unwrap() を許可する（unwrap_used = "deny" はプロダクションコード向け）
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use tempfile::TempDir;

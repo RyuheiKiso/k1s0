@@ -80,6 +80,9 @@ prost-types = {workspace = true}
 # Kafka
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 
+# パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
+secrecy = {workspace = true}
+
 [build-dependencies]
 tonic-build = {workspace = true}
 

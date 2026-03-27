@@ -180,3 +180,63 @@ func (s *EncryptedStore) Touch(ctx context.Context, id string, ttl time.Duration
 	}
 	return nil
 }
+
+// exchangeCodeKey は交換コード専用の Redis キーを返す（H-5 監査対応）。
+// セッションキーと衝突しないよう専用プレフィックスを使用する。
+func (s *EncryptedStore) exchangeCodeKey(code string) string {
+	return exchangeCodePrefix + code
+}
+
+// CreateExchangeCode はモバイルフロー用交換コードデータを暗号化して Redis に保存する（H-5 監査対応）。
+// SessionData.AccessToken を流用する代わりに ExchangeCodeData 専用の操作を提供する。
+func (s *EncryptedStore) CreateExchangeCode(ctx context.Context, data *ExchangeCodeData, ttl time.Duration) (string, error) {
+	code := uuid.New().String()
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("交換コードデータのシリアライズに失敗: %w", err)
+	}
+
+	// 交換コードデータもセッションデータと同様に暗号化して保存する
+	encrypted, err := s.encrypt(b)
+	if err != nil {
+		return "", fmt.Errorf("交換コードデータの暗号化に失敗: %w", err)
+	}
+
+	if err := s.client.Set(ctx, s.exchangeCodeKey(code), encrypted, ttl).Err(); err != nil {
+		return "", fmt.Errorf("交換コードの保存に失敗: %w", err)
+	}
+
+	return code, nil
+}
+
+// GetExchangeCode は交換コードキーに対応する ExchangeCodeData を取得して復号する。
+func (s *EncryptedStore) GetExchangeCode(ctx context.Context, code string) (*ExchangeCodeData, error) {
+	val, err := s.client.Get(ctx, s.exchangeCodeKey(code)).Result()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("交換コードの取得に失敗: %w", err)
+	}
+
+	plaintext, err := s.decrypt(val)
+	if err != nil {
+		return nil, fmt.Errorf("交換コードデータの復号に失敗: %w", err)
+	}
+
+	var data ExchangeCodeData
+	if err := json.Unmarshal(plaintext, &data); err != nil {
+		return nil, fmt.Errorf("交換コードデータのデシリアライズに失敗: %w", err)
+	}
+
+	return &data, nil
+}
+
+// DeleteExchangeCode は交換コードを Redis から削除する（ワンタイム使用を保証する）。
+func (s *EncryptedStore) DeleteExchangeCode(ctx context.Context, code string) error {
+	if err := s.client.Del(ctx, s.exchangeCodeKey(code)).Err(); err != nil {
+		return fmt.Errorf("交換コードの削除に失敗: %w", err)
+	}
+	return nil
+}

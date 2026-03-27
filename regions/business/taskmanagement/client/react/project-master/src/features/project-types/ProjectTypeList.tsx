@@ -32,8 +32,8 @@ export function ProjectTypeList() {
   // ローディング中の表示
   if (isLoading) return <div>読み込み中...</div>;
 
-  // エラー発生時の表示
-  if (error) return <div>エラーが発生しました: {(error as Error).message}</div>;
+  // error は unknown 型のため instanceof で型ガードしてからメッセージを取得する
+  if (error) return <div>エラーが発生しました: {error instanceof Error ? error.message : String(error)}</div>;
 
   return (
     <div>

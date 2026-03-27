@@ -276,10 +276,10 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
     if let Some(ref p) = config.placement {
         match config.tier {
             Tier::Business => {
-                writeln!(out, "    領域:     {p}").expect("String への書き込みは失敗しない")
+                writeln!(out, "    領域:     {p}").expect("String への書き込みは失敗しない");
             }
             Tier::Service => {
-                writeln!(out, "    サービス: {p}").expect("String への書き込みは失敗しない")
+                writeln!(out, "    サービス: {p}").expect("String への書き込みは失敗しない");
             }
             Tier::System => {}
         }
@@ -315,7 +315,7 @@ pub(super) fn format_confirmation(config: &GenerateConfig) -> String {
             }
             match &config.detail.db {
                 Some(db) => {
-                    writeln!(out, "    DB:       {db}").expect("String への書き込みは失敗しない")
+                    writeln!(out, "    DB:       {db}").expect("String への書き込みは失敗しない");
                 }
                 None => out.push_str("    DB:       なし\n"),
             }

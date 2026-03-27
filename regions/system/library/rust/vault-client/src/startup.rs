@@ -105,7 +105,8 @@ mod tests {
     #[tokio::test]
     async fn fetch_secrets_success() {
         let client = InMemoryVaultClient::new();
-        client.put_secret(make_secret("system/order/secrets"));
+        // put_secret は tokio::sync::Mutex を使用する async fn のため await が必須
+        client.put_secret(make_secret("system/order/secrets")).await;
 
         let result = fetch_secrets_with_fallback(
             &client,
@@ -124,7 +125,8 @@ mod tests {
     #[tokio::test]
     async fn fetch_secrets_partial_keys() {
         let client = InMemoryVaultClient::new();
-        client.put_secret(make_secret("system/order/secrets"));
+        // put_secret は tokio::sync::Mutex を使用する async fn のため await が必須
+        client.put_secret(make_secret("system/order/secrets")).await;
 
         let result = fetch_secrets_with_fallback(
             &client,
@@ -181,7 +183,8 @@ mod tests {
     async fn fetch_secrets_with_required_true_succeeds() {
         let config = VaultClientConfig::new("http://vault:8200").vault_required(true);
         let client = InMemoryVaultClient::with_config(config);
-        client.put_secret(make_secret("system/test/secrets"));
+        // put_secret は tokio::sync::Mutex を使用する async fn のため await が必須
+        client.put_secret(make_secret("system/test/secrets")).await;
 
         let result = fetch_secrets_with_fallback(
             &client,

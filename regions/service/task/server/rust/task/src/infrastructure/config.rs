@@ -1,4 +1,6 @@
 // タスクサーバー設定。
+// secrecy クレートを使用してデータベースパスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -52,8 +54,9 @@ pub struct DatabaseConfig {
     #[serde(default = "default_schema")]
     pub schema: String,
     pub user: String,
-    #[serde(default)]
-    pub password: String,
+    // パスワードは Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
+    // パスワードは必須項目のため serde(default) を設定しない（Secret<String> は Default 未実装）
+    pub password: Secret<String>,
     #[serde(default = "default_ssl_mode")]
     pub ssl_mode: String,
     #[serde(default = "default_max_conn")]
@@ -68,7 +71,8 @@ impl DatabaseConfig {
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}&options=-c%20search_path%3D{}",
-            self.user, self.password, self.host, self.port, self.name, self.ssl_mode, self.schema
+            // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
+            self.user, self.password.expose_secret(), self.host, self.port, self.name, self.ssl_mode, self.schema
         )
     }
 

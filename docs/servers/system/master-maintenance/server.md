@@ -1339,7 +1339,7 @@ regions/system/server/rust/master-maintenance/
 
 ## デプロイ
 
-[system-server-deploy.md](../_common/deploy.md) に従い Helm Chart でデプロイする。
+[system-server-deploy.md](../../_common/deploy.md) に従い Helm Chart でデプロイする。
 
 | パラメータ | 値 |
 | --- | --- |
@@ -1992,4 +1992,4 @@ curl -X POST http://localhost:8110/api/v1/rules \
 
 ## ObservabilityConfig（log/trace/metrics）
 
-本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。
+本サーバーの observability 設定は共通仕様を採用する。log / trace / metrics の構造と推奨値は [共通実装](../../_common/implementation.md) の「ObservabilityConfig（log/trace/metrics）」を参照。

@@ -10,7 +10,7 @@ use anyhow::Result;
 
 use super::types::{Dependency, DependencyType, DepsResult, Severity, Violation};
 
-/// Print dependency analysis results to the terminal.
+/// 依存関係の分析結果をターミナルに出力する。
 pub fn print_terminal(result: &DepsResult) {
     println!();
 
@@ -108,7 +108,7 @@ pub fn print_terminal(result: &DepsResult) {
     println!();
 }
 
-/// Generate a Mermaid dependency diagram.
+/// Mermaid 形式の依存関係ダイアグラムを生成する。
 pub fn generate_mermaid(result: &DepsResult) -> String {
     let mut lines = vec![
         "# 依存関係マップ".to_string(),
@@ -256,11 +256,11 @@ fn append_violation_summary(lines: &mut Vec<String>, violations: &[Violation]) {
     }
 }
 
-/// Write a Mermaid dependency diagram to a file.
+/// Mermaid 形式の依存関係ダイアグラムをファイルに書き出す。
 ///
 /// # Errors
 ///
-/// Returns an error when the parent directory cannot be created or the file cannot be written.
+/// 親ディレクトリの作成失敗またはファイルの書き込み失敗の場合にエラーを返す。
 pub fn write_mermaid(result: &DepsResult, path: &Path) -> Result<()> {
     let content = generate_mermaid(result);
 

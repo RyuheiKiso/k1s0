@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use super::config::{Config, parse_pool_duration};
+use super::config::{parse_pool_duration, Config};
 use super::health_collector::HealthCollector;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
 use crate::adapter::repository::dependency_postgres::DependencyPostgresRepository;
@@ -23,7 +23,8 @@ pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-service-catalog".to_string(),
-        version: "0.1.0".to_string(),
+        // Cargo.toml の package.version を使用する（M-16 監査対応: ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "system".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg

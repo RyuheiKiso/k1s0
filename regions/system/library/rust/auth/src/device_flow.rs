@@ -228,7 +228,6 @@ impl DeviceAuthClient {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU32, Ordering};
@@ -253,6 +252,7 @@ mod tests {
 
     // デバイス認可リクエストが成功してデバイスコード情報を取得できることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_request_device_code_success() {
         let client = DeviceAuthClient::with_http_client(
             "https://auth.example.com/device",
@@ -294,6 +294,7 @@ mod tests {
 
     // authorization_pending が続いた後にトークンを取得できることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poll_token_authorization_pending_then_success() {
         let call_count = Arc::new(AtomicU32::new(0));
         let cc = call_count.clone();
@@ -343,6 +344,7 @@ mod tests {
 
     // slow_down レスポンス後にポーリング間隔が延長されることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poll_token_slow_down() {
         let call_count = Arc::new(AtomicU32::new(0));
         let cc = call_count.clone();
@@ -384,6 +386,7 @@ mod tests {
 
     // デバイスコードが期限切れの場合に ExpiredToken エラーが返ることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poll_token_expired_token() {
         let client = DeviceAuthClient::with_http_client(
             "https://auth.example.com/device",
@@ -407,6 +410,7 @@ mod tests {
 
     // ユーザーが認可を拒否した場合に AccessDenied エラーが返ることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poll_token_access_denied() {
         let client = DeviceAuthClient::with_http_client(
             "https://auth.example.com/device",
@@ -430,6 +434,7 @@ mod tests {
 
     // Device Authorization Grant フロー全体が正常に完了することを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_device_flow_integration() {
         let token_call_count = Arc::new(AtomicU32::new(0));
         let tcc = token_call_count.clone();
@@ -503,6 +508,7 @@ mod tests {
 
     // cancel シグナルによってポーリングが中断されることを確認する。
     #[tokio::test]
+    #[allow(clippy::unwrap_used)]
     async fn test_poll_token_cancellation() {
         let client = DeviceAuthClient::with_http_client(
             "https://auth.example.com/device",

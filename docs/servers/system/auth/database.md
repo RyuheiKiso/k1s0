@@ -84,6 +84,8 @@ CREATE TABLE IF NOT EXISTS auth.roles (
     description TEXT,
     tier        VARCHAR(20)  NOT NULL,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    -- 014_add_timestamps_to_roles_and_permissions.up.sql にて追加（ロール変更日時の追跡）
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
     CONSTRAINT chk_roles_tier CHECK (tier IN ('system', 'business', 'service'))
 );
@@ -99,6 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_roles_name ON auth.roles (name);
 | description | TEXT | | 説明 |
 | tier | VARCHAR(20) | NOT NULL | Tier（system/business/service） |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時（migration 014 で追加） |
 
 ---
 
@@ -112,6 +115,9 @@ CREATE TABLE IF NOT EXISTS auth.permissions (
     resource    VARCHAR(255) NOT NULL,
     action      VARCHAR(50)  NOT NULL,
     description TEXT,
+    -- 014_add_timestamps_to_roles_and_permissions.up.sql にて追加（権限の作成・変更日時の追跡）
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
     CONSTRAINT uq_permissions_resource_action UNIQUE (resource, action),
     CONSTRAINT chk_permissions_action CHECK (action IN ('read', 'write', 'delete', 'admin'))
@@ -126,6 +132,8 @@ CREATE INDEX IF NOT EXISTS idx_permissions_resource ON auth.permissions (resourc
 | resource | VARCHAR(255) | UNIQUE(resource, action), NOT NULL | リソース名 |
 | action | VARCHAR(50) | UNIQUE(resource, action), NOT NULL | アクション（read/write/delete/admin） |
 | description | TEXT | | 説明 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時（migration 014 で追加） |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時（migration 014 で追加） |
 
 ---
 
@@ -312,6 +320,12 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON auth.api_keys (expires_at)
 | `011_create_partition_management.down.sql` | パーティション管理設定削除 |
 | `012_align_api_keys_columns.up.sql` | api_keys カラム名を Rust コードと整合（service_name→tenant_id, permissions→scopes, key_prefix→prefix, is_active→revoked） |
 | `012_align_api_keys_columns.down.sql` | カラム名復元 |
+| `013_squash_audit_columns.up.sql` | audit_logs カラム定義の集約・正規化 |
+| `013_squash_audit_columns.down.sql` | 集約・正規化の復元 |
+| `014_add_timestamps_to_roles_and_permissions.up.sql` | roles に updated_at、permissions に created_at・updated_at を追加（監査要件対応） |
+| `014_add_timestamps_to_roles_and_permissions.down.sql` | タイムスタンプカラム削除 |
+| `015_add_updated_at_triggers.up.sql` | roles・permissions の updated_at 自動更新トリガーを追加 |
+| `015_add_updated_at_triggers.down.sql` | トリガー削除 |
 
 ---
 
@@ -333,4 +347,13 @@ CREATE TRIGGER trigger_users_update_updated_at
 CREATE TRIGGER trigger_api_keys_update_updated_at
     BEFORE UPDATE ON auth.api_keys
     FOR EACH ROW EXECUTE FUNCTION auth.update_updated_at();
+
+-- migration 015 で追加: roles・permissions の updated_at 自動更新トリガー
+CREATE TRIGGER set_roles_updated_at
+    BEFORE UPDATE ON auth.roles
+    FOR EACH ROW EXECUTE FUNCTION auth.set_updated_at();
+
+CREATE TRIGGER set_permissions_updated_at
+    BEFORE UPDATE ON auth.permissions
+    FOR EACH ROW EXECUTE FUNCTION auth.set_updated_at();
 ```

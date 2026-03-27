@@ -220,7 +220,6 @@ infra/helm/services/system/file/
 | シークレット | パス |
 | --- | --- |
 | DB パスワード | `secret/data/k1s0/system/file/database` |
-| S3 アクセスキー | `secret/data/k1s0/system/file/s3` |
 | Kafka SASL | `secret/data/k1s0/system/kafka/sasl` |
 
 ### Helm values（デフォルト）
@@ -267,9 +266,6 @@ vault:
     - path: "secret/data/k1s0/system/file/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
-    - path: "secret/data/k1s0/system/file/s3"
-      key: "access-key"
-      mountPath: "/vault/secrets/s3-credentials"
     - path: "secret/data/k1s0/system/kafka/sasl"
       key: "password"
       mountPath: "/vault/secrets/kafka-sasl"

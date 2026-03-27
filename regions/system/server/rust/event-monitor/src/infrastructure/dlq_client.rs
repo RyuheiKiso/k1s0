@@ -101,11 +101,7 @@ impl GrpcDlqClient {
             .await
             .map_err(|e| anyhow::anyhow!("DLQ Manager への gRPC 接続に失敗: {}", e))?;
 
-        Ok(
-            crate::proto::k1s0::system::dlq::v1::dlq_service_client::DlqServiceClient::new(
-                channel,
-            ),
-        )
+        Ok(crate::proto::k1s0::system::dlq::v1::dlq_service_client::DlqServiceClient::new(channel))
     }
 }
 
@@ -117,7 +113,7 @@ impl DlqManagerClient for GrpcDlqClient {
     /// 対象 correlation_id ごとの DLQ メッセージ数を集計して返す。
     async fn preview_replay(&self, req: &ReplayRequest) -> anyhow::Result<ReplayPreviewResponse> {
         use crate::proto::k1s0::system::dlq::v1::{
-            ListMessagesRequest, dlq_service_client::DlqServiceClient,
+            dlq_service_client::DlqServiceClient, ListMessagesRequest,
         };
 
         let mut client: DlqServiceClient<tonic::transport::Channel> = self.connect().await?;
@@ -165,7 +161,7 @@ impl DlqManagerClient for GrpcDlqClient {
     /// メッセージをリトライする。
     async fn execute_replay(&self, req: &ReplayRequest) -> anyhow::Result<ReplayResponse> {
         use crate::proto::k1s0::system::dlq::v1::{
-            RetryAllRequest, dlq_service_client::DlqServiceClient,
+            dlq_service_client::DlqServiceClient, RetryAllRequest,
         };
 
         let mut client: DlqServiceClient<tonic::transport::Channel> = self.connect().await?;
