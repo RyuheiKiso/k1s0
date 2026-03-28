@@ -119,3 +119,4 @@ upstreams:
 | 日付 | 変更内容 | 変更者 |
 |------|---------|--------|
 | 2026-03-28 | 初版作成（H-05 監査対応） | 監査対応チーム |
+| 2026-03-29 | Phase 1 完了確認。`config.docker.yaml` の `upstream.base_url: "http://auth-rust:8080"` は BFF-Proxy の開発環境設定。`config.yaml` では `http://kong:8000` を参照するため設計通り。Phase 2 は 2026-Q2 に実施予定 | 監査対応チーム |

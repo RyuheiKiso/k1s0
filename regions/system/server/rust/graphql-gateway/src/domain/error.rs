@@ -1,6 +1,10 @@
 //! GraphQL Gateway サービスのドメインエラー型。
 //!
-//! 文字列マッチングではなく、型安全な分類で HTTP ステータスコードを決定する。
+//! 文字列マッチングではなく、型安全な分類で GraphQL エラーコードを決定する。
+//!
+//! M-15 監査対応: gRPC Status コードから型安全な GraphQL エラーカテゴリに変換する仕組みを提供する。
+//! graphql_handler.rs の classify_domain_error は文字列マッチング依存だったが、
+//! GrpcErrorCategory を通じて tonic::Status から直接分類できるようにした。
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
@@ -26,6 +30,47 @@ pub enum GraphqlGatewayError {
     /// 内部エラー
     #[error("internal error: {0}")]
     Internal(String),
+}
+
+/// gRPC Status コードから GraphQL エラーコードへの型安全な分類。
+/// tonic::Status を直接受け取りエラーカテゴリを返す。
+/// M-15 監査対応: 文字列マッチングに依存しない型安全な分類の実装基盤。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GrpcErrorCategory {
+    /// 認証エラー（tonic::Code::Unauthenticated）
+    Unauthenticated,
+    /// 権限エラー（tonic::Code::PermissionDenied）
+    Forbidden,
+    /// バリデーションエラー（tonic::Code::InvalidArgument / FailedPrecondition / OutOfRange）
+    ValidationError,
+    /// バックエンドエラー（その他）
+    BackendError,
+}
+
+impl GrpcErrorCategory {
+    /// tonic::Status から GrpcErrorCategory に変換する。
+    /// usecase 層または adapter 層で tonic::Status を直接受け取った場合に使用する。
+    pub fn from_tonic_code(code: tonic::Code) -> Self {
+        match code {
+            tonic::Code::Unauthenticated => GrpcErrorCategory::Unauthenticated,
+            tonic::Code::PermissionDenied => GrpcErrorCategory::Forbidden,
+            tonic::Code::InvalidArgument
+            | tonic::Code::FailedPrecondition
+            | tonic::Code::OutOfRange => GrpcErrorCategory::ValidationError,
+            _ => GrpcErrorCategory::BackendError,
+        }
+    }
+
+    /// GraphQL エラーコード文字列を返す。
+    /// graphql_handler.rs の gql_error() に渡す &'static str として使用する。
+    pub fn as_graphql_code(&self) -> &'static str {
+        match self {
+            GrpcErrorCategory::Unauthenticated => "UNAUTHENTICATED",
+            GrpcErrorCategory::Forbidden => "FORBIDDEN",
+            GrpcErrorCategory::ValidationError => "VALIDATION_ERROR",
+            GrpcErrorCategory::BackendError => "BACKEND_ERROR",
+        }
+    }
 }
 
 /// GraphqlGatewayError から ServiceError への変換実装

@@ -46,6 +46,26 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | activity CI       | `activity-ci.yaml` | PR 時 (`regions/service/activity/server/**`, `regions/service/activity/client/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | project-master CI | `project-master-ci.yaml` | PR 時 (`regions/business/taskmanagement/**`) | `_rust-service-ci.yaml` 呼び出し (standalone) |
 | bff-proxy CI      | `bff-proxy-ci.yaml` | PR 時 (`regions/system/server/go/bff-proxy/**`) | `_go-service-ci.yaml` 呼び出し |
+| featureflag CI    | `featureflag-ci.yaml` | PR 時 (`regions/system/server/rust/featureflag/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| ratelimit CI      | `ratelimit-ci.yaml` | PR 時 (`regions/system/server/rust/ratelimit/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| tenant CI         | `tenant-ci.yaml`   | PR 時 (`regions/system/server/rust/tenant/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| vault CI          | `vault-ci.yaml`    | PR 時 (`regions/system/server/rust/vault/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| api-registry CI   | `api-registry-ci.yaml` | PR 時 (`regions/system/server/rust/api-registry/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| event-monitor CI  | `event-monitor-ci.yaml` | PR 時 (`regions/system/server/rust/event-monitor/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| event-store CI    | `event-store-ci.yaml` | PR 時 (`regions/system/server/rust/event-store/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| file CI           | `file-ci.yaml`     | PR 時 (`regions/system/server/rust/file/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| master-maintenance CI | `master-maintenance-ci.yaml` | PR 時 (`regions/system/server/rust/master-maintenance/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| navigation CI     | `navigation-ci.yaml` | PR 時 (`regions/system/server/rust/navigation/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| notification CI   | `notification-ci.yaml` | PR 時 (`regions/system/server/rust/notification/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| policy CI         | `policy-ci.yaml`   | PR 時 (`regions/system/server/rust/policy/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| quota CI          | `quota-ci.yaml`    | PR 時 (`regions/system/server/rust/quota/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| rule-engine CI    | `rule-engine-ci.yaml` | PR 時 (`regions/system/server/rust/rule-engine/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| scheduler CI      | `scheduler-ci.yaml` | PR 時 (`regions/system/server/rust/scheduler/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| search CI         | `search-ci.yaml`   | PR 時 (`regions/system/server/rust/search/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| service-catalog CI | `service-catalog-ci.yaml` | PR 時 (`regions/system/server/rust/service-catalog/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| session CI        | `session-ci.yaml`  | PR 時 (`regions/system/server/rust/session/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| workflow CI       | `workflow-ci.yaml` | PR 時 (`regions/system/server/rust/workflow/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
+| graphql-gateway CI | `graphql-gateway-ci.yaml` | PR 時 (`regions/system/server/rust/graphql-gateway/**`) | `_rust-service-ci.yaml` 呼び出し（H-02 監査対応）|
 | Integration Test  | `integration-test.yaml` | PR 時 (`regions/system/{server,library}/rust/**`, `regions/business/*/server/rust/**`, `regions/service/*/server/rust/**`, `Cargo.{toml,lock}`, `regions/**/database/postgres/migrations/**`, `infra/docker/init-db/**`, `scripts/ci-list-integration-servers.sh`, `scripts/list-modules.sh`) | postgres:17 + kafka:3.8.0 起動、system/business/service 全ティア対応。`ci-list-integration-servers.sh [system\|business\|service]` でティア別サーバー自動検出・パッケージ単位並列統合テスト（test-utils feature 自動検出）。DB migration 変更・`infra/docker/init-db/` 変更（テスト環境スキーマに影響）・CI スクリプト変更時も起動する |
 | Golden Path Compile | `golden-path-compile.yaml` | PR 時 (`CLI/crates/k1s0-codegen/**`, `CLI/templates/**`) | CLI テンプレートからサーバーを生成し `cargo check` でコンパイル検証 |
 | auth Deploy       | `auth-deploy.yaml` | main マージ時 (`regions/system/server/rust/auth/**`) | `_service-deploy.yaml` 呼び出し |

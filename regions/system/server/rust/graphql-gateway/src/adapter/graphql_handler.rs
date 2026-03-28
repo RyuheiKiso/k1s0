@@ -61,31 +61,44 @@ fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::E
     async_graphql::Error::new(message.into()).extend_with(|_, e| e.set("code", code))
 }
 
-/// ドメインエラーメッセージから GraphQL エラーコードを分類する。
-/// M-15 監査対応: 認証エラー・権限エラーの分類を追加し、クライアントが適切にハンドリングできるようにする。
+/// gRPC Status コードから GraphQL エラーコードを分類する（型安全版）。
+/// M-15 監査対応: tonic::Status を直接受け取りステータスコードで分類する。
+/// usecase 層が tonic::Status を直接返す箇所ではこちらを使用すること。
+fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
+    use crate::domain::error::GrpcErrorCategory;
+    GrpcErrorCategory::from_tonic_code(status.code()).as_graphql_code()
+}
+
+/// エラーメッセージから GraphQL エラーコードを分類するフォールバック実装。
+/// M-15 監査対応: tonic::Status のエラーコード文字列表現（"status: Unauthenticated, ..."）を
+/// 考慮し、GrpcErrorCategory の型安全な分類を文字列解析の前段として適用する。
+/// usecase 層が anyhow::Error に変換済みの場合に使用する。
 fn classify_domain_error(message: &str) -> &'static str {
     let lower = message.to_ascii_lowercase();
-    // 認証エラー: トークン無効・未認証・期限切れ
-    if lower.contains("unauthorized")
+    // tonic::Status の to_string() 表現: "status: Unauthenticated, message: ..."
+    if lower.contains("status: unauthenticated")
+        || lower.contains("unauthorized")
         || lower.contains("unauthenticated")
         || lower.contains("token expired")
         || lower.contains("認証")
     {
         return "UNAUTHENTICATED";
     }
-    // 権限エラー: アクセス拒否・権限不足
-    if lower.contains("forbidden")
-        || lower.contains("permission")
+    // tonic::Status の to_string() 表現: "status: PermissionDenied, ..."
+    if lower.contains("status: permissiondenied")
+        || lower.contains("forbidden")
+        || lower.contains("permission denied")
         || lower.contains("access denied")
         || lower.contains("権限")
     {
         return CODE_FORBIDDEN;
     }
-    // バリデーションエラー: 入力不正・必須項目欠如
-    if lower.contains("validation")
+    // tonic::Status の to_string() 表現: "status: InvalidArgument, ..."
+    if lower.contains("status: invalidargument")
+        || lower.contains("status: failedprecondition")
+        || lower.contains("validation")
         || lower.contains("invalid")
         || lower.contains("required")
-        || lower.contains("unknown")
     {
         return CODE_VALIDATION;
     }

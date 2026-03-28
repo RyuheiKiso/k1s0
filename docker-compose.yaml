@@ -440,7 +440,7 @@ services:
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
-      - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
+      - "127.0.0.1:${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy (C-04 監査対応: 開発環境ではホスト側を 127.0.0.1 に制限する)
       # Admin API ポートは docker-compose.dev.yaml で定義（開発時のみ公開）
       # Kong Status ポート（8100）はホストにマッピングしない。
       # Prometheus が同一 Docker ネットワーク内から直接 http://kong:8100/metrics にアクセスするため、

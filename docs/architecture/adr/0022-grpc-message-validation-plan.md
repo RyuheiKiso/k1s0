@@ -8,10 +8,16 @@
 
 ## 実装タイムライン（SM-4 監査対応）
 
-| フェーズ | 内容 | 期限 |
-|---------|------|------|
-| Phase 1 | `auth.proto` と `task.proto` への buf validate 適用（Go: protovalidate-go, Rust: prost-validate） | 2026-04-14 |
-| Phase 2 | 全 proto ファイルへの拡張 | 2026-05-12 |
+| フェーズ | 内容 | 期限 | 状態 |
+|---------|------|------|------|
+| Phase 1 | `auth.proto` と `task.proto` への buf validate 適用（buf.yaml 依存追加・フィールドルール追加） | 2026-04-14 | **✅ 完了（2026-03-29）** |
+| Phase 2 | 全 proto ファイルへの拡張（Go: protovalidate-go Interceptor, Rust: prost-validate ミドルウェア） | 2026-05-12 | 未着手 |
+
+### Phase 1 実施内容（H-15 監査対応）
+
+- `api/proto/buf.yaml` に `buf.build/bufbuild/protovalidate` 依存を追加
+- `auth.proto`: ValidateTokenRequest.token（min_len=1）、GetUserRequest.user_id（UUID）、GetUserRolesRequest.user_id（UUID）、CheckPermissionRequest.permission/resource（文字列長制限）にルールを追加
+- `task.proto`: CreateTaskRequest.project_id/title（UUID/文字列長）、GetTaskRequest.task_id（UUID）、UpdateTaskStatusRequest.task_id/status/expected_version にルールを追加
 
 ## コンテキスト
 

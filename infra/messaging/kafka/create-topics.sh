@@ -104,6 +104,15 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# ファイル汎用イベント（file-rust がプロデューサー、event_type ヘッダーで種別を区別）（M-21 監査対応）
+# file-rust は topic_events 設定でこのトピックを使用する（uploaded.v1/deleted.v1 は将来のイベント分離用に残す）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.file.events.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # シークレットローテーション (vault-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
@@ -234,6 +243,30 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# スケジューライベント（scheduler-rust がプロデューサー）（M-20 監査対応: メイントピックが欠落していた）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.scheduler.created.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# スケジューラ実行イベント（M-20 監査対応: メイントピックが欠落していた）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.scheduler.executed.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# スケジューラトリガーイベント（M-20 監査対応: メイントピックが欠落していた）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.scheduler.triggered.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # スケジューラ作成 DLQ（MED-1 監査対応: scheduler.created.v1 に対する DLQ が欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
@@ -255,6 +288,7 @@ for topic in \
   k1s0.system.featureflag.changed.v1.dlq \
   k1s0.system.file.uploaded.v1.dlq \
   k1s0.system.file.deleted.v1.dlq \
+  k1s0.system.file.events.v1.dlq \
   k1s0.system.vault.secret_rotated.v1.dlq \
   k1s0.system.notification.requested.v1.dlq \
   k1s0.system.quota.exceeded.v1.dlq \
@@ -268,7 +302,9 @@ for topic in \
   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1.dlq \
   k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1.dlq \
   k1s0.system.search.index.v1.dlq \
-  k1s0.system.workflow.state.v1.dlq; do
+  k1s0.system.workflow.state.v1.dlq \
+  k1s0.system.scheduler.executed.v1.dlq \
+  k1s0.system.scheduler.triggered.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
     --create --if-not-exists \
     --topic "${topic}" \

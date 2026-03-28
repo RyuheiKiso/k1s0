@@ -15,6 +15,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/auth/v1;aut
 
 import "k1s0/system/common/v1/types.proto";
 import "google/protobuf/struct.proto";
+// H-15 監査対応（ADR-0022 Phase 1）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // AuthService は JWT トークン検証・ユーザー情報管理・パーミッション確認を提供する。
 service AuthService {
@@ -49,7 +51,8 @@ service AuditService {
 
 // ValidateTokenRequest はトークン検証リクエスト。
 message ValidateTokenRequest {
-  string token = 1;
+  // JWT Bearer トークン文字列（必須）
+  string token = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // ValidateTokenResponse はトークン検証レスポンス。
@@ -108,7 +111,8 @@ message ClientRoles {
 
 // GetUserRequest はユーザー情報取得リクエスト。
 message GetUserRequest {
-  string user_id = 1;
+  // ユーザー UUID（必須）
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 // GetUserResponse はユーザー情報取得レスポンス。
@@ -156,7 +160,8 @@ message StringList {
 
 // GetUserRolesRequest はユーザーロール取得リクエスト。
 message GetUserRolesRequest {
-  string user_id = 1;
+  // ユーザー UUID（必須）
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 // GetUserRolesResponse はユーザーロール取得レスポンス。
@@ -186,11 +191,12 @@ message RoleList {
 
 // CheckPermissionRequest はパーミッション確認リクエスト。
 message CheckPermissionRequest {
-  optional string user_id = 1;
-  // read, write, delete, admin
-  string permission = 2;
-  // users, auth_config, audit_logs, etc.
-  string resource = 3;
+  // ユーザー UUID（省略可、JWT から自動取得する場合）
+  optional string user_id = 1 [(buf.validate.field).string.uuid = true];
+  // 権限種別: read, write, delete, admin（必須）
+  string permission = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // リソース名: users, auth_config, audit_logs 等（必須）
+  string resource = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   // JWT Claims から取得したロール一覧
   repeated string roles = 4;
 }

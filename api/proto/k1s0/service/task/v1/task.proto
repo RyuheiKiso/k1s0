@@ -8,6 +8,8 @@ package k1s0.service.task.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/task/v1;taskv1";
 
 import "k1s0/system/common/v1/types.proto";
+// H-15 監査対応（ADR-0022 Phase 1）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service TaskService {
   // タスク作成
@@ -76,18 +78,23 @@ message TaskChecklistItem {
 // ---------- リクエスト/レスポンス ----------
 
 message CreateTaskRequest {
-  string project_id = 1;
-  string title = 2;
-  optional string description = 3;
+  // プロジェクト UUID（必須）
+  string project_id = 1 [(buf.validate.field).string.uuid = true];
+  // タスクタイトル（必須、1〜255文字）
+  string title = 2 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
+  // タスク詳細（省略可、最大4000文字）
+  optional string description = 3 [(buf.validate.field).string.max_len = 4000];
   optional TaskPriority priority = 4;
-  optional string assignee_id = 5;
+  // 担当者 UUID（省略可）
+  optional string assignee_id = 5 [(buf.validate.field).string.uuid = true];
   optional k1s0.system.common.v1.Timestamp due_date = 6;
   repeated string labels = 7;
   repeated CreateChecklistItemRequest checklist = 8;
 }
 
 message CreateChecklistItemRequest {
-  string title = 1;
+  // チェックリスト項目タイトル（必須、1〜255文字）
+  string title = 1 [(buf.validate.field).string = {min_len: 1, max_len: 255}];
   optional int32 sort_order = 2;
 }
 
@@ -96,7 +103,8 @@ message CreateTaskResponse {
 }
 
 message GetTaskRequest {
-  string task_id = 1;
+  // タスク UUID（必須）
+  string task_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetTaskResponse {
@@ -122,10 +130,12 @@ message ListTasksResponse {
 // UpdateTaskStatusRequest はタスクステータス更新リクエスト。
 // expected_version により楽観的ロックを実現し、同時更新による競合を検出する。
 message UpdateTaskStatusRequest {
-  string task_id = 1;
-  TaskStatus status = 2;
+  // タスク UUID（必須）
+  string task_id = 1 [(buf.validate.field).string.uuid = true];
+  // 更新後ステータス（UNSPECIFIED 不可）
+  TaskStatus status = 2 [(buf.validate.field).enum.defined_only = true];
   // 楽観的ロックのバージョン番号。クライアントが保持しているバージョンと一致しない場合はエラーを返す。
-  int32 expected_version = 3;
+  int32 expected_version = 3 [(buf.validate.field).int32.gte = 0];
 }
 
 message UpdateTaskStatusResponse {
