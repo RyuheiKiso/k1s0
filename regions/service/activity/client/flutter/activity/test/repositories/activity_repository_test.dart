@@ -1,6 +1,7 @@
 /// activity_repository_test.dart: ActivityRepositoryのユニットテスト。
 /// MockHttpClientAdapterを使用してAPI通信をモックし、
 /// 各メソッドが正しくリクエストを送信・レスポンスを処理することを検証する。
+library;
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -15,7 +16,6 @@ class _MockHttpClientAdapter implements HttpClientAdapter {
 
   _MockHttpClientAdapter({
     required this.responseBodyFn,
-    this.statusCode = 200,
   });
 
   @override

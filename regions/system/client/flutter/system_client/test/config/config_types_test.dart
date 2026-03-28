@@ -62,7 +62,7 @@ void main() {
     });
 
     test('ListConfigValue はリストを返す', () {
-      final list = ListConfigValue([
+      const list = ListConfigValue([
         const StringConfigValue('a'),
         const NumberConfigValue(1),
       ]);
@@ -70,7 +70,7 @@ void main() {
     });
 
     test('MapConfigValue はマップを返す', () {
-      final map = MapConfigValue({
+      const map = MapConfigValue({
         'key': const StringConfigValue('val'),
       });
       expect(map.toJson(), equals({'key': 'val'}));
@@ -94,15 +94,15 @@ void main() {
 
     test('同じ値の ListConfigValue は等しい', () {
       expect(
-        ListConfigValue([const StringConfigValue('x')]),
-        equals(ListConfigValue([const StringConfigValue('x')])),
+        const ListConfigValue([StringConfigValue('x')]),
+        equals(const ListConfigValue([StringConfigValue('x')])),
       );
     });
 
     test('同じエントリの MapConfigValue は等しい', () {
       expect(
-        MapConfigValue({'k': const NumberConfigValue(1)}),
-        equals(MapConfigValue({'k': const NumberConfigValue(1)})),
+        const MapConfigValue({'k': NumberConfigValue(1)}),
+        equals(const MapConfigValue({'k': NumberConfigValue(1)})),
       );
     });
   });

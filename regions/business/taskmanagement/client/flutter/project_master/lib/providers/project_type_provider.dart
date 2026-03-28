@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 
-import '../config/app_config.dart';
 import '../config/config_provider.dart';
 import '../models/project_type.dart';
 import '../repositories/project_type_repository.dart';

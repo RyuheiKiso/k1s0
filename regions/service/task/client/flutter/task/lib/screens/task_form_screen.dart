@@ -160,7 +160,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
 
             /// 優先度選択ドロップダウン
             DropdownButtonFormField<TaskPriority>(
-              value: _selectedPriority,
+              initialValue: _selectedPriority,
               decoration: const InputDecoration(
                 labelText: '優先度',
                 border: OutlineInputBorder(),

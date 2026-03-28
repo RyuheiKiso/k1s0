@@ -1,5 +1,6 @@
 /// board_column_test.dart: BoardColumnモデルのユニットテスト。
 /// fromJson/toJsonの往復変換、WIPゲージ計算、超過判定を検証する。
+library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:board/models/board_column.dart';
 
