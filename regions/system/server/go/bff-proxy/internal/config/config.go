@@ -97,6 +97,10 @@ type SessionConfig struct {
 	TTL     string             `yaml:"ttl"`
 	Prefix  string             `yaml:"prefix"`
 	Sliding bool               `yaml:"sliding"`
+	// AbsoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
+	// スライディングウィンドウで TTL が延長され続けても、この期間を超えたセッションは無効化される。
+	// デフォルト値: "24h"
+	AbsoluteMaxTTL string `yaml:"absolute_max_ttl"`
 }
 
 // RedisSessionConfig holds Redis connection parameters for session storage.
@@ -139,6 +143,11 @@ type CORSConfig struct {
 	ExposeHeaders []string `yaml:"expose_headers"`
 	// MaxAgeSecs はプリフライトレスポンスのキャッシュ時間（秒）。0 の場合は 600 秒を使用する。
 	MaxAgeSecs int `yaml:"max_age_secs"`
+	// CredentialsPaths は Access-Control-Allow-Credentials: true を返すパスプレフィックスのリスト。
+	// H-13 監査対応: 認証が不要な公開エンドポイント（/healthz, /metrics 等）には credentials を付与しない。
+	// 未設定時はすべてのホワイトリストオリジンに対して credentials を付与する（後方互換性）。
+	// 例: ["/auth/", "/api/"] のように末尾スラッシュ付きで指定する。
+	CredentialsPaths []string `yaml:"credentials_paths"`
 }
 
 // RateLimitConfig holds IP-based rate limiting settings.

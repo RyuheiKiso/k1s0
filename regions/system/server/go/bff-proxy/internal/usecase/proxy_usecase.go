@@ -148,6 +148,7 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 		}
 
 		// 一時オブジェクトで Redis を先に更新する（shallow copy: SessionData にポインタフィールドなし）
+		refreshNow := time.Now()
 		tempSess := *sess
 		tempSess.AccessToken = updatedAccessToken
 		tempSess.RefreshToken = updatedRefreshToken
@@ -155,6 +156,8 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 		tempSess.ExpiresAt = updatedExpiresAt
 		// H-10 監査対応: 更新したセッションに新しい CSRF トークンを格納する
 		tempSess.CSRFToken = newCSRFToken
+		// H-12 監査対応: CSRF トークン再生成時に生成時刻も更新する
+		tempSess.CSRFTokenCreatedAt = refreshNow.Unix()
 
 		// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
 		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
@@ -177,6 +180,8 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 		sess.ExpiresAt = updatedExpiresAt
 		// H-10 監査対応: メモリ上のセッションにも新しい CSRF トークンを反映する
 		sess.CSRFToken = newCSRFToken
+		// H-12 監査対応: メモリ上の CSRF トークン生成時刻も更新する
+		sess.CSRFTokenCreatedAt = refreshNow.Unix()
 
 		return &PrepareProxyOutput{
 			AccessToken:    sess.AccessToken,

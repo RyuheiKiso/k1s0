@@ -17,10 +17,15 @@ ENVIRONMENT="${ENVIRONMENT:-development}"
 
 # development 以外の環境ではすべての必須変数が設定されていることを検証する。
 # production/staging に加え、未知の環境値でも安全側に倒す。
-if [ "$ENVIRONMENT" != "development" ]; then
+if [ "$ENVIRONMENT" != "development" ] && [ "$ENVIRONMENT" != "dev" ] && [ "$ENVIRONMENT" != "local" ]; then
     : "${VAULT_ADDR:?VAULT_ADDR must be set in non-development environments}"
     : "${VAULT_TOKEN:?VAULT_TOKEN must be set in non-development environments}"
     : "${VAULT_INIT_KEY:?VAULT_INIT_KEY must be set in non-development environments}"
+    # 本番環境ではシークレット値が明示的に設定されていることを必須とする（C-05 監査対応）
+    : "${DB_PASSWORD:?本番環境では DB_PASSWORD を必ず設定してください}"
+    : "${AUTH_API_KEY:?本番環境では AUTH_API_KEY を必ず設定してください}"
+    : "${CONFIG_API_KEY:?本番環境では CONFIG_API_KEY を必ず設定してください}"
+    : "${KC_CLIENT_SECRET:?本番環境では KC_CLIENT_SECRET を必ず設定してください}"
 fi
 
 # 環境変数から取得（未設定時はローカル開発用デフォルト値を使用）
@@ -47,57 +52,58 @@ echo "=== Vault 初期化: ${VAULT_ADDR} ==="
 echo "--- KV v2 シークレットエンジンを確認 ---"
 vault secrets list 2>/dev/null | grep -q "^secret/" && echo "secret/ は既に有効" || vault secrets enable -path=secret kv-v2
 
+# シークレット渡しをファイル経由に変更（コマンドラインに値が現れないように）（C-05 監査対応）
+# vault_kv_put: JSON 一時ファイル経由で vault kv put を実行するヘルパー関数
+# 引数: $1=Vault パス, $2=JSON 文字列
+vault_kv_put() {
+  local path="$1"
+  local json="$2"
+  local tmpfile="/tmp/vault-secret-$$.json"
+  echo "${json}" > "${tmpfile}"
+  vault kv put "${path}" @"${tmpfile}"
+  shred -u "${tmpfile}" 2>/dev/null || rm -f "${tmpfile}"
+}
+
 # === Database 共通設定 ===
 echo "--- Database シークレットを登録 ---"
-vault kv put secret/k1s0/system/database \
-  host="${DB_HOST}" \
-  port="${DB_PORT}" \
-  username="${DB_USERNAME}" \
-  password="${DB_PASSWORD}" \
-  name="${DB_NAME}"
+vault_kv_put secret/k1s0/system/database \
+  "{\"host\":\"${DB_HOST}\",\"port\":\"${DB_PORT}\",\"username\":\"${DB_USERNAME}\",\"password\":\"${DB_PASSWORD}\",\"name\":\"${DB_NAME}\"}"
 
 # === Auth Server ===
 echo "--- Auth Server シークレットを登録 ---"
-vault kv put secret/k1s0/system/auth-server/database \
-  url="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dauth,public" \
-  password="${DB_PASSWORD}"
+vault_kv_put secret/k1s0/system/auth-server/database \
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dauth,public\",\"password\":\"${DB_PASSWORD}\"}"
 
-vault kv put secret/k1s0/system/auth-server/api-key \
-  key="${AUTH_API_KEY}"
+vault_kv_put secret/k1s0/system/auth-server/api-key \
+  "{\"key\":\"${AUTH_API_KEY}\"}"
 
 # === Config Server ===
 echo "--- Config Server シークレットを登録 ---"
-vault kv put secret/k1s0/system/config-server/database \
-  url="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dconfig,public" \
-  password="${DB_PASSWORD}"
+vault_kv_put secret/k1s0/system/config-server/database \
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dconfig,public\",\"password\":\"${DB_PASSWORD}\"}"
 
-vault kv put secret/k1s0/system/config-server/api-key \
-  key="${CONFIG_API_KEY}"
+vault_kv_put secret/k1s0/system/config-server/api-key \
+  "{\"key\":\"${CONFIG_API_KEY}\"}"
 
 # === Saga Server ===
 echo "--- Saga Server シークレットを登録 ---"
-vault kv put secret/k1s0/system/saga-server/database \
-  url="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dsaga,public" \
-  password="${DB_PASSWORD}"
+vault_kv_put secret/k1s0/system/saga-server/database \
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dsaga,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 # === DLQ Manager ===
 echo "--- DLQ Manager シークレットを登録 ---"
-vault kv put secret/k1s0/system/dlq-manager/database \
-  url="postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Ddlq,public" \
-  password="${DB_PASSWORD}"
+vault_kv_put secret/k1s0/system/dlq-manager/database \
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Ddlq,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 # === Kafka 共通設定 ===
 echo "--- Kafka シークレットを登録 ---"
-vault kv put secret/k1s0/system/kafka/sasl \
-  username="${KAFKA_SASL_USERNAME}" \
-  password="${KAFKA_SASL_PASSWORD}" \
-  mechanism="${KAFKA_SASL_MECHANISM}"
+vault_kv_put secret/k1s0/system/kafka/sasl \
+  "{\"username\":\"${KAFKA_SASL_USERNAME}\",\"password\":\"${KAFKA_SASL_PASSWORD}\",\"mechanism\":\"${KAFKA_SASL_MECHANISM}\"}"
 
 # === Keycloak クライアントシークレット ===
 echo "--- Keycloak シークレットを登録 ---"
-vault kv put secret/k1s0/system/keycloak \
-  client-id="${KC_CLIENT_ID}" \
-  client-secret="${KC_CLIENT_SECRET}"
+vault_kv_put secret/k1s0/system/keycloak \
+  "{\"client-id\":\"${KC_CLIENT_ID}\",\"client-secret\":\"${KC_CLIENT_SECRET}\"}"
 
 # === ポリシー登録 ===
 echo "--- Vault ポリシーを登録 ---"

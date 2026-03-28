@@ -54,8 +54,9 @@ impl DeleteFileUseCase {
             .map_err(|e| DeleteFileError::Internal(e.to_string()))?
             .ok_or_else(|| DeleteFileError::NotFound(input.file_id.clone()))?;
 
+        // C-01 監査対応: storage_key → storage_path にリネーム
         self.storage_repo
-            .delete_object(&file.storage_key)
+            .delete_object(&file.storage_path)
             .await
             .map_err(|e| DeleteFileError::Internal(e.to_string()))?;
 
@@ -64,11 +65,11 @@ impl DeleteFileUseCase {
             .await
             .map_err(|e| DeleteFileError::Internal(e.to_string()))?;
 
+        // C-01 監査対応: フィールド名を DB カラム名に合わせる
         let payload = serde_json::json!({
             "file_id": file.id,
-            "tenant_id": file.tenant_id,
             "uploaded_by": file.uploaded_by,
-            "storage_key": file.storage_key,
+            "storage_path": file.storage_path,
             "deleted_at": chrono::Utc::now().to_rfc3339(),
         });
         if let Err(e) = self.event_publisher.publish("file.deleted", &payload).await {
@@ -94,12 +95,12 @@ mod tests {
     use std::collections::HashMap;
 
     fn sample_file() -> FileMetadata {
+        // C-01 監査対応: tenant_id 引数削除
         FileMetadata::new(
             "file_001".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             HashMap::new(),
             "tenant-abc/report.pdf".to_string(),

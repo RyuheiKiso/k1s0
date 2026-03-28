@@ -10,6 +10,8 @@ IMPORT_DIR="/opt/keycloak/data/import"
 if ! command -v envsubst &> /dev/null; then
   echo "[entrypoint-wrapper] envsubst not found, using sed fallback"
   # envsubstが使えない場合、sedでデフォルト値付き変数を展開するフォールバック
+  # L-09 監査対応: sed の区切り文字に変数値を直接埋め込むとインジェクションリスクがあるため、
+  # 変数値中の sed 特殊文字をエスケープしてから置換する
   for f in "${IMPORT_DIR}"/*.json; do
     [ -f "$f" ] || continue
     # ${VAR:-default} パターンを処理: 環境変数が設定されていればその値、なければデフォルト値
@@ -19,7 +21,10 @@ if ! command -v envsubst &> /dev/null; then
     while IFS= read -r varname; do
       default=$(grep -oP "\\\$\{${varname}:-\K[^}]+" "$tmpfile" | head -1)
       value="${!varname:-$default}"
-      sed -i "s|\${${varname}:-${default}}|${value}|g" "$tmpfile"
+      # sed の置換文字列で特殊な意味を持つ文字（区切り文字 |、バックスラッシュ、&）をエスケープする
+      escaped_value=$(printf '%s' "$value" | sed 's/[|\\&]/\\&/g')
+      escaped_default=$(printf '%s' "$default" | sed 's/[|\\&]/\\&/g')
+      sed -i "s|\${${varname}:-${escaped_default}}|${escaped_value}|g" "$tmpfile"
     done < <(grep -oP '\$\{\K[A-Z_]+(?=:-)' "$tmpfile" | sort -u)
     mv "$tmpfile" "$f"
     echo "[entrypoint-wrapper] Processed $f (sed fallback)"

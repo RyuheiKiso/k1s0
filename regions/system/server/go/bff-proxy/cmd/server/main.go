@@ -83,7 +83,12 @@ func run() error {
 	// defer による shutdown が必要なため run() に残す
 	tp, err := initTracerProvider(ctx, cfg.Observability.Trace, cfg.App)
 	if err != nil {
-		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました", slog.String("error", err.Error()))
+		// L-17 監査対応: 本番/ステージング環境では OTel 初期化失敗時に起動を停止する。
+		// 開発環境では警告ログで継続し、OTel Collector が未起動でもサービスを利用可能にする。
+		if !config.IsDevEnvironment(cfg.App.Environment) {
+			return fmt.Errorf("OTel トレーサープロバイダーの初期化に失敗しました（非開発環境では必須）: %w", err)
+		}
+		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました（開発環境のため継続）", slog.String("error", err.Error()))
 	} else if tp != nil {
 		defer func() {
 			// タイムアウト付きコンテキストでシャットダウンし、OTel Collector 無応答時の無限ブロックを防ぐ（H-004）
@@ -237,11 +242,13 @@ func initRouter(
 	logger *slog.Logger,
 ) (*gin.Engine, error) {
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
+	// M-17 監査対応: セッションの絶対最大有効期間を設定から取得する（デフォルト 24 時間）
+	absoluteMaxTTL := config.ParseDuration(cfg.Session.AbsoluteMaxTTL, 24*time.Hour)
 	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
 	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
 	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
-	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
 	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
 	if err != nil {

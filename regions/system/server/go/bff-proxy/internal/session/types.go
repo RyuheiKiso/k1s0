@@ -19,6 +19,10 @@ type SessionData struct {
 	// CSRFToken is the per-session CSRF token bound to this session.
 	CSRFToken string `json:"csrf_token"`
 
+	// CSRFTokenCreatedAt は CSRF トークンの生成時刻（Unix タイムスタンプ）。
+	// CSRF トークンの有効期間（30分 TTL）検証に使用する（H-12 監査対応）。
+	CSRFTokenCreatedAt int64 `json:"csrf_token_created_at"`
+
 	// Subject is the OIDC sub claim (user identifier).
 	Subject string `json:"sub"`
 
@@ -27,11 +31,24 @@ type SessionData struct {
 
 	// CreatedAt is when the session was created (Unix timestamp).
 	CreatedAt int64 `json:"created_at"`
+
+	// AbsoluteExpiry はセッションの絶対有効期限（Unix タイムスタンプ）（M-17 監査対応）。
+	// スライディングウィンドウで TTL が延長されても、この時刻を超えたセッションは無効化される。
+	AbsoluteExpiry int64 `json:"absolute_expiry,omitempty"`
 }
 
 // IsExpired returns true when the access token has expired.
 func (s *SessionData) IsExpired() bool {
 	return time.Now().Unix() > s.ExpiresAt
+}
+
+// IsAbsoluteExpired はセッションの絶対有効期限を超過しているかを返す（M-17 監査対応）。
+// AbsoluteExpiry が設定されていない（0）場合は期限切れとみなさない。
+func (s *SessionData) IsAbsoluteExpired() bool {
+	if s.AbsoluteExpiry == 0 {
+		return false
+	}
+	return time.Now().Unix() > s.AbsoluteExpiry
 }
 
 // Data は SessionData の Go 命名規約準拠の短縮エイリアス（§3.2 監査対応: stutter 命名を解消）。

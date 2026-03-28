@@ -142,6 +142,76 @@ regions/system/server/rust/auth/
 
 ---
 
+## /jwks エンドポイントと鍵ローテーション設計（M-06 監査対応）
+
+### /jwks エンドポイントの実装
+
+auth-rust は以下の 2 つのエンドポイントで JWKS（JSON Web Key Set）を公開する。
+
+| エンドポイント | 説明 |
+|--------------|------|
+| `GET /jwks` | JWKS 取得（短縮パス） |
+| `GET /.well-known/jwks.json` | RFC 準拠の標準パス |
+
+実装ファイル: `adapter/handler/jwks_handler.rs`
+
+### JwksProvider の動作（鍵キャッシュ）
+
+`infrastructure/jwks_provider.rs` が JWKS を Keycloak から取得してキャッシュする。
+
+```
+Keycloak JWKS エンドポイント
+  └─ GET {KEYCLOAK_URL}/realms/{realm}/protocol/openid-connect/certs
+       ↓
+JwksProvider（TTL: config.keycloak.jwks_cache_ttl_secs、デフォルト 300 秒）
+  ├─ キャッシュ有効 → RwLock（読み取り）でキャッシュ値を返す（排他ロック不要）
+  └─ キャッシュ失効 → fetch_lock（Mutex）で排他制御し、1 リクエストのみ Keycloak にフェッチ
+       ↓（ダブルチェック: 他のリクエストが先に更新済みなら待機なし）
+  Keycloak から最新 JWKS を取得して RwLock（書き込み）でキャッシュを更新
+```
+
+サンダリングハード（多数の同時リクエストが一斉に Keycloak を叩く）を防ぐため、
+`fetch_lock: Mutex<()>` で排他制御している（`jwks_provider.rs` 参照）。
+
+### 鍵ローテーション対応
+
+Keycloak が公開鍵をローテーションした場合の動作:
+
+| ケース | 動作 |
+|--------|------|
+| キャッシュ TTL 内 | 旧鍵がキャッシュされているため、一時的に古い JWKS が返される |
+| キャッシュ TTL 超過（デフォルト 300 秒） | 次のリクエスト時に Keycloak から最新 JWKS を取得してキャッシュを更新 |
+| 強制ローテーション | auth-rust の再起動またはキャッシュ TTL を短縮することで対応 |
+
+**鍵ローテーション時の影響**:
+- キャッシュ TTL の間（最大 300 秒）は旧鍵での署名検証が成功し続ける（後方互換）
+- 新鍵での署名済みトークンは TTL 経過後から正常に検証される
+- Keycloak のデフォルトでは古い鍵も一定期間公開鍵セットに残るため、
+  移行期間中のトークン検証は正常に機能する
+
+### 設定
+
+```yaml
+# config.yaml（auth サーバー設定）
+keycloak:
+  url: "http://keycloak:8080"
+  realm: "k1s0"
+  jwks_cache_ttl_secs: 300  # デフォルト 5 分。緊急ローテーション時は 60 に短縮する
+```
+
+### 緊急ローテーション手順
+
+Keycloak 管理コンソールで公開鍵を強制ローテーションした場合:
+
+1. `config.yaml` の `jwks_cache_ttl_secs` を 60（秒）に変更
+2. auth-rust を再デプロイ（またはローリングアップデート）
+3. 1 分後に BFF-Proxy の `/auth/session` で新しい鍵での署名検証が成功することを確認
+4. 安定後に `jwks_cache_ttl_secs` を 300 に戻す
+
+参考: 外部技術監査報告書 M-06 "/jwks 鍵ローテーション設計の記録を求める"
+
+---
+
 ## 関連ドキュメント
 
 - [server.md](server.md) -- 概要・API 定義

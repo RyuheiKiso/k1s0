@@ -31,6 +31,41 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
+    /// L-15 監査対応: シークレットキャッシュの TTL と最大エントリ数を設定ファイルで制御する。
+    /// ハードコード値（TTL: 2880 秒、最大 10,000 件）からの移行。
+    #[serde(default)]
+    pub cache: VaultCacheConfig,
+}
+
+/// VaultCacheConfig はシークレットキャッシュの設定を保持する。
+/// キャッシュは Vault KV v2 / DB へのアクセス回数を削減するために使用する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct VaultCacheConfig {
+    /// max_entries はキャッシュに保持する最大エントリ数（デフォルト: 10,000）。
+    #[serde(default = "default_cache_max_entries")]
+    pub max_entries: u64,
+    /// ttl_secs はキャッシュエントリの有効期間（秒）（デフォルト: 2880 = 48 分）。
+    /// 本番環境ではシークレットローテーション周期に合わせて調整すること。
+    #[serde(default = "default_cache_ttl_secs")]
+    pub ttl_secs: u64,
+}
+
+impl Default for VaultCacheConfig {
+    fn default() -> Self {
+        Self {
+            max_entries: default_cache_max_entries(),
+            ttl_secs: default_cache_ttl_secs(),
+        }
+    }
+}
+
+fn default_cache_max_entries() -> u64 {
+    10_000
+}
+
+fn default_cache_ttl_secs() -> u64 {
+    // 48 分 = シークレット TTL の典型的な半分の値
+    2880
 }
 
 impl Config {

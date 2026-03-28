@@ -6,6 +6,11 @@ kind: Kustomization
 
 resources:
   - business.yaml
+  # H-14 監査対応: infra Namespace の NetworkPolicy を追加（ゼロトラスト原則の適用）
+  - infra-cert-manager.yaml
+  - infra-harbor.yaml
+  - infra-ingress.yaml
+  - infra-service-mesh.yaml
   - messaging.yaml
   - observability.yaml
   - service.yaml

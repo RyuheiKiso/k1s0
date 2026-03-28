@@ -6,7 +6,14 @@ metadata:
     tier: infra
     app.kubernetes.io/part-of: k1s0
     app.kubernetes.io/managed-by: helm
-    # Pod Security Standards: baseline モードを適用（インフラ系は restricted が困難な場合あり）（H-008）
+    # Pod Security Standards: baseline モードを適用（L-14 監査対応: 理由を明記）
+    # observability (Prometheus / Grafana / Loki / Tempo) が baseline である理由:
+    #   Prometheus の Node Exporter は hostNetwork/hostPID/hostPath のマウントが必要で
+    #   restricted モードでは動作しない。
+    #   Promtail（ログ収集）も /var/log のホストパスマウントが必要。
+    #   これらの DaemonSet コンポーネントは restricted PSS と原理的に相容れない設計であるため、
+    #   baseline を選択した。Node Exporter を独立 Namespace に分離することで
+    #   アプリ系 Namespace の restricted 適用には影響しない。
     pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

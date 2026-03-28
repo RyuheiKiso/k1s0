@@ -1,9 +1,17 @@
 use anyhow::Result;
+use serde::Deserialize;
 use std::fs;
 use std::path::Path;
 
 use super::types::{DbInfo, Rdbms, ALL_RDBMS, RDBMS_LABELS};
 use crate::prompt;
+
+/// database.yaml の型安全なデシリアライズ用構造体（M-19 監査対応）。
+#[derive(Deserialize)]
+struct DatabaseYaml {
+    name: Option<String>,
+    rdbms: Option<String>,
+}
 
 /// 既存ディレクトリを走査して名前一覧を返す。
 pub(super) fn scan_existing_dirs(base: &str) -> Vec<String> {
@@ -41,6 +49,8 @@ pub(super) fn scan_existing_databases() -> Vec<DbInfo> {
     dbs
 }
 
+/// database.yaml を再帰的に探索して DB 情報を収集する。
+/// M-19 監査対応: 手動 strip_prefix パーサーから serde_yaml による型安全なデシリアライズに変更。
 fn scan_db_recursive(path: &Path, dbs: &mut Vec<DbInfo>) {
     if !path.is_dir() {
         return;
@@ -49,24 +59,18 @@ fn scan_db_recursive(path: &Path, dbs: &mut Vec<DbInfo>) {
     let config_path = path.join("database.yaml");
     if config_path.is_file() {
         if let Ok(content) = fs::read_to_string(&config_path) {
-            // 簡易パース
-            let mut name = String::new();
-            let mut rdbms_str = String::new();
-            for line in content.lines() {
-                if let Some(v) = line.strip_prefix("name: ") {
-                    name = v.trim().to_string();
+            // serde_yaml で型安全にデシリアライズする
+            if let Ok(db_yaml) = serde_yaml::from_str::<DatabaseYaml>(&content) {
+                if let Some(name) = db_yaml.name {
+                    if !name.is_empty() {
+                        let rdbms = match db_yaml.rdbms.as_deref() {
+                            Some("MySQL") => Rdbms::MySQL,
+                            Some("SQLite") => Rdbms::SQLite,
+                            _ => Rdbms::PostgreSQL,
+                        };
+                        dbs.push(DbInfo { name, rdbms });
+                    }
                 }
-                if let Some(v) = line.strip_prefix("rdbms: ") {
-                    rdbms_str = v.trim().to_string();
-                }
-            }
-            if !name.is_empty() {
-                let rdbms = match rdbms_str.as_str() {
-                    "MySQL" => Rdbms::MySQL,
-                    "SQLite" => Rdbms::SQLite,
-                    _ => Rdbms::PostgreSQL,
-                };
-                dbs.push(DbInfo { name, rdbms });
             }
         }
     }

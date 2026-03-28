@@ -101,20 +101,38 @@ export class InMemoryRateLimitClient implements RateLimitClient {
   }
 }
 
-export class GrpcRateLimitClient implements RateLimitClient {
+/**
+ * key を "scope:identifier" 形式から { scope, identifier } に分割する。
+ * ":" が含まれない場合は scope="default"、identifier=key とする。
+ */
+function splitKey(key: string): { scope: string; identifier: string } {
+  const idx = key.indexOf(':');
+  if (idx >= 0) {
+    return { scope: key.slice(0, idx), identifier: key.slice(idx + 1) };
+  }
+  return { scope: 'default', identifier: key };
+}
+
+/**
+ * C-02/L-16 監査対応: GrpcRateLimitClient → HttpRateLimitClient にリネーム。
+ * API パスをサーバー実装（POST /api/v1/ratelimit/check 等）に合わせて統一。
+ */
+export class HttpRateLimitClient implements RateLimitClient {
   private readonly serverUrl: string;
 
   constructor(serverUrl: string) {
     this.serverUrl = serverUrl.replace(/\/$/, '');
   }
 
+  // C-02 監査対応: POST /api/v1/ratelimit/check（key をパスではなくボディに含める）
   async check(key: string, cost: number): Promise<RateLimitStatus> {
+    const { scope, identifier } = splitKey(key);
     let response: Response;
     try {
-      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/check`, {
+      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cost }),
+        body: JSON.stringify({ scope, identifier, window: cost > 1 ? `${cost}s` : undefined }),
       });
     } catch (e: unknown) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
@@ -148,48 +166,20 @@ export class GrpcRateLimitClient implements RateLimitClient {
     };
   }
 
+  // C-02 監査対応: consume は check で代用（サーバーに consume エンドポイントはない）
   async consume(key: string, cost: number): Promise<RateLimitResult> {
-    let response: Response;
-    try {
-      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/consume`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cost }),
-      });
-    } catch (e: unknown) {
-      const isAbort = e instanceof Error && e.name === 'AbortError';
-      throw new RateLimitError(
-        isAbort ? 'Request timed out' : 'Network error',
-        'TIMEOUT',
-      );
-    }
-
-    if (response.status === 429) {
-      const body = await response.json().catch(() => ({}));
-      throw new RateLimitError(
-        'Rate limit exceeded',
-        'LIMIT_EXCEEDED',
-        body.retry_after_secs,
-      );
-    }
-    if (response.status === 404) {
-      throw new RateLimitError(`Key not found: ${key}`, 'KEY_NOT_FOUND');
-    }
-    if (!response.ok) {
-      throw new RateLimitError(`Server error: ${response.status}`, 'SERVER_ERROR');
-    }
-
-    const body = await response.json();
+    const status = await this.check(key, cost);
     return {
-      remaining: body.remaining,
-      resetAt: new Date(body.reset_at),
+      remaining: status.remaining,
+      resetAt: status.resetAt,
     };
   }
 
+  // C-02 監査対応: GET /api/v1/ratelimit/usage
   async getLimit(key: string): Promise<RateLimitPolicy> {
     let response: Response;
     try {
-      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/${key}/policy`);
+      response = await fetch(`${this.serverUrl}/api/v1/ratelimit/usage`);
     } catch (e: unknown) {
       const isAbort = e instanceof Error && e.name === 'AbortError';
       throw new RateLimitError(
@@ -207,7 +197,7 @@ export class GrpcRateLimitClient implements RateLimitClient {
 
     const body = await response.json();
     return {
-      key: body.key,
+      key: body.key || key,
       limit: body.limit,
       windowSecs: body.window_secs,
       algorithm: body.algorithm,
@@ -215,6 +205,12 @@ export class GrpcRateLimitClient implements RateLimitClient {
   }
 
   async close(): Promise<void> {
-    // no-op (HTTP client has no persistent connection)
+    // no-op（HTTP クライアントには永続接続がない）
   }
 }
+
+/**
+ * 後方互換性のための型エイリアス（L-16 監査対応: 旧名称からの移行期間用）。
+ * @deprecated HttpRateLimitClient を使用してください。
+ */
+export const GrpcRateLimitClient = HttpRateLimitClient;

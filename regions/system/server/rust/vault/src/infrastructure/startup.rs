@@ -52,8 +52,12 @@ pub async fn run() -> anyhow::Result<()> {
     let master_key = Arc::new(MasterKey::from_env()?);
     info!("master key loaded");
 
-    // Cache (max 10000 entries, TTL 48 min = 2880 seconds)
-    let secret_cache = Arc::new(super::cache::SecretCache::new(10_000, 2880));
+    // L-15 監査対応: キャッシュの TTL と最大エントリ数を設定ファイルから読み込む（ハードコード解消）
+    // デフォルト値: max_entries=10,000, ttl_secs=2880（48 分）
+    let secret_cache = Arc::new(super::cache::SecretCache::new(
+        cfg.cache.max_entries,
+        cfg.cache.ttl_secs,
+    ));
 
     // Secret store + audit repository (Vault KV v2 / PG / InMemory)
     let vault_addr = std::env::var("VAULT_ADDR").ok();

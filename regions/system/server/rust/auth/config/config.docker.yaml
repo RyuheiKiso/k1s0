@@ -60,3 +60,8 @@ keycloak:
 
 keycloak_admin:
   token_cache_ttl_secs: 60
+
+# ユーザーキャッシュ設定（L-15 監査対応: ハードコード値を設定ファイル化する）
+cache:
+  user_cache_max_entries: 5000
+  user_cache_ttl_secs: 300

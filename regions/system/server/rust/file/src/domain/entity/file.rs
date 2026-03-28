@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::FileError;
 
+/// C-01 監査対応: フィールド名を DB カラム定義（file_storage.file_metadata）に合わせる
+/// DB カラム: id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub id: String,
@@ -14,28 +16,31 @@ pub struct FileMetadata {
     pub size_bytes: u64,
     #[serde(alias = "mime_type")]
     pub content_type: String,
-    pub tenant_id: String,
     #[serde(alias = "owner_id")]
     pub uploaded_by: String,
     pub tags: HashMap<String, String>,
-    pub storage_key: String,
-    pub checksum_sha256: Option<String>,
+    /// DB カラム名: storage_path（旧 storage_key から改名）
+    #[serde(alias = "storage_key")]
+    pub storage_path: String,
+    /// DB カラム名: checksum（旧 checksum_sha256 から改名）
+    #[serde(alias = "checksum_sha256")]
+    pub checksum: Option<String>,
     pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl FileMetadata {
+    /// C-01 監査対応: tenant_id を削除、storage_key → storage_path、checksum_sha256 → checksum
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: String,
         filename: String,
         size_bytes: u64,
         content_type: String,
-        tenant_id: String,
         uploaded_by: String,
         tags: HashMap<String, String>,
-        storage_key: String,
+        storage_path: String,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -43,20 +48,19 @@ impl FileMetadata {
             filename,
             size_bytes,
             content_type,
-            tenant_id,
             uploaded_by,
             tags,
-            storage_key,
-            checksum_sha256: None,
+            storage_path,
+            checksum: None,
             status: "pending".to_string(),
             created_at: now,
             updated_at: now,
         }
     }
 
-    pub fn mark_available(&mut self, checksum_sha256: Option<String>) {
+    pub fn mark_available(&mut self, checksum: Option<String>) {
         self.status = "available".to_string();
-        self.checksum_sha256 = checksum_sha256;
+        self.checksum = checksum;
         self.updated_at = Utc::now();
     }
 
@@ -73,7 +77,7 @@ impl FileMetadata {
 
     /// ストレージキーを生成する
     /// パストラバーサル攻撃を防ぐため、ファイル名に親ディレクトリ参照や絶対パスが含まれていないか検証する
-    pub fn generate_storage_key(tenant_id: &str, filename: &str) -> Result<String, FileError> {
+    pub fn generate_storage_path(tenant_id: &str, filename: &str) -> Result<String, FileError> {
         let path = Path::new(filename);
         // 絶対パスや親ディレクトリ参照を拒否する（防御的バリデーション）
         if path.is_absolute()
@@ -104,12 +108,12 @@ mod tests {
 
     #[test]
     fn new_creates_pending_file() {
+        // C-01 監査対応: tenant_id 引数を削除
         let file = FileMetadata::new(
             "file_001".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             sample_tags(),
             "tenant-abc/report.pdf".to_string(),
@@ -119,10 +123,9 @@ mod tests {
         assert_eq!(file.filename, "report.pdf");
         assert_eq!(file.size_bytes, 2048);
         assert_eq!(file.content_type, "application/pdf");
-        assert_eq!(file.tenant_id, "tenant-abc");
         assert_eq!(file.uploaded_by, "user-001");
         assert_eq!(file.status, "pending");
-        assert!(file.checksum_sha256.is_none());
+        assert!(file.checksum.is_none());
     }
 
     #[test]
@@ -132,7 +135,6 @@ mod tests {
             "image.png".to_string(),
             1024,
             "image/png".to_string(),
-            "tenant-xyz".to_string(),
             "user-002".to_string(),
             HashMap::new(),
             "tenant-xyz/image.png".to_string(),
@@ -142,7 +144,7 @@ mod tests {
         file.mark_available(Some(checksum.clone()));
 
         assert_eq!(file.status, "available");
-        assert_eq!(file.checksum_sha256, Some(checksum));
+        assert_eq!(file.checksum, Some(checksum));
     }
 
     #[test]
@@ -152,7 +154,6 @@ mod tests {
             "data.csv".to_string(),
             512,
             "text/csv".to_string(),
-            "tenant-abc".to_string(),
             "user-003".to_string(),
             HashMap::new(),
             "tenant-abc/data.csv".to_string(),
@@ -169,7 +170,6 @@ mod tests {
             "doc.txt".to_string(),
             256,
             "text/plain".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             sample_tags(),
             "tenant-abc/doc.txt".to_string(),
@@ -184,16 +184,16 @@ mod tests {
     }
 
     #[test]
-    fn generate_storage_key_formats_correctly() {
-        let key = FileMetadata::generate_storage_key("tenant-abc", "reports/file.pdf")
+    fn generate_storage_path_formats_correctly() {
+        let key = FileMetadata::generate_storage_path("tenant-abc", "reports/file.pdf")
             .expect("有効なファイル名のストレージキー生成は成功する");
         assert_eq!(key, "tenant-abc/reports/file.pdf");
     }
 
     #[test]
-    fn generate_storage_key_rejects_parent_dir() {
+    fn generate_storage_path_rejects_parent_dir() {
         // 親ディレクトリ参照を含むファイル名はエラーを返す
-        let result = FileMetadata::generate_storage_key("tenant-abc", "../../../etc/passwd");
+        let result = FileMetadata::generate_storage_path("tenant-abc", "../../../etc/passwd");
         assert!(result.is_err());
         match result.unwrap_err() {
             FileError::InvalidFileName(_) => {}
@@ -203,17 +203,17 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn generate_storage_key_rejects_absolute_path_unix() {
+    fn generate_storage_path_rejects_absolute_path_unix() {
         // Unix 形式の絶対パスはエラーを返すことを検証する（LOW-TEST-04 監査対応: Windows 環境との互換性）
-        let result = FileMetadata::generate_storage_key("tenant-abc", "/etc/passwd");
+        let result = FileMetadata::generate_storage_path("tenant-abc", "/etc/passwd");
         assert!(result.is_err());
     }
 
     #[test]
     #[cfg(windows)]
-    fn generate_storage_key_rejects_absolute_path_windows() {
+    fn generate_storage_path_rejects_absolute_path_windows() {
         // Windows 形式の絶対パスはエラーを返すことを検証する（LOW-TEST-04 監査対応: Unix 環境との互換性）
-        let result = FileMetadata::generate_storage_key("tenant-abc", r"C:\Windows\System32\config");
+        let result = FileMetadata::generate_storage_path("tenant-abc", r"C:\Windows\System32\config");
         assert!(result.is_err());
     }
 }

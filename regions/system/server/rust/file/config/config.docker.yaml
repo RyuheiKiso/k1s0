@@ -6,6 +6,14 @@ server:
   host: "0.0.0.0"
   port: 8080
 
+# データベース設定: file_storage スキーマに接続する（C-01 監査対応: スキーマ名を DB 定義と一致させる）
+database:
+  url: "postgresql://k1s0:dev@postgres:5432/k1s0_system"
+  schema: "file_storage"
+  max_connections: 10
+  min_connections: 1
+  connect_timeout_seconds: 10
+
 # ストレージバックエンド: Docker環境ではインメモリを使用する
 storage:
   backend: "memory"

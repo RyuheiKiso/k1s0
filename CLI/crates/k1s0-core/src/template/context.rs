@@ -379,6 +379,11 @@ impl TemplateContextBuilder {
     ///
     /// `service_name`, `tier`, `language`, `kind` のいずれかが未設定の場合にパニックする。
     /// 必ず `try_build()` またはバリデーション済みの入力で呼び出すこと。
+    ///
+    /// # Deprecated
+    ///
+    /// パニックのリスクがあるため `try_build()` を使用すること（L-08 監査対応）。
+    #[deprecated(since = "0.1.0", note = "use try_build() instead")]
     pub fn build(self) -> TemplateContext {
         // 必須変数の事前バリデーション
         if let Err(e) = self.validate() {

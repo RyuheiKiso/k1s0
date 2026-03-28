@@ -228,8 +228,11 @@ pub async fn run() -> anyhow::Result<()> {
         kafka_producer: kafka_producer.clone(),
         auth_state: auth_state.clone(),
     };
+    // M-02 監査対応: MetricsLayer を追加して HTTP リクエストの総数・レイテンシを Prometheus に記録する。
     // CorrelationLayerを追加してリクエスト間の相関IDを伝播する
-    let app = handler::router(state).layer(k1s0_correlation::layer::CorrelationLayer::new());
+    let app = handler::router(state)
+        .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
+        .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
     // 11. gRPC Service
     use crate::proto::k1s0::system::mastermaintenance::v1::master_maintenance_service_server::MasterMaintenanceServiceServer;

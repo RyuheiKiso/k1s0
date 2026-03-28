@@ -141,3 +141,88 @@ groups:
         annotations:
           summary: "Service tier サービスが停止中"
           description: "{{ $labels.job }} が停止しています。"
+
+  # M-04 監査対応: 主要サービスのアラートルールを追加する
+  # system tier（auth, config, saga, graphql-gateway 等）と
+  # infra tier（Kafka, Redis, Vault）の監視を強化する
+  - name: system-tier-alerts
+    rules:
+      # system tier サービスの停止監視
+      # auth/config/saga 等の停止は全テナントへの影響が大きいため critical とする
+      - alert: SystemTierDown
+        expr: up{job=~"auth.*|config.*|saga.*|graphql.*|bff-proxy.*|dlq.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: system
+        annotations:
+          summary: "System tier サービスが停止中: {{ $labels.job }}"
+          description: "{{ $labels.job }} が 1 分以上停止しています。全テナントに影響します。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
+
+      # system tier サービスのエラー率監視
+      # 1% 超過で warning、5% 超過で critical とする（本番 SLO: < 1%）
+      - alert: SystemTierHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job=~"auth.*|config.*|saga.*|graphql.*|bff-proxy.*", status=~"5.."}[5m])) by (job)
+          /
+          sum(rate(http_requests_total{job=~"auth.*|config.*|saga.*|graphql.*|bff-proxy.*"}[5m])) by (job)
+          > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          tier: system
+        annotations:
+          summary: "System tier エラーレート異常: {{ $labels.job }}"
+          description: "{{ $labels.job }} のエラーレートが {{ $value | humanizePercentage }} を超えています。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
+
+  - name: infra-alerts
+    rules:
+      # Redis 停止監視: BFF-Proxy のセッションストアが停止するとログイン不可になる
+      - alert: RedisDown
+        expr: up{job=~"redis.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis が停止中"
+          description: "Redis インスタンス {{ $labels.instance }} が停止しています。BFF-Proxy のセッション管理が機能しません。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
+
+      # Vault 停止監視: シークレット取得が不可能になる
+      - alert: VaultDown
+        expr: up{job=~"vault.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: vault
+        annotations:
+          summary: "Vault が停止中"
+          description: "Vault インスタンス {{ $labels.instance }} が停止しています。シークレット取得が不可能です。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
+
+      # PostgreSQL 停止監視: DB 停止は全サービスに影響する
+      - alert: PostgreSQLDown
+        expr: up{job=~"postgres.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: postgresql
+        annotations:
+          summary: "PostgreSQL が停止中"
+          description: "PostgreSQL インスタンス {{ $labels.instance }} が停止しています。全 DB 依存サービスが影響を受けます。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"
+
+      # Kong API Gateway 停止監視: 全外部 API が到達不能になる
+      - alert: KongDown
+        expr: up{job=~"kong.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: kong
+        annotations:
+          summary: "Kong API Gateway が停止中"
+          description: "Kong インスタンス {{ $labels.instance }} が停止しています。全外部 API リクエストが失敗します。"
+          runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/service-down.md"

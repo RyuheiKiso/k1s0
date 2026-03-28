@@ -301,9 +301,10 @@ pub async fn complete_upload(
         }
     }
 
+    // C-01 監査対応: checksum_sha256 → checksum にリネーム
     let input = CompleteUploadInput {
         file_id: id.clone(),
-        checksum_sha256: req.checksum_sha256,
+        checksum: req.checksum_sha256,
     };
 
     match state.complete_upload_uc.execute(&input).await {
@@ -441,16 +442,16 @@ pub async fn update_file_tags(
 
 // --- Request / Response types ---
 
+/// C-01 監査対応: REST レスポンスのフィールド名を DB カラム名に合わせる
 fn file_to_rest_summary(file: &crate::domain::entity::file::FileMetadata) -> serde_json::Value {
     serde_json::json!({
         "id": &file.id,
         "filename": &file.filename,
         "size_bytes": file.size_bytes,
         "content_type": &file.content_type,
-        "tenant_id": &file.tenant_id,
         "uploaded_by": &file.uploaded_by,
         "tags": &file.tags,
-        "storage_key": &file.storage_key,
+        "storage_path": &file.storage_path,
         "status": &file.status,
         "created_at": file.created_at.to_rfc3339(),
         "updated_at": file.updated_at.to_rfc3339()
@@ -463,11 +464,10 @@ fn file_to_rest_detail(file: &crate::domain::entity::file::FileMetadata) -> serd
         "filename": &file.filename,
         "size_bytes": file.size_bytes,
         "content_type": &file.content_type,
-        "tenant_id": &file.tenant_id,
         "uploaded_by": &file.uploaded_by,
         "tags": &file.tags,
-        "storage_key": &file.storage_key,
-        "checksum_sha256": &file.checksum_sha256,
+        "storage_path": &file.storage_path,
+        "checksum": &file.checksum,
         "status": &file.status,
         "created_at": file.created_at.to_rfc3339(),
         "updated_at": file.updated_at.to_rfc3339()

@@ -150,8 +150,9 @@ pub async fn run() -> anyhow::Result<()> {
             window_secs = cfg.ratelimit.window_secs,
             "レート制限を有効化"
         );
+        // C-02/L-16 監査対応: GrpcRateLimitClient → HttpRateLimitClient（非推奨エイリアスを廃止）
         let ratelimit_client =
-            k1s0_ratelimit_client::GrpcRateLimitClient::new(cfg.ratelimit.server_url.clone())
+            k1s0_ratelimit_client::HttpRateLimitClient::new(cfg.ratelimit.server_url.clone())
                 .await
                 .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {}", e))?;
         Some(RateLimitLayer::new(
@@ -168,6 +169,8 @@ pub async fn run() -> anyhow::Result<()> {
     // ConcurrencyLimitLayerで同時リクエスト数を制限する（最大100並列）
     // RequestBodyLimitLayerでリクエストボディサイズを2MBに制限する
     // RateLimitLayerでリクエストレートを制限する（有効時のみ）
+    // M-02 監査対応: MetricsLayer で使用するため metrics をクローンしてから router に渡す
+    let metrics_layer = metrics.clone();
     let router = graphql_handler::router(
         jwks_verifier,
         clients,
@@ -176,15 +179,18 @@ pub async fn run() -> anyhow::Result<()> {
         metrics,
     );
 
-    // レート制限が有効な場合のみレイヤーを追加する
+    // M-02 監査対応: MetricsLayer を追加して HTTP リクエストの総数・レイテンシを Prometheus に記録する。
+    // graphql-gateway では gRPC サーバーを持たないため GrpcMetricsLayer は不要。
     let app = if let Some(rl_layer) = ratelimit_layer {
         router
             .layer(rl_layer)
+            .layer(k1s0_telemetry::MetricsLayer::new(metrics_layer))
             .layer(k1s0_correlation::layer::CorrelationLayer::new())
             .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
             .layer(ConcurrencyLimitLayer::new(100))
     } else {
         router
+            .layer(k1s0_telemetry::MetricsLayer::new(metrics_layer))
             .layer(k1s0_correlation::layer::CorrelationLayer::new())
             .layer(RequestBodyLimitLayer::new(2 * 1024 * 1024))
             .layer(ConcurrencyLimitLayer::new(100))

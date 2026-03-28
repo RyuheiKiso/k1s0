@@ -30,7 +30,7 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
 
     async fn find_all(
         &self,
-        tenant_id: Option<String>,
+        _tenant_id: Option<String>,
         uploaded_by: Option<String>,
         content_type: Option<String>,
         tag: Option<(String, String)>,
@@ -38,14 +38,10 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         page_size: u32,
     ) -> anyhow::Result<(Vec<FileMetadata>, u64)> {
         let files = self.files.read().await;
+        // C-01 監査対応: tenant_id は DB に存在しないためフィルタを適用しない
         let mut filtered: Vec<FileMetadata> = files
             .values()
             .filter(|f| {
-                if let Some(ref tid) = tenant_id {
-                    if f.tenant_id != *tid {
-                        return false;
-                    }
-                }
                 if let Some(ref uploaded_by) = uploaded_by {
                     if f.uploaded_by != *uploaded_by {
                         return false;

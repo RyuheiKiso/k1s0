@@ -19,6 +19,13 @@ observability:
     enabled: true
     path: "/metrics"
 
+# L-15 監査対応: シークレットキャッシュ設定（ハードコード値の設定ファイル化）
+# max_entries: キャッシュに保持する最大エントリ数
+# ttl_secs: キャッシュエントリの有効期間（秒）。本番環境ではシークレットローテーション周期に合わせること。
+cache:
+  max_entries: 10000
+  ttl_secs: 2880
+
 # --- Production configuration (uncomment as needed) ---
 database:
   host: "postgres.k1s0-system.svc.cluster.local"

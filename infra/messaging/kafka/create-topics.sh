@@ -5,6 +5,24 @@
 #
 # Kubernetes 環境では Strimzi KafkaTopic CRD (topics.yaml) を使用する。
 #
+# M-03 監査対応: トピック命名の「.」と「_」の混在について確認済み（問題なし）
+#
+# トピック命名規則: {org}.{tier}.{service}.{event_name}.{version}
+#   - 階層区切り: 「.」（ドット）を使用
+#   - イベント名内の単語区切り: 「_」（アンダースコア）を使用
+#   例: k1s0.system.auth.permission_denied.v1
+#         ^^^^  ^^^^^^ ^^^^  ^^^^^^^^^^^^^^^^  ^^
+#         org   tier  svc   event_name(複合語)  ver
+#
+# 「.」と「_」の混在は設計上の意図であり、以下の理由で問題なし:
+#   1. Kafka はトピック名に「.」と「_」の両方を許可している
+#   2. Kafka は「.」と「_」を区別し、混在による名前衝突は発生しない
+#      （例: "foo.bar" と "foo_bar" は別トピックとして扱われる）
+#   3. 「.」のみのトピックと「._」混在トピックが共存しているのは、
+#      単一単語のイベント（changed, login 等）と複合単語のイベント（permission_denied 等）の違いによる
+#   4. 将来的に同一名の「.」版と「_」版（例: foo.bar と foo_bar）を作成しない限り、
+#      Kafka の WARN（KafkaException: Topic 'foo.bar' collides with 'foo_bar'）は発生しない
+#
 # パーティション数の設計方針:
 # - 6 partitions (system tier 高優先度): 高スループットが必要なシステムイベント
 #   (audit, config変更, auth, saga等) を対象とし、コンシューマーグループ最大6並列処理を想定。

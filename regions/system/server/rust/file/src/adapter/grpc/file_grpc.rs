@@ -166,10 +166,11 @@ impl FileGrpcService {
         Ok((output.file_id, output.upload_url, output.expires_in_seconds))
     }
 
+    /// C-01 監査対応: checksum_sha256 → checksum にリネーム
     pub async fn complete_upload(
         &self,
         file_id: String,
-        checksum_sha256: Option<String>,
+        checksum: Option<String>,
     ) -> Result<crate::domain::entity::file::FileMetadata, GrpcError> {
         if file_id.is_empty() {
             return Err(GrpcError::InvalidArgument(
@@ -178,7 +179,7 @@ impl FileGrpcService {
         }
         let input = CompleteUploadInput {
             file_id,
-            checksum_sha256,
+            checksum,
         };
         // アップロード完了。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         self.complete_upload_uc.execute(&input).await.map_err(|e| {

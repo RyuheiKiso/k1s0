@@ -954,3 +954,26 @@ prod 環境でのデプロイ失敗時は、ロールバックの選択肢を表
 - [テンプレート仕様-ServiceMesh](../../templates/middleware/ServiceMesh.md)
 - [テンプレートエンジン仕様](../../templates/engine/テンプレートエンジン仕様.md)
 - [TauriGUI設計](../gui/TauriGUI設計.md)
+
+---
+
+## Doctor コマンド
+
+開発環境の診断を実行する。`scripts/doctor.sh` を呼び出し、必要なツールや設定が正しくセットアップされているかを検証する。
+
+### 実行方法
+
+```
+$ k1s0 doctor
+```
+
+### 動作
+
+1. `scripts/doctor.sh` の存在を確認する
+2. 存在しない場合はエラー終了する（`doctor.sh が見つかりません: scripts/doctor.sh`）
+3. 存在する場合は bash（Windows 環境では bash が利用不可の場合 sh にフォールバック）で実行する
+4. スクリプトが非0で終了した場合はエラーコードを報告して終了する
+
+### 対話メニューからの実行
+
+Doctor コマンドはサブコマンド専用のため、対話メニューからは実行できない。CLI 引数で `k1s0 doctor` として実行する。

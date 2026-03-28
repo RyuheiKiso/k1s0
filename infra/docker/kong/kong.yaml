@@ -74,18 +74,19 @@ consumers:
   - username: keycloak
     jwt_secrets:
       # H-1 対応: RS256 アルゴリズム使用時は rsa_public_key フィールドが必須（Kong 3.9.1 DBless モード起動要件）
+      # H-16 監査対応: PEM ブロック内にコメント行やプレースホルダーを含めない（正規 PEM 形式を維持する）
+      # 実運用では infra/kong/setup-kong-jwt.sh で Keycloak JWKS から取得した RSA 公開鍵に自動置換される
       - algorithm: RS256
         key: "http://keycloak:8080/realms/k1s0"
-        # ローカル開発では Keycloak の内部URL を使用
-        # JWKS URL: http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs
-        # 実運用では keycloak:8080/realms/k1s0/protocol/openid-connect/certs から取得した RSA 公開鍵に差し替えること
+        # PEM 行長は64文字/行が標準（RFC 7468）。Kong はこれを厳密に検証するため、
+        # 非標準の行長やコメント行が含まれると "invalid key" エラーでworkerがcrashする
         rsa_public_key: |
           -----BEGIN PUBLIC KEY-----
-          # 開発環境用: keycloak:8080/realms/k1s0/protocol/openid-connect/certs
-          # から取得した RSA 公開鍵を設定すること（RS256アルゴリズム使用時の必須フィールド）
-          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
-          dKNlJOxrGvgBNEaMHQSQBQGQR0ZMjPQFGktflANE6gLROHFGM1PNMT0/zplFNAm
-          vJ3F5udDyJolRQMVFiGnvWkXGXKFUCEKEOXQCCTbMBtMDFqHMq6mFQJmN5WQMXE
-          ....placeholder_replace_with_actual_keycloak_public_key....
-          QIDAQAB
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAywC/vol/IN3sHwV5iVgE
+          4iaQXZbJGq9EOLHu7Z4w71EVEjFECsaMZHP0tQZgBIbVNNacxkEInDkooGbMcVdb
+          bUvmMghbhYAPr+WCUSKOUQVkJKa4b+PGd1RriwyOhmd2edusWxTFH/so7Vur9Hbc
+          16h+AxsnXMLM+LsFx3b2dT2RU1JEVzglp/6kcBJK5SiJBikPVL+aay0gZKwML3On
+          onZr0q6Lfro1xY1H3LfyEXtXX/Gp72aY6oxzkDNKjFj5cKDg0I4CBZbED7fBM0SR
+          lNYK15HYpsvezvyZj1A6gxZYqlTxxGrUcpJ90H/BU+m69O0M2v4YmzFZ6RQihd4T
+          +QIDAQAB
           -----END PUBLIC KEY-----

@@ -21,6 +21,8 @@ impl FileMetadataPostgresRepository {
         })
     }
 
+    /// C-01 監査対応: DB カラム名を正として Rust コードを DB 定義に合わせる
+    /// DB カラム: filename, content_type, storage_path, checksum, uploaded_by
     fn map_row(row: PgRow) -> anyhow::Result<FileMetadata> {
         let tags_json: serde_json::Value = row.try_get("tags")?;
         let tags = serde_json::from_value::<HashMap<String, String>>(tags_json).unwrap_or_default();
@@ -31,14 +33,13 @@ impl FileMetadataPostgresRepository {
 
         Ok(FileMetadata {
             id: row.try_get("id")?,
-            filename: row.try_get("name")?,
+            filename: row.try_get("filename")?,
             size_bytes,
-            content_type: row.try_get("mime_type")?,
-            tenant_id: row.try_get("tenant_id")?,
-            uploaded_by: row.try_get("owner_id")?,
+            content_type: row.try_get("content_type")?,
+            uploaded_by: row.try_get("uploaded_by")?,
             tags,
-            storage_key: row.try_get("storage_key")?,
-            checksum_sha256: row.try_get("checksum_sha256")?,
+            storage_path: row.try_get("storage_path")?,
+            checksum: row.try_get("checksum")?,
             status: row.try_get("status")?,
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
@@ -49,8 +50,9 @@ impl FileMetadataPostgresRepository {
 #[async_trait]
 impl FileMetadataRepository for FileMetadataPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<FileMetadata>> {
+        // C-01 監査対応: DB カラム名に合わせて SELECT 句を修正
         let sql = format!(
-            "SELECT id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at FROM {} WHERE id = $1",
+            "SELECT id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE id = $1",
             self.table_name
         );
         let row = sqlx::query(&sql)
@@ -83,8 +85,9 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             .fetch_one(&self.pool)
             .await?;
 
+        // C-01 監査対応: DB カラム名に合わせて SELECT 句を修正
         let mut qb = QueryBuilder::<Postgres>::new(format!(
-            "SELECT id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at FROM {} WHERE 1=1",
+            "SELECT id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE 1=1",
             self.table_name
         ));
         apply_filters(&mut qb, &tenant_id, &uploaded_by, &content_type, &tag);
@@ -103,8 +106,9 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     }
 
     async fn create(&self, file: &FileMetadata) -> anyhow::Result<()> {
+        // C-01 監査対応: DB カラム名に合わせて INSERT 句を修正（tenant_id 削除）
         let sql = format!(
-            "INSERT INTO {} (id, name, size_bytes, mime_type, tenant_id, owner_id, tags, storage_key, checksum_sha256, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+            "INSERT INTO {} (id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
             self.table_name
         );
         let size_bytes = i64::try_from(file.size_bytes)
@@ -116,11 +120,10 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             .bind(&file.filename)
             .bind(size_bytes)
             .bind(&file.content_type)
-            .bind(&file.tenant_id)
             .bind(&file.uploaded_by)
             .bind(tags)
-            .bind(&file.storage_key)
-            .bind(&file.checksum_sha256)
+            .bind(&file.storage_path)
+            .bind(&file.checksum)
             .bind(&file.status)
             .bind(file.created_at)
             .bind(file.updated_at)
@@ -130,8 +133,9 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     }
 
     async fn update(&self, file: &FileMetadata) -> anyhow::Result<()> {
+        // C-01 監査対応: DB カラム名に合わせて UPDATE 句を修正（tenant_id 削除）
         let sql = format!(
-            "UPDATE {} SET name = $2, size_bytes = $3, mime_type = $4, tenant_id = $5, owner_id = $6, tags = $7, storage_key = $8, checksum_sha256 = $9, status = $10, updated_at = $11 WHERE id = $1",
+            "UPDATE {} SET filename = $2, size_bytes = $3, content_type = $4, uploaded_by = $5, tags = $6, storage_path = $7, checksum = $8, status = $9, updated_at = $10 WHERE id = $1",
             self.table_name
         );
         let size_bytes = i64::try_from(file.size_bytes)
@@ -143,11 +147,10 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             .bind(&file.filename)
             .bind(size_bytes)
             .bind(&file.content_type)
-            .bind(&file.tenant_id)
             .bind(&file.uploaded_by)
             .bind(tags)
-            .bind(&file.storage_key)
-            .bind(&file.checksum_sha256)
+            .bind(&file.storage_path)
+            .bind(&file.checksum)
             .bind(&file.status)
             .bind(file.updated_at)
             .execute(&self.pool)
@@ -178,23 +181,22 @@ fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {
     Ok(schema)
 }
 
+/// C-01 監査対応: フィルタ条件のカラム名を DB 定義に合わせる
+/// DB にはtenant_idカラムが存在しないため、uploaded_by でフィルタする
 fn apply_filters(
     qb: &mut QueryBuilder<'_, Postgres>,
-    tenant_id: &Option<String>,
+    _tenant_id: &Option<String>,
     uploaded_by: &Option<String>,
     content_type: &Option<String>,
     tag: &Option<(String, String)>,
 ) {
-    if let Some(tenant_id) = tenant_id {
-        qb.push(" AND tenant_id = ");
-        qb.push_bind(tenant_id.clone());
-    }
+    // tenant_id は DB に存在しないためフィルタを適用しない（将来的にカラム追加時に対応可能）
     if let Some(uploaded_by) = uploaded_by {
-        qb.push(" AND owner_id = ");
+        qb.push(" AND uploaded_by = ");
         qb.push_bind(uploaded_by.clone());
     }
     if let Some(content_type) = content_type {
-        qb.push(" AND mime_type LIKE ");
+        qb.push(" AND content_type LIKE ");
         qb.push_bind(format!("{}%", content_type));
     }
     if let Some((tag_key, tag_value)) = tag {

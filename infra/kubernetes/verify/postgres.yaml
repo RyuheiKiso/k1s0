@@ -201,9 +201,26 @@ spec:
       labels:
         app: postgres
     spec:
-      # PostgreSQL 17 の公式イメージはエントリポイントが root で起動し gosu で postgres ユーザー (UID 999)
-      # に切り替えるため、runAsNonRoot: true を設定すると起動失敗する。
-      # fsGroup のみ設定し、データディレクトリのグループ所有権を postgres グループに合わせる。
+      # L-18 監査対応: runAsNonRoot: true を設定しない理由を明記する
+      #
+      # PostgreSQL 17 の公式 Docker イメージ (postgres:17) のエントリポイント
+      # (docker-entrypoint.sh) は root として起動し、内部で `gosu postgres` コマンドを用いて
+      # postgres ユーザー (UID 999) にプロセスを委譲する。
+      #
+      # この設計により:
+      #   - コンテナプロセスの最終的な実行ユーザーは postgres (UID 999) であるが、
+      #     起動直後は root で動作するため runAsNonRoot: true を設定すると Kubernetes が
+      #     起動時に "container has runAsNonRoot and image will run as root" エラーで拒否する。
+      #   - また、docker-entrypoint-initdb.d のスクリプト実行時にファイル所有権の変更が
+      #     必要なため、root 起動が必要な設計となっている。
+      #
+      # 代替案として distroless や rootless variant（例: bitnami/postgresql）の使用が考えられるが、
+      # verify 環境では公式イメージの動作確認が主目的のため、現時点では対応しない。
+      # 本番 PostgreSQL は Helm Chart（bitnami/postgresql）を使用しており、
+      # runAsNonRoot を設定可能な構成となっている。
+      #
+      # fsGroup: 999 のみ設定し、/var/lib/postgresql/data のグループ所有権を
+      # postgres グループに合わせることでデータ書き込み権限を確保する。
       securityContext:
         fsGroup: 999
       containers:

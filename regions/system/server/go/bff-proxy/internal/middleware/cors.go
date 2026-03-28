@@ -11,6 +11,22 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/config"
 )
 
+// requiresCredentials はリクエストパスが credentials_paths に一致するかを判定する。
+// H-13 監査対応: 認証不要なエンドポイントに Access-Control-Allow-Credentials: true を
+// 付与しないためのパスプレフィックスマッチング。credentialsPaths が空の場合は
+// 後方互換として true を返し、すべてのオリジンに credentials を許可する。
+func requiresCredentials(path string, credentialsPaths []string) bool {
+	if len(credentialsPaths) == 0 {
+		return true
+	}
+	for _, prefix := range credentialsPaths {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // CORSMiddleware はCross-Origin Resource Sharing（CORS）を制御するミドルウェア。
 // H-1対応: BFF Proxy に明示的な Origin ホワイトリストを設定し、
 // Web UI からの異オリジンリクエストを安全に受け付ける。
@@ -59,6 +75,9 @@ func CORSMiddleware(cfg config.CORSConfig) (gin.HandlerFunc, error) {
 		maxAge = strconv.Itoa(cfg.MaxAgeSecs)
 	}
 
+	// credentials 判定に使用するパスプレフィックスリスト
+	credentialsPaths := cfg.CredentialsPaths
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
 
@@ -71,7 +90,12 @@ func CORSMiddleware(cfg config.CORSConfig) (gin.HandlerFunc, error) {
 		// ホワイトリストに含まれるOriginのみCORSヘッダーを付与する
 		if _, allowed := allowedSet[strings.ToLower(origin)]; allowed {
 			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Access-Control-Allow-Credentials", "true")
+			// H-13 監査対応: エンドポイント毎に Credentials の必要性を評価する。
+			// /healthz や /metrics 等の公開エンドポイントには credentials を付与しない。
+			// credentials_paths に一致するパスのみ true を返すことで最小権限を実現する。
+			if requiresCredentials(c.Request.URL.Path, credentialsPaths) {
+				c.Header("Access-Control-Allow-Credentials", "true")
+			}
 			c.Header("Access-Control-Expose-Headers", exposeHeadersStr)
 			c.Header("Vary", "Origin")
 

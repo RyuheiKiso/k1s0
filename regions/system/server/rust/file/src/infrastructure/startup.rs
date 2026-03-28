@@ -76,7 +76,8 @@ pub async fn run() -> anyhow::Result<()> {
             .acquire_timeout(Duration::from_secs(10))
             .connect(&database_url)
             .await?;
-        Arc::new(super::file_metadata_postgres::FileMetadataPostgresRepository::new(pool, "file")?)
+        // C-01 監査対応: スキーマ名を DB 定義と一致させる（file → file_storage）
+        Arc::new(super::file_metadata_postgres::FileMetadataPostgresRepository::new(pool, "file_storage")?)
     } else {
         // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
         k1s0_server_common::require_infra(

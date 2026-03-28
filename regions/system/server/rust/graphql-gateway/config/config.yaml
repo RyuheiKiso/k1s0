@@ -16,10 +16,11 @@ graphql:
 
 auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
-  # JWT issuer 検証（省略時は検証をスキップ）
-  issuer: "k1s0"
-  # JWT audience 検証（省略時は検証をスキップ）
-  audience: "k1s0-system"
+  # JWT issuer 検証（M-01 監査対応: auth-rust の issuer と統一する）
+  # 本番環境の Keycloak realm URL に合わせる
+  issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+  # JWT audience 検証（M-01 監査対応: auth-rust の audience と統一する）
+  audience: "k1s0-api"
 
 backends:
   # 認証クリティカルパス: タイムアウトを短めに設定してレイテンシ悪化を素早く検出する

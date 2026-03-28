@@ -585,3 +585,44 @@ bff-proxy/
 - bff-proxy はドメインモデル（エンティティ・集約）を持たないため、domain 層は存在しない
 - usecase は認証フロー・セッション管理に特化した手続き的なビジネスロジックを持つ
 - port パッケージは依存性逆転の原則に基づき、usecase が infrastructure に直接依存しないよう仲介する
+
+## Flutter カスタムスキーム（k1s0://）のリスクと移行計画（L-12 監査対応）
+
+Flutter（モバイル）クライアントは認証コールバックに `k1s0://` カスタムスキームを使用している。
+
+### 現行のカスタムスキームの仕組み
+
+```
+GET /auth/login?redirect_to=k1s0://auth/callback
+  → BFF が IdP にリダイレクト
+  → IdP コールバック後: 302 k1s0://auth/callback?code=<exchange-code>
+  → Flutter の In-App Browser がカスタムスキームを検知してアプリに渡す
+```
+
+`redirect_to` パラメータは **許可リスト方式（allowlist）** で検証しており、
+`k1s0://` スキームのみを許可する（`auth_usecase.go` の `validateRedirectTo()` 参照）。
+
+### カスタムスキームのセキュリティリスク
+
+| リスク | 内容 | 現行の緩和策 |
+|--------|------|------------|
+| スキームハイジャック | 悪意ある同名アプリが同一カスタムスキームを登録し、コールバックを横取り | ワンタイム交換コード（60秒 TTL）で影響を限定 |
+| iOS の Universal Links / Android の App Links 非使用 | OS の検証メカニズム（AASA/assetlinks）を経由しない | — |
+| コードリプレイ | 交換コードが傍受された場合に再利用される | `auth/exchange` エンドポイントで使用済みコードを削除 |
+
+### 将来の移行計画：App Links / Universal Links への移行（2026-Q4 目標）
+
+カスタムスキームのスキームハイジャックリスクを根本解消するため、
+2026-Q4 に以下の移行を計画する。
+
+| 項目 | 内容 |
+|------|------|
+| iOS | Universal Links (`https://app.k1s0.example.com/auth/callback`) |
+| Android | App Links (`https://app.k1s0.example.com/auth/callback`) |
+| AASA 設定 | `well-known/apple-app-site-association` をサーバーに配置 |
+| assetlinks.json | `well-known/assetlinks.json` をサーバーに配置 |
+
+移行後は BFF-Proxy の `validateRedirectTo()` の allowlist を
+`https://app.k1s0.example.com` に変更し、`k1s0://` スキームは廃止する。
+
+参考: 外部技術監査報告書 L-12 "k1s0:// カスタムスキームのリスクと移行計画の明示を求める"

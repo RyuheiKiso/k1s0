@@ -60,6 +60,17 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Config
 
+    // M-09 監査対応: API_KEY_PEPPER の起動時必須チェック。
+    // 本番環境では API キーのハッシュ化に PEPPER が必須であり、未設定での起動を拒否する。
+    // 開発環境では警告ログを出力して継続を許可する。
+    if std::env::var("API_KEY_PEPPER").is_err() {
+        let env = cfg.app.environment.as_str();
+        if env != "development" && env != "dev" && env != "local" {
+            anyhow::bail!("API_KEY_PEPPER が設定されていません。本番環境では必須です。");
+        }
+        tracing::warn!("API_KEY_PEPPER が未設定です。開発環境のみ許容されます。");
+    }
+
     info!(
         app_name = %cfg.app.name,
         version = %cfg.app.version,
@@ -144,8 +155,11 @@ pub async fn run() -> anyhow::Result<()> {
     // Metrics (shared across layers and repositories)
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
 
-    // User cache (max 5000 entries, TTL 300 seconds)
-    let user_cache = Arc::new(UserCache::new(5000, 300));
+    // L-15 監査対応: ユーザーキャッシュのパラメータを設定ファイルから読み込む
+    let user_cache = Arc::new(UserCache::new(
+        cfg.cache.user_cache_max_entries as u64,
+        cfg.cache.user_cache_ttl_secs,
+    ));
 
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.clone();

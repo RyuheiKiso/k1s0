@@ -61,17 +61,35 @@ fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::E
     async_graphql::Error::new(message.into()).extend_with(|_, e| e.set("code", code))
 }
 
+/// ドメインエラーメッセージから GraphQL エラーコードを分類する。
+/// M-15 監査対応: 認証エラー・権限エラーの分類を追加し、クライアントが適切にハンドリングできるようにする。
 fn classify_domain_error(message: &str) -> &'static str {
     let lower = message.to_ascii_lowercase();
+    // 認証エラー: トークン無効・未認証・期限切れ
+    if lower.contains("unauthorized")
+        || lower.contains("unauthenticated")
+        || lower.contains("token expired")
+        || lower.contains("認証")
+    {
+        return "UNAUTHENTICATED";
+    }
+    // 権限エラー: アクセス拒否・権限不足
+    if lower.contains("forbidden")
+        || lower.contains("permission")
+        || lower.contains("access denied")
+        || lower.contains("権限")
+    {
+        return CODE_FORBIDDEN;
+    }
+    // バリデーションエラー: 入力不正・必須項目欠如
     if lower.contains("validation")
         || lower.contains("invalid")
         || lower.contains("required")
         || lower.contains("unknown")
     {
-        CODE_VALIDATION
-    } else {
-        CODE_BACKEND
+        return CODE_VALIDATION;
     }
+    CODE_BACKEND
 }
 
 /// k1s0_server_common の RBAC ロジックを再利用する（P2-24）。

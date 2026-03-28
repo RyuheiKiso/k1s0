@@ -19,17 +19,8 @@ observability:
     enabled: true
     path: "/metrics"
 
+# navigation-rust は DB を使用しない（YAML 設定ファイルからルート定義を読み込む）
 # === Production configuration (uncomment as needed) ===
-database:
-  host: "localhost"
-  port: 5432
-  name: "navigation_db"
-  user: "app"
-  password: ""
-  ssl_mode: "require"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
 #     - "localhost:9092"

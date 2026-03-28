@@ -23,20 +23,22 @@ impl FileServiceTonic {
     }
 }
 
+/// C-01 監査対応: domain entity → proto メッセージ変換
+/// proto フィールド名はそのまま（自動生成のため変更不可）、domain のフィールド名は DB に合わせて変更済み
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
         id: file.id.clone(),
         filename: file.filename.clone(),
         content_type: file.content_type.clone(),
         size_bytes: file.size_bytes as i64,
-        tenant_id: file.tenant_id.clone(),
+        tenant_id: String::new(),
         uploaded_by: file.uploaded_by.clone(),
         status: file.status.clone(),
         created_at: file.created_at.to_rfc3339(),
         updated_at: file.updated_at.to_rfc3339(),
         tags: file.tags.clone(),
-        storage_key: file.storage_key.clone(),
-        checksum_sha256: file.checksum_sha256.clone(),
+        storage_key: file.storage_path.clone(),
+        checksum_sha256: file.checksum.clone(),
     }
 }
 

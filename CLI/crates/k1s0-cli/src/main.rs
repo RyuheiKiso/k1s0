@@ -171,8 +171,10 @@ fn main() {
                         Ok(_) => Ok(()),
                     }
                 } else {
-                    eprintln!("doctor.sh が見つかりません: scripts/doctor.sh");
-                    Ok(())
+                    // M-16 監査対応: doctor.sh が見つからない場合はエラーを返す
+                    Err(anyhow::anyhow!(
+                        "doctor.sh が見つかりません: scripts/doctor.sh"
+                    ))
                 }
             }
         };

@@ -6,7 +6,12 @@ metadata:
     tier: infra
     app.kubernetes.io/part-of: k1s0
     app.kubernetes.io/managed-by: helm
-    # Pod Security Standards: baseline モードを適用（インフラ系は restricted が困難な場合あり）（H-008）
+    # Pod Security Standards: baseline モードを適用（L-14 監査対応: 理由を明記）
+    # ingress-nginx が baseline である理由:
+    #   ingress-nginx controller は NET_BIND_SERVICE Capability（ポート 80/443 バインド）と
+    #   hostPort の使用が必要であり、restricted モードでは禁止される設定を含む。
+    #   ingress-nginx v1.10+ では restricted PSS 対応が進んでいるが、
+    #   当該バージョンへの移行完了後に restricted 適用を再評価する。
     pod-security.kubernetes.io/enforce: baseline
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted

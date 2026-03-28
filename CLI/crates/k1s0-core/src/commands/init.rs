@@ -138,20 +138,43 @@ pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> 
         match status {
             Ok(outcome) if outcome.success() => {
                 if config.sparse_checkout {
-                    let _ = Command::new("git")
+                    // L-07 監査対応: sparse-checkout コマンドのエラーを伝播する
+                    Command::new("git")
                         .args(["sparse-checkout", "init", "--cone"])
                         .current_dir(&base)
-                        .status();
+                        .status()
+                        .map_err(|e| anyhow!("git sparse-checkout init の実行に失敗しました: {e}"))
+                        .and_then(|s| {
+                            if s.success() {
+                                Ok(())
+                            } else {
+                                Err(anyhow!(
+                                    "git sparse-checkout init が終了コード {} で失敗しました",
+                                    s.code().unwrap_or(-1)
+                                ))
+                            }
+                        })?;
                     let tier_paths: Vec<String> = config
                         .tiers
                         .iter()
                         .map(|tier| format!("regions/{}", tier.as_str()))
                         .collect();
-                    let _ = Command::new("git")
+                    Command::new("git")
                         .args(["sparse-checkout", "set"])
                         .args(&tier_paths)
                         .current_dir(&base)
-                        .status();
+                        .status()
+                        .map_err(|e| anyhow!("git sparse-checkout set の実行に失敗しました: {e}"))
+                        .and_then(|s| {
+                            if s.success() {
+                                Ok(())
+                            } else {
+                                Err(anyhow!(
+                                    "git sparse-checkout set が終了コード {} で失敗しました",
+                                    s.code().unwrap_or(-1)
+                                ))
+                            }
+                        })?;
                 }
             }
             _ => {
