@@ -15,8 +15,9 @@ impl WorkflowPostgresRepository {
     }
 }
 
+/// WorkflowDefinitionRow は DB から取得したワークフロー定義の中間構造体。
+/// フィールドは TryFrom 実装を通じて WorkflowDefinition に変換される。
 #[derive(sqlx::FromRow)]
-#[allow(dead_code)]
 struct WorkflowDefinitionRow {
     name: String,
     version: i32,

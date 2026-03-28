@@ -3,6 +3,8 @@
 //!   DATABASE_URL="postgres://..." cargo test -- --ignored
 //!
 //! テスト対象: SagaPostgresRepository の CRUD 操作とトランザクション整合性。
+//! test-utils フィーチャーが有効な場合のみコンパイルする（L-07 監査対応）
+#![cfg(feature = "test-utils")]
 //! saga スキーマ: infra/docker/init-db/04-saga-schema.sql
 //!
 //! このファイルでは InMemorySagaRepository を使ったユニットテストで

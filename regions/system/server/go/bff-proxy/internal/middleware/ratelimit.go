@@ -53,6 +53,7 @@ func RateLimitMiddleware(ctx context.Context, cfg config.RateLimitConfig) gin.Ha
 	// 古いバケットを定期クリーンアップするゴルーチン（メモリリーク防止）。
 	// H-3 監査対応: ctx.Done() を監視してシャットダウン時に goroutine を停止する。
 	// M-11 監査対応: クリーンアップ間隔を 10 分から 3 分に短縮する。
+	// M-04 対応: カウントと削除を単一の Range パスに統合し、3 回スキャンを 1 回に削減する。
 	go func() {
 		// クリーンアップ間隔を 3 分に設定する（旧 10 分から短縮）
 		ticker := time.NewTicker(3 * time.Minute)
@@ -60,45 +61,37 @@ func RateLimitMiddleware(ctx context.Context, cfg config.RateLimitConfig) gin.Ha
 		for {
 			select {
 			case <-ticker.C:
-				// 古いエントリを削除する
+				// M-04 対応: 単一の Range パスで期限切れエントリの削除と上限超過用エントリ収集を同時に行う
 				expiry := time.Now().Add(-10 * time.Minute)
+				// 上限超過時に古い順削除するためのエントリ収集用構造体
+				type entry struct {
+					key      any
+					lastSeen time.Time
+				}
+				var entries []entry
 				visitors.Range(func(key, value any) bool {
 					b := value.(*visitorBucket)
 					b.mu.Lock()
-					stale := b.lastSeen.Before(expiry)
+					ls := b.lastSeen
 					b.mu.Unlock()
-					if stale {
+					// 期限切れエントリは即時削除する
+					if ls.Before(expiry) {
 						visitors.Delete(key)
+						return true
 					}
+					// 上限超過チェック用に有効エントリを収集する
+					entries = append(entries, entry{key, ls})
 					return true
 				})
 
-				// M-11 監査対応: エントリ数が上限を超えた場合、lastSeen が古い順に削除する
-				count := 0
-				visitors.Range(func(_, _ any) bool {
-					count++
-					return true
-				})
+				// M-11 監査対応: 有効エントリが上限を超えた場合、lastSeen が古い順に削除する
+				count := len(entries)
 				if count > maxVisitors {
-					// 古い順に削除するために lastSeen でソートする
-					type entry struct {
-						key      any
-						lastSeen time.Time
-					}
-					var entries []entry
-					visitors.Range(func(key, value any) bool {
-						b := value.(*visitorBucket)
-						b.mu.Lock()
-						ls := b.lastSeen
-						b.mu.Unlock()
-						entries = append(entries, entry{key, ls})
-						return true
-					})
+					// 古い順にソートして超過分のエントリを削除する
 					sort.Slice(entries, func(i, j int) bool {
 						return entries[i].lastSeen.Before(entries[j].lastSeen)
 					})
-					// 超過分のエントリを古い順に削除する
-					for i := 0; i < count-maxVisitors && i < len(entries); i++ {
+					for i := 0; i < count-maxVisitors; i++ {
 						visitors.Delete(entries[i].key)
 					}
 				}

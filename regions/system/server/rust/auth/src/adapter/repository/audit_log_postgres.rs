@@ -70,7 +70,10 @@ impl AuditLogRepository for AuditLogPostgresRepository {
     async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)> {
         let offset = (params.page - 1) * params.page_size;
 
-        // 動的にクエリを組み立てる
+        // 動的 WHERE 句を組み立てる。
+        // セキュリティ注記（M-05 監査対応）: format!() で埋め込むのはハードコードされたカラム名定数のみ。
+        // ユーザー入力（user_id, event_type 等）は全て sqlx のバインドパラメータ（$N）経由で渡すため
+        // SQL インジェクションのリスクはない。
         let mut conditions = Vec::new();
         let mut bind_index = 1u32;
 

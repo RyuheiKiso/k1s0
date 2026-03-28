@@ -4,8 +4,8 @@ use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 /// KafkaConfig は Kafka 接続の設定を表す。
+/// フィールドは KafkaProducer::new() で rdkafka クライアント設定に使用する。
 #[derive(Debug, Clone, Deserialize)]
-#[allow(dead_code)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default)]
@@ -47,8 +47,8 @@ impl Default for SaslConfig {
 }
 
 /// TopicsConfig はトピック設定を表す。
+/// publish フィールドは KafkaProducer::new() でトピック名取得に使用する。
 #[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
@@ -66,7 +66,7 @@ pub trait SagaEventPublisher: Send + Sync {
         event_type: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
-    #[allow(dead_code)]
+    // プロデューサーのフラッシュとクローズを行う（シャットダウン時に呼び出す）
     async fn close(&self) -> anyhow::Result<()>;
 }
 

@@ -7,6 +7,8 @@ package k1s0.system.session.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/session/v1;sessionv1";
 
 import "k1s0/system/common/v1/types.proto";
+// L-02 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // SessionStatus はセッションの状態を表す enum。
 // string 型の代わりに使用することで型安全性を確保する。
@@ -25,9 +27,12 @@ service SessionService {
   rpc ListUserSessions(ListUserSessionsRequest) returns (ListUserSessionsResponse);
 }
 
+// CreateSessionRequest はセッション作成リクエスト。
 message CreateSessionRequest {
-  string user_id = 1;
-  string device_id = 2;
+  // ユーザー UUID（必須）
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
+  // デバイス識別子（1〜256 文字）
+  string device_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   optional string device_name = 3;
   optional string device_type = 4;
   optional string user_agent = 5;
@@ -53,16 +58,20 @@ message CreateSessionResponse {
   SessionStatus status = 12;
 }
 
+// GetSessionRequest はセッション取得リクエスト。
 message GetSessionRequest {
-  string session_id = 1;
+  // セッション UUID（必須）
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetSessionResponse {
   Session session = 1;
 }
 
+// RefreshSessionRequest はセッション更新リクエスト。
 message RefreshSessionRequest {
-  string session_id = 1;
+  // セッション UUID（必須）
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
   optional uint32 ttl_seconds = 2;
 }
 
@@ -83,24 +92,30 @@ message RefreshSessionResponse {
   SessionStatus status = 13;
 }
 
+// RevokeSessionRequest はセッション無効化リクエスト。
 message RevokeSessionRequest {
-  string session_id = 1;
+  // セッション UUID（必須）
+  string session_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message RevokeSessionResponse {
   bool success = 1;
 }
 
+// RevokeAllSessionsRequest はユーザーの全セッション無効化リクエスト。
 message RevokeAllSessionsRequest {
-  string user_id = 1;
+  // ユーザー UUID（必須）
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message RevokeAllSessionsResponse {
   uint32 revoked_count = 1;
 }
 
+// ListUserSessionsRequest はユーザーのセッション一覧取得リクエスト。
 message ListUserSessionsRequest {
-  string user_id = 1;
+  // ユーザー UUID（必須）
+  string user_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ListUserSessionsResponse {

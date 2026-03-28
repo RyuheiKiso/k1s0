@@ -21,6 +21,15 @@ variable "kubernetes_ca_cert" {
   default     = ""
 }
 
+# L-13 監査対応: LDAP 接続時の TLS 証明書検証に使用する CA 証明書（PEM 形式）。
+# 空文字列の場合はシステムのデフォルト CA バンドルを使用する。
+# 自己署名証明書や企業内 CA を使用する環境では必ず PEM 内容を設定すること。
+variable "ldap_ca_cert" {
+  description = "LDAP サーバーの TLS 証明書を検証するための CA 証明書（PEM 形式）。空文字列の場合はシステムデフォルトの CA バンドルを使用する。"
+  type        = string
+  default     = ""
+}
+
 variable "ldap_url" {
   description = "LDAP server URL (LDAPS)"
   type        = string
@@ -70,4 +79,13 @@ variable "ldap_bind_password" {
     condition     = length(var.ldap_bind_password) >= 8
     error_message = "ldap_bind_password は8文字以上である必要があります。"
   }
+}
+
+# H-02 / L-14 監査対応: サービス個別 Vault ロールで使用する Kubernetes namespace。
+# system tier サービスがデプロイされる namespace を指定する。
+# デフォルト値は k1s0-system（既存インフラとの互換性維持）。
+variable "k8s_namespace" {
+  description = "サービス個別 Vault ロールをバインドする Kubernetes namespace（system tier）"
+  type        = string
+  default     = "k1s0-system"
 }

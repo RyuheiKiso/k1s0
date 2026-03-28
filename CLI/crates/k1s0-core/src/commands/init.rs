@@ -134,52 +134,58 @@ pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> 
     )?;
 
     if config.git_init {
-        let status = Command::new("git").arg("init").current_dir(&base).status();
-        match status {
-            Ok(outcome) if outcome.success() => {
-                if config.sparse_checkout {
-                    // L-07 監査対応: sparse-checkout コマンドのエラーを伝播する
-                    Command::new("git")
-                        .args(["sparse-checkout", "init", "--cone"])
-                        .current_dir(&base)
-                        .status()
-                        .map_err(|e| anyhow!("git sparse-checkout init の実行に失敗しました: {e}"))
-                        .and_then(|s| {
-                            if s.success() {
-                                Ok(())
-                            } else {
-                                Err(anyhow!(
-                                    "git sparse-checkout init が終了コード {} で失敗しました",
-                                    s.code().unwrap_or(-1)
-                                ))
-                            }
-                        })?;
-                    let tier_paths: Vec<String> = config
-                        .tiers
-                        .iter()
-                        .map(|tier| format!("regions/{}", tier.as_str()))
-                        .collect();
-                    Command::new("git")
-                        .args(["sparse-checkout", "set"])
-                        .args(&tier_paths)
-                        .current_dir(&base)
-                        .status()
-                        .map_err(|e| anyhow!("git sparse-checkout set の実行に失敗しました: {e}"))
-                        .and_then(|s| {
-                            if s.success() {
-                                Ok(())
-                            } else {
-                                Err(anyhow!(
-                                    "git sparse-checkout set が終了コード {} で失敗しました",
-                                    s.code().unwrap_or(-1)
-                                ))
-                            }
-                        })?;
-                }
-            }
-            _ => {
-                eprintln!("warning: git init failed; the workspace scaffold was still created.");
-            }
+        // L-18 監査対応: git init 失敗時のエラーを上流に伝播する
+        // 実行エラー（コマンドが見つからない等）と非ゼロ終了コードを両方ハンドルする
+        let status = Command::new("git")
+            .arg("init")
+            .current_dir(&base)
+            .status()
+            .map_err(|e| anyhow!("git init の実行に失敗しました: {e}"))?;
+        if !status.success() {
+            bail!(
+                "git init が終了コード {} で失敗しました",
+                status.code().unwrap_or(-1)
+            );
+        }
+
+        if config.sparse_checkout {
+            // L-07 監査対応: sparse-checkout コマンドのエラーを伝播する
+            Command::new("git")
+                .args(["sparse-checkout", "init", "--cone"])
+                .current_dir(&base)
+                .status()
+                .map_err(|e| anyhow!("git sparse-checkout init の実行に失敗しました: {e}"))
+                .and_then(|s| {
+                    if s.success() {
+                        Ok(())
+                    } else {
+                        Err(anyhow!(
+                            "git sparse-checkout init が終了コード {} で失敗しました",
+                            s.code().unwrap_or(-1)
+                        ))
+                    }
+                })?;
+            let tier_paths: Vec<String> = config
+                .tiers
+                .iter()
+                .map(|tier| format!("regions/{}", tier.as_str()))
+                .collect();
+            Command::new("git")
+                .args(["sparse-checkout", "set"])
+                .args(&tier_paths)
+                .current_dir(&base)
+                .status()
+                .map_err(|e| anyhow!("git sparse-checkout set の実行に失敗しました: {e}"))
+                .and_then(|s| {
+                    if s.success() {
+                        Ok(())
+                    } else {
+                        Err(anyhow!(
+                            "git sparse-checkout set が終了コード {} で失敗しました",
+                            s.code().unwrap_or(-1)
+                        ))
+                    }
+                })?;
         }
     }
 
@@ -187,7 +193,36 @@ pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> 
         .with_context(|| format!("failed to resolve created workspace {}", base.display()))
 }
 
+/// スキャフォールドファイルのルートディレクトリを解決する。
+///
+/// 解決優先順位:
+/// 1. 環境変数 `K1S0_SCAFFOLD_ROOT` が設定されている場合はその値を使用する
+/// 2. 実行バイナリのパスを起点に祖先ディレクトリを辿り、スキャフォールドの目印となる
+///    `.devcontainer/devcontainer.json` が存在するディレクトリを探索する
+/// 3. フォールバックとして `CARGO_MANIFEST_DIR` を起点とした開発時パスを使用する
+///    （配布バイナリでは動作しないが、開発・テスト時には有効）
 fn resolve_scaffold_root() -> PathBuf {
+    // 優先順位1: 環境変数による明示的なオーバーライド
+    if let Ok(root) = std::env::var("K1S0_SCAFFOLD_ROOT") {
+        let path = PathBuf::from(root);
+        if path.is_dir() {
+            return path;
+        }
+    }
+
+    // 優先順位2: 実行バイナリのパスを起点にスキャフォールドルートを探索する
+    // バイナリと同梱されたスキャフォールドファイルを見つけるために使用する
+    if let Ok(exe) = std::env::current_exe() {
+        for ancestor in exe.ancestors() {
+            // スキャフォールドルートの目印として .devcontainer/devcontainer.json の存在を確認する
+            if ancestor.join(".devcontainer").join("devcontainer.json").is_file() {
+                return ancestor.to_path_buf();
+            }
+        }
+    }
+
+    // 優先順位3: 開発時フォールバック（CARGO_MANIFEST_DIR 基準）
+    // 配布バイナリでは動作しないが、cargo test 等の開発時環境では有効
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(3)

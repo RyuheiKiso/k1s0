@@ -1,6 +1,8 @@
 //! REST API統合テスト（インメモリリポジトリ使用）
 //!
 //! dlq-manager の統合テストパターン（tower::ServiceExt + oneshot）を踏襲。
+//! test-utils フィーチャーが有効な場合のみコンパイルする（L-07 監査対応）
+#![cfg(feature = "test-utils")]
 #![allow(clippy::unwrap_used)]
 
 use std::sync::Arc;

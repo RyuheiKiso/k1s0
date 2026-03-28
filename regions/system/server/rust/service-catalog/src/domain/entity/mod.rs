@@ -6,17 +6,11 @@ pub mod service;
 pub mod service_doc;
 pub mod team;
 
-#[allow(unused_imports)]
+// ドメインエンティティを外部から利用しやすいよう re-export する
 pub use claims::Claims;
-#[allow(unused_imports)]
 pub use dependency::Dependency;
-#[allow(unused_imports)]
 pub use health::HealthStatus;
-#[allow(unused_imports)]
 pub use scorecard::Scorecard;
-#[allow(unused_imports)]
 pub use service::Service;
-#[allow(unused_imports)]
 pub use service_doc::ServiceDoc;
-#[allow(unused_imports)]
 pub use team::Team;

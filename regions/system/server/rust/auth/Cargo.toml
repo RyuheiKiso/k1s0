@@ -42,7 +42,7 @@ anyhow = {workspace = true}
 thiserror = {workspace = true}
 validator = { version = "0.20", features = ["derive"] }
 async-trait = {workspace = true}
-sha2 = "0.10"
+sha2 = {workspace = true}
 hmac = "0.12"
 
 # Logging / Tracing
@@ -50,7 +50,7 @@ tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 
 # Cache
-moka = { version = "0.12", features = ["future"] }
+moka = {workspace = true}
 
 # バックグラウンドタスクのキャンセル制御に使用する（CancellationToken はデフォルト機能で利用可能）
 tokio-util = { version = "0.7" }

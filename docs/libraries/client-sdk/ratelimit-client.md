@@ -335,16 +335,18 @@ class InMemoryRateLimitClient implements RateLimitClient {
   int getUsedCount(String key);
 }
 
-// gRPC 接続実装
-> **注記**: `GrpcRateLimitClient` は現状HTTP REST実装。将来gRPCに移行予定。
-
-class GrpcRateLimitClient implements RateLimitClient {
-  GrpcRateLimitClient(String serverAddress, {http.Client? httpClient});
+// HTTP REST 接続実装（ADR-0041 により GrpcRateLimitClient からリネーム）
+class HttpRateLimitClient implements RateLimitClient {
+  HttpRateLimitClient(String serverAddress, {http.Client? httpClient});
   Future<RateLimitStatus> check(String key, int cost);
   Future<RateLimitResult> consume(String key, int cost);
   Future<RateLimitPolicy> getLimit(String key);
   Future<void> close();
 }
+
+// 下位互換のための deprecated typedef
+@Deprecated('HttpRateLimitClient を使用してください')
+typedef GrpcRateLimitClient = HttpRateLimitClient;
 
 // 型定義
 class RateLimitStatus {
@@ -404,12 +406,13 @@ final used = client.getUsedCount(key);
 print('使用済みカウント: $used');
 ```
 
-**使用例（GrpcRateLimitClient）**:
+**使用例（HttpRateLimitClient）**:
 
 ```dart
 import 'package:k1s0_ratelimit_client/ratelimit_client.dart';
 
-final client = GrpcRateLimitClient('ratelimit-server:8080');
+// ADR-0041: GrpcRateLimitClient から HttpRateLimitClient にリネーム済み
+final client = HttpRateLimitClient('ratelimit-server:8080');
 
 final key = 'tenant:TENANT-001:api:/v1/orders';
 final status = await client.check(key, 1);

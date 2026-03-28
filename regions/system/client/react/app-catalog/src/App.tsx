@@ -1,7 +1,8 @@
 import { lazy, Suspense, Component, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, ProtectedRoute, LoadingSpinner } from './lib/systemClient';
+// AccessDenied を追加: 権限不足時のフォールバック表示に使用（M-27 監査対応）
+import { AuthProvider, ProtectedRoute, AccessDenied } from './lib/systemClient';
 
 // ページコンポーネントの遅延読み込み（コード分割）
 const AppListPage = lazy(() => import('./pages/AppListPage').then((m) => ({ default: m.AppListPage })));
@@ -76,12 +77,13 @@ export function App() {
                 <Routes>
                   <Route path="/" element={<AppListPage />} />
                   <Route path="/apps/:appId" element={<AppDetailPage />} />
+                  {/* AccessDenied を使用: 権限不足時にスピナーが永続表示されるのを防ぐ（M-27 監査対応） */}
                   <Route
                     path="/admin"
                     element={
                       <ProtectedRoute
                         requiredRoles={['admin']}
-                        fallback={<LoadingSpinner message="認証済みの管理者アカウントが必要です" />}
+                        fallback={<AccessDenied message="このページは管理者アカウントのみアクセスできます。" />}
                       >
                         <AdminPage />
                       </ProtectedRoute>

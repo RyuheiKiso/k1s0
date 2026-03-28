@@ -113,6 +113,14 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# tenant イベントトピック（C-07 監査対応: データ損失防止のため追加）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.tenant.events.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
 # シークレットローテーション (vault-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
@@ -289,6 +297,7 @@ for topic in \
   k1s0.system.file.uploaded.v1.dlq \
   k1s0.system.file.deleted.v1.dlq \
   k1s0.system.file.events.v1.dlq \
+  k1s0.system.tenant.events.v1.dlq \
   k1s0.system.vault.secret_rotated.v1.dlq \
   k1s0.system.notification.requested.v1.dlq \
   k1s0.system.quota.exceeded.v1.dlq \

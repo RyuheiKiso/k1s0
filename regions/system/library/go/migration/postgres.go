@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -147,7 +148,10 @@ func (r *PostgresMigrationRunner) RunUp(ctx context.Context) (*MigrationReport, 
 		}
 
 		if _, err := tx.ExecContext(ctx, mf.Content); err != nil {
-			tx.Rollback()
+			// M-03 対応: Rollback エラーをログ出力する。既存のエラー変数 err は上書きしない。
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("migration %s: rollback failed: %v (original error: %v)", mf.Version, rbErr, err)
+			}
 			return nil, fmt.Errorf("failed to execute migration %s: %w", mf.Version, err)
 		}
 
@@ -155,7 +159,10 @@ func (r *PostgresMigrationRunner) RunUp(ctx context.Context) (*MigrationReport, 
 			"INSERT INTO _migrations (version, name, checksum) VALUES ($1, $2, $3)",
 			mf.Version, mf.Name, Checksum(mf.Content),
 		); err != nil {
-			tx.Rollback()
+			// M-03 対応: Rollback エラーをログ出力する。既存のエラー変数 err は上書きしない。
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("migration %s: rollback failed: %v (original error: %v)", mf.Version, rbErr, err)
+			}
 			return nil, fmt.Errorf("failed to record migration %s: %w", mf.Version, err)
 		}
 
@@ -207,12 +214,18 @@ func (r *PostgresMigrationRunner) RunDown(ctx context.Context, steps int) (*Migr
 		}
 
 		if _, err := tx.ExecContext(ctx, mf.Content); err != nil {
-			tx.Rollback()
+			// M-03 対応: Rollback エラーをログ出力する。既存のエラー変数 err は上書きしない。
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("down migration %s: rollback failed: %v (original error: %v)", version, rbErr, err)
+			}
 			return nil, fmt.Errorf("failed to execute down migration %s: %w", version, err)
 		}
 
 		if _, err := tx.ExecContext(ctx, "DELETE FROM _migrations WHERE version = $1", version); err != nil {
-			tx.Rollback()
+			// M-03 対応: Rollback エラーをログ出力する。既存のエラー変数 err は上書きしない。
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("down migration %s: rollback failed: %v (original error: %v)", version, rbErr, err)
+			}
 			return nil, fmt.Errorf("failed to remove migration record %s: %w", version, err)
 		}
 

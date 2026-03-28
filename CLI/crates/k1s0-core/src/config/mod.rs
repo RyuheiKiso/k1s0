@@ -540,7 +540,14 @@ pub fn merge_vault_secrets(
         vault_path.trim_start_matches('/'),
     );
 
-    let response = match ureq::get(&endpoint).header("X-Vault-Token", &token).call() {
+    // H-15 監査対応: Vault HTTP リクエストにタイムアウトを設定して永久ハングを防ぐ。
+    // timeout_global は DNS 解決から レスポンスボディ読み取り完了までの全体タイムアウトを制御する。
+    let agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(10)))
+        .build()
+        .new_agent();
+
+    let response = match agent.get(&endpoint).header("X-Vault-Token", &token).call() {
         Ok(response) => response,
         Err(err) => {
             eprintln!(

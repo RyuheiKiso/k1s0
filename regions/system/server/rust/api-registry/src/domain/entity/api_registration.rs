@@ -156,11 +156,14 @@ pub struct DiffModifiedEntry {
     pub after: String,
 }
 
+/// コンテンツのSHA256ハッシュを計算して返す
+/// result[..16] による128bit切り捨てをやめ、SHA256フルハッシュ（256bit/32バイト）を使用する
+/// これにより衝突耐性が維持され、セキュリティが確保される（H-08 監査対応）
 pub fn compute_content_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content.as_bytes());
     let result = hasher.finalize();
-    format!("sha256:{}", hex::encode(&result[..16]))
+    format!("sha256:{}", hex::encode(&result[..]))
 }
 
 #[cfg(test)]

@@ -8,7 +8,7 @@ async-trait = {workspace = true}
 thiserror = {workspace = true}
 serde = {workspace = true}
 reqwest = {workspace = true}
-sha2 = "0.10"
+sha2 = {workspace = true}
 tokio = {workspace = true}
 chrono = {workspace = true}
 

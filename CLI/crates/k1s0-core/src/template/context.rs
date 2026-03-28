@@ -557,7 +557,10 @@ impl TemplateContext {
 
 // テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+// テストコードでは deprecated な build() の直接呼び出しを許可する（H-13 監査対応）
+// テストは build() の動作を検証する目的で維持しており、警告を個別に抑制する
 #[allow(clippy::unwrap_used)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

@@ -51,6 +51,10 @@ class AuthClient {
   final String Function() _generateState;
   final List<AuthStateCallback> _listeners = [];
   OIDCDiscovery? _discoveryCache;
+  // L-20 監査対応: キャッシュ有効期限（1時間）- OIDC Discovery の更新に対応
+  // IdP 側でエンドポイントが変更された際に古いエンドポイントを使い続けないようにする
+  static const Duration _discoveryCacheTTL = Duration(hours: 1);
+  DateTime? _discoveryCacheTime;
 
   AuthClient(AuthClientOptions options)
       : _config = options.config,
@@ -294,9 +298,15 @@ class AuthClient {
     }
   }
 
-  /// OIDC Discovery ドキュメントを取得する（キャッシュあり）。
+  /// OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュあり）。
+  /// L-20 監査対応: キャッシュが1時間を超えた場合は再取得して最新エンドポイントを使用する
   Future<OIDCDiscovery> fetchDiscovery() async {
-    if (_discoveryCache != null) return _discoveryCache!;
+    // キャッシュが有効期限内であればそのまま返す
+    if (_discoveryCache != null &&
+        _discoveryCacheTime != null &&
+        DateTime.now().difference(_discoveryCacheTime!) < _discoveryCacheTTL) {
+      return _discoveryCache!;
+    }
 
     final resp = await _httpGet(Uri.parse(_config.discoveryUrl));
     if (resp.statusCode != 200) {
@@ -306,6 +316,8 @@ class AuthClient {
     _discoveryCache = OIDCDiscovery.fromJson(
       jsonDecode(resp.body) as Map<String, dynamic>,
     );
+    // キャッシュ取得時刻を記録する
+    _discoveryCacheTime = DateTime.now();
     return _discoveryCache!;
   }
 }

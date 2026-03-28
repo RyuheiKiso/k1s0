@@ -47,7 +47,7 @@ system tier の通知管理サーバーは以下の機能を提供する。
 | Kafka | コンシューマー（`k1s0.system.notification.requested.v1`）+ プロデューサー（`k1s0.system.notification.sent.v1`） |
 | テンプレートエンジン | Handlebars 形式のテンプレートを DB 管理し、送信時にプレースホルダーを置換 |
 | 認証 | JWTによる認可。管理系エンドポイントは `notifications/read`, `notifications/write`, `notifications/admin` を使用 |
-| ポート | REST 8092（デフォルト）/ gRPC 50051 |
+| ポート | REST 8100（docker-compose ホスト側、内部ポート 8080）/ gRPC 50051<!-- H-20 監査対応: ポート番号を docker-compose 実態に合わせて修正 --> |
 
 ---
 

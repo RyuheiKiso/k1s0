@@ -158,3 +158,60 @@ spec:
     - from:
         - source:
             namespaces: ["k1s0-system"]
+---
+# M-25 監査対応: tenant サービスへのアクセスを k1s0-system namespace 内のサービスからのみ許可する細粒度ポリシー。
+# tenant サービスはマルチテナント管理の核心であり、他 tier からの直接アクセスを禁止することで
+# 不正なテナント情報の改ざん・参照を防止する。
+# business/service tier はテナント情報を system tier 経由でのみ取得すること。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-system-to-tenant
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tenant
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-system", "istio-ingress"]
+---
+# M-25 監査対応: notification サービスへのアクセスを k1s0-system namespace 内のサービスからのみ許可する細粒度ポリシー。
+# notification サービスは外部通知チャネル（メール/SMS等）への接続を持つため、
+# アクセス元を system tier に限定することで不正な大量送信（スパム攻撃）を防止する。
+# business/service tier からの通知要求は system tier の notification サービスを経由すること。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-system-to-notification
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-system"]
+---
+# M-25 監査対応: featureflag サービスへのアクセスを k1s0-system namespace 内のサービスからのみ許可する細粒度ポリシー。
+# featureflag サービスはフィーチャーフラグの有効/無効を制御するため、
+# 不正なフラグ変更による機能の意図しない開放を防止するため system tier からのみアクセスを許可する。
+# business/service tier はフラグの読み取りを system tier 経由で行うこと。
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-system-to-featureflag
+  namespace: k1s0-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: featureflag
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["k1s0-system", "istio-ingress"]

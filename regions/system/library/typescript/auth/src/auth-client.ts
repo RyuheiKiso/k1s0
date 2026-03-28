@@ -34,6 +34,12 @@ export class AuthClient {
   private listeners: AuthStateCallback[] = [];
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private discoveryCache: OIDCDiscovery | null = null;
+  /**
+   * L-20 監査対応: OIDC Discovery キャッシュの有効期限（1時間）
+   * IdP 側でエンドポイントが変更された際に古いエンドポイントを使い続けないようにする
+   */
+  private static readonly DISCOVERY_CACHE_TTL_MS = 60 * 60 * 1000; // 1時間（ミリ秒）
+  private discoveryCacheTime: number | null = null;
 
   constructor(options: AuthClientOptions) {
     this.config = options.config;
@@ -282,8 +288,17 @@ export class AuthClient {
     }
   }
 
+  /**
+   * OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュあり）。
+   * L-20 監査対応: キャッシュが1時間を超えた場合は再取得して最新エンドポイントを使用する
+   */
   private async fetchDiscovery(): Promise<OIDCDiscovery> {
-    if (this.discoveryCache) {
+    // キャッシュが有効期限内であればそのまま返す
+    if (
+      this.discoveryCache !== null &&
+      this.discoveryCacheTime !== null &&
+      Date.now() - this.discoveryCacheTime < AuthClient.DISCOVERY_CACHE_TTL_MS
+    ) {
       return this.discoveryCache;
     }
     const resp = await this.fetchFn(this.config.discoveryUrl);
@@ -291,6 +306,8 @@ export class AuthClient {
       throw new AuthError(`Discovery fetch failed: ${resp.status}`);
     }
     this.discoveryCache = (await resp.json()) as OIDCDiscovery;
+    // キャッシュ取得時刻を記録する
+    this.discoveryCacheTime = Date.now();
     return this.discoveryCache;
   }
 }

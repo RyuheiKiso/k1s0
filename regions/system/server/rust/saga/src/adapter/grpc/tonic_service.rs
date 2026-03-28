@@ -163,8 +163,7 @@ impl SagaServiceTonic {
         Self { inner }
     }
 
-    /// 内部サービスへの参照を返す。
-    #[allow(dead_code)]
+    /// 内部サービスへの参照を返す。テストや診断用途に公開する。
     pub fn inner(&self) -> &SagaGrpcService {
         &self.inner
     }

@@ -1,0 +1,114 @@
+# Grafana 本番 Helm values
+# M-20 監査対応: Grafana の本番用 Helm values を追加する。
+# SQLite はシングルノード前提で HA（高可用性）構成に対応できないため、
+# 本番環境では PostgreSQL をデータベースとして使用する。
+#
+# このファイルは kube-prometheus-stack の grafana サブチャート、または
+# grafana/grafana standalone chart に対して適用する values。
+# Terraform: infra/terraform/modules/observability/main.tf で
+#   helm_release.kube-prometheus-stack の values にマージして使用すること。
+# 参照: infra/terraform/modules/observability/values/prometheus.yaml
+
+grafana:
+  # 本番環境では SQLite を使用せず PostgreSQL に接続する（HA対応）
+  # SQLite はシングルファイルDBであり、Pod 再起動やスケールアウト時にデータ不整合が発生するリスクがある
+  database:
+    # データベースタイプ: postgres を指定（デフォルトの sqlite3 から変更）
+    type: postgres
+    # PostgreSQL ホスト: k1s0-system namespace 内の PostgreSQL サービスを使用
+    host: postgresql.k1s0-system.svc.cluster.local:5432
+    # データベース名: grafana 専用スキーマを使用（他サービスとの混在を防止）
+    name: grafana
+    # 接続ユーザー: grafana 専用ユーザー（最小権限の原則）
+    user: grafana
+    # パスワード: Vault から注入する（Helm install 時に --set grafana.database.password=$SECRET を使用）
+    # CI/CD では VAULT_SECRET_grafana_db_password 環境変数から取得する
+    # 本番環境で平文パスワードをこのファイルにコミットしてはならない
+    password: ""  # Vault / Helm --set で上書きすること（必須）
+    # SSL モード: verify-full（本番環境ではサーバー証明書検証を必須とする）
+    ssl_mode: verify-full
+
+  # 管理者パスワード: Vault から注入する（Helm install 時に --set grafana.adminPassword=$SECRET）
+  # デフォルトの "admin" パスワードは本番で使用しないこと
+  adminPassword: ""  # Vault / Helm --set で上書きすること（必須）
+
+  # レプリカ数: 可用性のため2以上を推奨（stateless として動作するためスケールアウト可能）
+  replicas: 2
+
+  # リソース制限: OOM Killer による予期せぬ再起動を防止するためリソース制限を明示する
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  # データ永続化: ダッシュボード設定や一時ファイルの永続化（DBバックエンド使用時は補助的）
+  persistence:
+    enabled: true
+    storageClassName: ceph-block
+    size: 5Gi
+
+  # セキュリティコンテキスト: 非 root ユーザーでの実行（最小権限の原則）
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472        # grafana 公式イメージのデフォルト UID
+    runAsGroup: 472
+    fsGroup: 472
+
+  # Pod Anti-Affinity: 複数レプリカを異なるノードに分散配置してノード障害時の影響を最小化する
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - grafana
+            topologyKey: kubernetes.io/hostname
+
+  # Ingress: Kong 経由での HTTPS アクセスを設定する
+  ingress:
+    enabled: true
+    ingressClassName: kong
+    annotations:
+      # Grafana は内部ツールのため認証なしでの外部公開は禁止する（Kong JWT プラグイン必須）
+      konghq.com/plugins: "jwt,rate-limiting"
+    hosts:
+      - grafana.k1s0.internal.example.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.k1s0.internal.example.com
+
+  # セッション管理: 本番環境ではセッションを DB またはメモリキャッシュで管理する
+  # デフォルトの cookie ベースセッションはマルチレプリカ環境では Sticky Session が必要となるため、
+  # DB セッションを使用することでロードバランサーの制約を排除する
+  grafana.ini:
+    server:
+      # ドメイン設定: 外部アクセス URL に合わせる（CSRF 保護に影響する）
+      domain: grafana.k1s0.internal.example.com
+      root_url: "https://grafana.k1s0.internal.example.com"
+    auth:
+      # セッション有効期間: 本番環境では短め（8時間）に設定してセッション乗っ取りリスクを低減
+      login_maximum_inactive_lifetime_duration: 8h
+      login_maximum_lifetime_duration: 24h
+    security:
+      # cookie_secure: HTTPS 環境では必須（HTTP 経由でのクッキー漏洩を防止）
+      cookie_secure: true
+      # cookie_samesite: strict により CSRF 攻撃を防止する
+      cookie_samesite: strict
+      # X-Content-Type-Options: MIMEタイプスニッフィングを防止
+      content_security_policy: true
+    database:
+      # 最大接続プールサイズ: 過負荷時のDB接続枯渇を防止する
+      max_open_conn: 10
+      max_idle_conn: 5
+      conn_max_lifetime: 14400
+    log:
+      # 本番環境ではログレベルを warn に設定してノイズを削減する
+      level: warn

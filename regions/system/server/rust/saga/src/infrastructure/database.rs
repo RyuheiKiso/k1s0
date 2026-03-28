@@ -3,7 +3,7 @@ use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 /// DatabaseConfig はデータベース接続設定。
-#[allow(dead_code)]
+/// フィールドは startup.rs で接続 URL 構築・コネクション数設定に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,

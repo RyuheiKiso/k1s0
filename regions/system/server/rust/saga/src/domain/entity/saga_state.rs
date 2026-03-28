@@ -107,8 +107,7 @@ impl SagaState {
         self.updated_at = Utc::now();
     }
 
-    /// Sagaをキャンセルする。
-    #[allow(dead_code)]
+    /// Sagaをキャンセルする。cancel_saga usecase からリポジトリ経由で使用される。
     pub fn cancel(&mut self) {
         self.status = SagaStatus::Cancelled;
         self.updated_at = Utc::now();

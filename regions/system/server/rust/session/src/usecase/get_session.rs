@@ -35,7 +35,11 @@ impl GetSessionUseCase {
             ));
         };
 
+        // セッションが存在するか確認し、期限切れの場合は Expired エラーを返す
         match session {
+            Some(s) if s.is_expired() => {
+                Err(SessionError::Expired(s.id.clone()))
+            }
             Some(s) => Ok(GetSessionOutput { session: s }),
             None => Err(SessionError::NotFound("session not found".to_string())),
         }
@@ -128,5 +132,25 @@ mod tests {
             })
             .await;
         assert!(matches!(result, Err(SessionError::InvalidInput(_))));
+    }
+
+    #[tokio::test]
+    async fn expired_session_returns_expired_error() {
+        // 期限切れセッションを取得すると Expired エラーが返ることを確認する
+        let mut expired_session = make_session();
+        expired_session.expires_at = Utc::now() - Duration::hours(1);
+
+        let mut mock = MockSessionRepository::new();
+        mock.expect_find_by_id()
+            .returning(move |_| Ok(Some(expired_session.clone())));
+
+        let uc = GetSessionUseCase::new(Arc::new(mock));
+        let result = uc
+            .execute(&GetSessionInput {
+                id: Some("sess-1".to_string()),
+                token: None,
+            })
+            .await;
+        assert!(matches!(result, Err(SessionError::Expired(_))));
     }
 }

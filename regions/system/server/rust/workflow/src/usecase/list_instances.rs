@@ -40,25 +40,29 @@ impl ListInstancesUseCase {
         &self,
         input: &ListInstancesInput,
     ) -> Result<ListInstancesOutput, ListInstancesError> {
+        // ページ番号は最小1に制限し、page_size は 1〜200 にクランプして異常値を防ぐ（H-07 監査対応）
+        let page = input.page.max(1);
+        let page_size = input.page_size.clamp(1, 200);
+
         let (instances, total_count) = self
             .repo
             .find_all(
                 input.status.clone(),
                 input.workflow_id.clone(),
                 input.initiator_id.clone(),
-                input.page,
-                input.page_size,
+                page,
+                page_size,
             )
             .await
             .map_err(|e| ListInstancesError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (page as u64 * page_size as u64) < total_count;
 
         Ok(ListInstancesOutput {
             instances,
             total_count,
-            page: input.page,
-            page_size: input.page_size,
+            page,
+            page_size,
             has_next,
         })
     }

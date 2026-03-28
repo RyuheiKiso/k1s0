@@ -15,6 +15,9 @@ test = false
 [features]
 # 外部サービス（PostgreSQL, Kafka）を必要とする統合テストを有効化するフィーチャー
 integration-tests = []
+# テスト用ヘルパー（InMemoryリポジトリ等）を外部統合テストから利用するためのフィーチャー（L-07 監査対応）
+# リリースビルドでは有効化せず、tests/ 配下の統合テスト実行時にのみ使用する
+test-utils = []
 
 [dependencies]
 # gRPC / Protobuf

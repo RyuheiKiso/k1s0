@@ -219,14 +219,24 @@ fn render_bff_if_needed(
     // BFF 用のテンプレートコンテキストを構築してレンダリング
     let bff_path = output_path.join("bff");
     fs::create_dir_all(&bff_path)?;
-    let bff_ctx = TemplateContextBuilder::new(
+
+    // H-13 監査対応: deprecated な build() の代わりに try_build() を使用して panic を防ぐ。
+    // バリデーションエラーが発生した場合は BFF 生成をスキップして正常復帰する。
+    let bff_ctx = match TemplateContextBuilder::new(
         config.detail.name.as_deref().unwrap_or("service"),
         config.tier.as_str(),
         bff_lang.dir_name(),
         "bff",
     )
     .api_style("graphql")
-    .build();
+    .try_build()
+    {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            eprintln!("BFF テンプレートコンテキストのビルドに失敗しました: {e}");
+            return Ok(());
+        }
+    };
 
     match TemplateEngine::new(template_dir) {
         Ok(mut engine) => {

@@ -91,6 +91,7 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// POST /api/v1/auth/token/validate のリクエストボディ。
+/// M-06 監査対応: 空文字チェックを追加し、不正なリクエストを早期拒否する。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct ValidateTokenRequest {
     pub token: String,
@@ -109,6 +110,11 @@ pub async fn validate_token(
     State(state): State<AppState>,
     Json(req): Json<ValidateTokenRequest>,
 ) -> impl IntoResponse {
+    // M-06: トークン文字列が空でないことを早期検証する
+    if req.token.is_empty() {
+        let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "token must not be empty");
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
     match state.validate_token_uc.execute(&req.token).await {
         Ok(claims) => (
             StatusCode::OK,
@@ -216,6 +222,7 @@ pub async fn list_users(
 }
 
 /// POST /api/v1/auth/permissions/check のリクエストボディ。
+/// M-06 監査対応: permission と resource の空文字チェックを追加する。
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CheckPermissionRequest {
     #[serde(default)]
@@ -238,6 +245,14 @@ pub async fn check_permission(
     State(state): State<AppState>,
     Json(req): Json<CheckPermissionRequest>,
 ) -> impl IntoResponse {
+    // M-06: permission と resource が空でないことを早期検証する
+    if req.permission.is_empty() || req.resource.is_empty() {
+        let err = ErrorResponse::new(
+            "SYS_AUTH_PERMISSION_VALIDATION",
+            "permission and resource must not be empty",
+        );
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+    }
     let input = crate::usecase::check_permission::CheckPermissionInput {
         user_id: req.user_id,
         roles: req.roles,

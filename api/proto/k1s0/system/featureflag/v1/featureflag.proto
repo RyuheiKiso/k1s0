@@ -14,6 +14,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/featureflag
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// L-02 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // Operator はフラグルールの比較演算子を表す enum。
 // string 型の代わりに使用することで型安全性と一貫性を確保する。
@@ -37,8 +39,10 @@ service FeatureFlagService {
   rpc WatchFeatureFlag(WatchFeatureFlagRequest) returns (stream WatchFeatureFlagResponse);
 }
 
+// EvaluateFlagRequest はフラグ評価リクエスト。
 message EvaluateFlagRequest {
-  string flag_key = 1;
+  // フラグキー（1〜128 文字）
+  string flag_key = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   EvaluationContext context = 2;
 }
 
@@ -55,8 +59,10 @@ message EvaluationContext {
   map<string, string> attributes = 3;
 }
 
+// GetFlagRequest はフラグ取得リクエスト。
 message GetFlagRequest {
-  string flag_key = 1;
+  // フラグキー（1〜128 文字）
+  string flag_key = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 message GetFlagResponse {
@@ -76,9 +82,12 @@ message ListFlagsResponse {
   repeated FeatureFlag flags = 1;
 }
 
+// CreateFlagRequest はフラグ作成リクエスト。
 message CreateFlagRequest {
-  string flag_key = 1;
-  string description = 2;
+  // フラグキー（1〜128 文字）
+  string flag_key = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // フラグ説明（0〜512 文字）
+  string description = 2 [(buf.validate.field).string = {min_len: 0, max_len: 512}];
   bool enabled = 3;
   repeated FlagVariant variants = 4;
 }
@@ -87,8 +96,10 @@ message CreateFlagResponse {
   FeatureFlag flag = 1;
 }
 
+// UpdateFlagRequest はフラグ更新リクエスト。
 message UpdateFlagRequest {
-  string flag_key = 1;
+  // フラグキー（1〜128 文字）
+  string flag_key = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   optional bool enabled = 2;
   optional string description = 3;
   repeated FlagVariant variants = 4;
@@ -99,8 +110,10 @@ message UpdateFlagResponse {
   FeatureFlag flag = 1;
 }
 
+// DeleteFlagRequest はフラグ削除リクエスト。
 message DeleteFlagRequest {
-  string flag_key = 1;
+  // フラグキー（1〜128 文字）
+  string flag_key = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 message DeleteFlagResponse {

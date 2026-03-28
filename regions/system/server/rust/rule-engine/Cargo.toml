@@ -40,9 +40,9 @@ k1s0-server-common = { path = "../../../library/rust/server-common", features = 
 utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
-moka = { version = "0.12", features = ["future"] }
+moka = {workspace = true}
 regex = "1"
-sha2 = "0.10"
+sha2 = {workspace = true}
 
 [build-dependencies]
 tonic-build = {workspace = true}

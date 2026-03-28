@@ -26,6 +26,8 @@ nul
 
 # Go (sum is committed, vendor is not)
 vendor/
+# Goビルド成果物バイナリ: リポジトリにコミットすべきでない（L-01 監査対応）
+*.exe
 
 # TypeScript / Node.js
 **/node_modules/

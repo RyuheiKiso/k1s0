@@ -27,10 +27,11 @@ type DlqMessage struct {
 }
 
 // ListDlqMessagesRequest は DLQ メッセージ一覧取得リクエスト。
+// PageSize は 1〜1000 の範囲で必須。過大なページサイズによるメモリ枯渇を防止する（M-01 監査対応）。
 type ListDlqMessagesRequest struct {
 	Topic    string `json:"topic"`
-	Page     int    `json:"page"`
-	PageSize int    `json:"page_size"`
+	Page     int    `json:"page"     validate:"min=1"`
+	PageSize int    `json:"page_size" validate:"min=1,max=1000"`
 }
 
 // ListDlqMessagesResponse は DLQ メッセージ一覧取得レスポンス。

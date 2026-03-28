@@ -87,8 +87,10 @@ type AuthConfig struct {
 	ClientID     string   `yaml:"client_id" validate:"required"`
 	ClientSecret string   `yaml:"client_secret"`
 	RedirectURI  string   `yaml:"redirect_uri" validate:"required,url"`
-	PostLogout   string   `yaml:"post_logout_redirect_uri"`
-	Scopes       []string `yaml:"scopes"`
+	// PostLogout はログアウト後のリダイレクト先 URL（M-02 対応）。
+	// 設定されている場合は URL 形式であることを検証する。未設定（空文字）は許容する。
+	PostLogout string   `yaml:"post_logout_redirect_uri" validate:"omitempty,url"`
+	Scopes     []string `yaml:"scopes"`
 }
 
 // SessionConfig holds Redis session store settings.
@@ -109,6 +111,10 @@ type RedisSessionConfig struct {
 	Password   string `yaml:"password"`
 	DB         int    `yaml:"db"`
 	MasterName string `yaml:"master_name"`
+	// SentinelAddrs は Redis Sentinel の複数アドレスリスト（H-17 対応）。
+	// 設定されている場合は Addr の代わりに全 Sentinel アドレスを使用する。
+	// 例: ["sentinel1:26379", "sentinel2:26379", "sentinel3:26379"]
+	SentinelAddrs []string `yaml:"sentinel_addrs"`
 	// コネクションプール設定（M-011）
 	// PoolSize: 最大コネクション数（デフォルト: CPU数 * 10）
 	PoolSize int `yaml:"pool_size"`

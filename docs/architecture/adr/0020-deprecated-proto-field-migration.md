@@ -2,7 +2,7 @@
 
 ## ステータス
 
-承認済み
+承認済み（H-06/H-11 監査対応: 2026-03-29 に移行完了目標時期を追記）
 
 ## コンテキスト
 
@@ -41,11 +41,35 @@ deprecated proto フィールドの段階的移行を以下の 3 フェーズで
 
 ### Phase 2（3 ヶ月以内）: 新フィールドへの移行完了
 
+**完了目標**: 2026-06-30
+
+<!-- H-06/H-11 監査対応: 移行完了目標時期を明記 -->
+
+対象フィールドおよび移行先:
+
+| サービス | 旧フィールド（string 型） | 新フィールド（enum 型） | 完了目標 |
+|----------|--------------------------|------------------------|----------|
+| auth | `event_type` | `AuditEventType` | 2026-06-30 |
+| auth | `result` | `AuditResult` | 2026-06-30 |
+| graphql-gateway | `event_type`, `result` | `AuditEventType`, `AuditResult` | 2026-06-30 |
+| workflow | `step_type` | `WorkflowStepType` | 2026-06-30 |
+| dlq | `status` | `DlqMessageStatus` | 2026-06-30 |
+| featureflag | `change_type` | `ChangeType` | 2026-06-30 |
+| config | `change_type` | `ChangeType` | 2026-06-30 |
+| ratelimit | `algorithm` | `RateLimitAlgorithm` | 2026-06-30 |
+| notification | `status` / 各 timestamp | enum / Timestamp 型 | 2026-06-30 |
+| saga | `status` | `SagaStatus` | 2026-06-30 |
+
+実施内容:
 - 全 gRPC クライアント（Go / Rust / TypeScript / Dart）において、新フィールド（enum 型 / Timestamp 型）を優先使用するよう実装を更新する
 - 旧フィールドへのデータ入力を停止する（読み取り互換性は維持）
 - サーバー側実装において、旧フィールドが送信された場合は新フィールドへ自動変換する処理を実装する
 
 ### Phase 3（6 ヶ月以内）: 旧フィールドの削除
+
+**完了目標**: 2026-09-30
+
+<!-- H-06/H-11 監査対応: 移行完了目標時期を明記 -->
 
 - 旧フィールドを `reserved` に変更してフィールド番号を保護する
 - フィールド名も `reserved` に追加して再利用を防ぐ

@@ -8,9 +8,8 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use super::{AppState, ErrorResponse};
-#[allow(unused_imports)]
+// utoipa マクロの body 型参照に必要なインポート
 use crate::domain::entity::service::Service;
-#[allow(unused_imports)]
 use crate::domain::entity::team::Team;
 use crate::domain::repository::service_repository::ServiceListFilters;
 use crate::usecase::{

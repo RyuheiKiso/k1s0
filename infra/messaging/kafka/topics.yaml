@@ -619,6 +619,42 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
+# tenant イベントトピック（C-07 監査対応: tenant サービスがプロデューサー、データ損失防止のため追加）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.tenant.events.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# tenant イベント DLQ（C-07 監査対応: tenant.events.v1 の処理失敗イベント退避先）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.tenant.events.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
 # ファイル汎用イベント（file-rust がプロデューサー、event_type ヘッダーで種別を区別）（M-21 監査対応）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic

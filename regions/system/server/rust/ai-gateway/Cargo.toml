@@ -32,7 +32,7 @@ tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 http = "1"
 sqlx = {workspace = true, features = ["migrate"]}
-redis = { version = "0.27", features = ["tokio-comp"] }
+redis = {workspace = true}
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 # Correlation ID伝播ライブラリ
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }

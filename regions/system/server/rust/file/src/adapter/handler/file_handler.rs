@@ -95,8 +95,12 @@ pub async fn get_file(
     match state.get_file_metadata_uc.execute(&metadata_input).await {
         Ok(file) => {
             if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+                // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+                // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+                let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                    .unwrap_or("");
                 if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                    &file.tenant_id,
+                    resource_tenant_id,
                     request_tenant_id,
                 ) {
                     let err = ErrorResponse::new(
@@ -192,8 +196,12 @@ pub async fn delete_file(
         .await
     {
         if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+            // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+            // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                &file.tenant_id,
+                resource_tenant_id,
                 request_tenant_id,
             ) {
                 let err =
@@ -245,8 +253,12 @@ pub async fn delete_file_admin(
         .await
     {
         if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+            // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+            // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                &file.tenant_id,
+                resource_tenant_id,
                 request_tenant_id,
             ) {
                 let err =
@@ -290,8 +302,12 @@ pub async fn complete_upload(
             })
             .await
         {
+            // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+            // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                &file.tenant_id,
+                resource_tenant_id,
                 request_tenant_id,
             ) {
                 let err =
@@ -339,8 +355,12 @@ pub async fn download_url(
             })
             .await
         {
+            // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+            // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                &file.tenant_id,
+                resource_tenant_id,
                 request_tenant_id,
             ) {
                 let err =
@@ -401,8 +421,12 @@ pub async fn update_file_tags(
             })
             .await
         {
+            // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
+            // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
+            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
-                &file.tenant_id,
+                resource_tenant_id,
                 request_tenant_id,
             ) {
                 let err =

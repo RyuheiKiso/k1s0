@@ -16,4 +16,13 @@ impl FileDomainService {
     pub fn can_access_tenant_resource(resource_tenant_id: &str, requester_tenant_id: &str) -> bool {
         !requester_tenant_id.is_empty() && resource_tenant_id == requester_tenant_id
     }
+
+    /// storage_path からテナントIDを抽出する。
+    /// storage_path は `{tenant_id}/{filename}` 形式で構成されているため、
+    /// 最初の '/' より前のセグメントがテナントIDとなる。
+    /// C-01 監査対応: FileMetadata から tenant_id フィールドが削除されたため、
+    /// テナントIDは storage_path のプレフィックスから取得する。
+    pub fn tenant_id_from_storage_path(storage_path: &str) -> Option<&str> {
+        storage_path.split('/').next().filter(|s| !s.is_empty())
+    }
 }

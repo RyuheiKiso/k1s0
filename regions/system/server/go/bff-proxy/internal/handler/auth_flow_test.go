@@ -185,12 +185,14 @@ type testStore interface {
 
 // newTestAuthHandler はテスト用の AuthHandler を構築するヘルパー。
 // H-5 監査対応: exchangeCodeStore 引数を追加し、store を両方に渡す。
+// C-09 監査対応: absoluteMaxTTL（第5引数）を追加し、NewAuthHandler の9引数シグネチャに合わせる。
 func newTestAuthHandler(oauthClient OAuthClient, store testStore) *AuthHandler {
 	return NewAuthHandler(
 		oauthClient,
 		store,
 		store,
 		30*time.Minute,
+		24*time.Hour,
 		"https://app.example.com",
 		false,
 		"",

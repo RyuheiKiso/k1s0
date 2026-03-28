@@ -61,7 +61,7 @@ fn default_environment() -> String {
 }
 
 /// ServerConfig はサーバー設定。
-#[allow(dead_code)]
+/// grpc_port は startup.rs で gRPC サーバーのリッスンアドレス構築に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -92,7 +92,7 @@ pub struct ServiceEndpoint {
 }
 
 /// SagaConfig は Saga 固有の設定。
-#[allow(dead_code)]
+/// workflow_dir は startup.rs で WorkflowLoader の初期化に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SagaConfig {
     #[serde(default = "default_max_concurrent")]

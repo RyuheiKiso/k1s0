@@ -29,8 +29,10 @@ pub mod proto {
 
 use proto::k1s0::system::featureflag::v1::feature_flag_service_client::FeatureFlagServiceClient;
 use proto::k1s0::system::featureflag::v1::FeatureFlag as ProtoFeatureFlag;
-// Operator enum をインポートし、FlagRule の operator フィールドに型安全な列挙値を使用する
-use proto::k1s0::system::featureflag::v1::Operator;
+// Operator の文字列表現定数。
+// proto 生成コードのバージョンによって operator フィールドは String または i32 になる。
+// protoc 不在環境では古い生成コード（String 型）が使われるため文字列定数で対応する。
+const OPERATOR_EQ_STR: &str = "OPERATOR_EQ";
 
 pub struct FeatureFlagGrpcClient {
     client: FeatureFlagServiceClient<Channel>,
@@ -68,8 +70,8 @@ impl FeatureFlagGrpcClient {
             .filter(|env| !env.trim().is_empty())
             .map(|env| proto::k1s0::system::featureflag::v1::FlagRule {
                 attribute: "environment".to_string(),
-                // Operator::Eq（値 = 1）を i32 にキャストして型安全な列挙値を使用する
-                operator: Operator::Eq as i32,
+                // OPERATOR_EQ 文字列を使用する（Operator::Eq に相当、生成コード互換）
+                operator: OPERATOR_EQ_STR.to_string(),
                 value: env,
                 variant: "on".to_string(),
             })
@@ -143,11 +145,9 @@ impl FeatureFlagGrpcClient {
             .client
             .clone()
             .list_flags(tonic::Request::new(
-                // page_size: 0 はサーバーデフォルト値を使用することを示す、page_token: 空文字は最初のページを示す
-                proto::k1s0::system::featureflag::v1::ListFlagsRequest {
-                    page_size: 0,
-                    page_token: String::new(),
-                },
+                // デフォルト値を使用して全フラグを取得する。
+                // page_size: 0 はサーバーデフォルト値を使用することを示す。
+                proto::k1s0::system::featureflag::v1::ListFlagsRequest::default(),
             ))
             .await
             .map_err(|e| anyhow::anyhow!("FeatureFlagService.ListFlags failed: {}", e))?
