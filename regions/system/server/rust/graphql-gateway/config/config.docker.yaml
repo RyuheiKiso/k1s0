@@ -69,7 +69,8 @@ backends:
 # レート制限: ratelimit gRPC サービスと連携してリクエストレートを制御する
 ratelimit:
   enabled: true
-  server_url: "http://ratelimit-rust:50051"
+  # ratelimit-rust の REST ポート（8080）を使用する。ポート 50051 は gRPC 専用であり HTTP では接続不可（MED-3 監査対応）。
+  server_url: "http://ratelimit-rust:8080"
   scope: "graphql-gateway"
   requests_per_window: 100
   window_secs: 60

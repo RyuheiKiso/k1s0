@@ -1,5 +1,5 @@
 -- infra/docker/init-db/04-saga-schema.sql
--- スキーマ定義はマイグレーション（regions/system/server/go/saga/...）が担当する。
+-- スキーマ定義はマイグレーション（regions/system/server/rust/saga/...）が担当する。（LOW-2 監査対応: go → rust に修正）
 -- 本ファイルは DB 接続先の切り替えとスキーマ作成・権限設定のみを行う。
 -- CREATE TABLE / ALTER TABLE / CREATE INDEX / CREATE TRIGGER は含まない。
 

@@ -152,7 +152,7 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/navigation_db?sslmode=disable
+      # navigation-rust は YAML 設定ファイルからルートデータを読み込む実装のため DB 不使用（LOW-4 監査対応）
 
   notification-rust:
     <<: *dev-auth-bypass
@@ -273,3 +273,12 @@ services:
   # --import-realm: 起動時に /opt/keycloak/data/import 内の realm 設定を自動インポートする
   keycloak:
     command: ["start-dev", "--import-realm"]
+
+  # ============================================================
+  # bff-proxy — セッション暗号化キー設定（MED-8 監査対応）
+  # ============================================================
+  # SESSION_ENCRYPTION_KEY が未設定の場合、セッションデータが Redis に平文で保存される。
+  # .env.dev の SESSION_ENCRYPTION_KEY（開発用ダミー値）を渡して平文保存を防止する。
+  bff-proxy:
+    environment:
+      - SESSION_ENCRYPTION_KEY=${SESSION_ENCRYPTION_KEY:?SESSION_ENCRYPTION_KEY must be set in .env.dev}

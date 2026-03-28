@@ -365,19 +365,29 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 
 > **リソース要件**: インフラサービス（infra + system プロファイル）を全起動すると約9個のコンテナが起動し、**5GB以上のメモリ**を消費します。**メモリ8GB以上**、CPU 4コア以上の環境を推奨します。Docker Desktop をお使いの場合は Settings → Resources で割り当てを増やしてください。
 
+> ⚠️ **ローカル開発では必ず `docker-compose.dev.yaml` を併用してください（MED-6 監査対応）。**
+> `docker-compose.yaml` のみでは DATABASE_URL 等の環境変数が未解決になりサービスがクラッシュします。
+> **`just local-up` コマンドが `.env.dev` と `docker-compose.dev.yaml` を自動的に適用します（推奨）。**
+
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。
 
 | ファイル | 用途 |
 |----------|------|
 | `docker-compose.yaml` | 安全なベース設定（認証バイパスなし、Kong Admin API はローカルホストのみ） |
-| `docker-compose.dev.yaml` | 開発専用オーバーライド（認証バイパス有効化、Kong Admin API 全公開） |
+| `docker-compose.dev.yaml` | **ローカル開発必須**のオーバーライド（認証バイパス有効化、DATABASE_URL 設定） |
+| `.env.dev` | **ローカル開発必須**の環境変数定義（`--env-file .env.dev` で指定） |
 
 ```bash
-# 本番/CI: ベース設定のみ使用（認証バイパスなし）
-docker compose --profile infra --profile system up -d
+# 推奨: just local-up が .env.dev と docker-compose.dev.yaml を自動適用する
+just local-up
 
-# 開発環境: 明示的に dev オーバーライドを指定（認証バイパス有効化）
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra --profile system up -d
+# 手動起動する場合は必ず以下の形式を使用すること（dev.yaml と .env.dev が必須）
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra --profile system up -d
+
+# 本番/CI のみ: ベース設定のみ使用（認証バイパスなし）
+docker compose --profile infra --profile system up -d
 ```
 
 ### 段階的起動（リソース節約）
@@ -398,8 +408,12 @@ docker compose -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra
 git clone https://github.com/k1s0/k1s0.git
 cd k1s0
 
-# インフラ（PostgreSQL, Kafka, Redis, Keycloak）を起動
-docker compose --profile infra up -d
+# 推奨: just local-up が全設定を自動適用する
+just local-up
+
+# または手動（infra のみ）
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra up -d
 
 # 起動確認（全て healthy になるまで待機）
 docker compose --profile infra ps
@@ -407,11 +421,29 @@ docker compose --profile infra ps
 
 Keycloak 管理コンソール: http://localhost:8180 （admin / dev）
 
+### 1.5. DBマイグレーション実行（初回セットアップ必須）
+
+インフラが起動したら、システムサービスを起動する前に DB マイグレーションを実行してください（HIGH-3 監査対応）。
+
+```bash
+# 全システム DB のマイグレーションを一括実行する
+just migrate-all
+
+# 個別に実行する場合（例: auth-db）
+just migrate regions/system/database/auth-db
+```
+
+> **注意**: ビジネス/サービス層（task-rust, board-rust 等）は起動時に自動マイグレーションを実行するため手動実行不要です。
+>
+> **⚠ 警告 (HIGH-4)**: ビジネス/サービス層のマイグレーションを手動で `dev` ユーザーとして実行しないでください。テーブルの所有者が `dev` になり、サービスが `k1s0` ユーザーで起動した際に `must be owner of table` エラーが発生します。もし誤って実行した場合は、対象データベースを削除して再起動することで解消できます。
+
 ### 2. System サーバー起動
 
 ```bash
 # system プロファイルのサービスを一括起動（初回はビルドに数分かかります）
-docker compose --profile infra --profile system up -d
+# メモリ不足でビルドがOOMクラッシュする場合は `just docker-build-safe` を先に実行してください
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra --profile system up -d
 
 # 全サーバーの起動確認
 docker compose --profile infra --profile system ps

@@ -200,6 +200,30 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000
 
+# 検索インデックス更新イベント（search-rust がコンシューマー）（MED-1 監査対応）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.search.index.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# ワークフロー状態変更イベント（workflow-rust がプロデューサー）（MED-1 監査対応）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.workflow.state.v1 \
+  --partitions 3 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=604800000
+
+# スケジューラ作成 DLQ（MED-1 監査対応: scheduler.created.v1 に対する DLQ が欠落していた）
+kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --create --if-not-exists \
+  --topic k1s0.system.scheduler.created.v1.dlq \
+  --partitions 1 \
+  --replication-factor "${REPLICATION_FACTOR}" \
+  --config retention.ms=2592000000
+
 # --- DLQ Topics ---
 # L-07 対応: topics.yaml との突合により不足 DLQ を追加する
 for topic in \
@@ -224,7 +248,9 @@ for topic in \
   k1s0.service.activity.created.v1.dlq \
   k1s0.service.activity.approved.v1.dlq \
   k1s0.business.taskmanagement.projectmaster.project_type_changed.v1.dlq \
-  k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1.dlq; do
+  k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1.dlq \
+  k1s0.system.search.index.v1.dlq \
+  k1s0.system.workflow.state.v1.dlq; do
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
     --create --if-not-exists \
     --topic "${topic}" \

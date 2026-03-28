@@ -18,7 +18,9 @@ database:
 
 auth:
   jwt:
-    issuer: "http://localhost:8180/realms/k1s0"
+    # Docker ネットワーク内では Keycloak は keycloak:8080 でアクセスされ、JWT の iss クレームも同 URL となる。
+    # localhost:8180 はホストからの外部アクセス用であり、コンテナ内 issuer 検証には使用不可（HIGH-6 監査対応）。
+    issuer: "http://keycloak:8080/realms/k1s0"
     audience: "k1s0-api"
   jwks:
     url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
@@ -27,7 +29,8 @@ auth:
 kafka:
   brokers:
     - "kafka:9092"
-  topic: "audit-events-dev"
+  # create-topics.sh で作成されるトピック名と一致させる（LOW-3 監査対応）
+  topic: "k1s0.system.auth.audit.v1"
   # Docker 環境: コンテナ内 Kafka は TLS なしのため PLAINTEXT を明示指定
   security_protocol: "PLAINTEXT"
 
@@ -49,8 +52,10 @@ keycloak:
   admin_realm: "master"
   admin_client_id: "admin-cli"
   admin_username: "admin"
+  # !!!! ローカル開発専用の固定値（LOW-1 監査対応） !!!!
   # serde_yaml はシェル変数展開をしないため直値で設定する。
-  # 本番環境では Vault から注入した config ファイルまたは Kubernetes Secret で別途上書きすること（環境変数オーバーライド未実装）。
+  # 本番環境では Vault から注入した config ファイルまたは Kubernetes Secret で別途上書きすること。
+  # git 履歴に残るが開発用固定値（admin/dev）のため実害は限定的。
   admin_password: "dev"
 
 keycloak_admin:

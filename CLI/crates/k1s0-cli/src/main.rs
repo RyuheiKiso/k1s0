@@ -139,16 +139,29 @@ fn main() {
             Commands::Doctor => {
                 // 開発環境診断スクリプトを実行する
                 println!("開発環境を診断しています...");
-                // scripts/doctor.sh が存在する場合は実行する
                 let script = std::path::Path::new("scripts/doctor.sh");
                 if script.exists() {
+                    // Windows 環境では bash が PATH に存在しない場合がある（HIGH-5 監査対応）。
+                    // bash が利用可能か確認し、利用不可の場合は sh (Git for Windows 等) にフォールバックする。
                     // L-13 監査対応: exit status を無視せず、非0の場合はエラーを伝播する。
-                    // main() は () を返すため ? は使用できない。match arm の戻り値として Err を返す。
-                    match std::process::Command::new("bash")
+                    let shell = if cfg!(target_os = "windows") {
+                        // bash の存在確認（Git for Windows / WSL 等でインストールされている場合は使用可能）
+                        let bash_available = std::process::Command::new("bash")
+                            .arg("--version")
+                            .output()
+                            .map(|o| o.status.success())
+                            .unwrap_or(false);
+                        if bash_available { "bash" } else { "sh" }
+                    } else {
+                        "bash"
+                    };
+                    match std::process::Command::new(shell)
                         .arg("scripts/doctor.sh")
                         .status()
                     {
-                        Err(e) => Err(anyhow::anyhow!("doctor.sh の実行に失敗しました: {e}")),
+                        Err(e) => Err(anyhow::anyhow!(
+                            "doctor.sh の実行に失敗しました（シェル: {shell}）: {e}"
+                        )),
                         Ok(s) if !s.success() => {
                             let code = s.code().unwrap_or(-1);
                             Err(anyhow::anyhow!(

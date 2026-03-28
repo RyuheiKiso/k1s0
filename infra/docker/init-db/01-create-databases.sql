@@ -46,8 +46,7 @@ CREATE DATABASE scheduler_db;
 -- notification-server 用DB
 CREATE DATABASE notification_db;
 
--- navigation-server 用DB
-CREATE DATABASE navigation_db;
+-- navigation-server 用DB は削除済み（LOW-4 監査対応: navigation-rust は DB を使用せず YAML 設定のみで動作する）
 
 -- policy-server 用DB
 CREATE DATABASE policy_db;
@@ -73,9 +72,9 @@ CREATE DATABASE file_db;
 -- service-catalog 用DB
 CREATE DATABASE service_catalog_db;
 
--- saga-server 用DB（M-2 監査対応: 使用意図を明記）
--- saga_db は Saga オーケストレーションサービス（regions/system/server/go/saga）が使用するデータベース
--- Saga パターンによる分散トランザクション管理のための専用データベース（04-saga-schema.sql でスキーマを定義）
+-- saga 用レガシーDB（現在は未使用）
+-- saga サービスは k1s0_system DB の saga スキーマを使用する（04-saga-schema.sql で k1s0_system に接続・スキーマ作成）
+-- saga_db は当初の設計で用意されたが k1s0_system への統合後は未使用。互換性のため保持する。
 CREATE DATABASE saga_db;
 
 -- master-maintenance 用スキーマ (k1s0_system 内)
@@ -104,7 +103,7 @@ GRANT CONNECT ON DATABASE event_store_db TO k1s0;
 GRANT CONNECT ON DATABASE workflow_db TO k1s0;
 GRANT CONNECT ON DATABASE scheduler_db TO k1s0;
 GRANT CONNECT ON DATABASE notification_db TO k1s0;
-GRANT CONNECT ON DATABASE navigation_db TO k1s0;
+-- navigation_db は削除済みのため GRANT も削除（LOW-4 監査対応）
 GRANT CONNECT ON DATABASE policy_db TO k1s0;
 GRANT CONNECT ON DATABASE quota_db TO k1s0;
 GRANT CONNECT ON DATABASE rule_engine_db TO k1s0;

@@ -181,7 +181,8 @@ services:
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     ports:
-      - "${KAFKA_HOST_PORT:-9092}:9092"
+      # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-5 監査対応）
+      - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -342,7 +343,8 @@ services:
     # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
     command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
-      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
+      # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-4 監査対応）
+      - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"
     # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
     # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
     # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
@@ -667,7 +669,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
-      - "${EVENT_MONITOR_GRPC_HOST_PORT:-50060}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${EVENT_MONITOR_GRPC_HOST_PORT:-50200}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -724,7 +727,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
-      - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50061}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50201}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -743,7 +747,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
-      - "${NAVIGATION_GRPC_HOST_PORT:-50062}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${NAVIGATION_GRPC_HOST_PORT:-50202}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -782,7 +787,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${POLICY_REST_HOST_PORT:-8101}:8080"
-      - "${POLICY_GRPC_HOST_PORT:-50063}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${POLICY_GRPC_HOST_PORT:-50203}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -821,7 +827,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
-      - "${RULE_ENGINE_GRPC_HOST_PORT:-50064}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${RULE_ENGINE_GRPC_HOST_PORT:-50204}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -896,7 +903,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "${SESSION_REST_HOST_PORT:-8106}:8080"
-      - "${SESSION_GRPC_HOST_PORT:-50065}:50051"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "${SESSION_GRPC_HOST_PORT:-50205}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -924,6 +932,10 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # ワークフローサービスは起動時に scheduler-rust:8080 へ接続しジョブ登録を行う。
+      # scheduler-rust が未起動の場合は DNS エラーでクラッシュするため依存を明示する（CRIT-2 監査対応）。
+      scheduler-rust:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/workflow/config:/app/config

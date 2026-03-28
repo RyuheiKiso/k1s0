@@ -37,37 +37,37 @@ CREATE ROLE k1s0_auth_rw WITH LOGIN PASSWORD '${K1S0_AUTH_PASSWORD:-dev-auth}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- config サービス専用ロール
--- 使用サービス: regions/system/server/go/config（設定管理）
+-- 使用サービス: regions/system/server/rust/config（設定管理）
 -- config スキーマのみ DML 可
 CREATE ROLE k1s0_config_rw WITH LOGIN PASSWORD '${K1S0_CONFIG_PASSWORD:-dev-config}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- saga サービス専用ロール
--- 使用サービス: regions/system/server/go/saga（Saga オーケストレーション）
+-- 使用サービス: regions/system/server/rust/saga（Saga オーケストレーション）
 -- saga スキーマのみ DML 可
 CREATE ROLE k1s0_saga_rw WITH LOGIN PASSWORD '${K1S0_SAGA_PASSWORD:-dev-saga}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- session サービス専用ロール
--- 使用サービス: regions/system/server/go/session（セッション管理）
+-- 使用サービス: regions/system/server/rust/session（セッション管理）
 -- session スキーマのみ DML 可
 CREATE ROLE k1s0_session_rw WITH LOGIN PASSWORD '${K1S0_SESSION_PASSWORD:-dev-session}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- tenant サービス専用ロール
--- 使用サービス: regions/system/server/go/tenant（テナント管理）
+-- 使用サービス: regions/system/server/rust/tenant（テナント管理）
 -- tenant スキーマのみ DML 可
 CREATE ROLE k1s0_tenant_rw WITH LOGIN PASSWORD '${K1S0_TENANT_PASSWORD:-dev-tenant}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- workflow サービス専用ロール
--- 使用サービス: regions/business/taskmanagement/server/go/workflow（ワークフロー管理）
+-- 使用サービス: regions/system/server/rust/workflow（ワークフロー管理）
 -- workflow スキーマのみ DML 可
 CREATE ROLE k1s0_workflow_rw WITH LOGIN PASSWORD '${K1S0_WORKFLOW_PASSWORD:-dev-workflow}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- dlq サービス専用ロール
--- 使用サービス: regions/system/server/go/dlq（Dead Letter Queue 管理）
+-- 使用サービス: regions/system/server/rust/dlq-manager（Dead Letter Queue 管理）
 -- dlq スキーマのみ DML 可
 CREATE ROLE k1s0_dlq_rw WITH LOGIN PASSWORD '${K1S0_DLQ_PASSWORD:-dev-dlq}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
@@ -79,7 +79,7 @@ CREATE ROLE k1s0_notification_rw WITH LOGIN PASSWORD '${K1S0_NOTIFICATION_PASSWO
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
 
 -- vault サービス専用ロール
--- 使用サービス: regions/system/server/go/vault（シークレット管理）
+-- 使用サービス: regions/system/server/rust/vault（シークレット管理）
 -- vault スキーマのみ DML 可
 CREATE ROLE k1s0_vault_rw WITH LOGIN PASSWORD '${K1S0_VAULT_PASSWORD:-dev-vault}'
   NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
