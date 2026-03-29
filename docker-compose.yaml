@@ -42,7 +42,9 @@ x-rust-healthcheck: &rust-healthcheck
   interval: 10s
   timeout: 5s
   retries: 5
-  # Rust サービス初回起動（DBマイグレーション含む）に時間がかかるため、
+  # INFRA-02 監査対応: start_period は healthcheck の猶予期間であり、
+  # DB マイグレーション自動実行の保証ではない。
+  # スタレイメージ使用時は `docker compose build` でイメージを再ビルドすること。
   # start_period 内の失敗はカウントせず、起動完了後から retries を適用する（M-22対応）
   start_period: 30s
 
@@ -1136,6 +1138,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      # HIGH-22 監査対応: Keycloak・Redis・Jaeger の起動完了を待つため start_period を設定する
+      start_period: 15s
 
   # ============================================================
   # Business プロファイル
@@ -1428,8 +1432,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # KONG-02 監査対応: loki の healthcheck 完了後に promtail を起動する（service_healthy）
+    # loki が起動していない状態で promtail がログ転送を試みると接続エラーが発生するため
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:11.3.2
@@ -1469,10 +1476,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # KONG-02 監査対応: 各依存サービスの healthcheck 完了後に grafana を起動する（service_healthy）
+    # prometheus/loki/jaeger が起動完了前に grafana が起動するとデータソース接続エラーが発生するため
     depends_on:
-      - prometheus
-      - loki
-      - jaeger
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
 
 volumes:
   postgres-data:

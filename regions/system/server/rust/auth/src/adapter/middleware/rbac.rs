@@ -116,42 +116,44 @@ pub async fn rbac_check(
     }
 }
 
-/// rbac_middleware は resource・action を受け取り、Claims からパーミッションを確認する。
-/// State から AppState を受け取る axum middleware::from_fn_with_state 向けの関数。
-#[allow(dead_code)]
-pub async fn rbac_middleware(
-    State(_state): State<AppState>,
-    req: Request<axum::body::Body>,
-    next: Next,
-) -> Response {
-    let claims = match req.extensions().get::<Claims>() {
-        Some(c) => c.clone(),
-        None => {
-            return error_response(
-                StatusCode::UNAUTHORIZED,
-                "SYS_AUTH_MISSING_CLAIMS",
-                "Authentication is required. Please provide a valid Bearer token.",
-            );
-        }
-    };
-
-    // デフォルトのチェック: sys_auditor 以上であれば通過する
-    let roles: Vec<String> = claims.realm_access.roles.clone();
-    if AuthDomainService::is_auditor_or_above(&roles) {
-        next.run(req).await
-    } else {
-        error_response(
-            StatusCode::FORBIDDEN,
-            "SYS_AUTH_PERMISSION_DENIED",
-            "Insufficient permissions for the requested resource.",
-        )
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    /// MED-10 監査対応: rbac_middleware はテスト専用のヘルパーミドルウェア。
+    /// プロダクションコードでは make_rbac_middleware を使用すること（mod.rs のルーター参照）。
+    /// Claims から sys_auditor 以上のロールを確認する簡易ミドルウェアで、
+    /// テストの middleware::from_fn_with_state 向けに #[cfg(test)] 内に配置する。
+    pub async fn rbac_middleware(
+        State(_state): State<AppState>,
+        req: Request<axum::body::Body>,
+        next: Next,
+    ) -> Response {
+        let claims = match req.extensions().get::<Claims>() {
+            Some(c) => c.clone(),
+            None => {
+                return error_response(
+                    StatusCode::UNAUTHORIZED,
+                    "SYS_AUTH_MISSING_CLAIMS",
+                    "Authentication is required. Please provide a valid Bearer token.",
+                );
+            }
+        };
+
+        // デフォルトのチェック: sys_auditor 以上であれば通過する
+        let roles: Vec<String> = claims.realm_access.roles.clone();
+        if AuthDomainService::is_auditor_or_above(&roles) {
+            next.run(req).await
+        } else {
+            error_response(
+                StatusCode::FORBIDDEN,
+                "SYS_AUTH_PERMISSION_DENIED",
+                "Insufficient permissions for the requested resource.",
+            )
+        }
+    }
+
     use crate::domain::entity::claims::{Claims, RealmAccess};
     use axum::body::Body;
     use axum::http::Request;
@@ -161,7 +163,8 @@ mod tests {
         Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid".to_string(),

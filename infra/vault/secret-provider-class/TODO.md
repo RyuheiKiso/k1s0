@@ -1,9 +1,9 @@
 # SecretProviderClass 未作成サービス一覧
 
-M-22 監査対応: 残り16サービスの SecretProviderClass が未作成。
-対応優先度は低いが、本番稼働前に全サービス分の作成が必要。
+HIGH-13 監査対応: 残り2サービス（ai-agent, ai-gateway）は監査対象外のため保留。
+本番稼働前に必要に応じて作成すること。
 
-## 対応済み（10サービス）
+## 対応済み（25サービス）
 
 | サービス | ファイル | 対応日 |
 |---------|---------|--------|
@@ -17,31 +17,28 @@ M-22 監査対応: 残り16サービスの SecretProviderClass が未作成。
 | session | session-secrets.yaml | 2026-03-29 |
 | workflow | workflow-secrets.yaml | 2026-03-29 |
 | scheduler | scheduler-secrets.yaml | 2026-03-29 |
+| bff-proxy | bff-proxy-secrets.yaml | 2026-03-29 |
+| graphql-gateway | graphql-gateway-secrets.yaml | 2026-03-29 |
+| api-registry | api-registry-secrets.yaml | 2026-03-29 |
+| app-registry | app-registry-secrets.yaml | 2026-03-29 |
+| event-monitor | event-monitor-secrets.yaml | 2026-03-29 |
+| event-store | event-store-secrets.yaml | 2026-03-29 |
+| file | file-secrets.yaml | 2026-03-29 |
+| master-maintenance | master-maintenance-secrets.yaml | 2026-03-29 |
+| navigation | navigation-secrets.yaml | 2026-03-29 |
+| policy | policy-secrets.yaml | 2026-03-29 |
+| quota | quota-secrets.yaml | 2026-03-29 |
+| ratelimit | ratelimit-secrets.yaml | 2026-03-29 |
+| rule-engine | rule-engine-secrets.yaml | 2026-03-29 |
+| search | search-secrets.yaml | 2026-03-29 |
+| service-catalog | service-catalog-secrets.yaml | 2026-03-29 |
 
-## 未作成（16サービス）
+## 未作成（2サービス、監査対象外）
 
 各サービスは auth-secrets.yaml のパターンに従って作成すること。
 必要なシークレットは `infra/vault/policies/{service}.hcl` を参照。
-
-| サービス | 対応するポリシーファイル | 主なシークレット | 優先度 |
-|---------|----------------------|----------------|--------|
-| bff-proxy | bff-proxy.hcl | api-key, redis, keycloak-oidc | 高 |
-| graphql-gateway | graphql-gateway.hcl | api-key, db-password, kafka-sasl | 高 |
 | ai-agent | ai-agent.hcl | api-key, db-password, kafka-sasl | 中 |
 | ai-gateway | ai-gateway.hcl | api-key, db-password, kafka-sasl | 中 |
-| api-registry | api-registry.hcl | api-key, db-password, kafka-sasl | 中 |
-| app-registry | app-registry.hcl | api-key, db-password, kafka-sasl | 中 |
-| event-monitor | event-monitor.hcl | api-key, db-password, kafka-sasl | 中 |
-| event-store | event-store.hcl | api-key, db-password, kafka-sasl | 中 |
-| file | file.hcl | api-key, db-password, kafka-sasl | 中 |
-| master-maintenance | master-maintenance.hcl | api-key, db-password, kafka-sasl | 中 |
-| navigation | navigation.hcl | api-key, db-password, kafka-sasl | 中 |
-| policy | policy.hcl | api-key, db-password, kafka-sasl | 中 |
-| quota | quota.hcl | api-key, db-password, kafka-sasl | 中 |
-| ratelimit | ratelimit.hcl | api-key, db-password, kafka-sasl | 中 |
-| rule-engine | rule-engine.hcl | api-key, db-password, kafka-sasl | 中 |
-| search | search.hcl | api-key, db-password, kafka-sasl | 中 |
-| service-catalog | service-catalog.hcl | api-key, db-password, kafka-sasl | 中 |
 
 ## 作成テンプレート
 

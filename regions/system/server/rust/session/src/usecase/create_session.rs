@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use base64::Engine;
 use chrono::{Duration, Utc};
+use rand::RngCore;
 use uuid::Uuid;
 
 use crate::adapter::repository::session_metadata_postgres::{
@@ -80,6 +82,14 @@ impl CreateSessionUseCase {
             }
         }
 
+        // MED-12 監査対応: UUID v4（122bit エントロピー）から OsRng を使った
+        // 256bit（32byte）セキュアランダムトークンに変更する。
+        // URL_SAFE_NO_PAD エンコードにより URL に安全な文字列として保存・送信できる。
+        let mut token_bytes = [0u8; 32];
+        rand::rngs::OsRng.fill_bytes(&mut token_bytes);
+        let session_token =
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&token_bytes);
+
         let now = Utc::now();
         let session = Session {
             id: Uuid::new_v4().to_string(),
@@ -89,7 +99,7 @@ impl CreateSessionUseCase {
             device_type: input.device_type.clone(),
             user_agent: input.user_agent.clone(),
             ip_address: input.ip_address.clone(),
-            token: Uuid::new_v4().to_string(),
+            token: session_token,
             expires_at: now + Duration::seconds(ttl),
             created_at: now,
             last_accessed_at: Some(now),

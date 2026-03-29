@@ -969,11 +969,47 @@ $ k1s0 doctor
 
 ### 動作
 
-1. `scripts/doctor.sh` の存在を確認する
-2. 存在しない場合はエラー終了する（`doctor.sh が見つかりません: scripts/doctor.sh`）
+1. `scripts/doctor.sh` を以下の優先順位で解決する（CLI-02 対応）:
+   1. `K1S0_ROOT` 環境変数が設定されている場合は `$K1S0_ROOT/scripts/doctor.sh`
+   2. CLI バイナリの実行ファイルパスから上位ディレクトリを遡り `scripts/doctor.sh` を探す
+   3. 現在のワーキングディレクトリから `scripts/doctor.sh`（後方互換フォールバック）
+2. 見つからない場合は `K1S0_ROOT` 環境変数の設定方法を案内してエラー終了する
 3. 存在する場合は bash（Windows 環境では bash が利用不可の場合 sh にフォールバック）で実行する
 4. スクリプトが非0で終了した場合はエラーコードを報告して終了する
 
 ### 対話メニューからの実行
 
 Doctor コマンドはサブコマンド専用のため、対話メニューからは実行できない。CLI 引数で `k1s0 doctor` として実行する。
+
+---
+
+## 非インタラクティブモード（CLI-03 対応）
+
+CI/CD などの TTY なし環境向けに非インタラクティブモードを提供する。
+
+### 有効化方法
+
+以下のいずれかの方法で有効化できる。
+
+| 方法 | 例 |
+|------|-----|
+| `--non-interactive` フラグ | `k1s0 --non-interactive doctor` |
+| `--yes` フラグ（短縮形） | `k1s0 --yes doctor` |
+| 環境変数 | `K1S0_NON_INTERACTIVE=true k1s0 doctor` |
+| TTY なし環境（自動検出） | `k1s0 doctor < /dev/null` |
+
+### 動作
+
+- サブコマンドと組み合わせた場合: 対話プロンプトが呼ばれると即時エラーを返す。必要な入力はサブコマンドのフラグで事前指定すること。
+- サブコマンドなし（メニューモード）で非インタラクティブが検出された場合: エラーメッセージを出力して終了コード1で終了する。
+
+### 使用例（CI/CD）
+
+```yaml
+# GitHub Actions での使用例
+- name: 開発環境診断
+  run: k1s0 doctor
+  env:
+    K1S0_NON_INTERACTIVE: "true"
+    K1S0_ROOT: ${{ github.workspace }}
+```

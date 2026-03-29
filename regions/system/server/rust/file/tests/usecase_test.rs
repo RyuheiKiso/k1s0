@@ -150,6 +150,32 @@ impl FileMetadataRepository for StubMetadataRepository {
         let mut files = self.files.write().await;
         Ok(files.remove(id).is_some())
     }
+
+    /// CRIT-01 監査対応: テナントIDと所有者IDの条件を確認してから削除するスタブ実装
+    async fn delete_with_tenant_check(
+        &self,
+        id: String,
+        tenant_id_prefix: String,
+        expected_uploader: Option<String>,
+    ) -> anyhow::Result<bool> {
+        if self.should_fail {
+            return Err(anyhow::anyhow!("stub db error"));
+        }
+        let mut files = self.files.write().await;
+        let matches = files.get(&id).map_or(false, |f| {
+            let tenant_ok = tenant_id_prefix.is_empty() || f.storage_path.starts_with(&tenant_id_prefix);
+            let uploader_ok = expected_uploader
+                .as_deref()
+                .map_or(true, |uploader| f.uploaded_by == uploader);
+            tenant_ok && uploader_ok
+        });
+        if matches {
+            files.remove(&id);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1040,8 +1066,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata.clone(), storage.clone(), events.clone());
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加（空文字でテナントチェックなし）
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1072,8 +1101,11 @@ mod delete_file {
         let events = Arc::new(StubEventPublisher::new());
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "missing".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1091,8 +1123,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1109,8 +1144,11 @@ mod delete_file {
         let events = Arc::new(StubEventPublisher::new());
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1128,8 +1166,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata.clone(), storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         // Event publish failure is logged but does not fail the usecase

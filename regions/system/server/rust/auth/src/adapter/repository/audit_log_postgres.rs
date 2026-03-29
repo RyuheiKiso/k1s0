@@ -70,95 +70,69 @@ impl AuditLogRepository for AuditLogPostgresRepository {
     async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)> {
         let offset = (params.page - 1) * params.page_size;
 
-        // 動的 WHERE 句を組み立てる。
-        // セキュリティ注記（M-05 監査対応）: format!() で埋め込むのはハードコードされたカラム名定数のみ。
-        // ユーザー入力（user_id, event_type 等）は全て sqlx のバインドパラメータ（$N）経由で渡すため
-        // SQL インジェクションのリスクはない。
-        let mut conditions = Vec::new();
-        let mut bind_index = 1u32;
-
-        if params.user_id.is_some() {
-            conditions.push(format!("user_id = ${}", bind_index));
-            bind_index += 1;
-        }
-        if params.event_type.is_some() {
-            conditions.push(format!("event_type = ${}", bind_index));
-            bind_index += 1;
-        }
-        if params.result.is_some() {
-            conditions.push(format!("result = ${}", bind_index));
-            bind_index += 1;
-        }
-        if params.from.is_some() {
-            conditions.push(format!("created_at >= ${}", bind_index));
-            bind_index += 1;
-        }
-        if params.to.is_some() {
-            conditions.push(format!("created_at <= ${}", bind_index));
-            bind_index += 1;
-        }
-
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
-
-        let count_query = format!(
-            "SELECT COUNT(*) as count FROM auth.audit_logs {}",
-            where_clause
-        );
-        let data_query = format!(
-            "SELECT id, event_type, user_id, ip_address, user_agent, resource, resource_id, action, result, detail, trace_id, created_at FROM auth.audit_logs {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, bind_index, bind_index + 1
+        // MED-05 監査対応: bind_index 手動インクリメントを廃止し sqlx::QueryBuilder を使用する。
+        // QueryBuilder はパラメータ番号（$N）を自動管理するため、
+        // 条件追加・削除時の番号ずれによるバグを防止できる。
+        // COUNT クエリ: QueryBuilder で WHERE 句を動的に組み立てる
+        let mut count_qb = sqlx::QueryBuilder::new(
+            "SELECT COUNT(*) FROM auth.audit_logs WHERE 1=1",
         );
 
-        // count クエリ
-        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
         if let Some(ref v) = params.user_id {
-            count_q = count_q.bind(v);
+            count_qb.push(" AND user_id = ").push_bind(v);
         }
         if let Some(ref v) = params.event_type {
-            count_q = count_q.bind(v);
+            count_qb.push(" AND event_type = ").push_bind(v);
         }
         if let Some(ref v) = params.result {
-            count_q = count_q.bind(v);
+            count_qb.push(" AND result = ").push_bind(v);
         }
         if let Some(ref v) = params.from {
-            count_q = count_q.bind(v);
+            count_qb.push(" AND created_at >= ").push_bind(v);
         }
         if let Some(ref v) = params.to {
-            count_q = count_q.bind(v);
+            count_qb.push(" AND created_at <= ").push_bind(v);
         }
 
         let start = std::time::Instant::now();
-        let total_count = count_q.fetch_one(&self.pool).await?;
+        let total_count: i64 = count_qb.build_query_scalar().fetch_one(&self.pool).await?;
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("search_count", "audit_logs", start.elapsed().as_secs_f64());
         }
 
-        // データクエリ
-        let mut data_q = sqlx::query_as::<_, AuditLogRow>(&data_query);
+        // DATA クエリ: COUNT クエリと同一条件で QueryBuilder を使用する
+        let mut data_qb = sqlx::QueryBuilder::new(
+            "SELECT id, event_type, user_id, ip_address, user_agent, resource, resource_id, action, result, detail, trace_id, created_at FROM auth.audit_logs WHERE 1=1",
+        );
+
         if let Some(ref v) = params.user_id {
-            data_q = data_q.bind(v);
+            data_qb.push(" AND user_id = ").push_bind(v);
         }
         if let Some(ref v) = params.event_type {
-            data_q = data_q.bind(v);
+            data_qb.push(" AND event_type = ").push_bind(v);
         }
         if let Some(ref v) = params.result {
-            data_q = data_q.bind(v);
+            data_qb.push(" AND result = ").push_bind(v);
         }
         if let Some(ref v) = params.from {
-            data_q = data_q.bind(v);
+            data_qb.push(" AND created_at >= ").push_bind(v);
         }
         if let Some(ref v) = params.to {
-            data_q = data_q.bind(v);
+            data_qb.push(" AND created_at <= ").push_bind(v);
         }
-        data_q = data_q.bind(params.page_size as i64);
-        data_q = data_q.bind(offset as i64);
+
+        // ページネーション用の ORDER BY / LIMIT / OFFSET を追加する
+        data_qb
+            .push(" ORDER BY created_at DESC LIMIT ")
+            .push_bind(params.page_size as i64)
+            .push(" OFFSET ")
+            .push_bind(offset as i64);
 
         let start = std::time::Instant::now();
-        let rows: Vec<AuditLogRow> = data_q.fetch_all(&self.pool).await?;
+        let rows: Vec<AuditLogRow> = data_qb
+            .build_query_as::<AuditLogRow>()
+            .fetch_all(&self.pool)
+            .await?;
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("search", "audit_logs", start.elapsed().as_secs_f64());
         }

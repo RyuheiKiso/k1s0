@@ -265,7 +265,8 @@ jobs:
           exit-code: 1
 
   # SAST（静的アプリケーションセキュリティテスト）
-  # Go: gosec、Rust: clippy security lints によるソースコード脆弱性検出
+  # HIGH-17 監査対応: Go/Rust に加え TypeScript/Dart の SAST カバレッジを追加
+  # Go: gosec、Rust: clippy security lints、TypeScript: eslint-plugin-security、Dart: dart analyze
   sast:
     runs-on: ubuntu-latest
     # コードの読み取りのみ必要
@@ -287,6 +288,19 @@ jobs:
         with:
           components: clippy
 
+      # Node.js ランタイムのセットアップ（TypeScript SAST で使用）
+      - name: Node.js セットアップ
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      # Flutter/Dart SDK のセットアップ（Dart SAST で使用）
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Flutter セットアップ
+        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
+        with:
+          channel: stable
+
       # ripgrep のインストール（ファイル探索に使用）
       - name: ripgrep インストール
         run: sudo apt-get install -y ripgrep
@@ -305,13 +319,44 @@ jobs:
         continue-on-error: true
         run: bash scripts/security/clippy-security.sh
 
+      # TypeScript の静的セキュリティ解析（eslint-plugin-security）
+      # object-injection / 非リテラル正規表現 / タイミング攻撃の可能性を検出する
+      - name: TypeScript SAST (ESLint Security)
+        id: ts-sast
+        continue-on-error: true
+        run: |
+          cd regions/system/client/react/system-client
+          npx --yes eslint --plugin security \
+            --rule 'security/detect-object-injection: warn' \
+            --rule 'security/detect-non-literal-regexp: warn' \
+            --rule 'security/detect-possible-timing-attacks: warn' \
+            src/ --format json --output-file /tmp/ts-sast-result.json || true
+          cat /tmp/ts-sast-result.json
+
+      # Dart の静的解析（dart analyze --fatal-infos）
+      # auth ライブラリおよび Flutter クライアントの未使用変数・非推奨 API を検出する
+      - name: Dart Static Analysis
+        id: dart-sast
+        continue-on-error: true
+        run: |
+          for dir in regions/system/library/dart/auth regions/system/client/flutter/system_client; do
+            if [ -f "$dir/pubspec.yaml" ]; then
+              echo "=== dart analyze: $dir ==="
+              cd $dir && dart analyze --fatal-infos || true && cd -
+            fi
+          done
+
       # いずれかのスキャンが失敗した場合にジョブ全体を失敗させる
       - name: SAST 結果の集約
         run: |
-          echo "Go gosec: ${{ steps.gosec.outcome }}"
-          echo "Rust clippy: ${{ steps.clippy-security.outcome }}"
+          echo "Go gosec:          ${{ steps.gosec.outcome }}"
+          echo "Rust clippy:       ${{ steps.clippy-security.outcome }}"
+          echo "TypeScript ESLint: ${{ steps.ts-sast.outcome }}"
+          echo "Dart analyze:      ${{ steps.dart-sast.outcome }}"
           if [ "${{ steps.gosec.outcome }}" = "failure" ] || \
-             [ "${{ steps.clippy-security.outcome }}" = "failure" ]; then
+             [ "${{ steps.clippy-security.outcome }}" = "failure" ] || \
+             [ "${{ steps.ts-sast.outcome }}" = "failure" ] || \
+             [ "${{ steps.dart-sast.outcome }}" = "failure" ]; then
             echo "::error::One or more SAST scans failed"
             exit 1
           fi

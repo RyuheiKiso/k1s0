@@ -218,11 +218,22 @@ impl FileGrpcService {
     }
 
     /// ファイルを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
-    pub async fn delete_file(&self, id: String) -> Result<(), GrpcError> {
+    /// CRIT-01 監査対応: tenant_id と expected_uploader を DELETE 条件に追加してアトミックな認可チェックを実現する。
+    /// gRPC 呼び出し元はリクエストメタデータから取得したテナントID・認証済みユーザーIDを渡す責任を持つ。
+    pub async fn delete_file(
+        &self,
+        id: String,
+        tenant_id: String,
+        expected_uploader: Option<String>,
+    ) -> Result<(), GrpcError> {
         if id.is_empty() {
             return Err(GrpcError::InvalidArgument("id is required".to_string()));
         }
-        let input = DeleteFileInput { file_id: id };
+        let input = DeleteFileInput {
+            file_id: id,
+            tenant_id,
+            expected_uploader,
+        };
         self.delete_file_uc.execute(&input).await.map_err(|e| {
             use crate::usecase::delete_file::DeleteFileError;
             match e {

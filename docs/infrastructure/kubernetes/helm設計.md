@@ -997,6 +997,39 @@ kind delete cluster --name k1s0-local
 | `unknown field "xxx"` (cert-manager リソース) | cert-manager CRD の未インストール | 3-1 節の cert-manager CRD インストール手順を実行してから再試行する |
 | `unknown field "xxx"` (Istio リソース) | Istio CRD の未インストール | 3-1 節の Istio CRD インストール手順を実行してから再試行する |
 
+## ローカル開発・CI/CD での注意事項（HELM-01/HELM-02 監査対応）
+
+### ローカル開発時の Helm 依存関係解決（HELM-02 対応）
+
+`Chart.yaml` の依存クレート `k1s0-common` は本番では `oci://harbor.k1s0.io/helm-charts` から取得するが、
+ローカル開発時は `oci://` 参照が外部からアクセスできないため、`file://` 参照に変更してから `helm dependency update` を実行すること。
+
+```bash
+# ローカル開発時のみ（コミット禁止）
+sed -i 's|oci://harbor.k1s0.io/helm-charts|file://../../../../helm/charts|' \
+  infra/helm/services/system/auth/Chart.yaml
+helm dependency update infra/helm/services/system/auth/
+```
+
+> **注意**: この変更はコミットしないこと。本番 CI/CD では `oci://harbor.k1s0.io/helm-charts` を使用する。
+> system / service tier と business tier ではパス深度が異なるため、相対パス数を合わせること。
+
+### CI/CD でのイメージレジストリ・タグ上書き（HELM-01 対応）
+
+`k1s0-common/values.yaml` の `image.registry` はプレースホルダー `harbor.internal.example.com`。
+デプロイ時は必ず CI/CD パイプラインから `--set` フラグで上書きすること。
+
+```bash
+# CI/CD パイプラインでの Helm デプロイ例
+helm upgrade --install auth-server infra/helm/services/system/auth/ \
+  --set image.registry=YOUR_REGISTRY \
+  --set image.tag=${GIT_SHA} \
+  -f infra/helm/services/system/auth/values-prod.yaml
+```
+
+`image.tag` を省略すると空文字列になり、`latest` ではなくイメージプルエラーになる可能性がある。
+必ず Git SHA またはセマンティックバージョンを指定すること。
+
 ## 関連ドキュメント
 
 - [kubernetes設計](kubernetes設計.md)

@@ -79,7 +79,18 @@ class AuthClient {
     return http.get(url, headers: headers);
   }
 
-  static void _defaultRedirect(String url) {}
+  // デフォルトのリダイレクトハンドラ。
+  // redirect オプションが未設定の場合に呼ばれ、開発者に設定漏れを気づかせるために例外を投げる。
+  // サイレントに失敗すると認証フローが無音で止まるため、必ず明示的なエラーとして通知する。
+  static void _defaultRedirect(String url) {
+    // デフォルトのリダイレクト実装が設定されていません。
+    // AuthClientOptions.redirect を使用してリダイレクトハンドラを注入してください。
+    throw UnimplementedError(
+      'redirect handler not configured. '
+      'Please provide a redirect handler via AuthClientOptions.redirect. '
+      'Example: AuthClientOptions(redirect: (url) => launchUrl(Uri.parse(url)))',
+    );
+  }
 
   static String _defaultGenerateState() {
     return generateCodeVerifier();
@@ -170,9 +181,13 @@ class AuthClient {
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    // FE-09 監査対応: refresh_token は一部 IdP では省略される場合があるため nullable として扱う。
+    // null の場合は空文字で初期化し、リフレッシュ時のエラーハンドリングで対処する。
+    final rawRefreshToken = data['refresh_token'];
+    final refreshToken = rawRefreshToken != null ? rawRefreshToken as String : '';
     final tokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
+      refreshToken: refreshToken,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),

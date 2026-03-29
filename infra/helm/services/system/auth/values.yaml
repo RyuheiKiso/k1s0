@@ -37,7 +37,7 @@ vault:
   enabled: true
   role: "system"
   secrets:
-    - path: "secret/data/k1s0/system/auth/database"
+    - path: "secret/data/k1s0/system/auth-server/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
 

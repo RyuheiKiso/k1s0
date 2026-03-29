@@ -27,7 +27,8 @@ impl TokenVerifier for TestTokenVerifier {
             Ok(Claims {
                 sub: "test-user-1".to_string(),
                 iss: "test-issuer".to_string(),
-                aud: "test-audience".to_string(),
+                // aud を Vec<String> で設定する（複数 audience 対応）
+                aud: vec!["test-audience".to_string()],
                 exp: chrono::Utc::now().timestamp() + 3600,
                 iat: chrono::Utc::now().timestamp(),
                 preferred_username: "test.user".to_string(),

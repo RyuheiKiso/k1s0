@@ -163,6 +163,41 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         let result = sqlx::query(&sql).bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)
     }
+
+    /// CRIT-01 監査対応: テナントIDと所有者IDを DELETE 条件に追加してアトミックな認可チェックを実現する。
+    /// storage_path が tenant_id_prefix で始まる行のみ削除することで、
+    /// 認可チェックと削除の間に生じる TOCTOU 競合を防ぐ。
+    /// expected_uploader が Some の場合は uploaded_by カラムも条件に追加する。
+    async fn delete_with_tenant_check(
+        &self,
+        id: String,
+        tenant_id_prefix: String,
+        expected_uploader: Option<String>,
+    ) -> anyhow::Result<bool> {
+        let result = if let Some(ref uploader) = expected_uploader {
+            let sql = format!(
+                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 AND uploaded_by = $3",
+                self.table_name
+            );
+            sqlx::query(&sql)
+                .bind(&id)
+                .bind(format!("{}%", tenant_id_prefix))
+                .bind(uploader)
+                .execute(&self.pool)
+                .await?
+        } else {
+            let sql = format!(
+                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2",
+                self.table_name
+            );
+            sqlx::query(&sql)
+                .bind(&id)
+                .bind(format!("{}%", tenant_id_prefix))
+                .execute(&self.pool)
+                .await?
+        };
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {

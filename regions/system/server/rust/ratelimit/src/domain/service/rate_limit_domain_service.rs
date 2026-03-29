@@ -38,22 +38,22 @@ impl RateLimitDomainService {
         Ok(())
     }
 
+    /// 有効なリミットとウィンドウ秒数を決定する。
+    /// LOW-11 対応: ルールが未設定の場合、外部リクエストの window_secs を使用せずに
+    /// サーバー側の default_window_seconds を採用する。
+    /// これにより、クライアントが任意のウィンドウを指定してレートリミットを迂回することを防ぐ。
+    /// ルールが設定されている場合は、ルール側の window_seconds が常に優先される。
     pub fn effective_limit_and_window(
         matched_rule: Option<&RateLimitRule>,
         default_limit: u32,
         default_window_seconds: u32,
-        requested_window_seconds: i64,
+        _requested_window_seconds: i64,
     ) -> (u32, u32) {
         matched_rule
             .map(|rule| (rule.limit, rule.window_seconds))
-            .unwrap_or((
-                default_limit,
-                if requested_window_seconds > 0 {
-                    requested_window_seconds as u32
-                } else {
-                    default_window_seconds
-                },
-            ))
+            // LOW-11: ルール未設定時はサーバー側のデフォルト値のみを使用し、
+            // クライアント指定の window_secs は無視する（セキュリティ上の最小権限原則）
+            .unwrap_or((default_limit, default_window_seconds))
     }
 
     pub fn resolve_algorithm(matched_rule: Option<&RateLimitRule>) -> Algorithm {

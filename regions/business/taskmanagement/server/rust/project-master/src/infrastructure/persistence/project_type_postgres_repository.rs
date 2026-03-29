@@ -85,7 +85,8 @@ impl ProjectTypeRepository for ProjectTypePostgresRepository {
     }
 
     async fn find_all(&self, filter: &ProjectTypeFilter) -> anyhow::Result<Vec<ProjectType>> {
-        let limit = filter.limit.unwrap_or(50);
+        // limit は最大 100 にクランプして、意図しない大量取得によるリソース枯渇を防止する
+        let limit = filter.limit.unwrap_or(50).min(100);
         let offset = filter.offset.unwrap_or(0);
         let rows = sqlx::query_as::<_, ProjectTypeRow>(
             r#"

@@ -46,7 +46,9 @@ fn convert_claims(c: k1s0_auth::Claims) -> Claims {
     Claims {
         sub: c.sub,
         iss: c.iss,
-        aud: c.aud.0.first().cloned().unwrap_or_default(),
+        // ライブラリの Audience(Vec<String>) を Vec<String> としてそのまま変換する。
+        // 先頭要素のみ取得する旧実装では複数 audience が失われていたため修正。
+        aud: c.aud.0,
         exp: c.exp as i64,
         iat: c.iat as i64,
         jti: c.jti.unwrap_or_default(),
@@ -98,7 +100,8 @@ mod tests {
 
         assert_eq!(server_claims.sub, "user-uuid-1234");
         assert_eq!(server_claims.iss, "https://auth.example.com/realms/k1s0");
-        assert_eq!(server_claims.aud, "k1s0-api");
+        // aud は Vec<String> として複数値が保持される
+        assert_eq!(server_claims.aud, vec!["k1s0-api".to_string(), "other-api".to_string()]);
         assert_eq!(server_claims.exp, 1710000900);
         assert_eq!(server_claims.iat, 1710000000);
         assert_eq!(server_claims.jti, "token-uuid-5678");
@@ -149,7 +152,8 @@ mod tests {
 
         assert_eq!(server_claims.sub, "user-1");
         assert_eq!(server_claims.iss, "issuer");
-        assert_eq!(server_claims.aud, "");
+        // aud が空配列の場合は空 Vec として変換される
+        assert!(server_claims.aud.is_empty());
         assert_eq!(server_claims.exp, 100);
         assert_eq!(server_claims.iat, 50);
         assert_eq!(server_claims.jti, "");

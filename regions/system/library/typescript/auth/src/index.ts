@@ -8,8 +8,11 @@ export type {
   DeviceTokenResponse,
 } from './device-flow.js';
 export { generateCodeVerifier, generateCodeChallenge, base64UrlEncode } from './pkce.js';
-// DevLocalStorageTokenStore は開発・テスト専用。本番環境での使用は禁止。
-export { MemoryTokenStore, DevLocalStorageTokenStore } from './token-store.js';
+export { MemoryTokenStore } from './token-store.js';
+// @deprecated DevLocalStorageTokenStore は開発・テスト専用です。本番環境での使用は禁止されています。
+// XSS 攻撃に脆弱なため、本番環境では SecureTokenStore を使用してください。
+// 将来のバージョンでは dev サブパス（@k1s0/auth/dev）に移動予定です。
+export { DevLocalStorageTokenStore } from './token-store.js';
 export type {
   AuthConfig,
   TokenResponse,

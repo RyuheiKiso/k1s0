@@ -209,7 +209,9 @@ fn domain_claims_to_proto(c: &Claims) -> TokenClaims {
     TokenClaims {
         sub: c.sub.clone(),
         iss: c.iss.clone(),
-        aud: c.aud.clone(),
+        // proto の TokenClaims.aud は string 型のため、Vec の先頭要素を使用する。
+        // 複数 audience は内部的に Vec<String> で保持されるが、gRPC レスポンスでは先頭値を返す。
+        aud: c.aud.first().cloned().unwrap_or_default(),
         exp: c.exp,
         iat: c.iat,
         jti: c.jti.clone(),
@@ -262,7 +264,8 @@ mod tests {
         Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid-5678".to_string(),

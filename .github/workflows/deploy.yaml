@@ -9,6 +9,27 @@ on:
     branches: [main]
     paths-ignore:
       # 個別 Deploy ワークフローがカバーするサービスパス（重複実行の回避）
+      #
+      # ========== paths-ignore 維持管理注意 ==========
+      # 以下の6サービスは専用の *-deploy.yaml ワークフローが存在するため除外している。
+      # このファイルの自動検出ロジック（detect-services ジョブ）はこれらを検出対象から
+      # 外すことで同一コミットに対するデプロイの二重実行を防いでいる。
+      #
+      # 除外対象サービスと除外理由:
+      #   auth         → auth-deploy.yaml が専用デプロイ（カナリアリリース戦略を使用）
+      #   app-registry → app-registry-deploy.yaml が専用デプロイ
+      #   config       → config-deploy.yaml が専用デプロイ（設定変更は段階的ロールアウト）
+      #   saga         → saga-deploy.yaml が専用デプロイ（Saga 補償処理の安全な切替が必要）
+      #   dlq-manager  → dlq-manager-deploy.yaml が専用デプロイ
+      #   bff-proxy    → bff-proxy-deploy.yaml が専用デプロイ（Kong 設定同期を含む）
+      #
+      # 上記以外のすべてのサービスは detect-services ジョブが自動検出してデプロイする。
+      # 新しい個別 *-deploy.yaml を追加した場合は、ここにも除外パスを追加すること。
+      #
+      # CICD-02: 将来タスク — paths-ignore の自動同期化
+      #   現状は手動管理。scripts/sync-paths-ignore.sh 等で *-deploy.yaml の paths: を
+      #   読み取り deploy.yaml の paths-ignore を自動生成する仕組みの導入を推奨する。
+      # ================================================
       - 'regions/system/server/rust/auth/**'
       - 'regions/system/server/rust/app-registry/**'
       - 'regions/system/server/rust/config/**'
@@ -42,11 +63,33 @@ jobs:
       - id: detect
         name: Detect changed services
         run: |
-          # ディレクトリ構成図.md に基づくサービス検出:
-          #   system:   regions/system/server/{lang}/{service}/...
-          #   business: regions/business/{domain}/server/{lang}/{service}/...
-          #   service:  regions/service/{service}/server/{lang}/...
-          # infra/helm/services/ 変更時は対応するサービスを逆引きしてデプロイ対象に含める
+          # CICD-02: 動的サービス検出ロジック
+          #
+          # 概要:
+          #   このジョブは git diff でコミット間の変更ファイルを取得し、
+          #   ディレクトリパスからデプロイ対象サービスを自動的に導出する。
+          #   パスの除外（paths-ignore）は GitHub Actions が行うため、
+          #   ここに到達する変更は自動デプロイ対象のサービスのみである。
+          #
+          # 対応するディレクトリ構造（docs/architecture/ディレクトリ構成図.md 準拠）:
+          #   system tier:   regions/system/server/{lang}/{service}/...
+          #                  → デプロイキー: system/server/{lang}/{service}
+          #   business tier: regions/business/{domain}/server/{lang}/{service}/...
+          #                  → デプロイキー: business/{domain}/server/{lang}/{service}
+          #   service tier:  regions/service/{service}/server/{lang}/...
+          #                  → デプロイキー: service/{service}/server/{lang}
+          #
+          # Helm chart 変更のサービス逆引きマッピング:
+          #   infra/helm/services/system/{service}/**   → system/server/{service}
+          #   infra/helm/services/business/{svc}/**    → business/{svc}/server
+          #   infra/helm/services/service/{svc}/**     → service/{svc}/server
+          #   （Helm chart のみ変更された場合もアプリコードと同一のデプロイフローを実行する）
+          #
+          # 除外サービス（paths-ignore で除外済み、専用 *-deploy.yaml が存在）:
+          #   auth / app-registry / config / saga / dlq-manager / bff-proxy
+          #
+          # 自動検出対象サービス（paths-ignore 除外なし、このジョブが検出）:
+          #   上記6サービス以外のすべての system/business/service tier サービス
           CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
             (grep -E '^(regions/|infra/helm/services/)' || true) | \
             sed 's|^infra/helm/services/||; s|^regions/||' | \

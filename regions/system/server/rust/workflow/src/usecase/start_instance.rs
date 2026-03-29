@@ -10,7 +10,7 @@ use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
 use crate::usecase::postgres_support::{insert_instance_tx, insert_task_tx};
-use tracing::warn;
+use tracing::error;
 
 #[derive(Debug, Clone)]
 pub struct StartInstanceInput {
@@ -103,7 +103,10 @@ impl StartInstanceUseCase {
             .first_step()
             .ok_or_else(|| StartInstanceError::NoSteps(input.workflow_id.clone()))?;
 
-        let instance_id = format!("inst_{}", uuid::Uuid::new_v4().simple());
+        // LOW-09 対応: 非標準の "inst_" プレフィックス付き ID から標準 UUID v4 文字列に変更する。
+        // DB の UUID 型との互換性を確保するため、to_string() で標準ハイフン区切り形式（RFC 4122）を使用する。
+        // 注意: 既存データの instance_id フォーマットは変更しない（新規作成のみ適用）。
+        let instance_id = uuid::Uuid::new_v4().to_string();
         let instance = WorkflowInstance::new(
             instance_id.clone(),
             definition.id.clone(),
@@ -114,7 +117,8 @@ impl StartInstanceUseCase {
             input.context.clone(),
         );
 
-        let task_id = format!("task_{}", uuid::Uuid::new_v4().simple());
+        // LOW-09: task_id も同様に標準 UUID v4 文字列に変更する
+        let task_id = uuid::Uuid::new_v4().to_string();
         let due_at = WorkflowDomainService::task_due_at(first_step.timeout_hours);
         let task = WorkflowTask::new(
             task_id,
@@ -156,11 +160,12 @@ impl StartInstanceUseCase {
             .publish_instance_started(&instance)
             .await
         {
-            warn!(
+            // Kafka 配信失敗はデータ損失リスクがあるため error! レベルで記録する
+            error!(
                 instance_id = %instance.id,
                 workflow_id = %instance.workflow_id,
                 error = %err,
-                "failed to publish workflow instance started event"
+                "workflow インスタンス開始イベントの Kafka 配信に失敗しました"
             );
         }
 

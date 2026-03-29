@@ -47,13 +47,25 @@ class NavigationGuard {
   final String redirectTo;
   final List<String> roles;
 
-  factory NavigationGuard.fromJson(Map<String, dynamic> json) =>
-      NavigationGuard(
-        id: json['id'] as String,
-        type: GuardType.fromString(json['type'] as String),
-        redirectTo: json['redirect_to'] as String,
-        roles: (json['roles'] as List<dynamic>?)?.cast<String>() ?? [],
-      );
+  factory NavigationGuard.fromJson(Map<String, dynamic> json) {
+    // FE-06 対応: NavigationGuard の必須フィールドバリデーション
+    // id・type・redirect_to が欠落していると GoRouter が不正な状態になるため明示的に検証する
+    if (json['id'] == null || (json['id'] as String).isEmpty) {
+      throw FormatException('NavigationGuard: "id" フィールドが必須です');
+    }
+    if (json['type'] == null) {
+      throw FormatException('NavigationGuard[${json['id']}]: "type" フィールドが必須です');
+    }
+    if (json['redirect_to'] == null || (json['redirect_to'] as String).isEmpty) {
+      throw FormatException('NavigationGuard[${json['id']}]: "redirect_to" フィールドが必須です');
+    }
+    return NavigationGuard(
+      id: json['id'] as String,
+      type: GuardType.fromString(json['type'] as String),
+      redirectTo: json['redirect_to'] as String,
+      roles: (json['roles'] as List<dynamic>?)?.cast<String>() ?? [],
+    );
+  }
 }
 
 class NavigationRoute {
@@ -77,25 +89,34 @@ class NavigationRoute {
   final List<NavigationRoute> children;
   final List<NavigationParam> params;
 
-  factory NavigationRoute.fromJson(Map<String, dynamic> json) =>
-      NavigationRoute(
-        id: json['id'] as String,
-        path: json['path'] as String,
-        componentId: json['component_id'] as String?,
-        guards: (json['guards'] as List<dynamic>?)?.cast<String>() ?? [],
-        transition: json['transition'] as String?,
-        redirectTo: json['redirect_to'] as String?,
-        children: (json['children'] as List<dynamic>?)
-                ?.map(
-                    (c) => NavigationRoute.fromJson(c as Map<String, dynamic>))
-                .toList() ??
-            [],
-        params: (json['params'] as List<dynamic>?)
-                ?.map(
-                    (p) => NavigationParam.fromJson(p as Map<String, dynamic>))
-                .toList() ??
-            [],
-      );
+  factory NavigationRoute.fromJson(Map<String, dynamic> json) {
+    // FE-06 対応: NavigationRoute の必須フィールドバリデーション
+    // id・path が欠落すると GoRouter がルートを正しく構築できないため検証する
+    if (json['id'] == null || (json['id'] as String).isEmpty) {
+      throw FormatException('NavigationRoute: "id" フィールドが必須です');
+    }
+    if (json['path'] == null || (json['path'] as String).isEmpty) {
+      throw FormatException('NavigationRoute[${json['id']}]: "path" フィールドが必須です');
+    }
+    return NavigationRoute(
+      id: json['id'] as String,
+      path: json['path'] as String,
+      componentId: json['component_id'] as String?,
+      guards: (json['guards'] as List<dynamic>?)?.cast<String>() ?? [],
+      transition: json['transition'] as String?,
+      redirectTo: json['redirect_to'] as String?,
+      children: (json['children'] as List<dynamic>?)
+              ?.map(
+                  (c) => NavigationRoute.fromJson(c as Map<String, dynamic>))
+              .toList() ??
+          [],
+      params: (json['params'] as List<dynamic>?)
+              ?.map(
+                  (p) => NavigationParam.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
 }
 
 class NavigationResponse {
@@ -104,15 +125,21 @@ class NavigationResponse {
   final List<NavigationRoute> routes;
   final List<NavigationGuard> guards;
 
-  factory NavigationResponse.fromJson(Map<String, dynamic> json) =>
-      NavigationResponse(
-        routes: (json['routes'] as List<dynamic>)
-            .map((r) => NavigationRoute.fromJson(r as Map<String, dynamic>))
-            .toList(),
-        guards: (json['guards'] as List<dynamic>? ?? [])
-            .map((g) => NavigationGuard.fromJson(g as Map<String, dynamic>))
-            .toList(),
-      );
+  factory NavigationResponse.fromJson(Map<String, dynamic> json) {
+    // FE-06 対応: NavigationResponse のトップレベル必須フィールドバリデーション
+    // routes フィールドが欠落している場合は不正なレスポンスとして拒否する
+    if (json['routes'] == null) {
+      throw FormatException('NavigationResponse: "routes" フィールドが必須です');
+    }
+    return NavigationResponse(
+      routes: (json['routes'] as List<dynamic>)
+          .map((r) => NavigationRoute.fromJson(r as Map<String, dynamic>))
+          .toList(),
+      guards: (json['guards'] as List<dynamic>? ?? [])
+          .map((g) => NavigationGuard.fromJson(g as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 
   factory NavigationResponse.fromYaml(String yamlStr) {
     final yaml = loadYaml(yamlStr);

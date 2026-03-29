@@ -153,6 +153,12 @@ fn default_page_size() -> i32 {
     20
 }
 
+/// テナント一覧レスポンス。
+/// LOW-10 確認: ページネーション形式は他サービスと統一されている。
+/// auth サーバーの Pagination 構造体（total_count, page, page_size, has_next）と同一形式。
+/// TODO(LOW-10): cursor ベースのページネーション（after_cursor フィールド等）への移行を検討すること。
+///   大規模データ取得時に OFFSET ベースではパフォーマンス劣化が発生するため、
+///   keyset ページネーション化が推奨される（vault の list_audit_logs と同様の課題）。
 #[derive(Debug, Serialize)]
 pub struct ListTenantsResponse {
     pub tenants: Vec<TenantResponse>,
@@ -164,8 +170,22 @@ pub struct ListTenantsResponse {
 
 // --- Handlers ---
 
-pub async fn healthz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ok"}))
+pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+    // INFRA-03 監査対応: DB 接続確認を追加し、DB 障害時は 503 を返す
+    if let Some(pool) = &state.db_pool {
+        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!(error = %e, "DB ヘルスチェックに失敗しました");
+                return (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({"status": "error", "service": "tenant", "detail": "database unavailable"})),
+                )
+                    .into_response();
+            }
+        }
+    }
+    Json(serde_json::json!({"status": "ok", "service": "tenant"})).into_response()
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {

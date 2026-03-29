@@ -76,8 +76,21 @@ impl FileMetadata {
     }
 
     /// ストレージキーを生成する
-    /// パストラバーサル攻撃を防ぐため、ファイル名に親ディレクトリ参照や絶対パスが含まれていないか検証する
+    /// MED-03: tenant_id と filename の両方に対してパストラバーサル攻撃を防ぐバリデーションを実施する。
+    /// tenant_id に '/' や '..' が含まれていると {tenant_id}/{filename} のテナント境界が破れる。
     pub fn generate_storage_path(tenant_id: &str, filename: &str) -> Result<String, FileError> {
+        // tenant_id がスラッシュ・バックスラッシュ・ドット連続を含む場合は拒否する
+        // （例: "tenant-a/../tenant-b" でテナント境界を突破するパス操作を防止）
+        if tenant_id.is_empty()
+            || tenant_id.contains('/')
+            || tenant_id.contains('\\')
+            || tenant_id.contains("..")
+        {
+            return Err(FileError::InvalidFileName(
+                "テナントIDに不正な文字が含まれています".to_string(),
+            ));
+        }
+
         let path = Path::new(filename);
         // 絶対パスや親ディレクトリ参照を拒否する（防御的バリデーション）
         if path.is_absolute()
@@ -199,6 +212,35 @@ mod tests {
             FileError::InvalidFileName(_) => {}
             e => panic!("expected InvalidFileName, got {:?}", e),
         }
+    }
+
+    #[test]
+    fn generate_storage_path_rejects_tenant_id_with_slash() {
+        // MED-03: tenant_id にスラッシュが含まれる場合はエラーを返す（テナント境界突破防止）
+        let result = FileMetadata::generate_storage_path("tenant-a/tenant-b", "file.txt");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            FileError::InvalidFileName(_) => {}
+            e => panic!("expected InvalidFileName, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn generate_storage_path_rejects_tenant_id_with_traversal() {
+        // MED-03: tenant_id に ".." が含まれる場合はエラーを返す（パストラバーサル防止）
+        let result = FileMetadata::generate_storage_path("tenant-a/../tenant-b", "file.txt");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            FileError::InvalidFileName(_) => {}
+            e => panic!("expected InvalidFileName, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn generate_storage_path_rejects_empty_tenant_id() {
+        // MED-03: テナントIDが空の場合はエラーを返す
+        let result = FileMetadata::generate_storage_path("", "file.txt");
+        assert!(result.is_err());
     }
 
     #[test]

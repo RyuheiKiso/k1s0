@@ -43,6 +43,10 @@ chrono = {workspace = true}
 anyhow = {workspace = true}
 thiserror = {workspace = true}
 async-trait = {workspace = true}
+# MED-12 監査対応: 256bit (32byte) のセキュアなランダムトークン生成に使用する
+rand = "0.8"
+# MED-12 監査対応: ランダムバイト列を URL-safe Base64 文字列にエンコードするために使用する
+base64 = "0.22"
 
 # Logging / Tracing
 tracing = {workspace = true}

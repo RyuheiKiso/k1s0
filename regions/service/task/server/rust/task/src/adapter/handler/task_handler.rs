@@ -1,8 +1,8 @@
 // タスク REST ハンドラー。
 // Claims 拡張から認証ユーザー ID を取得してユースケースに渡す。
 // RLS テナント分離のため Claims::tenant_id() メソッドを使用して tenant_id を取得する。
-// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
-// 未設定の場合は "system" をデフォルト値として使用する。
+// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先する。
+// Claims が存在しない（未認証）場合は 401 Unauthorized を返す。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::task::{AddChecklistItem, CreateTask, TaskFilter, UpdateChecklistItem, UpdateTask, UpdateTaskStatus};
 use axum::{
@@ -33,27 +33,30 @@ fn map_err(e: anyhow::Error) -> ServiceError {
     }
 }
 
-/// Claims から tenant_id を取得するヘルパー。
-/// Claims が存在する場合は Claims::tenant_id() を使用し、
-/// Claims が存在しない場合は "system" を返す。
-/// Claims::tenant_id() は tenant_id カスタムクレーム（Keycloak Protocol Mapper 設定済み）を優先する。
-fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
-    claims
-        .map(|c| c.tenant_id())
-        .unwrap_or("system")
-}
-
 pub async fn list_tasks(
     State(state): State<AppState>,
     claims: Option<axum::extract::Extension<Claims>>,
     Query(q): Query<ListTasksQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // MED-14 監査対応: status パース失敗時に None で無視するのではなく 400 Bad Request を返す。
+    // 無効なステータス値（例: "invalid_status"）でも検索が実行されると全件ヒットする可能性があり
+    // ユーザーの意図と異なる結果を返すためエラーとして扱う。
+    let status = match q.status.as_deref() {
+        None => None,
+        Some(s) => Some(s.parse::<crate::domain::entity::task::TaskStatus>().map_err(|e| {
+            ServiceError::bad_request("TASK", format!("無効なステータス値です: {}", e))
+        })?),
+    };
     let filter = TaskFilter {
         project_id: q.project_id,
         assignee_id: q.assignee_id,
-        status: q.status.as_deref().and_then(|s| s.parse().ok()),
+        status,
         limit: q.limit,
         offset: q.offset,
     };
@@ -66,8 +69,12 @@ pub async fn get_task(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let task = state
         .get_task_uc
         .execute(tenant_id, id)
@@ -86,10 +93,14 @@ pub async fn create_task(
     claims: Option<axum::extract::Extension<Claims>>,
     Json(mut input): Json<CreateTask>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "system" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     // reporter_id が未設定の場合、actor（リクエスト送信者）を reporter_id として設定する
     if input.reporter_id.is_none() {
         input.reporter_id = Some(actor.clone());
@@ -109,10 +120,14 @@ pub async fn update_task_status(
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateTaskStatus>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "system" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let task = state
         .update_task_status_uc
         .execute(tenant_id, id, &input, &actor)
@@ -126,8 +141,12 @@ pub async fn get_checklist(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let items = state.get_task_uc.get_checklist(tenant_id, id).await.map_err(map_err)?;
     Ok(Json(serde_json::json!({ "checklist": items })))
 }
@@ -139,10 +158,14 @@ pub async fn update_task(
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateTask>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "system" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let task = state
         .update_task_uc
         .execute(tenant_id, id, &input, &actor)
@@ -158,8 +181,12 @@ pub async fn create_checklist_item(
     Path(task_id): Path<Uuid>,
     Json(input): Json<AddChecklistItem>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let item = state
         .create_checklist_item_uc
         .execute(tenant_id, task_id, &input)
@@ -175,8 +202,12 @@ pub async fn update_checklist_item(
     Path((task_id, item_id)): Path<(Uuid, Uuid)>,
     Json(input): Json<UpdateChecklistItem>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let item = state
         .update_checklist_item_uc
         .execute(tenant_id, task_id, item_id, &input)
@@ -191,8 +222,12 @@ pub async fn delete_checklist_item(
     claims: Option<axum::extract::Extension<Claims>>,
     Path((task_id, item_id)): Path<(Uuid, Uuid)>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("TASK", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     state
         .delete_checklist_item_uc
         .execute(tenant_id, task_id, item_id)

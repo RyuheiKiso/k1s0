@@ -6,7 +6,9 @@ use std::collections::HashMap;
 pub struct Claims {
     pub sub: String,
     pub iss: String,
-    pub aud: String,
+    /// aud は JWT の audience クレームを複数値対応の Vec<String> で保持する。
+    /// RFC 7519 では aud は文字列または配列のどちらも許容されるため、Vec に統一する。
+    pub aud: Vec<String>,
     pub exp: i64,
     pub iat: i64,
     #[serde(default)]
@@ -83,7 +85,8 @@ mod tests {
         Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: 1710000900,
             iat: 1710000000,
             jti: "token-uuid-5678".to_string(),
@@ -144,7 +147,8 @@ mod tests {
         let minimal_claims = Claims {
             sub: "user-1".to_string(),
             iss: "iss".to_string(),
-            aud: "aud".to_string(),
+            // aud を Vec<String> で設定する
+            aud: vec!["aud".to_string()],
             exp: 0,
             iat: 0,
             realm_access: RealmAccess {

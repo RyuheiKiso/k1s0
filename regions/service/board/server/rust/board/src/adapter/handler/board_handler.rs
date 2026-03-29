@@ -34,6 +34,12 @@ fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
         .unwrap_or("system")
 }
 
+// MED-07 監査対応: リスト操作のデフォルト上限と最大上限を定数として定義する。
+// リクエストが上限を指定しない場合はデフォルト値を使用し、
+// 上限を超えた値が指定された場合は最大値でクランプする。
+const LIST_DEFAULT_LIMIT: i64 = 50;
+const LIST_MAX_LIMIT: i64 = 100;
+
 #[derive(Debug, Deserialize)]
 pub struct ListBoardColumnsQuery {
     pub project_id: Option<Uuid>,
@@ -47,12 +53,18 @@ pub async fn list_board_columns(
     claims: Option<axum::extract::Extension<Claims>>,
     Query(q): Query<ListBoardColumnsQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // MED-07 監査対応: limit が未指定の場合はデフォルト値を使用し、最大値を超えた場合はクランプする
+    let limit = q
+        .limit
+        .unwrap_or(LIST_DEFAULT_LIMIT)
+        .min(LIST_MAX_LIMIT)
+        .max(1);
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
     let filter = BoardColumnFilter {
         project_id: q.project_id,
         status_code: q.status_code,
-        limit: q.limit,
+        limit: Some(limit),
         offset: q.offset,
     };
     let (cols, total) = state.list_board_columns_uc.execute(tenant_id, &filter).await.map_err(map_err)?;

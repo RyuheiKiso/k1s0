@@ -48,6 +48,14 @@ pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
 /// Tier の階層レベルを返す。
 /// system(0) > business(1) > service(2) の順で上位 Tier ほど小さい値を返す。
 /// 不明な Tier は None を返す。
+///
+/// LOW-13 注記: ["system", "business", "service"] はハードコードされており、
+/// 新しい Tier の追加時にはこの関数の変更が必要となる。
+/// TODO(LOW-13): Tier 定義を設定ファイル（例: config.yaml）または環境変数から読み込む形式に移行を検討すること。
+///   実装方針:
+///   - `TierConfig { tiers: Vec<(String, u8)> }` のような設定構造体を定義する
+///   - 起動時に設定を読み込んで `tier_level` 関数に注入する
+///   - これにより、コード変更なしに Tier 定義の拡張・変更が可能になる
 fn tier_level(tier: &str) -> Option<u8> {
     match tier.to_ascii_lowercase().as_str() {
         "system" => Some(0),

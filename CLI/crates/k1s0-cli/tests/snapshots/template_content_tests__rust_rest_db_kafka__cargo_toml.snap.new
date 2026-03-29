@@ -1,0 +1,47 @@
+---
+source: crates/k1s0-cli/tests/template_content_tests.rs
+assertion_line: 160
+expression: content
+---
+[package]
+name = "task-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+tracing = "0.1"
+
+# system library (tier1 共通基盤)
+k1s0-config = { path = "../../../../system/library/rust/config" }
+k1s0-telemetry = { path = "../../../../system/library/rust/telemetry", features = ["axum-layer"] }
+k1s0-auth = { path = "../../../../system/library/rust/auth" }
+
+async-trait = "0.1"
+anyhow = "1"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+thiserror = "2"
+
+utoipa = { version = "5", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
+
+
+
+
+
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
+
+
+
+rdkafka = { version = "0.36", features = ["cmake-build"] }
+
+
+
+[dev-dependencies]
+mockall = "0.13"
+tokio = { version = "1", features = ["test-util", "macros"] }

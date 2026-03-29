@@ -57,7 +57,9 @@ impl ValidateTokenUseCase {
         }
 
         // audience の検証
-        if claims.aud != self.expected_audience {
+        // aud は Vec<String> のため、expected_audience が含まれているかどうかで判定する。
+        // RFC 7519 準拠: aud が配列の場合、少なくとも1つの値が一致すれば有効とする。
+        if !claims.aud.contains(&self.expected_audience) {
             return Err(AuthError::InvalidAudience);
         }
 
@@ -82,7 +84,8 @@ mod tests {
         Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid-5678".to_string(),
@@ -159,7 +162,8 @@ mod tests {
     async fn test_validate_token_wrong_audience() {
         let mut mock = MockTokenVerifier::new();
         let mut claims = make_valid_claims();
-        claims.aud = "wrong-audience".to_string();
+        // aud を wrong-audience のみの Vec に設定し、検証失敗を確認する
+        claims.aud = vec!["wrong-audience".to_string()];
 
         mock.expect_verify_token()
             .returning(move |_| Ok(claims.clone()));

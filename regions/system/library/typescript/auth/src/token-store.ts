@@ -56,6 +56,10 @@ export class MemoryTokenStore implements TokenStore {
  * ブラウザ環境で使用する。
  * PKCE verifier と state は sessionStorage に保存する（タブ間の分離のため）。
  *
+ * @deprecated 開発・テスト専用。本番環境では使用しないこと。
+ * XSS 攻撃に脆弱です。本番環境では `SecureTokenStore` を使用してください。
+ * @see SecureTokenStore
+ *
  * @security セキュリティ警告
  *
  * **この実装は開発・テスト用途のみを想定しています。本番環境での使用は禁止です。**
@@ -79,6 +83,22 @@ export class DevLocalStorageTokenStore implements TokenStore {
   private readonly tokenKey = 'k1s0_auth_tokens';
   private readonly verifierKey = 'k1s0_pkce_verifier';
   private readonly stateKey = 'k1s0_oauth_state';
+
+  // コンストラクタで本番環境使用を検知し、開発者に警告を発する。
+  // NODE_ENV が development/test 以外の場合はコンソールに警告を出力して誤用を防ぐ。
+  constructor() {
+    if (typeof window !== 'undefined' && !this._isDevEnvironment()) {
+      console.warn(
+        '[k1s0-auth] DevLocalStorageTokenStore は開発・テスト専用です。' +
+        '本番環境での使用は禁止されています。SecureTokenStore を使用してください。'
+      );
+    }
+  }
+
+  // NODE_ENV が development または test であるかを確認する。
+  private _isDevEnvironment(): boolean {
+    return process.env['NODE_ENV'] === 'development' || process.env['NODE_ENV'] === 'test';
+  }
 
   getTokenSet(): TokenSet | null {
     try {

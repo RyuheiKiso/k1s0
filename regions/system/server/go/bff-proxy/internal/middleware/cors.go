@@ -12,12 +12,14 @@ import (
 )
 
 // requiresCredentials はリクエストパスが credentials_paths に一致するかを判定する。
-// H-13 監査対応: 認証不要なエンドポイントに Access-Control-Allow-Credentials: true を
-// 付与しないためのパスプレフィックスマッチング。credentialsPaths が空の場合は
-// 後方互換として true を返し、すべてのオリジンに credentials を許可する。
+// LOW-07 監査対応: credentialsPaths が空（未設定）の場合は false を返す（最小権限原則）。
+// 明示的に credentials_paths を設定したパスのみ Access-Control-Allow-Credentials: true を付与する。
+// 注意: この変更により、credentials_paths を設定していない環境では全パスで credentials が false になる。
+// 既存クライアントに影響がある場合は credentials_paths に明示的なパスを設定すること。
 func requiresCredentials(path string, credentialsPaths []string) bool {
 	if len(credentialsPaths) == 0 {
-		return true
+		// LOW-07: 未設定時は false を返し、意図せず全パスで credentials を許可しない
+		return false
 	}
 	for _, prefix := range credentialsPaths {
 		if strings.HasPrefix(path, prefix) {

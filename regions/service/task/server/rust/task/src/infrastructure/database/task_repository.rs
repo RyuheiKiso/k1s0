@@ -203,15 +203,20 @@ impl TaskRepository for TaskPostgresRepository {
         .await
         .map_err(|e| TaskError::Infrastructure(e.into()))?;
 
-        // チェックリスト項目を INSERT する
-        for item in &input.checklist {
+        // チェックリスト項目を UNNEST を使ったバルク INSERT で一括挿入する（N+1 問題を回避する）
+        if !input.checklist.is_empty() {
+            let ids: Vec<Uuid> = input.checklist.iter().map(|_| Uuid::new_v4()).collect();
+            let task_ids: Vec<Uuid> = input.checklist.iter().map(|_| task_id).collect();
+            let titles: Vec<&str> = input.checklist.iter().map(|i| i.title.as_str()).collect();
+            let sort_orders: Vec<i32> = input.checklist.iter().map(|i| i.sort_order).collect();
             sqlx::query(
-                "INSERT INTO task_service.task_checklist_items (id, task_id, title, sort_order) VALUES ($1, $2, $3, $4)",
+                r#"INSERT INTO task_service.task_checklist_items (id, task_id, title, sort_order)
+                   SELECT * FROM UNNEST($1::uuid[], $2::uuid[], $3::text[], $4::int[])"#,
             )
-            .bind(Uuid::new_v4())
-            .bind(task_id)
-            .bind(&item.title)
-            .bind(item.sort_order)
+            .bind(&ids)
+            .bind(&task_ids)
+            .bind(&titles)
+            .bind(&sort_orders)
             .execute(&mut *tx)
             .await
             .map_err(|e| TaskError::Infrastructure(e.into()))?;
@@ -269,6 +274,7 @@ impl TaskRepository for TaskPostgresRepository {
             .map_err(|e| TaskError::Infrastructure(e.into()))?;
         // COALESCE で未指定フィールドは既存値を保持する（部分更新）
         // labels は jsonb 型のため COALESCE では扱えず、NULL の場合は既存値をそのまま返す
+        // WHERE 句に version = $9 を追加して楽観ロックを実装する（同時更新による競合を検出する）
         let row = sqlx::query_as::<_, TaskRow>(
             r#"UPDATE task_service.tasks
                SET title       = COALESCE($2, title),
@@ -280,7 +286,7 @@ impl TaskRepository for TaskPostgresRepository {
                    updated_by  = $8,
                    version     = version + 1,
                    updated_at  = now()
-               WHERE id = $1
+               WHERE id = $1 AND version = $9
                RETURNING id, project_id, title, description, status, priority, assignee_id, reporter_id, due_date, labels, created_by, updated_by, version, created_at, updated_at"#,
         )
         .bind(id)
@@ -291,10 +297,12 @@ impl TaskRepository for TaskPostgresRepository {
         .bind(input.due_date)
         .bind(input.labels.as_ref().map(|l| serde_json::to_value(l).ok()))
         .bind(updated_by)
+        .bind(input.expected_version)
         .fetch_optional(&mut *tx)
         .await
         .map_err(|e| TaskError::Infrastructure(e.into()))?
-        .ok_or_else(|| TaskError::NotFound(format!("Task '{}' not found", id)))?;
+        // バージョン不一致（楽観ロック競合）と NotFound を区別せず同一エラーで返す
+        .ok_or_else(|| TaskError::NotFound(format!("Task '{}' not found or version conflict", id)))?;
         tx.commit().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
         Task::try_from(row).map_err(TaskError::Infrastructure)
     }

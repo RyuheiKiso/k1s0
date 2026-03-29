@@ -15,10 +15,46 @@ use crate::usecase::list_users::ListUsersParams;
     path = "/healthz",
     responses(
         (status = 200, description = "Health check OK"),
+        (status = 503, description = "Database unavailable"),
     )
 )]
-pub async fn healthz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ok"}))
+pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+    // INFRA-03 監査対応: DB 接続確認を追加し、DB 障害時は 503 を返す
+    if let Some(ref pool) = state.db_pool {
+        match sqlx::query("SELECT 1").execute(pool).await {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!(error = %e, "DB ヘルスチェックに失敗しました");
+                return (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({"status": "error", "service": "auth", "detail": "database unavailable"})),
+                )
+                    .into_response();
+            }
+        }
+    }
+
+    // LOW-06 監査対応: Keycloak の死活監視を healthz にも追加する。
+    // keycloak_client::healthy() は AppState 未保持のため、http_client 経由で直接確認する。
+    // 完全な Keycloak ヘルスチェック（KeycloakClient::healthy() の利用）は
+    // AppState に Arc<KeycloakClient> を追加することで実現できるが、影響範囲が大きいため
+    // TODO(LOW-06): AppState に keycloak_client: Option<Arc<KeycloakClient>> を追加し
+    //               KeycloakClient::healthy() を呼び出すよう移行すること。
+    if let Some(ref url) = state.keycloak_url {
+        match state.http_client.get(url).send().await {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::warn!(error = %e, "Keycloak ヘルスチェックに失敗しました");
+                return (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({"status": "error", "service": "auth", "detail": "keycloak unavailable"})),
+                )
+                    .into_response();
+            }
+        }
+    }
+
+    Json(serde_json::json!({"status": "ok", "service": "auth"})).into_response()
 }
 
 #[utoipa::path(
@@ -307,7 +343,8 @@ mod tests {
         Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid-5678".to_string(),

@@ -71,9 +71,15 @@ impl RecordAuditLogUseCase {
             .await
             .map_err(|e| RecordAuditLogError::Internal(e.to_string()))?;
 
-        // Kafka に非同期配信（エラーは無視して記録は成功とする）
+        // Kafka に非同期配信（DB 保存は成功済み。配信失敗はエラーログに記録する）
         if let Some(ref publisher) = self.publisher {
-            let _ = publisher.publish(&log).await;
+            if let Err(e) = publisher.publish(&log).await {
+                tracing::error!(
+                    audit_log_id = %log.id,
+                    error = %e,
+                    "Kafka への監査ログ配信に失敗しました（DB 保存は成功済み）"
+                );
+            }
         }
 
         Ok(response)
@@ -129,7 +135,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_record_audit_log_publisher_error_ignored() {
+    async fn test_record_audit_log_publisher_error_logged() {
         let mut mock_repo = MockAuditLogRepository::new();
         mock_repo.expect_create().returning(|_| Ok(()));
 
@@ -139,7 +145,7 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("kafka error")));
 
         let uc = RecordAuditLogUseCase::with_publisher(Arc::new(mock_repo), Arc::new(mock_pub));
-        // publisher のエラーは無視して成功とする
+        // publisher のエラーはログに記録されるが、usecase は Ok() を返す（DB 保存は成功済み）
         let result = uc.execute(make_valid_request()).await;
         assert!(result.is_ok());
     }

@@ -58,6 +58,15 @@ services:
                 database: 1
                 password: ${KONG_REDIS_PASSWORD}
               fault_tolerant: false
+      # CRIT-09: dev の auth-rust が処理する /users, /audit を prod にも追加
+      - name: auth-v1-users
+        paths:
+          - /api/v1/users
+        strip_path: false
+      - name: auth-v1-audit
+        paths:
+          - /api/v1/audit
+        strip_path: false
 
   - name: config-v1
     url: http://config-server.k1s0-system.svc.cluster.local:80
@@ -161,8 +170,474 @@ services:
               - X-Service-Name:dlq-manager
 
   # ============================================================
+  # system Tier 追加サービス (CRIT-09 監査対応)
+  # ============================================================
+
+  - name: featureflag-v1
+    url: http://featureflag-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: featureflag-v1-route
+        paths:
+          - /api/v1/featureflags
+        strip_path: false
+
+  - name: tenant-v1
+    url: http://tenant-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: tenant-v1-route
+        paths:
+          - /api/v1/tenants
+        strip_path: false
+
+  - name: ratelimit-v1
+    url: http://ratelimit-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: ratelimit-v1-route
+        paths:
+          - /api/v1/ratelimits
+        strip_path: false
+
+  - name: vault-svc-v1
+    url: http://vault-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: vault-svc-v1-route
+        paths:
+          - /api/v1/vault
+        strip_path: false
+
+  - name: api-registry-v1
+    url: http://api-registry-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: api-registry-v1-route
+        paths:
+          - /api/v1/api-registry
+        strip_path: false
+
+  - name: app-registry-v1
+    url: http://app-registry-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: app-registry-v1-route
+        paths:
+          - /api/v1/app-registry
+        strip_path: false
+
+  - name: event-monitor-v1
+    url: http://event-monitor-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: event-monitor-v1-route
+        paths:
+          - /api/v1/event-monitor
+        strip_path: false
+
+  - name: event-store-v1
+    url: http://event-store-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: event-store-v1-route
+        paths:
+          - /api/v1/event-store
+        strip_path: false
+
+  - name: file-v1
+    url: http://file-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: file-v1-route
+        paths:
+          - /api/v1/files
+        strip_path: false
+
+  - name: navigation-v1
+    url: http://navigation-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: navigation-v1-route
+        paths:
+          - /api/v1/navigation
+        strip_path: false
+
+  - name: notification-v1
+    url: http://notification-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: notification-v1-route
+        paths:
+          - /api/v1/notifications
+        strip_path: false
+
+  - name: policy-v1
+    url: http://policy-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: policy-v1-route
+        paths:
+          - /api/v1/policies
+        strip_path: false
+
+  - name: quota-v1
+    url: http://quota-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: quota-v1-route
+        paths:
+          - /api/v1/quotas
+        strip_path: false
+
+  - name: rule-engine-v1
+    url: http://rule-engine-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: rule-engine-v1-route
+        paths:
+          - /api/v1/rules
+        strip_path: false
+
+  - name: scheduler-v1
+    url: http://scheduler-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: scheduler-v1-route
+        paths:
+          - /api/v1/schedules
+        strip_path: false
+
+  - name: search-v1
+    url: http://search-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: search-v1-route
+        paths:
+          - /api/v1/search
+        strip_path: false
+
+  - name: service-catalog-v1
+    url: http://service-catalog-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: service-catalog-v1-route
+        paths:
+          - /api/v1/service-catalog
+        strip_path: false
+
+  - name: session-v1
+    url: http://session-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: session-v1-route
+        paths:
+          - /api/v1/sessions
+        strip_path: false
+
+  - name: workflow-v1
+    url: http://workflow-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SYSTEM_MINUTE}
+          second: ${KONG_RATE_SYSTEM_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: workflow-v1-route
+        # /api/v1/workflows は saga-v1 で使用済みのため /api/v1/workflow-engine を使用
+        paths:
+          - /api/v1/workflow-engine
+        strip_path: false
+
+  - name: graphql-gateway-v1
+    url: http://graphql-gateway-server.k1s0-system.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          # GraphQL は大量クエリを受けやすいため system tier の 2 倍を割り当てる
+          minute: ${KONG_RATE_BUSINESS_MINUTE}
+          second: ${KONG_RATE_BUSINESS_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: graphql-gateway-v1-route
+        paths:
+          - /api/v1/graphql
+        strip_path: false
+
+  # ============================================================
+  # business Tier (rate-limiting: 1000/min, 40/sec)
+  # ============================================================
+
+  - name: project-master-v1
+    url: http://project-master-server.k1s0-business.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_BUSINESS_MINUTE}
+          second: ${KONG_RATE_BUSINESS_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: project-master-v1-route
+        paths:
+          - /api/v1/project-master
+        strip_path: false
+
+  # ============================================================
   # service Tier (rate-limiting: 500/min, 20/sec = global default)
   # ============================================================
+
+  - name: task-v1
+    url: http://task-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SERVICE_MINUTE}
+          second: ${KONG_RATE_SERVICE_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: task-v1-route
+        paths:
+          - /api/v1/tasks
+        strip_path: false
+
+  - name: board-v1
+    url: http://board-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SERVICE_MINUTE}
+          second: ${KONG_RATE_SERVICE_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: board-v1-route
+        paths:
+          - /api/v1/boards
+        strip_path: false
+
+  - name: activity-v1
+    url: http://activity-server.k1s0-service.svc.cluster.local:80
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: ${KONG_RATE_SERVICE_MINUTE}
+          second: ${KONG_RATE_SERVICE_SECOND}
+          policy: ${KONG_RATE_REDIS_POLICY}
+          redis:
+            host: redis.k1s0-system.svc.cluster.local
+            database: 1
+            password: ${KONG_REDIS_PASSWORD}
+          fault_tolerant: false
+    routes:
+      - name: activity-v1-route
+        paths:
+          - /api/v1/activities
+        strip_path: false
 
   - name: dashboard-v1
     url: http://dashboard-server.k1s0-service.svc.cluster.local:80

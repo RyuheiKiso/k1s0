@@ -67,6 +67,9 @@ secrecy = {workspace = true}
 # HTTP client (for Keycloak)
 reqwest = {workspace = true, features = ["rustls-tls"]}
 
+# URL エンコード（CRIT-07: Keycloak クエリパラメータのインジェクション防止）
+urlencoding = "2"
+
 # Auth library (JWKS verifier)
 k1s0-auth = { path = "../../../library/rust/auth" }
 

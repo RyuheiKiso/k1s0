@@ -180,7 +180,7 @@ impl ActivityRepository for ActivityPostgresRepository {
     }
 
     // updated_by を Option<String> として受け取る（mockall との互換性のため）
-    async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, _updated_by: Option<String>) -> Result<Activity, ActivityError> {
+    async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, updated_by: Option<String>) -> Result<Activity, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
         sqlx::query("SET LOCAL app.current_tenant_id = $1")
@@ -189,26 +189,39 @@ impl ActivityRepository for ActivityPostgresRepository {
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;
 
+        // updated_by を DB に書き込み、監査証跡を残す
         let row = sqlx::query_as::<_, ActivityRow>(
-            r#"UPDATE activity_service.activities SET status = $2, version = version + 1, updated_at = now()
+            r#"UPDATE activity_service.activities SET status = $2, updated_by = $3, version = version + 1, updated_at = now()
                WHERE id = $1
                RETURNING id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at"#,
         )
         .bind(id)
         .bind(status)
+        .bind(&updated_by)
         .fetch_optional(&mut *tx)
         .await
         .map_err(|e| ActivityError::Infrastructure(e.into()))?
         .ok_or_else(|| ActivityError::NotFound(format!("Activity '{}'", id)))?;
 
-        // Approved のみ outbox イベントを発行する
+        // Approved・Rejected の両方で outbox イベントを発行する（イベント駆動の整合性確保）
         if status == "approved" {
             sqlx::query(
                 "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityApproved', $3)",
             )
             .bind(Uuid::new_v4())
             .bind(id)
-            .bind(serde_json::json!({ "activity_id": id }))
+            .bind(serde_json::json!({ "activity_id": id, "updated_by": updated_by }))
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| ActivityError::Infrastructure(e.into()))?;
+        } else if status == "rejected" {
+            // Rejected 時も outbox イベントを発行してダウンストリームサービスに通知する
+            sqlx::query(
+                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityRejected', $3)",
+            )
+            .bind(Uuid::new_v4())
+            .bind(id)
+            .bind(serde_json::json!({ "activity_id": id, "updated_by": updated_by }))
             .execute(&mut *tx)
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;

@@ -10,7 +10,13 @@ String? authGuardRedirect({
   String loginPath = '/login',
 }) {
   final isAuthenticated = authState is AuthAuthenticated;
-  final isOnLoginPage = location == loginPath;
+
+  // FE-11 対応: location の単純な等値比較ではクエリパラメータ付きの URL（例: /login?redirect=/home）や
+  // サブパス（例: /login/sso）を同一ページとして認識できずリダイレクトループが発生する。
+  // loginPath 自身・クエリパラメータ付き・サブパスの3パターンをすべてログインページとして扱う。
+  final isOnLoginPage = location == loginPath ||
+      location.startsWith('$loginPath?') ||
+      location.startsWith('$loginPath/');
 
   if (!isAuthenticated && !isOnLoginPage) {
     return loginPath;

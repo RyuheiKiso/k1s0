@@ -86,8 +86,24 @@ pub async fn upload_file(
 pub async fn get_file(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
+    let claims = match claims {
+        Some(axum::extract::Extension(c)) => c,
+        None => {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "authentication required",
+            );
+            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+        }
+    };
+
+    // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
+    let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+
     let metadata_input = GetFileMetadataInput {
         file_id: id.clone(),
     };
@@ -95,6 +111,15 @@ pub async fn get_file(
     match state.get_file_metadata_uc.execute(&metadata_input).await {
         Ok(file) => {
             if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+                // MED-11 監査対応: X-Tenant-ID ヘッダーと JWT Claims のテナント ID が一致しない場合は 403 を返す
+                if !is_admin && claims.tenant_id() != request_tenant_id {
+                    let err = ErrorResponse::new(
+                        codes::file::access_denied(),
+                        "tenant id mismatch between header and token",
+                    );
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+
                 // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
                 // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
                 let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
@@ -135,15 +160,14 @@ pub async fn get_file(
             )
                 .into_response()
         }
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new(codes::file::get_failed(), &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
+        Err(crate::usecase::get_file_metadata::GetFileMetadataError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::get_file_metadata::GetFileMetadataError::Internal(msg)) => {
+            let err = ErrorResponse::new(codes::file::get_failed(), &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -188,6 +212,22 @@ pub async fn delete_file(
     claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // CRIT-02 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
+    // このエンドポイントは認証が必須であり、JWTミドルウェアが何らかの理由でスキップされた場合も保護する
+    let claims = match claims {
+        Some(axum::extract::Extension(c)) => c,
+        None => {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "authentication required",
+            );
+            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+        }
+    };
+
+    // テナントIDをヘッダーから取得する（CRIT-01 でテナント条件付き DELETE に使用）
+    let request_tenant_id = tenant_id_from_headers(&headers).unwrap_or("").to_string();
+
     if let Ok(file) = state
         .get_file_metadata_uc
         .execute(&GetFileMetadataInput {
@@ -195,14 +235,14 @@ pub async fn delete_file(
         })
         .await
     {
-        if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
-                request_tenant_id,
+                &request_tenant_id,
             ) {
                 let err =
                     ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
@@ -210,31 +250,36 @@ pub async fn delete_file(
             }
         }
 
-        if let Some(axum::extract::Extension(claims)) = claims {
-            let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
-            if !is_admin && file.uploaded_by != claims.sub {
-                let err = ErrorResponse::new(
-                    codes::file::access_denied(),
-                    "only the file owner or sys_admin can delete this file",
-                );
-                return (StatusCode::FORBIDDEN, Json(err)).into_response();
-            }
+        let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+        if !is_admin && file.uploaded_by != claims.sub {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "only the file owner or sys_admin can delete this file",
+            );
+            return (StatusCode::FORBIDDEN, Json(err)).into_response();
         }
     }
 
-    let input = DeleteFileInput { file_id: id };
+    // CRIT-02 監査対応: claims.sub（認証済みユーザーID）を所有者確認に使用する
+    // CRIT-01 監査対応: テナントIDと所有者IDを DELETE 条件に追加してアトミックな認可チェックを実現する
+    let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+    let input = DeleteFileInput {
+        file_id: id,
+        tenant_id: request_tenant_id,
+        // sys_admin は全ファイルを削除可能なため所有者チェックをスキップする
+        expected_uploader: if is_admin { None } else { Some(claims.sub.clone()) },
+    };
 
+    // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
     match state.delete_file_uc.execute(&input).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        Err(crate::usecase::delete_file::DeleteFileError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::delete_file::DeleteFileError::Internal(msg)) => {
+            let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -245,6 +290,9 @@ pub async fn delete_file_admin(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // テナントIDをヘッダーから取得する（CRIT-01 でテナント条件付き DELETE に使用）
+    let request_tenant_id = tenant_id_from_headers(&headers).unwrap_or("").to_string();
+
     if let Ok(file) = state
         .get_file_metadata_uc
         .execute(&GetFileMetadataInput {
@@ -252,14 +300,14 @@ pub async fn delete_file_admin(
         })
         .await
     {
-        if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
             let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
-                request_tenant_id,
+                &request_tenant_id,
             ) {
                 let err =
                     ErrorResponse::new(codes::file::access_denied(), "access denied for tenant");
@@ -268,19 +316,24 @@ pub async fn delete_file_admin(
         }
     }
 
-    let input = DeleteFileInput { file_id: id };
+    // CRIT-01 監査対応: テナントIDを DELETE 条件に追加してアトミックな認可チェックを実現する
+    // admin エンドポイントは所有者チェックをスキップするため expected_uploader は None
+    let input = DeleteFileInput {
+        file_id: id,
+        tenant_id: request_tenant_id,
+        expected_uploader: None,
+    };
 
+    // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
     match state.delete_file_uc.execute(&input).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        Err(crate::usecase::delete_file::DeleteFileError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::delete_file::DeleteFileError::Internal(msg)) => {
+            let err = ErrorResponse::new(codes::file::delete_failed(), &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -289,12 +342,37 @@ pub async fn delete_file_admin(
 pub async fn complete_upload(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
     Json(req): Json<CompleteUploadRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::complete_upload::CompleteUploadInput;
 
+    // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
+    let claims = match claims {
+        Some(axum::extract::Extension(c)) => c,
+        None => {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "authentication required",
+            );
+            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+        }
+    };
+
+    // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
+    let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        // MED-11 監査対応: X-Tenant-ID ヘッダーと JWT Claims のテナント ID が一致しない場合は 403 を返す
+        if !is_admin && claims.tenant_id() != request_tenant_id {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "tenant id mismatch between header and token",
+            );
+            return (StatusCode::FORBIDDEN, Json(err)).into_response();
+        }
+
         if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
@@ -325,18 +403,18 @@ pub async fn complete_upload(
 
     match state.complete_upload_uc.execute(&input).await {
         Ok(file) => (StatusCode::OK, Json(file_to_rest_detail(&file))).into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else if msg.contains("already completed") {
-                let err = ErrorResponse::new(codes::file::already_completed(), &msg);
-                (StatusCode::CONFLICT, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new(codes::file::complete_failed(), &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
+        Err(crate::usecase::complete_upload::CompleteUploadError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::complete_upload::CompleteUploadError::AlreadyCompleted(msg)) => {
+            let err = ErrorResponse::new(codes::file::already_completed(), &msg);
+            (StatusCode::CONFLICT, Json(err)).into_response()
+        }
+        Err(crate::usecase::complete_upload::CompleteUploadError::Internal(msg)) => {
+            let err = ErrorResponse::new(codes::file::complete_failed(), &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -345,9 +423,34 @@ pub async fn complete_upload(
 pub async fn download_url(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
+    let claims = match claims {
+        Some(axum::extract::Extension(c)) => c,
+        None => {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "authentication required",
+            );
+            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+        }
+    };
+
+    // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
+    let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        // MED-11 監査対応: X-Tenant-ID ヘッダーと JWT Claims のテナント ID が一致しない場合は 403 を返す
+        if !is_admin && claims.tenant_id() != request_tenant_id {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "tenant id mismatch between header and token",
+            );
+            return (StatusCode::FORBIDDEN, Json(err)).into_response();
+        }
+
         if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
@@ -385,15 +488,19 @@ pub async fn download_url(
             })),
         )
             .into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else if msg.contains("not available") {
-                let err = ErrorResponse::new(codes::file::not_available(), &msg);
-                (StatusCode::BAD_REQUEST, Json(err)).into_response()
-            } else if is_storage_error_message(&msg) {
+        // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
+        // GenerateDownloadUrlError::Internal はストレージエラーを含む可能性があるため
+        // is_storage_error_message による判定を Internal バリアント内で維持する
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::NotAvailable(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_available(), &msg);
+            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+        }
+        Err(crate::usecase::generate_download_url::GenerateDownloadUrlError::Internal(msg)) => {
+            if is_storage_error_message(&msg) {
                 let err = ErrorResponse::new(codes::file::storage_error(), &msg);
                 (StatusCode::BAD_GATEWAY, Json(err)).into_response()
             } else {
@@ -408,12 +515,37 @@ pub async fn download_url(
 pub async fn update_file_tags(
     State(state): State<AppState>,
     headers: HeaderMap,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateFileTagsRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_file_tags::UpdateFileTagsInput;
 
+    // MED-11 監査対応: claims が None（認証なし）の場合は 401 を返す（防御的プログラミング）
+    let claims = match claims {
+        Some(axum::extract::Extension(c)) => c,
+        None => {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "authentication required",
+            );
+            return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
+        }
+    };
+
+    // MED-11 監査対応: sys_admin ロールの場合はテナント照合をスキップする
+    let is_admin = claims.realm_roles().iter().any(|role| role == "sys_admin");
+
     if let Some(request_tenant_id) = tenant_id_from_headers(&headers) {
+        // MED-11 監査対応: X-Tenant-ID ヘッダーと JWT Claims のテナント ID が一致しない場合は 403 を返す
+        if !is_admin && claims.tenant_id() != request_tenant_id {
+            let err = ErrorResponse::new(
+                codes::file::access_denied(),
+                "tenant id mismatch between header and token",
+            );
+            return (StatusCode::FORBIDDEN, Json(err)).into_response();
+        }
+
         if let Ok(file) = state
             .get_file_metadata_uc
             .execute(&GetFileMetadataInput {
@@ -451,15 +583,14 @@ pub async fn update_file_tags(
             })),
         )
             .into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                let err = ErrorResponse::new(codes::file::not_found(), &msg);
-                (StatusCode::NOT_FOUND, Json(err)).into_response()
-            } else {
-                let err = ErrorResponse::new(codes::file::tags_update_failed(), &msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
-            }
+        // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
+        Err(crate::usecase::update_file_tags::UpdateFileTagsError::NotFound(msg)) => {
+            let err = ErrorResponse::new(codes::file::not_found(), &msg);
+            (StatusCode::NOT_FOUND, Json(err)).into_response()
+        }
+        Err(crate::usecase::update_file_tags::UpdateFileTagsError::Internal(msg)) => {
+            let err = ErrorResponse::new(codes::file::tags_update_failed(), &msg);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }

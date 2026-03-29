@@ -23,8 +23,10 @@ impl ListTenantsUseCase {
         page: i32,
         page_size: i32,
     ) -> Result<(Vec<Tenant>, i64), ListTenantsError> {
-        let page = if page < 1 { 1 } else { page };
-        let page_size = if page_size < 1 { 20 } else { page_size };
+        // page は最小1に制限する（負値・0を正規化）
+        let page = page.max(1);
+        // page_size は最小1・最大100にクランプしてリソース枯渇を防止する
+        let page_size = page_size.clamp(1, 100);
 
         self.tenant_repo
             .list(page, page_size)

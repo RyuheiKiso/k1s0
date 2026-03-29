@@ -55,8 +55,18 @@ impl KeycloakConfig {
         )
     }
 
+    /// Keycloak Admin API トークン取得用のフォームデータを生成する。
+    ///
+    /// MED-15 監査対応: admin_username が設定されている場合は Resource Owner Password Credentials
+    /// (ROPC) Grant を使用するが、ROPC は OAuth 2.1 (draft) で廃止予定のフローである。
+    /// 将来的に Client Credentials Grant（client_id + client_secret のみ）への移行を検討すること。
+    /// 移行計画は ADR-0050 で文書化予定。
+    ///
+    /// 参考: https://oauth.net/2/grant-types/password/
     pub(crate) fn admin_token_form(&self) -> Vec<(&'static str, String)> {
         if self.uses_admin_password_grant() {
+            // TODO(ADR-0050): ROPC (password grant) は OAuth 2.1 で廃止予定。
+            // Keycloak の Service Account を使った Client Credentials Grant に移行すること。
             vec![
                 ("grant_type", "password".to_string()),
                 ("client_id", self.admin_client_id.clone()),
@@ -65,6 +75,7 @@ impl KeycloakConfig {
                 ("password", self.admin_password.expose_secret().to_string()),
             ]
         } else {
+            // Client Credentials Grant: OAuth 2.1 推奨フロー（ADR-0050 で採用予定）
             vec![
                 ("grant_type", "client_credentials".to_string()),
                 ("client_id", self.client_id.clone()),
@@ -123,6 +134,9 @@ impl KeycloakClient {
 
     /// Keycloak のヘルスチェックを行う。
     /// サーキットブレーカーで保護し、Keycloak 停止時の不要なリクエストを抑制する。
+    /// LOW-06 対応: AppState に Arc<KeycloakClient> が追加された場合は healthz/readyz から呼び出すこと。
+    /// 現状は AppState が http_client+keycloak_url で直接確認しているため dead_code となっているが、
+    /// TODO(LOW-06): AppState への KeycloakClient 組み込み後にこのアトリビュートを削除すること。
     #[allow(dead_code)]
     pub async fn healthy(&self) -> anyhow::Result<()> {
         let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
@@ -255,7 +269,8 @@ impl UserRepository for KeycloakClient {
         );
 
         if let Some(ref q) = search {
-            url.push_str(&format!("&search={}", q));
+            // CRIT-07 対応: search パラメータを URL エンコードしてインジェクションを防止する
+            url.push_str(&format!("&search={}", urlencoding::encode(q)));
         }
         if let Some(e) = enabled {
             url.push_str(&format!("&enabled={}", e));
@@ -271,11 +286,23 @@ impl UserRepository for KeycloakClient {
 
         let kc_users: Vec<KeycloakUser> = resp.error_for_status()?.json().await?;
 
-        // total count
-        let count_url = format!(
+        // MED-04 監査対応: count_url にも search と enabled フィルターを適用する。
+        // list_url と同じ条件でカウントしないと has_next 計算が誤った値を返す可能性がある。
+        // urlencoding::encode を使用して検索文字列を URL エンコードし、インジェクションを防止する。
+        let mut count_url = format!(
             "{}/admin/realms/{}/users/count",
             self.config.base_url, self.config.realm
         );
+        let mut count_first_param = true;
+        if let Some(ref q) = search {
+            count_url.push_str(if count_first_param { "?" } else { "&" });
+            count_url.push_str(&format!("search={}", urlencoding::encode(q)));
+            count_first_param = false;
+        }
+        if let Some(e) = enabled {
+            count_url.push_str(if count_first_param { "?" } else { "&" });
+            count_url.push_str(&format!("enabled={}", e));
+        }
         let count_token = self.get_admin_token().await?;
         // サーキットブレーカーでユーザー数取得リクエストを保護する
         let count_resp = self
@@ -360,8 +387,25 @@ fn default_true() -> bool {
 
 impl From<KeycloakUser> for User {
     fn from(kc: KeycloakUser) -> Self {
-        let created_at = chrono::DateTime::from_timestamp_millis(kc.created_timestamp)
-            .unwrap_or_else(chrono::Utc::now);
+        // MED-06 監査対応: created_timestamp が 0 または無効値でフォールバックが発生した場合に警告ログを出力する。
+        // フォールバックが発生すると created_at が現在時刻になり、データの正確性が失われるため
+        // Keycloak の設定や API レスポンスの確認を促す目的でログを残す。
+        let created_at = if kc.created_timestamp == 0 {
+            tracing::warn!(
+                user_id = %kc.id,
+                "Keycloak ユーザーの created_timestamp が 0 です。現在時刻でフォールバックします。Keycloak の設定を確認してください。"
+            );
+            chrono::Utc::now()
+        } else {
+            chrono::DateTime::from_timestamp_millis(kc.created_timestamp).unwrap_or_else(|| {
+                tracing::warn!(
+                    user_id = %kc.id,
+                    created_timestamp = kc.created_timestamp,
+                    "Keycloak ユーザーの created_timestamp が無効な値です。現在時刻でフォールバックします。"
+                );
+                chrono::Utc::now()
+            })
+        };
 
         User {
             id: kc.id,

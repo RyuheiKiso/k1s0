@@ -6,6 +6,10 @@ use crate::infrastructure::kafka_producer::FileEventPublisher;
 #[derive(Debug, Clone)]
 pub struct DeleteFileInput {
     pub file_id: String,
+    /// CRIT-01 監査対応: テナントIDを必須化し、DELETE クエリの条件として使用する
+    pub tenant_id: String,
+    /// CRIT-01 監査対応: 所有者IDを DELETE 条件に追加する。None の場合は所有者チェックをスキップ（sys_admin 用）
+    pub expected_uploader: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +51,7 @@ impl DeleteFileUseCase {
         &self,
         input: &DeleteFileInput,
     ) -> Result<DeleteFileOutput, DeleteFileError> {
+        // ストレージ削除に必要な storage_path を取得するため、まずメタデータを取得する
         let file = self
             .metadata_repo
             .find_by_id(&input.file_id)
@@ -60,10 +65,31 @@ impl DeleteFileUseCase {
             .await
             .map_err(|e| DeleteFileError::Internal(e.to_string()))?;
 
-        self.metadata_repo
-            .delete(&input.file_id)
-            .await
-            .map_err(|e| DeleteFileError::Internal(e.to_string()))?;
+        // CRIT-01 監査対応: テナントIDと所有者IDを DELETE 条件に追加してアトミックな認可チェックを実現する
+        // storage_path のプレフィックス（"{tenant_id}/"）を条件とすることで、
+        // 取得後の認可チェックと削除の間に生じる TOCTOU 競合を防ぐ
+        // tenant_id が空文字の場合（gRPC 内部呼び出し等）はテナントチェックなしで通常削除する
+        let deleted = if input.tenant_id.is_empty() {
+            self.metadata_repo
+                .delete(&input.file_id)
+                .await
+                .map_err(|e| DeleteFileError::Internal(e.to_string()))?
+        } else {
+            let tenant_id_prefix = format!("{}/", input.tenant_id);
+            self.metadata_repo
+                .delete_with_tenant_check(
+                    input.file_id.clone(),
+                    tenant_id_prefix,
+                    input.expected_uploader.clone(),
+                )
+                .await
+                .map_err(|e| DeleteFileError::Internal(e.to_string()))?
+        };
+
+        // テナント/所有者条件が一致しなかった場合は not found として扱う（情報漏洩防止）
+        if !deleted {
+            return Err(DeleteFileError::NotFound(input.file_id.clone()));
+        }
 
         // C-01 監査対応: フィールド名を DB カラム名に合わせる
         let payload = serde_json::json!({
@@ -120,10 +146,11 @@ mod tests {
             .withf(|id| id == "file_001")
             .returning(move |_| Ok(Some(return_file.clone())));
         storage_mock.expect_delete_object().returning(|_| Ok(()));
+        // CRIT-01 監査対応: delete_with_tenant_check を使用してテナント/所有者条件を検証する
         metadata_mock
-            .expect_delete()
-            .withf(|id| id == "file_001")
-            .returning(|_| Ok(true));
+            .expect_delete_with_tenant_check()
+            .withf(|id, prefix, _| id.as_str() == "file_001" && prefix.as_str() == "tenant-abc/")
+            .returning(|_, _, _| Ok(true));
         let mut event_publisher = MockFileEventPublisher::new();
         event_publisher.expect_publish().returning(|_, _| Ok(()));
 
@@ -134,6 +161,8 @@ mod tests {
         );
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: "tenant-abc".to_string(),
+            expected_uploader: Some("user-001".to_string()),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -158,6 +187,8 @@ mod tests {
         );
         let input = DeleteFileInput {
             file_id: "missing".to_string(),
+            tenant_id: "tenant-abc".to_string(),
+            expected_uploader: Some("user-001".to_string()),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -191,12 +222,53 @@ mod tests {
         );
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: "tenant-abc".to_string(),
+            expected_uploader: Some("user-001".to_string()),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
             DeleteFileError::Internal(msg) => assert!(msg.contains("storage error")),
+            e => unreachable!("unexpected error: {:?}", e),
+        }
+    }
+
+    #[tokio::test]
+    async fn tenant_mismatch_returns_not_found() {
+        // CRIT-01 監査対応: テナントID不一致の場合は NotFound を返す（情報漏洩防止）
+        let mut metadata_mock = MockFileMetadataRepository::new();
+        let mut storage_mock = MockFileStorageRepository::new();
+
+        let file = sample_file();
+        let return_file = file.clone();
+
+        metadata_mock
+            .expect_find_by_id()
+            .withf(|id| id == "file_001")
+            .returning(move |_| Ok(Some(return_file.clone())));
+        storage_mock.expect_delete_object().returning(|_| Ok(()));
+        // テナント条件不一致で 0 件削除
+        metadata_mock
+            .expect_delete_with_tenant_check()
+            .returning(|_, _, _| Ok(false));
+        let event_publisher = MockFileEventPublisher::new();
+
+        let uc = DeleteFileUseCase::new(
+            Arc::new(metadata_mock),
+            Arc::new(storage_mock),
+            Arc::new(event_publisher),
+        );
+        let input = DeleteFileInput {
+            file_id: "file_001".to_string(),
+            tenant_id: "other-tenant".to_string(),
+            expected_uploader: None,
+        };
+        let result = uc.execute(&input).await;
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            DeleteFileError::NotFound(id) => assert_eq!(id, "file_001"),
             e => unreachable!("unexpected error: {:?}", e),
         }
     }

@@ -15,34 +15,88 @@ on:
       # 個別CIのトリガーパス（paths:）を変更した場合は、このファイルの paths-ignore も
       # 必ず同時に更新すること（更新漏れはCI二重実行または検出漏れを引き起こす）。
       #
+      # CICD-01 対応: paths-ignore の整合性は scripts/sync-paths-ignore.sh で機械的に検証する。
+      # CI の check-paths-ignore ジョブが差異を自動検出するため、手動更新漏れは CI で検知される。
+      #
       # 個別CI一覧とカバーパスの対応:
-      #   auth-ci.yaml          → regions/system/server/rust/auth/**
-      #   app-registry-ci.yaml  → regions/system/server/rust/app-registry/**
-      #   config-ci.yaml        → regions/system/server/rust/config/**
-      #   saga-ci.yaml          → regions/system/server/rust/saga/**
-      #   dlq-manager-ci.yaml   → regions/system/server/rust/dlq-manager/**
-      #   bff-proxy-ci.yaml     → regions/system/server/go/bff-proxy/**
-      #   task-ci.yaml          → regions/service/task/{server,client,database}/**
-      #   board-ci.yaml         → regions/service/board/{server,client,database}/**
-      #   activity-ci.yaml      → regions/service/activity/{server,client,database}/**
-      #   project-master-ci.yaml → regions/business/taskmanagement/**
+      #   activity-ci.yaml        → regions/service/activity/{server,client,database}/**
+      #   api-registry-ci.yaml    → regions/system/server/rust/api-registry/**
+      #   app-registry-ci.yaml    → regions/system/server/rust/app-registry/**
+      #   auth-ci.yaml            → regions/system/server/rust/auth/**
+      #   bff-proxy-ci.yaml       → regions/system/server/go/bff-proxy/**
+      #   board-ci.yaml           → regions/service/board/{server,client,database}/**
+      #   config-ci.yaml          → regions/system/server/rust/config/**
+      #   dlq-manager-ci.yaml     → regions/system/server/rust/dlq-manager/**
+      #   event-monitor-ci.yaml   → regions/system/server/rust/event-monitor/**
+      #   event-store-ci.yaml     → regions/system/server/rust/event-store/**
+      #   featureflag-ci.yaml     → regions/system/server/rust/featureflag/**
+      #   file-ci.yaml            → regions/system/server/rust/file/**
+      #   graphql-gateway-ci.yaml → regions/system/server/rust/graphql-gateway/**
+      #   master-maintenance-ci.yaml → regions/system/server/rust/master-maintenance/**
+      #   navigation-ci.yaml      → regions/system/server/rust/navigation/**
+      #   notification-ci.yaml    → regions/system/server/rust/notification/**
+      #   policy-ci.yaml          → regions/system/server/rust/policy/**
+      #   project-master-ci.yaml  → regions/business/taskmanagement/**
+      #   quota-ci.yaml           → regions/system/server/rust/quota/**
+      #   ratelimit-ci.yaml       → regions/system/server/rust/ratelimit/**
+      #   rule-engine-ci.yaml     → regions/system/server/rust/rule-engine/**
+      #   saga-ci.yaml            → regions/system/server/rust/saga/**
+      #   scheduler-ci.yaml       → regions/system/server/rust/scheduler/**
+      #   search-ci.yaml          → regions/system/server/rust/search/**
+      #   service-catalog-ci.yaml → regions/system/server/rust/service-catalog/**
+      #   session-ci.yaml         → regions/system/server/rust/session/**
+      #   task-ci.yaml            → regions/service/task/{server,client,database}/**
+      #   tenant-ci.yaml          → regions/system/server/rust/tenant/**
+      #   vault-ci.yaml           → regions/system/server/rust/vault/**
+      #   workflow-ci.yaml        → regions/system/server/rust/workflow/**
+      #
+      # ---------- 更新手順 ----------
+      # 新しいサービスの個別CIを追加する場合:
+      #   1. 新しい {service}-ci.yaml に paths: トリガーを設定する
+      #   2. このファイルの paths-ignore に同じパスを追加する
+      #   3. deploy.yaml の paths-ignore にも同様の除外を追加する（デプロイ重複防止）
+      #   4. bash scripts/sync-paths-ignore.sh で整合性を確認する
+      # サービスを廃止する場合:
+      #   1. {service}-ci.yaml を削除する
+      #   2. このファイルの paths-ignore から対応するエントリを削除する
+      #   3. deploy.yaml の paths-ignore からも対応エントリを削除する
       # ================================================
-      - 'regions/system/server/rust/auth/**'
-      - 'regions/system/server/rust/app-registry/**'
-      - 'regions/system/server/rust/config/**'
-      - 'regions/system/server/rust/saga/**'
-      - 'regions/system/server/rust/dlq-manager/**'
-      - 'regions/system/server/go/bff-proxy/**'
-      - 'regions/service/task/server/**'
-      - 'regions/service/task/client/**'
-      - 'regions/service/task/database/**'
-      - 'regions/service/board/server/**'
-      - 'regions/service/board/client/**'
-      - 'regions/service/board/database/**'
       - 'regions/service/activity/server/**'
       - 'regions/service/activity/client/**'
       - 'regions/service/activity/database/**'
+      - 'regions/system/server/rust/api-registry/**'
+      - 'regions/system/server/rust/app-registry/**'
+      - 'regions/system/server/rust/auth/**'
+      - 'regions/system/server/go/bff-proxy/**'
+      - 'regions/service/board/server/**'
+      - 'regions/service/board/client/**'
+      - 'regions/service/board/database/**'
+      - 'regions/system/server/rust/config/**'
+      - 'regions/system/server/rust/dlq-manager/**'
+      - 'regions/system/server/rust/event-monitor/**'
+      - 'regions/system/server/rust/event-store/**'
+      - 'regions/system/server/rust/featureflag/**'
+      - 'regions/system/server/rust/file/**'
+      - 'regions/system/server/rust/graphql-gateway/**'
+      - 'regions/system/server/rust/master-maintenance/**'
+      - 'regions/system/server/rust/navigation/**'
+      - 'regions/system/server/rust/notification/**'
+      - 'regions/system/server/rust/policy/**'
       - 'regions/business/taskmanagement/**'
+      - 'regions/system/server/rust/quota/**'
+      - 'regions/system/server/rust/ratelimit/**'
+      - 'regions/system/server/rust/rule-engine/**'
+      - 'regions/system/server/rust/saga/**'
+      - 'regions/system/server/rust/scheduler/**'
+      - 'regions/system/server/rust/search/**'
+      - 'regions/system/server/rust/service-catalog/**'
+      - 'regions/system/server/rust/session/**'
+      - 'regions/service/task/server/**'
+      - 'regions/service/task/client/**'
+      - 'regions/service/task/database/**'
+      - 'regions/system/server/rust/tenant/**'
+      - 'regions/system/server/rust/vault/**'
+      - 'regions/system/server/rust/workflow/**'
   schedule:
     # フラッキーテスト検知のため毎日 03:00 UTC に定期実行する（L-02 対応）
     # 統計的に不安定なテストを翌日以内に検知するため日次実行に変更
@@ -56,6 +110,18 @@ concurrency:
 permissions: {}
 
 jobs:
+  # CICD-01 監査対応: paths-ignore の整合性を自動検証する
+  # サービス固有 CI (*-ci.yaml) の paths: と ci.yaml の paths-ignore の差異を検出する
+  check-paths-ignore:
+    name: Verify paths-ignore sync
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Check paths-ignore consistency
+        run: bash scripts/sync-paths-ignore.sh
+
   # ---------- Step 1: 変更検出 ----------
   # ファイル変更の検出（言語ごとのフィルタリング）
   # schedule トリガー時は全言語を true にして全テストを実行する（変更検出をバイパス）

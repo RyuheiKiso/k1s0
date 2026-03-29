@@ -4,6 +4,33 @@
 # kube-apiserver 起動オプション --encryption-provider-config に本ファイルを指定すること。
 #
 # ===========================================================================
+# HIGH-17 監査対応: CI/CD パイプラインからの自動注入方式
+#
+# このファイルは CI/CD パイプラインから Vault を使って自動生成されます。
+# <REPLACE_WITH_BASE64_32BYTE_KEY> のプレースホルダーは絶対に実鍵で置き換えず、
+# 必ず以下のいずれかの方法で鍵を注入してください。
+#
+# --- 自動注入（推奨）---
+# GitHub Actions / ArgoCD などの CI/CD パイプラインから以下の手順で注入する:
+#   1. Vault AppRole または Kubernetes Auth で認証する
+#   2. vault kv get -field=secrets_key secret/k1s0/infra/etcd-encryption-key を実行する
+#   3. 取得した鍵を envsubst / sed でプレースホルダーに置き換えてファイルを生成する
+#   4. 生成したファイルを kube-apiserver の静的ポッドボリュームに配置する
+#   5. 生成したファイルをリポジトリにコミットしないこと（.gitignore で除外済み）
+#
+# --- 手動適用（緊急時のみ）---
+# 手動で適用する場合は以下の手順に従ってください:
+#   1. vault kv get -field=secrets_key secret/k1s0/infra/etcd-encryption-key で secrets 鍵を取得
+#   2. vault kv get -field=configmaps_key secret/k1s0/infra/etcd-encryption-key で configmaps 鍵を取得
+#   3. このファイルの <REPLACE_WITH_BASE64_32BYTE_KEY> を上記の取得値で置き換え
+#   4. kubectl apply -f encryption-config.yaml で適用
+#   5. 適用後はローカルの生成済みファイルを即座に削除すること
+#
+# --- 鍵ローテーション ---
+#   新しいキーを先頭に追加し、古いキーを末尾に残して段階的に移行する。
+#   全 Secret/ConfigMap の再暗号化完了後に古いキーを削除すること:
+#   kubectl get secrets --all-namespaces -o json | kubectl replace -f -
+#
 # WARNING: このファイルにはプレースホルダー値が含まれている。
 #          <REPLACE_WITH_BASE64_32BYTE_KEY> のまま本番環境にデプロイしないこと。
 #
@@ -31,6 +58,8 @@ resources:
           keys:
             # プライマリキー: 現在の暗号化に使用されるアクティブキー
             # secret の値は Vault 経由で注入すること（プレースホルダー値は使用禁止）
+            # CI/CD 注入コマンド例:
+            #   vault kv get -field=secrets_key secret/k1s0/infra/etcd-encryption-key
             # H-4 監査対応: Secrets/ConfigMaps には必ず異なるキーを使用すること（同一キー流出時の被害拡大を防ぐ）
             - name: secrets-key1
               secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
@@ -45,6 +74,8 @@ resources:
       - aescbc:
           keys:
             # プライマリキー: Secrets とは異なるキーを使用すること（キー名で明示的に区別する）
+            # CI/CD 注入コマンド例:
+            #   vault kv get -field=configmaps_key secret/k1s0/infra/etcd-encryption-key
             - name: configmaps-key1
               secret: <REPLACE_WITH_BASE64_32BYTE_KEY>
       # identity: 暗号化なし（フォールバック用）

@@ -1,7 +1,9 @@
 app:
   name: k1s0-workflow-server
   version: "0.1.0"
-  environment: dev
+  # CRIT-08 監査対応: "docker" に設定することで scheduler_registration.rs が
+  # http://workflow:{port} を使用する（"dev" のままでは 127.0.0.1 になり Docker Compose 内で動作不能）
+  environment: docker
 server:
   host: "0.0.0.0"
   port: 8080

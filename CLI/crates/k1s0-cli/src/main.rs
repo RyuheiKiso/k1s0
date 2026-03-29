@@ -6,6 +6,7 @@ mod template;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use dialoguer::{theme::ColorfulTheme, Select};
+use std::path::PathBuf;
 
 // ============================================================================
 // clap 構造体定義
@@ -16,6 +17,15 @@ use dialoguer::{theme::ColorfulTheme, Select};
 #[derive(Parser)]
 #[command(name = "k1s0", about = "k1s0 プロジェクト管理 CLI", version)]
 struct Cli {
+    /// TTY なし環境（CI/CD）向け非インタラクティブモード。
+    /// 対話プロンプトをスキップしてデフォルト値を使用するか、即時エラー終了する。
+    #[arg(long, global = true, env = "K1S0_NON_INTERACTIVE")]
+    non_interactive: bool,
+
+    /// --non-interactive の短縮エイリアス。CI での利用を想定する。
+    #[arg(long, global = true)]
+    yes: bool,
+
     /// サブコマンド（省略時は対話メニューを表示）
     #[command(subcommand)]
     command: Option<Commands>,
@@ -109,6 +119,13 @@ fn main() {
     // コマンドライン引数を解析する（引数なしなら対話メニューへ）
     let cli = Cli::parse();
 
+    // --non-interactive / --yes フラグまたは TTY なし環境の場合は非インタラクティブモードとする。
+    // K1S0_NON_INTERACTIVE 環境変数でも制御できる（clap の env = "K1S0_NON_INTERACTIVE" で自動取得）。
+    let non_interactive = cli.non_interactive || cli.yes || !std::io::IsTerminal::is_terminal(&std::io::stdin());
+
+    // 非インタラクティブモードをプロンプトモジュールへ伝達する
+    prompt::set_non_interactive(non_interactive);
+
     // サブコマンドが指定された場合は非対話モードで実行する
     if let Some(command) = cli.command {
         // 設定ファイルを読み込む（失敗時はデフォルト設定を使用する）
@@ -139,42 +156,47 @@ fn main() {
             Commands::Doctor => {
                 // 開発環境診断スクリプトを実行する
                 println!("開発環境を診断しています...");
-                let script = std::path::Path::new("scripts/doctor.sh");
-                if script.exists() {
-                    // Windows 環境では bash が PATH に存在しない場合がある（HIGH-5 監査対応）。
-                    // bash が利用可能か確認し、利用不可の場合は sh (Git for Windows 等) にフォールバックする。
-                    // L-13 監査対応: exit status を無視せず、非0の場合はエラーを伝播する。
-                    let shell = if cfg!(target_os = "windows") {
-                        // bash の存在確認（Git for Windows / WSL 等でインストールされている場合は使用可能）
-                        let bash_available = std::process::Command::new("bash")
-                            .arg("--version")
-                            .output()
-                            .map(|o| o.status.success())
-                            .unwrap_or(false);
-                        if bash_available { "bash" } else { "sh" }
-                    } else {
-                        "bash"
-                    };
-                    match std::process::Command::new(shell)
-                        .arg("scripts/doctor.sh")
-                        .status()
-                    {
-                        Err(e) => Err(anyhow::anyhow!(
-                            "doctor.sh の実行に失敗しました（シェル: {shell}）: {e}"
-                        )),
-                        Ok(s) if !s.success() => {
-                            let code = s.code().unwrap_or(-1);
-                            Err(anyhow::anyhow!(
-                                "doctor.sh が終了コード {code} で失敗しました"
-                            ))
+                // CLI-02 監査対応: CWD 相対パスではなく優先順位付きのパス解決を使用する
+                match find_doctor_script() {
+                    Some(script_path) => {
+                        // Windows 環境では bash が PATH に存在しない場合がある（HIGH-5 監査対応）。
+                        // bash が利用可能か確認し、利用不可の場合は sh (Git for Windows 等) にフォールバックする。
+                        // L-13 監査対応: exit status を無視せず、非0の場合はエラーを伝播する。
+                        let shell = if cfg!(target_os = "windows") {
+                            // bash の存在確認（Git for Windows / WSL 等でインストールされている場合は使用可能）
+                            let bash_available = std::process::Command::new("bash")
+                                .arg("--version")
+                                .output()
+                                .map(|o| o.status.success())
+                                .unwrap_or(false);
+                            if bash_available { "bash" } else { "sh" }
+                        } else {
+                            "bash"
+                        };
+                        match std::process::Command::new(shell)
+                            .arg(&script_path)
+                            .status()
+                        {
+                            Err(e) => Err(anyhow::anyhow!(
+                                "doctor.sh の実行に失敗しました（シェル: {shell}）: {e}"
+                            )),
+                            Ok(s) if !s.success() => {
+                                let code = s.code().unwrap_or(-1);
+                                Err(anyhow::anyhow!(
+                                    "doctor.sh が終了コード {code} で失敗しました"
+                                ))
+                            }
+                            Ok(_) => Ok(()),
                         }
-                        Ok(_) => Ok(()),
                     }
-                } else {
-                    // M-16 監査対応: doctor.sh が見つからない場合はエラーを返す
-                    Err(anyhow::anyhow!(
-                        "doctor.sh が見つかりません: scripts/doctor.sh"
-                    ))
+                    None => {
+                        // M-16 監査対応: doctor.sh が見つからない場合はエラーを返す
+                        Err(anyhow::anyhow!(
+                            "doctor.sh が見つかりません。\n\
+                            ヒント: K1S0_ROOT 環境変数にリポジトリルートのパスを設定してください。\n\
+                            例: export K1S0_ROOT=/path/to/k1s0"
+                        ))
+                    }
                 }
             }
         };
@@ -185,6 +207,15 @@ fn main() {
             std::process::exit(1);
         }
         return;
+    }
+
+    // 非インタラクティブモードでサブコマンドなしの場合はエラー終了する。
+    // TTY なし環境でメニューを表示しようとしても操作できないためである。
+    if non_interactive {
+        eprintln!("エラー: 非インタラクティブモードではサブコマンドが必要です。");
+        eprintln!("使用例: k1s0 doctor");
+        eprintln!("       k1s0 --help でコマンド一覧を確認してください。");
+        std::process::exit(1);
     }
 
     // 引数なし: 設定ファイルを読み込んで対話メニューを表示する
@@ -231,6 +262,43 @@ fn ctrlc_handler() {
         // dialoguer の interact_opt が None を返すので、
         // ここでは何もしない（二重終了を防ぐ）。
     });
+}
+
+/// CLI-02 監査対応: doctor.sh のパスを優先順位に従って解決する。
+///
+/// 探索順序:
+/// 1. K1S0_ROOT 環境変数が設定されている場合は `$K1S0_ROOT/scripts/doctor.sh` を使用する
+/// 2. 実行ファイルのパスから上位ディレクトリを遡り `scripts/doctor.sh` を探す
+/// 3. 現在のワーキングディレクトリから `scripts/doctor.sh` を探す（フォールバック）
+fn find_doctor_script() -> Option<PathBuf> {
+    // 優先度1: K1S0_ROOT 環境変数が設定されている場合はそのパスを優先する
+    if let Ok(root) = std::env::var("K1S0_ROOT") {
+        let path = PathBuf::from(root).join("scripts").join("doctor.sh");
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    // 優先度2: 実行ファイルの位置から上位ディレクトリを遡って探す
+    // インストール先が bin/ 配下の場合にリポジトリルートを特定できる
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent();
+        while let Some(d) = dir {
+            let path = d.join("scripts").join("doctor.sh");
+            if path.exists() {
+                return Some(path);
+            }
+            dir = d.parent();
+        }
+    }
+
+    // 優先度3: 現在のワーキングディレクトリからの相対パス（後方互換フォールバック）
+    let path = PathBuf::from("scripts/doctor.sh");
+    if path.exists() {
+        return Some(path);
+    }
+
+    None
 }
 
 // ============================================================================

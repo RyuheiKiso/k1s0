@@ -88,6 +88,31 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         let mut files = self.files.write().await;
         Ok(files.remove(id).is_some())
     }
+
+    /// CRIT-01 監査対応: テナントIDと所有者IDの条件を追加してアトミックな認可チェックを実現する（インメモリ実装）。
+    /// storage_path のプレフィックスと uploaded_by を確認してから削除する。
+    async fn delete_with_tenant_check(
+        &self,
+        id: String,
+        tenant_id_prefix: String,
+        expected_uploader: Option<String>,
+    ) -> anyhow::Result<bool> {
+        let mut files = self.files.write().await;
+        // 対象ファイルのテナントID・所有者IDが条件に一致するか確認する
+        let matches = files.get(&id).map_or(false, |f| {
+            let tenant_ok = f.storage_path.starts_with(&tenant_id_prefix);
+            let uploader_ok = expected_uploader
+                .as_deref()
+                .map_or(true, |uploader| f.uploaded_by == uploader);
+            tenant_ok && uploader_ok
+        });
+        if matches {
+            files.remove(&id);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
 
 pub struct InMemoryFileStorageRepository;

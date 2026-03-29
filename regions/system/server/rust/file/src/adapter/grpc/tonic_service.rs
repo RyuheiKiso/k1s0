@@ -162,8 +162,11 @@ impl FileService for FileServiceTonic {
         request: Request<DeleteFileRequest>,
     ) -> Result<Response<DeleteFileResponse>, Status> {
         let inner = request.into_inner();
+        // CRIT-01 監査対応: gRPC はサービス間内部通信であり JWT により認可済みのため、
+        // tenant_id は空文字列（チェックなし）・expected_uploader は None（所有者チェックなし）とする
+        // 将来的には gRPC メタデータから tenant_id を取得することを推奨する
         self.inner
-            .delete_file(inner.id)
+            .delete_file(inner.id, String::new(), None)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(DeleteFileResponse {}))

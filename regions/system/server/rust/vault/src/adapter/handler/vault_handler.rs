@@ -49,10 +49,12 @@ impl AppState {
 
 // --- Query DTOs ---
 
+/// LOW-12 監査対応: keyset ページネーションクエリパラメータ。
+/// after_id に前ページの最後のアイテムの UUID を指定すると次ページを取得できる。
 #[derive(Debug, Deserialize)]
 pub struct AuditLogQuery {
-    #[serde(default = "default_audit_offset")]
-    pub offset: u32,
+    /// 前ページの最後のアイテムの id（カーソル）。省略した場合は先頭ページ。
+    pub after_id: Option<uuid::Uuid>,
     #[serde(default = "default_audit_limit")]
     pub limit: u32,
 }
@@ -62,9 +64,6 @@ pub struct SecretVersionQuery {
     pub version: Option<i64>,
 }
 
-fn default_audit_offset() -> u32 {
-    0
-}
 fn default_audit_limit() -> u32 {
     20
 }
@@ -118,13 +117,36 @@ fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
     )
 }
 
-// Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー
+/// 本番環境で内部エラー詳細を API レスポンスに露出しないためのフラグ。
+/// VAULT_EXPOSE_INTERNAL_ERRORS=true を設定した場合のみ詳細を返す（開発環境専用）。
+fn should_expose_internal_errors() -> bool {
+    std::env::var("VAULT_EXPOSE_INTERNAL_ERRORS")
+        .map(|v| v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
+
+/// Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー。
+/// 本番環境ではエラー詳細を隠蔽し、ジェネリックなメッセージを返す（LOW-04 監査対応）。
+/// 開発環境では VAULT_EXPOSE_INTERNAL_ERRORS=true で詳細を返せる。
 fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
     let (status, code) = classify_vault_internal_error(msg);
+    // 本番環境でのエラー詳細漏洩を防ぐため、expose フラグが false の場合はジェネリックメッセージに差し替える
+    let safe_msg: &str = if should_expose_internal_errors() {
+        msg
+    } else {
+        // 内部エラー詳細は隠蔽し、エラーコードのみクライアントに返す
+        match code {
+            "SYS_VAULT_ACCESS_DENIED" => "access denied",
+            "SYS_VAULT_CACHE_ERROR" => "internal server error",
+            "SYS_VAULT_VALIDATION_ERROR" => "invalid request",
+            "SYS_VAULT_UPSTREAM_ERROR" => "upstream service error",
+            _ => "internal server error",
+        }
+    };
     let err = if code == "SYS_VAULT_VALIDATION_ERROR" {
         ErrorResponse::with_details(
             code,
-            msg,
+            safe_msg,
             vec![ErrorDetail::new(
                 "request",
                 "validation_error",
@@ -132,7 +154,7 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
             )],
         )
     } else {
-        ErrorResponse::new(code, msg)
+        ErrorResponse::new(code, safe_msg)
     };
     (status, Json(err))
 }
@@ -302,16 +324,19 @@ pub async fn list_audit_logs(
     State(state): State<AppState>,
     axum::extract::Query(query): axum::extract::Query<AuditLogQuery>,
 ) -> impl IntoResponse {
+    // 監査ログは機密データのため、limit に上限 1000 を適用してリソース枯渇を防止する
+    let limit = query.limit.min(1000);
     match state
         .list_audit_logs_uc
         .execute(&ListAuditLogsInput {
-            offset: query.offset,
-            limit: query.limit,
+            after_id: query.after_id,
+            limit,
         })
         .await
     {
-        Ok(logs) => {
-            let entries: Vec<serde_json::Value> = logs
+        Ok(output) => {
+            let entries: Vec<serde_json::Value> = output
+                .logs
                 .into_iter()
                 .map(|log| {
                     let action = match &log.action {
@@ -332,7 +357,11 @@ pub async fn list_audit_logs(
                     })
                 })
                 .collect();
-            (StatusCode::OK, Json(serde_json::json!({ "logs": entries }))).into_response()
+            // LOW-12 監査対応: next_cursor を返してクライアントが次ページを取得できるようにする
+            (StatusCode::OK, Json(serde_json::json!({
+                "logs": entries,
+                "next_cursor": output.next_cursor.map(|id| id.to_string()),
+            }))).into_response()
         }
         Err(e) => internal_error_response(&e.to_string()).into_response(),
     }

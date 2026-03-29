@@ -126,7 +126,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
     final callbackScheme = ref.read(authCallbackSchemeProvider);
     final callbackUrl = '$callbackScheme://auth/callback';
-    final loginUrl = '$_baseUrl/auth/login?redirect_to=$callbackUrl';
+    // FE-10 監査対応: redirect_to パラメータは URI エンコードが必要。
+    // callbackUrl に "://" が含まれ BFF 側でパース時に切り捨てられる危険を防ぐ。
+    final encodedCallbackUrl = Uri.encodeComponent(callbackUrl);
+    final loginUrl = '$_baseUrl/auth/login?redirect_to=$encodedCallbackUrl';
 
     try {
       // flutter_web_auth_2 で OAuth フローを実行し、コールバック URL を取得する

@@ -20,9 +20,13 @@ impl FileDomainService {
     /// storage_path からテナントIDを抽出する。
     /// storage_path は `{tenant_id}/{filename}` 形式で構成されているため、
     /// 最初の '/' より前のセグメントがテナントIDとなる。
-    /// C-01 監査対応: FileMetadata から tenant_id フィールドが削除されたため、
-    /// テナントIDは storage_path のプレフィックスから取得する。
+    /// MED-03: 抽出したセグメントが '..' や空文字でないことを検証し、
+    /// パストラバーサルを利用したテナント境界突破を防止する。
     pub fn tenant_id_from_storage_path(storage_path: &str) -> Option<&str> {
-        storage_path.split('/').next().filter(|s| !s.is_empty())
+        storage_path
+            .split('/')
+            .next()
+            // 空文字・".."・"." を含む無効なセグメントを拒否する
+            .filter(|s| !s.is_empty() && *s != ".." && *s != ".")
     }
 }

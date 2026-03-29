@@ -1,0 +1,86 @@
+---
+source: crates/k1s0-cli/tests/template_content_tests.rs
+assertion_line: 141
+expression: content
+---
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use crate::usecase::TaskApiUseCase;
+
+/// AppHandler は REST ハンドラーを提供する。
+pub struct AppHandler {
+    uc: Arc<TaskApiUseCase>,
+}
+
+impl AppHandler {
+    pub fn new(uc: TaskApiUseCase) -> Self {
+        Self { uc: Arc::new(uc) }
+    }
+
+    pub fn routes(&self) -> Router {
+        let uc = self.uc.clone();
+        Router::new()
+            .route("/api/v1/task-api", get(list).post(create))
+            .route("/api/v1/task-api/{id}", get(get_by_id))
+            .with_state(uc)
+    }
+}
+
+/// ErrorResponse は API設計.md D-007 準拠のエラーレスポンス。
+#[derive(Serialize)]
+struct ErrorResponse {
+    code: String,
+    message: String,
+}
+
+async fn list(
+    State(uc): State<Arc<TaskApiUseCase>>,
+) -> Result<Json<Vec<crate::domain::model::TaskApiEntity>>, StatusCode> {
+    uc.get_all()
+        .await
+        .map(Json)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+async fn get_by_id(
+    State(uc): State<Arc<TaskApiUseCase>>,
+    Path(id): Path<String>,
+) -> Result<Json<crate::domain::model::TaskApiEntity>, StatusCode> {
+    match uc.get_by_id(&id).await {
+        Ok(Some(entity)) => Ok(Json(entity)),
+        Ok(None) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+#[derive(Deserialize)]
+struct CreateRequest {
+    name: String,
+    description: Option<String>,
+}
+
+async fn create(
+    State(uc): State<Arc<TaskApiUseCase>>,
+    Json(req): Json<CreateRequest>,
+) -> StatusCode {
+    let entity = crate::domain::model::TaskApiEntity {
+        id: String::new(),
+        name: req.name,
+        description: req.description,
+        status: "active".to_string(),
+        created_at: String::new(),
+        updated_at: String::new(),
+    };
+    match uc.create(&entity).await {
+        Ok(()) => StatusCode::CREATED,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
