@@ -93,11 +93,31 @@ impl TemplateEngine {
     ///
     /// # Errors
     /// エラーが発生した場合。
+    /// サービス名にパストラバーサル文字が含まれていないことを検証する（C-007 監査対応）
+    /// 英数字・ハイフン・アンダースコア・ドット以外のパス操作文字を含む場合はエラーを返す
+    fn validate_service_name(name: &str) -> Result<()> {
+        // 空のサービス名は許可しない
+        if name.is_empty() {
+            anyhow::bail!("サービス名は空にできません");
+        }
+        // パストラバーサル文字（'..', '/', '\'）を含む場合はエラーを返す
+        if name.contains("..") || name.contains('/') || name.contains('\\') {
+            anyhow::bail!(
+                "サービス名にパストラバーサル文字（'..', '/', '\\'）は使用できません: {}",
+                name
+            );
+        }
+        Ok(())
+    }
+
     pub fn render_to_dir(
         &mut self,
         ctx: &TemplateContext,
         output_dir: &Path,
     ) -> Result<Vec<PathBuf>> {
+        // サービス名のパストラバーサルバリデーション（C-007 監査対応）
+        Self::validate_service_name(&ctx.service_name)?;
+
         let tera_ctx = ctx.to_tera_context();
 
         // kind + language に対応するテンプレートディレクトリを決定
@@ -339,6 +359,58 @@ mod tests {
     use crate::template::context::TemplateContextBuilder;
     use std::fs;
     use tempfile::TempDir;
+
+    // =========================================================================
+    // validate_service_name のテスト（C-007 監査対応）
+    // =========================================================================
+
+    /// パストラバーサル文字を含むサービス名でエラーが返ることを検証する
+    #[test]
+    fn validate_service_name_rejects_dot_dot_traversal() {
+        assert!(TemplateEngine::validate_service_name("../../evil").is_err());
+    }
+
+    /// 親ディレクトリ参照を含むサービス名でエラーが返ることを検証する
+    #[test]
+    fn validate_service_name_rejects_parent_directory() {
+        assert!(TemplateEngine::validate_service_name("../etc").is_err());
+    }
+
+    /// スラッシュを含むサービス名でエラーが返ることを検証する
+    #[test]
+    fn validate_service_name_rejects_forward_slash() {
+        assert!(TemplateEngine::validate_service_name("path/to/evil").is_err());
+    }
+
+    /// バックスラッシュを含むサービス名でエラーが返ることを検証する
+    #[test]
+    fn validate_service_name_rejects_backslash() {
+        assert!(TemplateEngine::validate_service_name("path\\to\\evil").is_err());
+    }
+
+    /// 空のサービス名でエラーが返ることを検証する
+    #[test]
+    fn validate_service_name_rejects_empty() {
+        assert!(TemplateEngine::validate_service_name("").is_err());
+    }
+
+    /// 正常なハイフン付きサービス名は受理されることを検証する
+    #[test]
+    fn validate_service_name_accepts_valid_hyphenated() {
+        assert!(TemplateEngine::validate_service_name("valid-name").is_ok());
+    }
+
+    /// 正常なアンダースコア付きサービス名は受理されることを検証する
+    #[test]
+    fn validate_service_name_accepts_valid_underscored() {
+        assert!(TemplateEngine::validate_service_name("my_service").is_ok());
+    }
+
+    /// 英数字のみのサービス名は受理されることを検証する
+    #[test]
+    fn validate_service_name_accepts_alphanumeric() {
+        assert!(TemplateEngine::validate_service_name("task123").is_ok());
+    }
 
     // =========================================================================
     // resolve_output_path のテスト

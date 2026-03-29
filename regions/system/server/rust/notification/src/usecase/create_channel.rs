@@ -4,11 +4,14 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::service::NotificationDomainService;
 
+/// H-012 監査対応: tenant_id フィールドを追加してマルチテナント分離を実現する
 #[derive(Debug, Clone)]
 pub struct CreateChannelInput {
     pub name: String,
     pub channel_type: String,
     pub config: serde_json::Value,
+    /// テナント識別子。システム共通チャンネルは "system" を指定する
+    pub tenant_id: String,
     pub enabled: bool,
 }
 
@@ -37,10 +40,12 @@ impl CreateChannelUseCase {
         NotificationDomainService::validate_channel_type(&input.channel_type)
             .map_err(CreateChannelError::Validation)?;
 
+        // H-012: tenant_id を含めてチャンネルを作成する
         let channel = NotificationChannel::new(
             input.name.clone(),
             input.channel_type.clone(),
             input.config.clone(),
+            input.tenant_id.clone(),
             input.enabled,
         );
 
@@ -69,6 +74,7 @@ mod tests {
             name: "email-channel".to_string(),
             channel_type: "email".to_string(),
             config: serde_json::json!({"smtp_host": "localhost"}),
+            tenant_id: "system".to_string(),
             enabled: true,
         };
         let result = uc.execute(&input).await;
@@ -77,6 +83,7 @@ mod tests {
         let channel = result.unwrap();
         assert_eq!(channel.name, "email-channel");
         assert_eq!(channel.channel_type, "email");
+        assert_eq!(channel.tenant_id, "system");
         assert!(channel.enabled);
     }
 
@@ -91,6 +98,7 @@ mod tests {
             name: "sms-channel".to_string(),
             channel_type: "sms".to_string(),
             config: serde_json::json!({}),
+            tenant_id: "system".to_string(),
             enabled: true,
         };
         let result = uc.execute(&input).await;

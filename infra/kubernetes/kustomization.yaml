@@ -1,0 +1,15 @@
+# H-004 監査対応: インフラ全体を統合的に管理するルート kustomization
+# kubectl kustomize infra/kubernetes/ で全リソースをビルド可能にする
+# kustomization.yaml を持つサブディレクトリのみ resources に含める
+# （security, storage, backup, cert-manager, ingress, overlays, system, verify は
+#   独自の kustomization を持たないためここには含めない）
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# kustomization.yaml が存在するサブディレクトリを参照する
+resources:
+  - namespaces/
+  - rbac/
+  - network-policies/
+  - limit-ranges/
+  - resource-quotas/

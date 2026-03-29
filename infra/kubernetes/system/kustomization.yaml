@@ -1,0 +1,7 @@
+# L-004 監査対応: partition-cronjob.yaml を kustomize から参照可能にする
+# kubectl kustomize infra/kubernetes/system/ でリソースをビルドできるようにする
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - partition-cronjob.yaml

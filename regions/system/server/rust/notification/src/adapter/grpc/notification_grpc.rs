@@ -528,10 +528,13 @@ impl NotificationGrpcService {
                 .map_err(|e| GrpcError::InvalidArgument(format!("invalid config_json: {}", e)))?,
             _ => serde_json::json!({}),
         };
+        // H-012 監査対応: gRPC 経由のチャンネル作成でも tenant_id を設定する
+        // TODO: gRPC メタデータからテナント ID を取得する（ADR-0056 ロードマップ参照）
         let input = CreateChannelInput {
             name: req.name,
             channel_type: req.channel_type,
             config,
+            tenant_id: "system".to_string(),
             enabled: req.enabled,
         };
         let channel = uc

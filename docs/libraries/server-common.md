@@ -100,11 +100,18 @@ impl DatabaseSetup {
 ### AuthConfig
 
 ```rust
+// H-005 監査対応: AuthConfig を nested 形式に統一（全サービス共通）
 pub struct AuthConfig {
-    pub jwks_url: String,
+    pub jwt: JwtConfig,
+    pub jwks: Option<JwksConfig>,
+}
+pub struct JwtConfig {
     pub issuer: String,
     pub audience: String,
-    pub cache_ttl_secs: u64, // default: 600
+}
+pub struct JwksConfig {
+    pub url: String,
+    pub cache_ttl_secs: u64, // default: 300
 }
 ```
 

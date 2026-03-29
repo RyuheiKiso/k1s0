@@ -154,17 +154,38 @@ impl Default for CacheConfig {
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// 認証設定（JWT検証とJWKS取得を管理する）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
-    pub issuer: String,
-    pub audience: String,
-    #[serde(default = "default_jwks_cache_ttl_secs")]
-    pub jwks_cache_ttl_secs: u64,
+    /// JWT トークン検証設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイント設定（省略時は JWKS 検証をスキップする）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
 }
 
+/// JWT トークン検証設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者 URL（Keycloak realm URL）
+    pub issuer: String,
+    /// JWT 受信者識別子
+    pub audience: String,
+}
+
+/// JWKS エンドポイント設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ有効期限（秒）
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュのデフォルト有効期限（300秒）
 fn default_jwks_cache_ttl_secs() -> u64 {
-    3600
+    300
 }
 
 fn default_max_entries() -> u64 {
@@ -283,5 +304,13 @@ mod tests {
         let cache = CacheConfig::default();
         assert_eq!(cache.max_entries, 10000);
         assert_eq!(cache.ttl_seconds, 60);
+    }
+
+    /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../config/config.docker.yaml");
+        let _config: Config = serde_yaml::from_str(yaml)
+            .expect("config.docker.yaml のデシリアライズに失敗しました");
     }
 }

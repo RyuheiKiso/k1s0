@@ -9,26 +9,31 @@ import (
 )
 
 // isProductionEnvironment の環境判定ロジックをテストする。
-// prod/production のみ true、それ以外は false を返すことを検証する。
+// M-011 監査対応: fail-safe パターン（デフォルト本番）に変更後のテスト。
+// dev/development/test/local のみ false、それ以外は true を返すことを検証する。
 func TestIsProductionEnvironment(t *testing.T) {
 	cases := []struct {
 		env      string
 		expected bool
 	}{
-		// 本番環境判定
+		// 本番環境判定（明示的に本番を指定した場合）
 		{env: "prod", expected: true},
 		{env: "production", expected: true},
 		// 大文字・スペース混在でも正しく判定する
 		{env: "PROD", expected: true},
 		{env: "PRODUCTION", expected: true},
 		{env: " prod ", expected: true},
-		// 本番環境以外は false
+		// M-011: タイポは安全のため本番扱いとなる（fail-safe）
+		{env: "prodction", expected: true},
+		// M-011: staging は明示的な非本番リストにないため本番扱いとなる
+		{env: "staging", expected: true},
+		// M-011: 空文字は安全のため本番扱いとなる（fail-safe）
+		{env: "", expected: true},
+		// 明示的に開発・テスト環境として指定された場合のみ非本番
 		{env: "dev", expected: false},
 		{env: "development", expected: false},
 		{env: "local", expected: false},
-		{env: "staging", expected: false},
 		{env: "test", expected: false},
-		{env: "", expected: false},
 	}
 
 	for _, tc := range cases {

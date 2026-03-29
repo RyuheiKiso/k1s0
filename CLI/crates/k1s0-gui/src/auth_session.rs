@@ -1,4 +1,4 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
@@ -182,10 +182,15 @@ fn refresh_if_needed(stored: StoredAuthSession) -> Result<Option<StoredAuthSessi
     Ok(Some(refreshed))
 }
 
+// M-015 監査対応: HTTP クライアントにタイムアウトを設定し、認証リフレッシュの無限待機を防止する
 fn http_client() -> Result<Client, String> {
     Client::builder()
+        // 接続タイムアウト: サーバーへの TCP 接続確立に 5 秒以上かかる場合はエラーとする
+        .connect_timeout(Duration::from_secs(5))
+        // リクエストタイムアウト: トークンリフレッシュリクエスト全体で 10 秒以上かかる場合はエラーとする
+        .timeout(Duration::from_secs(10))
         .build()
-        .map_err(|error| format!("failed to create HTTP client: {error}"))
+        .map_err(|error| format!("HTTP クライアントの作成に失敗しました: {error}"))
 }
 
 fn now_epoch_secs() -> u64 {

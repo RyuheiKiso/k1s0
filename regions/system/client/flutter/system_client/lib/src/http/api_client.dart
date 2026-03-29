@@ -73,6 +73,14 @@ class SessionCookieInterceptor extends Interceptor {
     handler.next(response);
   }
 
+  // M-012 監査対応: セッション ID に Cookie ヘッダーを破損させる文字が含まれていないことを検証する
+  // ';' が含まれると複数 Cookie として解析され、セキュリティ上の問題が発生する可能性がある
+  bool _isValidSessionId(String sessionId) {
+    // RFC 6265 に従い、Cookie 値として無効な文字を拒否する
+    return sessionId.isNotEmpty &&
+        !sessionId.contains(RegExp(r'[;\r\n\s]'));
+  }
+
   /// Set-Cookie ヘッダーからセッション ID を抽出し、セキュアストレージに書き込む
   Future<void> _extractSessionCookie(Headers headers) async {
     final setCookies = headers['set-cookie'];
@@ -80,7 +88,8 @@ class SessionCookieInterceptor extends Interceptor {
     for (final cookie in setCookies) {
       if (cookie.startsWith('$cookieName=')) {
         final value = cookie.split(';').first.substring(cookieName.length + 1);
-        if (value.isNotEmpty) {
+        // M-012: セッション ID の文字検証を行い、不正な文字を含む場合は保存しない
+        if (_isValidSessionId(value)) {
           // セッション ID を AES-GCM 暗号化ストレージに書き込む
           await _storage.write(key: _sessionIdKey, value: value);
         }

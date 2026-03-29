@@ -253,8 +253,14 @@ if has docker; then
         # Docker メモリ割り当てが推奨値（8GB）以上かチェックする
         # infra+systemプロファイル全起動で5GB以上消費するため8GB以上を推奨
         docker_mem_bytes=$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo "0")
-        if [[ "$docker_mem_bytes" -gt 0 ]]; then
-            docker_mem_gb=$(echo "$docker_mem_bytes / 1073741824" | bc 2>/dev/null || echo "0")
+        # L-001 監査対応: bc コマンドへの依存を除去し、bash 組み込み算術演算で Docker メモリを計算する
+        # bc が未インストールの環境（Git Bash 等）でも正確なメモリ量を表示できるようにする
+        if [ "$docker_mem_bytes" -gt 0 ] 2>/dev/null; then
+            docker_mem_gb=$(( docker_mem_bytes / 1073741824 ))
+        else
+            docker_mem_gb=0
+        fi
+        if [[ "$docker_mem_gb" -gt 0 ]]; then
             if [[ "$docker_mem_gb" -ge 8 ]]; then
                 ok "Docker: メモリ ${docker_mem_gb}GB (推奨: 8GB以上)"
             else
@@ -276,33 +282,63 @@ fi
 echo ""
 echo "--- ポート競合チェック ---"
 
-# ssコマンドまたはnetstatコマンドのいずれかを使用してリスニングポートを取得する
-get_listening_ports() {
-    if has ss; then
-        ss -tlnp 2>/dev/null
-    elif has netstat; then
-        netstat -tlnp 2>/dev/null
-    else
-        echo ""
-    fi
-}
-
-# ポート競合を確認する関数（引数: ポート番号、サービス名）
+# H-006 監査対応: Windows/Git Bash/macOS/Linux に対応したポートチェック関数
+# ss/netstat が利用できない環境ではポートチェックをスキップし、警告を表示する
 check_port() {
     local port="$1"
     local service="$2"
-    local ports_output
-    ports_output=$(get_listening_ports)
-    if [[ -z "$ports_output" ]]; then
-        # ssもnetstatも使えない場合はスキップ
-        return
-    fi
-    # ポート番号がリスニングポートの一覧に含まれているかを確認する
-    if echo "$ports_output" | grep -qE ":${port}\s"; then
-        warn "ポート ${port} (${service}) は既に使用中です → docker compose 起動時に競合する可能性があります"
-    else
-        ok "ポート ${port} (${service}): 空き"
-    fi
+    local os_type
+    os_type=$(uname -s 2>/dev/null || echo "Unknown")
+
+    # OS 種別に応じて適切なポートチェックコマンドを選択する
+    case "$os_type" in
+        Linux*)
+            # Linux: ss を優先、なければ netstat を使用する
+            if has ss; then
+                if ss -tlnp 2>/dev/null | grep -qE ":${port}\s"; then
+                    warn "ポート ${port} (${service}) は既に使用中です → docker compose 起動時に競合する可能性があります"
+                else
+                    ok "ポート ${port} (${service}): 空き"
+                fi
+            elif has netstat; then
+                if netstat -tlnp 2>/dev/null | grep -qE ":${port}\s"; then
+                    warn "ポート ${port} (${service}) は既に使用中です → docker compose 起動時に競合する可能性があります"
+                else
+                    ok "ポート ${port} (${service}): 空き"
+                fi
+            else
+                warn "ポート ${port} (${service}): ポートチェックツール（ss/netstat）が見つかりません [SKIP]"
+            fi
+            ;;
+        Darwin*)
+            # macOS: lsof を使用する
+            if has lsof; then
+                if lsof -i ":${port}" -sTCP:LISTEN &>/dev/null; then
+                    warn "ポート ${port} (${service}) は既に使用中です → docker compose 起動時に競合する可能性があります"
+                else
+                    ok "ポート ${port} (${service}): 空き"
+                fi
+            else
+                warn "ポート ${port} (${service}): lsof が見つかりません [SKIP]"
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            # Windows Git Bash: netstat を使用する（利用可能な場合のみ）
+            if has netstat; then
+                if netstat -an 2>/dev/null | grep -qE ":${port}\s.*LISTENING"; then
+                    warn "ポート ${port} (${service}) は既に使用中です → docker compose 起動時に競合する可能性があります"
+                else
+                    ok "ポート ${port} (${service}): 空き"
+                fi
+            else
+                warn "ポート ${port} (${service}): Windows 環境でのポートチェックはスキップします [SKIP]"
+            fi
+            ;;
+        *)
+            # 不明な OS の場合はスキップする
+            warn "ポート ${port} (${service}): 不明な OS（${os_type}）でのポートチェックはスキップします [SKIP]"
+            ;;
+    esac
 }
 
 # インフラサービスポートを順番にチェックする

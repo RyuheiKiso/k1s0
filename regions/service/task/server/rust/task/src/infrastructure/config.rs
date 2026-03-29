@@ -100,13 +100,33 @@ fn default_task_created_topic() -> String { "k1s0.service.task.created.v1".to_st
 fn default_task_updated_topic() -> String { "k1s0.service.task.updated.v1".to_string() }
 fn default_task_cancelled_topic() -> String { "k1s0.service.task.cancelled.v1".to_string() }
 
+/// 認証設定（JWT検証とJWKS取得を管理する）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
+    /// JWT トークン検証設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイント設定（省略時は JWKS 検証をスキップする）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
+}
+
+/// JWT トークン検証設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者 URL（Keycloak realm URL）
     pub issuer: String,
+    /// JWT 受信者識別子
     pub audience: String,
+}
+
+/// JWKS エンドポイント設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ有効期限（秒）
     #[serde(default = "default_jwks_ttl")]
-    pub jwks_cache_ttl_secs: u64,
+    pub cache_ttl_secs: u64,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -160,3 +180,37 @@ fn default_log_fmt() -> String { "json".to_string() }
 fn default_trace_enabled() -> bool { true }
 fn default_trace_endpoint() -> String { k1s0_server_common::DEFAULT_OTEL_ENDPOINT.to_string() }
 fn default_sample_rate() -> f64 { 1.0 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// nested 形式の AuthConfig が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）
+    #[test]
+    fn nested_auth_config_deserializes_correctly() {
+        let yaml = r#"
+app:
+  name: "task"
+  environment: "dev"
+server:
+  host: "0.0.0.0"
+  port: 8310
+  grpc_port: 9310
+auth:
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300
+"#;
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        let auth = config.auth.unwrap();
+        assert_eq!(auth.jwt.issuer, "http://keycloak:8080/realms/k1s0");
+        assert_eq!(auth.jwt.audience, "k1s0-api");
+        let jwks = auth.jwks.unwrap();
+        assert_eq!(jwks.url, "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs");
+        assert_eq!(jwks.cache_ttl_secs, 300);
+    }
+}

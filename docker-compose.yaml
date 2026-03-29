@@ -820,7 +820,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "127.0.0.1:${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
+      # M-001 監査対応: 8100 は Kong Status API と競合するため 8122 をデフォルトとする
+      - "127.0.0.1:${NOTIFICATION_REST_HOST_PORT:-8122}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317

@@ -27,16 +27,37 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
 }
 
-/// AuthConfig は JWT 検証設定を表す。
+/// AuthConfig は JWT 認証設定を表す。
+/// config.docker.yaml の nested 形式（auth.jwt / auth.jwks）に対応する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
-    pub issuer: String,
-    pub audience: String,
-    #[serde(default = "default_jwks_cache_ttl")]
-    pub jwks_cache_ttl_secs: u64,
+    /// JWT トークン検証に必要な issuer / audience の設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイントの設定（省略時は JWKS 検証を行わない）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
 }
 
+/// JwtConfig は JWT トークンの issuer と audience を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT の発行者（issuer）URL
+    pub issuer: String,
+    /// JWT の想定オーディエンス
+    pub audience: String,
+}
+
+/// JwksConfig は JWKS エンドポイントとキャッシュ TTL を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュの TTL（秒）。デフォルトは 300 秒。
+    #[serde(default = "default_jwks_cache_ttl")]
+    pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュ TTL のデフォルト値（300 秒）
 fn default_jwks_cache_ttl() -> u64 {
     300
 }
@@ -156,5 +177,17 @@ server: {}
         assert_eq!(config.server.port, 8080);
         assert_eq!(config.server.grpc_port, 50051);
         assert_eq!(config.saga.workflow_dir, "workflows");
+    }
+
+    /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト）
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../config/config.docker.yaml");
+        let config: Config = serde_yaml::from_str(yaml)
+            .expect("config.docker.yaml のデシリアライズに失敗しました");
+        // AuthConfig が正しく読み込まれていることを確認する
+        assert!(config.auth.is_some(), "auth 設定が読み込まれていません");
+        let auth = config.auth.unwrap();
+        assert!(!auth.jwt.issuer.is_empty(), "issuer が空です");
     }
 }

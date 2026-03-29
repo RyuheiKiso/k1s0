@@ -2,18 +2,39 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// AuthConfig 縺ｯ隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// AuthConfig は JWT 認証設定を表す。
+/// config.docker.yaml の nested 形式（auth.jwt / auth.jwks）に対応する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
-    pub issuer: String,
-    pub audience: String,
-    #[serde(default = "default_jwks_cache_ttl_secs")]
-    pub jwks_cache_ttl_secs: u64,
+    /// JWT トークン検証に必要な issuer / audience の設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイントの設定（省略時は JWKS 検証を行わない）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
 }
 
+/// JwtConfig は JWT トークンの issuer と audience を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT の発行者（issuer）URL
+    pub issuer: String,
+    /// JWT の想定オーディエンス
+    pub audience: String,
+}
+
+/// JwksConfig は JWKS エンドポイントとキャッシュ TTL を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュの TTL（秒）。デフォルトは 300 秒。
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュ TTL のデフォルト値（300 秒）
 fn default_jwks_cache_ttl_secs() -> u64 {
-    3600
+    300
 }
 
 /// Application configuration for workflow server.
@@ -83,7 +104,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// DatabaseConfig はデータベース接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -120,7 +141,7 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
+    /// PostgreSQL 接続 URL を生成する。
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -135,15 +156,15 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// KafkaConfig は Kafka ブローカー接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
-    /// Producer topic: 繝ｯ繝ｼ繧ｯ繝輔Ο繝ｼ繝ｻ繧ｿ繧ｹ繧ｯ迥ｶ諷句､牙喧
+    /// Producer topic: ワークフロー・タスク状態変更
     pub state_topic: String,
-    /// Producer topic: 騾夂衍萓晞ｼ
+    /// Producer topic: 通知要求
     pub notification_topic: String,
 }
 
@@ -153,13 +174,13 @@ fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SchedulerClientConfig 縺ｯ scheduler-server 騾｣謳ｺ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// SchedulerClientConfig は scheduler-server 連携の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SchedulerClientConfig {
     pub internal_endpoint: String,
 }
 
-/// OverdueCheckConfig 縺ｯ繧ｿ繧ｹ繧ｯ譛滓律雜・℃繝√ぉ繝・け縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// OverdueCheckConfig はタスク期日超過チェックの設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct OverdueCheckConfig {
     #[serde(default = "default_cron_expression")]
@@ -264,6 +285,7 @@ fn default_metrics_path() -> String {
     "/metrics".to_string()
 }
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -291,5 +313,17 @@ mod tests {
             cfg.connection_url(),
             "postgres://app:pass@localhost:5432/k1s0_system?sslmode=disable"
         );
+    }
+
+    /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト）
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../config/config.docker.yaml");
+        let config: Config = serde_yaml::from_str(yaml)
+            .expect("config.docker.yaml のデシリアライズに失敗しました");
+        // AuthConfig が正しく読み込まれていることを確認する
+        assert!(config.auth.is_some(), "auth 設定が読み込まれていません");
+        let auth = config.auth.unwrap();
+        assert!(!auth.jwt.issuer.is_empty(), "issuer が空です");
     }
 }

@@ -123,6 +123,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_quota_usage_policy_subject
 | `005_alter_alert_threshold_percent_smallint.down.sql` | 型変更復元 |
 | `006_convert_prefixed_ids.up.sql` | UUID → プレフィックス付き VARCHAR(64) ID に変換 |
 | `006_convert_prefixed_ids.down.sql` | ID 変換復元 |
+| `007_improve_quota_policies.up.sql` | quota_policies テーブル改善 |
+| `007_improve_quota_policies.down.sql` | 改善復元 |
+| `008_add_quota_usage_rls.up.sql` | quota_usage テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
+| `008_add_quota_usage_rls.down.sql` | RLS ポリシー・設定削除 |
 
 ---
 

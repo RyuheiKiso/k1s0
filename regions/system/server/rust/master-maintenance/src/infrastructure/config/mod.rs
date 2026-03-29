@@ -64,14 +64,18 @@ impl Config {
             .auth
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("auth configuration is required"))?;
-        if auth.jwks_url.trim().is_empty() {
-            anyhow::bail!("auth.jwks_url must not be empty");
+        // nested 形式の JWT 設定を検証する
+        if auth.jwt.issuer.trim().is_empty() {
+            anyhow::bail!("auth.jwt.issuer must not be empty");
         }
-        if auth.issuer.trim().is_empty() {
-            anyhow::bail!("auth.issuer must not be empty");
+        if auth.jwt.audience.trim().is_empty() {
+            anyhow::bail!("auth.jwt.audience must not be empty");
         }
-        if auth.audience.trim().is_empty() {
-            anyhow::bail!("auth.audience must not be empty");
+        // JWKS 設定がある場合、URL が空でないことを検証する
+        if let Some(ref jwks) = auth.jwks {
+            if jwks.url.trim().is_empty() {
+                anyhow::bail!("auth.jwks.url must not be empty");
+            }
         }
 
         Ok(())
@@ -147,13 +151,33 @@ pub struct KafkaConfig {
     pub domain_topic_pattern: Option<String>,
 }
 
+/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
+    /// JWT トークンの検証に使用する issuer / audience 設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイントの設定（オプション）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
+}
+
+/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者（issuer）
     pub issuer: String,
+    /// JWT 対象者（audience）
     pub audience: String,
+}
+
+/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ TTL（秒）。デフォルト 300 秒。
     #[serde(default = "default_jwks_cache_ttl")]
-    pub jwks_cache_ttl_secs: u64,
+    pub cache_ttl_secs: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -314,6 +338,14 @@ fn default_metrics_path() -> String {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    /// config.docker.yaml が Config にデシリアライズできることを検証する
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../../config/config.docker.yaml");
+        let _config: Config = serde_yaml::from_str(yaml)
+            .expect("config.docker.yaml のデシリアライズに失敗しました");
+    }
 
     #[test]
     fn test_config_deserialization() {

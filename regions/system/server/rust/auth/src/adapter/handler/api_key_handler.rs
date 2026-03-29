@@ -85,7 +85,10 @@ pub async fn create_api_key(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
+            // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
+            // e.to_string() はデータベースエラーの詳細・接続文字列・スタックトレースを含む可能性がある
+            tracing::error!(error = %e, "内部エラーが発生しました");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -114,7 +117,9 @@ pub async fn get_api_key(State(state): State<AppState>, Path(id): Path<Uuid>) ->
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
+            // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
+            tracing::error!(error = %e, "内部エラーが発生しました");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -141,7 +146,9 @@ pub async fn list_api_keys(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
+            // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
+            tracing::error!(error = %e, "内部エラーが発生しました");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -173,7 +180,9 @@ pub async fn revoke_api_key(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
+            // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
+            tracing::error!(error = %e, "内部エラーが発生しました");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

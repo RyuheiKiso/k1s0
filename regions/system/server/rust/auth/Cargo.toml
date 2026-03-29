@@ -44,6 +44,8 @@ validator = { version = "0.20", features = ["derive"] }
 async-trait = {workspace = true}
 sha2 = {workspace = true}
 hmac = "0.12"
+# H-008 監査対応: ハッシュ比較を定数時間で行いタイミング攻撃を防止する
+subtle = "2"
 
 # Logging / Tracing
 tracing = {workspace = true}

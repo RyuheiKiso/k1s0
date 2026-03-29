@@ -218,10 +218,14 @@ pub async fn create_channel(
         );
     }
 
+    // H-012 監査対応: tenant_id を指定してチャンネルを作成する
+    // TODO: JWT クレームからテナント ID を取得する（ADR-0056 ロードマップ参照）
+    // 現時点ではシステム共通チャンネル（tenant_id='system'）として作成する
     let input = CreateChannelInput {
         name: req.name,
         channel_type: req.channel_type,
         config: req.config,
+        tenant_id: "system".to_string(),
         enabled: req.enabled,
     };
 

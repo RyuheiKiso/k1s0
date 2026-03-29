@@ -443,12 +443,16 @@ func newLogger(logCfg config.LogConfig) *slog.Logger {
 	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
 }
 
+// M-011 監査対応: 環境判定を fail-safe（デフォルト本番）パターンに変更する
+// タイポ（例: "prodction"）で本番環境が非本番として動作することを防止する
 func isProductionEnvironment(env string) bool {
 	switch strings.ToLower(strings.TrimSpace(env)) {
-	case "prod", "production":
-		return true
-	default:
+	case "dev", "development", "test", "local":
+		// 明示的に開発・テスト環境として指定された場合のみ非本番として扱う
 		return false
+	default:
+		// 不明な環境名は安全のため本番として扱う（fail-safe）
+		return true
 	}
 }
 

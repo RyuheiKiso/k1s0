@@ -153,24 +153,29 @@ impl ServerBuilder {
 
     /// JWKS トークン検証器を作成する。
     ///
-    /// AuthConfig（jwks_url, issuer, audience, cache_ttl）から JwksVerifier を構築する。
+    /// JwksAuthConfig（jwt + jwks）から JwksVerifier を構築する。
     /// 全サーバーで繰り返される JwksVerifier::new() の呼び出しを共通化する。
     #[cfg(feature = "startup-auth")]
     pub fn init_jwks_verifier(
         &self,
         auth_config: &JwksAuthConfig,
     ) -> anyhow::Result<Arc<k1s0_auth::JwksVerifier>> {
+        // JWKS 設定からエンドポイント URL とキャッシュ TTL を取得する
+        let jwks = auth_config
+            .jwks
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("JWKS 設定が必要です（auth.jwks セクション）"))?;
         info!(
             service = %self.service_name,
-            jwks_url = %auth_config.jwks_url,
+            jwks_url = %jwks.url,
             "JWKS 検証器を初期化中"
         );
         // JwksVerifier を構築する（HTTP クライアント構築失敗時はエラー）
         let verifier = k1s0_auth::JwksVerifier::new(
-            &auth_config.jwks_url,
-            &auth_config.issuer,
-            &auth_config.audience,
-            std::time::Duration::from_secs(auth_config.cache_ttl_secs),
+            &jwks.url,
+            &auth_config.jwt.issuer,
+            &auth_config.jwt.audience,
+            std::time::Duration::from_secs(jwks.cache_ttl_secs),
         )
         .map_err(|e| anyhow::anyhow!("JWKS 検証器の作成に失敗: {}", e))?;
 
@@ -245,20 +250,35 @@ impl Default for DatabasePoolConfig {
     }
 }
 
-/// JWKS 認証設定。
+/// JWKS 認証設定（nested 形式: jwt + jwks）。
 ///
 /// 各サーバーの AuthConfig から変換して使用する。
-/// jwks_url / issuer / audience は全サーバーで共通のフィールド名だが、
 /// サーバー固有の AuthConfig 構造体に依存しないよう分離している。
 #[cfg(feature = "startup-auth")]
 #[derive(Debug, Clone)]
 pub struct JwksAuthConfig {
-    /// JWKS エンドポイント URL
-    pub jwks_url: String,
+    /// JWT トークンの検証に使用する issuer / audience 設定
+    pub jwt: JwksAuthJwtConfig,
+    /// JWKS エンドポイントの設定（オプション）
+    pub jwks: Option<JwksAuthJwksConfig>,
+}
+
+/// JwksAuthJwtConfig は JWT 検証の issuer / audience を保持する。
+#[cfg(feature = "startup-auth")]
+#[derive(Debug, Clone)]
+pub struct JwksAuthJwtConfig {
     /// JWT 発行者（issuer）
     pub issuer: String,
     /// JWT 対象者（audience）
     pub audience: String,
+}
+
+/// JwksAuthJwksConfig は JWKS エンドポイント URL とキャッシュ TTL を保持する。
+#[cfg(feature = "startup-auth")]
+#[derive(Debug, Clone)]
+pub struct JwksAuthJwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
     /// JWKS キャッシュ TTL（秒）
     pub cache_ttl_secs: u64,
 }
@@ -351,13 +371,17 @@ mod tests {
     #[test]
     fn test_jwks_auth_config_fields() {
         let config = JwksAuthConfig {
-            jwks_url: "https://auth.example.com/.well-known/jwks.json".to_string(),
-            issuer: "https://auth.example.com".to_string(),
-            audience: "k1s0-api".to_string(),
-            cache_ttl_secs: 3600,
+            jwt: JwksAuthJwtConfig {
+                issuer: "https://auth.example.com".to_string(),
+                audience: "k1s0-api".to_string(),
+            },
+            jwks: Some(JwksAuthJwksConfig {
+                url: "https://auth.example.com/.well-known/jwks.json".to_string(),
+                cache_ttl_secs: 3600,
+            }),
         };
-        assert_eq!(config.cache_ttl_secs, 3600);
-        assert!(config.jwks_url.contains("jwks.json"));
+        assert_eq!(config.jwks.as_ref().unwrap().cache_ttl_secs, 3600);
+        assert!(config.jwks.as_ref().unwrap().url.contains("jwks.json"));
     }
 
     /// parse_pool_duration が各単位文字列を正しく Duration に変換することを確認する。

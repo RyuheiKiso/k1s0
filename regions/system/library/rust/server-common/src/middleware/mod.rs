@@ -19,7 +19,7 @@ mod stack;
 mod standard_routes;
 
 #[cfg(feature = "auth")]
-pub use app::AuthConfig;
+pub use app::{AuthConfig, JwksConfig, JwtConfig};
 pub use app::{K1s0App, K1s0AppReady};
 #[cfg(feature = "auth")]
 pub use auth_middleware::AuthState;
