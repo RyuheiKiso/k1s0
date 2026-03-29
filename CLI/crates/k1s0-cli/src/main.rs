@@ -97,8 +97,8 @@ const MENU_CODEGEN: &[&str] = &[
 ];
 
 /// プロジェクト管理カテゴリのサブメニュー選択肢。
+/// LOW-4 監査対応: 「プロジェクト初期化」は MENU_FREQUENT にも存在するため重複を削除する。
 const MENU_PROJECT: &[&str] = &[
-    "プロジェクト初期化",
     "バリデーション",
     "依存関係マップ",
     "テンプレートマイグレーション",
@@ -441,32 +441,27 @@ fn show_submenu_project() -> Result<bool> {
         None => Ok(true),
         Some(index) => {
             match index {
-                // プロジェクトを初期化する
-                0 => {
-                    if let Err(e) = commands::init::run() {
-                        eprintln!("初期化エラー: {e}");
-                    }
-                }
                 // バリデーションを実行する
-                1 => {
+                // LOW-4 監査対応: 「プロジェクト初期化」を MENU_FREQUENT との重複として削除したためインデックスが変わった
+                0 => {
                     if let Err(e) = commands::validate::run() {
                         eprintln!("バリデーションエラー: {e}");
                     }
                 }
                 // 依存関係マップを表示する
-                2 => {
+                1 => {
                     if let Err(e) = commands::deps::run() {
                         eprintln!("依存関係マップエラー: {e}");
                     }
                 }
                 // テンプレートマイグレーションを実行する
-                3 => {
+                2 => {
                     if let Err(e) = commands::template_migrate::run() {
                         eprintln!("テンプレートマイグレーションエラー: {e}");
                     }
                 }
                 // 戻る → トップメニューへ
-                4 => return Ok(false),
+                3 => return Ok(false),
                 _ => unreachable!(),
             }
             Ok(false)

@@ -198,6 +198,18 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+  # CRIT-5,6 監査対応: k8s マニフェストのプレースホルダー値が本番デプロイ前に除去されているか検証する
+  # etcd 暗号化キー・Grafana API キー等が <REPLACE_WITH_...> のままデプロイされると本番環境のセキュリティが破綻する
+  validate-k8s-placeholders:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: k8s マニフェストにプレースホルダー値が残存していないことを検証
+        shell: bash
+        run: bash scripts/check-placeholder-secrets.sh
+
   # セキュリティスキャン（Trivy）
   security-scan:
     runs-on: ubuntu-latest

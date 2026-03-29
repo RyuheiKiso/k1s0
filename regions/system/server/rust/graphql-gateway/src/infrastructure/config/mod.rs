@@ -358,6 +358,18 @@ impl Config {
         if self.server.port == 0 {
             anyhow::bail!("server.port must be > 0");
         }
+        // MED-7 監査対応: issuer/audience が空文字で設定されている場合は起動を拒否する。
+        // Some("") は設定ミスの可能性が高く、JWT 検証を無効化するリスクがある。
+        if let Some(issuer) = &self.auth.issuer {
+            if issuer.is_empty() {
+                anyhow::bail!("auth.issuer must not be empty string; omit the field to skip validation");
+            }
+        }
+        if let Some(audience) = &self.auth.audience {
+            if audience.is_empty() {
+                anyhow::bail!("auth.audience must not be empty string; omit the field to skip validation");
+            }
+        }
         // 本番環境では issuer/audience が設定されていない場合は起動を拒否する。
         // 開発環境（development/dev）では省略可能とし、後方互換性を維持する。
         if self.app.environment == "production" {

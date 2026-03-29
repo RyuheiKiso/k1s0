@@ -235,6 +235,14 @@ spec:
               value: "dev"
           ports:
             - containerPort: 5432
+          # HIGH-13 監査対応: verify 環境のリソース制限を追加してスケジューラーへの適切なヒントを提供する
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "dev"]

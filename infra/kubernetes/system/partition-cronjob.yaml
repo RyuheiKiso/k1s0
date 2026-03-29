@@ -25,7 +25,9 @@ spec:
           serviceAccountName: partition-maintenance
           containers:
             - name: partition-maintenance
-              image: postgres:16-alpine
+              # MED-12 監査対応: postgres-backup-cronjob と同一バージョン（17-alpine）に統一する。
+              # バージョン不一致はパーティション保守とバックアップ間の動作差異を引き起こす可能性がある。
+              image: postgres:17-alpine
               # H-7 対応: 最小権限でコンテナを実行する（他のバックアップジョブと統一）
               securityContext:
                 runAsNonRoot: true

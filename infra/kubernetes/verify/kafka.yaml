@@ -34,6 +34,10 @@ spec:
               value: "PLAINTEXT://kafka.k1s0-system.svc.cluster.local:9092"
             - name: KAFKA_CONTROLLER_LISTENER_NAMES
               value: "CONTROLLER"
+            # MED-14 監査対応: PLAINTEXT 通信は verify（テスト専用）環境のみで許容する。
+            # 本番環境では KAFKA_LISTENER_SECURITY_PROTOCOL_MAP を
+            # "CONTROLLER:PLAINTEXT,SSL:SSL" または "CONTROLLER:PLAINTEXT,SASL_SSL:SASL_SSL" に変更し、
+            # ポート 9093（TLS）への移行が必要。
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
               value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
             - name: CLUSTER_ID
@@ -52,6 +56,14 @@ spec:
           volumeMounts:
             - name: kafka-data
               mountPath: /var/lib/kafka
+          # HIGH-13 監査対応: verify 環境のリソース制限を追加してスケジューラーへの適切なヒントを提供する
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
           readinessProbe:
             exec:
               command:
@@ -61,6 +73,17 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 10
             failureThreshold: 10
+          # HIGH-12 監査対応: livenessProbe を追加してメインプロセス停止後のゾンビ状態を検出する
+          # readinessProbe のみでは kafka プロセスがハングしても Kubernetes が再起動しない
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - "bash -lc 'kafka-broker-api-versions.sh --bootstrap-server localhost:9092'"
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
       volumes:
         - name: kafka-data
           # verify 環境はテスト後にクリーンな状態に戻すことが目的のため、

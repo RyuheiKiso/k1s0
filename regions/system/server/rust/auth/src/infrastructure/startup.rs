@@ -110,11 +110,25 @@ pub async fn run() -> anyhow::Result<()> {
         info!("database connection pool established");
         Some(pool)
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
+        // MED-5 監査対応: DATABASE_URL フォールバック時にも config の pool 設定を参照する。
+        // database セクションが設定されていれば max_open_conns / max_idle_conns / conn_max_lifetime を適用し、
+        // 未設定の場合はデフォルト値（max:25, min:5, lifetime:300s）を使用する。
+        let (max_conns, min_conns, lifetime) = if let Some(ref db_config) = cfg.database {
+            let lt = parse_pool_duration(&db_config.conn_max_lifetime)
+                .unwrap_or_else(|| std::time::Duration::from_secs(300));
+            (
+                db_config.max_open_conns,
+                db_config.max_idle_conns.min(db_config.max_open_conns),
+                lt,
+            )
+        } else {
+            (25, 5, std::time::Duration::from_secs(300))
+        };
         let pool = sqlx::postgres::PgPoolOptions::new()
-            .max_connections(25)
-            .min_connections(5)
-            .idle_timeout(Some(std::time::Duration::from_secs(300)))
-            .max_lifetime(Some(std::time::Duration::from_secs(300)))
+            .max_connections(max_conns)
+            .min_connections(min_conns)
+            .idle_timeout(Some(lifetime))
+            .max_lifetime(Some(lifetime))
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");

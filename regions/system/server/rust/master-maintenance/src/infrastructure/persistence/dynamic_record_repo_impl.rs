@@ -23,12 +23,14 @@ fn quote_identifier(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
-/// Validate that a name is a safe SQL identifier (alphanumeric + underscore).
+/// Validate that a name is a safe SQL identifier (ASCII alphanumeric + underscore).
+/// MED-16 監査対応: is_alphanumeric() は Unicode の数字・文字も許容するため、
+/// SQL 識別子として安全な ASCII 英数字のみに限定する is_ascii_alphanumeric() に統一する。
 fn validate_identifier(name: &str) -> anyhow::Result<()> {
     if name.is_empty() {
         anyhow::bail!("Identifier cannot be empty");
     }
-    if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         anyhow::bail!("Invalid identifier: {}", name);
     }
     Ok(())
@@ -275,6 +277,10 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         let total = count_q.fetch_one(&self.pool).await?;
 
         // Data query
+        // MED-16 監査対応: LIMIT/OFFSET は i32 型であり Rust の型システムが SQL 特殊文字の混入を
+        // コンパイル時に排除する。i32 は整数値のみを表現できるため format!() による文字列内挿入でも
+        // SQL インジェクションは発生しない。識別子（table_name, 列名）は validate_identifier() +
+        // quote_identifier() で ASCII 英数字＋アンダースコアのみに制限・ダブルクォートエスケープ済み。
         let data_sql = format!(
             "SELECT {} FROM {}{}{} LIMIT {} OFFSET {}",
             select_cols, table_name, where_sql, order_sql, page_size, offset

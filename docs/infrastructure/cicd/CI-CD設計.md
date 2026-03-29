@@ -84,6 +84,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | `check-tier-deps` | H5対応: system→business→service のティア依存方向を強制し、逆方向依存（system が business/service に依存する等）を CI で検出・失敗させる |
 | `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定。失敗時は `::warning::` アノテーションで既知課題である旨を通知する |
 | `iac-validation` | IaC 検証: `infra/terraform/` の `terraform fmt -check` および dev/prod 環境の `terraform validate`（バックエンド初期化なし）を実行し、Terraform 構文・フォーマット不整合を CI で検出する |
+| `validate-k8s-placeholders` | CRIT-5,6 対応: `infra/kubernetes/security/encryption-config.yaml`（etcd 暗号化キー）および `infra/kubernetes/ingress/kong-consumer-grafana.yaml`（Grafana API キー）に `<REPLACE_WITH_...>` プレースホルダーが残存していないことを `scripts/check-placeholder-secrets.sh` で検証する。本番デプロイ前の自動注入が必須。 |
 
 ### justfile security レシピ変更（H-4 監査対応）
 

@@ -28,7 +28,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: "k1s0-task-server".to_string(),
-        version: "0.1.0".to_string(),
+        // LOW-3 監査対応: Cargo.toml の package.version を使用する（ハードコード解消）
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "service".to_string(),
         environment: cfg.app.environment.clone(),
         trace_endpoint: cfg
@@ -58,10 +59,25 @@ pub async fn run() -> anyhow::Result<()> {
         // Advisory Lock ID: 1000000010 (task-service)
         // ID割り当て規則: docs/architecture/conventions/advisory-lock-ids.md 参照
         // 各サービスのID: task=1000000010, board=1000000011, activity=1000000012
-        sqlx::query("SELECT pg_advisory_lock(1000000010)")
-            .execute(&mut *migration_conn)
-            .await
-            .context("advisory lock acquire")?;
+
+        // HIGH-7 監査対応: pg_try_advisory_lock + リトライでタイムアウトを実装する
+        // pg_advisory_lock は無限ブロッキングのため、前プロセスがクラッシュすると次の起動が永続ブロックされる
+        let lock_timeout = std::time::Duration::from_secs(30);
+        let start = std::time::Instant::now();
+        loop {
+            let locked: (bool,) = sqlx::query_as("SELECT pg_try_advisory_lock(1000000010)")
+                .fetch_one(&mut *migration_conn)
+                .await
+                .context("advisory lock try")?;
+            if locked.0 {
+                break;
+            }
+            if start.elapsed() > lock_timeout {
+                anyhow::bail!("advisory lock timeout after 30s (lock ID: 1000000010)");
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+
         let migrate_result = MIGRATOR.run(&db_pool).await;
         sqlx::query("SELECT pg_advisory_unlock(1000000010)")
             .execute(&mut *migration_conn)

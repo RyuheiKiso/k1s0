@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # CI/CD パイプラインでプレースホルダー値の存在を検出し、デプロイを阻止するスクリプト（CRITICAL-SEC-01 監査対応）
 # 以下のファイルを検査対象とする:
-#   - infra/kubernetes/security/encryption-config.yaml       : etcd 暗号化キー（C-03 監査対応）
+#   - infra/kubernetes/security/encryption-config.yaml              : etcd 暗号化キー（CRIT-5 監査対応）
+#   - infra/kubernetes/ingress/kong-consumer-grafana.yaml           : Grafana API キー（CRIT-6 監査対応）
 #   - infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml : Webhook URL（C-04 監査対応）
 # <REPLACE_ パターンが残存している場合はエラーで終了する
 set -euo pipefail
@@ -10,9 +11,10 @@ set -euo pipefail
 if [ $# -gt 0 ]; then
   TARGET_FILES=("$@")
 else
-  # デフォルト: 両ファイルを検査する
+  # デフォルト: 全てのプレースホルダー検査対象ファイルを検査する
   TARGET_FILES=(
     "infra/kubernetes/security/encryption-config.yaml"
+    "infra/kubernetes/ingress/kong-consumer-grafana.yaml"
     "infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml"
   )
 fi

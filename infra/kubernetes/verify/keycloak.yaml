@@ -508,6 +508,14 @@ spec:
               value: "true"
           ports:
             - containerPort: 8080
+          # HIGH-13 監査対応: verify 環境のリソース制限を追加してスケジューラーへの適切なヒントを提供する
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           readinessProbe:
             httpGet:
               path: /realms/k1s0

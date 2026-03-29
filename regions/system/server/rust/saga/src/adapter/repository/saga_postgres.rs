@@ -145,69 +145,72 @@ impl SagaRepository for SagaPostgresRepository {
     }
 
     async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
-        // Dynamic WHERE clause construction (following audit_log_postgres.rs pattern)
-        let mut conditions = Vec::new();
-        let mut bind_idx = 1u32;
-
-        if params.workflow_name.is_some() {
-            conditions.push(format!("workflow_name = ${}", bind_idx));
-            bind_idx += 1;
-        }
-        if params.status.is_some() {
-            conditions.push(format!("status = ${}", bind_idx));
-            bind_idx += 1;
-        }
-        if params.correlation_id.is_some() {
-            conditions.push(format!("correlation_id = ${}", bind_idx));
-            bind_idx += 1;
-        }
-
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
-
-        // Count query
-        let count_sql = format!(
-            "SELECT COUNT(*)::int4 as count FROM saga.saga_states {}",
-            where_clause
-        );
-
-        let mut count_query = sqlx::query_scalar::<_, i32>(&count_sql);
-        if let Some(ref wn) = params.workflow_name {
-            count_query = count_query.bind(wn);
-        }
-        if let Some(ref s) = params.status {
-            count_query = count_query.bind(s.to_string());
-        }
-        if let Some(ref ci) = params.correlation_id {
-            count_query = count_query.bind(ci);
-        }
-        let total = count_query.fetch_one(&self.pool).await?;
-
-        // Data query
+        // CRIT-3 監査対応: sqlx::QueryBuilder を使用してタイプセーフな動的クエリを生成する。
+        // format!() + 手動 bind_idx 管理ではプレースホルダーずれが発生しうるため置換する。
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
         let offset = ((page - 1) * page_size) as i64;
-        let data_sql = format!(
-            "SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, created_at, updated_at FROM saga.saga_states {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause, bind_idx, bind_idx + 1
-        );
 
-        let mut data_query = sqlx::query_as::<_, SagaStateRow>(&data_sql);
+        // カウントクエリを QueryBuilder で構築する
+        let mut count_qb = sqlx::QueryBuilder::new(
+            "SELECT COUNT(*)::int4 FROM saga.saga_states",
+        );
+        let mut has_where = false;
+
         if let Some(ref wn) = params.workflow_name {
-            data_query = data_query.bind(wn);
+            count_qb.push(if has_where { " AND " } else { " WHERE " });
+            count_qb.push("workflow_name = ");
+            count_qb.push_bind(wn);
+            has_where = true;
         }
         if let Some(ref s) = params.status {
-            data_query = data_query.bind(s.to_string());
+            count_qb.push(if has_where { " AND " } else { " WHERE " });
+            count_qb.push("status = ");
+            count_qb.push_bind(s.to_string());
+            has_where = true;
         }
         if let Some(ref ci) = params.correlation_id {
-            data_query = data_query.bind(ci);
+            count_qb.push(if has_where { " AND " } else { " WHERE " });
+            count_qb.push("correlation_id = ");
+            count_qb.push_bind(ci);
         }
-        data_query = data_query.bind(page_size as i64).bind(offset);
 
-        let rows = data_query.fetch_all(&self.pool).await?;
+        let total: i32 = count_qb.build_query_scalar().fetch_one(&self.pool).await?;
+
+        // データクエリを QueryBuilder で構築する
+        let mut data_qb = sqlx::QueryBuilder::new(
+            "SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, created_at, updated_at FROM saga.saga_states",
+        );
+        let mut has_where = false;
+
+        if let Some(ref wn) = params.workflow_name {
+            data_qb.push(if has_where { " AND " } else { " WHERE " });
+            data_qb.push("workflow_name = ");
+            data_qb.push_bind(wn);
+            has_where = true;
+        }
+        if let Some(ref s) = params.status {
+            data_qb.push(if has_where { " AND " } else { " WHERE " });
+            data_qb.push("status = ");
+            data_qb.push_bind(s.to_string());
+            has_where = true;
+        }
+        if let Some(ref ci) = params.correlation_id {
+            data_qb.push(if has_where { " AND " } else { " WHERE " });
+            data_qb.push("correlation_id = ");
+            data_qb.push_bind(ci);
+        }
+        let _ = has_where; // 最後のフラグ更新を明示的に無視
+
+        data_qb.push(" ORDER BY created_at DESC LIMIT ");
+        data_qb.push_bind(page_size as i64);
+        data_qb.push(" OFFSET ");
+        data_qb.push_bind(offset);
+
+        let rows = data_qb
+            .build_query_as::<SagaStateRow>()
+            .fetch_all(&self.pool)
+            .await?;
         let sagas: anyhow::Result<Vec<SagaState>> =
             rows.into_iter().map(|r| r.try_into()).collect();
 

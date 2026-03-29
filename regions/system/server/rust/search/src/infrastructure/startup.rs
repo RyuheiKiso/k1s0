@@ -56,6 +56,8 @@ pub async fn run() -> anyhow::Result<()> {
     // --- Repository: OpenSearch → PostgreSQL → InMemory fallback ---
     let base_search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
         info!(url = %os_cfg.url, prefix = %os_cfg.index_prefix, "connecting to OpenSearch for search repository");
+        // HIGH-6 監査対応: エラー時にパスワードが含まれる可能性があるため context で上書きする
+        // expose_secret() で取り出したパスワードがエラートレースに含まれないようにする
         let repo = SearchOpenSearchRepository::new(
             &os_cfg.url,
             &os_cfg.username,
@@ -63,7 +65,8 @@ pub async fn run() -> anyhow::Result<()> {
             os_cfg.password.expose_secret(),
             &os_cfg.index_prefix,
             os_cfg.tls_insecure,
-        )?;
+        )
+        .map_err(|_| anyhow::anyhow!("OpenSearch connection failed (check url/credentials)"))?;
         Arc::new(repo)
     } else {
         let db_url = std::env::var("DATABASE_URL").ok();

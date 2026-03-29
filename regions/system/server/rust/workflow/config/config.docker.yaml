@@ -4,6 +4,17 @@ app:
   # CRIT-08 監査対応: "docker" に設定することで scheduler_registration.rs が
   # http://workflow:{port} を使用する（"dev" のままでは 127.0.0.1 になり Docker Compose 内で動作不能）
   environment: docker
+
+# CRIT-1 監査対応: JWT認証設定。他の全サービスと同様にKeycloakを発行者として設定する。
+# 未設定の場合は JWT 検証が機能せず認証バイパスが可能になる。
+auth:
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300
+
 server:
   host: "0.0.0.0"
   port: 8080

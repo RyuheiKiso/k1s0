@@ -16,6 +16,13 @@ const overlayPath = `config/config.${env}.yaml`;
 const overlay = existsSync(overlayPath) ? parse(readFileSync(overlayPath, 'utf-8')) : {};
 const config = deepmerge(base, overlay);
 
+// MED-18 監査対応: VITE_API_BASE_URL 環境変数が設定されている場合は YAML の base_url を上書きする。
+// コンテナデプロイ時にビルド済みイメージのAPIエンドポイントを変更できるようにする。
+if (process.env.VITE_API_BASE_URL) {
+  config.api.base_url = process.env.VITE_API_BASE_URL;
+  config.proxy.target = process.env.VITE_API_BASE_URL;
+}
+
 /// Viteビルド設定: YAML設定からプロキシとアプリ設定を注入（ポート5173を維持）
 export default defineConfig({
   plugins: [react()],

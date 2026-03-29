@@ -7,8 +7,9 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # Windows 環境では PowerShell を使用する（ただし WSL2/Git Bash 推奨）
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-# ローカル開発で起動する Docker Compose profile（infra + system tier）
-_dc_profiles := "--profile infra --profile system"
+# ローカル開発で起動する Docker Compose profile（全 tier + observability）
+# HIGH-4 監査対応: business/service/observability を追加して local-down で全コンテナを確実に停止する
+_dc_profiles := "--profile infra --profile system --profile business --profile service --profile observability"
 
 # standalone Rust サーバーパスは scripts/list-standalone-servers.sh で modules.yaml から動的取得する
 
@@ -357,6 +358,11 @@ docker-build:
         names+=("$name")
     }
 
+    # HIGH-3 監査対応: CARGO_FEATURES ビルド引数を docker build に渡す
+    # dev-auth-bypass 等のフィーチャーを docker-build レシピからも制御できるようにする
+    # 本番ビルド時は CARGO_FEATURES を空のままにすること（デフォルト空文字）
+    CARGO_FEATURES_ARG="${CARGO_FEATURES:-}"
+
     # Rust サーバー（system tier）のイメージビルド（並列）
     for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
         server_name="$(basename "$(dirname "$dockerfile")")"
@@ -364,9 +370,9 @@ docker-build:
             # graphql-gateway はリポジトリルートをビルドコンテキストとする例外サービス
             # 理由: tonic-build が api/proto ディレクトリへのアクセスを必要とするため
             # 詳細: regions/system/server/rust/graphql-gateway/Dockerfile の冒頭コメントを参照
-            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" .
+            start_build "$server_name" docker build -f "$dockerfile" --build-arg "CARGO_FEATURES=${CARGO_FEATURES_ARG}" -t "k1s0-$server_name" .
         else
-            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
+            start_build "$server_name" docker build -f "$dockerfile" --build-arg "CARGO_FEATURES=${CARGO_FEATURES_ARG}" -t "k1s0-$server_name" regions/system
         fi
     done
     # Go サーバー（bff-proxy）のイメージビルド

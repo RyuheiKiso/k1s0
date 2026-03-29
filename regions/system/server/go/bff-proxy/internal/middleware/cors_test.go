@@ -21,16 +21,19 @@ func TestRequiresCredentials(t *testing.T) {
 		want             bool
 	}{
 		{
-			name:             "credentialsPaths が空の場合は後方互換でtrueを返す",
+			// HIGH-1 監査対応: credentialsPaths が未設定の場合は最小権限原則に従い false を返す
+			// LOW-07 監査対応でコード変更済み（空→falseを返す）のため期待値を修正する
+			name:             "credentialsPaths が空の場合は最小権限原則でfalseを返す",
 			path:             "/healthz",
 			credentialsPaths: []string{},
-			want:             true,
+			want:             false,
 		},
 		{
-			name:             "credentialsPaths が nil の場合はtrueを返す",
+			// HIGH-1 監査対応: nil の場合も同様に false を返す（credentialsパスが未設定状態）
+			name:             "credentialsPaths が nil の場合は最小権限原則でfalseを返す",
 			path:             "/metrics",
 			credentialsPaths: nil,
-			want:             true,
+			want:             false,
 		},
 		{
 			name:             "/auth/ に一致するパスはtrueを返す",

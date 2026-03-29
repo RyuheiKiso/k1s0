@@ -26,7 +26,9 @@ spec:
           containers:
             - name: vault-backup
               # Vault Raft スナップショットを PVC（/backup）に保存する。S3 依存なし。
-              image: hashicorp/vault:1.17
+              # MED-11 監査対応: restore-test-cronjob と同一バージョン（1.19）に統一する。
+              # バックアップと復元テストのバージョン不一致は復元テストが本番バックアップを正確に再現しないリスクがある。
+              image: hashicorp/vault:1.19
               # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
               securityContext:
                 runAsNonRoot: true

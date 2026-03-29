@@ -132,8 +132,10 @@ services:
     url: http://featureflag-rust:8080
     routes:
       - name: featureflag-route
+        # HIGH-2 監査対応: 実装の実際のパス /api/v1/flags に合わせて修正する
+        # 旧設定 /api/v1/featureflags では Kong 経由で 404 が返っていた
         paths:
-          - /api/v1/featureflags
+          - /api/v1/flags
         strip_path: false
     plugins:
       - name: rate-limiting
