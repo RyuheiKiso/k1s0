@@ -7,7 +7,7 @@ edition = "2021"
 aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
-password-hash = { version = "0.5", features = ["rand_core"] }
+password-hash = { version = "0.6", features = ["rand_core"] }
 thiserror = {workspace = true}
 base64 = "0.22"
 rsa = { version = "0.9", features = ["sha2", "pem"] }
