@@ -73,5 +73,13 @@ observability:
     enabled: true
     path: "/metrics"
 
+# LOW-13 監査対応: Tier 階層を設定ファイルから読み込む（ハードコード解消）。
+# 上位から下位の順で列挙する。新しい Tier を追加する場合はこのリストに追記するだけでよい。
+tier_hierarchy:
+  tiers:
+    - "system"
+    - "business"
+    - "service"
+
 # ローカル開発環境用の設定は config.docker.yaml を参照のこと。
 # 本設定ファイルは本番/Kubernetes 環境向けのデフォルト値。

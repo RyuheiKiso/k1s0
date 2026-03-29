@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
+use uuid::Uuid;
 
 use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::AccessLogRepository;
@@ -60,19 +61,46 @@ impl AccessLogRepository for AccessLogPostgresRepository {
         Ok(())
     }
 
-    async fn list(&self, offset: u32, limit: u32) -> anyhow::Result<Vec<SecretAccessLog>> {
-        let rows = sqlx::query(
-            "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
-             FROM vault.access_logs \
-             ORDER BY created_at DESC \
-             LIMIT $1 OFFSET $2",
-        )
-        .bind(limit as i64)
-        .bind(offset as i64)
-        .fetch_all(self.pool.as_ref())
-        .await?;
+    /// LOW-12 監査対応: keyset ページネーションで OFFSET を廃止する。
+    /// after_id が Some の場合、そのレコードの (created_at, id) より小さい行のみを取得する
+    /// row value 比較を使用し、full table scan を回避する。
+    /// after_id が None の場合は先頭ページを返す。
+    async fn list(
+        &self,
+        after_id: Option<Uuid>,
+        limit: u32,
+    ) -> anyhow::Result<(Vec<SecretAccessLog>, Option<Uuid>)> {
+        // limit+1 件取得して次ページの存在を確認し、カーソルを生成する
+        let fetch_limit = limit as i64 + 1;
+        let rows = if let Some(cursor_id) = after_id {
+            // カーソルより古い（降順で後続の）レコードを keyset で取得する
+            sqlx::query(
+                "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
+                 FROM vault.access_logs \
+                 WHERE (created_at, id) < ( \
+                     SELECT created_at, id FROM vault.access_logs WHERE id = $1 \
+                 ) \
+                 ORDER BY created_at DESC, id DESC \
+                 LIMIT $2",
+            )
+            .bind(cursor_id)
+            .bind(fetch_limit)
+            .fetch_all(self.pool.as_ref())
+            .await?
+        } else {
+            // 先頭ページ: created_at 降順で最新から取得する
+            sqlx::query(
+                "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
+                 FROM vault.access_logs \
+                 ORDER BY created_at DESC, id DESC \
+                 LIMIT $1",
+            )
+            .bind(fetch_limit)
+            .fetch_all(self.pool.as_ref())
+            .await?
+        };
 
-        let logs = rows
+        let mut logs: Vec<SecretAccessLog> = rows
             .into_iter()
             .map(|row| {
                 let actor_id: String = row.get("actor_id");
@@ -95,7 +123,15 @@ impl AccessLogRepository for AccessLogPostgresRepository {
             })
             .collect();
 
-        Ok(logs)
+        // limit+1 件取得できた場合は次ページが存在する: 末尾の 1 件を捨ててカーソルを設定する
+        let next_cursor = if logs.len() > limit as usize {
+            logs.pop();
+            logs.last().map(|l| l.id)
+        } else {
+            None
+        };
+
+        Ok((logs, next_cursor))
     }
 }
 

@@ -27,6 +27,10 @@ pub struct Config {
     /// ユーザーキャッシュの設定（L-15 監査対応: ハードコード値を設定ファイル化する）
     #[serde(default)]
     pub cache: CacheConfig,
+    /// LOW-13 監査対応: Tier 階層を設定ファイルから読み込む（ハードコード解消）。
+    /// 新しい Tier を追加する場合はこのリストに追記するだけでコード変更が不要になる。
+    #[serde(default)]
+    pub tier_hierarchy: TierHierarchyConfig,
 }
 
 impl Config {
@@ -285,6 +289,26 @@ fn default_user_cache_max_entries() -> usize {
 
 fn default_user_cache_ttl_secs() -> u64 {
     300
+}
+
+/// LOW-13 監査対応: Tier 階層を設定ファイルから読み込む。
+/// インデックスが小さいほど上位 Tier（高い権限）を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct TierHierarchyConfig {
+    /// 上位から下位の順で列挙する（例: system → business → service）
+    pub tiers: Vec<String>,
+}
+
+impl Default for TierHierarchyConfig {
+    fn default() -> Self {
+        Self {
+            tiers: vec![
+                "system".to_string(),
+                "business".to_string(),
+                "service".to_string(),
+            ],
+        }
+    }
 }
 
 pub fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {

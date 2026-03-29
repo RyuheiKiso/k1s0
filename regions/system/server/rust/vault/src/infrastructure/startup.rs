@@ -396,11 +396,15 @@ impl crate::domain::repository::AccessLogRepository for NoopAccessLogRepository 
         Ok(())
     }
 
+    // LOW-12 監査対応: keyset ページネーションシグネチャに対応（dev 環境フォールバック）
     async fn list(
         &self,
-        _offset: u32,
+        _after_id: Option<uuid::Uuid>,
         _limit: u32,
-    ) -> anyhow::Result<Vec<crate::domain::entity::access_log::SecretAccessLog>> {
-        Ok(vec![])
+    ) -> anyhow::Result<(
+        Vec<crate::domain::entity::access_log::SecretAccessLog>,
+        Option<uuid::Uuid>,
+    )> {
+        Ok((vec![], None))
     }
 }

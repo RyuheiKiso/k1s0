@@ -84,10 +84,12 @@ pub struct GetSecretMetadataResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// LOW-12 監査対応: keyset ページネーションリクエスト。
 #[derive(Debug, Clone)]
 pub struct ListAuditLogsRequest {
-    pub offset: i32,
-    pub limit: i32,
+    /// 前ページの最後のアイテムの id（カーソル）。None の場合は先頭ページ。
+    pub after_id: Option<uuid::Uuid>,
+    pub limit: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -105,6 +107,8 @@ pub struct AuditLogEntry {
 #[derive(Debug, Clone)]
 pub struct ListAuditLogsResponse {
     pub logs: Vec<AuditLogEntry>,
+    /// LOW-12 監査対応: 次ページカーソル。None なら最終ページ。
+    pub next_cursor: Option<uuid::Uuid>,
 }
 
 // --- gRPC Error ---
@@ -278,18 +282,20 @@ impl VaultGrpcService {
         &self,
         req: ListAuditLogsRequest,
     ) -> Result<ListAuditLogsResponse, GrpcError> {
+        // LOW-12 監査対応: keyset ページネーション入力を構築する
         let input = ListAuditLogsInput {
-            offset: req.offset.max(0) as u32,
-            limit: req.limit.max(1) as u32,
+            after_id: req.after_id,
+            limit: req.limit.max(1),
         };
 
-        let logs = self
+        let output = self
             .list_audit_logs_uc
             .execute(&input)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
 
-        let entries = logs
+        let entries = output
+            .logs
             .into_iter()
             .map(|log| {
                 let action = match log.action {
@@ -313,7 +319,10 @@ impl VaultGrpcService {
             })
             .collect();
 
-        Ok(ListAuditLogsResponse { logs: entries })
+        Ok(ListAuditLogsResponse {
+            logs: entries,
+            next_cursor: output.next_cursor,
+        })
     }
 }
 

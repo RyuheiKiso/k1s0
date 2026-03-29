@@ -566,8 +566,9 @@ migrate-all-docker:
             -U "${PG_USER:-dev}" \
             -d "$db_name" \
             -c "SELECT 1" > /dev/null 2>&1 || { echo "  SKIP: $db_name not found"; continue; }
-        # migrations/ 配下の *_up.sql を順次適用する
-        for f in "$dir/migrations"/*_up.sql; do
+        # INFRA-04 監査対応: ファイル名は {N}.up.sql 形式のため *.up.sql パターンを使用する
+        # 旧パターン *_up.sql はアンダースコア区切りのファイルのみにマッチし 0件だった
+        for f in "$dir/migrations"/*.up.sql; do
             [ -f "$f" ] && docker compose exec -T postgres psql \
                 -U "${PG_USER:-dev}" \
                 -d "$db_name" < "$f" && echo "  Applied: $(basename $f)"

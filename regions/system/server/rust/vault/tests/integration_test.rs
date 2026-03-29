@@ -52,8 +52,13 @@ impl AccessLogRepository for StubAccessLogRepo {
     async fn record(&self, _log: &SecretAccessLog) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn list(&self, _offset: u32, _limit: u32) -> anyhow::Result<Vec<SecretAccessLog>> {
-        Ok(vec![])
+    // LOW-12 監査対応: keyset ページネーションシグネチャに対応
+    async fn list(
+        &self,
+        _after_id: Option<uuid::Uuid>,
+        _limit: u32,
+    ) -> anyhow::Result<(Vec<SecretAccessLog>, Option<uuid::Uuid>)> {
+        Ok((vec![], None))
     }
 }
 

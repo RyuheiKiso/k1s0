@@ -312,6 +312,11 @@ pub async fn run() -> anyhow::Result<()> {
     state.permission_cache_refresh_on_miss = cfg.permission_cache.refresh_on_miss;
     state.check_permission_uc = check_permission_uc.clone();
     state.role_permission_table = role_permission_table;
+    // LOW-13 監査対応: Tier 階層を設定ファイルから注入する（ハードコード解消）。
+    // tier_hierarchy.tiers が空の場合はデフォルト値 ["system","business","service"] を維持する。
+    if !cfg.tier_hierarchy.tiers.is_empty() {
+        state.tier_hierarchy = cfg.tier_hierarchy.tiers.clone();
+    }
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,
