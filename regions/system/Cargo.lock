@@ -181,6 +181,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arcstr"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "03918c3dbd7701a85c6b9887732e2921175f26c350b4563841d0958c21d57e6d"
+
+[[package]]
 name = "argon2"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1303,7 +1309,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfae6799b68a735270e4344ee3e834365f707c72da09c9a8bb89b45cc3351395"
 dependencies = [
  "deadpool",
- "redis",
+ "redis 0.27.6",
 ]
 
 [[package]]
@@ -2575,7 +2581,7 @@ dependencies = [
  "mockall",
  "prost",
  "prost-types",
- "redis",
+ "redis 1.1.0",
  "regex",
  "reqwest",
  "secrecy",
@@ -2886,7 +2892,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "mockall",
- "redis",
+ "redis 1.1.0",
  "serde",
  "serde_json",
  "thiserror 2.0.18",
@@ -2989,7 +2995,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "mockall",
- "redis",
+ "redis 1.1.0",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
@@ -3634,7 +3640,7 @@ dependencies = [
  "prost",
  "prost-types",
  "rdkafka",
- "redis",
+ "redis 1.1.0",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -3683,7 +3689,7 @@ dependencies = [
  "moka",
  "prost",
  "prost-types",
- "redis",
+ "redis 1.1.0",
  "secrecy",
  "serde",
  "serde_json",
@@ -4062,7 +4068,7 @@ dependencies = [
  "prost",
  "rand 0.8.5",
  "rdkafka",
- "redis",
+ "redis 1.1.0",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -5669,10 +5675,8 @@ checksum = "09d8f99a4090c89cc489a94833c901ead69bfbf3877b4867d5482e321ee875bc"
 dependencies = [
  "arc-swap",
  "async-trait",
- "backon",
  "bytes",
  "combine",
- "futures",
  "futures-util",
  "itertools 0.13.0",
  "itoa",
@@ -5680,11 +5684,37 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "ryu",
- "sha1_smol",
- "socket2 0.5.10",
  "tokio",
  "tokio-util",
  "url",
+]
+
+[[package]]
+name = "redis"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d76e41a79ae5cbb41257d84cf4cf0db0bb5a95b11bf05c62c351de4fe748620d"
+dependencies = [
+ "arc-swap",
+ "arcstr",
+ "async-lock",
+ "backon",
+ "bytes",
+ "cfg-if",
+ "combine",
+ "futures-channel",
+ "futures-util",
+ "itoa",
+ "num-bigint",
+ "percent-encoding",
+ "pin-project-lite",
+ "ryu",
+ "sha1_smol",
+ "socket2 0.6.3",
+ "tokio",
+ "tokio-util",
+ "url",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -8574,6 +8604,12 @@ dependencies = [
  "libc",
  "rustix",
 ]
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
 
 [[package]]
 name = "yansi"
