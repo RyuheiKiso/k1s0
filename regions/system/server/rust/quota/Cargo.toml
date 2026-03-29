@@ -37,7 +37,7 @@ prost-types = {workspace = true}
 sqlx = {workspace = true, features = ["migrate"]}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 redis = {workspace = true}
-croner = "2"
+croner = "3"
 
 [dev-dependencies]
 mockall = {workspace = true}
