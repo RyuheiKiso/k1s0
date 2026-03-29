@@ -6,11 +6,5 @@ pub mod service;
 pub mod service_doc;
 pub mod team;
 
-// ドメインエンティティを外部から利用しやすいよう re-export する
-pub use claims::Claims;
-pub use dependency::Dependency;
-pub use health::HealthStatus;
-pub use scorecard::Scorecard;
-pub use service::Service;
-pub use service_doc::ServiceDoc;
-pub use team::Team;
+// H-02 監査対応: 各エンティティをサブモジュールとして宣言するのみとし、
+// re-export は使用箇所で直接パスを指定する形に変更（unused_imports 警告対応）

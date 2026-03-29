@@ -2,6 +2,8 @@ use crate::domain::entity::column_definition::ColumnDefinition;
 use crate::domain::entity::table_definition::TableDefinition;
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use async_trait::async_trait;
+// M-02 監査対応: LIKE/ILIKE ワイルドカードエスケープのため server-common のユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use serde_json::Value;
 use sqlx::{postgres::PgRow, PgPool, Row};
 
@@ -209,6 +211,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         }
 
         // Search: ILIKE on searchable columns
+        // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
         if let Some(s) = search {
             if !s.is_empty() {
                 let searchable: Vec<String> = columns
@@ -216,7 +219,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     .filter(|c| c.is_searchable)
                     .map(|c| {
                         format!(
-                            "{}::text ILIKE ${}",
+                            "{}::text ILIKE ${} ESCAPE '\\\\'",
                             quote_identifier(&c.column_name),
                             param_idx
                         )
@@ -224,7 +227,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     .collect();
                 if !searchable.is_empty() {
                     where_clauses.push(format!("({})", searchable.join(" OR ")));
-                    bind_values.push(format!("%{}%", s));
+                    // H-02 監査対応: needless_borrow 修正 - &s は自動 deref されるため s を直接渡す
+                    bind_values.push(format!("%{}%", escape_like_pattern(s)));
                 }
             }
         }

@@ -12,7 +12,9 @@ pub mod tenant;
 pub mod vault;
 pub mod workflow;
 
-pub use auth::{AuditEventType, AuditLog, AuditLogConnection, AuditResult, PermissionCheck, Role, User};
+// H-02 監査対応: AuditEventType/AuditResult は AuditLog のフィールド型として auth モジュール内で使用される
+// re-export は不要なため AuditLog/AuditLogConnection のみ再公開する
+pub use auth::{AuditLog, AuditLogConnection, PermissionCheck, Role, User};
 pub use catalog_service::{CatalogService, CatalogServiceConnection, MetadataEntry, ServiceHealth};
 pub use config_entry::ConfigEntry;
 pub use feature_flag::FeatureFlag;

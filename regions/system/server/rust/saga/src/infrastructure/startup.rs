@@ -66,6 +66,12 @@ pub async fn run() -> anyhow::Result<()> {
             .connect(&url)
             .await?;
         info!("database connection pool established");
+        // 起動時に saga-db マイグレーションを適用する（C-01 対応）
+        crate::MIGRATOR
+            .run(&pool)
+            .await
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+        tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
         let pool = sqlx::postgres::PgPoolOptions::new()
@@ -73,6 +79,12 @@ pub async fn run() -> anyhow::Result<()> {
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");
+        // 起動時に saga-db マイグレーションを適用する（C-01 対応）
+        crate::MIGRATOR
+            .run(&pool)
+            .await
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+        tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else {
         // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
@@ -135,6 +147,8 @@ pub async fn run() -> anyhow::Result<()> {
         };
 
     // Use cases
+    // Kafka シャットダウン時の close() 呼び出し用にクローンを保持する（publisher は直後に消費される）
+    let publisher_for_shutdown = publisher.clone();
     let execute_saga_uc = Arc::new(
         usecase::ExecuteSagaUseCase::new(saga_repo.clone(), grpc_caller.clone(), publisher)
             .with_workflow_repo(
@@ -199,6 +213,7 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, saga_grpc_action);
 
     // AppState (REST handler用)
+    // db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
     let mut state = AppState {
         start_saga_uc,
         get_saga_uc,
@@ -209,6 +224,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_workflows_uc,
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-saga-server")),
         auth_state: None,
+        db_pool: db_pool.clone(),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
@@ -236,8 +252,10 @@ pub async fn run() -> anyhow::Result<()> {
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
-    // gRPC server (configured via server.grpc_port)
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    // gRPC server（server.host は設定ファイルで制御可能。本番は 0.0.0.0、テスト環境は 127.0.0.1 を使用する）
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port)
+        .parse()
+        .context("gRPC バインドアドレスのパースに失敗")?;
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
@@ -255,8 +273,10 @@ pub async fn run() -> anyhow::Result<()> {
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
-    // REST server
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    // REST server（server.host は設定ファイルで制御可能）
+    let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port)
+        .parse()
+        .context("REST バインドアドレスのパースに失敗")?;
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;
@@ -295,6 +315,13 @@ pub async fn run() -> anyhow::Result<()> {
         )
         .await;
         info!("saga task drain complete");
+    }
+
+    // Kafka プロデューサーをフラッシュしてシャットダウンする（未送信メッセージを確実に送出する）
+    if let Some(ref pub_handle) = publisher_for_shutdown {
+        if let Err(e) = pub_handle.close().await {
+            tracing::warn!("kafka producer close error during shutdown: {}", e);
+        }
     }
 
     // テレメトリのシャットダウン処理

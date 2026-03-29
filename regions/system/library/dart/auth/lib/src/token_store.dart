@@ -212,6 +212,7 @@ class SecureTokenStore implements TokenStore {
     _codeVerifier = null;
     _state = null;
     // fire-and-forget で全データを一括削除する。失敗時はログ出力（M-30 監査対応）
+    // catchError ハンドラは Future<List<void>> の型に合わせて空リストを返す必要がある
     unawaited(Future.wait([
       _storage.delete(key: '$_prefix$_kTokenSet'),
       _storage.delete(key: '$_prefix$_kCodeVerifier'),
@@ -223,6 +224,7 @@ class SecureTokenStore implements TokenStore {
         stackTrace: st,
         name: 'SecureTokenStore',
       );
+      return <void>[];
     }));
   }
 }

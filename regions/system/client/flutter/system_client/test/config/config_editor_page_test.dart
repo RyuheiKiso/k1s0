@@ -170,7 +170,11 @@ void main() {
     expect(saveButton(tester).onPressed, isNotNull);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-    await tester.pumpAndSettle();
+    // save() 後に load() が再実行されると CircularProgressIndicator が描画され
+    // pumpAndSettle が無限ループするため、pump で非同期処理を完了させる
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
 
     final captured = verify(
       () => mockDio.put<dynamic>(

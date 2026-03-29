@@ -8,6 +8,9 @@
 
 #[cfg(test)]
 mod tests {
+    // H-1 監査対応: SASL パスワードは Secret<String> 型のため secrecy クレートを使用する
+    use secrecy::{ExposeSecret, Secret};
+
     use k1s0_saga_server::infrastructure::kafka_producer::{KafkaConfig, SaslConfig, TopicsConfig};
 
     // =========================================================================
@@ -41,7 +44,8 @@ topics:
         assert_eq!(config.security_protocol, "SASL_SSL");
         assert_eq!(config.sasl.mechanism, "PLAIN");
         assert_eq!(config.sasl.username, "saga-user");
-        assert_eq!(config.sasl.password, "secret");
+        // H-1 監査対応: Secret<String> は expose_secret() で内部値を取り出して比較する
+        assert_eq!(config.sasl.password.expose_secret(), "secret");
         assert_eq!(config.topics.publish.len(), 1);
         assert_eq!(config.topics.subscribe.len(), 1);
     }
@@ -98,7 +102,8 @@ security_protocol: "PLAINTEXT"
             sasl: SaslConfig {
                 mechanism: "SCRAM-SHA-256".to_string(),
                 username: "user".to_string(),
-                password: "pass".to_string(),
+                // H-1 監査対応: password は Secret<String> 型のため Secret::new() でラップする
+                password: Secret::new("pass".to_string()),
             },
             topics: TopicsConfig {
                 publish: vec!["topic-a".to_string()],

@@ -50,7 +50,7 @@ pub(super) fn scan_existing_databases() -> Vec<DbInfo> {
 }
 
 /// database.yaml を再帰的に探索して DB 情報を収集する。
-/// M-19 監査対応: 手動 strip_prefix パーサーから serde_yaml による型安全なデシリアライズに変更。
+/// M-19 監査対応: 手動 `strip_prefix` パーサーから `serde_yaml` による型安全なデシリアライズに変更。
 fn scan_db_recursive(path: &Path, dbs: &mut Vec<DbInfo>) {
     if !path.is_dir() {
         return;

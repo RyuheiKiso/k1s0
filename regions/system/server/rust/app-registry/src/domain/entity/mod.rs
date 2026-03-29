@@ -4,9 +4,5 @@ pub mod download_stat;
 pub mod platform;
 pub mod version;
 
-// ドメインエンティティを外部クレートから利用しやすいよう re-export する
-pub use app::App;
-pub use claims::Claims;
-pub use download_stat::DownloadStat;
-pub use platform::Platform;
-pub use version::AppVersion;
+// H-02 監査対応: 各エンティティをサブモジュールとして宣言するのみとし、
+// re-export は使用箇所で直接パスを指定する形に変更（unused_imports 警告対応）

@@ -58,15 +58,6 @@ mod inner {
         allowed: bool,
         remaining: i64,
         reset_at: String,
-        #[serde(default)]
-        reason: String,
-    }
-
-    /// C-02 監査対応: サーバー API に合わせたリセットリクエスト構造体
-    #[derive(Serialize)]
-    struct ResetRequest {
-        scope: String,
-        identifier: String,
     }
 
     /// サーバーの UsageResponse に合わせたレスポンス構造体

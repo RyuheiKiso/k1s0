@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+// M-02 監査対応: LIKE/ILIKE ワイルドカードエスケープのため server-common のユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -161,16 +163,19 @@ impl UserRepository for UserPostgresRepository {
 
         if let Some(ref s) = search {
             // ILIKE による部分一致検索: username / email / display_name を対象とする
+            // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
+            let escaped = escape_like_pattern(s);
             count_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR email ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR display_name ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(")");
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR email ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR display_name ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\')");
         }
 
+        // H-02 監査対応: enabled フィルタを search ブロックの外に移動し、不正なネストを修正する
         if let Some(en) = enabled {
             // enabled フラグを DB の status 文字列に変換して絞り込む
             let status = if en { "active" } else { "inactive" };
@@ -192,16 +197,19 @@ impl UserRepository for UserPostgresRepository {
 
         if let Some(ref s) = search {
             // COUNT クエリと同一条件で絞り込む
+            // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
+            let escaped = escape_like_pattern(s);
             data_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR email ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR display_name ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(")");
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR email ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR display_name ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\')");
         }
 
+        // H-02 監査対応: enabled フィルタを search ブロックの外に移動し、不正なネストを修正する
         if let Some(en) = enabled {
             let status = if en { "active" } else { "inactive" };
             data_qb.push(" AND status = ").push_bind(status.to_string());

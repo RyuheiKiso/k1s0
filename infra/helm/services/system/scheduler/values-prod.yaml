@@ -1,5 +1,10 @@
 replicaCount: 3
 
+# M-12 監査対応: 本番・ステージング環境では alertmanager を必須にする
+alertmanager:
+  required: true
+  webhookUrl: ""  # CD パイプラインで Vault から注入する
+
 resources:
   requests:
     cpu: 500m

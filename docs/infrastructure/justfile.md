@@ -96,6 +96,7 @@ just proto
 | `docker-build-safe` | **OOM 防止**のための安全なビルド（`--parallel 2` に制限）。WSL2 や Docker Desktop でメモリ不足が発生する場合に使用（HIGH-2 監査対応） |
 | `migrate path` | 指定パスの DB マイグレーションを実行（`sqlx migrate run`） |
 | `migrate-all` | **全システム DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応） |
+| `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose exec postgres` 経由で `*_up.sql` を適用する。Windows Git Bash 等で sqlx-cli が使えない場合に使用する |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
 | `security` | 全言語セキュリティスキャン (`security-go` + `security-rust` + `security-ts` + `security-dart`) |

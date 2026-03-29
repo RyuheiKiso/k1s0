@@ -43,6 +43,8 @@ impl NotificationGrpcClient {
         })
     }
 
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     fn log_from_proto(
         n: proto::k1s0::system::notification::v1::NotificationLog,
     ) -> NotificationLog {
@@ -62,6 +64,8 @@ impl NotificationGrpcClient {
         }
     }
 
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     fn channel_from_proto(
         c: proto::k1s0::system::notification::v1::Channel,
     ) -> NotificationChannel {
@@ -76,6 +80,8 @@ impl NotificationGrpcClient {
         }
     }
 
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     fn template_from_proto(
         t: proto::k1s0::system::notification::v1::Template,
     ) -> NotificationTemplate {
@@ -155,6 +161,8 @@ impl NotificationGrpcClient {
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     pub async fn send_notification(
         &self,
         channel_id: &str,

@@ -1312,7 +1312,10 @@ services:
   # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
-    profiles: [observability]
+    # H-01 監査対応: system プロファイルでも jaeger が起動するよう profiles に system を追加する
+    # system サービス群が depends_on: jaeger (service_healthy) を持つため、
+    # --profile system 単独起動時に jaeger が見つからず依存解決に失敗する問題を修正する
+    profiles: [system, observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用

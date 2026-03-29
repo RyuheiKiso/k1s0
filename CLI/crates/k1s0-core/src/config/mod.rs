@@ -394,7 +394,7 @@ pub struct OidcConfig {
     pub jwks_cache_ttl: Option<String>,
 }
 
-/// `OidcConfig` の Debug 実装: client_secret フィールドを "***" でマスクする。
+/// `OidcConfig` の Debug 実装: `client_secret` フィールドを "***" でマスクする。
 impl std::fmt::Debug for OidcConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OidcConfig")

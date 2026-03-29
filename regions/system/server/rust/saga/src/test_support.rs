@@ -220,5 +220,7 @@ pub fn make_test_app_state(
         list_workflows_uc,
         metrics: Arc::new(k1s0_telemetry::metrics::Metrics::new("test")),
         auth_state: None,
+        // テスト環境では DB プールなし（C-02 監査対応: 本番では DB 接続確認に使用）
+        db_pool: None,
     }
 }

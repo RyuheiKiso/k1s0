@@ -1,10 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "M-03監査対応: Docker ダイジェストおよび GitHub Actions SHA のピン留めを自動更新する。",
+  "description": "H-04 監査対応: enabledManagers 制限を削除し .github/renovate.json の全マネージャー設定に統合。Docker・Rust・Go・TypeScript・Dart の全依存を .github/renovate.json で一元管理する。",
   "extends": [
     "config:base"
   ],
-  "enabledManagers": ["dockerfile", "github-actions"],
   "packageRules": [
     {
       "description": "Docker イメージダイジェストの自動更新（セキュリティ対応）",

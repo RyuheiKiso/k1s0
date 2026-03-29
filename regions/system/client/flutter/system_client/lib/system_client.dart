@@ -1,6 +1,8 @@
 export 'src/auth/auth_state.dart';
 export 'src/auth/auth_provider.dart'
-    show AuthNotifier, authProvider, authApiBaseUrlProvider, authCallbackSchemeProvider, webAuthCallbackProvider, WebAuthCallback;
+    show AuthNotifier, authProvider, authApiBaseUrlProvider, authCallbackSchemeProvider, webAuthCallbackProvider, WebAuthCallback,
+        // テスト時のモック差し替えを可能にするために公開する
+        sessionCookieInterceptorProvider;
 export 'src/http/api_client.dart'
     show ApiClient, CsrfTokenInterceptor, CsrfTokenProvider, SessionCookieInterceptor;
 export 'src/routing/auth_guard.dart';

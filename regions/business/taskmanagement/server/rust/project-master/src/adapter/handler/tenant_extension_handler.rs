@@ -18,7 +18,8 @@ pub async fn get_extension(
         .get(&tenant_id, status_id)
         .await
         .map_err(map_domain_error)?
-        .map(|ext| Json(ext))
+        // H-02 監査対応: redundant_closure 修正 - クロージャをタプル構造体コンストラクタに変更
+        .map(Json)
         .ok_or_else(|| map_domain_error(anyhow::anyhow!("not found")))
 }
 
@@ -38,7 +39,8 @@ pub async fn upsert_extension(
         .manage_tenant_extensions_uc
         .upsert(&input)
         .await
-        .map(|ext| Json(ext))
+        // H-02 監査対応: redundant_closure 修正 - クロージャをタプル構造体コンストラクタに変更
+        .map(Json)
         .map_err(map_domain_error)
 }
 

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+// M-02 監査対応: LIKE/ILIKE ワイルドカードエスケープのため server-common のユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use sqlx::{PgPool, Row};
 #[cfg(feature = "db-tests")]
 use uuid::Uuid;
@@ -229,14 +231,15 @@ impl ConfigRepository for ConfigPostgresRepository {
         let offset = (page - 1) * page_size;
 
         let (entries, total_count) = if let Some(ref search_term) = search {
-            let pattern = format!("%{}%", search_term);
+            // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
+            let pattern = format!("%{}%", escape_like_pattern(search_term));
             let start = std::time::Instant::now();
             let rows = sqlx::query(
                 r#"
                 SELECT id, namespace, key, value_json, version, description,
                        created_by, updated_by, created_at, updated_at
                 FROM config_entries
-                WHERE namespace = $1 AND key LIKE $2
+                WHERE namespace = $1 AND key LIKE $2 ESCAPE '\'
                 ORDER BY key ASC
                 LIMIT $3 OFFSET $4
                 "#,
@@ -437,14 +440,16 @@ impl ConfigRepository for ConfigPostgresRepository {
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         // サービス名に紐づく namespace パターンで検索
         // 例: "auth-server" → "system.auth.%" のような namespace にマッチ
-        let pattern = format!("%.{}%", service_name.replace('-', "."));
+        // M-02 監査対応: ハイフンをドットに置換した後に残る特殊文字（\, %, _）をエスケープする
+        let escaped_name = escape_like_pattern(&service_name.replace('-', "."));
+        let pattern = format!("%.{}%", escaped_name);
 
         let start = std::time::Instant::now();
         let rows = sqlx::query(
             r#"
             SELECT namespace, key, value_json, version
             FROM config_entries
-            WHERE namespace LIKE $1
+            WHERE namespace LIKE $1 ESCAPE '\'
             ORDER BY namespace, key
             "#,
         )

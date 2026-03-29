@@ -4,6 +4,8 @@ use serde::Deserialize;
 
 /// DatabaseConfig はデータベース接続設定。
 /// フィールドは startup.rs で接続 URL 構築・コネクション数設定に使用する。
+// H-02 監査対応: max_idle_conns/conn_max_lifetime は設定ファイル読み込みに必要なため保持する
+#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,

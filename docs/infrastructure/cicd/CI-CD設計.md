@@ -129,6 +129,7 @@ TypeScript/React パッケージのインストールは `npm ci` から `pnpm i
 | 変更点 | 内容 |
 | --- | --- |
 | H7対応: `dart-outdated.outcome` チェック追加 | `スキャン結果の集約` ステップに `dart-outdated.outcome` の failure 判定を追加し、Dart 依存チェック失敗時も CI 全体が失敗するよう修正 |
+| H-05対応: fan-out → aggregate パターン | 各スキャナ（`go-vulncheck`, `cargo-audit`, `npm-audit`, `dart-outdated`）に `continue-on-error: true` を設定し、全スキャナを並列実行した後、`スキャン結果の集約` ステップでいずれかが失敗した場合にジョブ全体を失敗させる設計を採用。これにより1つのスキャナが失敗しても後続スキャナがスキップされず、全言語の脆弱性情報を一度に収集できる |
 
 ### 定期実行スケジュール（週次全テスト）
 

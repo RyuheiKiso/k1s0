@@ -28,6 +28,12 @@ final authCallbackSchemeProvider = Provider<String>(
   (_) => 'k1s0',
 );
 
+/// セッションクッキーインターセプター Provider（モバイル専用）
+/// テスト時は FlutterSecureStorage を使わないモックインスタンスに差し替え可能にする
+final sessionCookieInterceptorProvider = Provider<SessionCookieInterceptor>(
+  (_) => SessionCookieInterceptor(),
+);
+
 class AuthNotifier extends Notifier<AuthState> {
   late final Dio _apiClient;
   late final String _baseUrl;
@@ -42,7 +48,8 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _baseUrl = ref.read(authApiBaseUrlProvider);
-    _sessionCookieInterceptor = SessionCookieInterceptor();
+    // Provider 経由でインターセプターを取得する（テスト時のモック差し替えを可能にする）
+    _sessionCookieInterceptor = ref.read(sessionCookieInterceptorProvider);
     _apiClient = ApiClient.create(
       baseUrl: _baseUrl,
       // CSRF トークンを自動付与する

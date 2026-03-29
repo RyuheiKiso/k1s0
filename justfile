@@ -540,6 +540,41 @@ migrate-all:
     [ "$failed" -eq 0 ] || { echo "ERROR: 一部のマイグレーションが失敗しました" >&2; exit 1; }
     echo "=== All system DB migrations completed ==="
 
+# Windows Git Bash など sqlx-cli 未インストール環境向け Docker 経由マイグレーション（C-03 監査対応）
+# sqlx-cli をローカルインストールせずに、実行中の postgres コンテナ経由でマイグレーションを適用する
+# 実行前提: just local-up-profile infra が完了していること（postgres コンテナが healthy 状態であること）
+migrate-all-docker:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Running all system DB migrations via Docker ==="
+    for dir in regions/system/database/*/; do
+        if [ ! -d "$dir/migrations" ]; then
+            continue
+        fi
+        db_dir=$(basename "$dir")
+        # ディレクトリ名から実際のDB名への明示的マッピング（migrate-all と同様のロジック）
+        case "$db_dir" in
+            dlq-manager-db)        db_name="dlq_db" ;;
+            event-monitor-db)      db_name="k1s0_system" ;;
+            master-maintenance-db) db_name="k1s0_system" ;;
+            saga-db)               db_name="k1s0_system" ;;
+            *)                     db_name=$(echo "$db_dir" | tr '-' '_') ;;
+        esac
+        echo "--- Migrating via Docker: $db_dir → $db_name ---"
+        # 対象 DB の存在確認（存在しない場合はスキップ）
+        docker compose exec -T postgres psql \
+            -U "${PG_USER:-dev}" \
+            -d "$db_name" \
+            -c "SELECT 1" > /dev/null 2>&1 || { echo "  SKIP: $db_name not found"; continue; }
+        # migrations/ 配下の *_up.sql を順次適用する
+        for f in "$dir/migrations"/*_up.sql; do
+            [ -f "$f" ] && docker compose exec -T postgres psql \
+                -U "${PG_USER:-dev}" \
+                -d "$db_name" < "$f" && echo "  Applied: $(basename $f)"
+        done
+    done
+    echo "=== Docker migrations complete ==="
+
 # 指定パスのサービスをリントする（言語を自動検出）
 lint-service path:
     #!/usr/bin/env bash

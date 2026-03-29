@@ -34,8 +34,8 @@ fn is_transient(status: &Status) -> bool {
 ///
 /// # 上限
 /// `max_attempts` が `MAX_RETRY_LIMIT`（10）を超える場合はクランプされる（H-09 監査対応）。
-
-/// リトライ回数の上限値。無制限リトライによるリソース枯渇を防止する（H-09 監査対応）。
+/// リトライ回数の上限値は `MAX_RETRY_LIMIT`（10）に固定する（無制限リトライによるリソース枯渇防止）。
+// H-02 監査対応: doc comment の空行による empty_line_after_doc_comments 警告を修正
 const MAX_RETRY_LIMIT: u32 = 10;
 
 pub async fn with_retry<F, Fut, T>(

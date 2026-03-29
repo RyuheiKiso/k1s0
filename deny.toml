@@ -1,0 +1,37 @@
+# cargo-deny 設定ファイル（H-03 監査対応: RUSTSEC-2023-0071）
+# https://embarkstudios.github.io/cargo-deny/
+# cargo deny check コマンドで Rust 依存関係の脆弱性・ライセンス・重複クレートを一括チェックする
+
+[advisories]
+# 既知の脆弱性アドバイザリのうち、現時点で修正版が存在しないものを許可リストに登録する
+# 各エントリには影響範囲・修正方針・追跡 URL を記載すること
+ignore = [
+    # RUSTSEC-2023-0071: Marvin Attack (RSA サイドチャネル攻撃, CVSS 5.9)
+    # 経路: sqlx-mysql → rsa 0.9.x の間接依存
+    # 本プロジェクトで RSA 秘密鍵演算を直接実行している箇所は存在しない
+    # 修正版: sqlx-mysql 側の対応待ち。修正版リリース時に即時アップデートすること
+    # 追跡: https://rustsec.org/advisories/RUSTSEC-2023-0071.html
+    "RUSTSEC-2023-0071",
+    # RUSTSEC-2025-0111: tokio-tar (testcontainers 経由、テスト専用依存)
+    # テスト実行時のみ利用されるため本番環境への影響はない
+    # testcontainers のバージョンアップで解消予定
+    # 追跡: https://rustsec.org/advisories/RUSTSEC-2025-0111.html
+    "RUSTSEC-2025-0111",
+]
+
+[licenses]
+# MIT/Apache-2.0 系のオープンソースライセンスを許可する
+# GPL 系および商用制限ライセンスは明示的に許可しない
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "MPL-2.0",
+    "CC0-1.0",
+    "Zlib",
+    "OpenSSL",
+]

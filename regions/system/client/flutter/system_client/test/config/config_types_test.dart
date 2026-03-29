@@ -62,16 +62,18 @@ void main() {
     });
 
     test('ListConfigValue はリストを返す', () {
+      // const コンテキスト内では const キーワードは不要なため省略する
       const list = ListConfigValue([
-        const StringConfigValue('a'),
-        const NumberConfigValue(1),
+        StringConfigValue('a'),
+        NumberConfigValue(1),
       ]);
       expect(list.toJson(), equals(['a', 1]));
     });
 
     test('MapConfigValue はマップを返す', () {
+      // const コンテキスト内では const キーワードは不要なため省略する
       const map = MapConfigValue({
-        'key': const StringConfigValue('val'),
+        'key': StringConfigValue('val'),
       });
       expect(map.toJson(), equals({'key': 'val'}));
     });

@@ -186,6 +186,8 @@ impl AuthGrpcClient {
             "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
             _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
         };
+        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+        #[allow(deprecated)]
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::RecordAuditLogRequest {
             event_type: event_type.to_owned(),
             event_type_enum,
@@ -248,6 +250,8 @@ impl AuthGrpcClient {
             "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
             _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
         };
+        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+        #[allow(deprecated)]
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination {
                 page: page.unwrap_or(1),
@@ -308,6 +312,8 @@ fn role_from_proto(r: proto::k1s0::system::auth::v1::Role) -> Role {
     }
 }
 
+// H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+#[allow(deprecated)]
 fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog {
     // C-9 監査対応: event_type/result 文字列から型安全な enum へ変換し、新フィールドに設定する
     let event_type_enum = parse_audit_event_type(&l.event_type);

@@ -8,8 +8,6 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
-    #[serde(default)]
-    pub consumer_group: String,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
     #[serde(default)]
@@ -52,8 +50,6 @@ impl Default for SaslConfig {
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
-    #[serde(default)]
-    pub subscribe: Vec<String>,
 }
 
 /// SagaEventPublisher はSagaイベント配信のためのトレイト。
@@ -208,12 +204,10 @@ mod tests {
         let yaml = r#"
 brokers:
   - "kafka-0.messaging.svc.cluster.local:9092"
-consumer_group: "saga-server.default"
 security_protocol: "PLAINTEXT"
 topics:
   publish:
     - "k1s0.system.saga.state_changed.v1"
-  subscribe: []
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.brokers.len(), 1);

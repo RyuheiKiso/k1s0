@@ -57,6 +57,8 @@ pub async fn run() -> anyhow::Result<()> {
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("project-master"));
 
     // リポジトリ
+    // H-02 監査対応: 複数リポジトリを一括で初期化するため複雑な型タプルになる
+    #[allow(clippy::type_complexity)]
     let (project_type_repo, status_def_repo, tenant_ext_repo, version_repo): (
         Arc<dyn crate::domain::repository::project_type_repository::ProjectTypeRepository>,
         Arc<dyn crate::domain::repository::status_definition_repository::StatusDefinitionRepository>,

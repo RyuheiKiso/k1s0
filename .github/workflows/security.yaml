@@ -86,6 +86,10 @@ jobs:
       # Rust クレートの脆弱性監査
       - name: Rust 脆弱性監査
         id: cargo-audit
+        # H-05 監査対応: continue-on-error: true は意図的な設計。
+        # 全スキャナが並列実行された後、下の集約ステップ(スキャン結果の集約)で
+        # いずれかのスキャナが失敗した場合にジョブ全体を失敗させる。
+        # (fan-out → aggregate パターン: 各スキャナを独立して実行し、最後に一括評価する)
         continue-on-error: true
         run: bash scripts/security/cargo-audit.sh
 

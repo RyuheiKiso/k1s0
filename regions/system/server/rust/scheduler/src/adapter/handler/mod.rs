@@ -17,6 +17,7 @@ use crate::usecase::{
 };
 
 /// Shared application state for REST handlers.
+/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub list_jobs_uc: Arc<ListJobsUseCase>,
@@ -30,6 +31,8 @@ pub struct AppState {
     pub list_executions_uc: Arc<ListExecutionsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（未設定の場合は None）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {

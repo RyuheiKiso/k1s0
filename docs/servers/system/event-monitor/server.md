@@ -55,6 +55,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | 項目 | 設計 |
 | --- | --- |
 | 実装言語 | Rust |
+| `/healthz` の `degraded` 応答 | DLQ クライアント（`dlq-manager` への gRPC 接続）が未設定または接続不可の場合、`/healthz` は `{ "status": "degraded" }` を返す。これは**意図的な設計**であり、リプレイ機能が利用不可であっても監視・KPI ダッシュボードの中核機能は継続動作する。`degraded` は Kubernetes の liveness probe を失敗させない（M-03 監査対応）。 |
 | dlq-manager との違い | dlq-manager は DLQ メッセージの管理・再処理に特化する。event-monitor は正常フロー含む全イベントフローの業務視点モニタリングに特化する |
 | 可観測性スタックとの違い | Prometheus/Jaeger はインフラメトリクス・技術トレースを提供する。event-monitor は「注文→出荷→請求のフロー全体で今どこが詰まっているか」を業務担当者が確認する手段を提供する |
 | イベント集約方式 | Kafka コンシューマーが `k1s0.*.*.*.v1` パターンの全ドメインイベントを購読し、メタデータ（correlation_id, event_type, timestamp）を抽出して DB に永続化。ペイロード本体は保存しない（容量節約） |
@@ -142,7 +143,7 @@ proto ファイルおよびサーバー実装のデフォルト: **50051**（con
 | GET | `/api/v1/slo/{flow_id}/burn-rate` | フロー別バーンレート取得 | `sys_auditor` 以上 |
 | POST | `/api/v1/replay/preview` | リプレイ影響範囲プレビュー | `sys_operator` 以上 |
 | POST | `/api/v1/replay/execute` | リプレイ実行（dlq-manager 連携） | `sys_admin` のみ |
-| GET | `/healthz` | ヘルスチェック | 不要 |
+| GET | `/healthz` | ヘルスチェック（DLQ クライアント未設定時は `degraded` を返す。これは意図的な設計） | 不要 |
 | GET | `/readyz` | レディネスチェック | 不要 |
 | GET | `/metrics` | Prometheus メトリクス | 不要 |
 

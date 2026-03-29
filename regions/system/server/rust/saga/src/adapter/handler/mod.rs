@@ -16,6 +16,7 @@ use crate::usecase::{
 };
 
 /// AppState はアプリケーション全体の共有状態を表す。
+/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub start_saga_uc: Arc<StartSagaUseCase>,
@@ -27,6 +28,8 @@ pub struct AppState {
     pub list_workflows_uc: Arc<ListWorkflowsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（未設定の場合は None）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {
