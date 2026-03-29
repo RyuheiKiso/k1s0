@@ -92,7 +92,8 @@ version_ge() {
     local actual_norm required_norm
     actual_norm=$(echo "$actual" | awk -F. '{ printf "%05d%05d%05d", $1, $2, $3 }')
     required_norm=$(echo "$required" | awk -F. '{ printf "%05d%05d%05d", $1, $2, $3 }')
-    [[ "$actual_norm" >= "$required_norm" ]]
+    # bash の [[ ]] では >= は文字列比較として未定義のため、> と == を明示的に組み合わせる（CLI-01 監査対応）
+    [[ "$actual_norm" > "$required_norm" ]] || [[ "$actual_norm" == "$required_norm" ]]
 }
 
 # =============================================================================

@@ -7,8 +7,9 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 # Windows 環境では PowerShell を使用する（ただし WSL2/Git Bash 推奨）
 set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
-# ローカル開発で起動する Docker Compose profile（infra + system tier）
-_dc_profiles := "--profile infra --profile system"
+# ローカル開発で起動する Docker Compose profile（全 tier + observability）
+# HIGH-4 監査対応: business/service/observability を追加して local-down で全コンテナを確実に停止する
+_dc_profiles := "--profile infra --profile system --profile business --profile service --profile observability"
 
 # standalone Rust サーバーパスは scripts/list-standalone-servers.sh で modules.yaml から動的取得する
 
@@ -357,6 +358,11 @@ docker-build:
         names+=("$name")
     }
 
+    # HIGH-3 監査対応: CARGO_FEATURES ビルド引数を docker build に渡す
+    # dev-auth-bypass 等のフィーチャーを docker-build レシピからも制御できるようにする
+    # 本番ビルド時は CARGO_FEATURES を空のままにすること（デフォルト空文字）
+    CARGO_FEATURES_ARG="${CARGO_FEATURES:-}"
+
     # Rust サーバー（system tier）のイメージビルド（並列）
     for dockerfile in $(find regions/system/server/rust -name 'Dockerfile' | sort); do
         server_name="$(basename "$(dirname "$dockerfile")")"
@@ -364,9 +370,9 @@ docker-build:
             # graphql-gateway はリポジトリルートをビルドコンテキストとする例外サービス
             # 理由: tonic-build が api/proto ディレクトリへのアクセスを必要とするため
             # 詳細: regions/system/server/rust/graphql-gateway/Dockerfile の冒頭コメントを参照
-            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" .
+            start_build "$server_name" docker build -f "$dockerfile" --build-arg "CARGO_FEATURES=${CARGO_FEATURES_ARG}" -t "k1s0-$server_name" .
         else
-            start_build "$server_name" docker build -f "$dockerfile" -t "k1s0-$server_name" regions/system
+            start_build "$server_name" docker build -f "$dockerfile" --build-arg "CARGO_FEATURES=${CARGO_FEATURES_ARG}" -t "k1s0-$server_name" regions/system
         fi
     done
     # Go サーバー（bff-proxy）のイメージビルド
@@ -380,6 +386,18 @@ docker-build:
         fi
     done
     [ "$failed" -eq 0 ] || { echo "ERROR: ビルドが失敗したサービスがあります" >&2; exit 1; }
+
+# メモリ制限環境向けの安全な Docker ビルド（並列数を 2 に制限して OOM を防止する）
+# WSL2 や Docker Desktop でメモリ不足が発生する場合に使用する（HIGH-2 監査対応）
+# 標準の docker-build は最大 4 並列だが、docker compose build は並列数制限がなく OOM の原因となる
+docker-build-safe: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Safe Docker build (--parallel 2, OOM prevention) ==="
+    echo "  tip: 通常ビルドでOOMが発生する場合はこのコマンドを使用してください"
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+      {{_dc_profiles}} build --parallel 2
+    echo "=== Safe Docker build completed ==="
 
 # ローカル開発環境を起動（docker compose + dev overrides）
 # C-02監査対応: docker-compose.dev.yaml を自動的に適用し、必須環境変数（KEYCLOAK_ADMIN_PASSWORD 等）の
@@ -485,6 +503,85 @@ migrate path=".":
     echo "=== Running migrations from $migrations_dir ==="
     sqlx migrate run --database-url "$db_url" --source "$migrations_dir"
 
+# 全システム DB のマイグレーションを一括実行する（初回セットアップ用）
+# インフラサービス（postgres）が起動した後、システムサービスを起動する前に実行する（HIGH-3/HIGH-4 監査対応）
+# ビジネス/サービス層のサービスは sqlx 自動マイグレーションを持つため対象外
+# 実行前提: just local-up-profile infra が完了していること
+migrate-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PG_HOST="${PG_HOST:-localhost}"
+    PG_PORT="${PG_PORT:-5432}"
+    PG_USER="${PG_USER:-dev}"
+    PG_PASS="${PG_PASS:-dev}"
+    echo "=== Running all system DB migrations ==="
+    echo "  DB host: $PG_HOST:$PG_PORT (user: $PG_USER)"
+    failed=0
+    for dir in regions/system/database/*/; do
+        if [ -d "$dir/migrations" ]; then
+            dir_name=$(basename "$dir")
+            # ディレクトリ名から実際のDB名への明示的マッピング
+            # 単純な tr '-' '_' では導出できない例外を case で処理する:
+            #   dlq-manager-db        → dlq_db      (05-dlq-schema.sql が dlq_db に dlq スキーマを作成)
+            #   event-monitor-db      → k1s0_system  (event_monitor スキーマは k1s0_system 内に配置)
+            #   master-maintenance-db → k1s0_system  (master_maintenance スキーマは k1s0_system 内に配置)
+            #   saga-db               → k1s0_system  (saga スキーマは k1s0_system 内に配置)
+            case "$dir_name" in
+                dlq-manager-db)        db_name="dlq_db" ;;
+                event-monitor-db)      db_name="k1s0_system" ;;
+                master-maintenance-db) db_name="k1s0_system" ;;
+                saga-db)               db_name="k1s0_system" ;;
+                *)                     db_name=$(echo "$dir_name" | tr '-' '_') ;;
+            esac
+            db_url="postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
+            echo "--- Migrating: $dir_name → $db_name ---"
+            if sqlx migrate run --database-url "$db_url" --source "$dir/migrations" 2>&1; then
+                echo "  OK: $dir_name → $db_name"
+            else
+                echo "  FAILED: $dir_name → $db_name" >&2
+                failed=1
+            fi
+        fi
+    done
+    [ "$failed" -eq 0 ] || { echo "ERROR: 一部のマイグレーションが失敗しました" >&2; exit 1; }
+    echo "=== All system DB migrations completed ==="
+
+# Windows Git Bash など sqlx-cli 未インストール環境向け Docker 経由マイグレーション（C-03 監査対応）
+# sqlx-cli をローカルインストールせずに、実行中の postgres コンテナ経由でマイグレーションを適用する
+# 実行前提: just local-up-profile infra が完了していること（postgres コンテナが healthy 状態であること）
+migrate-all-docker:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Running all system DB migrations via Docker ==="
+    for dir in regions/system/database/*/; do
+        if [ ! -d "$dir/migrations" ]; then
+            continue
+        fi
+        db_dir=$(basename "$dir")
+        # ディレクトリ名から実際のDB名への明示的マッピング（migrate-all と同様のロジック）
+        case "$db_dir" in
+            dlq-manager-db)        db_name="dlq_db" ;;
+            event-monitor-db)      db_name="k1s0_system" ;;
+            master-maintenance-db) db_name="k1s0_system" ;;
+            saga-db)               db_name="k1s0_system" ;;
+            *)                     db_name=$(echo "$db_dir" | tr '-' '_') ;;
+        esac
+        echo "--- Migrating via Docker: $db_dir → $db_name ---"
+        # 対象 DB の存在確認（存在しない場合はスキップ）
+        docker compose exec -T postgres psql \
+            -U "${PG_USER:-dev}" \
+            -d "$db_name" \
+            -c "SELECT 1" > /dev/null 2>&1 || { echo "  SKIP: $db_name not found"; continue; }
+        # INFRA-04 監査対応: ファイル名は {N}.up.sql 形式のため *.up.sql パターンを使用する
+        # 旧パターン *_up.sql はアンダースコア区切りのファイルのみにマッチし 0件だった
+        for f in "$dir/migrations"/*.up.sql; do
+            [ -f "$f" ] && docker compose exec -T postgres psql \
+                -U "${PG_USER:-dev}" \
+                -d "$db_name" < "$f" && echo "  Applied: $(basename $f)"
+        done
+    done
+    echo "=== Docker migrations complete ==="
+
 # 指定パスのサービスをリントする（言語を自動検出）
 lint-service path:
     #!/usr/bin/env bash
@@ -566,6 +663,10 @@ ci: lint test build
 
 # 全言語セキュリティスキャン
 security: security-go security-rust security-ts security-dart security-infra
+
+# プレースホルダー値が残っていないか検証する（CI/CD デプロイ前チェック）
+check-secrets:
+    bash scripts/check-placeholder-secrets.sh
 
 # インフラセキュリティチェック: プレースホルダーが本番ファイルに残っていないことを確認する（H-4 監査対応）
 # etcd 暗号化キー等のプレースホルダーが CI/CD でデプロイされることを防ぐための防護策

@@ -428,7 +428,7 @@ docker compose down -v
 
 ---
 
-## 10. Docker Desktop でのイメージビルド並列 OOM（M-03 監査対応）
+## 10. Docker Desktop でのイメージビルド並列 OOM（M-03/HIGH-2 監査対応）
 
 ### 症状
 
@@ -437,58 +437,98 @@ docker compose down -v
 - ビルド途中で OOM Killer により Docker Desktop が強制再起動する
 - `docker buildx bake` が `exit code 137` で失敗する
 - `docker compose build --parallel` でメモリ使用量が急増してホスト全体が不安定になる
+- OOM クラッシュ後にサービスを再起動してもホストポートフォワーディングが機能しない（HIGH-7）
 
 ### 原因
 
 k1s0 は 30 以上のサービスを含むモノリポであり、全サービスを並列ビルドすると Docker BuildKit が同時に多数の Rust / Go コンパイラプロセスを起動する。Rust のコンパイルは特にメモリを消費するため、並列度が高いと Docker Desktop に割り当てたメモリを超過する。
 
+> **重要**: `.env.dev` の `COMPOSE_PARALLEL_LIMIT=4` は `docker compose up` の依存解決並列数にのみ有効であり、`docker compose build` の並列ビルド数には効果がない（HIGH-2 監査対応）。
+
 ### 対処
 
-**方法 1: バッチビルド（推奨）**
-
-サービスを数個ずつ分割してビルドする。以下のように `justfile` のターゲットを活用するか、手動でグループを分けて実行する。
+**方法 1: `just docker-build-safe`（推奨）**
 
 ```bash
-# system Tier のサービスをビルドする（推奨: 3〜5 サービスずつ）
-docker compose build auth-rust config-rust master-rust
-
-# service Tier のサービスをビルドする
-docker compose build task-rust board-rust activity-rust
-
-# 1 サービスずつビルドする（最もメモリ消費が少ない）
-docker compose build auth-rust
-docker compose build task-rust
-# ...
+# 並列数 2 に制限した安全なビルド（OOM 防止）
+just docker-build-safe
 ```
 
-**方法 2: `COMPOSE_PARALLEL_LIMIT` で並列数を制限する**
+このコマンドは `docker compose build --parallel 2` を内部的に実行する。通常の `just docker-build` でOOMが発生する場合はこちらを使用する。
+
+**方法 2: `docker compose build --parallel` で直接制限する**
 
 ```bash
-# 並列ビルド数を 3 に制限して全サービスをビルドする
-COMPOSE_PARALLEL_LIMIT=3 docker compose build
-
-# .env に恒久設定する場合
-echo "COMPOSE_PARALLEL_LIMIT=3" >> .env
+# 並列ビルド数を 2 に制限（--parallel フラグは build 専用）
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  build --parallel 2
 ```
 
-> `COMPOSE_PARALLEL_LIMIT` は Docker Compose v2 でサポートされる環境変数。デフォルト値は 64（事実上無制限）。
+**方法 3: WSL2 の場合は `.wslconfig` でメモリ上限を設定する**
 
-**方法 3: Docker Desktop のメモリ割り当てを増やす**
+```ini
+# C:\Users\<username>\.wslconfig
+[wsl2]
+memory=8GB   # 環境に応じて調整（推奨: 実装メモリの50%以内）
+swap=2GB
+```
+
+設定後は WSL2 を再起動: `wsl --shutdown`（Docker Desktop も再起動が必要）
+
+**OOM クラッシュ後のポートフォワーディング復旧（HIGH-7）**
+
+OOM で Docker Desktop がクラッシュ・自動復旧した後、ホストポートが機能しない場合:
 
 ```
-Docker Desktop → Settings → Resources → Memory: 16 GB 以上
+Docker Desktop タスクバーアイコン → Restart
+または
+wsl --shutdown  → Docker Desktop を手動で起動
 ```
 
-8 GB では全並列ビルドには不足する場合がある。WSL2 の場合は `.wslconfig` も合わせて増やすこと（セクション 2 参照）。
+---
 
-**方法 4: 開発中は `docker compose pull` を優先する**
+## 11. Windows Hyper-V 動的ポート除外による gRPC 起動失敗（HIGH-1 監査対応）
 
-CI/CD でビルド済みのイメージを使用することで、ローカルビルドを避けられる。
+### 症状
+
+以下のエラーが発生し、gRPC ポートを持つサービスが起動しない:
+
+```
+Error response from daemon: driver failed programming external connectivity
+on endpoint: Bind for 0.0.0.0:50060 failed: port is already allocated
+```
+
+または:
+
+```
+Error starting userland proxy: listen tcp4 0.0.0.0:50060: bind:
+An attempt was made to access a socket in a way forbidden by its access permissions.
+```
+
+### 原因
+
+Windows の Hyper-V は起動時に TCP ポートを動的に予約・除外する。この範囲には一般的に 50060-50159 が含まれる。以前のデフォルト gRPC ポート（50060-50065）がこの範囲と重複していた。
+
+除外範囲を確認するには:
+
+```powershell
+netsh int ipv4 show excludedportrange protocol=tcp
+```
+
+### 対処
+
+**現行バージョン（ADR-0040 対応済み）**: デフォルト gRPC ポートは 50200-50205 に変更済みのため、通常は発生しない。
+
+ただし、古い `.env` ファイルや環境変数オーバーライドで 50060-50159 の値を指定している場合は、以下のように 50200 帯に変更する:
 
 ```bash
-# レジストリから最新イメージを取得する（ビルド不要）
-docker compose pull
-docker compose up -d
+# .env.dev または環境変数で明示的に設定する場合
+export EVENT_MONITOR_GRPC_HOST_PORT=50200
+export MASTER_MAINTENANCE_GRPC_HOST_PORT=50201
+export NAVIGATION_GRPC_HOST_PORT=50202
+export POLICY_GRPC_HOST_PORT=50203
+export RULE_ENGINE_GRPC_HOST_PORT=50204
+export SESSION_GRPC_HOST_PORT=50205
 ```
 
 ---

@@ -59,11 +59,15 @@ const mockVersions: Record<string, AppVersion[]> = {
   ],
 };
 
+// テスト環境では appConfig.api.base_url が "http://localhost:8080" のため、
+// MSW のモックはフル URL で登録する必要がある
+const API_BASE = 'http://localhost:8080';
+
 const server = setupServer(
-  http.get('/api/v1/apps', () => {
+  http.get(`${API_BASE}/apps`, () => {
     return HttpResponse.json({ apps: mockApps });
   }),
-  http.get('/api/v1/apps/:appId/versions', ({ params }) => {
+  http.get(`${API_BASE}/apps/:appId/versions`, ({ params }) => {
     return HttpResponse.json({ versions: mockVersions[String(params.appId)] ?? [] });
   }),
 );

@@ -106,11 +106,15 @@ pub struct ListSecretsResponse {
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAuditLogsRequest {
     /// ページネーションパラメータを共通型に統一
     #[prost(message, optional, tag = "3")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
+    /// LOW-12 監査対応: keyset ページネーション用カーソル（前ページの最後のアイテムの UUID 文字列）。
+    /// 省略または空文字の場合は先頭ページを返す。
+    #[prost(string, tag = "4")]
+    pub after_cursor: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListAuditLogsResponse {
@@ -119,6 +123,9 @@ pub struct ListAuditLogsResponse {
     /// ページネーション結果
     #[prost(message, optional, tag = "2")]
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
+    /// LOW-12 監査対応: 次ページカーソル（最後のアイテムの UUID 文字列）。空文字なら最終ページ。
+    #[prost(string, tag = "3")]
+    pub next_cursor: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditLogEntry {

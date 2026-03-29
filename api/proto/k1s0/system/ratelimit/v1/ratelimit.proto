@@ -4,6 +4,13 @@ package k1s0.system.ratelimit.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/ratelimit/v1;ratelimitv1";
 
+// ==========================================================================
+// deprecated フィールド削除タイムライン（HIGH-CODE-03 監査対応）
+// [deprecated = true] アノテーションが付与されたフィールドは enum 型フィールドへの移行期間中。
+// 全コンシューマーが enum フィールドに移行完了後に削除する。
+// 移行状況は docs/architecture/adr/0018-messaging-abstraction-unification.md で追跡。
+// ==========================================================================
+
 import "k1s0/system/common/v1/types.proto";
 
 // RateLimitAlgorithm はレートリミットのアルゴリズム種別。

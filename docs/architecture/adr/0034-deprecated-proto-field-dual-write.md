@@ -89,6 +89,60 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
 | `algorithm` → `algorithm_enum` | 完了 | 未実施 |
 | `status` (saga) → `status_enum` | 完了 | 未実施 |
 
+---
+
+## 移行進捗更新（M-12 監査対応: 2026-03-28 時点）
+
+外部技術監査（M-12）の指摘を受け、移行進捗状況を更新する。
+
+### サーバー側 dual-write 実装状況
+
+全7フィールドのサーバー側 dual-write 実装が完了している（2026-03-26 確認済み）。
+各サービスの `tonic_service.rs` / `audit_grpc.rs` で enum 変換ヘルパーが実装されており、
+旧フィールド（string）と新フィールド（enum）の両方に値が書き込まれている。
+
+### クライアント側移行状況（2026-03-28 時点）
+
+| クライアント | 移行状況 | 備考 |
+|------------|---------|------|
+| React SPA（system-client） | 未実施 | 現在も旧フィールドを参照 |
+| Flutter アプリ | 未実施 | 現在も旧フィールドを参照 |
+| GraphQL Gateway（graphql-gateway） | 未実施 | auth/notification クエリが旧フィールドを返す |
+
+### 直近の変更（2026-03-27 外部監査対応）
+
+graphql-gateway の JWT issuer 統一（M-01 対応）を実施したが、
+deprecated フィールド移行とは独立した変更であり、本 ADR の移行状況に影響しない。
+
+### 次のアクション（Phase 1: 2026-Q2 期限）
+
+以下の順序でクライアント移行を進める:
+
+1. **graphql-gateway の移行**（優先度: 高）
+   - `src/infrastructure/grpc/auth_client.rs` で `event_type_enum`/`result_enum` を使用するよう変更
+   - `src/infrastructure/grpc/notification_client.rs` で `status_enum` を使用するよう変更
+   - GraphQL スキーマの型を string から enum に変更
+
+2. **React SPA の移行**（優先度: 中）
+   - `system-client` の AuditLog 表示コンポーネントで新フィールドを参照
+   - 型生成を再実行して新 enum 型を使用
+
+3. **Flutter アプリの移行**（優先度: 中）
+   - `regions/system/library/dart/` の gRPC 生成コードを再生成
+   - Notification/Saga 画面で新フィールドを参照
+
+### モニタリング指標（旧フィールドアクセス確認方法）
+
+旧フィールドへのアクセスがゼロになったことを確認するには:
+
+```promql
+# graphql-gateway の旧フィールド参照を gRPC メタデータで確認する（将来実装）
+# 現時点では Prometheus メトリクス未実装のため、コードレビューで確認する
+```
+
+Phase 2（2026-Q3）の完了条件として、旧フィールドへのアクセスが
+ログ/メトリクスで確認されなくなることを定義する。
+
 ## 参考資料
 
 - [Protocol Buffers Field Deprecation](https://protobuf.dev/programming-guides/proto3/#options)

@@ -2,4 +2,9 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- TODO: Add tables
+-- LOW-05 監査対応: このマイグレーションテンプレートを適用前に実際の SQL に置き換えること。
+-- 置き換えが完了するまでこのトランザクションは明示的にロールバックされる。
+DO $$
+BEGIN
+    RAISE EXCEPTION 'TODO: このマイグレーションファイルは codegen テンプレートから生成されました。実際のマイグレーション SQL を実装してからこの RAISE EXCEPTION を削除してください。';
+END $$;

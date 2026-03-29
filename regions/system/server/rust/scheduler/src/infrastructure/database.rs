@@ -30,8 +30,6 @@ mod tests {
             password: Secret::new("pass".to_string()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
-            max_idle_conns: 5,
-            conn_max_lifetime: "5m".to_string(),
         };
         assert!(cfg
             .connection_url()

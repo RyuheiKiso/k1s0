@@ -165,18 +165,38 @@ impl AccessLogRepository for StubAccessLogRepository {
         Ok(())
     }
 
-    async fn list(&self, offset: u32, limit: u32) -> anyhow::Result<Vec<SecretAccessLog>> {
+    // LOW-12 監査対応: keyset ページネーションシグネチャに対応。
+    // スタブでは after_id の位置を線形探索してカーソルベースのページングを模倣する。
+    async fn list(
+        &self,
+        after_id: Option<uuid::Uuid>,
+        limit: u32,
+    ) -> anyhow::Result<(Vec<SecretAccessLog>, Option<uuid::Uuid>)> {
         if self.should_fail {
             return Err(anyhow::anyhow!("audit log backend unavailable"));
         }
         let logs = self.logs.read().await;
-        let result: Vec<SecretAccessLog> = logs
+        let start = if let Some(cursor) = after_id {
+            logs.iter()
+                .position(|l| l.id == cursor)
+                .map(|pos| pos + 1)
+                .unwrap_or(0)
+        } else {
+            0
+        };
+        let page: Vec<SecretAccessLog> = logs
             .iter()
-            .skip(offset as usize)
-            .take(limit as usize)
+            .skip(start)
+            .take(limit as usize + 1)
             .cloned()
             .collect();
-        Ok(result)
+        let next_cursor = if page.len() > limit as usize {
+            page.get(limit as usize - 1).map(|l| l.id)
+        } else {
+            None
+        };
+        let result = page.into_iter().take(limit as usize).collect();
+        Ok((result, next_cursor))
     }
 }
 
@@ -705,14 +725,17 @@ async fn test_list_audit_logs_success() {
 
     let uc = ListAuditLogsUseCase::new(repo);
 
+    // LOW-12 監査対応: keyset ページネーション — after_id=None で先頭ページを取得する
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 0,
+            after_id: None,
             limit: 20,
         })
         .await;
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().len(), 2);
+    let output = result.unwrap();
+    assert_eq!(output.logs.len(), 2);
+    assert!(output.next_cursor.is_none());
 }
 
 #[tokio::test]
@@ -723,16 +746,20 @@ async fn test_list_audit_logs_empty() {
 
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 0,
+            after_id: None,
             limit: 20,
         })
         .await;
     assert!(result.is_ok());
-    assert!(result.unwrap().is_empty());
+    let output = result.unwrap();
+    assert!(output.logs.is_empty());
+    assert!(output.next_cursor.is_none());
 }
 
 #[tokio::test]
-async fn test_list_audit_logs_with_pagination() {
+async fn test_list_audit_logs_with_keyset_pagination() {
+    // LOW-12 監査対応: keyset ページネーションのテスト。
+    // カーソル（next_cursor）を使って次のページを取得することを検証する。
     let logs = vec![
         SecretAccessLog::new("path/1".to_string(), AccessAction::Read, None, true),
         SecretAccessLog::new("path/2".to_string(), AccessAction::Write, None, true),
@@ -744,43 +771,48 @@ async fn test_list_audit_logs_with_pagination() {
 
     let uc = ListAuditLogsUseCase::new(repo);
 
-    // First page: offset 0, limit 2
+    // 先頭ページ: after_id=None, limit=2
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 0,
+            after_id: None,
             limit: 2,
         })
         .await;
     assert!(result.is_ok());
-    let page = result.unwrap();
-    assert_eq!(page.len(), 2);
-    assert_eq!(page[0].path, "path/1");
-    assert_eq!(page[1].path, "path/2");
+    let page1 = result.unwrap();
+    assert_eq!(page1.logs.len(), 2);
+    assert_eq!(page1.logs[0].path, "path/1");
+    assert_eq!(page1.logs[1].path, "path/2");
+    // 次ページが存在するためカーソルが返される
+    assert!(page1.next_cursor.is_some());
 
-    // Second page: offset 2, limit 2
+    // 2ページ目: 先頭ページのカーソルを使用する
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 2,
+            after_id: page1.next_cursor,
             limit: 2,
         })
         .await;
     assert!(result.is_ok());
-    let page = result.unwrap();
-    assert_eq!(page.len(), 2);
-    assert_eq!(page[0].path, "path/3");
-    assert_eq!(page[1].path, "path/4");
+    let page2 = result.unwrap();
+    assert_eq!(page2.logs.len(), 2);
+    assert_eq!(page2.logs[0].path, "path/3");
+    assert_eq!(page2.logs[1].path, "path/4");
+    assert!(page2.next_cursor.is_some());
 
-    // Last page: offset 4, limit 2
+    // 最終ページ: 残り1件のみ
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 4,
+            after_id: page2.next_cursor,
             limit: 2,
         })
         .await;
     assert!(result.is_ok());
-    let page = result.unwrap();
-    assert_eq!(page.len(), 1);
-    assert_eq!(page[0].path, "path/5");
+    let page3 = result.unwrap();
+    assert_eq!(page3.logs.len(), 1);
+    assert_eq!(page3.logs[0].path, "path/5");
+    // 次ページなし
+    assert!(page3.next_cursor.is_none());
 }
 
 #[tokio::test]
@@ -791,7 +823,7 @@ async fn test_list_audit_logs_repository_error() {
 
     let result = uc
         .execute(&ListAuditLogsInput {
-            offset: 0,
+            after_id: None,
             limit: 20,
         })
         .await;

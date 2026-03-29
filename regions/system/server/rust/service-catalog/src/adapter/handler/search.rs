@@ -7,7 +7,7 @@ use axum::{
 use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
-#[allow(unused_imports)]
+// utoipa マクロの body 型参照に必要なインポート
 use crate::domain::entity::service::Service;
 use crate::domain::entity::service::ServiceTier;
 

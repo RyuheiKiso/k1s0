@@ -13,7 +13,7 @@ serde_json = {workspace = true}
 thiserror = {workspace = true}
 chrono = {workspace = true}
 reqwest = {workspace = true}
-moka = { version = "0.12", features = ["future"] }
+moka = {workspace = true}
 tokio = {workspace = true}
 uuid = {workspace = true}
 mockall = {workspace = true, optional = true}

@@ -113,12 +113,24 @@ pub fn generate_producer(config: &EventConfig) -> String {
     lines.join("\n")
 }
 
-/// Generate a consumer handler stub file.
+/// コンシューマーハンドラーのスタブファイルを生成する。
+/// 生成されたファイルには TODO コメントが含まれるため、本番デプロイ前に実装を完了させること（LOW-05 対応）。
 pub fn generate_consumer_handler(config: &EventConfig, event: &EventDef, handler: &str) -> String {
     let struct_name = event_to_pascal(&event.name);
     let topic = config.topic_name(event);
 
+    // LOW-05: TODO コメントを含むスタブファイルを生成していることをログに警告する。
+    // この警告が出た場合は、生成後にハンドラーのビジネスロジックを実装すること。
+    eprintln!(
+        "[codegen WARNING] コンシューマーハンドラースタブを生成しました: {handler} (topic={topic})\n\
+         生成されたファイルには TODO コメントが含まれます。本番デプロイ前に実装を完了させてください。"
+    );
+
     let mut lines = Vec::new();
+    // LOW-05: 生成ファイル冒頭に TODO 混入警告コメントを付与し、未実装のまま本番投入されないよう注意を促す
+    lines.push("// WARNING: このファイルは k1s0-codegen により自動生成されたスタブです。".to_string());
+    lines.push("// TODO コメントの箇所にビジネスロジックを実装してから本番デプロイしてください。".to_string());
+    lines.push(String::new());
     lines.push("use k1s0_messaging::ConsumedMessage;".to_string());
     lines.push(String::new());
     lines.push("use crate::events::types::*;".to_string());

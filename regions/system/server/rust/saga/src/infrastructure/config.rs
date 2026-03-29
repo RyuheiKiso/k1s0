@@ -61,7 +61,7 @@ fn default_environment() -> String {
 }
 
 /// ServerConfig はサーバー設定。
-#[allow(dead_code)]
+/// host/port/grpc_port は startup.rs でバインドアドレス構築に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -92,17 +92,11 @@ pub struct ServiceEndpoint {
 }
 
 /// SagaConfig は Saga 固有の設定。
-#[allow(dead_code)]
+/// workflow_dir は startup.rs で WorkflowLoader の初期化に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SagaConfig {
-    #[serde(default = "default_max_concurrent")]
-    pub max_concurrent: usize,
     #[serde(default = "default_workflow_dir")]
     pub workflow_dir: String,
-}
-
-fn default_max_concurrent() -> usize {
-    100
 }
 
 fn default_workflow_dir() -> String {
@@ -112,7 +106,6 @@ fn default_workflow_dir() -> String {
 impl Default for SagaConfig {
     fn default() -> Self {
         Self {
-            max_concurrent: default_max_concurrent(),
             workflow_dir: default_workflow_dir(),
         }
     }
@@ -139,7 +132,6 @@ services:
     host: "localhost"
     port: 50051
 saga:
-  max_concurrent: 50
   workflow_dir: "workflows"
 "#;
         let config: Config = serde_yaml::from_str(yaml).unwrap();
@@ -147,7 +139,7 @@ saga:
         assert_eq!(config.server.port, 8080);
         assert_eq!(config.server.grpc_port, 50051);
         assert_eq!(config.services.len(), 1);
-        assert_eq!(config.saga.max_concurrent, 50);
+        assert_eq!(config.saga.workflow_dir, "workflows");
     }
 
     #[test]
@@ -163,7 +155,6 @@ server: {}
         assert_eq!(config.server.host, "0.0.0.0");
         assert_eq!(config.server.port, 8080);
         assert_eq!(config.server.grpc_port, 50051);
-        assert_eq!(config.saga.max_concurrent, 100);
         assert_eq!(config.saga.workflow_dir, "workflows");
     }
 }

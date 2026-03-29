@@ -49,6 +49,16 @@ impl FileMetadataRepository for StubMetadataRepo {
     async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
+
+    /// CRIT-01 監査対応: テナントIDと所有者IDの条件を確認してから削除するスタブ実装
+    async fn delete_with_tenant_check(
+        &self,
+        _id: String,
+        _tenant_id_prefix: String,
+        _expected_uploader: Option<String>,
+    ) -> anyhow::Result<bool> {
+        Ok(false)
+    }
 }
 
 // ---------------------------------------------------------------------------

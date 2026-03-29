@@ -201,11 +201,17 @@ impl VaultService for VaultServiceTonic {
         request: Request<ProtoListAuditLogsRequest>,
     ) -> Result<Response<ProtoListAuditLogsResponse>, Status> {
         let inner = request.into_inner();
-        // pagination は共通 Pagination サブメッセージに移行済み（旧 offset/limit は reserved）
+        // LOW-12 監査対応: after_cursor フィールドを UUID に変換してキーセットページネーションを使用する
+        // proto の after_cursor は空文字列がデフォルト値のため、空の場合は None とする
+        let after_id = if inner.after_cursor.is_empty() {
+            None
+        } else {
+            uuid::Uuid::parse_str(&inner.after_cursor).ok()
+        };
         let pag = inner.pagination.unwrap_or_default();
         let req = ListAuditLogsRequest {
-            offset: pag.page.saturating_sub(1) * pag.page_size,
-            limit: pag.page_size,
+            after_id,
+            limit: pag.page_size.max(1) as u32,
         };
         let resp = self
             .inner
@@ -230,7 +236,8 @@ impl VaultService for VaultServiceTonic {
 
         Ok(Response::new(ProtoListAuditLogsResponse {
             logs,
-            // 後方互換ページネーションフィールド（None = 未設定）
+            // LOW-12 監査対応: next_cursor を文字列として返す
+            next_cursor: resp.next_cursor.map(|id| id.to_string()).unwrap_or_default(),
             pagination: None,
         }))
     }

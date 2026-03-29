@@ -83,7 +83,12 @@ func run() error {
 	// defer による shutdown が必要なため run() に残す
 	tp, err := initTracerProvider(ctx, cfg.Observability.Trace, cfg.App)
 	if err != nil {
-		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました", slog.String("error", err.Error()))
+		// L-17 監査対応: 本番/ステージング環境では OTel 初期化失敗時に起動を停止する。
+		// 開発環境では警告ログで継続し、OTel Collector が未起動でもサービスを利用可能にする。
+		if !config.IsDevEnvironment(cfg.App.Environment) {
+			return fmt.Errorf("OTel トレーサープロバイダーの初期化に失敗しました（非開発環境では必須）: %w", err)
+		}
+		logger.Warn("OTel トレーサープロバイダーの初期化に失敗しました（開発環境のため継続）", slog.String("error", err.Error()))
 	} else if tp != nil {
 		defer func() {
 			// タイムアウト付きコンテキストでシャットダウンし、OTel Collector 無応答時の無限ブロックを防ぐ（H-004）
@@ -117,9 +122,16 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 	var redisClient redis.Cmdable
 	if redisCfg.MasterName != "" {
 		// Sentinel モード: MasterName が設定されている場合はフェイルオーバークライアントを使用する
+		// H-17 対応: SentinelAddrs が設定されている場合は複数アドレスを使用し、
+		// 未設定の場合は後方互換性のために単一の Addr にフォールバックする
+		sentinelAddrs := redisCfg.SentinelAddrs
+		if len(sentinelAddrs) == 0 {
+			// SentinelAddrs が未設定の場合は Addr を Sentinel アドレスとして使用する（後方互換）
+			sentinelAddrs = []string{redisCfg.Addr}
+		}
 		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    redisCfg.MasterName,
-			SentinelAddrs: []string{redisCfg.Addr},
+			SentinelAddrs: sentinelAddrs,
 			Password:      redisCfg.Password,
 			DB:            redisCfg.DB,
 			PoolSize:      redisCfg.PoolSize,
@@ -237,11 +249,13 @@ func initRouter(
 	logger *slog.Logger,
 ) (*gin.Engine, error) {
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
+	// M-17 監査対応: セッションの絶対最大有効期間を設定から取得する（デフォルト 24 時間）
+	absoluteMaxTTL := config.ParseDuration(cfg.Session.AbsoluteMaxTTL, 24*time.Hour)
 	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
 	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
 	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
-	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
 	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
 	if err != nil {
@@ -314,13 +328,17 @@ func initRouter(
 
 // startServer は HTTP サーバーを起動し、シグナルを待機してグレースフルにシャットダウンする。
 // G-01 対応: ReadTimeout=60s（大きなリクエストボディ対応）、WriteTimeout=120s（上流応答時間バッファ）。
+// H-16 対応: ReadHeaderTimeout=10s を設定し Slowloris 攻撃（ヘッダーを断片的に送信する遅延攻撃）を防止する。
 func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine, logger *slog.Logger, oidcWg *sync.WaitGroup) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
-		Addr:         addr,
-		Handler:      router,
-		ReadTimeout:  config.ParseDuration(cfg.Server.ReadTimeout, 60*time.Second),
-		WriteTimeout: config.ParseDuration(cfg.Server.WriteTimeout, 120*time.Second),
+		Addr:              addr,
+		Handler:           router,
+		ReadTimeout:       config.ParseDuration(cfg.Server.ReadTimeout, 60*time.Second),
+		WriteTimeout:      config.ParseDuration(cfg.Server.WriteTimeout, 120*time.Second),
+		// ReadHeaderTimeout はリクエストヘッダー全体を受信するまでの最大時間を制限する（H-16 対応）
+		// 未設定の場合 Slowloris 攻撃によりサーバーリソースが枯渇するリスクがある
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	errCh := make(chan error, 1)

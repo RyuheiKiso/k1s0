@@ -24,6 +24,13 @@ pub struct Config {
     pub audit: AuditConfig,
     #[serde(default)]
     pub keycloak_admin: KeycloakAdminConfig,
+    /// ユーザーキャッシュの設定（L-15 監査対応: ハードコード値を設定ファイル化する）
+    #[serde(default)]
+    pub cache: CacheConfig,
+    /// LOW-13 監査対応: Tier 階層を設定ファイルから読み込む（ハードコード解消）。
+    /// 新しい Tier を追加する場合はこのリストに追記するだけでコード変更が不要になる。
+    #[serde(default)]
+    pub tier_hierarchy: TierHierarchyConfig,
 }
 
 impl Config {
@@ -253,6 +260,55 @@ fn default_keycloak_admin_token_cache_ttl_secs() -> u64 {
 
 fn default_keycloak_admin_refresh_interval_secs() -> u64 {
     300
+}
+
+/// ユーザーキャッシュの設定（L-15 監査対応）。
+/// startup.rs の UserCache::new() で使用するパラメータを設定ファイルから読み込む。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CacheConfig {
+    /// ユーザーキャッシュの最大エントリ数
+    #[serde(default = "default_user_cache_max_entries")]
+    pub user_cache_max_entries: usize,
+    /// ユーザーキャッシュの TTL（秒）
+    #[serde(default = "default_user_cache_ttl_secs")]
+    pub user_cache_ttl_secs: u64,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            user_cache_max_entries: default_user_cache_max_entries(),
+            user_cache_ttl_secs: default_user_cache_ttl_secs(),
+        }
+    }
+}
+
+fn default_user_cache_max_entries() -> usize {
+    5000
+}
+
+fn default_user_cache_ttl_secs() -> u64 {
+    300
+}
+
+/// LOW-13 監査対応: Tier 階層を設定ファイルから読み込む。
+/// インデックスが小さいほど上位 Tier（高い権限）を表す。
+#[derive(Debug, Clone, Deserialize)]
+pub struct TierHierarchyConfig {
+    /// 上位から下位の順で列挙する（例: system → business → service）
+    pub tiers: Vec<String>,
+}
+
+impl Default for TierHierarchyConfig {
+    fn default() -> Self {
+        Self {
+            tiers: vec![
+                "system".to_string(),
+                "business".to_string(),
+                "service".to_string(),
+            ],
+        }
+    }
 }
 
 pub fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {

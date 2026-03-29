@@ -45,13 +45,13 @@ mod tests {
     use crate::domain::repository::file_repository::MockFileMetadataRepository;
     use std::collections::HashMap;
 
+    // C-01 監査対応: tenant_id 引数削除後の 7 引数シグネチャに合わせてサンプルファイルを生成する
     fn sample_file() -> FileMetadata {
         FileMetadata::new(
             "file_001".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             HashMap::new(),
             "tenant-abc/report.pdf".to_string(),

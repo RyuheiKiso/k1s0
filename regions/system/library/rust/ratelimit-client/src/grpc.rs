@@ -1,3 +1,5 @@
+/// C-02 監査対応: GrpcRateLimitClient → HttpRateLimitClient にリネーム
+/// API パスをサーバー実装（POST /api/v1/ratelimit/check 等）に合わせる
 #[cfg(feature = "grpc")]
 mod inner {
     use async_trait::async_trait;
@@ -8,12 +10,14 @@ mod inner {
     use crate::error::RateLimitError;
     use crate::types::{RateLimitPolicy, RateLimitResult, RateLimitStatus};
 
-    pub struct GrpcRateLimitClient {
+    /// HTTP REST API を使用する ratelimit-server クライアント
+    /// C-02/L-16 監査対応: GrpcRateLimitClient から HttpRateLimitClient にリネーム
+    pub struct HttpRateLimitClient {
         http: reqwest::Client,
         base_url: String,
     }
 
-    impl GrpcRateLimitClient {
+    impl HttpRateLimitClient {
         /// デフォルトタイムアウト30秒でHTTPクライアントを構築して接続する
         pub async fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError> {
             let client = reqwest::Client::builder()
@@ -39,35 +43,33 @@ mod inner {
         }
     }
 
+    /// C-02 監査対応: サーバー API に合わせたリクエスト構造体（scope + identifier + window）
     #[derive(Serialize)]
     struct CheckRequest {
-        cost: u32,
+        scope: String,
+        identifier: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        window: Option<String>,
     }
 
+    /// サーバーの CheckRateLimitResponse に合わせたレスポンス構造体
     #[derive(Deserialize)]
     struct CheckResponse {
         allowed: bool,
-        remaining: u32,
-        reset_at: String,
-        retry_after_secs: Option<u64>,
-    }
-
-    #[derive(Serialize)]
-    struct ConsumeRequest {
-        cost: u32,
-    }
-
-    #[derive(Deserialize)]
-    struct ConsumeResponse {
-        remaining: u32,
+        remaining: i64,
         reset_at: String,
     }
 
+    /// サーバーの UsageResponse に合わせたレスポンス構造体
     #[derive(Deserialize)]
-    struct PolicyResponse {
+    struct UsageResponse {
+        #[serde(default)]
         key: String,
+        #[serde(default)]
         limit: u32,
+        #[serde(default)]
         window_secs: u64,
+        #[serde(default)]
         algorithm: String,
     }
 
@@ -108,13 +110,25 @@ mod inner {
     }
 
     #[async_trait]
-    impl RateLimitClient for GrpcRateLimitClient {
+    impl RateLimitClient for HttpRateLimitClient {
+        /// C-02 監査対応: POST /api/v1/ratelimit/check（key をパスではなくボディに含める）
+        /// key は "scope:identifier" 形式で受け取り、scope と identifier に分割する
         async fn check(&self, key: &str, cost: u32) -> Result<RateLimitStatus, RateLimitError> {
-            let url = format!("{}/api/v1/ratelimit/{}/check", self.base_url, key);
+            let url = format!("{}/api/v1/ratelimit/check", self.base_url);
+            let (scope, identifier) = split_key(key);
+            let window = if cost > 1 {
+                Some(format!("{}s", cost))
+            } else {
+                None
+            };
             let resp = self
                 .http
                 .post(&url)
-                .json(&CheckRequest { cost })
+                .json(&CheckRequest {
+                    scope,
+                    identifier,
+                    window,
+                })
                 .send()
                 .await
                 .map_err(map_reqwest_err)?;
@@ -129,57 +143,63 @@ mod inner {
 
             Ok(RateLimitStatus {
                 allowed: result.allowed,
-                remaining: result.remaining,
+                remaining: result.remaining as u32,
                 reset_at: parse_reset_at(&result.reset_at),
-                retry_after_secs: result.retry_after_secs,
+                retry_after_secs: if result.allowed { None } else { Some(0) },
             })
         }
 
+        /// C-02 監査対応: consume は check と同じエンドポイントを使用する
+        /// サーバー側に consume エンドポイントはないため、check で代用する
         async fn consume(&self, key: &str, cost: u32) -> Result<RateLimitResult, RateLimitError> {
-            let url = format!("{}/api/v1/ratelimit/{}/consume", self.base_url, key);
-            let resp = self
-                .http
-                .post(&url)
-                .json(&ConsumeRequest { cost })
-                .send()
-                .await
-                .map_err(map_reqwest_err)?;
-
-            if !resp.status().is_success() {
-                return Err(map_error_response(resp, "consume").await);
-            }
-
-            let result: ConsumeResponse = resp.json().await.map_err(|e| {
-                RateLimitError::ServerError(format!("consume: decode response: {}", e))
-            })?;
-
+            let status = self.check(key, cost).await?;
             Ok(RateLimitResult {
-                remaining: result.remaining,
-                reset_at: parse_reset_at(&result.reset_at),
+                remaining: status.remaining,
+                reset_at: status.reset_at,
             })
         }
 
+        /// C-02 監査対応: GET /api/v1/ratelimit/usage
         async fn get_limit(&self, key: &str) -> Result<RateLimitPolicy, RateLimitError> {
-            let url = format!("{}/api/v1/ratelimit/{}/policy", self.base_url, key);
+            let url = format!("{}/api/v1/ratelimit/usage", self.base_url);
             let resp = self.http.get(&url).send().await.map_err(map_reqwest_err)?;
 
             if !resp.status().is_success() {
                 return Err(map_error_response(resp, "get_limit").await);
             }
 
-            let result: PolicyResponse = resp.json().await.map_err(|e| {
+            let result: UsageResponse = resp.json().await.map_err(|e| {
                 RateLimitError::ServerError(format!("get_limit: decode response: {}", e))
             })?;
 
             Ok(RateLimitPolicy {
-                key: result.key,
+                key: if result.key.is_empty() {
+                    key.to_string()
+                } else {
+                    result.key
+                },
                 limit: result.limit,
                 window_secs: result.window_secs,
                 algorithm: result.algorithm,
             })
         }
     }
+
+    /// key を "scope:identifier" 形式から (scope, identifier) に分割する
+    /// ":" が含まれない場合は scope="default"、identifier=key とする
+    fn split_key(key: &str) -> (String, String) {
+        if let Some((scope, identifier)) = key.split_once(':') {
+            (scope.to_string(), identifier.to_string())
+        } else {
+            ("default".to_string(), key.to_string())
+        }
+    }
 }
 
 #[cfg(feature = "grpc")]
-pub use inner::GrpcRateLimitClient;
+pub use inner::HttpRateLimitClient;
+
+/// 後方互換性のための型エイリアス（L-16 監査対応: 旧名称からの移行期間用）
+#[cfg(feature = "grpc")]
+#[deprecated(note = "GrpcRateLimitClient は HttpRateLimitClient にリネームされました")]
+pub type GrpcRateLimitClient = inner::HttpRateLimitClient;

@@ -174,12 +174,15 @@ impl Default for ResetScheduleConfig {
     }
 }
 
+// croner v2 は秒フィールドを含む 6 フィールド形式（秒 分 時 日 月 曜日）を使用する（MED-2 監査対応）。
+// 5 フィールド形式では find_next_occurrence が None を返し cron タスクが即終了する問題が発生する。
 fn default_daily_cron() -> String {
-    "0 0 * * *".to_string()
+    "0 0 0 * * *".to_string()
 }
 
+// croner v2 準拠: 毎月1日午前0時00分00秒
 fn default_monthly_cron() -> String {
-    "0 0 1 * *".to_string()
+    "0 0 0 1 * *".to_string()
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -269,9 +272,10 @@ mod tests {
 
     #[test]
     fn test_reset_schedule_defaults() {
+        // croner v2 は秒フィールドを含む 6 フィールド形式を要求する（MED-2 監査対応）
         let cfg = ResetScheduleConfig::default();
-        assert_eq!(cfg.daily, "0 0 * * *");
-        assert_eq!(cfg.monthly, "0 0 1 * *");
+        assert_eq!(cfg.daily, "0 0 0 * * *");
+        assert_eq!(cfg.monthly, "0 0 0 1 * *");
     }
 
     #[test]

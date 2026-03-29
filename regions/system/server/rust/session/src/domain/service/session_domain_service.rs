@@ -1,8 +1,15 @@
 use crate::error::SessionError;
 
+/// セッション TTL の最小値（秒）。
+/// 極端に短い TTL（例: 1秒）はセッション管理の意味をなさないため、最低 60 秒を要求する（LOW-08 対応）。
+const MIN_TTL_SECONDS: i64 = 60;
+
 pub struct SessionDomainService;
 
 impl SessionDomainService {
+    /// セッション作成リクエストのバリデーションを行う。
+    /// LOW-08 対応: TTL の下限を MIN_TTL_SECONDS（60秒）に設定し、
+    /// 極端に短いセッション TTL を拒否する。
     pub fn validate_create_request(
         device_id: &str,
         ttl: i64,
@@ -13,10 +20,11 @@ impl SessionDomainService {
                 "device_id is required".to_string(),
             ));
         }
-        if ttl <= 0 || ttl > max_ttl {
+        // TTL の下限チェック: MIN_TTL_SECONDS 未満は拒否する
+        if ttl < MIN_TTL_SECONDS || ttl > max_ttl {
             return Err(SessionError::InvalidInput(format!(
-                "ttl_seconds must be between 1 and {}",
-                max_ttl
+                "ttl_seconds must be between {} and {}",
+                MIN_TTL_SECONDS, max_ttl
             )));
         }
         Ok(())

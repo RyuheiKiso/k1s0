@@ -97,7 +97,8 @@ impl SessionService for SessionServiceTonic {
             device_type: resp.device_type,
             user_agent: resp.user_agent,
             ip_address: resp.ip_address,
-            status: resp.status,
+            // ドメイン層の文字列状態を proto enum の i32 値に変換する
+            status: status_str_to_proto(&resp.status),
         }))
     }
 
@@ -150,7 +151,8 @@ impl SessionService for SessionServiceTonic {
                 .last_accessed_at
                 .as_ref()
                 .and_then(|v| parse_rfc3339_to_proto_timestamp(v)),
-            status: resp.status,
+            // ドメイン層の文字列状態を proto enum の i32 値に変換する
+            status: status_str_to_proto(&resp.status),
         }))
     }
 
@@ -214,6 +216,20 @@ impl SessionService for SessionServiceTonic {
 
 // --- 変換ヘルパー ---
 
+/// セッション状態文字列を proto SessionStatus enum の i32 値に変換する。
+/// ドメイン層の文字列表現（"active", "revoked"）を protobuf の整数 enum 値にマッピングする。
+fn status_str_to_proto(s: &str) -> i32 {
+    use crate::proto::k1s0::system::session::v1::SessionStatus;
+    match s {
+        // アクティブ状態: SESSION_STATUS_ACTIVE = 1
+        "active" => SessionStatus::Active as i32,
+        // 無効化状態: SESSION_STATUS_REVOKED = 2
+        "revoked" => SessionStatus::Revoked as i32,
+        // 不明な値はデフォルト値（UNSPECIFIED = 0）を返す
+        _ => SessionStatus::Unspecified as i32,
+    }
+}
+
 fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
     ProtoSession {
         session_id: s.session_id.clone(),
@@ -223,7 +239,8 @@ fn pb_session_to_proto(s: &super::session_grpc::PbSession) -> ProtoSession {
         device_type: s.device_type.clone(),
         user_agent: s.user_agent.clone(),
         ip_address: s.ip_address.clone(),
-        status: s.status.clone(),
+        // ドメイン層の文字列状態を proto enum の i32 値に変換する
+        status: status_str_to_proto(&s.status),
         token: s.token.clone(),
         expires_at: parse_rfc3339_to_proto_timestamp(&s.expires_at),
         created_at: parse_rfc3339_to_proto_timestamp(&s.created_at),
@@ -267,5 +284,26 @@ mod tests {
         let err = GrpcError::Internal("internal error".to_string());
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::Internal);
+    }
+
+    /// status_str_to_proto 関数のユニットテスト。
+    /// ドメイン層の文字列が proto enum の正しい i32 値にマッピングされることを検証する。
+    #[test]
+    fn test_status_str_to_proto_active() {
+        // "active" は SessionStatus::Active (= 1) にマッピングされること
+        assert_eq!(status_str_to_proto("active"), 1);
+    }
+
+    #[test]
+    fn test_status_str_to_proto_revoked() {
+        // "revoked" は SessionStatus::Revoked (= 2) にマッピングされること
+        assert_eq!(status_str_to_proto("revoked"), 2);
+    }
+
+    #[test]
+    fn test_status_str_to_proto_unknown() {
+        // 未知の値は SessionStatus::Unspecified (= 0) にマッピングされること
+        assert_eq!(status_str_to_proto("unknown"), 0);
+        assert_eq!(status_str_to_proto(""), 0);
     }
 }

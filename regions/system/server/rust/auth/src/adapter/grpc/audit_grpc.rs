@@ -34,6 +34,9 @@ impl AuditGrpcService {
         &self,
         req: RecordAuditLogRequest,
     ) -> Result<RecordAuditLogResponse, GrpcError> {
+        // H-02 監査対応: proto 生成コードの deprecated フィールド（event_type/result 文字列型）。
+        // 新 enum フィールド（event_type_enum/result_enum）への移行期間中は後方互換のため保持する
+        #[allow(deprecated)]
         if req.event_type.is_empty() {
             return Err(GrpcError::InvalidArgument(
                 "event_type is required".to_string(),
@@ -42,6 +45,8 @@ impl AuditGrpcService {
 
         let detail = req.detail.map(prost_struct_to_json);
 
+        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+        #[allow(deprecated)]
         let create_req = CreateAuditLogRequest {
             event_type: req.event_type,
             user_id: req.user_id,
@@ -96,6 +101,8 @@ impl AuditGrpcService {
                 .to_rfc3339()
         });
 
+        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+        #[allow(deprecated)]
         let query = SearchAuditLogsQueryParams {
             page,
             page_size,
@@ -162,6 +169,8 @@ fn result_str_to_enum(s: &str) -> i32 {
 }
 
 fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
+    // H-02 監査対応: proto 生成コードの deprecated フィールドへの書き込み（後方互換維持のため）
+    #[allow(deprecated)]
     ProtoAuditLog {
         id: log.id.to_string(),
         // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持

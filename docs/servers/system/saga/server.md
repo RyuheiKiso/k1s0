@@ -50,6 +50,8 @@ system tier の Saga Orchestrator は以下の機能を提供する。
 | 起動時リカバリ | `status IN ('STARTED','RUNNING','COMPENSATING')` を検索し自動再開 |
 | ワークフロー定義 | YAML ファイル（起動時ロード + API 経由の動的登録） |
 | 並行実行 | `tokio::spawn` でバックグラウンド実行 |
+| 自動マイグレーション | 起動時に `sqlx::migrate!()` で `saga-db/migrations` を自動適用（C-01 対応） |
+| /healthz DB 確認 | `SELECT 1` で DB 疎通確認。失敗時は `503 Service Unavailable` を返す（C-02 対応） |
 
 ---
 

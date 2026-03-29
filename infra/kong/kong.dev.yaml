@@ -7,6 +7,25 @@
 #   - rate-limiting は local policy（Redis 不要）
 #   - JWT プラグインは有効（Keycloak JWKS 連携、ヘルスチェックエンドポイントは除外）
 #   - CORS は localhost:3000 を許可
+#
+# ================================================================
+# 【L-02 監査対応】rate-limiting policy: local の制限事項
+# ================================================================
+# このファイルの全 rate-limiting プラグインは `policy: local` を使用している。
+#
+# local ポリシーの特性と制限:
+#   - 各 Kong ノードが独立してカウンターを管理する（メモリ内）
+#   - Redis 等の共有ストアを使用しないため、Redis 依存をゼロにできる
+#   - ただし、Kong が複数ノード（Horizontal Pod Autoscaler 等）で起動する場合、
+#     ノード間でカウンターが共有されないため、実質的な制限値が緩くなる
+#     （例: 3ノードなら 1ノード1000req/min × 3 = 最大3000req/min が通過する）
+#
+# 本番環境では必ず `policy: redis` を使用すること:
+#   - infra/kong/kong.yaml（本番設定）を参照
+#   - Redis クラスターを Kong の rate-limiting バックエンドとして設定する
+#
+# ローカル開発（単一ノード前提）では local ポリシーで十分な制限が機能する。
+# ================================================================
 
 _format_version: "3.0"
 
@@ -104,6 +123,393 @@ services:
       - name: rate-limiting
         config:
           minute: 2000
+          policy: local
+
+  # ============================================================
+  # Feature Flag Service（H-04 監査対応: 未登録サービスを追加）
+  # ============================================================
+  - name: featureflag-v1
+    url: http://featureflag-rust:8080
+    routes:
+      - name: featureflag-route
+        # HIGH-2 監査対応: 実装の実際のパス /api/v1/flags に合わせて修正する
+        # 旧設定 /api/v1/featureflags では Kong 経由で 404 が返っていた
+        paths:
+          - /api/v1/flags
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Tenant Service
+  # ============================================================
+  - name: tenant-v1
+    url: http://tenant-rust:8080
+    routes:
+      - name: tenant-route
+        paths:
+          - /api/v1/tenants
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Rate Limit Service
+  # ============================================================
+  - name: ratelimit-v1
+    url: http://ratelimit-rust:8080
+    routes:
+      - name: ratelimit-route
+        paths:
+          - /api/v1/ratelimits
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Vault Service
+  # ============================================================
+  - name: vault-svc-v1
+    url: http://vault-rust:8080
+    routes:
+      - name: vault-svc-route
+        paths:
+          - /api/v1/vault
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # API Registry Service
+  # ============================================================
+  - name: api-registry-v1
+    url: http://api-registry-rust:8080
+    routes:
+      - name: api-registry-route
+        paths:
+          - /api/v1/api-registry
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # App Registry Service
+  # ============================================================
+  - name: app-registry-v1
+    url: http://app-registry-rust:8080
+    routes:
+      - name: app-registry-route
+        paths:
+          - /api/v1/app-registry
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Event Monitor Service
+  # ============================================================
+  - name: event-monitor-v1
+    url: http://event-monitor-rust:8080
+    routes:
+      - name: event-monitor-route
+        paths:
+          - /api/v1/event-monitor
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Event Store Service
+  # ============================================================
+  - name: event-store-v1
+    url: http://event-store-rust:8080
+    routes:
+      - name: event-store-route
+        paths:
+          - /api/v1/event-store
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # File Service
+  # ============================================================
+  - name: file-v1
+    url: http://file-rust:8080
+    routes:
+      - name: file-route
+        paths:
+          - /api/v1/files
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Navigation Service
+  # ============================================================
+  - name: navigation-v1
+    url: http://navigation-rust:8080
+    routes:
+      - name: navigation-route
+        paths:
+          - /api/v1/navigation
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Notification Service
+  # ============================================================
+  - name: notification-v1
+    url: http://notification-rust:8080
+    routes:
+      - name: notification-route
+        paths:
+          - /api/v1/notifications
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Policy Service
+  # ============================================================
+  - name: policy-v1
+    url: http://policy-rust:8080
+    routes:
+      - name: policy-route
+        paths:
+          - /api/v1/policies
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Quota Service
+  # ============================================================
+  - name: quota-v1
+    url: http://quota-rust:8080
+    routes:
+      - name: quota-route
+        paths:
+          - /api/v1/quotas
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Rule Engine Service
+  # ============================================================
+  - name: rule-engine-v1
+    url: http://rule-engine-rust:8080
+    routes:
+      - name: rule-engine-route
+        paths:
+          - /api/v1/rules
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Scheduler Service
+  # ============================================================
+  - name: scheduler-v1
+    url: http://scheduler-rust:8080
+    routes:
+      - name: scheduler-route
+        paths:
+          - /api/v1/schedules
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Search Service
+  # ============================================================
+  - name: search-v1
+    url: http://search-rust:8080
+    routes:
+      - name: search-route
+        paths:
+          - /api/v1/search
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Service Catalog Service
+  # ============================================================
+  - name: service-catalog-v1
+    url: http://service-catalog-rust:8080
+    routes:
+      - name: service-catalog-route
+        paths:
+          - /api/v1/service-catalog
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Session Service
+  # ============================================================
+  - name: session-v1
+    url: http://session-rust:8080
+    routes:
+      - name: session-route
+        paths:
+          - /api/v1/sessions
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Workflow Service
+  # ※ /api/v1/workflows は saga-v1 で使用済みのため /api/v1/workflow-engine を使用
+  # ============================================================
+  - name: workflow-v1
+    url: http://workflow-rust:8080
+    routes:
+      - name: workflow-engine-route
+        paths:
+          - /api/v1/workflow-engine
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # GraphQL Gateway Service
+  # ============================================================
+  - name: graphql-gateway-v1
+    url: http://graphql-gateway-rust:8080
+    routes:
+      - name: graphql-gateway-route
+        paths:
+          - /api/v1/graphql
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 2000
+          policy: local
+
+  # ============================================================
+  # Project Master Service (Business Tier)
+  # ============================================================
+  - name: project-master-v1
+    url: http://project-master-rust:8080
+    routes:
+      - name: project-master-route
+        paths:
+          - /api/v1/project-master
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Task Service (Service Tier)
+  # ============================================================
+  - name: task-v1
+    url: http://task-rust:8080
+    routes:
+      - name: task-route
+        paths:
+          - /api/v1/tasks
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Board Service (Service Tier)
+  # ============================================================
+  - name: board-v1
+    url: http://board-rust:8080
+    routes:
+      - name: board-route
+        paths:
+          - /api/v1/boards
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
+          policy: local
+
+  # ============================================================
+  # Activity Service (Service Tier)
+  # ============================================================
+  - name: activity-v1
+    url: http://activity-rust:8080
+    routes:
+      - name: activity-route
+        paths:
+          - /api/v1/activities
+        strip_path: false
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 1000
           policy: local
 
   # ============================================================
@@ -259,6 +665,11 @@ plugins:
           end
 
   # セキュリティレスポンスヘッダー（開発環境でも本番と同一のヘッダーを確認できるようにする）
+  # M-16 監査対応: Content-Security-Policy を追加し、XSS・Clickjacking・オブジェクトインジェクションを防止する。
+  # default-src 'self': デフォルトで同一オリジンのみ許可
+  # script-src 'self': スクリプトは同一オリジンのみ許可（eval・inline script を禁止）
+  # object-src 'none': Flash 等のプラグインコンテンツを全禁止
+  # frame-ancestors 'none': 他ドメインからの iframe 埋め込みを全禁止（X-Frame-Options と二重防御）
   - name: response-transformer
     config:
       add:
@@ -266,6 +677,7 @@ plugins:
           - X-Content-Type-Options:nosniff
           - X-Frame-Options:DENY
           - Strict-Transport-Security:max-age=31536000; includeSubDomains
+          - "Content-Security-Policy:default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'"
 
   - name: prometheus
     config:

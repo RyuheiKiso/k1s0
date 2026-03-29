@@ -23,11 +23,15 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // APIクライアントをメモ化し、apiBaseURL が変わらない限り再生成しない（レンダーごとの無駄な生成を防止）
+  // 相対パス検証: 外部URLによるオープンリダイレクト防止（M-28 監査対応）
+  // '/' で始まらない値（http:// 等の外部URLを含む）はデフォルト値にフォールバックする
+  const safeApiBaseURL = apiBaseURL.startsWith('/') ? apiBaseURL : '/bff';
+
+  // APIクライアントをメモ化し、safeApiBaseURL が変わらない限り再生成しない（レンダーごとの無駄な生成を防止）
   const apiClient = useMemo(() => createApiClient({
-    baseURL: apiBaseURL,
-    onUnauthorized: () => { navigateTo(`${apiBaseURL}/auth/login`); },
-  }), [apiBaseURL]);
+    baseURL: safeApiBaseURL,
+    onUnauthorized: () => { navigateTo(`${safeApiBaseURL}/auth/login`); },
+  }), [safeApiBaseURL]);
 
   // 初期化時にセッション確認（BFF の /auth/session エンドポイントを使用）
   // apiClient は useMemo でメモ化されているため、apiBaseURL が変わらない限り再実行されない（M-13 監査対応）
@@ -57,10 +61,10 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
     checkSession();
   }, [apiClient]);
 
-  // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする
+  // BFF の OAuth2/OIDC 認可コードフローへリダイレクトする（safeApiBaseURL で外部URL混入を防止）
   const login = useCallback(() => {
-    navigateTo(`${apiBaseURL}/auth/login`);
-  }, [apiBaseURL]);
+    navigateTo(`${safeApiBaseURL}/auth/login`);
+  }, [safeApiBaseURL]);
 
   // ログアウト時に CSRF トークンもクリアする
   // ネットワークエラーが発生してもクライアント側の認証状態は必ずクリアする（finally で保証）

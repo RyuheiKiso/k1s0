@@ -87,8 +87,10 @@ type AuthConfig struct {
 	ClientID     string   `yaml:"client_id" validate:"required"`
 	ClientSecret string   `yaml:"client_secret"`
 	RedirectURI  string   `yaml:"redirect_uri" validate:"required,url"`
-	PostLogout   string   `yaml:"post_logout_redirect_uri"`
-	Scopes       []string `yaml:"scopes"`
+	// PostLogout はログアウト後のリダイレクト先 URL（M-02 対応）。
+	// 設定されている場合は URL 形式であることを検証する。未設定（空文字）は許容する。
+	PostLogout string   `yaml:"post_logout_redirect_uri" validate:"omitempty,url"`
+	Scopes     []string `yaml:"scopes"`
 }
 
 // SessionConfig holds Redis session store settings.
@@ -97,6 +99,10 @@ type SessionConfig struct {
 	TTL     string             `yaml:"ttl"`
 	Prefix  string             `yaml:"prefix"`
 	Sliding bool               `yaml:"sliding"`
+	// AbsoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
+	// スライディングウィンドウで TTL が延長され続けても、この期間を超えたセッションは無効化される。
+	// デフォルト値: "24h"
+	AbsoluteMaxTTL string `yaml:"absolute_max_ttl"`
 }
 
 // RedisSessionConfig holds Redis connection parameters for session storage.
@@ -105,6 +111,10 @@ type RedisSessionConfig struct {
 	Password   string `yaml:"password"`
 	DB         int    `yaml:"db"`
 	MasterName string `yaml:"master_name"`
+	// SentinelAddrs は Redis Sentinel の複数アドレスリスト（H-17 対応）。
+	// 設定されている場合は Addr の代わりに全 Sentinel アドレスを使用する。
+	// 例: ["sentinel1:26379", "sentinel2:26379", "sentinel3:26379"]
+	SentinelAddrs []string `yaml:"sentinel_addrs"`
 	// コネクションプール設定（M-011）
 	// PoolSize: 最大コネクション数（デフォルト: CPU数 * 10）
 	PoolSize int `yaml:"pool_size"`
@@ -139,6 +149,11 @@ type CORSConfig struct {
 	ExposeHeaders []string `yaml:"expose_headers"`
 	// MaxAgeSecs はプリフライトレスポンスのキャッシュ時間（秒）。0 の場合は 600 秒を使用する。
 	MaxAgeSecs int `yaml:"max_age_secs"`
+	// CredentialsPaths は Access-Control-Allow-Credentials: true を返すパスプレフィックスのリスト。
+	// H-13 監査対応: 認証が不要な公開エンドポイント（/healthz, /metrics 等）には credentials を付与しない。
+	// 未設定時はすべてのホワイトリストオリジンに対して credentials を付与する（後方互換性）。
+	// 例: ["/auth/", "/api/"] のように末尾スラッシュ付きで指定する。
+	CredentialsPaths []string `yaml:"credentials_paths"`
 }
 
 // RateLimitConfig holds IP-based rate limiting settings.

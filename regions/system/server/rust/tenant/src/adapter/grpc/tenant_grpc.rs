@@ -6,7 +6,8 @@ use crate::usecase::{
     CreateTenantInput, CreateTenantUseCase, DeleteTenantError, DeleteTenantUseCase,
     GetProvisioningStatusUseCase, GetTenantUseCase, ListMembersError, ListMembersUseCase,
     ListTenantsUseCase, RemoveMemberUseCase, SuspendTenantError, SuspendTenantUseCase,
-    TenantChangeEvent, UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
+    TenantChangeEvent, UpdateMemberRoleError, UpdateMemberRoleInput, UpdateMemberRoleUseCase,
+    UpdateTenantError, UpdateTenantInput, UpdateTenantUseCase,
 };
 
 use super::watch_stream::WatchTenantStreamHandler;
@@ -135,6 +136,20 @@ pub struct RemoveMemberResponse {
     pub success: bool,
 }
 
+/// gRPC メンバーロール更新リクエスト（proto 型相当）。
+#[derive(Debug, Clone)]
+pub struct UpdateMemberRoleRequest {
+    pub tenant_id: String,
+    pub user_id: String,
+    pub role: String,
+}
+
+/// gRPC メンバーロール更新レスポンス（proto 型相当）。
+#[derive(Debug, Clone)]
+pub struct UpdateMemberRoleResponse {
+    pub member: Option<PbTenantMember>,
+}
+
 #[derive(Debug, Clone)]
 pub struct GetProvisioningStatusRequest {
     pub job_id: String,
@@ -214,6 +229,8 @@ pub struct TenantGrpcService {
     add_member_uc: Arc<AddMemberUseCase>,
     list_members_uc: Arc<ListMembersUseCase>,
     remove_member_uc: Arc<RemoveMemberUseCase>,
+    // メンバーロール更新ユースケース
+    update_member_role_uc: Arc<UpdateMemberRoleUseCase>,
     get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
     watch_sender: Option<tokio::sync::broadcast::Sender<TenantChangeEvent>>,
 }
@@ -232,6 +249,8 @@ impl TenantGrpcService {
         add_member_uc: Arc<AddMemberUseCase>,
         list_members_uc: Arc<ListMembersUseCase>,
         remove_member_uc: Arc<RemoveMemberUseCase>,
+        // メンバーロール更新ユースケース
+        update_member_role_uc: Arc<UpdateMemberRoleUseCase>,
         get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
     ) -> Self {
         Self {
@@ -245,6 +264,7 @@ impl TenantGrpcService {
             add_member_uc,
             list_members_uc,
             remove_member_uc,
+            update_member_role_uc,
             get_provisioning_status_uc,
             watch_sender: None,
         }
@@ -262,6 +282,8 @@ impl TenantGrpcService {
         add_member_uc: Arc<AddMemberUseCase>,
         list_members_uc: Arc<ListMembersUseCase>,
         remove_member_uc: Arc<RemoveMemberUseCase>,
+        // メンバーロール更新ユースケース
+        update_member_role_uc: Arc<UpdateMemberRoleUseCase>,
         get_provisioning_status_uc: Arc<GetProvisioningStatusUseCase>,
         watch_sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,
     ) -> Self {
@@ -276,6 +298,7 @@ impl TenantGrpcService {
             add_member_uc,
             list_members_uc,
             remove_member_uc,
+            update_member_role_uc,
             get_provisioning_status_uc,
             watch_sender: Some(watch_sender),
         }
@@ -526,6 +549,40 @@ impl TenantGrpcService {
         }
     }
 
+    /// メンバーのロールを更新し、更新後のメンバー情報を返す。
+    pub async fn update_member_role(
+        &self,
+        req: UpdateMemberRoleRequest,
+    ) -> Result<UpdateMemberRoleResponse, GrpcError> {
+        // tenant_id と user_id を UUID としてパースする
+        let tenant_id = uuid::Uuid::parse_str(&req.tenant_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid tenant_id: {}", e)))?;
+        let user_id = uuid::Uuid::parse_str(&req.user_id)
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid user_id: {}", e)))?;
+
+        let input = UpdateMemberRoleInput {
+            tenant_id,
+            user_id,
+            role: req.role,
+        };
+
+        match self.update_member_role_uc.execute(input).await {
+            Ok(member) => Ok(UpdateMemberRoleResponse {
+                member: Some(domain_member_to_pb(&member)),
+            }),
+            Err(UpdateMemberRoleError::NotFound) => {
+                Err(GrpcError::NotFound("member not found".to_string()))
+            }
+            Err(UpdateMemberRoleError::TenantNotFound) => {
+                Err(GrpcError::NotFound("tenant not found".to_string()))
+            }
+            Err(UpdateMemberRoleError::InvalidRole(role)) => {
+                Err(GrpcError::InvalidArgument(format!("invalid role: {}", role)))
+            }
+            Err(e) => Err(GrpcError::Internal(e.to_string())),
+        }
+    }
+
     pub async fn get_provisioning_status(
         &self,
         req: GetProvisioningStatusRequest,
@@ -674,6 +731,7 @@ mod tests {
     ) -> TenantGrpcService {
         let tenant_repo = Arc::new(tenant_mock);
         let member_repo = Arc::new(member_mock);
+        // UpdateMemberRoleUseCase はテナントリポジトリとメンバーリポジトリの両方を必要とする
         TenantGrpcService::new(
             Arc::new(CreateTenantUseCase::new(tenant_repo.clone())),
             Arc::new(GetTenantUseCase::new(tenant_repo.clone())),
@@ -681,10 +739,14 @@ mod tests {
             Arc::new(UpdateTenantUseCase::new(tenant_repo.clone())),
             Arc::new(SuspendTenantUseCase::new(tenant_repo.clone())),
             Arc::new(ActivateTenantUseCase::new(tenant_repo.clone())),
-            Arc::new(DeleteTenantUseCase::new(tenant_repo)),
+            Arc::new(DeleteTenantUseCase::new(tenant_repo.clone())),
             Arc::new(AddMemberUseCase::new(member_repo.clone())),
             Arc::new(ListMembersUseCase::new(member_repo.clone())),
             Arc::new(RemoveMemberUseCase::new(member_repo.clone())),
+            Arc::new(UpdateMemberRoleUseCase::new(
+                member_repo.clone(),
+                tenant_repo,
+            )),
             Arc::new(GetProvisioningStatusUseCase::new(member_repo)),
         )
     }

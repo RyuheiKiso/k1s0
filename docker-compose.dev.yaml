@@ -7,11 +7,28 @@
 #     -f docker-compose.yaml -f docker-compose.dev.yaml \
 #     --profile infra --profile system up -d
 #
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !! WARNING: このファイルは開発環境専用です。                  !!
-# !! 認証バイパスやセキュリティ緩和設定が含まれています。       !!
-# !! 本番環境や CI では絶対に使用しないでください。             !!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# !! WARNING: このファイルは開発環境専用です。                          !!
+# !!                                                                   !!
+# !! 【セキュリティリスク一覧】                                          !!
+# !!                                                                   !!
+# !! 1. 認証バイパス (ALLOW_INSECURE_NO_AUTH=true)                      !!
+# !!    → 全エンドポイントが認証なしでアクセス可能になる               !!
+# !!                                                                   !!
+# !! 2. PostgreSQL superuser (POSTGRES_USER=dev / POSTGRES_PASSWORD=dev) !!
+# !!    → dev ユーザーが superuser 権限を持ち、全 DB を操作可能        !!
+# !!    → 本番では最小権限ロール（読み取り専用・特定スキーマのみ）を使用 !!
+# !!    → ADR-0027 参照: docs/architecture/adr/0027-db-app-user-role-separation.md !!
+# !!                                                                   !!
+# !! 3. Vault dev モード (VAULT_DEV_ROOT_TOKEN_ID)                      !!
+# !!    → インメモリストレージ。再起動でシークレットが消失する           !!
+# !!    → Root Token が使用されるため全シークレットへのアクセスが可能   !!
+# !!                                                                   !!
+# !! 4. Keycloak start-dev                                              !!
+# !!    → TLS なし・H2 インメモリDB。本番では start + TLS 必須         !!
+# !!                                                                   !!
+# !! 本番環境・CI・ステージング環境では絶対に使用しないでください。      !!
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #
 # 【ファイルの役割分担】
 #
@@ -56,6 +73,7 @@ services:
   # ============================================================
   # 注意: DATABASE_URL を設定して config.docker.yaml の ${DB_PASSWORD:-dev} 未展開問題を回避する。
   # serde_yaml はシェル変数展開を行わないため、startup.rs の DATABASE_URL 優先パスを利用する。
+  # 開発環境専用: sslmode=disable は開発効率のため。本番環境では sslmode=require または sslmode=verify-full を使用（HIGH-SEC-08 監査対応）
   auth-rust:
     <<: *dev-auth-bypass
     environment:
@@ -151,7 +169,7 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/navigation_db?sslmode=disable
+      # navigation-rust は YAML 設定ファイルからルートデータを読み込む実装のため DB 不使用（LOW-4 監査対応）
 
   notification-rust:
     <<: *dev-auth-bypass
@@ -257,8 +275,29 @@ services:
   # ============================================================
   # Vault — 開発環境専用の dev モード設定（L-13 監査対応）
   # ============================================================
+  # Vault dev モード設定（L-04 監査対応）
+  #
+  # !! WARNING: dev モードのリスク一覧 !!
+  #
+  # 1. インメモリストレージ
+  #    - コンテナ再起動でシークレットがすべて消失する
+  #    - `vault kv put` で設定したシークレットはコンテナ停止で削除される
+  #    - 開発作業前に .env.dev の VAULT_DEV_ROOT_TOKEN_ID を確認して再初期化する
+  #
+  # 2. Root Token の使用
+  #    - VAULT_DEV_ROOT_TOKEN_ID が Root Token として設定される
+  #    - Root Token は全 Vault リソースへのフルアクセス権限を持つ
+  #    - 本番環境では Root Token を無効化し、最小権限のポリシーを使用すること
+  #
+  # 3. 封印なし（Unseal 不要）
+  #    - dev モードは常にアンシールされた状態で起動する
+  #    - 本番環境では Shamir Secret Sharing または Auto-Unseal (KMS) が必要
+  #
+  # 4. TLS なし
+  #    - dev モードは HTTP で動作する（VAULT_ADDR=http://127.0.0.1:8200）
+  #    - 本番環境では必ず TLS を有効化し、VAULT_ADDR=https://... を使用すること
+  #
   # VAULT_DEV_ROOT_TOKEN_ID は dev モードを有効化する環境変数。
-  # dev モードはインメモリストレージのため再起動でデータが消失する。
   # 本番 Vault は infra/terraform/modules/vault/ で管理し、Docker Compose を使用しない。
   vault:
     environment:
@@ -272,3 +311,12 @@ services:
   # --import-realm: 起動時に /opt/keycloak/data/import 内の realm 設定を自動インポートする
   keycloak:
     command: ["start-dev", "--import-realm"]
+
+  # ============================================================
+  # bff-proxy — セッション暗号化キー設定（MED-8 監査対応）
+  # ============================================================
+  # SESSION_ENCRYPTION_KEY が未設定の場合、セッションデータが Redis に平文で保存される。
+  # .env.dev の SESSION_ENCRYPTION_KEY（開発用ダミー値）を渡して平文保存を防止する。
+  bff-proxy:
+    environment:
+      - SESSION_ENCRYPTION_KEY=${SESSION_ENCRYPTION_KEY:?SESSION_ENCRYPTION_KEY must be set in .env.dev}

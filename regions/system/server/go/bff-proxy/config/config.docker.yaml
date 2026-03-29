@@ -35,7 +35,10 @@ auth:
 session:
   redis:
     addr: "redis-session:6379"
-    # 開発環境のRedisパスワード
+    # 開発環境専用の Redis パスワード（HIGH-SEC-05 監査対応）
+    # 本番環境では Vault 参照パターンを使用すること:
+    #   vault:secret/data/k1s0/system/redis-session#password
+    # 詳細: docs/infrastructure/vault/vault設計.md
     password: "dev"
 
 upstream:

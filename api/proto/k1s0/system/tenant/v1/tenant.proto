@@ -1,3 +1,5 @@
+// k1s0 テナント管理サービス gRPC 定義。
+// マルチテナントのライフサイクル管理・メンバー管理を提供する。
 syntax = "proto3";
 
 package k1s0.system.tenant.v1;
@@ -5,6 +7,8 @@ package k1s0.system.tenant.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/tenant/v1;tenantv1";
 
 import "k1s0/system/common/v1/types.proto";
+// L-02 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // TenantService はマルチテナント管理サービス。
 // Keycloak realm プロビジョニングおよびメンバー管理を担当する。
@@ -37,19 +41,26 @@ service TenantService {
   rpc WatchTenant(WatchTenantRequest) returns (stream WatchTenantResponse);
 }
 
+// CreateTenantRequest は新規テナント作成リクエスト。
 message CreateTenantRequest {
-  string name = 1;
-  string display_name = 2;
-  string owner_id = 3;
-  string plan = 4;
+  // テナント識別名（1〜128 文字の英数字・ハイフン）
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // テナント表示名（1〜256 文字）
+  string display_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // オーナーユーザー UUID（必須）
+  string owner_id = 3 [(buf.validate.field).string.uuid = true];
+  // プラン名（free, standard, enterprise 等）
+  string plan = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 message CreateTenantResponse {
   Tenant tenant = 1;
 }
 
+// GetTenantRequest はテナント情報取得リクエスト。
 message GetTenantRequest {
-  string tenant_id = 1;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetTenantResponse {
@@ -65,61 +76,80 @@ message ListTenantsResponse {
   k1s0.system.common.v1.PaginationResult pagination = 2;
 }
 
+// UpdateTenantRequest はテナント情報更新リクエスト。
 message UpdateTenantRequest {
-  string tenant_id = 1;
-  string display_name = 2;
-  string plan = 3;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  // テナント表示名（1〜256 文字）
+  string display_name = 2 [(buf.validate.field).string = {min_len: 0, max_len: 256}];
+  // プラン名（free, standard, enterprise 等）
+  string plan = 3 [(buf.validate.field).string = {min_len: 0, max_len: 64}];
 }
 
 message UpdateTenantResponse {
   Tenant tenant = 1;
 }
 
+// SuspendTenantRequest はテナント停止リクエスト。
 message SuspendTenantRequest {
-  string tenant_id = 1;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message SuspendTenantResponse {
   Tenant tenant = 1;
 }
 
+// ActivateTenantRequest はテナント再開リクエスト。
 message ActivateTenantRequest {
-  string tenant_id = 1;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ActivateTenantResponse {
   Tenant tenant = 1;
 }
 
+// DeleteTenantRequest はテナント削除リクエスト。
 message DeleteTenantRequest {
-  string tenant_id = 1;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message DeleteTenantResponse {
   Tenant tenant = 1;
 }
 
+// AddMemberRequest はテナントへのメンバー追加リクエスト。
 message AddMemberRequest {
-  string tenant_id = 1;
-  string user_id = 2;
-  string role = 3;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  // ユーザー UUID（必須）
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+  // ロール名（owner, admin, member, viewer）
+  string role = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 message AddMemberResponse {
   TenantMember member = 1;
 }
 
+// ListMembersRequest はテナントメンバー一覧取得リクエスト。
 message ListMembersRequest {
-  string tenant_id = 1;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ListMembersResponse {
   repeated TenantMember members = 1;
 }
 
+// RemoveMemberRequest はテナントからのメンバー削除リクエスト。
 message RemoveMemberRequest {
-  string tenant_id = 1;
-  string user_id = 2;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  // ユーザー UUID（必須）
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 message RemoveMemberResponse {
@@ -129,9 +159,12 @@ message RemoveMemberResponse {
 // UpdateMemberRoleRequest はテナントメンバーのロール更新リクエスト。
 // 有効なロール: owner, admin, member, viewer
 message UpdateMemberRoleRequest {
-  string tenant_id = 1;
-  string user_id = 2;
-  string role = 3;
+  // テナント UUID（必須）
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
+  // ユーザー UUID（必須）
+  string user_id = 2 [(buf.validate.field).string.uuid = true];
+  // ロール名（owner, admin, member, viewer）
+  string role = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 // UpdateMemberRoleResponse はテナントメンバーのロール更新レスポンス。
@@ -139,8 +172,10 @@ message UpdateMemberRoleResponse {
   TenantMember member = 1;
 }
 
+// GetProvisioningStatusRequest はプロビジョニングジョブステータス取得リクエスト。
 message GetProvisioningStatusRequest {
-  string job_id = 1;
+  // ジョブ UUID（必須）
+  string job_id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message GetProvisioningStatusResponse {

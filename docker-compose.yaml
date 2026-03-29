@@ -42,7 +42,9 @@ x-rust-healthcheck: &rust-healthcheck
   interval: 10s
   timeout: 5s
   retries: 5
-  # Rust サービス初回起動（DBマイグレーション含む）に時間がかかるため、
+  # INFRA-02 監査対応: start_period は healthcheck の猶予期間であり、
+  # DB マイグレーション自動実行の保証ではない。
+  # スタレイメージ使用時は `docker compose build` でイメージを再ビルドすること。
   # start_period 内の失敗はカウントせず、起動完了後から retries を適用する（M-22対応）
   start_period: 30s
 
@@ -74,6 +76,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dev}
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
+      # アプリケーションユーザー k1s0 のパスワード（00-create-app-user.sh が参照する）
+      # init-db スクリプトはコンテナ内で実行されるため、ホスト環境変数を環境変数として明示的に渡す必要がある
+      K1S0_DB_PASSWORD: ${K1S0_DB_PASSWORD:?K1S0_DB_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${PG_HOST_PORT:-5432}:5432"
@@ -109,14 +114,17 @@ services:
     cap_add:
       - SETGID
       - SETUID
-    # Redis 認証: 環境変数 REDIS_PASSWORD を参照してパスワード保護を有効化する。
-    # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
+    # H-11 監査対応: Redis パスワードをコマンドライン引数に渡すと /proc/[pid]/cmdline から
+    # 参照可能になる問題を修正する。printf（shell builtin）で /tmp/redis.conf を生成してから
+    # redis-server にファイルパスのみを渡すことで、redis-server のコマンドライン引数に
+    # パスワードを含めない設計にする。/tmp はデフォルトで tmpfs 相当の揮発性領域。
     environment:
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
-    # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
-    # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
-    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
+    # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
+    # exec でシェルを redis-server に置き換え PID 1 として動作させる
+    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
@@ -178,7 +186,8 @@ services:
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     ports:
-      - "${KAFKA_HOST_PORT:-9092}:9092"
+      # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-5 監査対応）
+      - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -196,11 +205,12 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
-      # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
-      # 開発用途に十分な256mに制限してメモリ過剰消費を防止する。
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m"
+      # HIGH-11 監査対応: mem_limit 512m（app-service-defaults継承）に対してJVMヒープを削減する
+      # -Xmx256m ではメタスペース・スレッドスタック等の非ヒープ領域を加えると 512m で OOM の可能性あり
+      # -Xmx192m に削減して非ヒープ領域に 320MB 以上の余裕を確保する
+      JAVA_TOOL_OPTIONS: "-Xms96m -Xmx192m"
     ports:
-      - "${KAFKA_UI_HOST_PORT:-8090}:8080"
+      - "127.0.0.1:${KAFKA_UI_HOST_PORT:-8090}:8080"
     # ヘルスチェック: Kafka UI の actuator エンドポイントで起動完了を確認する（M-4 対応）
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
@@ -330,16 +340,20 @@ services:
     cap_add:
       - SETGID
       - SETUID
-    # Redis 認証: 環境変数 REDIS_PASSWORD を参照してパスワード保護を有効化する。
-    # コマンドライン引数での --requirepass 指定を避け、/proc 経由でのパスワード露出を防止する。
+    # H-11 監査対応: Redis パスワードをコマンドライン引数に渡すと /proc/[pid]/cmdline から
+    # 参照可能になる問題を修正する。printf（shell builtin）で /tmp/redis.conf を生成してから
+    # redis-server にファイルパスのみを渡すことで、redis-server のコマンドライン引数に
+    # パスワードを含めない設計にする。/tmp はデフォルトで tmpfs 相当の揮発性領域。
     environment:
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       REDIS_PASSWORD: ${REDIS_SESSION_PASSWORD:?REDIS_SESSION_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
-    # $$ でCompose変数展開を抑止し、コンテナ内シェルで環境変数REDIS_PASSWORDを解釈させる
-    # exec でシェルプロセスを置換し、redis-server を PID 1 として実行する
-    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
+    # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
+    # exec でシェルを redis-server に置き換え PID 1 として動作させる
+    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     ports:
-      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
+      # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-4 監査対応）
+      - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"
     # L-7 監査対応: cap_drop ALL + cap_add SETGID/SETUID の制限環境で named volume の
     # /data ディレクトリへの書き込みが拒否される問題を修正。tmpfs を使用することで
     # カーネルが自動的に適切なパーミッションを設定し、Redis がデータを書き込める。
@@ -429,7 +443,7 @@ services:
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
-      - "${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy
+      - "127.0.0.1:${KONG_PROXY_HOST_PORT:-8000}:8000"    # Proxy (C-04 監査対応: 開発環境ではホスト側を 127.0.0.1 に制限する)
       # Admin API ポートは docker-compose.dev.yaml で定義（開発時のみ公開）
       # Kong Status ポート（8100）はホストにマッピングしない。
       # Prometheus が同一 Docker ネットワーク内から直接 http://kong:8100/metrics にアクセスするため、
@@ -453,8 +467,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${AUTH_REST_HOST_PORT:-8083}:8080"
-      - "${AUTH_GRPC_HOST_PORT:-50052}:50051"
+      - "127.0.0.1:${AUTH_REST_HOST_PORT:-8083}:8080"
+      - "127.0.0.1:${AUTH_GRPC_HOST_PORT:-50052}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -464,6 +478,9 @@ services:
       kafka:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/auth/config:/app/config
@@ -476,8 +493,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${CONFIG_REST_HOST_PORT:-8084}:8080"
-      - "${CONFIG_GRPC_HOST_PORT:-50054}:50051"
+      - "127.0.0.1:${CONFIG_REST_HOST_PORT:-8084}:8080"
+      - "127.0.0.1:${CONFIG_GRPC_HOST_PORT:-50054}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -487,6 +504,9 @@ services:
       kafka:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/config/config:/app/config
@@ -499,8 +519,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${SAGA_REST_HOST_PORT:-8085}:8080"
-      - "${SAGA_GRPC_HOST_PORT:-50055}:50051"
+      - "127.0.0.1:${SAGA_REST_HOST_PORT:-8085}:8080"
+      - "127.0.0.1:${SAGA_GRPC_HOST_PORT:-50055}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -510,6 +530,9 @@ services:
       kafka:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/saga/config:/app/config
@@ -522,7 +545,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${DLQ_REST_HOST_PORT:-8086}:8080"
+      - "127.0.0.1:${DLQ_REST_HOST_PORT:-8086}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -530,6 +553,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/dlq-manager/config:/app/config
@@ -542,13 +568,16 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
-      - "${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
+      - "127.0.0.1:${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
+      - "127.0.0.1:${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/featureflag/config:/app/config
@@ -561,8 +590,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${RATELIMIT_REST_HOST_PORT:-8088}:8080"
-      - "${RATELIMIT_GRPC_HOST_PORT:-50057}:50051"
+      - "127.0.0.1:${RATELIMIT_REST_HOST_PORT:-8088}:8080"
+      - "127.0.0.1:${RATELIMIT_GRPC_HOST_PORT:-50057}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -570,6 +599,9 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/ratelimit/config:/app/config
@@ -582,8 +614,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${TENANT_REST_HOST_PORT:-8089}:8080"
-      - "${TENANT_GRPC_HOST_PORT:-50058}:50051"
+      - "127.0.0.1:${TENANT_REST_HOST_PORT:-8089}:8080"
+      - "127.0.0.1:${TENANT_GRPC_HOST_PORT:-50058}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -591,6 +623,9 @@ services:
       postgres:
         condition: service_healthy
       keycloak:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/tenant/config:/app/config
@@ -603,8 +638,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
-      - "${VAULT_SVC_GRPC_HOST_PORT:-50059}:50051"
+      - "127.0.0.1:${VAULT_SVC_REST_HOST_PORT:-8091}:8080"
+      - "127.0.0.1:${VAULT_SVC_GRPC_HOST_PORT:-50059}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -613,6 +648,9 @@ services:
         condition: service_healthy
       # Vault の準備完了を確認してから起動する（service_started ではヘルスチェック未通過で接続失敗の可能性がある）
       vault:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
@@ -625,12 +663,15 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
+      - "127.0.0.1:${API_REGISTRY_REST_HOST_PORT:-8093}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/api-registry/config:/app/config
@@ -643,7 +684,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
+      - "127.0.0.1:${APP_REGISTRY_REST_HOST_PORT:-8094}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -651,6 +692,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/app-registry/config:/app/config
@@ -663,8 +707,9 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
-      - "${EVENT_MONITOR_GRPC_HOST_PORT:-50060}:50051"
+      - "127.0.0.1:${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${EVENT_MONITOR_GRPC_HOST_PORT:-50200}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -672,6 +717,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/event-monitor/config:/app/config
@@ -684,12 +732,15 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
+      - "127.0.0.1:${EVENT_STORE_REST_HOST_PORT:-8096}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/event-store/config:/app/config
@@ -702,12 +753,15 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${FILE_REST_HOST_PORT:-8097}:8080"
+      - "127.0.0.1:${FILE_REST_HOST_PORT:-8097}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/file/config:/app/config
@@ -720,13 +774,17 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
-      - "${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50061}:50051"
+      - "127.0.0.1:${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50201}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/master-maintenance/config:/app/config
@@ -739,13 +797,17 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${NAVIGATION_REST_HOST_PORT:-8099}:8080"
-      - "${NAVIGATION_GRPC_HOST_PORT:-50062}:50051"
+      - "127.0.0.1:${NAVIGATION_REST_HOST_PORT:-8099}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${NAVIGATION_GRPC_HOST_PORT:-50202}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/navigation/config:/app/config
@@ -758,7 +820,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
+      - "127.0.0.1:${NOTIFICATION_REST_HOST_PORT:-8100}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -766,6 +828,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/notification/config:/app/config
@@ -778,13 +843,17 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${POLICY_REST_HOST_PORT:-8101}:8080"
-      - "${POLICY_GRPC_HOST_PORT:-50063}:50051"
+      - "127.0.0.1:${POLICY_REST_HOST_PORT:-8101}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${POLICY_GRPC_HOST_PORT:-50203}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/policy/config:/app/config
@@ -797,7 +866,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${QUOTA_REST_HOST_PORT:-8102}:8080"
+      - "127.0.0.1:${QUOTA_REST_HOST_PORT:-8102}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -805,6 +874,9 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/quota/config:/app/config
@@ -817,13 +889,17 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
-      - "${RULE_ENGINE_GRPC_HOST_PORT:-50064}:50051"
+      - "127.0.0.1:${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${RULE_ENGINE_GRPC_HOST_PORT:-50204}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/rule-engine/config:/app/config
@@ -836,7 +912,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${SCHEDULER_REST_HOST_PORT:-8104}:8080"
+      - "127.0.0.1:${SCHEDULER_REST_HOST_PORT:-8104}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -844,6 +920,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/scheduler/config:/app/config
@@ -856,12 +935,15 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${SEARCH_REST_HOST_PORT:-8105}:8080"
+      - "127.0.0.1:${SEARCH_REST_HOST_PORT:-8105}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/search/config:/app/config
@@ -874,12 +956,15 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
+      - "127.0.0.1:${SERVICE_CATALOG_REST_HOST_PORT:-8108}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/service-catalog/config:/app/config
@@ -892,8 +977,9 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${SESSION_REST_HOST_PORT:-8106}:8080"
-      - "${SESSION_GRPC_HOST_PORT:-50065}:50051"
+      - "127.0.0.1:${SESSION_REST_HOST_PORT:-8106}:8080"
+      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
+      - "127.0.0.1:${SESSION_GRPC_HOST_PORT:-50205}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -901,6 +987,9 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/session/config:/app/config
@@ -913,7 +1002,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${WORKFLOW_REST_HOST_PORT:-8107}:8080"
+      - "127.0.0.1:${WORKFLOW_REST_HOST_PORT:-8107}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -921,6 +1010,13 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # ワークフローサービスは起動時に scheduler-rust:8080 へ接続しジョブ登録を行う。
+      # scheduler-rust が未起動の場合は DNS エラーでクラッシュするため依存を明示する（CRIT-2 監査対応）。
+      scheduler-rust:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/workflow/config:/app/config
@@ -934,13 +1030,16 @@ services:
     profiles: [experimental-ai]
     <<: *app-service-defaults
     ports:
-      - "${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
-      - "${AI_GATEWAY_GRPC_HOST_PORT:-50071}:50051"
+      - "127.0.0.1:${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
+      - "127.0.0.1:${AI_GATEWAY_GRPC_HOST_PORT:-50071}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/ai-gateway/config:/app/config
@@ -954,8 +1053,8 @@ services:
     profiles: [experimental-ai]
     <<: *app-service-defaults
     ports:
-      - "${AI_AGENT_REST_HOST_PORT:-8121}:8080"
-      - "${AI_AGENT_GRPC_HOST_PORT:-50072}:50051"
+      - "127.0.0.1:${AI_AGENT_REST_HOST_PORT:-8121}:8080"
+      - "127.0.0.1:${AI_AGENT_GRPC_HOST_PORT:-50072}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -963,6 +1062,9 @@ services:
       postgres:
         condition: service_healthy
       ai-gateway-rust:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/ai-agent/config:/app/config
@@ -975,7 +1077,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${GRAPHQL_GW_HOST_PORT:-8092}:8080"
+      - "127.0.0.1:${GRAPHQL_GW_HOST_PORT:-8092}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1003,6 +1105,23 @@ services:
         condition: service_healthy
       workflow-rust:
         condition: service_healthy
+      # MED-20 監査対応: GraphQL スキーマが参照する全バックエンドサービスへの depends_on を追加する。
+      # 起動順序依存を宣言しないと graphql-gateway が起動直後に依存サービスへ接続失敗するリスクがある。
+      dlq-manager:
+        condition: service_healthy
+      ratelimit-rust:
+        condition: service_healthy
+      quota-rust:
+        condition: service_healthy
+      rule-engine-rust:
+        condition: service_healthy
+      search-rust:
+        condition: service_healthy
+      event-monitor-rust:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
+        condition: service_healthy
     volumes:
       - ./regions/system/server/rust/graphql-gateway/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1014,7 +1133,7 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "${BFF_PROXY_HOST_PORT:-8082}:8080"
+      - "127.0.0.1:${BFF_PROXY_HOST_PORT:-8082}:8080"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1022,6 +1141,9 @@ services:
       keycloak:
         condition: service_healthy
       redis-session:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
@@ -1031,6 +1153,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      # HIGH-22 監査対応: Keycloak・Redis・Jaeger の起動完了を待つため start_period を設定する
+      start_period: 15s
 
   # ============================================================
   # Business プロファイル
@@ -1048,8 +1172,8 @@ services:
     profiles: [business]
     <<: *app-service-defaults
     ports:
-      - "${PROJECT_MASTER_REST_HOST_PORT:-8211}:8080"
-      - "${PROJECT_MASTER_GRPC_HOST_PORT:-9211}:50051"
+      - "127.0.0.1:${PROJECT_MASTER_REST_HOST_PORT:-8211}:8080"
+      - "127.0.0.1:${PROJECT_MASTER_GRPC_HOST_PORT:-9211}:50051"
     environment:
       - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1057,6 +1181,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/business/taskmanagement/server/rust/project-master/config:/app/config
@@ -1070,8 +1197,8 @@ services:
     profiles: [service]
     <<: *app-service-defaults
     ports:
-      - "${TASK_REST_HOST_PORT:-8311}:8080"
-      - "${TASK_GRPC_HOST_PORT:-9311}:50051"
+      - "127.0.0.1:${TASK_REST_HOST_PORT:-8311}:8080"
+      - "127.0.0.1:${TASK_GRPC_HOST_PORT:-9311}:50051"
     environment:
       - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1079,6 +1206,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/service/task/server/rust/task/config:/app/config
@@ -1092,8 +1222,8 @@ services:
     profiles: [service]
     <<: *app-service-defaults
     ports:
-      - "${BOARD_REST_HOST_PORT:-8321}:8080"
-      - "${BOARD_GRPC_HOST_PORT:-9321}:50051"
+      - "127.0.0.1:${BOARD_REST_HOST_PORT:-8321}:8080"
+      - "127.0.0.1:${BOARD_GRPC_HOST_PORT:-9321}:50051"
     environment:
       - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1101,6 +1231,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/service/board/server/rust/board/config:/app/config
@@ -1114,8 +1247,8 @@ services:
     profiles: [service]
     <<: *app-service-defaults
     ports:
-      - "${ACTIVITY_REST_HOST_PORT:-8331}:8080"
-      - "${ACTIVITY_GRPC_HOST_PORT:-9331}:50051"
+      - "127.0.0.1:${ACTIVITY_REST_HOST_PORT:-8331}:8080"
+      - "127.0.0.1:${ACTIVITY_GRPC_HOST_PORT:-9331}:50051"
     environment:
       - CONFIG_PATH=/app/config/default.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1123,6 +1256,9 @@ services:
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      jaeger:
         condition: service_healthy
     volumes:
       - ./regions/service/activity/server/rust/activity/config:/app/config
@@ -1184,7 +1320,9 @@ services:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
     # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
-    restart: on-failure
+    # HIGH-10 監査対応: Kafka ブローカー起動遅延で3回失敗するとトピック未作成のまま終了するため
+    # 最大10回に増加してブローカー起動完了を十分に待機できるようにする
+    restart: "on-failure:10"
 
   # ============================================================
   # 可観測性
@@ -1194,7 +1332,10 @@ services:
   # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
-    profiles: [observability]
+    # H-01 監査対応: system プロファイルでも jaeger が起動するよう profiles に system を追加する
+    # system サービス群が depends_on: jaeger (service_healthy) を持つため、
+    # --profile system 単独起動時に jaeger が見つからず依存解決に失敗する問題を修正する
+    profiles: [system, observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用
@@ -1208,9 +1349,9 @@ services:
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
-      - "${JAEGER_UI_HOST_PORT:-16686}:16686"          # UI
-      - "${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"    # OTLP gRPC
-      - "${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"    # OTLP HTTP
+      - "127.0.0.1:${JAEGER_UI_HOST_PORT:-16686}:16686"          # UI
+      - "127.0.0.1:${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"    # OTLP gRPC
+      - "127.0.0.1:${JAEGER_OTLP_HTTP_HOST_PORT:-4318}:4318"    # OTLP HTTP
     # ヘルスチェック: Jaeger の管理エンドポイントで起動完了を確認する（M-4 対応）
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:14269/health || exit 1"]
@@ -1238,7 +1379,7 @@ services:
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml:ro
       - prometheus-data:/prometheus
     ports:
-      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     # ヘルスチェック: Prometheus の ready エンドポイントで起動完了を確認する（M-4 対応）
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
@@ -1265,7 +1406,7 @@ services:
       - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yaml
     ports:
-      - "${LOKI_HOST_PORT:-3100}:3100"
+      - "127.0.0.1:${LOKI_HOST_PORT:-3100}:3100"
     # ヘルスチェック: Loki の ready エンドポイントで起動完了を確認する（M-4 対応）
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
@@ -1307,8 +1448,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # KONG-02 監査対応: loki の healthcheck 完了後に promtail を起動する（service_healthy）
+    # loki が起動していない状態で promtail がログ転送を試みると接続エラーが発生するため
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:11.3.2
@@ -1336,7 +1480,7 @@ services:
       #   GF_DATABASE_SSL_MODE: require
       # 移行手順: https://grafana.com/docs/grafana/latest/setup-grafana/set-up-grafana-monitoring/
     ports:
-      - "${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/docker/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -1348,10 +1492,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    # KONG-02 監査対応: 各依存サービスの healthcheck 完了後に grafana を起動する（service_healthy）
+    # prometheus/loki/jaeger が起動完了前に grafana が起動するとデータソース接続エラーが発生するため
     depends_on:
-      - prometheus
-      - loki
-      - jaeger
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
 
 volumes:
   postgres-data:

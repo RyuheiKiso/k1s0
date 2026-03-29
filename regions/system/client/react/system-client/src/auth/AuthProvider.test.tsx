@@ -7,7 +7,9 @@ import { AuthProvider } from './AuthProvider';
 import { useAuth } from './useAuth';
 import { setNavigateImpl, resetNavigateImpl } from './navigation';
 
-const API_BASE = 'http://localhost:3000/bff';
+// AuthProvider に渡す apiBaseURL は相対パスを使用する（M-28 監査対応: 外部URLはフォールバックされるため）
+// MSW v2 Node 環境では相対パスリクエストをそのままキャプチャするため、相対パスでモックを登録する
+const API_BASE = '/bff';
 
 const server = setupServer(
   // デフォルト: セッションなし（401 を返す）
@@ -71,6 +73,7 @@ describe('AuthProvider（BFF セッション統合）', () => {
       result.current.login();
     });
 
+    // safeApiBaseURL による正規化後の相対パスでリダイレクトされることを検証する
     expect(lastNavigatedUrl).toBe(`${API_BASE}/auth/login`);
 
     // navigateTo を復元する

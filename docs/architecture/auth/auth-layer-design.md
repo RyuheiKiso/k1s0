@@ -108,6 +108,46 @@ Kong API Gateway、Istio サービスメッシュ、JWKS トークン検証、RB
 - JWTをURLパラメータに含めない（Authorizationヘッダーを使用）
 - refresh_tokenはセキュアクッキーに保存（BFF経由）
 
+### Keycloak realm-k1s0.json の環境分離（M-17/M-18 監査対応）
+
+`infra/keycloak/realm-k1s0.json` は開発・ステージング・本番の **共通ベース設定** として管理しているが、
+本番デプロイ前に以下の点を必ず確認・修正すること。
+
+#### M-17: webOrigins ワイルドカードの制限
+
+現在の設定:
+```json
+"webOrigins": [
+  "https://*.k1s0.internal.example.com",
+  "http://localhost:3000",
+  "http://localhost:5173"
+]
+```
+
+- `*.k1s0.internal.example.com` のワイルドカードは内部ドメイン限定だが、サブドメインを乗っ取られた場合の CORS バイパスリスクがある
+- **本番環境では** ワイルドカードを削除し、明示的なドメインリストに変更すること（例: `https://app.k1s0.internal.example.com`）
+- ステージング環境でも同様にサブドメインを特定すること
+- 開発環境のみ `http://localhost:3000`、`http://localhost:5173` を許可する
+
+#### M-18: localhost URI の本番混入防止
+
+現在の設定に含まれる localhost URI は **開発環境専用** である:
+```json
+"redirectUris": [
+  "https://app.k1s0.internal.example.com/callback",
+  "http://localhost:3000/callback",   ← 開発環境のみ
+  "http://localhost:5173/callback"    ← 開発環境のみ
+]
+```
+
+- 本番 Keycloak インスタンスには localhost URI を含めてはならない
+- 本番デプロイ時は `infra/keycloak/realm-k1s0.json` をそのままインポートせず、
+  以下いずれかの方法で環境分離を行うこと:
+  1. **推奨**: 本番専用のオーバーライドスクリプト（`infra/keycloak/scripts/patch-realm-prod.sh` 等）で
+     localhost エントリを削除してからインポートする
+  2. Terraform/Helm の環境別 values から `KEYCLOAK_REDIRECT_URIS` 変数として注入し、realm.json をテンプレート化する
+- `_comment_redirectUris` フィールドに記載の通り、HIGH-SEC-04 監査対応として本番環境では explicit ドメインのみを使用すること
+
 ## BFF-Proxy の役割
 `regions/system/server/go/bff-proxy/` がフロントエンドとバックエンドの橋渡し:
 - フロントエンドはHTTPOnly Cookieでセッション管理

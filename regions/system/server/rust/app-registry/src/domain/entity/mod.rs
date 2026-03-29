@@ -4,13 +4,5 @@ pub mod download_stat;
 pub mod platform;
 pub mod version;
 
-#[allow(unused_imports)]
-pub use app::App;
-#[allow(unused_imports)]
-pub use claims::Claims;
-#[allow(unused_imports)]
-pub use download_stat::DownloadStat;
-#[allow(unused_imports)]
-pub use platform::Platform;
-#[allow(unused_imports)]
-pub use version::AppVersion;
+// H-02 監査対応: 各エンティティをサブモジュールとして宣言するのみとし、
+// re-export は使用箇所で直接パスを指定する形に変更（unused_imports 警告対応）

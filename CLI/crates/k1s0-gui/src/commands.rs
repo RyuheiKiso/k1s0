@@ -190,6 +190,8 @@ fn resolve_event_template_dir(workspace_root: &Path) -> Result<PathBuf, String> 
 #[tauri::command]
 #[allow(clippy::needless_pass_by_value)]
 pub fn get_config(config_path: String) -> Result<CliConfig, String> {
+    // 認証済みセッションを要求する（MEDIUM-GUI-01 監査対応: 他コマンドと同一の認証チェックを適用）
+    ensure_authenticated()?;
     k1s0_core::load_config(&config_path).map_err(|error| error.to_string())
 }
 

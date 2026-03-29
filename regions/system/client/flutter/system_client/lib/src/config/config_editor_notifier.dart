@@ -14,6 +14,8 @@ class ConfigEditorState {
     this.error,
     this.isSaving = false,
     this.hasConflict = false,
+    // FE-08 対応: 部分失敗フラグ（一部の PUT に成功し残りが失敗した状態を示す）
+    this.hasPartialFailure = false,
   });
 
   /// 設定データ（ロード完了後に設定される）
@@ -28,6 +30,8 @@ class ConfigEditorState {
   final bool isSaving;
   /// コンフリクトが検出されたかどうか
   final bool hasConflict;
+  /// 逐次 PUT の途中でエラーが発生し部分的にしか保存できなかったかどうか
+  final bool hasPartialFailure;
 
   /// 現在選択中のカテゴリの状態を返す
   ConfigCategoryState? get selectedCategory {
@@ -55,6 +59,7 @@ class ConfigEditorState {
     String? error,
     bool? isSaving,
     bool? hasConflict,
+    bool? hasPartialFailure,
     bool clearError = false,
     bool clearSelectedCategoryId = false,
   }) {
@@ -67,6 +72,7 @@ class ConfigEditorState {
       error: clearError ? null : (error ?? this.error),
       isSaving: isSaving ?? this.isSaving,
       hasConflict: hasConflict ?? this.hasConflict,
+      hasPartialFailure: hasPartialFailure ?? this.hasPartialFailure,
     );
   }
 }
@@ -197,7 +203,11 @@ class ConfigEditorNotifier extends StateNotifier<ConfigEditorState> {
   }
 
   /// 変更されたフィールドを API に保存する
-  /// コンフリクト（409）発生時は hasConflict フラグを設定する
+  /// FE-08 対応: 逐次 PUT の部分失敗時にロールバックを実行する
+  /// - 保存開始前に変更前の状態をスナップショットとして保存する
+  /// - PUT 中にエラーが発生した場合、成功済み分も含めてスナップショットに戻す
+  /// - コンフリクト（409）発生時は hasConflict フラグを設定する
+  /// - その他エラーで部分失敗が発生した場合は hasPartialFailure フラグをセットしてユーザーに通知する
   Future<bool> save() async {
     if (state.data == null ||
         !state.hasDirtyFields ||
@@ -210,7 +220,14 @@ class ConfigEditorNotifier extends StateNotifier<ConfigEditorState> {
         .where((field) => field.isDirty)
         .toList();
 
+    // FE-08 対応: ロールバック用スナップショットを保存開始前に取得する
+    // PUT が途中で失敗した場合はこのスナップショットで全体を復元する
+    final originalData = state.data!;
+
     state = state.copyWith(isSaving: true);
+
+    // 成功した PUT の件数を追跡し、部分失敗の判定に使用する
+    var successCount = 0;
 
     try {
       for (final field in dirtyFields) {
@@ -221,19 +238,30 @@ class ConfigEditorNotifier extends StateNotifier<ConfigEditorState> {
             'version': field.version,
           },
         );
+        successCount++;
       }
 
       await load();
-      state = state.copyWith(hasConflict: false);
+      state = state.copyWith(hasConflict: false, hasPartialFailure: false);
       return true;
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
+        // コンフリクト: ロールバック不要（サーバー側は変更されていない）
         state = state.copyWith(hasConflict: true, isSaving: false);
         return false;
       }
+
+      // 部分失敗: 1件以上 PUT が成功していた場合はサーバー側が中途半端な状態になっている
+      // クライアント側をスナップショットに戻し、ユーザーに再確認を促す
+      final isPartialFailure = successCount > 0;
       state = state.copyWith(
-        error: e.message ?? 'Failed to save config',
+        data: isPartialFailure ? originalData : state.data,
+        error: isPartialFailure
+            ? '$successCount / ${dirtyFields.length} 件の保存に成功しましたが、残りの保存に失敗しました。'
+              ' ページを再読み込みしてサーバーの状態を確認してください。'
+            : (e.message ?? 'Failed to save config'),
         isSaving: false,
+        hasPartialFailure: isPartialFailure,
       );
       return false;
     }

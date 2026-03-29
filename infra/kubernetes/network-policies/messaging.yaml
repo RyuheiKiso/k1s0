@@ -67,11 +67,10 @@ spec:
     # Kafka ブローカーポート（9093: TLS）と ZooKeeper ポート（2181）のみを許可する。
     - to:
         - podSelector: {}
+      # M-18 監査対応: plain リスナー（9092）を Egress からも削除する（Ingress 側は廃止済み）
       ports:
         - protocol: TCP
           port: 9093    # Kafka ブローカー間レプリケーション（TLS）
-        - protocol: TCP
-          port: 9092    # Kafka ブローカー間（plain: KRaft モードでの内部通信用）
         - protocol: TCP
           port: 9094    # Kafka コントローラーポート（KRaft モード）
         - protocol: TCP

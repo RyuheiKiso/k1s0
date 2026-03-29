@@ -35,15 +35,28 @@
 | [ADR-0027](./0027-db-app-user-role-separation.md) | DBアプリケーションユーザー権限分離（k1s0 非特権ロール） | 承認済み |
 | [ADR-0028](./0028-tenant-id-acquisition.md) | マルチテナントID取得方式（JWT カスタムクレーム + gRPC メタデータ） | 承認済み |
 | [ADR-0029](./0029-postgresql-ha-strategy.md) | PostgreSQL HA 戦略 | 承認済み |
-| [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 提案中 |
-| [ADR-0031](./0031-etcd-encryption-at-rest.md) | etcd encryption-at-rest（保存時暗号化）の採用 | 採用済み |
-| [ADR-0032](./0032-zod-v4-record-key-schema.md) | zod v4 API移行方針 — record キースキーマ必須化 | 採用済み |
-| [ADR-0033](./0033-riverpod-v3-family-async-notifier.md) | Riverpod v3 FamilyNotifier → FamilyAsyncNotifier 移行 | 採用済み |
-| [ADR-0034](./0034-deprecated-proto-field-dual-write.md) | deprecated proto フィールド dual-write 移行戦略 | 採用済み |
+| [ADR-0030](./0030-tier-access-dynamic-mapping.md) | tier_access クレームのロールベース動的マッピングへの移行 | 承認済み |
+| [ADR-0031](./0031-etcd-encryption-at-rest.md) | etcd encryption-at-rest（保存時暗号化）の採用 | 承認済み |
+| [ADR-0032](./0032-zod-v4-record-key-schema.md) | zod v4 API移行方針 — record キースキーマ必須化 | 承認済み |
+| [ADR-0033](./0033-riverpod-v3-family-async-notifier.md) | Riverpod v3 FamilyNotifier → FamilyAsyncNotifier 移行 | 承認済み |
+| [ADR-0034](./0034-deprecated-proto-field-dual-write.md) | deprecated proto フィールド dual-write 移行戦略 | 承認済み |
 | [ADR-0035](./0035-dockerfile-template-strategy.md) | Dockerfile テンプレート戦略（27 サービス個別 Dockerfile の維持方針） | 承認済み |
 | [ADR-0036](./0036-promtail-log-collection-strategy.md) | Promtail ログ収集戦略 | 承認済み |
-| [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 承認済み |
+| [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 提案中 |
 | [ADR-0038](./0038-k8s-rbac-namespace-scoping.md) | Kubernetes RBAC 権限の Namespace スコープ化（ClusterRoleBinding → RoleBinding） | 承認済み |
+| [ADR-0039](./0039-service-catalog-rest-client.md) | graphql-gateway の service-catalog クライアントを gRPC から REST へ変更 | 承認済み |
+| [ADR-0040](./0040-grpc-port-range-hyper-v-avoidance.md) | gRPC ホストポートを Hyper-V 動的除外範囲外に移動 | 承認済み |
+| [ADR-0041](./0041-ratelimit-api-path-alignment.md) | レートリミット API パスのクライアント・サーバー間統一 | 承認済み |
+| [ADR-0042](./0042-bff-proxy-upstream-strategy.md) | BFF-Proxy upstream 拡張戦略 | 承認済み |
+| [ADR-0043](./0043-service-tier-graphql-integration.md) | Service Tier GraphQL 統合方針 | 承認済み |
+| [ADR-0044](./0044-file-event-topic-strategy.md) | file-rust Kafka イベントトピック設計方針 | 承認済み |
+| [ADR-0045](./0045-vault-per-service-roles.md) | Vault サービス個別 Kubernetes Auth ロール実装計画 | 提案中 |
+| [ADR-0046](./0046-tauri-gui-deferral.md) | Tauri GUI 機能の段階的延期戦略 | 承認済み |
+| [ADR-0047](./0047-vault-secret-path-auth-server.md) | Vault シークレットパス設計（auth-server） | 承認済み |
+| [ADR-0048](./0048-ratelimit-fail-closed-default.md) | レートリミット Fail-Closed デフォルト設計 | 承認済み |
+| [ADR-0049](./0049-jwt-aud-vec-string.md) | JWT audience を Vec<String> で管理する設計 | 承認済み |
+| [ADR-0050](./0050-advisory-lock-timeout-strategy.md) | pg_try_advisory_lock + リトライによる DB マイグレーション排他制御 | 承認済み |
+| [ADR-0051](./0051-k8s-placeholder-ci-validation.md) | Kubernetes マニフェストのプレースホルダー自動検証 CI パイプライン設計 | 承認済み |
 
 ## ADR の追加方法
 

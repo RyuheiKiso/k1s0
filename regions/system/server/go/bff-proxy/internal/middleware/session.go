@@ -58,6 +58,20 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 			return
 		}
 
+		// M-17 監査対応: セッションの絶対有効期限を確認する。
+		// スライディングウィンドウで TTL が延長され続けても、絶対有効期限を超えたセッションは強制無効化する。
+		// refresh token があっても絶対期限超過の場合は再認証を要求する。
+		if sess.IsAbsoluteExpired() {
+			// セッションを削除してクリーンアップする
+			_ = store.Delete(c.Request.Context(), sessionID)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error":      "BFF_SESSION_ABSOLUTE_EXPIRED",
+				"message":    "Session has exceeded maximum lifetime, re-authentication required",
+				"request_id": GetRequestID(c),
+			})
+			return
+		}
+
 		// アクセストークンの有効期限を確認する。
 		// refresh token がある場合は handler 側で silent refresh を試みるため、
 		// フラグを立てて handler に通す。refresh token がない場合は即 401 を返す。

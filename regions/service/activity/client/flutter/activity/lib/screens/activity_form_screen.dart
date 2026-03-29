@@ -127,7 +127,7 @@ class _ActivityFormScreenState extends ConsumerState<ActivityFormScreen> {
             const SizedBox(height: 16),
             /// アクティビティ種別選択ドロップダウン
             DropdownButtonFormField<ActivityType>(
-              value: _selectedType,
+              initialValue: _selectedType,
               decoration: const InputDecoration(
                 labelText: '種別',
                 border: OutlineInputBorder(),

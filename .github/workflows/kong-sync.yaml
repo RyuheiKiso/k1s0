@@ -11,6 +11,10 @@ on:
 permissions: {}
 
 # prod デフォルト値。sync-dev / sync-staging はジョブレベルで上書きする。
+# KONG-01 監査対応: KONG_REDIS_PASSWORD を Vault/GitHub Secrets から注入する
+# Redis レートリミットプラグインが認証付き Redis に接続する際に使用する。
+# dev 環境（KONG_RATE_REDIS_POLICY: local）では Redis 未使用だが、
+# envsubst テンプレート解決の統一性のため全環境で定義する。
 env:
   KONG_RATE_SYSTEM_MINUTE: "3000"
   KONG_RATE_SYSTEM_SECOND: "100"
@@ -21,6 +25,7 @@ env:
   KONG_RATE_REDIS_POLICY: "redis"
   KONG_CORS_ORIGINS: "https://*.k1s0.internal.example.com"
   KONG_KEYCLOAK_ISSUER: "https://auth.k1s0.internal.example.com/realms/k1s0"
+  KONG_REDIS_PASSWORD: ${{ secrets.KONG_REDIS_PASSWORD }}
 
 jobs:
   # Kong 設定ファイルのバリデーション

@@ -149,6 +149,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     if let Ok(slack_webhook_url) = std::env::var("SLACK_WEBHOOK_URL") {
+        // MED-8 監査対応: SLACK_WEBHOOK_URL の形式を起動時に検証し、不正なURLで実行されることを防ぐ
+        reqwest::Url::parse(&slack_webhook_url)
+            .context("SLACK_WEBHOOK_URL が有効な URL ではありません")?;
         info!("Slack delivery client initialized");
         delivery_clients.insert(
             "slack".to_string(),
@@ -159,6 +162,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     if let Ok(webhook_url) = std::env::var("WEBHOOK_URL") {
+        // MED-8 監査対応: WEBHOOK_URL の形式を起動時に検証する
+        reqwest::Url::parse(&webhook_url)
+            .context("WEBHOOK_URL が有効な URL ではありません")?;
         info!("Webhook delivery client initialized");
         delivery_clients.insert(
             "webhook".to_string(),
@@ -169,6 +175,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     if let Ok(sms_endpoint) = std::env::var("SMS_API_ENDPOINT") {
+        // MED-8 監査対応: SMS_API_ENDPOINT の形式を起動時に検証する
+        reqwest::Url::parse(&sms_endpoint)
+            .context("SMS_API_ENDPOINT が有効な URL ではありません")?;
         info!("SMS delivery client initialized");
         delivery_clients.insert(
             "sms".to_string(),
@@ -182,6 +191,9 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     if let Ok(push_endpoint) = std::env::var("PUSH_API_ENDPOINT") {
+        // MED-8 監査対応: PUSH_API_ENDPOINT の形式を起動時に検証する
+        reqwest::Url::parse(&push_endpoint)
+            .context("PUSH_API_ENDPOINT が有効な URL ではありません")?;
         info!("Push delivery client initialized");
         delivery_clients.insert(
             "push".to_string(),

@@ -17,7 +17,6 @@ fn default_jwks_cache_ttl_secs() -> u64 {
 }
 
 /// Application configuration for scheduler server.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub app: AppConfig,
@@ -28,8 +27,6 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
-    #[serde(default)]
-    pub scheduler: SchedulerConfig,
     #[serde(default)]
     pub auth: Option<AuthConfig>,
 }
@@ -60,7 +57,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-#[allow(dead_code)]
+/// ServerConfig はサーバーのバインドアドレス設定。host/port/grpc_port は startup.rs で使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -84,7 +81,6 @@ fn default_grpc_port() -> u16 {
 }
 
 /// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
-#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -98,10 +94,6 @@ pub struct DatabaseConfig {
     pub ssl_mode: String,
     #[serde(default = "default_max_open_conns")]
     pub max_open_conns: u32,
-    #[serde(default = "default_max_idle_conns")]
-    pub max_idle_conns: u32,
-    #[serde(default = "default_conn_max_lifetime")]
-    pub conn_max_lifetime: String,
 }
 
 fn default_ssl_mode() -> String {
@@ -112,13 +104,6 @@ fn default_max_open_conns() -> u32 {
     25
 }
 
-fn default_max_idle_conns() -> u32 {
-    5
-}
-
-fn default_conn_max_lifetime() -> String {
-    "5m".to_string()
-}
 
 impl DatabaseConfig {
     /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
@@ -152,11 +137,8 @@ fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaTopics {
-    #[serde(default = "default_topic_triggered", alias = "topic_triggered")]
-    pub triggered: String,
     #[serde(default = "default_topic_executed")]
     pub executed: String,
     #[serde(default = "default_topic_created")]
@@ -166,15 +148,10 @@ pub struct KafkaTopics {
 impl Default for KafkaTopics {
     fn default() -> Self {
         Self {
-            triggered: default_topic_triggered(),
             executed: default_topic_executed(),
             created: default_topic_created(),
         }
     }
-}
-
-fn default_topic_triggered() -> String {
-    "k1s0.system.scheduler.triggered.v1".to_string()
 }
 
 fn default_topic_executed() -> String {
@@ -186,41 +163,12 @@ fn default_topic_created() -> String {
 }
 
 /// SchedulerConfig 縺ｯ繧ｹ繧ｱ繧ｸ繝･繝ｼ繝ｩ繝ｼ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct SchedulerConfig {
-    #[serde(default = "default_timezone")]
-    pub timezone: String,
-    #[serde(default = "default_lock_timeout_secs")]
-    pub lock_timeout_secs: u64,
-}
-
-impl Default for SchedulerConfig {
-    fn default() -> Self {
-        Self {
-            timezone: default_timezone(),
-            lock_timeout_secs: default_lock_timeout_secs(),
-        }
-    }
-}
-
-fn default_timezone() -> String {
-    "UTC".to_string()
-}
-
-fn default_lock_timeout_secs() -> u64 {
-    30
-}
-
-#[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
     pub log: LogConfig,
     #[serde(default)]
     pub trace: TraceConfig,
-    #[serde(default)]
-    pub metrics: MetricsConfig,
 }
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {
@@ -255,22 +203,6 @@ impl Default for TraceConfig {
         }
     }
 }
-#[allow(dead_code)]
-#[derive(Debug, Clone, Deserialize)]
-pub struct MetricsConfig {
-    #[serde(default = "default_metrics_enabled")]
-    pub enabled: bool,
-    #[serde(default = "default_metrics_path")]
-    pub path: String,
-}
-impl Default for MetricsConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_metrics_enabled(),
-            path: default_metrics_path(),
-        }
-    }
-}
 fn default_trace_enabled() -> bool {
     true
 }
@@ -286,22 +218,9 @@ fn default_log_level() -> String {
 fn default_log_format() -> String {
     "json".to_string()
 }
-fn default_metrics_enabled() -> bool {
-    true
-}
-fn default_metrics_path() -> String {
-    "/metrics".to_string()
-}
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_scheduler_config_defaults() {
-        let cfg = SchedulerConfig::default();
-        assert_eq!(cfg.timezone, "UTC");
-        assert_eq!(cfg.lock_timeout_secs, 30);
-    }
 
     #[test]
     fn test_database_connection_url() {
@@ -313,8 +232,6 @@ mod tests {
             password: Secret::new("pass".to_string()),
             ssl_mode: "disable".to_string(),
             max_open_conns: 25,
-            max_idle_conns: 5,
-            conn_max_lifetime: "5m".to_string(),
         };
         assert_eq!(
             cfg.connection_url(),

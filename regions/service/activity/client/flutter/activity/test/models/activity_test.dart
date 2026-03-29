@@ -1,5 +1,6 @@
 /// activity_test.dart: Activityモデルのユニットテスト。
 /// fromJson/toJsonの往復変換、enum変換、nullable処理を検証する。
+library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:activity/models/activity.dart';
 

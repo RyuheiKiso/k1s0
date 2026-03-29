@@ -330,8 +330,10 @@ impl TemplateEngine {
 }
 
 // テストコードでは unwrap() の使用を許可する
+// テストコードでは deprecated な build() の直接呼び出しを許可する（H-13 監査対応）
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use crate::template::context::TemplateContextBuilder;

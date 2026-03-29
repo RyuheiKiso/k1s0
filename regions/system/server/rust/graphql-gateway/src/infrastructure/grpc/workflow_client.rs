@@ -44,6 +44,8 @@ impl WorkflowGrpcClient {
         })
     }
 
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     fn step_from_proto(s: proto::k1s0::system::workflow::v1::WorkflowStep) -> WorkflowStep {
         WorkflowStep {
             step_id: s.step_id,
@@ -112,6 +114,8 @@ impl WorkflowGrpcClient {
         }
     }
 
+    // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
+    #[allow(deprecated)]
     fn steps_to_proto(
         steps: &[WorkflowStepInput],
     ) -> Vec<proto::k1s0::system::workflow::v1::WorkflowStep> {

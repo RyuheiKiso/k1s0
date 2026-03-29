@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+// CRIT-4 監査対応: LIKE/ILIKE メタキャラクター（%_\）をエスケープするユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use sqlx::PgPool;
 
 use crate::domain::entity::app::App;
@@ -67,12 +69,16 @@ impl AppRepository for AppPostgresRepository {
         let category = category.as_deref();
         let search = search.as_deref();
 
+        // CRIT-4 監査対応: ILIKE 検索前に %_\ をエスケープして意図しない全件マッチを防止する
+        let escaped_search = search.map(|q| escape_like_pattern(q));
+        let search = escaped_search.as_deref();
+
         let rows = if let (Some(cat), Some(q)) = (category, search) {
             sqlx::query_as::<_, AppRow>(
                 r#"
                 SELECT id, name, description, category, icon_url, created_at, updated_at
                 FROM app_registry.apps
-                WHERE category = $1 AND (name ILIKE '%' || $2 || '%' OR description ILIKE '%' || $2 || '%')
+                WHERE category = $1 AND (name ILIKE '%' || $2 || '%' ESCAPE '\' OR description ILIKE '%' || $2 || '%' ESCAPE '\')
                 ORDER BY name ASC
                 "#,
             )
@@ -97,7 +103,7 @@ impl AppRepository for AppPostgresRepository {
                 r#"
                 SELECT id, name, description, category, icon_url, created_at, updated_at
                 FROM app_registry.apps
-                WHERE name ILIKE '%' || $1 || '%' OR description ILIKE '%' || $1 || '%'
+                WHERE name ILIKE '%' || $1 || '%' ESCAPE '\' OR description ILIKE '%' || $1 || '%' ESCAPE '\'
                 ORDER BY name ASC
                 "#,
             )

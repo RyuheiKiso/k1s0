@@ -75,8 +75,9 @@ pub async fn list_notifications(
     State(state): State<AppState>,
     Query(params): Query<ListNotificationsParams>,
 ) -> impl IntoResponse {
-    let page = params.page.unwrap_or(1);
-    let page_size = params.page_size.unwrap_or(20);
+    let page = params.page.unwrap_or(1).max(1);
+    // page_size を 1〜200 にクランプして異常値（0やオーバーフロー）を防ぐ（H-07 監査対応）
+    let page_size = params.page_size.unwrap_or(20).clamp(1, 200);
 
     let channel_id = params.channel_id;
 
@@ -256,8 +257,9 @@ pub async fn list_channels(
     State(state): State<AppState>,
     Query(params): Query<ListChannelsParams>,
 ) -> impl IntoResponse {
-    let page = params.page.unwrap_or(1);
-    let page_size = params.page_size.unwrap_or(20);
+    let page = params.page.unwrap_or(1).max(1);
+    // page_size を 1〜200 にクランプして異常値（0やオーバーフロー）を防ぐ（H-07 監査対応）
+    let page_size = params.page_size.unwrap_or(20).clamp(1, 200);
     let enabled_only = params.enabled_only.unwrap_or(false);
 
     match state
@@ -462,8 +464,9 @@ pub async fn list_templates(
     State(state): State<AppState>,
     Query(params): Query<ListTemplatesParams>,
 ) -> impl IntoResponse {
-    let page = params.page.unwrap_or(1);
-    let page_size = params.page_size.unwrap_or(20);
+    let page = params.page.unwrap_or(1).max(1);
+    // page_size を 1〜200 にクランプして異常値（0やオーバーフロー）を防ぐ（H-07 監査対応）
+    let page_size = params.page_size.unwrap_or(20).clamp(1, 200);
 
     match state
         .list_templates_uc

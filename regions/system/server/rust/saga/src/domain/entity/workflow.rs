@@ -100,7 +100,8 @@ impl WorkflowDefinition {
         Ok(())
     }
 
-    /// 指定ステップのタイムアウト期間を返す。
+    /// 指定ステップのタイムアウト期間を返す。execute_saga usecase でのタイムアウト計算に使用する。
+    // H-02 監査対応: タイムアウト計算の将来実装に備えて保持する
     #[allow(dead_code)]
     pub fn timeout_duration(&self, step_idx: usize) -> Duration {
         self.steps

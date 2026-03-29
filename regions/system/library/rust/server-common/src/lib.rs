@@ -49,3 +49,13 @@ pub use response::ApiResponse;
 /// 可観測性設定の共通型を再エクスポートする。
 /// サーバー側で `use k1s0_server_common::{ObservabilityConfig, LogConfig, ...}` と書ける。
 pub use config::{LogConfig, MetricsConfig, ObservabilityConfig, TraceConfig};
+
+/// LIKE/ILIKE 検索パターンの特殊文字（\, %, _）をエスケープする。
+/// SQL クエリで `ESCAPE '\'` と組み合わせて使用すること。
+/// M-02 監査対応: 意図しない全件マッチや検索精度劣化を防ぐ。
+pub fn escape_like_pattern(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}

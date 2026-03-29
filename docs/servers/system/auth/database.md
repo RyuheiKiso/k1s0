@@ -270,6 +270,10 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON auth.api_keys (key_hash) WHE
 CREATE INDEX IF NOT EXISTS idx_api_keys_tenant_id ON auth.api_keys (tenant_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON auth.api_keys (prefix);
 CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON auth.api_keys (expires_at) WHERE expires_at IS NOT NULL;
+
+-- HIGH-5 監査対応（Migration 017）: テナント横断プレフィックス列挙攻撃を防止するための複合 UNIQUE 制約
+ALTER TABLE auth.api_keys
+  ADD CONSTRAINT uk_api_keys_tenant_prefix UNIQUE (tenant_id, prefix);
 ```
 
 | カラム | 型 | 制約 | 説明 |

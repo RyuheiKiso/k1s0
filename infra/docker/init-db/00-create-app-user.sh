@@ -13,11 +13,14 @@
 # CI 側でこれらを設定すれば明示的なフラグ不要で接続先を制御できる。
 set -e
 
+# H-10 監査対応: SQL インジェクション対策
+# HEREDOC 内でのシェル変数展開はパスワードに特殊文字が含まれる場合にSQL構文エラーや
+# インジェクションのリスクがある。psql の -c オプションとドル引用符（$$...$$）を使用して
+# パスワード文字列を安全にエスケープする。
+# :? 演算子により K1S0_DB_PASSWORD が未設定の場合はスクリプトが即座に異常終了する（C-6 監査対応）。
+K1S0_DB_PASSWORD="${K1S0_DB_PASSWORD:?K1S0_DB_PASSWORD must be set}"
+
 psql -v ON_ERROR_STOP=1 \
   --username "${POSTGRES_USER:-postgres}" \
-  --dbname "${POSTGRES_DB:-postgres}" <<-EOSQL
-    -- :? 演算子により未設定時はスクリプトが即座に異常終了する（C-6 監査対応）
-    -- デフォルトパスワードを排除し、環境変数が必ず設定されていることを保証する
-    CREATE ROLE k1s0 WITH LOGIN PASSWORD '${K1S0_DB_PASSWORD:?'K1S0_DB_PASSWORD must be set'}'
-      NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
-EOSQL
+  --dbname "${POSTGRES_DB:-postgres}" \
+  -c "CREATE ROLE k1s0 WITH LOGIN PASSWORD \$\$${K1S0_DB_PASSWORD}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"

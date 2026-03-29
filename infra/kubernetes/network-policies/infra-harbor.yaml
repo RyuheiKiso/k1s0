@@ -1,0 +1,86 @@
+# harbor: デフォルト拒否ポリシー。
+# 他のポリシーで明示的に許可されていないトラフィックを全て遮断する。
+# H-14 監査対応: infra Namespace に NetworkPolicy を追加し、ゼロトラスト原則を適用する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: harbor
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# harbor: Ingress 許可ポリシー
+# 全 Tier からのコンテナイメージ Pull リクエストを許可する。
+# Harbor はプライベートレジストリとして全ノードからアクセスされる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-registry-ingress
+  namespace: harbor
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    # 全 Tier からのレジストリアクセスを許可する（イメージ Pull）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
+              tier: service
+        - namespaceSelector:
+            matchLabels:
+              tier: infra
+      ports:
+        - protocol: TCP
+          port: 443     # Harbor HTTPS ポート
+        - protocol: TCP
+          port: 8080    # Harbor HTTP ポート（内部通信）
+    # Ingress Controller からの外部アクセスを許可する
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+---
+# harbor: Egress 許可ポリシー
+# DNS 解決、同一 Namespace 内通信（Harbor コンポーネント間）、外部レジストリミラーリングを許可する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-egress
+  namespace: harbor
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # DNS 解決を kube-system（CoreDNS）のみに許可する
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 同一 Namespace 内通信を許可する（Harbor Core, Registry, JobService 等のコンポーネント間通信）
+    - to:
+        - podSelector: {}
+    # 外部レジストリへのミラーリング・レプリケーション用 HTTPS 通信を許可する
+    - ports:
+        - protocol: TCP
+          port: 443

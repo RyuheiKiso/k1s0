@@ -14,6 +14,8 @@ export { ProtectedRoute } from './routing/ProtectedRoute';
 export { AppButton } from './components/AppButton';
 export { LoadingSpinner } from './components/LoadingSpinner';
 export { ErrorBoundary } from './components/ErrorBoundary';
+// アクセス拒否コンポーネント: 権限不足時のフォールバック表示用（M-27 監査対応）
+export { AccessDenied } from './components/AccessDenied';
 
 // Config
 export { ConfigEditorPage } from './config/ConfigEditorPage';

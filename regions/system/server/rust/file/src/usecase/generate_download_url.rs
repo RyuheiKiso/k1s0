@@ -62,7 +62,8 @@ impl GenerateDownloadUrlUseCase {
 
         let download_url = self
             .storage_repo
-            .generate_download_url(&file.storage_key, input.expires_in_seconds)
+            // C-01 監査対応: storage_key → storage_path にリネーム
+            .generate_download_url(&file.storage_path, input.expires_in_seconds)
             .await
             .map_err(|e| GenerateDownloadUrlError::Internal(e.to_string()))?;
 
@@ -85,12 +86,12 @@ mod tests {
     use std::collections::HashMap;
 
     fn available_file() -> FileMetadata {
+        // C-01 監査対応: tenant_id 引数削除
         let mut file = FileMetadata::new(
             "file_001".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             HashMap::new(),
             "tenant-abc/report.pdf".to_string(),
@@ -155,12 +156,12 @@ mod tests {
         let mut metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
+        // C-01 監査対応: tenant_id 引数削除
         let file = FileMetadata::new(
             "file_002".to_string(),
             "pending.pdf".to_string(),
             1024,
             "application/pdf".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             HashMap::new(),
             "tenant-abc/pending.pdf".to_string(),

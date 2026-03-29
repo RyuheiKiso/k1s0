@@ -52,7 +52,7 @@ outbox_events（独立、tasks との直接 FK なし）
 | カラム | 型 | 制約 | 説明 |
 |--------|------|-------------|-------------|
 | id | UUID | PK | タスク識別子 |
-| project_id | TEXT | NOT NULL | プロジェクト ID |
+| project_id | UUID | NOT NULL | プロジェクト ID（migration 008 で TEXT → UUID に変更済み）<!-- H-22 監査対応: 型を UUID に修正 --> |
 | title | TEXT | NOT NULL | タスクタイトル |
 | description | TEXT | | タスク説明 |
 | status | TEXT | NOT NULL DEFAULT 'open' | タスクステータス（open/in_progress/review/done/cancelled） |
@@ -71,7 +71,7 @@ outbox_events（独立、tasks との直接 FK なし）
 ```sql
 CREATE TABLE task_service.tasks (
     id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id   TEXT         NOT NULL,
+    project_id   UUID         NOT NULL,  -- H-22 監査対応: migration 008 で TEXT → UUID に変更済み
     title        TEXT         NOT NULL,
     description  TEXT,
     status       TEXT         NOT NULL DEFAULT 'open',
@@ -215,7 +215,9 @@ migrations/
 ├── 004_create_outbox.up.sql                       # outbox_events テーブル・部分インデックス
 ├── 004_create_outbox.down.sql
 ├── 005_add_tenant_id_and_rls.up.sql               # tenant_id カラム追加・RLS 設定
-└── 005_add_tenant_id_and_rls.down.sql
+├── 005_add_tenant_id_and_rls.down.sql
+├── 008_alter_project_id_to_uuid.up.sql            # project_id カラム TEXT → UUID 型変更（H-22 監査対応）
+└── 008_alter_project_id_to_uuid.down.sql
 ```
 
 ### マイグレーション一覧
@@ -227,6 +229,7 @@ migrations/
 | 003 | add_updated_by_and_version | `tasks` テーブルに `updated_by` と `version` 列を追加 |
 | 004 | create_outbox | `outbox_events` テーブル・未配信イベント用部分インデックス |
 | 005 | add_tenant_id_and_rls | `tenant_id` カラム追加・RLS ポリシー設定 |
+| 008 | alter_project_id_to_uuid | `tasks.project_id` を TEXT → UUID 型に変更（H-22 監査対応） |
 
 ### 004_create_outbox.up.sql
 

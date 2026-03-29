@@ -1,3 +1,8 @@
 -- {{ name }} rollback
 
--- TODO: Add DROP statements
+-- LOW-05 監査対応: このロールバックテンプレートを適用前に実際の DROP 文に置き換えること。
+-- 置き換えが完了するまでこのトランザクションは明示的にロールバックされる。
+DO $$
+BEGIN
+    RAISE EXCEPTION 'TODO: このロールバックファイルは codegen テンプレートから生成されました。実際の DROP 文を実装してからこの RAISE EXCEPTION を削除してください。';
+END $$;

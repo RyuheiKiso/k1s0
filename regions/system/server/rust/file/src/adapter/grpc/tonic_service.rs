@@ -23,20 +23,22 @@ impl FileServiceTonic {
     }
 }
 
+/// C-01 監査対応: domain entity → proto メッセージ変換
+/// proto フィールド名はそのまま（自動生成のため変更不可）、domain のフィールド名は DB に合わせて変更済み
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
         id: file.id.clone(),
         filename: file.filename.clone(),
         content_type: file.content_type.clone(),
         size_bytes: file.size_bytes as i64,
-        tenant_id: file.tenant_id.clone(),
+        tenant_id: String::new(),
         uploaded_by: file.uploaded_by.clone(),
         status: file.status.clone(),
         created_at: file.created_at.to_rfc3339(),
         updated_at: file.updated_at.to_rfc3339(),
         tags: file.tags.clone(),
-        storage_key: file.storage_key.clone(),
-        checksum_sha256: file.checksum_sha256.clone(),
+        storage_key: file.storage_path.clone(),
+        checksum_sha256: file.checksum.clone(),
     }
 }
 
@@ -160,8 +162,11 @@ impl FileService for FileServiceTonic {
         request: Request<DeleteFileRequest>,
     ) -> Result<Response<DeleteFileResponse>, Status> {
         let inner = request.into_inner();
+        // CRIT-01 監査対応: gRPC はサービス間内部通信であり JWT により認可済みのため、
+        // tenant_id は空文字列（チェックなし）・expected_uploader は None（所有者チェックなし）とする
+        // 将来的には gRPC メタデータから tenant_id を取得することを推奨する
         self.inner
-            .delete_file(inner.id)
+            .delete_file(inner.id, String::new(), None)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(DeleteFileResponse {}))

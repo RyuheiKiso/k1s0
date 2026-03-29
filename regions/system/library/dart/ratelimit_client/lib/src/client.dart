@@ -105,13 +105,14 @@ RateLimitError _parseError(int statusCode, String body, String op) {
   return RateLimitError('$op failed ($statusCode): $msg', code: 'SERVER_ERROR');
 }
 
-/// ratelimit-server に HTTP で接続するクライアント。
+/// ratelimit-server に HTTP REST で接続するクライアント（ADR-0041: GrpcRateLimitClient からリネーム）。
 /// [serverAddress] には "http://host:port" または "host:port" 形式を指定する。
-class GrpcRateLimitClient implements RateLimitClient {
+class HttpRateLimitClient implements RateLimitClient {
   final String _baseUrl;
   final http.Client _httpClient;
 
-  GrpcRateLimitClient(String serverAddress, {http.Client? httpClient})
+  // コンストラクタ: serverAddress からベース URL を正規化し、HTTP クライアントを初期化する。
+  HttpRateLimitClient(String serverAddress, {http.Client? httpClient})
       : _baseUrl = serverAddress.startsWith('http')
             ? serverAddress.replaceAll(RegExp(r'/$'), '')
             : 'http://${serverAddress.replaceAll(RegExp(r'/$'), '')}',
@@ -177,3 +178,9 @@ class GrpcRateLimitClient implements RateLimitClient {
     _httpClient.close();
   }
 }
+
+/// 下位互換のための typedef。
+/// ADR-0041 により HttpRateLimitClient へリネームされたため、
+/// 既存コードを壊さないよう @Deprecated アノテーション付きで残す。
+@Deprecated('GrpcRateLimitClient は HttpRateLimitClient に改名されました。HttpRateLimitClient を使用してください。')
+typedef GrpcRateLimitClient = HttpRateLimitClient;

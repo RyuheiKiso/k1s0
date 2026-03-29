@@ -15,14 +15,21 @@ impl WorkflowPostgresRepository {
     }
 }
 
+/// WorkflowDefinitionRow は DB から取得したワークフロー定義の中間構造体。
+/// フィールドは TryFrom 実装を通じて WorkflowDefinition に変換される。
+// H-02 監査対応: created_at/updated_at は sqlx::FromRow のマッピングに必要なため保持する
+// （SELECT クエリで取得する列と構造体フィールドを一致させる必要がある）
 #[derive(sqlx::FromRow)]
-#[allow(dead_code)]
 struct WorkflowDefinitionRow {
     name: String,
     version: i32,
     definition: serde_json::Value,
     enabled: bool,
+    /// DB から取得するが WorkflowDefinition には含まれないため dead_code 警告を抑制する
+    #[allow(dead_code)]
     created_at: chrono::DateTime<chrono::Utc>,
+    /// DB から取得するが WorkflowDefinition には含まれないため dead_code 警告を抑制する
+    #[allow(dead_code)]
     updated_at: chrono::DateTime<chrono::Utc>,
 }
 

@@ -50,6 +50,9 @@ FROM gcr.io/distroless/cc-debian12@sha256:7e5b8df2f4d36f5599ef4ab856d7d444922531
 
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libz.so.1 /usr/lib/x86_64-linux-gnu/libz.so.1
 COPY --from=builder /app/target/release/k1s0-file-server /k1s0-file-server
+# M-08 監査対応: 設定ファイルをランタイムステージにコピーする
+# ビルドコンテキストは ./regions/system のため、server/rust/file/config が /app/server/rust/file/config にマウントされる
+COPY --from=builder /app/server/rust/file/config /app/config
 COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot

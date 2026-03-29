@@ -4,12 +4,10 @@ use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 /// KafkaConfig は Kafka 接続の設定を表す。
+/// フィールドは KafkaProducer::new() で rdkafka クライアント設定に使用する。
 #[derive(Debug, Clone, Deserialize)]
-#[allow(dead_code)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
-    #[serde(default)]
-    pub consumer_group: String,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
     #[serde(default)]
@@ -47,13 +45,11 @@ impl Default for SaslConfig {
 }
 
 /// TopicsConfig はトピック設定を表す。
+/// publish フィールドは KafkaProducer::new() でトピック名取得に使用する。
 #[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
-    #[serde(default)]
-    pub subscribe: Vec<String>,
 }
 
 /// SagaEventPublisher はSagaイベント配信のためのトレイト。
@@ -66,7 +62,7 @@ pub trait SagaEventPublisher: Send + Sync {
         event_type: &str,
         payload: &serde_json::Value,
     ) -> anyhow::Result<()>;
-    #[allow(dead_code)]
+    // プロデューサーのフラッシュとクローズを行う（シャットダウン時に呼び出す）
     async fn close(&self) -> anyhow::Result<()>;
 }
 
@@ -208,12 +204,10 @@ mod tests {
         let yaml = r#"
 brokers:
   - "kafka-0.messaging.svc.cluster.local:9092"
-consumer_group: "saga-server.default"
 security_protocol: "PLAINTEXT"
 topics:
   publish:
     - "k1s0.system.saga.state_changed.v1"
-  subscribe: []
 "#;
         let config: KafkaConfig = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.brokers.len(), 1);

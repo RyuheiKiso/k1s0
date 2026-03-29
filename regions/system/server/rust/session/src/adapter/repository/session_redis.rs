@@ -78,6 +78,12 @@ impl SessionRepository for RedisSessionRepository {
             .await
             .map_err(|e| SessionError::Internal(format!("redis SADD error: {}", e)))?;
 
+        // session:user:{user_id} SET にも TTL を設定する（メモリリーク防止）
+        // セッション本体（session:id:{id}）と同じ TTL を使用する
+        conn.expire::<_, ()>(&user_key, ttl)
+            .await
+            .map_err(|e| SessionError::Internal(format!("redis EXPIRE error: {}", e)))?;
+
         Ok(())
     }
 
@@ -119,14 +125,36 @@ impl SessionRepository for RedisSessionRepository {
         let mut conn = self.conn.clone();
         let user_key = self.user_key(user_id);
 
+        // ユーザーに紐づくセッション ID の SET を取得する
         let session_ids: Vec<String> = conn
             .smembers(&user_key)
             .await
             .map_err(|e| SessionError::Internal(format!("redis SMEMBERS error: {}", e)))?;
 
+        // セッション ID が存在しない場合は早期リターンする
+        if session_ids.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // MGET で全セッションを一括取得し N+1 問題を解消する。
+        // 個別 GET × N 回から MGET 1 回に削減することで Redis ラウンドトリップを最小化する。
+        let keys: Vec<String> = session_ids
+            .iter()
+            .map(|id| self.session_key(id))
+            .collect();
+
+        let values: Vec<Option<String>> = conn
+            .mget(&keys)
+            .await
+            .map_err(|e| SessionError::Internal(format!("redis MGET error: {}", e)))?;
+
+        // None（TTL 切れ等で消滅したセッション）を除外しデシリアライズする
         let mut sessions = Vec::new();
-        for id in session_ids {
-            if let Some(session) = self.find_by_id(&id).await? {
+        for value in values {
+            if let Some(json) = value {
+                let session: Session = serde_json::from_str(&json).map_err(|e| {
+                    SessionError::Internal(format!("deserialization error: {}", e))
+                })?;
                 sessions.push(session);
             }
         }

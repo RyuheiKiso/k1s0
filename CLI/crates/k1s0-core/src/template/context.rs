@@ -379,6 +379,11 @@ impl TemplateContextBuilder {
     ///
     /// `service_name`, `tier`, `language`, `kind` のいずれかが未設定の場合にパニックする。
     /// 必ず `try_build()` またはバリデーション済みの入力で呼び出すこと。
+    ///
+    /// # Deprecated
+    ///
+    /// パニックのリスクがあるため `try_build()` を使用すること（L-08 監査対応）。
+    #[deprecated(since = "0.1.0", note = "use try_build() instead")]
     pub fn build(self) -> TemplateContext {
         // 必須変数の事前バリデーション
         if let Err(e) = self.validate() {
@@ -552,7 +557,10 @@ impl TemplateContext {
 
 // テストコードでは unwrap() の使用を許可する
 #[cfg(test)]
+// テストコードでは deprecated な build() の直接呼び出しを許可する（H-13 監査対応）
+// テストは build() の動作を検証する目的で維持しており、警告を個別に抑制する
 #[allow(clippy::unwrap_used)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
 

@@ -18,3 +18,5 @@ breaking:
     - FILE
 deps:
   - buf.build/googleapis/googleapis
+  # H-15 監査対応: buf validate（ADR-0022 Phase 1）。proto フィールドのバリデーションルールを宣言的に定義する
+  - buf.build/bufbuild/protovalidate

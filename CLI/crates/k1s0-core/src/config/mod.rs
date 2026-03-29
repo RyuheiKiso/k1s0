@@ -145,7 +145,7 @@ pub struct DatabaseConfig {
     pub conn_max_lifetime: String,
 }
 
-/// DatabaseConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `DatabaseConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for DatabaseConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DatabaseConfig")
@@ -201,7 +201,7 @@ pub struct KafkaSaslConfig {
     pub password: Secret<String>,
 }
 
-/// KafkaSaslConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `KafkaSaslConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for KafkaSaslConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KafkaSaslConfig")
@@ -248,7 +248,7 @@ pub struct RedisConfig {
     pub pool_size: u32,
 }
 
-/// RedisConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `RedisConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for RedisConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RedisConfig")
@@ -284,7 +284,7 @@ pub struct RedisSessionConfig {
     pub password: Secret<String>,
 }
 
-/// RedisSessionConfig の Debug 実装: password フィールドを "***" でマスクする。
+/// `RedisSessionConfig` の Debug 実装: password フィールドを "***" でマスクする。
 impl std::fmt::Debug for RedisSessionConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RedisSessionConfig")
@@ -378,16 +378,49 @@ pub struct JwtConfig {
     pub public_key_path: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+// M-14 監査対応: OidcConfig の client_secret を Secret<String> でラップする。
+// DatabaseConfig 等と同じパターンで Debug 出力時にマスクする。
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct OidcConfig {
     pub discovery_url: String,
     pub client_id: String,
-    pub client_secret: String,
+    // クライアントシークレットは Secret<String> で保持し、ログへの漏洩を防ぐ
+    #[serde(skip_serializing)]
+    pub client_secret: Secret<String>,
     pub redirect_uri: String,
     pub scopes: Vec<String>,
     pub jwks_uri: String,
     pub jwks_cache_ttl: Option<String>,
+}
+
+/// `OidcConfig` の Debug 実装: `client_secret` フィールドを "***" でマスクする。
+impl std::fmt::Debug for OidcConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OidcConfig")
+            .field("discovery_url", &self.discovery_url)
+            .field("client_id", &self.client_id)
+            .field("client_secret", &"***")
+            .field("redirect_uri", &self.redirect_uri)
+            .field("scopes", &self.scopes)
+            .field("jwks_uri", &self.jwks_uri)
+            .field("jwks_cache_ttl", &self.jwks_cache_ttl)
+            .finish()
+    }
+}
+
+impl Default for OidcConfig {
+    fn default() -> Self {
+        Self {
+            discovery_url: String::new(),
+            client_id: String::new(),
+            client_secret: Secret::new(String::new()),
+            redirect_uri: String::new(),
+            scopes: Vec::new(),
+            jwks_uri: String::new(),
+            jwks_cache_ttl: None,
+        }
+    }
 }
 
 impl Default for CliConfig {
@@ -395,7 +428,9 @@ impl Default for CliConfig {
         Self {
             project_name: String::new(),
             regions_root: "regions".to_string(),
-            docker_registry: "harbor.internal.example.com".to_string(),
+            // H-19 監査対応: 環境変数 DEFAULT_DOCKER_REGISTRY でレジストリを上書き可能にする
+            docker_registry: std::env::var("DEFAULT_DOCKER_REGISTRY")
+                .unwrap_or_else(|_| "harbor.internal.example.com".to_string()),
             go_module_base: "github.com/org/k1s0".to_string(),
         }
     }
@@ -505,7 +540,14 @@ pub fn merge_vault_secrets(
         vault_path.trim_start_matches('/'),
     );
 
-    let response = match ureq::get(&endpoint).header("X-Vault-Token", &token).call() {
+    // H-15 監査対応: Vault HTTP リクエストにタイムアウトを設定して永久ハングを防ぐ。
+    // timeout_global は DNS 解決から レスポンスボディ読み取り完了までの全体タイムアウトを制御する。
+    let agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(10)))
+        .build()
+        .new_agent();
+
+    let response = match agent.get(&endpoint).header("X-Vault-Token", &token).call() {
         Ok(response) => response,
         Err(err) => {
             eprintln!(

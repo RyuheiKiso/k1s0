@@ -50,22 +50,33 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // --- Repository: PostgreSQL or InMemory fallback ---
-    let (job_repo, execution_repo, distributed_lock): (
+    // db_pool_for_health は /healthz エンドポイントの DB 接続確認に使用する（C-02 対応）
+    // H-02 監査対応: 複数リポジトリとロックを一括で初期化するため複雑な型タプルになる
+    #[allow(clippy::type_complexity)]
+    let (job_repo, execution_repo, distributed_lock, db_pool_for_health): (
         Arc<dyn SchedulerJobRepository>,
         Arc<dyn SchedulerExecutionRepository>,
         Arc<dyn k1s0_distributed_lock::DistributedLock>,
+        Option<sqlx::PgPool>,
     ) = if let Some(ref db_cfg) = cfg.database {
         info!(
             "connecting to PostgreSQL: {}:{}/{}",
             db_cfg.host, db_cfg.port, db_cfg.name
         );
         let pool = Arc::new(super::database::connect(db_cfg).await?);
+        // 起動時に scheduler-db マイグレーションを適用する（C-01 対応）
+        crate::MIGRATOR
+            .run(pool.as_ref())
+            .await
+            .map_err(|e| anyhow::anyhow!("scheduler-db migration failed: {}", e))?;
+        tracing::info!("scheduler-db migrations applied successfully");
         let pg_lock = k1s0_distributed_lock::PostgresDistributedLock::new(pool.as_ref().clone())
             .with_prefix("scheduler");
         (
             Arc::new(SchedulerJobPostgresRepository::new(pool.clone())),
-            Arc::new(SchedulerExecutionPostgresRepository::new(pool)),
+            Arc::new(SchedulerExecutionPostgresRepository::new(pool.clone())),
             Arc::new(pg_lock),
+            Some(pool.as_ref().clone()),
         )
     } else {
         // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
@@ -80,6 +91,7 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(InMemorySchedulerJobRepository::new()),
             Arc::new(InMemorySchedulerExecutionRepository::new()),
             Arc::new(k1s0_distributed_lock::InMemoryDistributedLock::new()),
+            None,
         )
     };
 
@@ -169,6 +181,7 @@ pub async fn run() -> anyhow::Result<()> {
         }).transpose()?,
     )?;
 
+    // db_pool_for_health は /healthz エンドポイントの DB 接続確認に使用する（C-02 対応）
     let mut state = crate::adapter::handler::AppState {
         list_jobs_uc,
         create_job_uc,
@@ -181,6 +194,7 @@ pub async fn run() -> anyhow::Result<()> {
         list_executions_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        db_pool: db_pool_for_health,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);
@@ -206,7 +220,10 @@ pub async fn run() -> anyhow::Result<()> {
 
     let scheduler_tonic = crate::adapter::grpc::SchedulerServiceTonic::new(grpc_svc);
 
-    let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
+    // gRPC server（server.host は設定ファイルで制御可能。本番は 0.0.0.0、テスト環境は 127.0.0.1 を使用する）
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port)
+        .parse()
+        .context("gRPC バインドアドレスのパースに失敗")?;
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
@@ -226,8 +243,10 @@ pub async fn run() -> anyhow::Result<()> {
             .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
     };
 
-    // REST server
-    let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));
+    // REST server（server.host は設定ファイルで制御可能）
+    let rest_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.port)
+        .parse()
+        .context("REST バインドアドレスのパースに失敗")?;
     info!("REST server starting on {}", rest_addr);
 
     let listener = tokio::net::TcpListener::bind(rest_addr).await?;

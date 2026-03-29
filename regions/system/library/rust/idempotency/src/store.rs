@@ -379,6 +379,8 @@ impl PostgresIdempotencyStore {
                 "database url must not be empty".to_string(),
             ));
         }
+        // H-02 監査対応: postgres フィーチャー無効時に max_connections が未使用になる警告を抑制する
+        let _ = &max_connections;
 
         #[cfg(feature = "postgres")]
         {

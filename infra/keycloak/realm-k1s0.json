@@ -164,11 +164,13 @@
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
+      "_comment_redirectUris": "localhost URI は開発環境専用（http://localhost:3000, http://localhost:5173）。本番環境では explicit ドメインのみを使用すること（HIGH-SEC-04 監査対応）",
       "redirectUris": [
         "https://app.k1s0.internal.example.com/callback",
         "http://localhost:3000/callback",
         "http://localhost:5173/callback"
       ],
+      "_comment_webOrigins": "*.k1s0.internal.example.com ワイルドカードは内部ドメイン限定。本番環境では明示的なドメインリスト（例: https://app.k1s0.internal.example.com）に変更すること（HIGH-SEC-06 監査対応）",
       "webOrigins": [
         "https://*.k1s0.internal.example.com",
         "http://localhost:3000",

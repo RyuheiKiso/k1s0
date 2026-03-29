@@ -38,12 +38,12 @@ k1s0-server-common = { path = "../../../library/rust/server-common", features = 
 utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
-moka = { version = "0.12", features = ["future"] }
+moka = {workspace = true}
 
 # パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
 secrecy = {workspace = true}
 aes-gcm = "0.10"
-hex = "0.4"
+hex = {workspace = true}
 vaultrs = "0.7"
 
 [build-dependencies]

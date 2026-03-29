@@ -6,6 +6,8 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+// fire-and-forget エラーログ出力に使用する（M-30 監査対応）
+import 'dart:developer' as developer;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -102,17 +104,36 @@ class SecureTokenStore implements TokenStore {
   @override
   void setTokenSet(TokenSet tokenSet) {
     _tokenSet = tokenSet;
-    // fire-and-forget でセキュアストレージに永続化する
-    unawaited(_storage.write(
-      key: '$_prefix$_kTokenSet',
-      value: jsonEncode(tokenSet.toJson()),
-    ));
+    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .write(
+          key: '$_prefix$_kTokenSet',
+          value: jsonEncode(tokenSet.toJson()),
+        )
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: トークンセットの書き込みに失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
   void clearTokenSet() {
     _tokenSet = null;
-    unawaited(_storage.delete(key: '$_prefix$_kTokenSet'));
+    // fire-and-forget でセキュアストレージから削除する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .delete(key: '$_prefix$_kTokenSet')
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: トークンセットの削除に失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
@@ -121,13 +142,33 @@ class SecureTokenStore implements TokenStore {
   @override
   void setCodeVerifier(String verifier) {
     _codeVerifier = verifier;
-    unawaited(_storage.write(key: '$_prefix$_kCodeVerifier', value: verifier));
+    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .write(key: '$_prefix$_kCodeVerifier', value: verifier)
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: code_verifier の書き込みに失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
   void clearCodeVerifier() {
     _codeVerifier = null;
-    unawaited(_storage.delete(key: '$_prefix$_kCodeVerifier'));
+    // fire-and-forget でセキュアストレージから削除する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .delete(key: '$_prefix$_kCodeVerifier')
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: code_verifier の削除に失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
@@ -136,13 +177,33 @@ class SecureTokenStore implements TokenStore {
   @override
   void setState(String state) {
     _state = state;
-    unawaited(_storage.write(key: '$_prefix$_kState', value: state));
+    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .write(key: '$_prefix$_kState', value: state)
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: state の書き込みに失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
   void clearState() {
     _state = null;
-    unawaited(_storage.delete(key: '$_prefix$_kState'));
+    // fire-and-forget でセキュアストレージから削除する。失敗時はログ出力（M-30 監査対応）
+    unawaited(_storage
+        .delete(key: '$_prefix$_kState')
+        .catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: state の削除に失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+    }));
   }
 
   @override
@@ -150,11 +211,21 @@ class SecureTokenStore implements TokenStore {
     _tokenSet = null;
     _codeVerifier = null;
     _state = null;
+    // fire-and-forget で全データを一括削除する。失敗時はログ出力（M-30 監査対応）
+    // catchError ハンドラは Future<List<void>> の型に合わせて空リストを返す必要がある
     unawaited(Future.wait([
       _storage.delete(key: '$_prefix$_kTokenSet'),
       _storage.delete(key: '$_prefix$_kCodeVerifier'),
       _storage.delete(key: '$_prefix$_kState'),
-    ]));
+    ]).catchError((Object e, StackTrace st) {
+      developer.log(
+        'SecureTokenStore: 全データの削除に失敗しました',
+        error: e,
+        stackTrace: st,
+        name: 'SecureTokenStore',
+      );
+      return <void>[];
+    }));
   }
 }
 

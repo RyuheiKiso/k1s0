@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+// M-02 監査対応: LIKE/ILIKE ワイルドカードエスケープのため server-common のユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -73,6 +75,8 @@ pub struct UserRow {
     pub keycloak_sub: String,
     pub username: String,
     pub email: String,
+    // MED-01 監査対応: email_verified カラムを DB から取得する
+    pub email_verified: bool,
     pub display_name: String,
     pub status: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -97,7 +101,8 @@ impl From<UserRow> for User {
             first_name,
             last_name,
             enabled,
-            email_verified: true, // DB 管理ユーザーは検証済みとする
+            // MED-01 監査対応: DB の email_verified カラムから実際の検証状態を取得する
+            email_verified: row.email_verified,
             created_at: row.created_at,
             attributes,
         }
@@ -125,7 +130,7 @@ impl UserRepository for UserPostgresRepository {
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
-            SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at
+            SELECT id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             FROM auth.users
             WHERE id = $1
             "#,
@@ -161,16 +166,19 @@ impl UserRepository for UserPostgresRepository {
 
         if let Some(ref s) = search {
             // ILIKE による部分一致検索: username / email / display_name を対象とする
+            // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
+            let escaped = escape_like_pattern(s);
             count_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR email ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR display_name ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(")");
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR email ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR display_name ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\')");
         }
 
+        // H-02 監査対応: enabled フィルタを search ブロックの外に移動し、不正なネストを修正する
         if let Some(en) = enabled {
             // enabled フラグを DB の status 文字列に変換して絞り込む
             let status = if en { "active" } else { "inactive" };
@@ -187,21 +195,24 @@ impl UserRepository for UserPostgresRepository {
 
         // DATA クエリ: QueryBuilder で WHERE 句・ORDER BY・LIMIT・OFFSET を動的に組み立てる
         let mut data_qb = sqlx::QueryBuilder::new(
-            "SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at FROM auth.users WHERE 1=1",
+            "SELECT id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at FROM auth.users WHERE 1=1",
         );
 
         if let Some(ref s) = search {
             // COUNT クエリと同一条件で絞り込む
+            // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
+            let escaped = escape_like_pattern(s);
             data_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR email ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(" OR display_name ILIKE ")
-                .push_bind(format!("%{}%", s))
-                .push(")");
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR email ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\' OR display_name ILIKE ")
+                .push_bind(format!("%{}%", escaped))
+                .push(" ESCAPE '\\\\')");
         }
 
+        // H-02 監査対応: enabled フィルタを search ブロックの外に移動し、不正なネストを修正する
         if let Some(en) = enabled {
             let status = if en { "active" } else { "inactive" };
             data_qb.push(" AND status = ").push_bind(status.to_string());
@@ -259,7 +270,7 @@ impl UserPostgresRepository {
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
             r#"
-            SELECT id, keycloak_sub, username, email, display_name, status, created_at, updated_at
+            SELECT id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             FROM auth.users
             WHERE keycloak_sub = $1
             "#,
@@ -291,7 +302,7 @@ impl UserPostgresRepository {
             r#"
             INSERT INTO auth.users (keycloak_sub, username, email, display_name, status)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, keycloak_sub, username, email, display_name, status, created_at, updated_at
+            RETURNING id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             "#,
         )
         .bind(&keycloak_sub)
@@ -324,7 +335,7 @@ impl UserPostgresRepository {
             UPDATE auth.users
             SET username = $2, email = $3, display_name = $4, status = $5
             WHERE id = $1
-            RETURNING id, keycloak_sub, username, email, display_name, status, created_at, updated_at
+            RETURNING id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             "#,
         )
         .bind(uuid)
@@ -351,11 +362,13 @@ mod tests {
 
     #[test]
     fn test_user_row_to_user_conversion() {
+        // MED-01 監査対応: email_verified フィールドが DB から正しく取得されることを検証する
         let row = UserRow {
             id: Uuid::new_v4(),
             keycloak_sub: "kc-sub-123".to_string(),
             username: "test.user".to_string(),
             email: "test@example.com".to_string(),
+            email_verified: true,
             display_name: "Test User".to_string(),
             status: "active".to_string(),
             created_at: chrono::Utc::now(),
@@ -376,6 +389,25 @@ mod tests {
         );
     }
 
+    /// MED-01 監査対応: email_verified = false の場合に DB 値が正しく反映されることを検証する
+    #[test]
+    fn test_user_row_email_not_verified() {
+        let row = UserRow {
+            id: Uuid::new_v4(),
+            keycloak_sub: "kc-unverified".to_string(),
+            username: "unverified".to_string(),
+            email: "unverified@example.com".to_string(),
+            email_verified: false,
+            display_name: "Unverified User".to_string(),
+            status: "active".to_string(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        };
+
+        let user: User = row.into();
+        assert!(!user.email_verified);
+    }
+
     #[test]
     fn test_user_row_inactive_status() {
         let row = UserRow {
@@ -383,6 +415,7 @@ mod tests {
             keycloak_sub: "kc-inactive".to_string(),
             username: "inactive".to_string(),
             email: "inactive@example.com".to_string(),
+            email_verified: false,
             display_name: "Inactive User".to_string(),
             status: "inactive".to_string(),
             created_at: chrono::Utc::now(),
@@ -400,6 +433,7 @@ mod tests {
             keycloak_sub: "kc-suspended".to_string(),
             username: "suspended".to_string(),
             email: "suspended@example.com".to_string(),
+            email_verified: false,
             display_name: "Suspended User".to_string(),
             status: "suspended".to_string(),
             created_at: chrono::Utc::now(),

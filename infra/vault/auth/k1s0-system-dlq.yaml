@@ -1,3 +1,8 @@
+# L-16 監査対応: この ConfigMap は将来の個別サービスロール分割（ADR-0045）に向けた
+# リファレンス設定として保持する。現在の実運用は infra/terraform/modules/vault/auth.tf の
+# vault_kubernetes_auth_backend_role.system（単一ロール）が権威情報であり、
+# bound_service_account_names に "dlq-manager" が含まれていることで認証が機能している。
+# Phase 5 で個別ロール実装時にこの ConfigMap の内容を Terraform に反映する予定。
 apiVersion: v1
 kind: ConfigMap
 metadata:

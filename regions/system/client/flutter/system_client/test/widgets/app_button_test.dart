@@ -99,9 +99,9 @@ void main() {
 
     testWidgets('onPressed が null の場合はボタンが無効化される', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
-            body: const AppButton(
+            body: AppButton(
               label: '無効',
               onPressed: null,
             ),

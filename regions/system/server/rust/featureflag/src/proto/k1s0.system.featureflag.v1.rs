@@ -39,8 +39,17 @@ pub struct GetFlagResponse {
     #[prost(message, optional, tag = "1")]
     pub flag: ::core::option::Option<FeatureFlag>,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct ListFlagsRequest {}
+/// ListFlagsRequest はフラグ一覧取得リクエスト。
+/// ページネーションにより大量のフラグを効率的に取得できる。
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListFlagsRequest {
+    /// 1ページあたりの取得件数（0 の場合はサーバーデフォルト値を使用）
+    #[prost(int32, tag = "1")]
+    pub page_size: i32,
+    /// ページトークン（前回レスポンスの next_page_token を指定）
+    #[prost(string, tag = "2")]
+    pub page_token: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListFlagsResponse {
     #[prost(message, repeated, tag = "1")]
@@ -124,8 +133,9 @@ pub struct FlagVariant {
 pub struct FlagRule {
     #[prost(string, tag = "1")]
     pub attribute: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub operator: ::prost::alloc::string::String,
+    /// 比較演算子（OPERATOR_EQ / OPERATOR_NE / OPERATOR_CONTAINS / OPERATOR_GT / OPERATOR_LT）
+    #[prost(enumeration = "Operator", tag = "2")]
+    pub operator: i32,
     #[prost(string, tag = "3")]
     pub value: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
@@ -156,6 +166,46 @@ pub struct WatchFeatureFlagResponse {
     /// 変更操作の種別（change_type の enum 版）。
     #[prost(enumeration = "super::super::common::v1::ChangeType", tag = "5")]
     pub change_type_enum: i32,
+}
+/// Operator はフラグルールの比較演算子を表す enum。
+/// string 型の代わりに使用することで型安全性と一貫性を確保する。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Operator {
+    Unspecified = 0,
+    Eq = 1,
+    Ne = 2,
+    Contains = 3,
+    Gt = 4,
+    Lt = 5,
+}
+impl Operator {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "OPERATOR_UNSPECIFIED",
+            Self::Eq => "OPERATOR_EQ",
+            Self::Ne => "OPERATOR_NE",
+            Self::Contains => "OPERATOR_CONTAINS",
+            Self::Gt => "OPERATOR_GT",
+            Self::Lt => "OPERATOR_LT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "OPERATOR_UNSPECIFIED" => Some(Self::Unspecified),
+            "OPERATOR_EQ" => Some(Self::Eq),
+            "OPERATOR_NE" => Some(Self::Ne),
+            "OPERATOR_CONTAINS" => Some(Self::Contains),
+            "OPERATOR_GT" => Some(Self::Gt),
+            "OPERATOR_LT" => Some(Self::Lt),
+            _ => None,
+        }
+    }
 }
 /// Generated server implementations.
 pub mod feature_flag_service_server {

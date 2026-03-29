@@ -105,5 +105,13 @@ pub(crate) fn build_template_context(
         builder = builder.with_redis();
     }
 
-    Some(builder.build())
+    // H-13 監査対応: deprecated な build() の代わりに try_build() を使用して panic を防ぐ。
+    // バリデーションエラーが発生した場合は None を返し、呼び出し元でインライン生成にフォールバックする。
+    match builder.try_build() {
+        Ok(ctx) => Some(ctx),
+        Err(e) => {
+            eprintln!("テンプレートコンテキストのビルドに失敗しました: {e}");
+            None
+        }
+    }
 }

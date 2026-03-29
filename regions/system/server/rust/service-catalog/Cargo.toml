@@ -3,7 +3,8 @@ name = "k1s0-service-catalog"
 version = "0.1.0"
 # edition統一完了: 2021に変更（プロジェクト全体の統一方針に従う）
 edition = "2021"
-rust-version = "1.56"
+# ワークスペース全体の最小Rustバージョン要件（1.93）に統一する（H-09 監査対応）
+rust-version = "1.93"
 
 [lib]
 name = "k1s0_service_catalog"

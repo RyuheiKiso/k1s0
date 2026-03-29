@@ -26,31 +26,29 @@ pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     }
 }
 
-/// Tier の階層レベルを返す。
-/// system(0) > business(1) > service(2) の順で上位 Tier ほど小さい値を返す。
-fn tier_level(tier: &str) -> Option<u8> {
-    match tier.to_ascii_lowercase().as_str() {
-        "system" => Some(0),
-        "business" => Some(1),
-        "service" => Some(2),
-        _ => None,
-    }
+/// LOW-13 監査対応: 設定ファイルから注入された Tier 階層リストを使い、指定 Tier の階層レベルを返す。
+/// インデックスが小さいほど上位（高権限）の Tier であり、system=0 > business=1 > service=2 となる。
+/// ハードコードを排除し、新 Tier 追加時は設定変更のみで対応可能とする。
+fn tier_level(tiers: &[String], tier: &str) -> Option<u8> {
+    tiers
+        .iter()
+        .position(|t| t.eq_ignore_ascii_case(tier))
+        .map(|i| i as u8)
 }
 
-/// tier_access 配列から、required_tier へのアクセスが許可されているかを判定する。
+/// LOW-13 監査対応: 設定駆動の Tier 階層を用いて tier_access から required_tier へのアクセス可否を判定する。
 ///
-/// Tier 階層ルール:
-/// - system tier を持つユーザーは全 Tier にアクセス可能
-/// - business tier を持つユーザーは business と service にアクセス可能
-/// - service tier を持つユーザーは service のみにアクセス可能
-fn has_tier_access(tier_access: &[String], required_tier: &str) -> bool {
-    let required_level = match tier_level(required_tier) {
+/// Tier 階層ルール（tiers リストの順序に従う）:
+/// - 上位 Tier（インデックスが小さい）を持つユーザーは、それ以下の全 Tier にアクセス可能
+/// - 設定ファイルの tier_hierarchy.tiers に存在しない Tier は拒否される
+fn has_tier_access(tiers: &[String], tier_access: &[String], required_tier: &str) -> bool {
+    let required_level = match tier_level(tiers, required_tier) {
         Some(level) => level,
         None => return false,
     };
 
     tier_access.iter().any(|user_tier| {
-        tier_level(user_tier)
+        tier_level(tiers, user_tier)
             .map(|user_level| user_level <= required_level)
             .unwrap_or(false)
     })
@@ -76,7 +74,9 @@ pub async fn auth_middleware(
 
     match state.validate_token_uc.execute(&token).await {
         Ok(claims) => {
-            if !has_tier_access(&claims.tier_access, "system") {
+            // LOW-13 監査対応: ハードコードされた ["system","business","service"] の代わりに
+            // AppState 経由で設定ファイルから注入された tier_hierarchy を使用する。
+            if !has_tier_access(&state.tier_hierarchy, &claims.tier_access, "system") {
                 return error_response(
                     StatusCode::FORBIDDEN,
                     "SYS_AUTH_TIER_FORBIDDEN",
@@ -278,7 +278,8 @@ mod tests {
         let valid_claims = Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid".to_string(),
@@ -360,7 +361,8 @@ mod tests {
         let claims = Claims {
             sub: "user-uuid-1234".to_string(),
             iss: "https://auth.k1s0.internal.example.com/realms/k1s0".to_string(),
-            aud: "k1s0-api".to_string(),
+            // aud を Vec<String> で設定する（複数 audience 対応）
+            aud: vec!["k1s0-api".to_string()],
             exp: chrono::Utc::now().timestamp() + 3600,
             iat: chrono::Utc::now().timestamp(),
             jti: "token-uuid".to_string(),

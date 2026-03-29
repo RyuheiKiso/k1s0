@@ -89,6 +89,9 @@ message ListSecretsResponse {
 message ListAuditLogsRequest {
   // ページネーションパラメータを共通型に統一
   k1s0.system.common.v1.Pagination pagination = 3;
+  // LOW-12 監査対応: keyset ページネーション用カーソル（前ページの最後のアイテムの UUID 文字列）。
+  // 省略または空文字の場合は先頭ページを返す。
+  string after_cursor = 4;
   // フィールド番号 1, 2 は旧 offset, limit（Pagination に統一済み）
   reserved 1, 2;
   reserved "offset", "limit";
@@ -98,6 +101,8 @@ message ListAuditLogsResponse {
   repeated AuditLogEntry logs = 1;
   // ページネーション結果
   k1s0.system.common.v1.PaginationResult pagination = 2;
+  // LOW-12 監査対応: 次ページカーソル（最後のアイテムの UUID 文字列）。空文字なら最終ページ。
+  string next_cursor = 3;
 }
 
 message AuditLogEntry {

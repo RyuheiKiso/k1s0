@@ -12,10 +12,12 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- event_monitor スキーマの作成（マイグレーション実行前にスキーマが存在する必要がある）
 CREATE SCHEMA IF NOT EXISTS event_monitor;
 
--- k1s0 アプリユーザーへのスキーマ・テーブル権限付与
-GRANT USAGE ON SCHEMA event_monitor TO k1s0;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA event_monitor TO k1s0;
-GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA event_monitor TO k1s0;
+-- k1s0_event_monitor_rw 専用ロールへのスキーマ・テーブル権限付与（C-08 監査対応: 最小権限の原則）
+GRANT USAGE ON SCHEMA event_monitor TO k1s0_event_monitor_rw;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA event_monitor TO k1s0_event_monitor_rw;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA event_monitor TO k1s0_event_monitor_rw;
 -- 将来追加されるテーブルにも自動で権限を付与する
 ALTER DEFAULT PRIVILEGES IN SCHEMA event_monitor
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_event_monitor_rw;
+-- マイグレーション用ロールにもスキーマ操作権限を付与する
+GRANT ALL ON SCHEMA event_monitor TO k1s0_migration;

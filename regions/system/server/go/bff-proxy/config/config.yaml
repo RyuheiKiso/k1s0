@@ -57,8 +57,24 @@ csrf:
 cors:
   enabled: true
   allow_origins:
+    # L-03 監査対応: 開発時に使用する一般的なポートを列挙する。
+    # localhost:3000 - React (create-react-app)
+    # localhost:5173 - Vite (React/Vue/Svelte)
+    # localhost:4200 - Angular
+    # localhost:8080 - BFF Proxy ローカル直接アクセス
+    # localhost:3001 - Flutter Web (flutter run --web-port 3001)
+    # 本番環境ではこのリストを実際のドメインに絞ること。
     - "http://localhost:3000"
     - "http://localhost:5173"
+    - "http://localhost:4200"
+    - "http://localhost:3001"
+  # H-13 監査対応: Access-Control-Allow-Credentials: true を返すパスプレフィックス。
+  # 認証が不要な /healthz や /metrics には credentials を付与しない。
+  # /auth/ - ログイン・コールバック・ログアウト・リフレッシュ等の認証エンドポイント
+  # /api/  - 認証済みユーザー向けの API プロキシエンドポイント
+  credentials_paths:
+    - "/auth/"
+    - "/api/"
   max_age_secs: 600
 
 # レート制限設定（H-2対応）: IP ベースのトークンバケットで大量リクエストを遮断する

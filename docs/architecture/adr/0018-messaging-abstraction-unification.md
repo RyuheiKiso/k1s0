@@ -70,3 +70,24 @@ k1s0 モノリポには現在、同種のメッセージング抽象を提供す
 - [x] building-blocks, event-bus, bb-pubsub を DEPRECATED マーキング（各 `Cargo.toml` の `description` フィールドに明記）
 - [ ] 既存サービスの building-blocks/event-bus 依存を messaging に移行
 - [ ] building-blocks, event-bus, bb-pubsub ライブラリのアーカイブ
+
+## 移行タイムライン（HIGH-DOC-02 / MEDIUM-DOC-02 監査対応）
+
+### Service 層 Outbox 移行状況
+
+| サービス | 現状 | 移行先 | 状態 |
+|---------|------|--------|------|
+| task-server | 独自 OutboxEventPoller 実装 | `k1s0-outbox::OutboxEventPoller` | 未着手 |
+| board-server | 独自 OutboxEventPoller 実装 | `k1s0-outbox::OutboxEventPoller` | 未着手 |
+| activity-server | 独自 OutboxEventPoller 実装 | `k1s0-outbox::OutboxEventPoller` | 未着手 |
+
+### Deprecated ライブラリ移行状況
+
+| ライブラリ | 現状 | 移行先 | 状態 |
+|-----------|------|--------|------|
+| `building-blocks` | deprecated | `messaging` | 部分移行中 |
+| `pubsub` | deprecated | `messaging` | 部分移行中 |
+| `event-bus` | deprecated | `messaging` | 部分移行中 |
+
+各サービスの Cargo.toml に `# TODO: k1s0-outbox::OutboxEventPoller に移行する（ADR-0018 参照、MEDIUM-CODE-01 監査対応）` コメントが残存している。
+移行完了の基準: `k1s0-outbox` クレートの全機能が本 ADR の要件を満たし、全コンシューマーが移行済みであること。

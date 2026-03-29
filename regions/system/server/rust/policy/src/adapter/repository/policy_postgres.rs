@@ -83,6 +83,10 @@ impl PolicyRepository for PolicyPostgresRepository {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
 
+        // 動的 WHERE 句を組み立てる。
+        // セキュリティ注記（M-05 監査対応）: format!() で埋め込むのはハードコードされたカラム名定数のみ。
+        // ユーザー入力（bundle_id 等）は全て sqlx のバインドパラメータ（$N）経由で渡すため
+        // SQL インジェクションのリスクはない。
         let mut conditions = Vec::new();
         let mut bind_index = 1u32;
 

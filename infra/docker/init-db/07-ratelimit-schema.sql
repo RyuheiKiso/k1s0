@@ -13,7 +13,7 @@ CREATE SCHEMA IF NOT EXISTS ratelimit;
 
 -- k1s0ユーザーへのアクセス権限付与（H-17 監査対応）
 -- ratelimit スキーマへの DML 権限を k1s0_ratelimit_rw ロールに付与する
--- 注意: k1s0_ratelimit_rw ロールは 16-roles.sh に未定義のため、追加が必要（別担当エージェントが対応）
+-- k1s0_ratelimit_rw ロールは 01z-create-roles.sh で作成される
 GRANT USAGE ON SCHEMA ratelimit TO k1s0_ratelimit_rw;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ratelimit TO k1s0_ratelimit_rw;
 ALTER DEFAULT PRIVILEGES IN SCHEMA ratelimit GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_ratelimit_rw;

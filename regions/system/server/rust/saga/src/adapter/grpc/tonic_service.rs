@@ -162,12 +162,6 @@ impl SagaServiceTonic {
     pub fn new(inner: Arc<SagaGrpcService>) -> Self {
         Self { inner }
     }
-
-    /// 内部サービスへの参照を返す。
-    #[allow(dead_code)]
-    pub fn inner(&self) -> &SagaGrpcService {
-        &self.inner
-    }
 }
 
 #[async_trait::async_trait]

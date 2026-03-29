@@ -18,8 +18,10 @@ use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
 // ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
+// H-02 監査対応: AuditEventType/AuditResult は GraphQL スキーマの enum 定義に必要だが
+// graphql_handler.rs 内では直接参照されないためインポートを削除する
 use crate::domain::model::{
-    ApproveTaskPayload, AuditEventType, AuditLogConnection, AuditResult, CancelInstancePayload, CatalogService,
+    ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
     CreateSessionPayload, CreateTemplatePayload, CreateTenantPayload, CreateWorkflowPayload,
     DeleteChannelPayload, DeleteJobPayload, DeleteSecretPayload, DeleteServicePayload,
@@ -61,17 +63,50 @@ fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::E
     async_graphql::Error::new(message.into()).extend_with(|_, e| e.set("code", code))
 }
 
+/// gRPC Status コードから GraphQL エラーコードを分類する（型安全版）。
+/// M-15 監査対応: tonic::Status を直接受け取りステータスコードで分類する。
+/// usecase 層が tonic::Status を直接返す箇所ではこちらを使用すること。
+// H-02 監査対応: classify_domain_error と対になる関数。tonic::Status を直接受け取る usecase で使用予定
+#[allow(dead_code)]
+fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
+    use crate::domain::error::GrpcErrorCategory;
+    GrpcErrorCategory::from_tonic_code(status.code()).as_graphql_code()
+}
+
+/// エラーメッセージから GraphQL エラーコードを分類するフォールバック実装。
+/// M-15 監査対応: tonic::Status のエラーコード文字列表現（"status: Unauthenticated, ..."）を
+/// 考慮し、GrpcErrorCategory の型安全な分類を文字列解析の前段として適用する。
+/// usecase 層が anyhow::Error に変換済みの場合に使用する。
 fn classify_domain_error(message: &str) -> &'static str {
     let lower = message.to_ascii_lowercase();
-    if lower.contains("validation")
+    // tonic::Status の to_string() 表現: "status: Unauthenticated, message: ..."
+    if lower.contains("status: unauthenticated")
+        || lower.contains("unauthorized")
+        || lower.contains("unauthenticated")
+        || lower.contains("token expired")
+        || lower.contains("認証")
+    {
+        return "UNAUTHENTICATED";
+    }
+    // tonic::Status の to_string() 表現: "status: PermissionDenied, ..."
+    if lower.contains("status: permissiondenied")
+        || lower.contains("forbidden")
+        || lower.contains("permission denied")
+        || lower.contains("access denied")
+        || lower.contains("権限")
+    {
+        return CODE_FORBIDDEN;
+    }
+    // tonic::Status の to_string() 表現: "status: InvalidArgument, ..."
+    if lower.contains("status: invalidargument")
+        || lower.contains("status: failedprecondition")
+        || lower.contains("validation")
         || lower.contains("invalid")
         || lower.contains("required")
-        || lower.contains("unknown")
     {
-        CODE_VALIDATION
-    } else {
-        CODE_BACKEND
+        return CODE_VALIDATION;
     }
+    CODE_BACKEND
 }
 
 /// k1s0_server_common の RBAC ロジックを再利用する（P2-24）。

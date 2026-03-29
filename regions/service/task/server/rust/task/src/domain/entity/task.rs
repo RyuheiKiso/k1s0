@@ -195,6 +195,7 @@ pub struct CreateChecklistItem {
 
 /// タスク更新 DTO（REST PUT /tasks/{id} 専用）
 /// 未設定フィールドは変更しない（部分更新）。
+/// expected_version を含めることで楽観ロックによる競合検出を行う。
 /// validator クレートを使いスキーマレベルのバリデーションを定義する（SM-3 監査対応）
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UpdateTask {
@@ -210,6 +211,8 @@ pub struct UpdateTask {
     // ラベル一覧を指定した場合は全置換する（None の場合は変更しない）、最大20件
     #[validate(length(max = 20, message = "ラベルは最大20件まで指定できます"))]
     pub labels: Option<Vec<String>>,
+    // 楽観ロック用バージョン番号（クライアントが読み取った時点のバージョンを指定する）
+    pub expected_version: i32,
 }
 
 /// チェックリスト項目追加 DTO（REST POST /tasks/{id}/checklist 専用）

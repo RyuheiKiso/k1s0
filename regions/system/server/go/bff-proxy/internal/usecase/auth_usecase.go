@@ -83,6 +83,9 @@ type CallbackInput struct {
 	PostAuthRedirect string
 	// SessionTTL はセッションの有効期間。
 	SessionTTL time.Duration
+	// AbsoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
+	// スライディングウィンドウで TTL が延長されても、この期間を超えたセッションは強制無効化される。
+	AbsoluteMaxTTL time.Duration
 }
 
 // CallbackOutput は Callback ユースケースの出力。
@@ -295,14 +298,21 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 	}
 
 	// セッションデータを構築してストアに保存する
+	now := time.Now()
 	sessData := &session.SessionData{
-		AccessToken:  tokenResp.AccessToken,
-		RefreshToken: tokenResp.RefreshToken,
-		IDToken:      tokenResp.IDToken,
-		ExpiresAt:    time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
-		CSRFToken:    csrfToken,
-		Subject:      subject,
-		Roles:        roles,
+		AccessToken:        tokenResp.AccessToken,
+		RefreshToken:       tokenResp.RefreshToken,
+		IDToken:            tokenResp.IDToken,
+		ExpiresAt:          now.Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
+		CSRFToken:          csrfToken,
+		CSRFTokenCreatedAt: now.Unix(), // H-12 監査対応: CSRF トークンの TTL 検証用に生成時刻を記録する
+		Subject:            subject,
+		Roles:              roles,
+	}
+	// M-17 監査対応: セッションの絶対有効期限を設定する。
+	// スライディングウィンドウで TTL が延長されても、この期限を超えたセッションは無効化される。
+	if input.AbsoluteMaxTTL > 0 {
+		sessData.AbsoluteExpiry = now.Add(input.AbsoluteMaxTTL).Unix()
 	}
 
 	sessionID, err := uc.sessionStore.Create(ctx, sessData, input.SessionTTL)

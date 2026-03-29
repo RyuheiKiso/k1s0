@@ -79,6 +79,12 @@ pub async fn run() -> anyhow::Result<()> {
             .await?,
         );
         info!("connected to PostgreSQL database");
+        // 起動時に workflow-db マイグレーションを適用する（C-01 対応）
+        crate::MIGRATOR
+            .run(pool.as_ref())
+            .await
+            .map_err(|e| anyhow::anyhow!("workflow-db migration failed: {}", e))?;
+        tracing::info!("workflow-db migrations applied successfully");
 
         (
             Arc::new(crate::adapter::repository::DefinitionPostgresRepository::new(pool.clone())),
@@ -139,6 +145,10 @@ pub async fn run() -> anyhow::Result<()> {
     if cfg.scheduler.is_some() {
         register_overdue_check_job(&cfg).await?;
     }
+
+    // db_pool_for_health は /healthz エンドポイントの DB 接続確認に使用する（C-02 対応）
+    // workflow_pool は後段で所有権が移動するため、ここで先に PgPool を clone しておく
+    let db_pool_for_health = workflow_pool.as_ref().map(|p| p.as_ref().clone());
 
     let create_wf_uc = Arc::new(crate::usecase::CreateWorkflowUseCase::new(def_repo.clone()));
     let update_wf_uc = Arc::new(crate::usecase::UpdateWorkflowUseCase::new(def_repo.clone()));
@@ -264,6 +274,7 @@ pub async fn run() -> anyhow::Result<()> {
         check_overdue_tasks_uc: check_overdue_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        db_pool: db_pool_for_health,
     };
     if let Some(auth_st) = auth_state {
         handler_state = handler_state.with_auth(auth_st);

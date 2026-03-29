@@ -20,7 +20,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE SCHEMA IF NOT EXISTS tenant;
 
 -- k1s0_tenant_rw ロールへの権限付与（H-17 監査対応）
--- k1s0_tenant_rw ロールは 16-roles.sh で作成される
+-- k1s0_tenant_rw ロールは 01z-create-roles.sh で作成される
 -- tenant スキーマの利用権限を付与する
 GRANT USAGE ON SCHEMA tenant TO k1s0_tenant_rw;
 -- 全テーブルへの DML 権限を付与する

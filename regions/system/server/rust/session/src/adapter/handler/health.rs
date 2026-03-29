@@ -1,4 +1,5 @@
 use axum::extract::State;
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 
@@ -6,9 +7,24 @@ use crate::adapter::handler::session_handler::AppState;
 use crate::error::SessionError;
 use crate::usecase::get_session::GetSessionInput;
 
-/// ヘルスチェックエンドポイント: サーバーが起動しているかを返す
-pub async fn healthz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ok", "service": "session"}))
+/// ヘルスチェックエンドポイント: DB 接続確認を行い、障害時は 503 を返す
+///
+/// INFRA-03 監査対応: metadata_repo.health_check() で PostgreSQL 接続を確認する。
+/// Noop リポジトリ（in-memory 動作時）は常に Ok を返すため影響なし。
+pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+    // INFRA-03 監査対応: DB 接続確認を追加し、DB 障害時は 503 を返す
+    match state.metadata_repo.health_check().await {
+        Ok(_) => {}
+        Err(e) => {
+            tracing::error!(error = %e, "DB ヘルスチェックに失敗しました");
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({"status": "error", "service": "session", "detail": "database unavailable"})),
+            )
+                .into_response();
+        }
+    }
+    Json(serde_json::json!({"status": "ok", "service": "session"})).into_response()
 }
 
 /// レディネスチェックエンドポイント: 各バックエンドの疎通確認結果を返す。
@@ -152,7 +168,10 @@ mod tests {
 
     #[tokio::test]
     async fn healthz_check() {
-        let app = Router::new().route("/healthz", get(super::healthz));
+        // INFRA-03 対応: healthz が State を受け取るようになったため with_state を追加
+        let app = Router::new()
+            .route("/healthz", get(super::healthz))
+            .with_state(test_state());
         let response = app
             .oneshot(
                 Request::builder()

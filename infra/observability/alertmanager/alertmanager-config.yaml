@@ -60,9 +60,19 @@ receivers:
 
   # PagerDuty 受信者: 深夜帯の critical アラートを見逃さないためのエスカレーション通知チャネル（H-03 対応）
   # routing_key は Helm values の alertmanager.pagerdutyRoutingKey から注入する
+  #
+  # M-24 監査対応: routing_key の空文字・未設定を防止するため、以下を必ず実施すること:
+  #   1. Helm install/upgrade 時に必ず --set alertmanager.pagerdutyRoutingKey=<KEY> を指定する
+  #   2. CI/CD パイプラインでは PAGERDUTY_ROUTING_KEY 環境変数を Vault から取得して注入すること
+  #   3. Helm values ファイル（values-prod.yaml 等）に pagerdutyRoutingKey の required 検証を追加すること
+  #      例: {{ required "alertmanager.pagerdutyRoutingKey は必須です" .Values.alertmanager.pagerdutyRoutingKey }}
+  #   4. routing_key が空文字の場合、PagerDuty API は 400 Bad Request を返し通知が届かないため
+  #      デプロイ前チェックスクリプトで非空文字を検証すること
   - name: pagerduty-critical
     pagerduty_configs:
-      - routing_key: '{{ .Values.alertmanager.pagerdutyRoutingKey }}'
+      # routing_key が空文字または未設定の場合は PagerDuty 通知が無効化される（M-24 監査対応）
+      # Helm values の alertmanager.pagerdutyRoutingKey に 32文字の PagerDuty Integration Key を設定すること
+      - routing_key: '{{ required "alertmanager.pagerdutyRoutingKey は必須です（空文字不可）" .Values.alertmanager.pagerdutyRoutingKey }}'
         severity: critical
         description: '{{ template "pagerduty.default.description" . }}'
 

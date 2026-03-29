@@ -79,8 +79,9 @@ impl GenerateUploadUrlUseCase {
         }
 
         let file_id = format!("file_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
-        // パストラバーサル検証を含むストレージキー生成。不正なファイル名の場合は Validation エラーを返す
-        let storage_key = FileMetadata::generate_storage_key(&input.tenant_id, &input.filename)
+        // パストラバーサル検証を含むストレージパス生成。不正なファイル名の場合は Validation エラーを返す
+        // C-01 監査対応: generate_storage_key → generate_storage_path にリネーム
+        let storage_path = FileMetadata::generate_storage_path(&input.tenant_id, &input.filename)
             .map_err(|e| GenerateUploadUrlError::Validation(e.to_string()))?;
 
         let file = FileMetadata::new(
@@ -88,10 +89,9 @@ impl GenerateUploadUrlUseCase {
             input.filename.clone(),
             input.size_bytes,
             input.content_type.clone(),
-            input.tenant_id.clone(),
             input.uploaded_by.clone(),
             input.tags.clone(),
-            storage_key.clone(),
+            storage_path.clone(),
         );
 
         self.metadata_repo
@@ -101,7 +101,7 @@ impl GenerateUploadUrlUseCase {
 
         let upload_url = self
             .storage_repo
-            .generate_upload_url(&storage_key, &input.content_type, input.expires_in_seconds)
+            .generate_upload_url(&storage_path, &input.content_type, input.expires_in_seconds)
             .await
             .map_err(|e| GenerateUploadUrlError::Internal(e.to_string()))?;
 

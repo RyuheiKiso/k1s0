@@ -50,29 +50,35 @@ type AuthHandler struct {
 	// cookieDomain は発行する Cookie の Domain 属性。空文字の場合はブラウザがオリジンから自動設定する。
 	cookieDomain string
 	logger       *slog.Logger
+	// absoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
+	// スライディングウィンドウで TTL が延長されても、この期間を超えたセッションは無効化される。
+	absoluteMaxTTL time.Duration
 }
 
 // NewAuthHandler は AuthHandler を生成する。
 // oauthClient と sessionStore を受け取り、AuthUseCase を内部で構築する。
 // exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化ストアで、
 // session.RedisStore または session.EncryptedStore を渡す（H-5 監査対応）。
+// absoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
 func NewAuthHandler(
 	oauthClient OAuthClient,
 	sessionStore port.SessionStore,
 	exchangeCodeStore port.ExchangeCodeStore,
 	sessionTTL time.Duration,
+	absoluteMaxTTL time.Duration,
 	postLogoutURI string,
 	secureCookie bool,
 	cookieDomain string,
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
-		authUseCase:   usecase.NewAuthUseCase(oauthClient, sessionStore, exchangeCodeStore),
-		sessionTTL:    sessionTTL,
-		postLogoutURI: postLogoutURI,
-		secureCookie:  secureCookie,
-		cookieDomain:  cookieDomain,
-		logger:        logger,
+		authUseCase:    usecase.NewAuthUseCase(oauthClient, sessionStore, exchangeCodeStore),
+		sessionTTL:     sessionTTL,
+		absoluteMaxTTL: absoluteMaxTTL,
+		postLogoutURI:  postLogoutURI,
+		secureCookie:   secureCookie,
+		cookieDomain:   cookieDomain,
+		logger:         logger,
 	}
 }
 
@@ -148,6 +154,7 @@ func (h *AuthHandler) Callback(c *gin.Context) {
 		CodeVerifier:      verifier,
 		PostAuthRedirect:  postAuthRedirect,
 		SessionTTL:        h.sessionTTL,
+		AbsoluteMaxTTL:    h.absoluteMaxTTL, // M-17 監査対応: セッション絶対有効期限
 	})
 	if err != nil {
 		usecaseErr, ok := err.(*usecase.AuthUseCaseError)

@@ -72,7 +72,7 @@
         </mxCell>
 
         <!-- session -->
-        <mxCell id="session" value="&lt;b&gt;session&lt;/b&gt;&lt;br&gt;:8106 / :50065&lt;br&gt;セッション管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+        <mxCell id="session" value="&lt;b&gt;session&lt;/b&gt;&lt;br&gt;:8106 / :50205&lt;br&gt;セッション管理" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
           <mxGeometry x="420" y="230" width="140" height="55" as="geometry"/>
         </mxCell>
 
@@ -97,7 +97,7 @@
         </mxCell>
 
         <!-- navigation -->
-        <mxCell id="navigation" value="&lt;b&gt;navigation&lt;/b&gt;&lt;br&gt;:8099 / :50062&lt;br&gt;ナビゲーション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
+        <mxCell id="navigation" value="&lt;b&gt;navigation&lt;/b&gt;&lt;br&gt;:8099 / :50202&lt;br&gt;ナビゲーション" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#B39DDB;strokeColor=#9673A6;fontSize=10;fontColor=#FFFFFF;" vertex="1" parent="1">
           <mxGeometry x="1220" y="230" width="130" height="55" as="geometry"/>
         </mxCell>
 

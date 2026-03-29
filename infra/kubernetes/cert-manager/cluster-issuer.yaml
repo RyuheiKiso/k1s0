@@ -16,8 +16,10 @@ spec:
   isCA: true
   commonName: k1s0-internal-ca
   secretName: k1s0-ca-secret
-  # 5 years（L-2 対応: セキュリティベストプラクティスに従い 10 年から 5 年に短縮）
-  duration: 43800h
+  # 3 years（LOW-5 対応: セキュリティベストプラクティスに従い 5 年から 3 年に短縮）
+  # 前回の監査対応（L-2）で 10 年 → 5 年に短縮したが、今回の外部監査（LOW-5）で
+  # ≤3 年への短縮が指摘された。26280h = 3 年 = 365 × 24 × 3
+  duration: 26280h
   renewBefore: 8760h      # Renew 1 year before expiry
   privateKey:
     algorithm: ECDSA

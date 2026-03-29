@@ -60,6 +60,17 @@ pub async fn run() -> anyhow::Result<()> {
 
     // Config
 
+    // M-09 監査対応: API_KEY_PEPPER の起動時必須チェック。
+    // 本番環境では API キーのハッシュ化に PEPPER が必須であり、未設定での起動を拒否する。
+    // 開発環境では警告ログを出力して継続を許可する。
+    if std::env::var("API_KEY_PEPPER").is_err() {
+        let env = cfg.app.environment.as_str();
+        if env != "development" && env != "dev" && env != "local" {
+            anyhow::bail!("API_KEY_PEPPER が設定されていません。本番環境では必須です。");
+        }
+        tracing::warn!("API_KEY_PEPPER が未設定です。開発環境のみ許容されます。");
+    }
+
     info!(
         app_name = %cfg.app.name,
         version = %cfg.app.version,
@@ -99,11 +110,25 @@ pub async fn run() -> anyhow::Result<()> {
         info!("database connection pool established");
         Some(pool)
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
+        // MED-5 監査対応: DATABASE_URL フォールバック時にも config の pool 設定を参照する。
+        // database セクションが設定されていれば max_open_conns / max_idle_conns / conn_max_lifetime を適用し、
+        // 未設定の場合はデフォルト値（max:25, min:5, lifetime:300s）を使用する。
+        let (max_conns, min_conns, lifetime) = if let Some(ref db_config) = cfg.database {
+            let lt = parse_pool_duration(&db_config.conn_max_lifetime)
+                .unwrap_or_else(|| std::time::Duration::from_secs(300));
+            (
+                db_config.max_open_conns,
+                db_config.max_idle_conns.min(db_config.max_open_conns),
+                lt,
+            )
+        } else {
+            (25, 5, std::time::Duration::from_secs(300))
+        };
         let pool = sqlx::postgres::PgPoolOptions::new()
-            .max_connections(25)
-            .min_connections(5)
-            .idle_timeout(Some(std::time::Duration::from_secs(300)))
-            .max_lifetime(Some(std::time::Duration::from_secs(300)))
+            .max_connections(max_conns)
+            .min_connections(min_conns)
+            .idle_timeout(Some(lifetime))
+            .max_lifetime(Some(lifetime))
             .connect(&url)
             .await?;
         info!("database connection pool established from DATABASE_URL");
@@ -144,8 +169,11 @@ pub async fn run() -> anyhow::Result<()> {
     // Metrics (shared across layers and repositories)
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-auth-server"));
 
-    // User cache (max 5000 entries, TTL 300 seconds)
-    let user_cache = Arc::new(UserCache::new(5000, 300));
+    // L-15 監査対応: ユーザーキャッシュのパラメータを設定ファイルから読み込む
+    let user_cache = Arc::new(UserCache::new(
+        cfg.cache.user_cache_max_entries as u64,
+        cfg.cache.user_cache_ttl_secs,
+    ));
 
     // User repository (PostgreSQL > Keycloak > Stub)
     let keycloak_config = cfg.keycloak.clone();
@@ -298,6 +326,11 @@ pub async fn run() -> anyhow::Result<()> {
     state.permission_cache_refresh_on_miss = cfg.permission_cache.refresh_on_miss;
     state.check_permission_uc = check_permission_uc.clone();
     state.role_permission_table = role_permission_table;
+    // LOW-13 監査対応: Tier 階層を設定ファイルから注入する（ハードコード解消）。
+    // tier_hierarchy.tiers が空の場合はデフォルト値 ["system","business","service"] を維持する。
+    if !cfg.tier_hierarchy.tiers.is_empty() {
+        state.tier_hierarchy = cfg.tier_hierarchy.tiers.clone();
+    }
 
     let auth_grpc_svc = Arc::new(AuthGrpcService::new(
         validate_token_uc,

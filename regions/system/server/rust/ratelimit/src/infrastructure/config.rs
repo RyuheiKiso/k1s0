@@ -117,8 +117,9 @@ impl Default for RatelimitConfig {
     }
 }
 
+/// デフォルトは fail-closed（ADR-0048）。Redis 障害時もレートリミットを維持しセキュリティを確保する。
 fn default_fail_open() -> bool {
-    true
+    false
 }
 
 fn default_limit() -> u32 {
@@ -249,6 +250,7 @@ ratelimit:
         assert_eq!(redis.url, "redis://localhost:6379");
         assert_eq!(redis.pool_size, 4);
         assert_eq!(redis.timeout_ms, 2000);
+        // YAML で明示的に fail_open: true を指定した場合は true になることを確認する
         assert!(cfg.ratelimit.fail_open);
     }
 
@@ -264,7 +266,8 @@ server:
         assert_eq!(cfg.app.name, "ratelimit-server");
         assert!(cfg.database.is_none());
         assert!(cfg.redis.is_none());
-        assert!(cfg.ratelimit.fail_open);
+        // デフォルトは fail-closed（ADR-0048）。YAML 未指定時は false になることを確認する。
+        assert!(!cfg.ratelimit.fail_open);
         assert_eq!(cfg.ratelimit.default_limit, 100);
         assert_eq!(cfg.ratelimit.default_window_seconds, 60);
     }

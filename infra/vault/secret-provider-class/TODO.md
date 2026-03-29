@@ -1,0 +1,73 @@
+# SecretProviderClass 未作成サービス一覧
+
+HIGH-13 監査対応: 残り2サービス（ai-agent, ai-gateway）は監査対象外のため保留。
+本番稼働前に必要に応じて作成すること。
+
+## 対応済み（25サービス）
+
+| サービス | ファイル | 対応日 |
+|---------|---------|--------|
+| auth | auth-secrets.yaml | 2026-03-22 |
+| config | config-secrets.yaml | 2026-03-22 |
+| dlq-manager | dlq-manager-secrets.yaml | 2026-03-22 |
+| saga | saga-secrets.yaml | 2026-03-22 |
+| notification | notification-secrets.yaml | 2026-03-29 |
+| tenant | tenant-secrets.yaml | 2026-03-29 |
+| featureflag | featureflag-secrets.yaml | 2026-03-29 |
+| session | session-secrets.yaml | 2026-03-29 |
+| workflow | workflow-secrets.yaml | 2026-03-29 |
+| scheduler | scheduler-secrets.yaml | 2026-03-29 |
+| bff-proxy | bff-proxy-secrets.yaml | 2026-03-29 |
+| graphql-gateway | graphql-gateway-secrets.yaml | 2026-03-29 |
+| api-registry | api-registry-secrets.yaml | 2026-03-29 |
+| app-registry | app-registry-secrets.yaml | 2026-03-29 |
+| event-monitor | event-monitor-secrets.yaml | 2026-03-29 |
+| event-store | event-store-secrets.yaml | 2026-03-29 |
+| file | file-secrets.yaml | 2026-03-29 |
+| master-maintenance | master-maintenance-secrets.yaml | 2026-03-29 |
+| navigation | navigation-secrets.yaml | 2026-03-29 |
+| policy | policy-secrets.yaml | 2026-03-29 |
+| quota | quota-secrets.yaml | 2026-03-29 |
+| ratelimit | ratelimit-secrets.yaml | 2026-03-29 |
+| rule-engine | rule-engine-secrets.yaml | 2026-03-29 |
+| search | search-secrets.yaml | 2026-03-29 |
+| service-catalog | service-catalog-secrets.yaml | 2026-03-29 |
+
+## 未作成（2サービス、監査対象外）
+
+各サービスは auth-secrets.yaml のパターンに従って作成すること。
+必要なシークレットは `infra/vault/policies/{service}.hcl` を参照。
+| ai-agent | ai-agent.hcl | api-key, db-password, kafka-sasl | 中 |
+| ai-gateway | ai-gateway.hcl | api-key, db-password, kafka-sasl | 中 |
+
+## 作成テンプレート
+
+```yaml
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  # {service} サーバーが Vault から取得するシークレット定義。
+  name: {service}-server-vault-secrets
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: {service}-server
+    tier: system
+spec:
+  provider: vault
+  parameters:
+    vaultAddress: "https://vault.vault.svc.cluster.local:8200"
+    roleName: "{service}-server"
+    objects: |
+      - objectName: "api-key"
+        secretPath: "secret/data/k1s0/system/{service}/api-key"
+        secretKey: "key"
+      - objectName: "db-password"
+        secretPath: "secret/data/k1s0/system/{service}/database"
+        secretKey: "password"
+      - objectName: "kafka-sasl-username"
+        secretPath: "secret/data/k1s0/system/kafka/sasl"
+        secretKey: "username"
+      - objectName: "kafka-sasl-password"
+        secretPath: "secret/data/k1s0/system/kafka/sasl"
+        secretKey: "password"
+```

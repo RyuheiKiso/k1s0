@@ -7,7 +7,7 @@ use axum::{
 use uuid::Uuid;
 
 use super::{AppState, ErrorResponse};
-#[allow(unused_imports)]
+// utoipa マクロの body 型参照に必要なインポート
 use crate::domain::entity::scorecard::Scorecard;
 
 #[utoipa::path(

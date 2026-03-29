@@ -44,8 +44,13 @@ impl WorkflowDefinition {
         self.steps.iter().find(|s| s.step_id == step_id)
     }
 
+    /// ワークフローの最初のステップを返す。
+    /// WorkflowStep に sort_order フィールドが追加された場合は
+    /// min_by_key(|s| s.sort_order) で最小値のステップを返すよう変更すること。
+    /// TODO(LOW-02): WorkflowStep に sort_order: u32 フィールドを追加し、
+    ///               `self.steps.iter().min_by_key(|s| s.sort_order)` に差し替える。
     pub fn first_step(&self) -> Option<&WorkflowStep> {
-        self.steps.first()
+        self.steps.iter().min_by_key(|s| s.step_id.as_str())
     }
 }
 

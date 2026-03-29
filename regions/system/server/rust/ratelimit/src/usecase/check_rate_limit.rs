@@ -40,7 +40,8 @@ impl CheckRateLimitUseCase {
         Self {
             rule_repo,
             state_store,
-            fail_open: true,
+            // セキュリティのデフォルトは fail-closed（ADR-0048）。Redis 障害時も不正アクセスを防ぐ。
+            fail_open: false,
             default_limit: 100,
             default_window_seconds: 60,
         }

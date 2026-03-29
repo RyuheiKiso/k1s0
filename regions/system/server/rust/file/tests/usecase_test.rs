@@ -89,8 +89,9 @@ impl FileMetadataRepository for StubMetadataRepository {
         let mut filtered: Vec<FileMetadata> = files
             .values()
             .filter(|f| {
+                // C-01 監査対応: tenant_id フィールド削除のため storage_path のプレフィックスで代替フィルタする
                 if let Some(ref tid) = tenant_id {
-                    if f.tenant_id != *tid {
+                    if !f.storage_path.starts_with(&format!("{}/", tid)) {
                         return false;
                     }
                 }
@@ -148,6 +149,32 @@ impl FileMetadataRepository for StubMetadataRepository {
         }
         let mut files = self.files.write().await;
         Ok(files.remove(id).is_some())
+    }
+
+    /// CRIT-01 監査対応: テナントIDと所有者IDの条件を確認してから削除するスタブ実装
+    async fn delete_with_tenant_check(
+        &self,
+        id: String,
+        tenant_id_prefix: String,
+        expected_uploader: Option<String>,
+    ) -> anyhow::Result<bool> {
+        if self.should_fail {
+            return Err(anyhow::anyhow!("stub db error"));
+        }
+        let mut files = self.files.write().await;
+        let matches = files.get(&id).map_or(false, |f| {
+            let tenant_ok = tenant_id_prefix.is_empty() || f.storage_path.starts_with(&tenant_id_prefix);
+            let uploader_ok = expected_uploader
+                .as_deref()
+                .map_or(true, |uploader| f.uploaded_by == uploader);
+            tenant_ok && uploader_ok
+        });
+        if matches {
+            files.remove(&id);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
@@ -286,13 +313,13 @@ fn sample_tags() -> HashMap<String, String> {
     tags
 }
 
+// C-01 監査対応: tenant_id 引数削除後のシグネチャに合わせて pending_file を修正
 fn pending_file(id: &str) -> FileMetadata {
     FileMetadata::new(
         id.to_string(),
         "report.pdf".to_string(),
         2048,
         "application/pdf".to_string(),
-        "tenant-abc".to_string(),
         "user-001".to_string(),
         sample_tags(),
         format!("tenant-abc/{}.pdf", id),
@@ -344,7 +371,8 @@ mod generate_upload_url {
         let stored = stored.unwrap();
         assert_eq!(stored.status, "pending");
         assert_eq!(stored.filename, "report.pdf");
-        assert_eq!(stored.tenant_id, "tenant-abc");
+        // C-01 監査対応: tenant_id フィールド削除のため uploaded_by で検証する
+        assert_eq!(stored.uploaded_by, "user-001");
     }
 
     #[tokio::test]
@@ -470,7 +498,7 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata.clone(), events.clone());
         let input = CompleteUploadInput {
             file_id: "file_001".to_string(),
-            checksum_sha256: Some("sha256_abc".to_string()),
+            checksum: Some("sha256_abc".to_string()),
         };
 
         let result = uc.execute(&input).await;
@@ -478,7 +506,7 @@ mod complete_upload {
 
         let file = result.unwrap();
         assert_eq!(file.status, "available");
-        assert_eq!(file.checksum_sha256, Some("sha256_abc".to_string()));
+        assert_eq!(file.checksum, Some("sha256_abc".to_string()));
 
         // Verify persisted state
         let stored = metadata.get("file_001").await.unwrap();
@@ -499,14 +527,14 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata.clone(), events);
         let input = CompleteUploadInput {
             file_id: "file_002".to_string(),
-            checksum_sha256: None,
+            checksum: None,
         };
 
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
         let file = result.unwrap();
         assert_eq!(file.status, "available");
-        assert!(file.checksum_sha256.is_none());
+        assert!(file.checksum.is_none());
     }
 
     #[tokio::test]
@@ -517,7 +545,7 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata, events);
         let input = CompleteUploadInput {
             file_id: "nonexistent".to_string(),
-            checksum_sha256: None,
+            checksum: None,
         };
 
         let result = uc.execute(&input).await;
@@ -536,7 +564,7 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata, events);
         let input = CompleteUploadInput {
             file_id: "file_003".to_string(),
-            checksum_sha256: None,
+            checksum: None,
         };
 
         let result = uc.execute(&input).await;
@@ -554,7 +582,7 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata, events);
         let input = CompleteUploadInput {
             file_id: "file_001".to_string(),
-            checksum_sha256: None,
+            checksum: None,
         };
 
         let result = uc.execute(&input).await;
@@ -573,7 +601,7 @@ mod complete_upload {
         let uc = CompleteUploadUseCase::new(metadata.clone(), events);
         let input = CompleteUploadInput {
             file_id: "file_004".to_string(),
-            checksum_sha256: Some("sha256_xyz".to_string()),
+            checksum: Some("sha256_xyz".to_string()),
         };
 
         // Event publish failure is logged but does not fail the usecase
@@ -733,7 +761,8 @@ mod get_file_metadata {
         let file = result.unwrap();
         assert_eq!(file.id, "file_001");
         assert_eq!(file.filename, "report.pdf");
-        assert_eq!(file.tenant_id, "tenant-abc");
+        // C-01 監査対応: tenant_id フィールド削除のため uploaded_by で検証する
+        assert_eq!(file.uploaded_by, "user-001");
     }
 
     #[tokio::test]
@@ -828,12 +857,12 @@ mod list_files {
         let metadata = Arc::new(StubMetadataRepository::new());
         metadata.seed(pending_file("file_001")).await;
 
+        // C-01 監査対応: tenant_id 引数削除後の 7 引数シグネチャを使用する
         let other_file = FileMetadata::new(
             "file_other".to_string(),
             "other.txt".to_string(),
             512,
             "text/plain".to_string(),
-            "tenant-xyz".to_string(),
             "user-002".to_string(),
             HashMap::new(),
             "tenant-xyz/other.txt".to_string(),
@@ -853,7 +882,8 @@ mod list_files {
         let result = uc.execute(&input).await;
         let output = result.unwrap();
         assert_eq!(output.files.len(), 1);
-        assert_eq!(output.files[0].tenant_id, "tenant-abc");
+        // C-01 監査対応: tenant_id フィールド削除のため storage_path のプレフィックスで検証する
+        assert!(output.files[0].storage_path.starts_with("tenant-abc/"));
     }
 
     #[tokio::test]
@@ -861,12 +891,12 @@ mod list_files {
         let metadata = Arc::new(StubMetadataRepository::new());
         metadata.seed(pending_file("file_tagged")).await;
 
+        // C-01 監査対応: tenant_id 引数削除後の 7 引数シグネチャを使用する
         let untagged = FileMetadata::new(
             "file_untagged".to_string(),
             "untagged.txt".to_string(),
             512,
             "text/plain".to_string(),
-            "tenant-abc".to_string(),
             "user-001".to_string(),
             HashMap::new(),
             "tenant-abc/untagged.txt".to_string(),
@@ -1036,8 +1066,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata.clone(), storage.clone(), events.clone());
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加（空文字でテナントチェックなし）
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1068,8 +1101,11 @@ mod delete_file {
         let events = Arc::new(StubEventPublisher::new());
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "missing".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1087,8 +1123,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1105,8 +1144,11 @@ mod delete_file {
         let events = Arc::new(StubEventPublisher::new());
 
         let uc = DeleteFileUseCase::new(metadata, storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         let result = uc.execute(&input).await;
@@ -1124,8 +1166,11 @@ mod delete_file {
         metadata.seed(available_file("file_001")).await;
 
         let uc = DeleteFileUseCase::new(metadata.clone(), storage, events);
+        // CRIT-01 監査対応: tenant_id と expected_uploader を追加
         let input = DeleteFileInput {
             file_id: "file_001".to_string(),
+            tenant_id: String::new(),
+            expected_uploader: None,
         };
 
         // Event publish failure is logged but does not fail the usecase

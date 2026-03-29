@@ -50,6 +50,9 @@ pub struct AppState {
     pub permission_cache: PermissionCache,
     pub permission_cache_refresh_on_miss: bool,
     pub role_permission_table: Option<Arc<RolePermissionTable>>,
+    /// LOW-13 監査対応: Tier 階層を設定ファイルから注入（ハードコード解消）。
+    /// 上位 Tier から順に並べた文字列リスト。デフォルト: ["system", "business", "service"]。
+    pub tier_hierarchy: Vec<String>,
 }
 
 impl AppState {
@@ -96,6 +99,12 @@ impl AppState {
             permission_cache: PermissionCache::new(300, 10_000),
             permission_cache_refresh_on_miss: true,
             role_permission_table: None,
+            // LOW-13 監査対応: デフォルト値を設定。startup.rs で設定ファイルの値に上書きされる。
+            tier_hierarchy: vec![
+                "system".to_string(),
+                "business".to_string(),
+                "service".to_string(),
+            ],
         }
     }
 }

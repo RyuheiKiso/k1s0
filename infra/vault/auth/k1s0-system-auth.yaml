@@ -1,18 +1,27 @@
+# C-05 監査対応: Vault kubernetes auth ロールの bound_service_account_names を
+# service-accounts.yaml の SA名 "auth-rust" と一致させる。
+# 旧値 "auth-server" は ServiceAccount が存在しないため Vault 認証が失敗していた。
+#
+# L-16 監査対応: この ConfigMap は将来の個別サービスロール分割（ADR-0045）に向けた
+# リファレンス設定として保持する。現在の実運用は infra/terraform/modules/vault/auth.tf の
+# vault_kubernetes_auth_backend_role.system（単一ロール）が権威情報であり、
+# bound_service_account_names に "auth-rust" が含まれていることで認証が機能している。
+# Phase 5 で個別ロール実装時にこの ConfigMap の内容を Terraform に反映する予定。
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: auth-server-vault-auth
+  name: auth-rust-vault-auth
   namespace: k1s0-system
   labels:
-    app.kubernetes.io/name: auth-server
+    app.kubernetes.io/name: auth-rust
     app.kubernetes.io/component: vault-auth
 data:
   vault-auth-config.json: |
     {
-      "role_name": "auth-server",
-      "bound_service_account_names": ["auth-server"],
+      "role_name": "auth-rust",
+      "bound_service_account_names": ["auth-rust"],
       "bound_service_account_namespaces": ["k1s0-system"],
-      "token_policies": ["auth-server"],
+      "token_policies": ["auth-rust"],
       "token_ttl": "3600",
       "token_max_ttl": "86400"
     }

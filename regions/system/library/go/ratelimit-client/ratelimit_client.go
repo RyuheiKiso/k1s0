@@ -156,42 +156,59 @@ func (c *InMemoryClient) UsedCount(key string) uint32 {
 	return c.counters[key]
 }
 
-// GrpcRateLimitClient は ratelimit-server への HTTP クライアント。
-// 実際の gRPC プロトコルではなく HTTP REST API を使用する。
-type GrpcRateLimitClient struct {
+// HttpRateLimitClient は ratelimit-server への HTTP クライアント。
+// C-02/L-16 監査対応: GrpcRateLimitClient から HttpRateLimitClient にリネーム。
+// API パスをサーバー実装に合わせて統一。
+type HttpRateLimitClient struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
-// NewGrpcRateLimitClient は新しい GrpcRateLimitClient を生成する。
+// GrpcRateLimitClient は後方互換性のための型エイリアス。
+// Deprecated: HttpRateLimitClient を使用してください。
+type GrpcRateLimitClient = HttpRateLimitClient
+
+// NewHttpRateLimitClient は新しい HttpRateLimitClient を生成する。
 // addr には "host:port" または "http://host:port" 形式のサーバーアドレスを指定する。
-func NewGrpcRateLimitClient(addr string) (*GrpcRateLimitClient, error) {
+func NewHttpRateLimitClient(addr string) (*HttpRateLimitClient, error) {
 	base := addr
 	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
 		base = "http://" + base
 	}
 	base = strings.TrimRight(base, "/")
-	return &GrpcRateLimitClient{
+	return &HttpRateLimitClient{
 		baseURL:    base,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}, nil
 }
 
-// NewGrpcRateLimitClientWithHTTPClient はテスト用コンストラクタ。カスタム http.Client を注入できる。
-func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*GrpcRateLimitClient, error) {
+// NewGrpcRateLimitClient は後方互換性のためのコンストラクタ。
+// Deprecated: NewHttpRateLimitClient を使用してください。
+func NewGrpcRateLimitClient(addr string) (*HttpRateLimitClient, error) {
+	return NewHttpRateLimitClient(addr)
+}
+
+// NewHttpRateLimitClientWithHTTPClient はテスト用コンストラクタ。カスタム http.Client を注入できる。
+func NewHttpRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*HttpRateLimitClient, error) {
 	base := addr
 	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
 		base = "http://" + base
 	}
 	base = strings.TrimRight(base, "/")
-	return &GrpcRateLimitClient{
+	return &HttpRateLimitClient{
 		baseURL:    base,
 		httpClient: httpClient,
 	}, nil
 }
 
-// doRequest は HTTP リクエストを実行する（interface{} → any: Go 1.18+ 推奨エイリアスを使用する）。
-func (c *GrpcRateLimitClient) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
+// NewGrpcRateLimitClientWithHTTPClient は後方互換性のためのコンストラクタ。
+// Deprecated: NewHttpRateLimitClientWithHTTPClient を使用してください。
+func NewGrpcRateLimitClientWithHTTPClient(addr string, httpClient *http.Client) (*HttpRateLimitClient, error) {
+	return NewHttpRateLimitClientWithHTTPClient(addr, httpClient)
+}
+
+// doRequest は HTTP リクエストを実行する。
+func (c *HttpRateLimitClient) doRequest(ctx context.Context, method, path string, body any) (*http.Response, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -236,42 +253,51 @@ func parseRateLimitError(resp *http.Response, op string) *RateLimitError {
 }
 
 // checkRequest は Check エンドポイントへのリクエスト本文。
+// C-02 監査対応: サーバー API に合わせて scope + identifier + window 形式に変更。
 type checkRequest struct {
-	Cost uint32 `json:"cost"`
+	Scope      string `json:"scope"`
+	Identifier string `json:"identifier"`
+	Window     string `json:"window,omitempty"`
 }
 
 // checkResponse は Check エンドポイントのレスポンス。
 type checkResponse struct {
-	Allowed        bool    `json:"allowed"`
-	Remaining      uint32  `json:"remaining"`
-	ResetAt        string  `json:"reset_at"`
-	RetryAfterSecs *uint64 `json:"retry_after_secs"`
-}
-
-// consumeRequest は Consume エンドポイントへのリクエスト本文。
-type consumeRequest struct {
-	Cost uint32 `json:"cost"`
-}
-
-// consumeResponse は Consume エンドポイントのレスポンス。
-type consumeResponse struct {
-	Remaining uint32 `json:"remaining"`
+	Allowed   bool   `json:"allowed"`
+	Remaining int64  `json:"remaining"`
 	ResetAt   string `json:"reset_at"`
 }
 
-// policyResponse は GetLimit エンドポイントのレスポンス。
-type policyResponse struct {
+// usageResponse は Usage エンドポイントのレスポンス。
+type usageResponse struct {
 	Key        string `json:"key"`
 	Limit      uint32 `json:"limit"`
 	WindowSecs uint64 `json:"window_secs"`
 	Algorithm  string `json:"algorithm"`
 }
 
+// splitKey は key を "scope:identifier" 形式から (scope, identifier) に分割する。
+// ":" が含まれない場合は scope="default"、identifier=key とする。
+func splitKey(key string) (string, string) {
+	parts := strings.SplitN(key, ":", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return "default", key
+}
+
 // Check はレート制限をチェックする。
-// POST /api/v1/ratelimit/{key}/check
-func (c *GrpcRateLimitClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error) {
-	path := fmt.Sprintf("/api/v1/ratelimit/%s/check", key)
-	resp, err := c.doRequest(ctx, http.MethodPost, path, checkRequest{Cost: cost})
+// C-02 監査対応: POST /api/v1/ratelimit/check（key をボディに含める）
+func (c *HttpRateLimitClient) Check(ctx context.Context, key string, cost uint32) (RateLimitStatus, error) {
+	scope, identifier := splitKey(key)
+	var window string
+	if cost > 1 {
+		window = fmt.Sprintf("%ds", cost)
+	}
+	resp, err := c.doRequest(ctx, http.MethodPost, "/api/v1/ratelimit/check", checkRequest{
+		Scope:      scope,
+		Identifier: identifier,
+		Window:     window,
+	})
 	if err != nil {
 		return RateLimitStatus{}, err
 	}
@@ -293,47 +319,29 @@ func (c *GrpcRateLimitClient) Check(ctx context.Context, key string, cost uint32
 
 	return RateLimitStatus{
 		Allowed:        result.Allowed,
-		Remaining:      result.Remaining,
+		Remaining:      uint32(result.Remaining),
 		ResetAt:        resetAt,
-		RetryAfterSecs: result.RetryAfterSecs,
+		RetryAfterSecs: nil,
 	}, nil
 }
 
 // Consume は使用量を消費する。
-// POST /api/v1/ratelimit/{key}/consume
-func (c *GrpcRateLimitClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error) {
-	path := fmt.Sprintf("/api/v1/ratelimit/%s/consume", key)
-	resp, err := c.doRequest(ctx, http.MethodPost, path, consumeRequest{Cost: cost})
+// C-02 監査対応: サーバーに consume エンドポイントはないため、check で代用する。
+func (c *HttpRateLimitClient) Consume(ctx context.Context, key string, cost uint32) (RateLimitResult, error) {
+	status, err := c.Check(ctx, key, cost)
 	if err != nil {
 		return RateLimitResult{}, err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return RateLimitResult{}, parseRateLimitError(resp, "consume")
-	}
-
-	var result consumeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return RateLimitResult{}, &RateLimitError{Code: "SERVER_ERROR", Message: fmt.Sprintf("consume: decode response: %s", err)}
-	}
-
-	resetAt, err := time.Parse(time.RFC3339, result.ResetAt)
-	if err != nil {
-		resetAt = time.Time{}
-	}
-
 	return RateLimitResult{
-		Remaining: result.Remaining,
-		ResetAt:   resetAt,
+		Remaining: status.Remaining,
+		ResetAt:   status.ResetAt,
 	}, nil
 }
 
 // GetLimit はキーに対する制限ポリシーを取得する。
-// GET /api/v1/ratelimit/{key}/policy
-func (c *GrpcRateLimitClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error) {
-	path := fmt.Sprintf("/api/v1/ratelimit/%s/policy", key)
-	resp, err := c.doRequest(ctx, http.MethodGet, path, nil)
+// C-02 監査対応: GET /api/v1/ratelimit/usage
+func (c *HttpRateLimitClient) GetLimit(ctx context.Context, key string) (RateLimitPolicy, error) {
+	resp, err := c.doRequest(ctx, http.MethodGet, "/api/v1/ratelimit/usage", nil)
 	if err != nil {
 		return RateLimitPolicy{}, err
 	}
@@ -343,13 +351,18 @@ func (c *GrpcRateLimitClient) GetLimit(ctx context.Context, key string) (RateLim
 		return RateLimitPolicy{}, parseRateLimitError(resp, "get_limit")
 	}
 
-	var result policyResponse
+	var result usageResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return RateLimitPolicy{}, &RateLimitError{Code: "SERVER_ERROR", Message: fmt.Sprintf("get_limit: decode response: %s", err)}
 	}
 
+	resultKey := result.Key
+	if resultKey == "" {
+		resultKey = key
+	}
+
 	return RateLimitPolicy{
-		Key:        result.Key,
+		Key:        resultKey,
 		Limit:      result.Limit,
 		WindowSecs: result.WindowSecs,
 		Algorithm:  result.Algorithm,

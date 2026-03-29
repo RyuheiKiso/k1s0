@@ -145,7 +145,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
-      - "${KAFKA_HOST_PORT:-9092}:9092"
+      # ホストのループバックインターフェースのみにバインド（MED-5 監査対応: 外部ネットワークからの不正アクセスを防止）
+      - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
@@ -219,7 +220,8 @@ services:
     image: redis:7.4.2
     profiles: [infra]
     ports:
-      - "${REDIS_SESSION_HOST_PORT:-6380}:6379"
+      # ホストのループバックインターフェースのみにバインド（MED-4 監査対応: 外部ネットワークからの不正アクセスを防止）
+      - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"
     volumes:
       - redis-session-data:/data
     healthcheck:
@@ -482,6 +484,11 @@ docker compose --profile infra --profile observability --profile system down -v
 - Kafka トピックの自動作成には `kafka-init` コンテナを使用し、ブローカー起動後に一度だけ実行する。`restart: on-failure` を設定し、Kafka ブローカーが一時的に未準備の場合にリトライする
 - Kong はローカル開発環境では DB-less モード（declarative config）を使用し、本番環境との差異を最小限にしつつ開発効率を優先する。設定ファイルは `./infra/kong/kong.dev.yaml` をマウントする（`/etc/kong/kong.yaml` にマップ）
 - Kong ローカル開発用の設定には以下の4プラグインを使用する: `cors`（開発元オリジン許可）、`rate-limiting`（グローバル 5000 req/min、local policy）、`jwt`（Keycloak JWKS 連携、RS256、有効期限 900s）、`prometheus`（per_consumer メトリクス収集）
+- **MED-3 監査対応: Kong Admin API の開発時アクセス方法**
+  - `KONG_ADMIN_LISTEN: "127.0.0.1:8001"` で Admin API はコンテナ内ループバックのみにバインドしている（セキュリティ上 0.0.0.0 への公開は不可）
+  - `docker-compose.dev.yaml` で `127.0.0.1:${KONG_ADMIN_HOST_PORT:-8001}:8001` がマッピングされるため、`just local-up` 後にホスト側から `http://127.0.0.1:8001/` でアクセス可能
+  - 使用例: `curl http://127.0.0.1:8001/services` でサービス一覧を取得
+  - Kong Admin API はクラスタ設定の変更が可能なため、**ループバック以外には絶対に公開しないこと**
 - distroless / scratch ベースのコンテナ（bff-proxy 等）では `curl` が利用できないため、ビルド時に busybox をコピーし、`/busybox wget` でヘルスチェックを行う。YAML アンカー `x-rust-healthcheck` で Rust サーバー共通のヘルスチェック定義を再利用する
 - `vault-rust` の Vault 依存条件は `condition: service_healthy` とし、Vault のヘルスチェック通過を保証する（`service_started` ではヘルスチェック未通過で接続失敗の可能性がある）
 
@@ -601,23 +608,23 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `API_REGISTRY_REST_HOST_PORT` | 8093 | api-registry-rust | API Registry（REST） |
 | `APP_REGISTRY_REST_HOST_PORT` | 8094 | app-registry-rust | App Registry（REST） |
 | `EVENT_MONITOR_REST_HOST_PORT` | 8095 | event-monitor-rust | Event Monitor（REST） |
-| `EVENT_MONITOR_GRPC_HOST_PORT` | 50060 | event-monitor-rust | Event Monitor（gRPC） |
+| `EVENT_MONITOR_GRPC_HOST_PORT` | 50200 | event-monitor-rust | Event Monitor（gRPC） |
 | `EVENT_STORE_REST_HOST_PORT` | 8096 | event-store-rust | Event Store（REST） |
 | `FILE_REST_HOST_PORT` | 8097 | file-rust | File Service（REST） |
 | `MASTER_MAINTENANCE_REST_HOST_PORT` | 8098 | master-maintenance-rust | Master Maintenance（REST） |
-| `MASTER_MAINTENANCE_GRPC_HOST_PORT` | 50061 | master-maintenance-rust | Master Maintenance（gRPC） |
+| `MASTER_MAINTENANCE_GRPC_HOST_PORT` | 50201 | master-maintenance-rust | Master Maintenance（gRPC） |
 | `NAVIGATION_REST_HOST_PORT` | 8099 | navigation-rust | Navigation（REST） |
-| `NAVIGATION_GRPC_HOST_PORT` | 50062 | navigation-rust | Navigation（gRPC） |
+| `NAVIGATION_GRPC_HOST_PORT` | 50202 | navigation-rust | Navigation（gRPC） |
 | `NOTIFICATION_REST_HOST_PORT` | 8100 | notification-rust | Notification（REST） |
 | `POLICY_REST_HOST_PORT` | 8101 | policy-rust | Policy（REST） |
-| `POLICY_GRPC_HOST_PORT` | 50063 | policy-rust | Policy（gRPC） |
+| `POLICY_GRPC_HOST_PORT` | 50203 | policy-rust | Policy（gRPC） |
 | `QUOTA_REST_HOST_PORT` | 8102 | quota-rust | Quota（REST） |
 | `RULE_ENGINE_REST_HOST_PORT` | 8103 | rule-engine-rust | Rule Engine（REST） |
-| `RULE_ENGINE_GRPC_HOST_PORT` | 50064 | rule-engine-rust | Rule Engine（gRPC） |
+| `RULE_ENGINE_GRPC_HOST_PORT` | 50204 | rule-engine-rust | Rule Engine（gRPC） |
 | `SCHEDULER_REST_HOST_PORT` | 8104 | scheduler-rust | Scheduler（REST） |
 | `SEARCH_REST_HOST_PORT` | 8105 | search-rust | Search（REST） |
 | `SESSION_REST_HOST_PORT` | 8106 | session-rust | Session（REST） |
-| `SESSION_GRPC_HOST_PORT` | 50065 | session-rust | Session（gRPC） |
+| `SESSION_GRPC_HOST_PORT` | 50205 | session-rust | Session（gRPC） |
 | `WORKFLOW_REST_HOST_PORT` | 8107 | workflow-rust | Workflow（REST） |
 | `SERVICE_CATALOG_REST_HOST_PORT` | 8108 | service-catalog-rust | Service Catalog（REST） |
 | `AI_GATEWAY_REST_HOST_PORT` | 8120 | ai-gateway-rust | AI Gateway（REST） |
@@ -725,7 +732,7 @@ System Tier のアプリケーションサーバー群。`infra` プロファイ
 | search-rust | postgres | 検索 |
 | service-catalog-rust | postgres | サービスカタログ |
 | session-rust | postgres, redis | セッション管理 |
-| workflow-rust | postgres, kafka | ワークフロー |
+| workflow-rust | postgres, kafka, **scheduler-rust** | ワークフロー（CRIT-2 監査対応: 起動時に scheduler-rust へ接続するため依存を追加） |
 | ai-gateway-rust | postgres | AI Gateway |
 | ai-agent-rust | postgres, ai-gateway-rust | AI Agent |
 | graphql-gateway-rust | auth-rust, tenant-rust 他多数 | GraphQL 統合ゲートウェイ |

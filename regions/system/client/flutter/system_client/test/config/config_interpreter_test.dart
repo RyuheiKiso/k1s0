@@ -118,7 +118,7 @@ void main() {
 
       final metadata = advanced.fields.firstWhere((field) => field.key == 'metadata');
       // デフォルト値がない場合はデフォルト値（スキーマの default）が使用される
-      expect(metadata.value, equals(MapConfigValue({'owner': const StringConfigValue('system')})));
+      expect(metadata.value, equals(const MapConfigValue({'owner': StringConfigValue('system')})));
       expect(metadata.version, equals(0));
       expect(metadata.error, isNull);
     });

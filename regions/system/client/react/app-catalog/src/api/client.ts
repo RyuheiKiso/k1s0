@@ -1,4 +1,5 @@
 import { createApiClient } from '../lib/systemClient';
+import { appConfig } from '../config';
 import type {
   App,
   AppListParams,
@@ -9,9 +10,9 @@ import type {
   VersionListResponse,
 } from './types';
 
-// BFF プロキシ経由でリクエストを送信する（CSRF保護・セッション管理を有効化するため /bff/api/v1 を使用する）
+// BFF プロキシ経由でリクエストを送信する（L-11 監査対応: ハードコードを廃止し appConfig から取得する）
 const api = createApiClient({
-  baseURL: '/bff/api/v1',
+  baseURL: appConfig.api.base_url,
   onUnauthorized: () => { window.location.href = '/auth/login'; },
 });
 

@@ -1,0 +1,124 @@
+---
+source: crates/k1s0-cli/tests/template_content_tests.rs
+assertion_line: 120
+expression: content
+---
+use axum::{routing::get, Json, Router};
+use serde_json::json;
+use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
+use tower_http::trace::TraceLayer;
+
+use k1s0_telemetry::TelemetryConfig;
+use k1s0_auth::JwksVerifier;
+
+
+mod adapter;
+mod domain;
+mod infra;
+mod usecase;
+
+use infra::config::Config;
+
+#[tokio::main]
+async fn main() {
+
+    // --- Config ---
+    let config = Config::load("config/config.yaml")
+        .expect("Failed to load config");
+
+    // --- Telemetry (k1s0-telemetry) ---
+    k1s0_telemetry::init_telemetry(&TelemetryConfig {
+        service_name: config.app.name.clone(),
+        version: config.app.version.clone(),
+        tier: config.app.tier.clone(),
+        environment: config.app.environment.clone(),
+        trace_endpoint: config.observability.trace.enabled
+            .then(|| config.observability.trace.endpoint.clone()),
+        sample_rate: config.observability.trace.sample_rate,
+        log_level: config.observability.log.level.clone(),
+        log_format: config.observability.log.format.clone(),
+    })
+    .expect("Failed to init telemetry");
+
+    // --- Auth Verifier (k1s0-auth) ---
+    let _verifier = JwksVerifier::new(
+        config.auth.oidc.as_ref().map(|o| o.jwks_uri.as_str()).unwrap_or(""),
+        &config.auth.jwt.issuer,
+        &config.auth.jwt.audience,
+        std::time::Duration::from_secs(600),
+    ).expect("Failed to create JWKS verifier");
+
+
+
+
+
+
+    // --- DI: Repository → UseCase → Handler ---
+
+    let uc = usecase::TaskApiUseCase::new(
+
+    );
+    let handler = adapter::handler::AppHandler::new(uc);
+
+
+
+    // --- Router ---
+    let app = Router::new()
+        .route("/healthz", get(|| async { Json(json!({"status": "ok"})) }))
+        .route("/readyz", get({
+
+            move || async move {
+
+                Json(json!({"status": "ready"}))
+
+            }
+        }))
+        .merge(handler.routes())
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive());
+
+    // --- Server ---
+    let addr: SocketAddr = format!("0.0.0.0:{}", config.server.port)
+        .parse()
+        .expect("Invalid address");
+    tracing::info!("server starting on {}", addr);
+
+    let listener = tokio::net::TcpListener::bind(addr)
+        .await
+        .expect("Failed to bind");
+
+    // --- Graceful Shutdown ---
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .expect("Server error");
+
+    k1s0_telemetry::shutdown();
+
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+    tracing::info!("shutdown signal received");
+}

@@ -38,6 +38,46 @@ fn to_proto_timestamp(
     }
 }
 
+/// ドメイン層の演算子文字列を proto Operator enum の i32 値に変換する。
+/// PbFlagRule.operator（文字列）を ProtoFlagRule.operator（i32）に変換する際に使用する。
+fn operator_str_to_proto(s: &str) -> i32 {
+    use crate::proto::k1s0::system::featureflag::v1::Operator;
+    match s {
+        // 等値比較: OPERATOR_EQ = 1
+        "eq" => Operator::Eq as i32,
+        // 不等値比較: OPERATOR_NE = 2
+        "ne" => Operator::Ne as i32,
+        // 部分一致: OPERATOR_CONTAINS = 3
+        "contains" => Operator::Contains as i32,
+        // 大なり比較: OPERATOR_GT = 4
+        "gt" => Operator::Gt as i32,
+        // 小なり比較: OPERATOR_LT = 5
+        "lt" => Operator::Lt as i32,
+        // 不明な値はデフォルト値（UNSPECIFIED = 0）を返す
+        _ => Operator::Unspecified as i32,
+    }
+}
+
+/// proto Operator enum の i32 値をドメイン層の演算子文字列に変換する。
+/// ProtoFlagRule.operator（i32）を PbFlagRule.operator（文字列）に変換する際に使用する。
+fn proto_to_operator_str(v: i32) -> String {
+    use crate::proto::k1s0::system::featureflag::v1::Operator;
+    match Operator::try_from(v).unwrap_or(Operator::Unspecified) {
+        // 等値比較: OPERATOR_EQ = 1
+        Operator::Eq => "eq".to_string(),
+        // 不等値比較: OPERATOR_NE = 2
+        Operator::Ne => "ne".to_string(),
+        // 部分一致: OPERATOR_CONTAINS = 3
+        Operator::Contains => "contains".to_string(),
+        // 大なり比較: OPERATOR_GT = 4
+        Operator::Gt => "gt".to_string(),
+        // 小なり比較: OPERATOR_LT = 5
+        Operator::Lt => "lt".to_string(),
+        // 不明な値は "eq" をデフォルト値として返す
+        Operator::Unspecified => "eq".to_string(),
+    }
+}
+
 // --- GrpcError -> tonic::Status 変換 ---
 
 impl From<GrpcError> for Status {
@@ -174,7 +214,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                     .into_iter()
                     .map(|r| ProtoFlagRule {
                         attribute: r.attribute,
-                        operator: r.operator,
+                        // ドメイン層の演算子文字列を proto enum の i32 値に変換する
+                        operator: operator_str_to_proto(&r.operator),
                         value: r.value,
                         variant: r.variant,
                     })
@@ -191,6 +232,7 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
     ) -> Result<Response<ProtoListFlagsResponse>, Status> {
         let resp = self
             .inner
+            // ページネーションフィールドは内部リクエスト型に含まれないためデフォルト値を使用する
             .list_flags(ListFlagsRequest {})
             .await
             .map_err(Into::<Status>::into)?;
@@ -218,7 +260,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                         .into_iter()
                         .map(|r| ProtoFlagRule {
                             attribute: r.attribute,
-                            operator: r.operator,
+                            // ドメイン層の演算子文字列を proto enum の i32 値に変換する
+                            operator: operator_str_to_proto(&r.operator),
                             value: r.value,
                             variant: r.variant,
                         })
@@ -275,7 +318,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                     .into_iter()
                     .map(|r| ProtoFlagRule {
                         attribute: r.attribute,
-                        operator: r.operator,
+                        // ドメイン層の演算子文字列を proto enum の i32 値に変換する
+                        operator: operator_str_to_proto(&r.operator),
                         value: r.value,
                         variant: r.variant,
                     })
@@ -309,7 +353,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                 .into_iter()
                 .map(|r| PbFlagRule {
                     attribute: r.attribute,
-                    operator: r.operator,
+                    // proto enum の i32 値をドメイン層の演算子文字列に変換する
+                    operator: proto_to_operator_str(r.operator),
                     value: r.value,
                     variant: r.variant,
                 })
@@ -341,7 +386,8 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
                     .into_iter()
                     .map(|r| ProtoFlagRule {
                         attribute: r.attribute,
-                        operator: r.operator,
+                        // ドメイン層の演算子文字列を proto enum の i32 値に変換する
+                        operator: operator_str_to_proto(&r.operator),
                         value: r.value,
                         variant: r.variant,
                     })
@@ -406,5 +452,35 @@ mod tests {
         let status: Status = err.into();
         assert_eq!(status.code(), tonic::Code::Internal);
         assert!(status.message().contains("database error"));
+    }
+
+    /// operator_str_to_proto 関数のユニットテスト。
+    /// ドメイン層の演算子文字列が proto enum の正しい i32 値にマッピングされることを検証する。
+    #[test]
+    fn test_operator_str_to_proto() {
+        // 各演算子文字列が対応する proto enum 値にマッピングされること
+        assert_eq!(operator_str_to_proto("eq"), 1);
+        assert_eq!(operator_str_to_proto("ne"), 2);
+        assert_eq!(operator_str_to_proto("contains"), 3);
+        assert_eq!(operator_str_to_proto("gt"), 4);
+        assert_eq!(operator_str_to_proto("lt"), 5);
+        // 不明な値は UNSPECIFIED (= 0) にマッピングされること
+        assert_eq!(operator_str_to_proto("unknown"), 0);
+        assert_eq!(operator_str_to_proto(""), 0);
+    }
+
+    /// proto_to_operator_str 関数のユニットテスト。
+    /// proto enum の i32 値がドメイン層の正しい演算子文字列にマッピングされることを検証する。
+    #[test]
+    fn test_proto_to_operator_str() {
+        // 各 proto enum 値が対応する演算子文字列にマッピングされること
+        assert_eq!(proto_to_operator_str(1), "eq");
+        assert_eq!(proto_to_operator_str(2), "ne");
+        assert_eq!(proto_to_operator_str(3), "contains");
+        assert_eq!(proto_to_operator_str(4), "gt");
+        assert_eq!(proto_to_operator_str(5), "lt");
+        // 不明な値（UNSPECIFIED = 0）および範囲外の値は "eq" をデフォルト値として返すこと
+        assert_eq!(proto_to_operator_str(0), "eq");
+        assert_eq!(proto_to_operator_str(99), "eq");
     }
 }

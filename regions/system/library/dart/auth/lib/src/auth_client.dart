@@ -51,6 +51,10 @@ class AuthClient {
   final String Function() _generateState;
   final List<AuthStateCallback> _listeners = [];
   OIDCDiscovery? _discoveryCache;
+  // L-20 監査対応: キャッシュ有効期限（1時間）- OIDC Discovery の更新に対応
+  // IdP 側でエンドポイントが変更された際に古いエンドポイントを使い続けないようにする
+  static const Duration _discoveryCacheTTL = Duration(hours: 1);
+  DateTime? _discoveryCacheTime;
 
   AuthClient(AuthClientOptions options)
       : _config = options.config,
@@ -75,7 +79,18 @@ class AuthClient {
     return http.get(url, headers: headers);
   }
 
-  static void _defaultRedirect(String url) {}
+  // デフォルトのリダイレクトハンドラ。
+  // redirect オプションが未設定の場合に呼ばれ、開発者に設定漏れを気づかせるために例外を投げる。
+  // サイレントに失敗すると認証フローが無音で止まるため、必ず明示的なエラーとして通知する。
+  static void _defaultRedirect(String url) {
+    // デフォルトのリダイレクト実装が設定されていません。
+    // AuthClientOptions.redirect を使用してリダイレクトハンドラを注入してください。
+    throw UnimplementedError(
+      'redirect handler not configured. '
+      'Please provide a redirect handler via AuthClientOptions.redirect. '
+      'Example: AuthClientOptions(redirect: (url) => launchUrl(Uri.parse(url)))',
+    );
+  }
 
   static String _defaultGenerateState() {
     return generateCodeVerifier();
@@ -166,9 +181,13 @@ class AuthClient {
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    // FE-09 監査対応: refresh_token は一部 IdP では省略される場合があるため nullable として扱う。
+    // null の場合は空文字で初期化し、リフレッシュ時のエラーハンドリングで対処する。
+    final rawRefreshToken = data['refresh_token'];
+    final refreshToken = rawRefreshToken != null ? rawRefreshToken as String : '';
     final tokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
+      refreshToken: refreshToken,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
@@ -294,9 +313,15 @@ class AuthClient {
     }
   }
 
-  /// OIDC Discovery ドキュメントを取得する（キャッシュあり）。
+  /// OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュあり）。
+  /// L-20 監査対応: キャッシュが1時間を超えた場合は再取得して最新エンドポイントを使用する
   Future<OIDCDiscovery> fetchDiscovery() async {
-    if (_discoveryCache != null) return _discoveryCache!;
+    // キャッシュが有効期限内であればそのまま返す
+    if (_discoveryCache != null &&
+        _discoveryCacheTime != null &&
+        DateTime.now().difference(_discoveryCacheTime!) < _discoveryCacheTTL) {
+      return _discoveryCache!;
+    }
 
     final resp = await _httpGet(Uri.parse(_config.discoveryUrl));
     if (resp.statusCode != 200) {
@@ -306,6 +331,8 @@ class AuthClient {
     _discoveryCache = OIDCDiscovery.fromJson(
       jsonDecode(resp.body) as Map<String, dynamic>,
     );
+    // キャッシュ取得時刻を記録する
+    _discoveryCacheTime = DateTime.now();
     return _discoveryCache!;
   }
 }

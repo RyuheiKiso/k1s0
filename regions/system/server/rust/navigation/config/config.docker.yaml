@@ -13,3 +13,11 @@ server:
 # database セクションは削除済み
 # navigation サーバーは DB を使用しない（YAML ファイルから直接ルート設定を読み込む）
 # 誤って DB 接続コードが追加された場合の serde_yaml 変数非展開バグを防ぐため削除する（M-2 監査対応）
+
+# C-03 監査対応: Docker 環境での navigation ファイルパスを明示的に指定する。
+# デフォルト値 "config/navigation.yaml" はカレントディレクトリ相対パスのため、
+# Docker コンテナ内のワーキングディレクトリが "/" になると "/config/navigation.yaml" を
+# 探して "No such file or directory" エラーが発生する。
+# docker-compose.yaml でマウントされた実際のパス "/app/config/navigation.yaml" を指定する。
+navigation:
+  navigation_path: "/app/config/navigation.yaml"

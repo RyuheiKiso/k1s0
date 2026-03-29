@@ -82,6 +82,8 @@ mod tests {
             assignee_id: None,
             due_date: None,
             labels: None,
+            // 楽観ロック用バージョン番号（テストでは version = 1 を期待する）
+            expected_version: 1,
         };
         let result = uc.execute("system", id, &input, "user1").await;
         assert!(result.is_ok());
@@ -100,6 +102,8 @@ mod tests {
             assignee_id: None,
             due_date: None,
             labels: None,
+            // 楽観ロック用バージョン番号（バリデーションエラーのため DB には届かない）
+            expected_version: 1,
         };
         let result = uc.execute("system", Uuid::new_v4(), &input, "user1").await;
         assert!(result.is_err());

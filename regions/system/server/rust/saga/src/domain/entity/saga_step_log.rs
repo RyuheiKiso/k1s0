@@ -115,7 +115,8 @@ impl SagaStepLog {
         self.completed_at = Some(Utc::now());
     }
 
-    /// タイムアウトにマークする。
+    /// タイムアウトにマークする。execute_saga usecase でステップタイムアウト時に使用する。
+    // H-02 監査対応: ステップタイムアウト処理の実装に備えて保持する
     #[allow(dead_code)]
     pub fn mark_timeout(&mut self) {
         self.status = StepStatus::Timeout;

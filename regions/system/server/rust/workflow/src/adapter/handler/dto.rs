@@ -19,6 +19,7 @@ use crate::usecase::{
 // --- アプリケーション状態 ---
 
 /// 全ユースケースとメトリクスを保持するアプリケーション共有状態
+/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -37,6 +38,8 @@ pub struct AppState {
     pub check_overdue_tasks_uc: Arc<CheckOverdueTasksUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（未設定の場合は None）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {

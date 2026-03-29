@@ -1,4 +1,6 @@
 //! ワークフローエンジン統合テスト（InMemoryリポジトリ + NoOpGrpcCaller使用）
+//! test-utils フィーチャーが有効な場合のみコンパイルする（L-07 監査対応）
+#![cfg(feature = "test-utils")]
 //!
 //! ExecuteSagaUseCase の前方実行・補償ロジックのモックベースのユニットテストは
 //! src/usecase/execute_saga.rs 内で MockSagaRepository / MockGrpcStepCaller を使って

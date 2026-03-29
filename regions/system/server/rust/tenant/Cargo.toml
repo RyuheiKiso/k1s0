@@ -40,7 +40,7 @@ k1s0-correlation = { path = "../../../library/rust/correlation", features = ["to
 k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-server-common = { path = "../../../library/rust/server-common", features = ["auth", "axum", "utoipa", "shutdown", "grpc-auth"] }
 rdkafka = { version = "0.39", features = ["cmake-build"] }
-moka = { version = "0.12", features = ["future"] }
+moka = {workspace = true}
 reqwest = {workspace = true}
 utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}

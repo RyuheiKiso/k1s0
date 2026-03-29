@@ -31,6 +31,13 @@ fn is_transient(status: &Status) -> bool {
 ///
 /// # バックオフ
 /// 初回失敗後 100ms → 200ms → 400ms（最大 3 回リトライ時）の指数バックオフ。
+///
+/// # 上限
+/// `max_attempts` が `MAX_RETRY_LIMIT`（10）を超える場合はクランプされる（H-09 監査対応）。
+/// リトライ回数の上限値は `MAX_RETRY_LIMIT`（10）に固定する（無制限リトライによるリソース枯渇防止）。
+// H-02 監査対応: doc comment の空行による empty_line_after_doc_comments 警告を修正
+const MAX_RETRY_LIMIT: u32 = 10;
+
 pub async fn with_retry<F, Fut, T>(
     operation_name: &str,
     max_attempts: u32,
@@ -40,15 +47,33 @@ where
     F: Fn() -> Fut,
     Fut: Future<Output = Result<T, Status>>,
 {
+    // max_attempts が 0 の場合はパニックを回避するため事前にエラーを返す（CRITICAL-CODE-01 監査対応）
+    if max_attempts == 0 {
+        return Err(Status::internal(format!(
+            "{}: max_attempts must be >= 1",
+            operation_name
+        )));
+    }
+    // 上限を超える max_attempts はクランプして無制限リトライを防止する（H-09 監査対応）
+    let clamped = max_attempts.min(MAX_RETRY_LIMIT);
+    if clamped < max_attempts {
+        warn!(
+            operation = operation_name,
+            requested = max_attempts,
+            clamped = clamped,
+            "max_attempts が上限 {} を超えたためクランプしました",
+            MAX_RETRY_LIMIT
+        );
+    }
     let mut delay_ms = 100u64;
-    for attempt in 1..=max_attempts {
+    for attempt in 1..=clamped {
         match op().await {
             Ok(val) => return Ok(val),
-            Err(status) if attempt < max_attempts && is_transient(&status) => {
+            Err(status) if attempt < clamped && is_transient(&status) => {
                 warn!(
                     operation = operation_name,
                     attempt = attempt,
-                    max_attempts = max_attempts,
+                    max_attempts = clamped,
                     error = %status,
                     delay_ms = delay_ms,
                     "一時的な gRPC エラー、リトライします"
@@ -59,8 +84,12 @@ where
             Err(status) => return Err(status),
         }
     }
-    // 到達不可能（max_attempts >= 1 が保証されているため）
-    unreachable!("with_retry: max_attempts must be >= 1")
+    // ループ内の全パスが return するため論理的には到達しないが、
+    // unreachable! の代わりに安全なエラーを返す（H-09 監査対応）
+    Err(Status::internal(format!(
+        "{}: retry exhausted after {} attempts",
+        operation_name, clamped
+    )))
 }
 
 #[cfg(test)]
@@ -131,5 +160,38 @@ mod tests {
         assert!(result.is_err());
         // max_attempts=2 なので2回呼ばれる
         assert_eq!(call_count.load(Ordering::SeqCst), 2);
+    }
+
+    #[tokio::test]
+    async fn test_zero_max_attempts_returns_error() {
+        // max_attempts = 0 の場合はパニックせずに即座にエラーを返すことを確認する
+        let result = with_retry("test-op", 0, || async {
+            Ok::<u32, _>(42)
+        })
+        .await;
+
+        // クロージャは一切呼ばれず、internal エラーが返されることを検証する
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), tonic::Code::Internal);
+    }
+
+    #[tokio::test]
+    async fn test_max_attempts_clamped_to_limit() {
+        // max_attempts が MAX_RETRY_LIMIT を超える場合、上限にクランプされることを確認する（H-09 監査対応）
+        let call_count = Arc::new(AtomicU32::new(0));
+        let count_clone = call_count.clone();
+
+        let result = with_retry("test-op", 100, || {
+            let count = count_clone.clone();
+            async move {
+                count.fetch_add(1, Ordering::SeqCst);
+                Err::<u32, _>(Status::unavailable("always unavailable"))
+            }
+        })
+        .await;
+
+        assert!(result.is_err());
+        // MAX_RETRY_LIMIT=10 にクランプされるため、100 回ではなく 10 回のみ呼ばれる
+        assert_eq!(call_count.load(Ordering::SeqCst), super::MAX_RETRY_LIMIT);
     }
 }

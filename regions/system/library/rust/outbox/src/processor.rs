@@ -175,8 +175,9 @@ impl OutboxProcessor {
                 _ = ticker.tick() => {
                     self.process_batch().await?;
                     recovery_tick_count += 1;
+                    // H-02 監査対応: % 演算による手動実装を is_multiple_of() に変更（clippy::manual_is_multiple_of 対応）
                     // 一定周期ごとに PROCESSING スタックメッセージをリカバリする（M-12 監査対応）
-                    if recovery_tick_count % RECOVERY_INTERVAL_TICKS == 0 {
+                    if recovery_tick_count.is_multiple_of(RECOVERY_INTERVAL_TICKS) {
                         self.recover_stale_messages().await?;
                     }
                 }

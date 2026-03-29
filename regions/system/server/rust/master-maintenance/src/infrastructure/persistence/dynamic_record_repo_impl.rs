@@ -2,6 +2,8 @@ use crate::domain::entity::column_definition::ColumnDefinition;
 use crate::domain::entity::table_definition::TableDefinition;
 use crate::domain::repository::dynamic_record_repository::DynamicRecordRepository;
 use async_trait::async_trait;
+// M-02 監査対応: LIKE/ILIKE ワイルドカードエスケープのため server-common のユーティリティを使用する
+use k1s0_server_common::escape_like_pattern;
 use serde_json::Value;
 use sqlx::{postgres::PgRow, PgPool, Row};
 
@@ -21,12 +23,14 @@ fn quote_identifier(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
-/// Validate that a name is a safe SQL identifier (alphanumeric + underscore).
+/// Validate that a name is a safe SQL identifier (ASCII alphanumeric + underscore).
+/// MED-16 監査対応: is_alphanumeric() は Unicode の数字・文字も許容するため、
+/// SQL 識別子として安全な ASCII 英数字のみに限定する is_ascii_alphanumeric() に統一する。
 fn validate_identifier(name: &str) -> anyhow::Result<()> {
     if name.is_empty() {
         anyhow::bail!("Identifier cannot be empty");
     }
-    if !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         anyhow::bail!("Invalid identifier: {}", name);
     }
     Ok(())
@@ -209,6 +213,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         }
 
         // Search: ILIKE on searchable columns
+        // M-02 監査対応: ワイルドカード特殊文字（\, %, _）をエスケープし意図しない全件マッチを防ぐ
         if let Some(s) = search {
             if !s.is_empty() {
                 let searchable: Vec<String> = columns
@@ -216,7 +221,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     .filter(|c| c.is_searchable)
                     .map(|c| {
                         format!(
-                            "{}::text ILIKE ${}",
+                            "{}::text ILIKE ${} ESCAPE '\\\\'",
                             quote_identifier(&c.column_name),
                             param_idx
                         )
@@ -224,7 +229,8 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                     .collect();
                 if !searchable.is_empty() {
                     where_clauses.push(format!("({})", searchable.join(" OR ")));
-                    bind_values.push(format!("%{}%", s));
+                    // H-02 監査対応: needless_borrow 修正 - &s は自動 deref されるため s を直接渡す
+                    bind_values.push(format!("%{}%", escape_like_pattern(s)));
                 }
             }
         }
@@ -271,6 +277,10 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         let total = count_q.fetch_one(&self.pool).await?;
 
         // Data query
+        // MED-16 監査対応: LIMIT/OFFSET は i32 型であり Rust の型システムが SQL 特殊文字の混入を
+        // コンパイル時に排除する。i32 は整数値のみを表現できるため format!() による文字列内挿入でも
+        // SQL インジェクションは発生しない。識別子（table_name, 列名）は validate_identifier() +
+        // quote_identifier() で ASCII 英数字＋アンダースコアのみに制限・ダブルクォートエスケープ済み。
         let data_sql = format!(
             "SELECT {} FROM {}{}{} LIMIT {} OFFSET {}",
             select_cols, table_name, where_sql, order_sql, page_size, offset
