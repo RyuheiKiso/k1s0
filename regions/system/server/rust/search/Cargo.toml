@@ -41,7 +41,7 @@ utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 moka = {workspace = true}
-opensearch = "2.2"
+opensearch = "2.4"
 
 [build-dependencies]
 tonic-build = {workspace = true}
