@@ -97,7 +97,9 @@ fn test_content_rust_rest_minimal_cargo_toml() {
         false,
         &["Cargo.toml"],
     );
-    let content = contents.get("Cargo.toml").expect("Cargo.toml not generated");
+    let content = contents
+        .get("Cargo.toml")
+        .expect("Cargo.toml not generated");
     insta::assert_snapshot!("rust_rest_minimal__cargo_toml", content);
 }
 
@@ -116,7 +118,9 @@ fn test_content_rust_rest_minimal_main_rs() {
         false,
         &["src/main.rs"],
     );
-    let content = contents.get("src/main.rs").expect("src/main.rs not generated");
+    let content = contents
+        .get("src/main.rs")
+        .expect("src/main.rs not generated");
     insta::assert_snapshot!("rust_rest_minimal__main_rs", content);
 }
 
@@ -156,7 +160,9 @@ fn test_content_rust_rest_db_kafka_cargo_toml() {
         false,
         &["Cargo.toml"],
     );
-    let content = contents.get("Cargo.toml").expect("Cargo.toml not generated");
+    let content = contents
+        .get("Cargo.toml")
+        .expect("Cargo.toml not generated");
     insta::assert_snapshot!("rust_rest_db_kafka__cargo_toml", content);
 }
 
@@ -169,16 +175,8 @@ fn test_content_rust_rest_db_kafka_cargo_toml() {
 /// Go モジュール依存関係の変更はここで検知される。
 #[test]
 fn test_content_go_rest_minimal_go_mod() {
-    let (_tmp, contents) = render_and_collect(
-        "go",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["go.mod"],
-    );
+    let (_tmp, contents) =
+        render_and_collect("go", "server", "rest", false, "", false, false, &["go.mod"]);
     let content = contents.get("go.mod").expect("go.mod not generated");
     insta::assert_snapshot!("go_rest_minimal__go_mod", content);
 }
@@ -198,7 +196,9 @@ fn test_content_go_rest_minimal_main_go() {
         false,
         &["cmd/main.go"],
     );
-    let content = contents.get("cmd/main.go").expect("cmd/main.go not generated");
+    let content = contents
+        .get("cmd/main.go")
+        .expect("cmd/main.go not generated");
     insta::assert_snapshot!("go_rest_minimal__main_go", content);
 }
 

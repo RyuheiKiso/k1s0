@@ -217,7 +217,11 @@ fn resolve_scaffold_root() -> PathBuf {
     if let Ok(exe) = std::env::current_exe() {
         for ancestor in exe.ancestors() {
             // スキャフォールドルートの目印として .devcontainer/devcontainer.json の存在を確認する
-            if ancestor.join(".devcontainer").join("devcontainer.json").is_file() {
+            if ancestor
+                .join(".devcontainer")
+                .join("devcontainer.json")
+                .is_file()
+            {
                 return ancestor.to_path_buf();
             }
         }

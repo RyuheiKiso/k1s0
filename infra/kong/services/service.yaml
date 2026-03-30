@@ -65,23 +65,6 @@ services:
           - /api/v1/activities
         strip_path: false
 
-  - name: dashboard-v1
-    url: http://dashboard-server.k1s0-service.svc.cluster.local:80
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: 500
-          second: 20
-          policy: redis
-          redis:
-            host: redis.k1s0-system.svc.cluster.local
-            port: 6379
-            database: 1
-          # Redis 障害時もレート制限を強制する（fault_tolerant: false）。DDoS 耐性維持のため設計意図として false が必須
-          fault_tolerant: false
-          hide_client_headers: false
-    routes:
-      - name: dashboard-v1-route
-        paths:
-          - /api/v1/dashboard
-        strip_path: false
+# H-05 監査対応: dashboard-v1 サービスを Kong 設定から削除する
+# 理由: dashboard は外部向け API エンドポイントとして不要であり、
+#       意図しない公開エンドポイントの削減によりアタックサーフェスを縮小する

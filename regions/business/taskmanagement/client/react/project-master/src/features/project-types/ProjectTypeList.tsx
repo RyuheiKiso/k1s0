@@ -32,8 +32,11 @@ export function ProjectTypeList() {
   // ローディング中の表示
   if (isLoading) return <div>読み込み中...</div>;
 
-  // error は unknown 型のため instanceof で型ガードしてからメッセージを取得する
-  if (error) return <div>エラーが発生しました: {error instanceof Error ? error.message : String(error)}</div>;
+  // 内部エラー詳細をユーザーに直接表示すると情報漏洩になるため汎用メッセージを表示する
+  if (error) {
+    console.error('ProjectTypeList エラー:', error);
+    return <div role="alert">プロジェクトタイプの読み込みに失敗しました。しばらく経ってからもう一度お試しください。</div>;
+  }
 
   return (
     <div>

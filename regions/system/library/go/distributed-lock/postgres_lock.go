@@ -139,13 +139,19 @@ func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 
 // IsLocked は advisory lock が保持されているか確認する。
 // この確認は任意のコネクションで実行可能（pg_locks ビューの参照のため）。
+//
+// pg_try_advisory_lock(bigint) は内部的に classid=0, objid=hashtext(key) として pg_locks に格納される。
+// 旧クエリは classid = hashtext(key) と誤って照合していたため、常に false を返す不具合があった。
+// 正しくは classid = 0 かつ objid = hashtext(key) の組み合わせで検索する必要がある。
 func (l *PostgresLock) IsLocked(ctx context.Context, key string) (bool, error) {
 	fullKey := l.lockKey(key)
 
 	var exists bool
 	err := l.db.QueryRowContext(
 		ctx,
-		"SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND classid = hashtext($1)::int)",
+		// pg_advisory_lock(bigint) は classid=0, objid=hashtext(key) に格納されるため
+		// classid も条件に含めて正確に一致させる（classid=0 が正しい値）
+		"SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND classid = 0 AND objid = hashtext($1)::int)",
 		fullKey,
 	).Scan(&exists)
 	if err != nil {

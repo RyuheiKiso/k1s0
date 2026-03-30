@@ -47,8 +47,7 @@ impl TransactionalAppendPort for TransactionalAppendAdapter {
         }
 
         // トランザクション内でイベントを一括 INSERT する
-        let persisted =
-            EventPostgresRepository::append_in_tx(stream_id, events, &mut tx).await?;
+        let persisted = EventPostgresRepository::append_in_tx(stream_id, events, &mut tx).await?;
 
         // トランザクション内でストリームのバージョンを更新する
         StreamPostgresRepository::update_version_in_tx(stream_id, new_version, &mut tx).await?;

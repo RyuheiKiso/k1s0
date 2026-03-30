@@ -11,11 +11,12 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # auth-server（system 層）のメトリクス
-  # NOTE: auth-server を docker-compose.dev.yaml で起動した場合に有効
+  # auth サーバー（system 層）のメトリクス
+  # M-25 監査対応: docker-compose.yaml のサービス名 auth-rust・コンテナ内ポート 8080 に合わせて修正
+  # 旧: auth-server:8083（ホストポートマッピングを誤って使用していた）
   - job_name: "auth-server"
     static_configs:
-      - targets: ["auth-server:8083"]
+      - targets: ["auth-rust:8080"]
     metrics_path: /metrics
 
   # Kafka メトリクス（JMX Exporter 経由）

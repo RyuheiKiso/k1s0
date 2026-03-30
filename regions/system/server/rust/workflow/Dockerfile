@@ -53,6 +53,8 @@ COPY --from=builder /app/target/release/k1s0-workflow-server /k1s0-workflow-serv
 COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
+# M-23 監査対応: HTTP (8080) に加え gRPC ポート (50051) を明示的に EXPOSE する
 EXPOSE 8080
+EXPOSE 50051
 
 ENTRYPOINT ["/k1s0-workflow-server"]

@@ -1,12 +1,33 @@
 use crate::domain::entity::condition::{Combinator, ConditionNode, Operator};
 
+/// 条件評価の最大再帰深度。これを超えるとスタックオーバーフローを引き起こす可能性があるため制限する
+const MAX_EVALUATION_DEPTH: usize = 32;
+
 pub struct ConditionEvaluator;
 
 impl ConditionEvaluator {
+    /// 条件ノードを評価する（外部向けエントリーポイント）
     pub fn evaluate(
         condition: &ConditionNode,
         context: &serde_json::Value,
     ) -> Result<bool, String> {
+        Self::evaluate_inner(condition, context, 0)
+    }
+
+    /// 条件ノードを評価する（再帰深度を追跡する内部実装）
+    fn evaluate_inner(
+        condition: &ConditionNode,
+        context: &serde_json::Value,
+        depth: usize,
+    ) -> Result<bool, String> {
+        // 再帰深度が上限を超えた場合はエラーを返し、スタックオーバーフローを防止する
+        if depth > MAX_EVALUATION_DEPTH {
+            return Err(format!(
+                "条件評価の再帰深度が上限（{}）を超えました。ルールのネストが深すぎます",
+                MAX_EVALUATION_DEPTH
+            ));
+        }
+
         if let Some(ref combinator) = condition.combinator {
             let children = condition
                 .children
@@ -16,7 +37,7 @@ impl ConditionEvaluator {
             match combinator {
                 Combinator::All => {
                     for child in children {
-                        if !Self::evaluate(child, context)? {
+                        if !Self::evaluate_inner(child, context, depth + 1)? {
                             return Ok(false);
                         }
                     }
@@ -24,7 +45,7 @@ impl ConditionEvaluator {
                 }
                 Combinator::Any => {
                     for child in children {
-                        if Self::evaluate(child, context)? {
+                        if Self::evaluate_inner(child, context, depth + 1)? {
                             return Ok(true);
                         }
                     }
@@ -32,7 +53,7 @@ impl ConditionEvaluator {
                 }
                 Combinator::None => {
                     for child in children {
-                        if Self::evaluate(child, context)? {
+                        if Self::evaluate_inner(child, context, depth + 1)? {
                             return Ok(false);
                         }
                     }
@@ -307,5 +328,66 @@ mod tests {
             serde_json::json!({"field": "nonexistent", "operator": "eq", "value": "x"}),
             serde_json::json!({"status": "active"}),
         ));
+    }
+
+    /// 33段以上のネストでエラーになることを検証する（スタックオーバーフロー防止テスト）
+    #[test]
+    fn evaluate_depth_limit_prevents_stack_overflow() {
+        // MAX_EVALUATION_DEPTH(32) を超える34段ネストの条件ツリーを構築する
+        let leaf = ConditionNode {
+            combinator: None,
+            children: None,
+            field: Some("status".to_string()),
+            operator: Some(Operator::Eq),
+            value: Some(serde_json::json!("active")),
+        };
+        // リーフノードを34段の All コンビネータでラップする
+        let mut node = leaf;
+        for _ in 0..34 {
+            node = ConditionNode {
+                combinator: Some(Combinator::All),
+                children: Some(vec![node]),
+                field: None,
+                operator: None,
+                value: None,
+            };
+        }
+        let context = serde_json::json!({"status": "active"});
+        let result = ConditionEvaluator::evaluate(&node, &context);
+        assert!(
+            result.is_err(),
+            "深度制限超過時はエラーが返される必要があります"
+        );
+        assert!(result.unwrap_err().contains("再帰深度"));
+    }
+
+    /// 最大深度以内のネストは正常に評価されることを検証する
+    #[test]
+    fn evaluate_within_depth_limit_succeeds() {
+        // MAX_EVALUATION_DEPTH(32) 以内の30段ネストは成功する
+        let leaf = ConditionNode {
+            combinator: None,
+            children: None,
+            field: Some("status".to_string()),
+            operator: Some(Operator::Eq),
+            value: Some(serde_json::json!("active")),
+        };
+        let mut node = leaf;
+        for _ in 0..30 {
+            node = ConditionNode {
+                combinator: Some(Combinator::All),
+                children: Some(vec![node]),
+                field: None,
+                operator: None,
+                value: None,
+            };
+        }
+        let context = serde_json::json!({"status": "active"});
+        let result = ConditionEvaluator::evaluate(&node, &context);
+        assert!(
+            result.is_ok(),
+            "深度制限以内のネストは正常に評価される必要があります"
+        );
+        assert!(result.unwrap());
     }
 }

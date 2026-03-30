@@ -15,6 +15,12 @@ use k1s0_core::commands::validate::navigation::NavigationYaml;
 ///
 /// プロンプトの入出力・ファイル操作・YAML パースに失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
+    // 非インタラクティブ環境（CI/CD、非TTY）では対話的プロンプトが使用できないため早期終了する
+    if crate::prompt::is_non_interactive() {
+        eprintln!("このコマンドは対話的な入力が必要です。TTY環境で実行してください。");
+        return Err(anyhow::anyhow!("非インタラクティブ環境では実行できません: K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません"));
+    }
+
     println!("\n--- ナビゲーション型ファイル生成 ---\n");
 
     // Step 1: navigation.yaml のパス
@@ -23,7 +29,22 @@ pub fn run() -> Result<()> {
         .default("navigation.yaml".to_string())
         .interact_text()?;
 
-    let content = fs::read_to_string(&nav_path).map_err(|e| anyhow::anyhow!("{nav_path}: {e}"))?;
+    // HIGH-A2 監査対応: ユーザー入力パスを canonicalize してパストラバーサルを防止する。
+    // ../../../etc/passwd のような traversal を防ぐため、プロジェクトディレクトリ内のパスのみを許可する。
+    let nav_path_buf = std::path::Path::new(&nav_path)
+        .canonicalize()
+        .map_err(|e| {
+            anyhow::anyhow!("navigation.yaml へのアクセスに失敗しました '{nav_path}': {e}")
+        })?;
+    let cwd = std::env::current_dir()
+        .map_err(|e| anyhow::anyhow!("カレントディレクトリの取得に失敗しました: {e}"))?;
+    if !nav_path_buf.starts_with(&cwd) {
+        anyhow::bail!(
+            "セキュリティエラー: navigation.yaml はプロジェクトディレクトリ内にある必要があります: {nav_path}"
+        );
+    }
+    let content =
+        fs::read_to_string(&nav_path_buf).map_err(|e| anyhow::anyhow!("{nav_path}: {e}"))?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("navigation.yaml のパースエラー: {e}"))?;
 

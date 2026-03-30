@@ -2,6 +2,8 @@ use anyhow::Context;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
+// C-005 監査対応: 暗号化キーの hex デコードに使用する
+use hex;
 
 use tracing::info;
 
@@ -23,6 +25,7 @@ use super::kafka_producer::{
 };
 use crate::adapter::grpc::NotificationGrpcService;
 use crate::adapter::repository::channel_postgres::ChannelPostgresRepository;
+// C-005 監査対応: 暗号化キーの hex デコードに使用する
 use crate::adapter::repository::notification_log_postgres::NotificationLogPostgresRepository;
 use crate::adapter::repository::template_postgres::TemplatePostgresRepository;
 use crate::domain::entity::notification_channel::NotificationChannel;
@@ -33,6 +36,7 @@ use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
 use k1s0_server_common::startup::{ObservabilityFields, ServerBuilder};
+use secrecy::ExposeSecret;
 
 pub async fn run() -> anyhow::Result<()> {
     // 設定ファイルを読み込む
@@ -71,8 +75,22 @@ pub async fn run() -> anyhow::Result<()> {
         let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
         info!("PostgreSQL connection established");
 
+        // C-005 監査対応: 設定からチャンネル暗号化キーを取得して hex デコードする
+        let channel_encryption_key = cfg.notification.channel_config_encryption_key
+            .as_ref()
+            .map(|k| -> anyhow::Result<[u8; 32]> {
+                let bytes = hex::decode(k.expose_secret())
+                    .map_err(|e| anyhow::anyhow!("channel_config_encryption_key の hex デコードに失敗: {}", e))?;
+                bytes.try_into()
+                    .map_err(|_| anyhow::anyhow!("channel_config_encryption_key は64文字の hex（32バイト）である必要があります"))
+            })
+            .transpose()?;
+
         (
-            Arc::new(ChannelPostgresRepository::new(pool.clone())),
+            Arc::new(ChannelPostgresRepository::new(
+                pool.clone(),
+                channel_encryption_key,
+            )),
             Arc::new(NotificationLogPostgresRepository::new(pool.clone())),
             Arc::new(TemplatePostgresRepository::new(pool)),
         )
@@ -163,13 +181,12 @@ pub async fn run() -> anyhow::Result<()> {
 
     if let Ok(webhook_url) = std::env::var("WEBHOOK_URL") {
         // MED-8 監査対応: WEBHOOK_URL の形式を起動時に検証する
-        reqwest::Url::parse(&webhook_url)
-            .context("WEBHOOK_URL が有効な URL ではありません")?;
+        reqwest::Url::parse(&webhook_url).context("WEBHOOK_URL が有効な URL ではありません")?;
+        // H-18: タイムアウト付き WebhookDeliveryClient を構築する。失敗時は起動エラーとして伝播する
+        let webhook_client = WebhookDeliveryClient::new(webhook_url, None)
+            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {}", e))?;
         info!("Webhook delivery client initialized");
-        delivery_clients.insert(
-            "webhook".to_string(),
-            Arc::new(WebhookDeliveryClient::new(webhook_url, None)),
-        );
+        delivery_clients.insert("webhook".to_string(), Arc::new(webhook_client));
     } else {
         info!("WEBHOOK_URL not configured, skipping webhook delivery client");
     }
@@ -293,13 +310,19 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.auth
             .as_ref()
             .map(|auth_cfg| -> anyhow::Result<_> {
-                // ServerBuilder の init_jwks_verifier で JWKS 検証器を構築する
+                // ServerBuilder の init_jwks_verifier で JWKS 検証器を構築する（nested 形式）
                 let jwks_verifier = server
                     .init_jwks_verifier(&k1s0_server_common::startup::JwksAuthConfig {
-                        jwks_url: auth_cfg.jwks_url.clone(),
-                        issuer: auth_cfg.issuer.clone(),
-                        audience: auth_cfg.audience.clone(),
-                        cache_ttl_secs: auth_cfg.jwks_cache_ttl_secs,
+                        jwt: k1s0_server_common::startup::JwksAuthJwtConfig {
+                            issuer: auth_cfg.jwt.issuer.clone(),
+                            audience: auth_cfg.jwt.audience.clone(),
+                        },
+                        jwks: auth_cfg.jwks.as_ref().map(|j| {
+                            k1s0_server_common::startup::JwksAuthJwksConfig {
+                                url: j.url.clone(),
+                                cache_ttl_secs: j.cache_ttl_secs,
+                            }
+                        }),
                     })
                     .context("JWKS 検証器の作成に失敗")?;
                 Ok(adapter::middleware::auth::AuthState {

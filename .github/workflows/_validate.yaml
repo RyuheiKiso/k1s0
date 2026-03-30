@@ -228,6 +228,25 @@ jobs:
           severity: MEDIUM,HIGH,CRITICAL
           exit-code: 1
 
+  # M-008 監査対応: kustomize build による k8s マニフェスト構文検証を CI に組み込む
+  # Docker Desktop k8s がない環境でも、kustomize build でマニフェストの構文・参照整合性を確認する
+  # H-003 対応: 実クラスターなしでのマニフェスト品質保証を自動化する
+  kustomize-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Setup kustomize
+        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35351b55f # v2
+        with:
+          kustomize-version: "5.4.3"
+      - name: kustomize build でマニフェスト構文・参照整合性を検証する
+        shell: bash
+        run: |
+          kustomize build infra/kubernetes/ > /dev/null
+          echo "kustomize build: 成功（infra/kubernetes/）"
+
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:
     runs-on: ubuntu-latest

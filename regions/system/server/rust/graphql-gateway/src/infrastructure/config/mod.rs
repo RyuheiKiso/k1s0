@@ -98,27 +98,48 @@ impl Default for GraphQLConfig {
     }
 }
 
+/// 認証設定（JWT検証とJWKS取得を管理する）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    /// JWKS エンドポイント URL
-    #[serde(default = "default_jwks_url")]
-    pub jwks_url: String,
-    // JWT 発行者検証用 issuer（省略時は検証をスキップ）
-    pub issuer: Option<String>,
-    // JWT 対象者検証用 audience（省略時は検証をスキップ）
-    pub audience: Option<String>,
+    /// JWT トークン検証設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイント設定（省略時は JWKS 検証をスキップする）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
 }
 
-fn default_jwks_url() -> String {
-    "http://auth-server.k1s0-system.svc.cluster.local/jwks".to_string()
+/// JWT トークン検証設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者 URL（Keycloak realm URL）
+    pub issuer: String,
+    /// JWT 受信者識別子
+    pub audience: String,
+}
+
+/// JWKS エンドポイント設定
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ有効期限（秒）
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュのデフォルト有効期限（300秒）
+fn default_jwks_cache_ttl_secs() -> u64 {
+    300
 }
 
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            jwks_url: default_jwks_url(),
-            issuer: None,
-            audience: None,
+            jwt: JwtConfig {
+                issuer: String::new(),
+                audience: String::new(),
+            },
+            jwks: None,
         }
     }
 }
@@ -359,27 +380,27 @@ impl Config {
             anyhow::bail!("server.port must be > 0");
         }
         // MED-7 監査対応: issuer/audience が空文字で設定されている場合は起動を拒否する。
-        // Some("") は設定ミスの可能性が高く、JWT 検証を無効化するリスクがある。
-        if let Some(issuer) = &self.auth.issuer {
-            if issuer.is_empty() {
-                anyhow::bail!("auth.issuer must not be empty string; omit the field to skip validation");
-            }
+        // 空文字は設定ミスの可能性が高く、JWT 検証を無効化するリスクがある。
+        if self.auth.jwt.issuer.is_empty() {
+            anyhow::bail!("auth.jwt.issuer must not be empty string");
         }
-        if let Some(audience) = &self.auth.audience {
-            if audience.is_empty() {
-                anyhow::bail!("auth.audience must not be empty string; omit the field to skip validation");
-            }
-        }
-        // 本番環境では issuer/audience が設定されていない場合は起動を拒否する。
-        // 開発環境（development/dev）では省略可能とし、後方互換性を維持する。
-        if self.app.environment == "production" {
-            if self.auth.issuer.is_none() {
-                anyhow::bail!("auth.issuer is required in production environment");
-            }
-            if self.auth.audience.is_none() {
-                anyhow::bail!("auth.audience is required in production environment");
-            }
+        if self.auth.jwt.audience.is_empty() {
+            anyhow::bail!("auth.jwt.audience must not be empty string");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../config/config.docker.yaml");
+        let _config: Config =
+            serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }
 }

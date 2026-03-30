@@ -12,6 +12,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/ratelimit/v
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // RateLimitAlgorithm はレートリミットのアルゴリズム種別。
 enum RateLimitAlgorithm {
@@ -49,8 +51,10 @@ service RateLimitService {
 }
 
 message CheckRateLimitRequest {
-  string scope = 1;
-  string identifier = 2;
+  // スコープは1文字以上128文字以下であること
+  string scope = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 識別子は1文字以上256文字以下であること
+  string identifier = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 window = 3;
 }
 
@@ -67,8 +71,10 @@ message CheckRateLimitResponse {
 }
 
 message CreateRuleRequest {
-  string scope = 1;
-  string identifier_pattern = 2;
+  // スコープは1文字以上128文字以下であること
+  string scope = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 識別子パターンは1文字以上256文字以下であること
+  string identifier_pattern = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 limit = 3;
   int64 window_seconds = 4;
   bool enabled = 5;
@@ -79,7 +85,8 @@ message CreateRuleResponse {
 }
 
 message GetRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetRuleResponse {
@@ -87,9 +94,12 @@ message GetRuleResponse {
 }
 
 message UpdateRuleRequest {
-  string rule_id = 1;
-  string scope = 2;
-  string identifier_pattern = 3;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
+  // スコープは1文字以上128文字以下であること
+  string scope = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 識別子パターンは1文字以上256文字以下であること
+  string identifier_pattern = 3 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 limit = 4;
   int64 window_seconds = 5;
   bool enabled = 6;
@@ -100,7 +110,8 @@ message UpdateRuleResponse {
 }
 
 message DeleteRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteRuleResponse {
@@ -140,7 +151,8 @@ message RateLimitRule {
 }
 
 message GetUsageRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetUsageResponse {
@@ -160,8 +172,10 @@ message GetUsageResponse {
 }
 
 message ResetLimitRequest {
-  string scope = 1;
-  string identifier = 2;
+  // スコープは1文字以上128文字以下であること
+  string scope = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 識別子は1文字以上256文字以下であること
+  string identifier = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 message ResetLimitResponse {

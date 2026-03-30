@@ -77,9 +77,11 @@ config:
   mountPath: /etc/app
   data: {}
 
+# H-03 監査対応: 誤設定の "service" ロールから正しい個別ロール "service-catalog" に変更する（ADR-0045 参照）。
+# service-catalog は system tier に属しており、service tier の Vault ロールを使用するのは誤りだった。
 vault:
   enabled: true
-  role: "service"
+  role: "service-catalog"
   secrets:
     - path: "secret/data/k1s0/service/service-catalog/database"
       key: "password"

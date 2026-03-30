@@ -37,9 +37,15 @@ k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"]
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 k1s0-auth = { path = "../../../library/rust/auth" }
 k1s0-server-common = { path = "../../../library/rust/server-common", features = ["auth", "axum", "shutdown", "startup", "startup-auth", "grpc-auth"] }
+# C-005 監査対応: channels.config の AES-256-GCM 暗号化に使用する
+k1s0-encryption = { path = "../../../library/rust/encryption" }
+# 暗号化キーの hex デコードに使用する
+hex = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "builder", "hostname"] }
 reqwest = {workspace = true}
+# SSRF 対策: webhook URL のスキーム・ホスト・プライベートIPアドレスを検証するために使用する
+url = {workspace = true}
 handlebars = "6"
 utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}

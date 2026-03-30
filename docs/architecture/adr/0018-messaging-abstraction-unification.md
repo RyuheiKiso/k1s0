@@ -91,3 +91,10 @@ k1s0 モノリポには現在、同種のメッセージング抽象を提供す
 
 各サービスの Cargo.toml に `# TODO: k1s0-outbox::OutboxEventPoller に移行する（ADR-0018 参照、MEDIUM-CODE-01 監査対応）` コメントが残存している。
 移行完了の基準: `k1s0-outbox` クレートの全機能が本 ADR の要件を満たし、全コンシューマーが移行済みであること。
+
+### 2026-03-29 時点の進捗サマリー
+
+- **messaging ライブラリ**: 正規化済み（canonical 指定完了）
+- **task/board/activity サービス**: 各サービスが独自 `OutboxEventPoller` を実装中。`k1s0-outbox` クレートへの移行は未着手だが、Outbox パターン自体は ~80% のサービスで導入済み
+- **business 層サービス**: messaging ライブラリへの移行中。deprecated ライブラリへの新規依存は停止済み
+- **deprecated ライブラリ**: `building-blocks`・`pubsub`・`event-bus` の 3 ライブラリは deprecated マーキング済み。既存の依存箇所は段階的に除去中

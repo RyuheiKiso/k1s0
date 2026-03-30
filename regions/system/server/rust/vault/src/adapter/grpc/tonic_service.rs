@@ -237,7 +237,10 @@ impl VaultService for VaultServiceTonic {
         Ok(Response::new(ProtoListAuditLogsResponse {
             logs,
             // LOW-12 監査対応: next_cursor を文字列として返す
-            next_cursor: resp.next_cursor.map(|id| id.to_string()).unwrap_or_default(),
+            next_cursor: resp
+                .next_cursor
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
             pagination: None,
         }))
     }

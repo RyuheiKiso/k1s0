@@ -37,9 +37,7 @@ impl GetSessionUseCase {
 
         // セッションが存在するか確認し、期限切れの場合は Expired エラーを返す
         match session {
-            Some(s) if s.is_expired() => {
-                Err(SessionError::Expired(s.id.clone()))
-            }
+            Some(s) if s.is_expired() => Err(SessionError::Expired(s.id.clone())),
             Some(s) => Ok(GetSessionOutput { session: s }),
             None => Err(SessionError::NotFound("session not found".to_string())),
         }

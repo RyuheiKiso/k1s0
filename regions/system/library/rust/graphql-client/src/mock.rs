@@ -88,7 +88,9 @@ impl GraphQlClient for MockGraphQlClient {
             .lock()
             .expect("execute_responses ロック取得に失敗")
             .pop_front()
-            .ok_or_else(|| ClientError::RequestError("execute のモック返却値が未設定".to_string()))?;
+            .ok_or_else(|| {
+                ClientError::RequestError("execute のモック返却値が未設定".to_string())
+            })?;
 
         // Value → T に変換して GraphQlResponse<T> を構築する
         convert_response(response)

@@ -275,6 +275,8 @@ CREATE INDEX IF NOT EXISTS idx_service_scorecards_overall ON service_catalog.ser
 | `006_create_service_docs.down.sql` | テーブル削除 |
 | `007_create_service_scorecards.up.sql` | service_scorecards テーブル・制約・インデックス作成 |
 | `007_create_service_scorecards.down.sql` | テーブル削除 |
+| `008_add_uuid_defaults.up.sql` | services・teams・service_docs の PK に DEFAULT gen_random_uuid() 追加（H-011 監査対応） |
+| `008_add_uuid_defaults.down.sql` | UUID デフォルト値削除 |
 
 ---
 

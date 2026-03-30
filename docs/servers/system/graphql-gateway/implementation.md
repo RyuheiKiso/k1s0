@@ -171,7 +171,9 @@ axum-test = "17"
     let workflow_client = Arc::new(WorkflowGrpcClient::connect(&cfg.backends.workflow).await?);
 
     // --- JWT 検証 ---
-    let jwks_verifier = Arc::new(JwksVerifier::new(cfg.auth.jwks_url.clone()));
+    // H-005 監査対応: nested 形式の AuthConfig から JWKS URL を取得する
+    let jwks_url = cfg.auth.jwks.as_ref().map(|j| j.url.as_str()).unwrap_or_default();
+    let jwks_verifier = Arc::new(JwksVerifier::new(jwks_url.to_string()));
 
     // --- GatewayClients ---
     let clients = GatewayClients {
@@ -1071,10 +1073,13 @@ pub struct GraphQLConfig {
     pub query_timeout_seconds: u32,
 }
 
+// H-005 監査対応: AuthConfig を nested 形式に統一する（全サービス共通パターン）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    /// JWKS エンドポイント URL
-    pub jwks_url: String,
+    /// JWT トークン検証設定（issuer, audience）
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイント設定（省略時は JWKS 検証なし）
+    pub jwks: Option<JwksConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

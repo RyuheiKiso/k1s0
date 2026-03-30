@@ -77,7 +77,7 @@ impl SqlxMigrationRunner {
     }
 
     async fn ensure_migrations_table(&self) -> Result<(), MigrationError> {
-        let table_sql = CREATE_MIGRATIONS_TABLE.replace("_migrations", &self.config.table_name);
+        let table_sql = CREATE_MIGRATIONS_TABLE.replace("_migrations", self.config.table_name());
         sqlx::query(&table_sql)
             .execute(&self.pool)
             .await
@@ -88,7 +88,7 @@ impl SqlxMigrationRunner {
     async fn load_applied(&self) -> Result<Vec<MigrationStatus>, MigrationError> {
         let query = format!(
             "SELECT version, name, checksum, applied_at FROM {} ORDER BY version ASC",
-            self.config.table_name
+            self.config.table_name()
         );
         let rows = sqlx::query(&query)
             .fetch_all(&self.pool)
@@ -120,7 +120,7 @@ impl SqlxMigrationRunner {
     ) -> Result<(), MigrationError> {
         let query = format!(
             "INSERT INTO {} (version, name, checksum) VALUES ($1, $2, $3)",
-            self.config.table_name
+            self.config.table_name()
         );
         sqlx::query(&query)
             .bind(version)
@@ -140,7 +140,10 @@ impl SqlxMigrationRunner {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         version: &str,
     ) -> Result<(), MigrationError> {
-        let query = format!("DELETE FROM {} WHERE version = $1", self.config.table_name);
+        let query = format!(
+            "DELETE FROM {} WHERE version = $1",
+            self.config.table_name()
+        );
         sqlx::query(&query)
             .bind(version)
             .execute(&mut **tx)
@@ -334,7 +337,7 @@ mod tests {
         // We can't actually create a PgPool without a live DB, but we can verify the config
         let config =
             MigrationConfig::new(PathBuf::from("."), "postgres://localhost/test".to_string());
-        assert_eq!(config.table_name, "_migrations");
+        assert_eq!(config.table_name(), "_migrations");
     }
 
     // 適用済みマップが空の場合に全マイグレーションが applied_at = None のステータスになることを確認する。

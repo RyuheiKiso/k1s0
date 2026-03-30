@@ -14,24 +14,53 @@ use super::database::{DatabaseConfig, DatabaseSetup};
 use super::kafka_setup::{KafkaConfig, KafkaSetup};
 use super::stack::{K1s0Stack, Profile};
 
-/// AuthConfig は認証設定を保持する。
+/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
 #[cfg(feature = "auth")]
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
+    /// JWT トークンの検証に使用する issuer / audience 設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイントの設定（オプション）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
+}
+
+/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+#[cfg(feature = "auth")]
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者（issuer）
     pub issuer: String,
+    /// JWT 対象者（audience）
     pub audience: String,
+}
+
+/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+#[cfg(feature = "auth")]
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ TTL（秒）。デフォルト 300 秒。
+    #[serde(default = "default_cache_ttl_secs")]
     pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュ TTL のデフォルト値（300 秒）
+#[cfg(feature = "auth")]
+fn default_cache_ttl_secs() -> u64 {
+    300
 }
 
 #[cfg(feature = "auth")]
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            jwks_url: String::new(),
-            issuer: String::new(),
-            audience: String::new(),
-            cache_ttl_secs: 600,
+            jwt: JwtConfig {
+                issuer: String::new(),
+                audience: String::new(),
+            },
+            jwks: None,
         }
     }
 }

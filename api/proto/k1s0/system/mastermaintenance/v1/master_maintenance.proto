@@ -9,6 +9,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/mastermaint
 
 import "google/protobuf/struct.proto";
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service MasterMaintenanceService {
   // テーブル定義
@@ -76,7 +78,8 @@ message CreateTableDefinitionResponse {
 }
 
 message UpdateTableDefinitionRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   google.protobuf.Struct data = 2;
   string domain_scope = 3;
 }
@@ -86,7 +89,8 @@ message UpdateTableDefinitionResponse {
 }
 
 message DeleteTableDefinitionRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string domain_scope = 2;
 }
 
@@ -96,7 +100,8 @@ message DeleteTableDefinitionResponse {
 
 // テーブル定義取得リクエスト
 message GetTableDefinitionRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string domain_scope = 2;
 }
 
@@ -177,8 +182,10 @@ message ListTableDefinitionsResponse {
 
 // レコード取得リクエスト
 message GetRecordRequest {
-  string table_name = 1;
-  string record_id = 2;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // レコードIDは1文字以上256文字以下であること
+  string record_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   string domain_scope = 3;
 }
 
@@ -200,7 +207,8 @@ message UpdateRecordResponse {
 
 // レコード一覧リクエスト
 message ListRecordsRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   k1s0.system.common.v1.Pagination pagination = 2;
   string sort = 3;
   string filter = 4;
@@ -216,23 +224,28 @@ message ListRecordsResponse {
 
 // レコード作成リクエスト
 message CreateRecordRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   google.protobuf.Struct data = 2;
   string domain_scope = 3;
 }
 
 // レコード更新リクエスト
 message UpdateRecordRequest {
-  string table_name = 1;
-  string record_id = 2;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // レコードIDは1文字以上256文字以下であること
+  string record_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   google.protobuf.Struct data = 3;
   string domain_scope = 4;
 }
 
 // レコード削除リクエスト
 message DeleteRecordRequest {
-  string table_name = 1;
-  string record_id = 2;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // レコードIDは1文字以上256文字以下であること
+  string record_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   string domain_scope = 3;
 }
 
@@ -265,7 +278,8 @@ message CreateRuleResponse {
 }
 
 message GetRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetRuleResponse {
@@ -273,7 +287,8 @@ message GetRuleResponse {
 }
 
 message UpdateRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
   google.protobuf.Struct data = 2;
 }
 
@@ -282,7 +297,8 @@ message UpdateRuleResponse {
 }
 
 message DeleteRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteRuleResponse {
@@ -302,7 +318,8 @@ message ListRulesResponse {
 }
 
 message ExecuteRuleRequest {
-  string rule_id = 1;
+  // ルールIDは1文字以上であること
+  string rule_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message ExecuteRuleResponse {
@@ -347,7 +364,8 @@ message ValidationWarning {
 
 // テーブルスキーマ取得リクエスト
 message GetTableSchemaRequest {
-  string table_name = 1;
+  // テーブル名は1文字以上128文字以下であること
+  string table_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 // テーブルスキーマレスポンス
@@ -440,7 +458,8 @@ message ExportRecordsResponse {
 }
 
 message GetImportJobRequest {
-  string import_job_id = 1;
+  // インポートジョブIDは1文字以上であること
+  string import_job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetImportJobResponse {

@@ -58,7 +58,8 @@ export function ConfigEditorPage({
   }
 
   if (error) {
-    return <div role="alert">{error}</div>;
+    // M-21 監査対応: エラー詳細をそのまま表示すると内部情報が漏洩するため汎用メッセージを表示する
+    return <div role="alert">設定の読み込み中にエラーが発生しました。しばらく経ってから再試行してください。</div>;
   }
 
   const activeData =

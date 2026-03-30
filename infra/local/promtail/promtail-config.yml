@@ -10,6 +10,8 @@ server:
 positions:
   filename: /tmp/positions.yaml
 
+# L-06 監査対応: Docker ネットワーク内では "loki" はサービス名 DNS で FQDN の役割を果たす。
+# Kubernetes 本番環境では loki.k1s0-system.svc.cluster.local を使用すること（infra/helm 参照）。
 clients:
   - url: http://loki:3100/loki/api/v1/push
 

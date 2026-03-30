@@ -82,7 +82,9 @@ func (c *DeviceAuthClient) RequestDeviceCode(ctx context.Context, clientID, scop
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	// L-16 監査対応: レスポンスボディのサイズを 1MB に制限する。
+	// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある。
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -124,7 +126,8 @@ func (c *DeviceAuthClient) PollToken(ctx context.Context, clientID, deviceCode s
 			return nil, fmt.Errorf("token request failed: %w", err)
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		// L-16 監査対応: レスポンスボディのサイズを 1MB に制限する（メモリ枯渇防止）
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read response: %w", err)

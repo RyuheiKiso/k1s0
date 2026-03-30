@@ -70,7 +70,8 @@ impl AppRepository for AppPostgresRepository {
         let search = search.as_deref();
 
         // CRIT-4 監査対応: ILIKE 検索前に %_\ をエスケープして意図しない全件マッチを防止する
-        let escaped_search = search.map(|q| escape_like_pattern(q));
+        // escape_like_pattern 関数をクロージャで包む必要はないため、関数参照で簡潔に記述する
+        let escaped_search = search.map(escape_like_pattern);
         let search = escaped_search.as_deref();
 
         let rows = if let (Some(cat), Some(q)) = (category, search) {

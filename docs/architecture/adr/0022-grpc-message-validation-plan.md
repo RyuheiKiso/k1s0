@@ -11,13 +11,48 @@
 | フェーズ | 内容 | 期限 | 状態 |
 |---------|------|------|------|
 | Phase 1 | `auth.proto` と `task.proto` への buf validate 適用（buf.yaml 依存追加・フィールドルール追加） | 2026-04-14 | **✅ 完了（2026-03-29）** |
-| Phase 2 | 全 proto ファイルへの拡張（Go: protovalidate-go Interceptor, Rust: prost-validate ミドルウェア） | 2026-05-12 | 未着手 |
+| Phase 2 | 全 proto ファイルへの拡張（Go: protovalidate-go Interceptor, Rust: prost-validate ミドルウェア） | 2026-05-12 | **✅ 完了（2026-03-30）** |
 
 ### Phase 1 実施内容（H-15 監査対応）
 
 - `api/proto/buf.yaml` に `buf.build/bufbuild/protovalidate` 依存を追加
 - `auth.proto`: ValidateTokenRequest.token（min_len=1）、GetUserRequest.user_id（UUID）、GetUserRolesRequest.user_id（UUID）、CheckPermissionRequest.permission/resource（文字列長制限）にルールを追加
 - `task.proto`: CreateTaskRequest.project_id/title（UUID/文字列長）、GetTaskRequest.task_id（UUID）、UpdateTaskStatusRequest.task_id/status/expected_version にルールを追加
+
+### Phase 2 実施内容（M-22 監査対応）
+
+全 21 ファイルへの拡張を完了（2026-03-30）。各 Request メッセージの必須フィールドに buf validate アノテーションを追加した。
+
+| ファイル | 追加バリデーション数 |
+|---------|------------|
+| `notification.proto` | 11 フィールド |
+| `workflow.proto` | 14 フィールド |
+| `saga.proto` | 5 フィールド |
+| `search.proto` | 7 フィールド |
+| `dlq.proto` | 3 フィールド |
+| `policy.proto` | 8 フィールド |
+| `quota.proto` | 10 フィールド |
+| `ratelimit.proto` | 12 フィールド |
+| `event_store.proto` | 10 フィールド |
+| `event_monitor.proto` | 9 フィールド |
+| `rule_engine.proto` | 14 フィールド |
+| `master_maintenance.proto` | 18 フィールド |
+| `file.proto` | 10 フィールド |
+| `api_registry.proto` | 13 フィールド |
+| `service_catalog.proto` | 8 フィールド |
+| `navigation.proto` | import のみ（bearer_token は省略可能なため） |
+| `config.proto` | 11 フィールド |
+| `vault.proto` | 5 フィールド |
+| `scheduler.proto` | 11 フィールド |
+| `board.proto` | 7 フィールド |
+| `activity.proto` | 6 フィールド |
+
+**合計: 約 192 フィールドへのバリデーション追加**
+
+適用したバリデーションルール:
+- UUID フィールド: `(buf.validate.field).string.uuid = true`
+- 必須 string フィールド: `(buf.validate.field).string.min_len = 1`
+- 文字列長制限付き string フィールド: `(buf.validate.field).string = {min_len: 1, max_len: N}`
 
 ## コンテキスト
 

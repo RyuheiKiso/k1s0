@@ -35,6 +35,8 @@ probes:
     initialDelaySeconds: 10
     periodSeconds: 15
     failureThreshold: 3
+    # M-08 監査対応: timeoutSeconds を明示的に設定して遅い応答による誤検知を防止する
+    timeoutSeconds: 3
   readiness:
     httpGet:
       path: /readyz
@@ -42,6 +44,18 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 5
     failureThreshold: 3
+    # M-08 監査対応: timeoutSeconds を明示的に設定する
+    timeoutSeconds: 3
+  # M-08 監査対応: startupProbe を追加して起動完了前の liveness 誤検知を防止する
+  # graphql-gateway は JWKS キャッシュ初期化等で起動時間がかかる場合があるため特に重要
+  startup:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
 
 service:
   type: ClusterIP
@@ -78,9 +92,10 @@ config:
   mountPath: /etc/app
   data: {}
 
+# H-03 監査対応: 単一 "system" ロールから個別ロール "graphql-gateway" に変更する（ADR-0045 参照）。
 vault:
   enabled: true
-  role: "system"
+  role: "graphql-gateway"
   secrets:
     - path: "secret/data/k1s0/system/graphql-gateway/auth"
       key: "jwks-signing-key"

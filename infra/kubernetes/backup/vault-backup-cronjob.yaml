@@ -62,6 +62,12 @@ spec:
               env:
                 - name: VAULT_ADDR
                   value: "https://vault.k1s0-system.svc.cluster.local:8200"
+                # L-02 監査対応: トークンの TTL は最小権限の原則に従い短く設定すること。
+                # 推奨 TTL: 1h（バックアップジョブの最大実行時間 600s より十分長く、
+                # かつ漏洩時のリスクを最小化する）。
+                # トークンは Vault の token renewal ポリシーでローテーションし、
+                # CronJob 実行ごとに新しいトークンを動的に発行する運用を推奨する。
+                # 参考: Vault Token TTL — https://developer.hashicorp.com/vault/docs/concepts/tokens#token-time-to-live-periodic-tokens-and-explicit-max-ttls
                 - name: VAULT_TOKEN
                   valueFrom:
                     secretKeyRef:

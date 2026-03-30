@@ -32,10 +32,7 @@ impl ListAuditLogsUseCase {
         Self { repo }
     }
 
-    pub async fn execute(
-        &self,
-        input: &ListAuditLogsInput,
-    ) -> anyhow::Result<ListAuditLogsOutput> {
+    pub async fn execute(&self, input: &ListAuditLogsInput) -> anyhow::Result<ListAuditLogsOutput> {
         let (logs, next_cursor) = self.repo.list(input.after_id, input.limit).await?;
         Ok(ListAuditLogsOutput { logs, next_cursor })
     }

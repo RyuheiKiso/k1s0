@@ -15,6 +15,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/workflow/v1
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // WorkflowStepType はワークフローステップの種別。
 enum WorkflowStepType {
@@ -80,7 +82,8 @@ message ListWorkflowsResponse {
 }
 
 message CreateWorkflowRequest {
-  string name = 1;
+  // ワークフロー名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
   bool enabled = 3;
   repeated WorkflowStep steps = 4;
@@ -91,7 +94,8 @@ message CreateWorkflowResponse {
 }
 
 message GetWorkflowRequest {
-  string workflow_id = 1;
+  // ワークフローIDは1文字以上であること
+  string workflow_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetWorkflowResponse {
@@ -103,7 +107,8 @@ message WorkflowSteps {
 }
 
 message UpdateWorkflowRequest {
-  string workflow_id = 1;
+  // ワークフローIDは1文字以上であること
+  string workflow_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string name = 2;
   optional string description = 3;
   optional bool enabled = 4;
@@ -115,7 +120,8 @@ message UpdateWorkflowResponse {
 }
 
 message DeleteWorkflowRequest {
-  string workflow_id = 1;
+  // ワークフローIDは1文字以上であること
+  string workflow_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteWorkflowResponse {
@@ -124,9 +130,12 @@ message DeleteWorkflowResponse {
 }
 
 message StartInstanceRequest {
-  string workflow_id = 1;
-  string title = 2;
-  string initiator_id = 3;
+  // ワークフローIDは1文字以上であること
+  string workflow_id = 1 [(buf.validate.field).string.min_len = 1];
+  // タイトルは1文字以上256文字以下であること
+  string title = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // 開始者IDは1文字以上であること
+  string initiator_id = 3 [(buf.validate.field).string.min_len = 1];
   // ワークフロー実行コンテキスト（JSON バイト列）
   bytes context_json = 4;
 }
@@ -145,7 +154,8 @@ message StartInstanceResponse {
 }
 
 message GetInstanceRequest {
-  string instance_id = 1;
+  // インスタンスIDは1文字以上であること
+  string instance_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetInstanceResponse {
@@ -165,7 +175,8 @@ message ListInstancesResponse {
 }
 
 message CancelInstanceRequest {
-  string instance_id = 1;
+  // インスタンスIDは1文字以上であること
+  string instance_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string reason = 2;
 }
 
@@ -202,10 +213,13 @@ message ListTasksResponse {
 }
 
 message ReassignTaskRequest {
-  string task_id = 1;
-  string new_assignee_id = 2;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // 新しい担当者IDは1文字以上であること
+  string new_assignee_id = 2 [(buf.validate.field).string.min_len = 1];
   optional string reason = 3;
-  string actor_id = 4;
+  // 操作者IDは1文字以上であること
+  string actor_id = 4 [(buf.validate.field).string.min_len = 1];
 }
 
 message ReassignTaskResponse {
@@ -230,8 +244,10 @@ message WorkflowInstance {
 }
 
 message ApproveTaskRequest {
-  string task_id = 1;
-  string actor_id = 2;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // 操作者IDは1文字以上であること
+  string actor_id = 2 [(buf.validate.field).string.min_len = 1];
   optional string comment = 3;
 }
 
@@ -245,8 +261,10 @@ message ApproveTaskResponse {
 }
 
 message RejectTaskRequest {
-  string task_id = 1;
-  string actor_id = 2;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // 操作者IDは1文字以上であること
+  string actor_id = 2 [(buf.validate.field).string.min_len = 1];
   optional string comment = 3;
 }
 

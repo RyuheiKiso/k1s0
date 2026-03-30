@@ -7,6 +7,8 @@ package k1s0.system.servicecatalog.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/servicecatalog/v1;servicecatalogv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // ServiceCatalogService はサービスカタログの CRUD とヘルスチェックを提供する。
 service ServiceCatalogService {
@@ -69,14 +71,20 @@ message ServiceInfo {
 
 // RegisterServiceRequest はサービス登録リクエスト。
 message RegisterServiceRequest {
-  string name = 1;
-  string display_name = 2;
+  // サービス名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 表示名は1文字以上256文字以下であること
+  string display_name = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   string description = 3;
-  string tier = 4;
-  string version = 5;
-  string base_url = 6;
+  // Tier は1文字以上64文字以下であること（例: system, business, service）
+  string tier = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // バージョンは1文字以上64文字以下であること
+  string version = 5 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // ベース URL は1文字以上512文字以下であること
+  string base_url = 6 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   optional string grpc_endpoint = 7;
-  string health_url = 8;
+  // ヘルスチェック URL は1文字以上512文字以下であること
+  string health_url = 8 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   map<string, string> metadata = 9;
 }
 
@@ -91,8 +99,8 @@ message RegisterServiceResponse {
 
 // GetServiceRequest はサービス取得リクエスト。
 message GetServiceRequest {
-  // サービス UUID または名前
-  string service_id = 1;
+  // サービス UUID または名前（1文字以上であること）
+  string service_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetServiceResponse はサービス取得レスポンス。
@@ -127,7 +135,8 @@ message ListServicesResponse {
 
 // UpdateServiceRequest はサービス更新リクエスト。
 message UpdateServiceRequest {
-  string service_id = 1;
+  // サービス IDは1文字以上であること
+  string service_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string display_name = 2;
   optional string description = 3;
   optional string version = 4;
@@ -148,7 +157,8 @@ message UpdateServiceResponse {
 
 // DeleteServiceRequest はサービス削除リクエスト。
 message DeleteServiceRequest {
-  string service_id = 1;
+  // サービス IDは1文字以上であること
+  string service_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // DeleteServiceResponse はサービス削除レスポンス。

@@ -8,10 +8,12 @@ server:
   grpc_port: 50062
 
 auth:
-  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://keycloak:8080/realms/k1s0"
-  audience: "k1s0-api"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300
 
 ai_gateway:
   internal_endpoint: "http://ai-gateway-rust:8080"

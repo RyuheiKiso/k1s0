@@ -37,11 +37,26 @@ type Claims struct {
 	ResourceAccess map[string]RoleSet `json:"resource_access"`
 	TierAccess     []string           `json:"tier_access"`
 
-	// Deprecated compatibility fields.
-	Iss               string `json:"-"`
-	Aud               string `json:"-"`
-	Exp               int64  `json:"-"`
-	Iat               int64  `json:"-"`
+	// L-15 監査対応: 後方互換フィールド廃止スケジュール
+	// これらのフィールドは旧クライアントとの互換性のために残されているが、
+	// 新規コードでは上記の正式フィールド（Issuer, Audience, ExpiresAt, IssuedAt, Username）を使用すること。
+	//
+	// 廃止タイムライン:
+	//   Phase 1（即時）: 新規コードでの使用を禁止し、既存コードを新フィールドに移行開始
+	//   Phase 2（2026-06-30 完了目標）: 全クライアントを新フィールドへ移行完了
+	//   Phase 3（2026-09-30 完了目標）: これらの後方互換フィールドをコードベースから削除
+	//
+	// 参考: ADR-0020（Deprecated フィールドの段階的移行計画）
+	//
+	// Deprecated: Iss は Issuer を使用すること。
+	Iss string `json:"-"`
+	// Deprecated: Aud は Audience を使用すること。
+	Aud string `json:"-"`
+	// Deprecated: Exp は ExpiresAt を使用すること。
+	Exp int64 `json:"-"`
+	// Deprecated: Iat は IssuedAt を使用すること。
+	Iat int64 `json:"-"`
+	// Deprecated: PreferredUsername は Username を使用すること。
 	PreferredUsername string `json:"-"`
 }
 

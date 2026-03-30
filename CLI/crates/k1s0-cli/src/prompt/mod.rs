@@ -9,11 +9,11 @@ pub use k1s0_core::validate_name;
 
 /// 非インタラクティブモードフラグ。
 /// `main` で一度だけ設定し、以降は読み取り専用で参照する。
-/// AtomicBool を使用してスレッドセーフ性を確保する。
+/// [`AtomicBool`] を使用してスレッドセーフ性を確保する。
 static NON_INTERACTIVE: AtomicBool = AtomicBool::new(false);
 
 /// 非インタラクティブモードを設定する。
-/// main() で --non-interactive / --yes フラグまたは TTY 検出結果を元に呼び出す。
+/// `main()` で `--non-interactive` / `--yes` フラグまたは TTY 検出結果を元に呼び出す。
 pub fn set_non_interactive(value: bool) {
     NON_INTERACTIVE.store(value, Ordering::Relaxed);
 }
@@ -27,9 +27,8 @@ pub fn is_non_interactive() -> bool {
 /// CI/CD 環境での誤用を早期に検出するためにエラーとして伝播する。
 fn non_interactive_error(prompt: &str) -> anyhow::Error {
     anyhow::anyhow!(
-        "非インタラクティブモードでは対話プロンプト '{}' を使用できません。\n\
-        ヒント: サブコマンドに必要な引数をフラグで指定するか、K1S0_NON_INTERACTIVE=false で無効化してください。",
-        prompt
+        "非インタラクティブモードでは対話プロンプト '{prompt}' を使用できません。\n\
+        ヒント: サブコマンドに必要な引数をフラグで指定するか、K1S0_NON_INTERACTIVE=false で無効化してください。"
     )
 }
 
@@ -181,7 +180,9 @@ pub enum ConfirmResult {
 pub fn confirm_prompt() -> anyhow::Result<ConfirmResult> {
     // 非インタラクティブモードでは確認プロンプトを表示できないためエラーとする
     if is_non_interactive() {
-        return Err(non_interactive_error("確認プロンプト（はい/いいえ/キャンセル）"));
+        return Err(non_interactive_error(
+            "確認プロンプト（はい/いいえ/キャンセル）",
+        ));
     }
     let items = &[
         "はい",

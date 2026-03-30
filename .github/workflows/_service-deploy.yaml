@@ -299,8 +299,17 @@ jobs:
           kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ inputs.namespace }} --timeout=120s
           echo "Running health check..."
           kubectl port-forward deploy/${{ inputs.service-name }} -n ${{ inputs.namespace }} 18080:8080 &
-          sleep 3
-          curl -sf http://127.0.0.1:18080/healthz
+          # L-07 監査対応: sleep 3 の代わりに curl --retry でポートフォワード確立を確認する。
+          # ポートフォワードの起動タイミングに依存した固定待機は不安定なため、
+          # 実際に接続が確立されるまでリトライするパターンに変更する。
+          for i in $(seq 1 10); do
+            if curl -sf http://127.0.0.1:18080/healthz; then
+              echo "ヘルスチェック成功"
+              break
+            fi
+            echo "待機中... ($i/10)"
+            sleep 1
+          done
           kill %1 2>/dev/null || true
       # デプロイ結果を GitHub Deployment Status として記録
       - name: デプロイ結果通知

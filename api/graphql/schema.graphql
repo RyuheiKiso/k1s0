@@ -13,6 +13,7 @@ scalar DateTime
 type Query {
   # --- Tenant ---
   tenant(id: ID!): Tenant
+  # first: ページあたりの最大件数（デフォルト: 50, 最大: 100）
   tenants(first: Int, after: String): TenantConnection!
 
   # --- FeatureFlag ---
@@ -32,17 +33,20 @@ type Query {
 
   # --- ServiceCatalog ---
   catalogService(id: ID!): CatalogService
+  # first: ページあたりの最大件数（デフォルト: 50, 最大: 100）
   catalogServices(first: Int, tier: String, status: String, search: String): CatalogServiceConnection!
   serviceHealth(serviceId: String): [ServiceHealth!]!
 
   # --- Auth ---
   user(userId: ID!): User
+  # first: ページあたりの最大件数（デフォルト: 50, 最大: 100）
   users(first: Int, after: Int, search: String, enabled: Boolean): [User!]!
   userRoles(userId: ID!): [Role!]!
   checkPermission(permission: String!, resource: String!, roles: [String!]!, userId: String): PermissionCheck!
   # L-2 監査対応: eventType/result 引数は C-9 対応で追加された AuditEventType/AuditResult enum への移行を推奨する。
   # 新規クライアントは eventTypeEnum/resultEnum フィールドを使用すること（searchAuditLogs は引数変更予定）。
   # 現在は後方互換性のため文字列引数を維持するが、将来のメジャーバージョンで enum 型引数に変更される予定。
+  # first: ページあたりの最大件数（デフォルト: 50, 最大: 100）
   searchAuditLogs(first: Int, after: Int, userId: String, eventType: String, result: String): AuditLogConnection!
 
   # --- Session ---
@@ -52,6 +56,7 @@ type Query {
   # --- Vault ---
   secretMetadata(path: String!): SecretMetadata
   secrets(prefix: String): [String!]!
+  # limit: ページあたりの最大件数（デフォルト: 50, 最大: 100）
   vaultAuditLogs(offset: Int, limit: Int): [VaultAuditLogEntry!]!
 
   # --- Scheduler ---
@@ -401,9 +406,12 @@ type Session {
   userAgent: String
   ipAddress: String
   status: SessionStatus!
-  expiresAt: String!
+  # L-19 監査対応: 日時フィールドを String から DateTime に変更する。
+  # String 型では ISO 8601 フォーマットの強制がなく、クライアント側でのパースが不安定になる。
+  # DateTime スカラー型を使用することで型安全性を確保し、クライアントコードの品質を向上させる。
+  expiresAt: DateTime!
   createdAt: DateTime!
-  lastAccessedAt: String
+  lastAccessedAt: DateTime
 }
 
 # ===========================================================================
@@ -442,8 +450,9 @@ type Job {
   targetType: String!
   target: String!
   status: String!
-  nextRunAt: String
-  lastRunAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  nextRunAt: DateTime
+  lastRunAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -453,8 +462,9 @@ type JobExecution {
   jobId: String!
   status: String!
   triggeredBy: String!
-  startedAt: String!
-  finishedAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  startedAt: DateTime!
+  finishedAt: DateTime
   durationMs: Int
   errorMessage: String
 }
@@ -474,7 +484,8 @@ type NotificationLog {
   status: String!
   retryCount: Int!
   errorMessage: String
-  sentAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  sentAt: DateTime
   createdAt: DateTime!
 }
 
@@ -532,9 +543,12 @@ type WorkflowInstance {
   currentStepId: String
   status: String!
   contextJson: String
-  startedAt: String!
-  completedAt: String
-  createdAt: DateTime
+  # L-20 監査対応: 日時フィールドを適切な型に変更する。
+  # startedAt / completedAt は日時フィールドのため DateTime 型を使用する。
+  # createdAt は NULL 不可フィールドのため DateTime! に修正する（常に存在する値のため）。
+  startedAt: DateTime!
+  completedAt: DateTime
+  createdAt: DateTime!
 }
 
 type WorkflowTask {
@@ -544,10 +558,11 @@ type WorkflowTask {
   stepName: String!
   assigneeId: String
   status: String!
-  dueAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  dueAt: DateTime
   comment: String
   actorId: String
-  decidedAt: String
+  decidedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -646,11 +661,10 @@ type DeleteServicePayload {
 # Auth Input / Payload 型
 # ===========================================================================
 
+# 監査ログ記録用入力型 - セキュリティ上クライアントから提供すべきでないフィールドは除去済み
+# userId: JWT claims から取得、ipAddress/userAgent: リクエストヘッダから取得する
 input RecordAuditLogInput {
   eventType: String!
-  userId: String!
-  ipAddress: String!
-  userAgent: String!
   resource: String!
   action: String!
   result: String!

@@ -83,19 +83,14 @@ fn serve_request(mut stream: std::net::TcpStream, dist_dir: &std::path::Path) {
     };
 
     // パストラバーサル攻撃を防ぐため、解決後のパスが dist_dir の配下であることを検証する（HIGH-GUI-01 監査対応）
-    let canonical_dist = match dist_dir.canonicalize() {
-        Ok(p) => p,
-        Err(_) => {
-            let _ = stream.write_all(b"HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
-            return;
-        }
+    let Ok(canonical_dist) = dist_dir.canonicalize() else {
+        let _ =
+            stream.write_all(b"HTTP/1.1 500 Internal Server Error\r\nConnection: close\r\n\r\n");
+        return;
     };
-    let canonical_file = match file_path.canonicalize() {
-        Ok(p) => p,
-        Err(_) => {
-            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-            return;
-        }
+    let Ok(canonical_file) = file_path.canonicalize() else {
+        let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+        return;
     };
     // 正規化後のパスが dist_dir の配下にない場合は 403 を返す（パストラバーサル防止）
     if !canonical_file.starts_with(&canonical_dist) {

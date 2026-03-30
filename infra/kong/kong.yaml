@@ -130,6 +130,10 @@ services:
             database: 1
             password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
+      # H-01 監査対応: サービス間認証専用の JWT プラグイン設定
+      # グローバル JWT（key_claim_name: iss）との混在を回避するため、
+      # Consumer "service-to-service" にスコープを限定する。
+      # 外部ユーザーが Keycloak トークンで saga エンドポイントにアクセスするのを防止する。
       - name: jwt
         config:
           secret_is_base64: false
@@ -159,6 +163,11 @@ services:
             database: 1
             password: ${KONG_REDIS_PASSWORD}
           fault_tolerant: false
+      # H-01 監査対応: サービス間認証専用の JWT プラグイン設定
+      # グローバル JWT（key_claim_name: iss）との混在を回避するため、
+      # Consumer "service-to-service" にスコープを限定する。
+      # dlq-manager は内部サービスのみが呼び出すエンドポイントであり、
+      # 外部ユーザートークンによるアクセスを拒否する。
       - name: jwt
         config:
           secret_is_base64: false
@@ -641,24 +650,9 @@ services:
           - /api/v1/activities
         strip_path: false
 
-  - name: dashboard-v1
-    url: http://dashboard-server.k1s0-service.svc.cluster.local:80
-    plugins:
-      - name: rate-limiting
-        config:
-          minute: ${KONG_RATE_SERVICE_MINUTE}
-          second: ${KONG_RATE_SERVICE_SECOND}
-          policy: ${KONG_RATE_REDIS_POLICY}
-          redis:
-            host: redis.k1s0-system.svc.cluster.local
-            database: 1
-            password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
-    routes:
-      - name: dashboard-v1-route
-        paths:
-          - /api/v1/dashboard
-        strip_path: false
+# H-05 監査対応: dashboard-v1 サービスを Kong 設定から削除する
+# 理由: dashboard は外部向け API エンドポイントとして不要であり、
+#       意図しない公開エンドポイントの削減によりアタックサーフェスを縮小する
 
 # ============================================================
 # Global Plugins
@@ -803,10 +797,25 @@ plugins:
         - ${KONG_ADMIN_ALLOWED_IPS:-10.244.0.0/16}
 
 # ============================================================
-# Consumers - Keycloak JWKS 連携
+# Consumers - Keycloak JWKS 連携 + サービス間認証
+# H-01 監査対応: グローバル JWT（iss ベース・Keycloak ユーザー認証）と
+# サービス間認証（sub ベース）を Consumer レベルで明示的に分離する。
+# saga-v1 / dlq-manager-v1 は内部サービス呼び出し専用であり、
+# Keycloak ユーザートークンではなくサービスアカウント JWT で認証する。
+# ADR-0057 参照: docs/architecture/adr/0057-kong-jwt-istio-authz-separation.md
 # ============================================================
 consumers:
+  # Keycloak ユーザー認証 Consumer（グローバル JWT プラグイン用）
   - username: keycloak
     jwt_secrets:
       - algorithm: RS256
         key: "${KONG_KEYCLOAK_ISSUER}"
+
+  # サービス間認証専用 Consumer（saga-v1 / dlq-manager-v1 用）
+  # key_claim_name: sub によりサービスアカウントの subject クレームで認証する。
+  # グローバル JWT プラグインの iss ベース認証と衝突しないよう Consumer を分離する。
+  - username: service-to-service
+    jwt_secrets:
+      - algorithm: HS256
+        key: "service-to-service"
+        secret: "${KONG_S2S_JWT_SECRET}"

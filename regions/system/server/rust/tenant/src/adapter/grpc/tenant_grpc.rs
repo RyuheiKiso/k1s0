@@ -576,9 +576,9 @@ impl TenantGrpcService {
             Err(UpdateMemberRoleError::TenantNotFound) => {
                 Err(GrpcError::NotFound("tenant not found".to_string()))
             }
-            Err(UpdateMemberRoleError::InvalidRole(role)) => {
-                Err(GrpcError::InvalidArgument(format!("invalid role: {}", role)))
-            }
+            Err(UpdateMemberRoleError::InvalidRole(role)) => Err(GrpcError::InvalidArgument(
+                format!("invalid role: {}", role),
+            )),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }

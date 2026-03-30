@@ -5,6 +5,8 @@ package k1s0.system.quota.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/quota/v1;quotav1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // QuotaService はクォータポリシー管理サービス。
 service QuotaService {
@@ -48,11 +50,15 @@ message QuotaUsage {
 }
 
 message CreateQuotaPolicyRequest {
-  string name = 1;
-  string subject_type = 2;
-  string subject_id = 3;
+  // ポリシー名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // サブジェクト種別は1文字以上64文字以下であること（例: tenant, user）
+  string subject_type = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // サブジェクトIDは1文字以上256文字以下であること
+  string subject_id = 3 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   uint64 limit = 4;
-  string period = 5;
+  // 期間は1文字以上64文字以下であること（例: daily, monthly）
+  string period = 5 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
   bool enabled = 6;
   optional uint32 alert_threshold_percent = 7;
 }
@@ -62,7 +68,8 @@ message CreateQuotaPolicyResponse {
 }
 
 message GetQuotaPolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetQuotaPolicyResponse {
@@ -86,7 +93,8 @@ message ListQuotaPoliciesResponse {
 }
 
 message UpdateQuotaPolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional bool enabled = 2;
   optional uint64 limit = 3;
   optional string name = 4;
@@ -101,7 +109,8 @@ message UpdateQuotaPolicyResponse {
 }
 
 message DeleteQuotaPolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteQuotaPolicyResponse {
@@ -110,7 +119,8 @@ message DeleteQuotaPolicyResponse {
 }
 
 message GetQuotaUsageRequest {
-  string quota_id = 1;
+  // クォータIDは1文字以上であること
+  string quota_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetQuotaUsageResponse {
@@ -118,7 +128,8 @@ message GetQuotaUsageResponse {
 }
 
 message CheckQuotaRequest {
-  string quota_id = 1;
+  // クォータIDは1文字以上であること
+  string quota_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message CheckQuotaResponse {
@@ -126,7 +137,8 @@ message CheckQuotaResponse {
 }
 
 message IncrementQuotaUsageRequest {
-  string quota_id = 1;
+  // クォータIDは1文字以上であること
+  string quota_id = 1 [(buf.validate.field).string.min_len = 1];
   uint64 amount = 2;
   optional string request_id = 3;
 }
@@ -141,7 +153,8 @@ message IncrementQuotaUsageResponse {
 }
 
 message ResetQuotaUsageRequest {
-  string quota_id = 1;
+  // クォータIDは1文字以上であること
+  string quota_id = 1 [(buf.validate.field).string.min_len = 1];
   string reason = 2;
   string reset_by = 3;
 }

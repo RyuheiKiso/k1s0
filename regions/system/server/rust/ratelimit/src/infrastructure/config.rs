@@ -26,17 +26,38 @@ fn default_redis_timeout_ms() -> u64 {
 }
 
 /// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
-    pub issuer: String,
-    pub audience: String,
-    #[serde(default = "default_jwks_cache_ttl_secs")]
-    pub jwks_cache_ttl_secs: u64,
+    /// JWT トークンの検証に使用する issuer / audience 設定
+    pub jwt: JwtConfig,
+    /// JWKS エンドポイントの設定（オプション）
+    #[serde(default)]
+    pub jwks: Option<JwksConfig>,
 }
 
+/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
+    /// JWT 発行者（issuer）
+    pub issuer: String,
+    /// JWT 対象者（audience）
+    pub audience: String,
+}
+
+/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    /// JWKS エンドポイント URL
+    pub url: String,
+    /// JWKS キャッシュ TTL（秒）。デフォルト 300 秒。
+    #[serde(default = "default_jwks_cache_ttl_secs")]
+    pub cache_ttl_secs: u64,
+}
+
+/// JWKS キャッシュ TTL のデフォルト値（300 秒）
 fn default_jwks_cache_ttl_secs() -> u64 {
-    3600
+    300
 }
 
 /// Application configuration.
@@ -252,6 +273,14 @@ ratelimit:
         assert_eq!(redis.timeout_ms, 2000);
         // YAML で明示的に fail_open: true を指定した場合は true になることを確認する
         assert!(cfg.ratelimit.fail_open);
+    }
+
+    /// config.docker.yaml が Config にデシリアライズできることを検証する
+    #[test]
+    fn config_docker_yaml_deserializes_correctly() {
+        let yaml = include_str!("../../config/config.docker.yaml");
+        let _config: Config =
+            serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }
 
     #[test]

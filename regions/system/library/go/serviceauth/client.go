@@ -10,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	// singleflight はトークン更新の重複リクエストを1つに集約し、スタンピード問題を防止する
+	"golang.org/x/sync/singleflight"
 )
 
 // ServiceAuthConfig は serviceauth クライアントの設定。
@@ -28,9 +31,11 @@ type ServiceAuthConfig struct {
 type httpServiceAuthClient struct {
 	config     *ServiceAuthConfig
 	httpClient *http.Client
-	// RWMutex を使用して読み取り専用パスのロック競合を最小化する
-	mu         sync.RWMutex
-	cached     *ServiceToken
+	// sfGroup はトークン更新リクエストを singleflight で集約し、同時多発的なトークン更新（スタンピード）を防止する
+	sfGroup singleflight.Group
+	// mu はキャッシュへの読み書きを保護する RWMutex（読み取り専用パスのロック競合を最小化）
+	mu     sync.RWMutex
+	cached *ServiceToken
 }
 
 // NewClient は新しい ServiceAuthClient を生成する。
@@ -97,8 +102,9 @@ func (c *httpServiceAuthClient) GetToken(ctx context.Context) (*ServiceToken, er
 }
 
 // GetCachedToken はキャッシュされたトークンを返す。
-// キャッシュが無効な場合は GetToken でトークンを取得してキャッシュを更新する。
-// RWMutex + double-check locking でロック競合を最小化する。
+// キャッシュが有効な場合は RLock のみで高速に返す（高速パス）。
+// キャッシュが無効な場合は singleflight で同時多発的なトークン更新を1リクエストに集約し、
+// ロック外でネットワーク I/O を実行することでミューテックス保持中の HTTP ブロッキングを排除する。
 func (c *httpServiceAuthClient) GetCachedToken(ctx context.Context) (string, error) {
 	// まず読み取りロックでキャッシュを確認（高速パス）
 	c.mu.RLock()
@@ -109,23 +115,38 @@ func (c *httpServiceAuthClient) GetCachedToken(ctx context.Context) (string, err
 	}
 	c.mu.RUnlock()
 
-	// キャッシュが無効な場合、書き込みロックを取得してトークンを更新
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	// singleflight で同一キーの同時リクエストを1つに集約する。
+	// これにより、トークン期限切れ時に多数のゴルーチンが同時にトークン更新を試みる
+	// 「キャッシュスタンピード」を防止し、認証サーバーへの負荷を抑制する。
+	v, err, _ := c.sfGroup.Do("token", func() (interface{}, error) {
+		// ダブルチェック: singleflight の待ち行列を抜けた際に、
+		// 先行ゴルーチンがすでにキャッシュを更新している可能性があるため再確認する
+		c.mu.RLock()
+		if c.cached != nil && !c.cached.ShouldRefresh() {
+			token := c.cached.BearerHeader()
+			c.mu.RUnlock()
+			return token, nil
+		}
+		c.mu.RUnlock()
 
-	// double-check: ロック待ち中に別のgoroutineが更新した可能性があるため再確認
-	if c.cached != nil && !c.cached.ShouldRefresh() {
-		return c.cached.BearerHeader(), nil
-	}
+		// ミューテックスを保持せずにネットワーク I/O を実行する（ロック外 HTTP）。
+		// これにより他のゴルーチンがキャッシュ読み取りをブロックされない。
+		token, err := c.GetToken(ctx)
+		if err != nil {
+			return "", err
+		}
 
-	// ロック外でネットワーク I/O を行うことが理想だが、
-	// 重複リクエストを防ぐためにロック内で実行する
-	token, err := c.GetToken(ctx)
+		// 書き込みロックを取得してキャッシュを更新する
+		c.mu.Lock()
+		c.cached = token
+		c.mu.Unlock()
+
+		return token.BearerHeader(), nil
+	})
 	if err != nil {
 		return "", err
 	}
-	c.cached = token
-	return token.BearerHeader(), nil
+	return v.(string), nil
 }
 
 // ValidateSpiffeId は SPIFFE ID を検証し、期待ネームスペースと一致するか確認する。

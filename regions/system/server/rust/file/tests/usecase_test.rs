@@ -163,7 +163,8 @@ impl FileMetadataRepository for StubMetadataRepository {
         }
         let mut files = self.files.write().await;
         let matches = files.get(&id).map_or(false, |f| {
-            let tenant_ok = tenant_id_prefix.is_empty() || f.storage_path.starts_with(&tenant_id_prefix);
+            let tenant_ok =
+                tenant_id_prefix.is_empty() || f.storage_path.starts_with(&tenant_id_prefix);
             let uploader_ok = expected_uploader
                 .as_deref()
                 .map_or(true, |uploader| f.uploaded_by == uploader);

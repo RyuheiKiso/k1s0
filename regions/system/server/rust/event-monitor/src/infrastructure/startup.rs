@@ -189,18 +189,35 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_state = k1s0_server_common::require_auth_state(
         "event-monitor-server",
         &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
-            info!(jwks_url = %auth_cfg.jwks_url, "initializing JWKS verifier for event-monitor-server");
-            let jwks_verifier = Arc::new(k1s0_auth::JwksVerifier::new(
-                &auth_cfg.jwks_url,
-                &auth_cfg.issuer,
-                &auth_cfg.audience,
-                std::time::Duration::from_secs(auth_cfg.jwks_cache_ttl_secs),
-            ).context("JWKS 検証器の作成に失敗")?);
-            Ok(crate::adapter::middleware::auth::AuthState {
-                verifier: jwks_verifier,
+        cfg.auth
+            .as_ref()
+            .map(|auth_cfg| -> anyhow::Result<_> {
+                // JWKS URL を取得（nested 形式: auth.jwks.url）
+                let jwks_url = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.url.as_str())
+                    .unwrap_or_default();
+                let cache_ttl = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.cache_ttl_secs)
+                    .unwrap_or(300);
+                info!(jwks_url = %jwks_url, "initializing JWKS verifier for event-monitor-server");
+                let jwks_verifier = Arc::new(
+                    k1s0_auth::JwksVerifier::new(
+                        jwks_url,
+                        &auth_cfg.jwt.issuer,
+                        &auth_cfg.jwt.audience,
+                        std::time::Duration::from_secs(cache_ttl),
+                    )
+                    .context("JWKS 検証器の作成に失敗")?,
+                );
+                Ok(crate::adapter::middleware::auth::AuthState {
+                    verifier: jwks_verifier,
+                })
             })
-        }).transpose()?,
+            .transpose()?,
     )?;
 
     // gRPC 認証レイヤー: メソッド名をアクション（read/write）にマッピングして RBAC チェックを行う

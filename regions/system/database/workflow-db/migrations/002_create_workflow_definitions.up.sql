@@ -12,7 +12,9 @@ CREATE TABLE IF NOT EXISTS workflow.workflow_definitions (
 CREATE INDEX IF NOT EXISTS idx_workflow_definitions_name ON workflow.workflow_definitions (name);
 CREATE INDEX IF NOT EXISTS idx_workflow_definitions_enabled ON workflow.workflow_definitions (enabled);
 
-CREATE TRIGGER trigger_workflow_definitions_update_updated_at
+-- CRIT-10 監査対応: CREATE OR REPLACE TRIGGER を使用してべき等性を保証する（PostgreSQL 14+）
+-- CREATE TRIGGER のみでは再起動時に "trigger already exists" エラーが発生し起動不能になるリスクがある。
+CREATE OR REPLACE TRIGGER trigger_workflow_definitions_update_updated_at
     BEFORE UPDATE ON workflow.workflow_definitions
     FOR EACH ROW
     EXECUTE FUNCTION workflow.update_updated_at();

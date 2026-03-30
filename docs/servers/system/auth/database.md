@@ -330,6 +330,12 @@ ALTER TABLE auth.api_keys
 | `014_add_timestamps_to_roles_and_permissions.down.sql` | タイムスタンプカラム削除 |
 | `015_add_updated_at_triggers.up.sql` | roles・permissions の updated_at 自動更新トリガーを追加 |
 | `015_add_updated_at_triggers.down.sql` | トリガー削除 |
+| `016_add_email_verified.up.sql` | users に email_verified カラム追加 |
+| `016_add_email_verified.down.sql` | カラム削除 |
+| `017_add_api_keys_tenant_prefix_unique.up.sql` | api_keys に tenant_id+prefix 複合 UNIQUE 制約追加（HIGH-5 監査対応） |
+| `017_add_api_keys_tenant_prefix_unique.down.sql` | 複合 UNIQUE 制約削除 |
+| `018_add_api_keys_rls.up.sql` | api_keys テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
+| `018_add_api_keys_rls.down.sql` | RLS ポリシー・設定削除 |
 
 ---
 

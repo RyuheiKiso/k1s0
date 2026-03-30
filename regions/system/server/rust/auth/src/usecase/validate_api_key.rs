@@ -58,9 +58,16 @@ impl ValidateApiKeyUseCase {
             .map_err(|e| ValidateApiKeyError::Internal(e.to_string()))?
             .ok_or(ValidateApiKeyError::Invalid)?;
 
-        // ハッシュを計算してキーの一致を検証する（ペッパー未設定時はエラー）
+        // H-008 監査対応: ハッシュ比較を定数時間で行い、タイミング攻撃を防止する
+        // 通常の文字列比較（!=）は最初に不一致したバイトで短絡し、タイミングの差でハッシュを推測可能になる
+        use subtle::ConstantTimeEq;
         let computed_hash = hash_key(raw_key)?;
-        if computed_hash != api_key.key_hash {
+        if computed_hash
+            .as_bytes()
+            .ct_eq(api_key.key_hash.as_bytes())
+            .unwrap_u8()
+            != 1
+        {
             return Err(ValidateApiKeyError::Invalid);
         }
 

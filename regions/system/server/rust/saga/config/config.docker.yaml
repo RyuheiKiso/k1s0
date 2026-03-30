@@ -21,9 +21,9 @@ server:
 database:
   host: "postgres"
   port: 5432
-  # init-db/04-saga-schema.sql は k1s0_system データベースに saga スキーマを作成する（M-1 監査対応）
-  # docker-compose.dev.yaml の DATABASE_URL オーバーライドも k1s0_system を指定している
-  name: "k1s0_system"
+  # CRIT-09 監査対応: saga 専用 DB（k1s0_saga）に変更。
+  # master-maintenance サービスとの k1s0_system 共有による _sqlx_migrations 競合を解消する。
+  name: "k1s0_saga"
   user: "dev"
   password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"

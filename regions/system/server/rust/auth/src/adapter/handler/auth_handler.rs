@@ -251,7 +251,10 @@ pub async fn list_users(
     match state.list_users_uc.execute(&params).await {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => {
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", e.to_string());
+            // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
+            // e.to_string() はデータベースエラーの詳細・接続文字列・スタックトレースを含む可能性がある
+            tracing::error!(error = %e, "内部エラーが発生しました");
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
     }

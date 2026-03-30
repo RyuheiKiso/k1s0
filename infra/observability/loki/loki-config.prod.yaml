@@ -20,8 +20,18 @@ common:
       # 本番環境では etcd または consul を使用してクラスター間の調整を行う
       store: etcd
       etcd:
+        # H-21 監査対応: etcd との通信を TLS 化し、クラスター内通信の盗聴・改ざんを防止する
+        # 旧設定 http:// は平文通信であり、Loki のリング状態（メンバーシップ情報）が傍受されるリスクがある
         endpoints:
-          - http://etcd:2379
+          - https://etcd:2379
+        # TLS 設定: cluster-internal CA 証明書を使用して etcd の証明書を検証する
+        # 証明書は Kubernetes Secret（loki-etcd-tls）から Vault 経由で注入すること
+        tls_config:
+          ca_file: /etc/loki/certs/ca.crt
+          cert_file: /etc/loki/certs/tls.crt
+          key_file: /etc/loki/certs/tls.key
+          # insecure_skip_verify: false（デフォルト false: 証明書検証を必ず行うこと）
+          insecure_skip_verify: false
 
 schema_config:
   configs:

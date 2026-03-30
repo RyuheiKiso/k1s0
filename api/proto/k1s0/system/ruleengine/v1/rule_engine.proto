@@ -4,6 +4,8 @@ package k1s0.system.ruleengine.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/ruleengine/v1;ruleenginev1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service RuleEngineService {
   rpc ListRules(ListRulesRequest) returns (ListRulesResponse);
@@ -49,7 +51,8 @@ message ListRulesResponse {
 }
 
 message GetRuleRequest {
-  string id = 1;
+  // ルールIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetRuleResponse {
@@ -57,7 +60,8 @@ message GetRuleResponse {
 }
 
 message CreateRuleRequest {
-  string name = 1;
+  // ルール名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
   int32 priority = 3;
   bytes when_json = 4;
@@ -69,7 +73,8 @@ message CreateRuleResponse {
 }
 
 message UpdateRuleRequest {
-  string id = 1;
+  // ルールIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string description = 2;
   optional int32 priority = 3;
   optional bytes when_json = 4;
@@ -82,7 +87,8 @@ message UpdateRuleResponse {
 }
 
 message DeleteRuleRequest {
-  string id = 1;
+  // ルールIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteRuleResponse {
@@ -117,7 +123,8 @@ message ListRuleSetsResponse {
 }
 
 message GetRuleSetRequest {
-  string id = 1;
+  // ルールセットIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetRuleSetResponse {
@@ -125,10 +132,13 @@ message GetRuleSetResponse {
 }
 
 message CreateRuleSetRequest {
-  string name = 1;
+  // ルールセット名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
-  string domain = 3;
-  string evaluation_mode = 4;
+  // ドメインは1文字以上128文字以下であること
+  string domain = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 評価モードは1文字以上64文字以下であること（例: first_match, all_match）
+  string evaluation_mode = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
   bytes default_result_json = 5;
   repeated string rule_ids = 6;
 }
@@ -138,7 +148,8 @@ message CreateRuleSetResponse {
 }
 
 message UpdateRuleSetRequest {
-  string id = 1;
+  // ルールセットIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string description = 2;
   optional string evaluation_mode = 3;
   optional bytes default_result_json = 4;
@@ -151,7 +162,8 @@ message UpdateRuleSetResponse {
 }
 
 message DeleteRuleSetRequest {
-  string id = 1;
+  // ルールセットIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteRuleSetResponse {
@@ -160,7 +172,8 @@ message DeleteRuleSetResponse {
 }
 
 message PublishRuleSetRequest {
-  string id = 1;
+  // ルールセットIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message PublishRuleSetResponse {
@@ -171,7 +184,8 @@ message PublishRuleSetResponse {
 }
 
 message RollbackRuleSetRequest {
-  string id = 1;
+  // ルールセットIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message RollbackRuleSetResponse {
@@ -184,7 +198,8 @@ message RollbackRuleSetResponse {
 // --- Evaluate messages ---
 
 message EvaluateRequest {
-  string rule_set = 1;
+  // ルールセット識別子は1文字以上128文字以下であること
+  string rule_set = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   bytes input_json = 2;
   bytes context_json = 3;
 }
@@ -209,8 +224,8 @@ message EvaluateResponse {
 
 // ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
 message EvaluateDryRunRequest {
-  // 評価対象のルールセット識別子
-  string rule_set = 1;
+  // 評価対象のルールセット識別子（1文字以上128文字以下）
+  string rule_set = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   // 評価入力データ（JSON 形式）
   bytes input_json = 2;
   // 評価コンテキスト（JSON 形式）

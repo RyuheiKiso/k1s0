@@ -87,3 +87,5 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_user_tenant ON session.user_session
 | `002_create_user_sessions.down.sql` | テーブル削除 |
 | `003_add_tenant_id_to_user_sessions.up.sql` | user_sessions に tenant_id カラム追加（マルチテナント対応） |
 | `003_add_tenant_id_to_user_sessions.down.sql` | tenant_id カラム削除 |
+| `004_add_user_sessions_rls.up.sql` | user_sessions テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
+| `004_add_user_sessions_rls.down.sql` | RLS ポリシー・設定削除 |

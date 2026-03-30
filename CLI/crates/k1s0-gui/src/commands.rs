@@ -952,7 +952,7 @@ pub fn execute_template_migration_rollback(
     let project_path = resolve_workspace_path(&workspace_root, &project_dir)?;
     // backup_id のパストラバーサル防止: ディレクトリ区切り文字や .. を禁止する
     if backup_id.contains("..") || backup_id.contains('/') || backup_id.contains('\\') {
-        return Err(format!("Invalid backup_id: '{}'", backup_id));
+        return Err(format!("Invalid backup_id: '{backup_id}'"));
     }
     let backup_dir = template_migrate_rollback::backup_dir(&project_path, &backup_id);
     template_migrate_rollback::rollback(&project_path, &backup_dir)

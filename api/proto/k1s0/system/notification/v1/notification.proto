@@ -14,6 +14,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/notificatio
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // NotificationStatus は通知配信のステータス。
 enum NotificationStatus {
@@ -47,10 +49,12 @@ service NotificationService {
 }
 
 message SendNotificationRequest {
-  string channel_id = 1;
+  // チャンネルIDは1文字以上であること
+  string channel_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string template_id = 2;
   map<string, string> template_variables = 3;
-  string recipient = 4;
+  // 受信者は1文字以上256文字以下であること
+  string recipient = 4 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   optional string subject = 5;
   optional string body = 6;
 }
@@ -66,7 +70,8 @@ message SendNotificationResponse {
 }
 
 message GetNotificationRequest {
-  string notification_id = 1;
+  // 通知IDは1文字以上であること
+  string notification_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetNotificationResponse {
@@ -74,7 +79,8 @@ message GetNotificationResponse {
 }
 
 message RetryNotificationRequest {
-  string notification_id = 1;
+  // 通知IDは1文字以上であること
+  string notification_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message RetryNotificationResponse {
@@ -157,8 +163,10 @@ message ListChannelsResponse {
 }
 
 message CreateChannelRequest {
-  string name = 1;
-  string channel_type = 2;
+  // チャンネル名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // チャンネル種別は1文字以上64文字以下であること（例: email, slack）
+  string channel_type = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
   string config_json = 3;
   bool enabled = 4;
 }
@@ -168,7 +176,8 @@ message CreateChannelResponse {
 }
 
 message GetChannelRequest {
-  string id = 1;
+  // チャンネルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetChannelResponse {
@@ -176,7 +185,8 @@ message GetChannelResponse {
 }
 
 message UpdateChannelRequest {
-  string id = 1;
+  // チャンネルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string name = 2;
   optional bool enabled = 3;
   optional string config_json = 4;
@@ -187,7 +197,8 @@ message UpdateChannelResponse {
 }
 
 message DeleteChannelRequest {
-  string id = 1;
+  // チャンネルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteChannelResponse {
@@ -228,10 +239,13 @@ message ListTemplatesResponse {
 }
 
 message CreateTemplateRequest {
-  string name = 1;
-  string channel_type = 2;
+  // テンプレート名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // チャンネル種別は1文字以上64文字以下であること
+  string channel_type = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
   optional string subject_template = 3;
-  string body_template = 4;
+  // テンプレート本文は1文字以上であること
+  string body_template = 4 [(buf.validate.field).string.min_len = 1];
 }
 
 message CreateTemplateResponse {
@@ -239,7 +253,8 @@ message CreateTemplateResponse {
 }
 
 message GetTemplateRequest {
-  string id = 1;
+  // テンプレートIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetTemplateResponse {
@@ -247,7 +262,8 @@ message GetTemplateResponse {
 }
 
 message UpdateTemplateRequest {
-  string id = 1;
+  // テンプレートIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string name = 2;
   optional string subject_template = 3;
   optional string body_template = 4;
@@ -258,7 +274,8 @@ message UpdateTemplateResponse {
 }
 
 message DeleteTemplateRequest {
-  string id = 1;
+  // テンプレートIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteTemplateResponse {

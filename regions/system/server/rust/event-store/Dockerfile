@@ -53,6 +53,8 @@ COPY --from=builder /app/target/release/k1s0-event-store-server /k1s0-event-stor
 COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
+# M-23 監査対応: HTTP (8099) に加え gRPC ポート (50051) を明示的に EXPOSE する
 EXPOSE 8099
+EXPOSE 50051
 
 ENTRYPOINT ["/k1s0-event-store-server"]

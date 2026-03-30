@@ -53,6 +53,8 @@ COPY --from=builder /app/target/release/k1s0-ai-gateway-server /k1s0-ai-gateway-
 COPY --from=busybox /bin/busybox /busybox
 
 USER nonroot:nonroot
+# M-23 監査対応: HTTP (8080) に加え gRPC ポート (50061) を明示的に EXPOSE する
 EXPOSE 8080
+EXPOSE 50061
 
 ENTRYPOINT ["/k1s0-ai-gateway-server"]

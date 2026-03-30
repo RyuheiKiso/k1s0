@@ -228,10 +228,9 @@ impl ServiceCatalogHttpClient {
             );
         }
 
-        let svc: RestService = resp
-            .json()
-            .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.RegisterService JSON パースエラー: {}", e))?;
+        let svc: RestService = resp.json().await.map_err(|e| {
+            anyhow::anyhow!("ServiceCatalog.RegisterService JSON パースエラー: {}", e)
+        })?;
         Ok(service_from_rest(svc))
     }
 
@@ -278,10 +277,9 @@ impl ServiceCatalogHttpClient {
             );
         }
 
-        let svc: RestService = resp
-            .json()
-            .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.UpdateService JSON パースエラー: {}", e))?;
+        let svc: RestService = resp.json().await.map_err(|e| {
+            anyhow::anyhow!("ServiceCatalog.UpdateService JSON パースエラー: {}", e)
+        })?;
         Ok(service_from_rest(svc))
     }
 
@@ -325,12 +323,10 @@ impl ServiceCatalogHttpClient {
         // service_id が指定された場合は個別エンドポイントを使用する
         if let Some(id) = service_id {
             let url = format!("{}/api/v1/services/{}/health", self.base_url, id);
-            let resp = self
-                .client
-                .get(&url)
-                .send()
-                .await
-                .map_err(|e| anyhow::anyhow!("ServiceCatalog.HealthCheck HTTP エラー: {}", e))?;
+            let resp =
+                self.client.get(&url).send().await.map_err(|e| {
+                    anyhow::anyhow!("ServiceCatalog.HealthCheck HTTP エラー: {}", e)
+                })?;
 
             if resp.status() == reqwest::StatusCode::NOT_FOUND {
                 return Ok(vec![]);

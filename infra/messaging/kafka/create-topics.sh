@@ -5,6 +5,10 @@
 #
 # Kubernetes 環境では Strimzi KafkaTopic CRD (topics.yaml) を使用する。
 #
+# M-005 監査対応: このスクリプトで定義するトピックは infra/messaging/kafka/topics.yaml と整合させること
+# topics.yaml (Strimzi CRD) との差分チェックを定期的に実施し、両ファイルの同期を維持すること
+# チェックコマンド例: diff <(grep "name:" topics.yaml | sort) <(grep "^kafka-topics" create-topics.sh | sort)
+#
 # M-03 監査対応: トピック命名の「.」と「_」の混在について確認済み（問題なし）
 #
 # トピック命名規則: {org}.{tier}.{service}.{event_name}.{version}

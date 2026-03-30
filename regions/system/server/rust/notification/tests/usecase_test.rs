@@ -378,6 +378,7 @@ fn make_channel(name: &str, channel_type: &str, enabled: bool) -> NotificationCh
         name.to_string(),
         channel_type.to_string(),
         serde_json::json!({"host": "localhost"}),
+        "system".to_string(),
         enabled,
     )
 }
@@ -421,6 +422,7 @@ mod create_channel {
             name: "email-prod".to_string(),
             channel_type: "email".to_string(),
             config: serde_json::json!({"smtp_host": "smtp.example.com"}),
+            tenant_id: "system".to_string(),
             enabled: true,
         };
 
@@ -447,6 +449,7 @@ mod create_channel {
             name: "slack-alerts".to_string(),
             channel_type: "slack".to_string(),
             config: serde_json::json!({"webhook_url": "https://hooks.slack.com/xxx"}),
+            tenant_id: "system".to_string(),
             enabled: false,
         };
 
@@ -459,13 +462,25 @@ mod create_channel {
 
     #[tokio::test]
     async fn success_creates_all_supported_types() {
-        for channel_type in &["email", "slack", "webhook", "sms", "push"] {
+        // CRIT-02: webhook チャンネルは有効な外部 URL が必要なため、channel_type ごとに適切な config を用意する
+        let test_cases = vec![
+            ("email", serde_json::json!({})),
+            ("slack", serde_json::json!({})),
+            (
+                "webhook",
+                serde_json::json!({"url": "https://example.com/hook"}),
+            ),
+            ("sms", serde_json::json!({})),
+            ("push", serde_json::json!({})),
+        ];
+        for (channel_type, config) in test_cases {
             let repo = Arc::new(StubChannelRepo::new());
             let uc = CreateChannelUseCase::new(repo.clone());
             let input = CreateChannelInput {
                 name: format!("{}-channel", channel_type),
                 channel_type: channel_type.to_string(),
-                config: serde_json::json!({}),
+                config,
+                tenant_id: "system".to_string(),
                 enabled: true,
             };
             let result = uc.execute(&input).await;
@@ -485,6 +500,7 @@ mod create_channel {
             name: "bad-channel".to_string(),
             channel_type: "telegram".to_string(),
             config: serde_json::json!({}),
+            tenant_id: "system".to_string(),
             enabled: true,
         };
 
@@ -506,6 +522,7 @@ mod create_channel {
             name: "fail-channel".to_string(),
             channel_type: "email".to_string(),
             config: serde_json::json!({}),
+            tenant_id: "system".to_string(),
             enabled: true,
         };
 

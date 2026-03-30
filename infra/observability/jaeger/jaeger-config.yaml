@@ -37,10 +37,20 @@ spec:
     type: elasticsearch
     options:
       es:
-        server-urls: http://elasticsearch.observability.svc.cluster.local:9200
+        # H-02 監査対応: Elasticsearch との通信を TLS 化し、盗聴・中間者攻撃を防止する
+        # 旧設定 http:// は平文通信であり、トレースデータ（認証情報を含む可能性）が傍受されるリスクがある
+        server-urls: https://elasticsearch.observability.svc.cluster.local:9200
         index-prefix: jaeger
         num-shards: 3
         num-replicas: 1
+        # TLS 設定: cluster-internal CA 証明書を使用して Elasticsearch の証明書を検証する
+        # CA 証明書は Kubernetes Secret（jaeger-es-tls）から Vault 経由で注入すること
+        tls:
+          ca: /etc/jaeger/certs/ca.crt
+          # 相互TLS（mTLS）を使用する場合は以下のコメントを解除してクライアント証明書を設定すること
+          # cert: /etc/jaeger/certs/tls.crt
+          # key: /etc/jaeger/certs/tls.key
+          # insecure-skip-verify: false（デフォルト false: 証明書検証を必ず行うこと）
     esIndexCleaner:
       enabled: true
       # トレース保持期間: 30日（ログの90日保持に揃えた合理的な範囲）

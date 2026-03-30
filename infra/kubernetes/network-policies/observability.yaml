@@ -47,6 +47,9 @@ spec:
           port: 4318    # OpenTelemetry HTTP エンドポイント
         - protocol: TCP
           port: 16686   # Jaeger UI ポート
+        # M-03 監査対応: Loki ログ集約サービスへのアクセスを許可するためポート 3100 を追加
+        - protocol: TCP
+          port: 3100    # Loki ログ集約ポート
 ---
 # M-2 対応: observability namespace の Egress を必要最小限の宛先に制限する
 # DNS(kube-system)、同一 Namespace 内、各 Tier（Prometheus scrape 対象）のみ許可

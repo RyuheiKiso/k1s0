@@ -1214,10 +1214,12 @@ server:
   grpc_port: 50051
 
 auth:
-  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
-  issuer: "https://auth.k1s0.example.com/realms/system"
-  audience: "k1s0-system"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "https://auth.k1s0.example.com/realms/system"
+    audience: "k1s0-system"
+  jwks:
+    url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
+    cache_ttl_secs: 300
 
 database:
   host: "postgres.k1s0-system.svc.cluster.local"

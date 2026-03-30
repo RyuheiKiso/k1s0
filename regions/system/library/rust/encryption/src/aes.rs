@@ -3,13 +3,19 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
+// L-10 監査対応: OsRng は OS の乱数生成器を直接使用する暗号学的安全乱数生成器。
+// thread_rng() はスレッドローカルな PRNG であり初期化コストが低い一方、
+// OsRng はエントロピー源として OS（getrandom syscall）を直接使用するため、
+// 暗号鍵やノンスの生成には OsRng が適切である。
+use rand::rngs::OsRng;
 use rand::RngCore;
 
 use crate::error::EncryptionError;
 
 pub fn generate_aes_key() -> [u8; 32] {
     let mut key = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut key);
+    // OS の乱数生成器を使用して暗号学的に安全な AES-256 鍵を生成する
+    OsRng.fill_bytes(&mut key);
     key
 }
 
@@ -18,7 +24,8 @@ pub fn aes_encrypt(key: &[u8; 32], plaintext: &[u8]) -> Result<String, Encryptio
         .map_err(|e| EncryptionError::EncryptFailed(e.to_string()))?;
 
     let mut nonce_bytes = [0u8; 12];
-    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    // OS の乱数生成器を使用して暗号学的に安全なノンスを生成する
+    OsRng.fill_bytes(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher

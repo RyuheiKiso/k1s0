@@ -5,6 +5,8 @@ package k1s0.system.apiregistry.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/apiregistry/v1;apiregistryv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service ApiRegistryService {
   rpc ListSchemas(ListSchemasRequest) returns (ListSchemasResponse);
@@ -19,7 +21,8 @@ service ApiRegistryService {
 }
 
 message GetSchemaRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 message ListSchemasRequest {
@@ -33,11 +36,15 @@ message ListSchemasResponse {
 }
 
 message RegisterSchemaRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
-  string schema_type = 3;
-  string content = 4;
-  string registered_by = 5;
+  // スキーマ種別は1文字以上64文字以下であること（例: openapi, proto, json）
+  string schema_type = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // スキーマコンテンツは1文字以上であること
+  string content = 4 [(buf.validate.field).string.min_len = 1];
+  // 登録者IDは1文字以上であること
+  string registered_by = 5 [(buf.validate.field).string.min_len = 1];
 }
 
 message RegisterSchemaResponse {
@@ -50,7 +57,8 @@ message GetSchemaResponse {
 }
 
 message ListVersionsRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   k1s0.system.common.v1.Pagination pagination = 2;
 }
 
@@ -61,9 +69,12 @@ message ListVersionsResponse {
 }
 
 message RegisterVersionRequest {
-  string name = 1;
-  string content = 2;
-  string registered_by = 3;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // スキーマコンテンツは1文字以上であること
+  string content = 2 [(buf.validate.field).string.min_len = 1];
+  // 登録者IDは1文字以上であること
+  string registered_by = 3 [(buf.validate.field).string.min_len = 1];
 }
 
 message RegisterVersionResponse {
@@ -71,7 +82,8 @@ message RegisterVersionResponse {
 }
 
 message GetSchemaVersionRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   uint32 version = 2;
 }
 
@@ -80,7 +92,8 @@ message GetSchemaVersionResponse {
 }
 
 message DeleteVersionRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   uint32 version = 2;
 }
 
@@ -90,8 +103,10 @@ message DeleteVersionResponse {
 }
 
 message CheckCompatibilityRequest {
-  string name = 1;
-  string content = 2;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // スキーマコンテンツは1文字以上であること
+  string content = 2 [(buf.validate.field).string.min_len = 1];
   optional uint32 base_version = 3;
 }
 
@@ -102,7 +117,8 @@ message CheckCompatibilityResponse {
 }
 
 message GetDiffRequest {
-  string name = 1;
+  // スキーマ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   optional uint32 from_version = 2;
   optional uint32 to_version = 3;
 }

@@ -213,7 +213,7 @@ tower = { version = "0.5", features = ["util"] }
 | `server` | `host`(default: "0.0.0.0"), `port`(default: 8080) | HTTP サーバー |
 | `database` | `host`, `port`, `name`, `user`, `password`, `ssl_mode`, `max_open_conns` | PostgreSQL 接続（Optional） |
 | `kafka` | `brokers`, `consumer_group`, `security_protocol`, `dlq_topic_pattern` | Kafka 接続（Optional） |
-| `auth` | `jwks_url`, `issuer`, `audience`, `jwks_cache_ttl_secs` | JWT 認証設定（Optional） |
+| `auth` | `jwt.issuer`, `jwt.audience`, `jwks.url`, `jwks.cache_ttl_secs`(default: 300) | JWT 認証設定（Optional）<!-- H-005 監査対応: nested 形式に統一 --> |
 
 ### 認証ミドルウェア
 
@@ -440,12 +440,22 @@ pub struct KafkaConfig {
 
 ```rust
 // src/infrastructure/config.rs
+// H-005 監査対応: AuthConfig を nested 形式に統一する
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
-    pub jwks_url: String,
+    pub jwt: JwtConfig,
+    pub jwks: Option<JwksConfig>,
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwtConfig {
     pub issuer: String,
     pub audience: String,
-    pub jwks_cache_ttl_secs: u64, // default: 300
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct JwksConfig {
+    pub url: String,
+    #[serde(default = "default_cache_ttl_secs")]
+    pub cache_ttl_secs: u64, // default: 300
 }
 ```
 

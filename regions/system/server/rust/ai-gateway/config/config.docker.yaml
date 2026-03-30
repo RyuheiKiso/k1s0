@@ -36,6 +36,9 @@ observability:
 #   base_url: "https://api.openai.com/v1"
 #   api_key: ""
 # auth:
-#   jwks_url: "http://keycloak:8180/realms/k1s0/protocol/openid-connect/certs"
-#   issuer: "http://keycloak:8180/realms/k1s0"
-#   audience: "k1s0-api"
+#   jwt:
+#     issuer: "http://keycloak:8180/realms/k1s0"
+#     audience: "k1s0-api"
+#   jwks:
+#     url: "http://keycloak:8180/realms/k1s0/protocol/openid-connect/certs"
+#     cache_ttl_secs: 300

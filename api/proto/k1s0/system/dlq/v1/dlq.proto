@@ -12,6 +12,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/dlq/v1;dlqv
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // DlqMessageStatus は DLQ メッセージのステータス。
 enum DlqMessageStatus {
@@ -73,7 +75,8 @@ message ListMessagesResponse {
 
 // GetMessageRequest はメッセージ取得リクエスト。
 message GetMessageRequest {
-  string id = 1;
+  // メッセージIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetMessageResponse はメッセージ取得レスポンス。
@@ -83,7 +86,8 @@ message GetMessageResponse {
 
 // RetryMessageRequest はリトライリクエスト。
 message RetryMessageRequest {
-  string id = 1;
+  // メッセージIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // RetryMessageResponse はリトライレスポンス。
@@ -93,7 +97,8 @@ message RetryMessageResponse {
 
 // DeleteMessageRequest は削除リクエスト。
 message DeleteMessageRequest {
-  string id = 1;
+  // メッセージIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // DeleteMessageResponse は削除レスポンス。

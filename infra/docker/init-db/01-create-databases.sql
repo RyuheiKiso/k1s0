@@ -72,10 +72,10 @@ CREATE DATABASE file_db;
 -- service-catalog 用DB
 CREATE DATABASE service_catalog_db;
 
--- saga 用レガシーDB（現在は未使用）
--- saga サービスは k1s0_system DB の saga スキーマを使用する（04-saga-schema.sql で k1s0_system に接続・スキーマ作成）
--- saga_db は当初の設計で用意されたが k1s0_system への統合後は未使用。互換性のため保持する。
-CREATE DATABASE saga_db;
+-- saga サービス専用DB（CRIT-09 監査対応）
+-- saga サービスを k1s0_system から分離し、_sqlx_migrations テーブルの競合を解消する。
+-- master-maintenance サービスも k1s0_system を使用するため、同一 DB の共有は sqlx マイグレーション競合を引き起こす。
+CREATE DATABASE k1s0_saga;
 
 -- master-maintenance 用スキーマ (k1s0_system 内)
 -- master_maintenance スキーマは k1s0_system DB 内で作成される
@@ -111,6 +111,6 @@ GRANT CONNECT ON DATABASE search_db TO k1s0;
 GRANT CONNECT ON DATABASE dlq_db TO k1s0;
 GRANT CONNECT ON DATABASE file_db TO k1s0;
 GRANT CONNECT ON DATABASE service_catalog_db TO k1s0;
-GRANT CONNECT ON DATABASE saga_db TO k1s0;
+GRANT CONNECT ON DATABASE k1s0_saga TO k1s0;
 GRANT CONNECT ON DATABASE api_registry_db TO k1s0;
 GRANT CONNECT ON DATABASE app_registry_db TO k1s0;

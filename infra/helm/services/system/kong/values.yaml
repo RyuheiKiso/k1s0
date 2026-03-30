@@ -55,6 +55,25 @@ ingressController:
 postgresql:
   enabled: false    # 外部 PostgreSQL を使用
 
+# M-009 監査対応: Admin API の HTTP 無効化時にも liveness/readiness probe が動作するよう tcpSocket を使用する
+# admin.http.enabled: false の場合、HTTP probe は失敗するため TCP ソケット確認に変更する
+probes:
+  liveness:
+    # Admin API ポート（TLS 無効化時は 8001、TLS 有効時も同ポートで TCP 疎通可能）
+    tcpSocket:
+      port: 8001
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    tcpSocket:
+      port: 8001
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
 replicaCount: 2
 
 resources:
