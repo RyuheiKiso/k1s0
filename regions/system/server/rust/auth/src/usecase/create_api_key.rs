@@ -115,13 +115,17 @@ fn hash_key(raw_key: &str) -> Result<String, CreateApiKeyError> {
 
 /// HMAC-SHA256 ハッシュ計算の内部実装。
 /// テストから環境変数に依存せず直接呼び出せるよう分離する。
+// HMAC-SHA256 は RFC 2104 に準拠し任意長のキーを受け入れるため、
+// new_from_slice() はエラーを返さない。clippy::expect_used を許可する。
+#[allow(clippy::expect_used)]
 fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
     type HmacSha256 = Hmac<Sha256>;
 
+    // HMAC-SHA256 は任意長のキーを受け入れるため、この expect() はパニックしない（RFC 2104 準拠）
     let mut mac =
-        HmacSha256::new_from_slice(pepper.as_bytes()).expect("HMAC accepts any key length");
+        HmacSha256::new_from_slice(pepper.as_bytes()).expect("HMAC は任意長のキーを受け入れるためエラーにならない");
     mac.update(raw_key.as_bytes());
     let result = mac.finalize();
     let digest = result.into_bytes();

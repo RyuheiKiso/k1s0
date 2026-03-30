@@ -75,9 +75,10 @@ config:
   mountPath: /etc/app
   data: {}
 
+# H-03 監査対応: 単一 "system" ロールから個別ロール "search-rust" に変更する（ADR-0045 参照）。
 vault:
   enabled: true
-  role: "system"
+  role: "search-rust"
   secrets:
     - path: "secret/data/k1s0/system/search/database"
       key: "password"

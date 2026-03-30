@@ -42,6 +42,12 @@ export default [
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // 未使用変数の警告（_プレフィックスは許可）
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // L-17 監査対応: no-explicit-any を warn から error に厳格化する。
+      // any 型の使用は TypeScript の型安全性を損なうため、ビルドエラーとして検出する。
+      '@typescript-eslint/no-explicit-any': 'error',
+      // L-18 監査対応: exhaustive-deps を warn から error に厳格化する。
+      // フックの依存配列の不備はバグの温床となるため、ビルドエラーとして検出する。
+      'react-hooks/exhaustive-deps': 'error',
       // TypeScriptが未定義チェックを行うため、ESLintのno-undefは無効化
       // React 17+ JSX Transformでは明示的なReact importが不要
       'no-undef': 'off',

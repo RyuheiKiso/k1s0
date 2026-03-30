@@ -43,6 +43,7 @@ mod tests {
             "email".to_string(),
             "email".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();

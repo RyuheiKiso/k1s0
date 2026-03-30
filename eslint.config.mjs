@@ -20,7 +20,9 @@ export default tseslint.config(
     },
     rules: {
       "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
+      // L-18 監査対応: exhaustive-deps を warn から error に厳格化する。
+      // フックの依存配列の不備はバグの温床となるため、ビルドエラーとして検出する。
+      "react-hooks/exhaustive-deps": "error",
       "import/order": ["error", {
         "groups": ["builtin", "external", "internal", "parent", "sibling"],
         "newlines-between": "always",

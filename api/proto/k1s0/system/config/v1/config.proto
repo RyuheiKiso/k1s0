@@ -14,6 +14,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/config/v1;c
 // ==========================================================================
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // ConfigService は設定値の取得・更新・削除・監視を提供する。
 service ConfigService {
@@ -74,8 +76,10 @@ message ConfigEntry {
 
 // GetConfigRequest は設定値取得リクエスト。
 message GetConfigRequest {
-  string namespace = 1;
-  string key = 2;
+  // 名前空間は1文字以上256文字以下であること
+  string namespace = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // キーは1文字以上256文字以下であること
+  string key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 // GetConfigResponse は設定値取得レスポンス。
@@ -89,7 +93,8 @@ message GetConfigResponse {
 
 // ListConfigsRequest は設定値一覧取得リクエスト。
 message ListConfigsRequest {
-  string namespace = 1;
+  // 名前空間は1文字以上256文字以下であること
+  string namespace = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   k1s0.system.common.v1.Pagination pagination = 2;
   // キー名の部分一致検索
   string search = 3;
@@ -107,8 +112,10 @@ message ListConfigsResponse {
 
 // UpdateConfigRequest は設定値更新リクエスト。
 message UpdateConfigRequest {
-  string namespace = 1;
-  string key = 2;
+  // 名前空間は1文字以上256文字以下であること
+  string namespace = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // キーは1文字以上256文字以下であること
+  string key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   // JSON エンコード済みの値
   bytes value = 3;
   // 楽観的排他制御用（現在のバージョン番号）
@@ -128,8 +135,10 @@ message UpdateConfigResponse {
 
 // DeleteConfigRequest は設定値削除リクエスト。
 message DeleteConfigRequest {
-  string namespace = 1;
-  string key = 2;
+  // 名前空間は1文字以上256文字以下であること
+  string namespace = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
+  // キーは1文字以上256文字以下であること
+  string key = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   string deleted_by = 3;
 }
 
@@ -144,9 +153,10 @@ message DeleteConfigResponse {
 
 // GetServiceConfigRequest はサービス向け設定一括取得リクエスト。
 message GetServiceConfigRequest {
-  string service_name = 1;
-  // dev | staging | prod
-  string environment = 2;
+  // サービス名は1文字以上128文字以下であること
+  string service_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 環境は1文字以上64文字以下であること（dev, staging, prod 等）
+  string environment = 2 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 // GetServiceConfigResponse はサービス向け設定一括取得レスポンス。
@@ -245,7 +255,8 @@ message ConfigEditorSchema {
 
 // GetConfigSchemaRequest は設定スキーマ取得リクエスト。
 message GetConfigSchemaRequest {
-  string service_name = 1;
+  // サービス名は1文字以上128文字以下であること
+  string service_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 // GetConfigSchemaResponse は設定スキーマ取得レスポンス。

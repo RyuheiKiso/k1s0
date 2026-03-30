@@ -7,6 +7,8 @@ package k1s0.system.eventstore.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/eventstore/v1;eventstorev1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service EventStoreService {
   rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse);
@@ -38,10 +40,12 @@ message StreamInfo {
 }
 
 message AppendEventsRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   repeated EventData events = 2;
   int64 expected_version = 3;
-  string aggregate_type = 4;
+  // アグリゲート種別は1文字以上128文字以下であること
+  string aggregate_type = 4 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
 }
 
 message AppendEventsResponse {
@@ -51,7 +55,8 @@ message AppendEventsResponse {
 }
 
 message ReadEventsRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 from_version = 2;
   optional int64 to_version = 3;
   // ページネーションパラメータを共通型に統一
@@ -70,7 +75,8 @@ message ReadEventsResponse {
 }
 
 message ReadEventBySequenceRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   uint64 sequence = 2;
 }
 
@@ -79,9 +85,11 @@ message ReadEventBySequenceResponse {
 }
 
 message CreateSnapshotRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   int64 snapshot_version = 2;
-  string aggregate_type = 3;
+  // アグリゲート種別は1文字以上128文字以下であること
+  string aggregate_type = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   bytes state = 4;
 }
 
@@ -95,7 +103,8 @@ message CreateSnapshotResponse {
 }
 
 message GetLatestSnapshotRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 message GetLatestSnapshotResponse {
@@ -103,7 +112,8 @@ message GetLatestSnapshotResponse {
 }
 
 message DeleteStreamRequest {
-  string stream_id = 1;
+  // ストリームIDは1文字以上256文字以下であること
+  string stream_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 message DeleteStreamResponse {

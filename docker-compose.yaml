@@ -367,8 +367,10 @@ services:
       retries: 5
 
   vault:
+    # H-20 監査対応: Vault バージョンを 1.19 に統一する
+    # 旧バージョン 1.17.6 は既知のセキュリティ脆弱性が修正された 1.19 系に更新する
     # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
-    image: hashicorp/vault:1.17.6
+    image: hashicorp/vault:1.19
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped

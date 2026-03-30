@@ -8,6 +8,8 @@ package k1s0.system.policy.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/policy/v1;policyv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service PolicyService {
   rpc EvaluatePolicy(EvaluatePolicyRequest) returns (EvaluatePolicyResponse);
@@ -22,8 +24,8 @@ service PolicyService {
 }
 
 message EvaluatePolicyRequest {
-  // 評価対象 Policy ID
-  string policy_id = 1;
+  // 評価対象 Policy ID（1文字以上であること）
+  string policy_id = 1 [(buf.validate.field).string.min_len = 1];
   // 評価入力データ（JSON バイト列）
   bytes input_json = 2;
 }
@@ -40,7 +42,8 @@ message EvaluatePolicyResponse {
 }
 
 message GetPolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetPolicyResponse {
@@ -59,10 +62,13 @@ message ListPoliciesResponse {
 }
 
 message CreatePolicyRequest {
-  string name = 1;
+  // ポリシー名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
-  string rego_content = 3;
-  string package_path = 4;
+  // Rego コンテンツは1文字以上であること
+  string rego_content = 3 [(buf.validate.field).string.min_len = 1];
+  // パッケージパスは1文字以上256文字以下であること
+  string package_path = 4 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   optional string bundle_id = 5;
 }
 
@@ -71,7 +77,8 @@ message CreatePolicyResponse {
 }
 
 message UpdatePolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string description = 2;
   optional string rego_content = 3;
   optional bool enabled = 4;
@@ -82,7 +89,8 @@ message UpdatePolicyResponse {
 }
 
 message DeletePolicyRequest {
-  string id = 1;
+  // ポリシーIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeletePolicyResponse {
@@ -91,7 +99,8 @@ message DeletePolicyResponse {
 }
 
 message CreateBundleRequest {
-  string name = 1;
+  // バンドル名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   repeated string policy_ids = 2;
   optional string description = 3;
   optional bool enabled = 4;
@@ -108,7 +117,8 @@ message ListBundlesResponse {
 }
 
 message GetBundleRequest {
-  string id = 1;
+  // バンドルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetBundleResponse {

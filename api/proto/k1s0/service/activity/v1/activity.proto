@@ -16,6 +16,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/activity/v
 
 import "google/protobuf/struct.proto";
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service ActivityService {
   // アクティビティ作成（冪等: idempotency_key 指定で重複防止）
@@ -73,7 +75,8 @@ message Activity {
 // ---------- リクエスト/レスポンス ----------
 
 message CreateActivityRequest {
-  string task_id = 1;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
   ActivityType activity_type = 2;
   optional string content = 3;
   optional int32 duration_minutes = 4;
@@ -86,7 +89,8 @@ message CreateActivityResponse {
 }
 
 message GetActivityRequest {
-  string activity_id = 1;
+  // アクティビティIDは1文字以上であること
+  string activity_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetActivityResponse {
@@ -113,7 +117,8 @@ message ListActivitiesResponse {
 }
 
 message SubmitActivityRequest {
-  string activity_id = 1;
+  // アクティビティIDは1文字以上であること
+  string activity_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message SubmitActivityResponse {
@@ -121,7 +126,8 @@ message SubmitActivityResponse {
 }
 
 message ApproveActivityRequest {
-  string activity_id = 1;
+  // アクティビティIDは1文字以上であること
+  string activity_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message ApproveActivityResponse {
@@ -129,7 +135,8 @@ message ApproveActivityResponse {
 }
 
 message RejectActivityRequest {
-  string activity_id = 1;
+  // アクティビティIDは1文字以上であること
+  string activity_id = 1 [(buf.validate.field).string.min_len = 1];
   string reason = 2;
 }
 

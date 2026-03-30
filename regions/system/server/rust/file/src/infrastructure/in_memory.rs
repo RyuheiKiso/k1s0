@@ -99,11 +99,14 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
     ) -> anyhow::Result<bool> {
         let mut files = self.files.write().await;
         // 対象ファイルのテナントID・所有者IDが条件に一致するか確認する
-        let matches = files.get(&id).map_or(false, |f| {
+        // map_or(false, ...) よりも is_some_and が意図を明確に表現する（clippy::map_or 対応）
+        let matches = files.get(&id).is_some_and(|f| {
             let tenant_ok = f.storage_path.starts_with(&tenant_id_prefix);
+            // expected_uploader が None の場合は所有者チェックをスキップし、Some の場合のみ一致検証する
+            // map_or(true, ...) は None のとき true を返すため、is_none_or で意図を明確に表現する
             let uploader_ok = expected_uploader
                 .as_deref()
-                .map_or(true, |uploader| f.uploaded_by == uploader);
+                .is_none_or(|uploader| f.uploaded_by == uploader);
             tenant_ok && uploader_ok
         });
         if matches {

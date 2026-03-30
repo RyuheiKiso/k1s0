@@ -16,6 +16,12 @@ use k1s0_core::commands::generate_events::{
 ///
 /// プロンプトの入出力・ファイル操作・バリデーションに失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
+    // 非インタラクティブ環境（CI/CD、非TTY）では対話的プロンプトが使用できないため早期終了する
+    if crate::prompt::is_non_interactive() {
+        eprintln!("このコマンドは対話的な入力が必要です。TTY環境で実行してください。");
+        return Err(anyhow::anyhow!("非インタラクティブ環境では実行できません: K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません"));
+    }
+
     println!("\n--- イベントコード生成 ---\n");
 
     // Step 1: events.yaml のパス

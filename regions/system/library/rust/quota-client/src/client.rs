@@ -1,6 +1,8 @@
 use async_trait::async_trait;
 use std::collections::HashMap;
-use std::sync::Mutex;
+// tokio::sync::Mutex を使用することで async コンテキスト内でのロックを安全に行う。
+// std::sync::Mutex は async タスク間で保持すると deadlock の原因となるため置き換える。
+use tokio::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use crate::config::QuotaClientConfig;
@@ -140,11 +142,8 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
 
     async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
         {
-            // ポリシーキャッシュの読み取りロックを取得する
-            let cache = self
-                .policy_cache
-                .lock()
-                .expect("ポリシーキャッシュの Mutex ロック取得");
+            // ポリシーキャッシュの読み取りロックを非同期で取得する（tokio::sync::Mutex）
+            let cache = self.policy_cache.lock().await;
             if let Some(entry) = cache.get(quota_id) {
                 if entry.inserted_at.elapsed() < self.policy_ttl {
                     return Ok(entry.value.clone());
@@ -153,11 +152,8 @@ impl<C: QuotaClient> QuotaClient for CachedQuotaClient<C> {
         }
         let policy = self.inner.get_policy(quota_id).await?;
         {
-            // ポリシーキャッシュの書き込みロックを取得する
-            let mut cache = self
-                .policy_cache
-                .lock()
-                .expect("ポリシーキャッシュの Mutex ロック取得");
+            // ポリシーキャッシュの書き込みロックを非同期で取得する（tokio::sync::Mutex）
+            let mut cache = self.policy_cache.lock().await;
             cache.insert(
                 quota_id.to_string(),
                 CacheEntry {
@@ -191,10 +187,8 @@ impl InMemoryQuotaClient {
     }
 
     pub fn set_policy(&self, quota_id: impl Into<String>, policy: QuotaPolicy) {
-        let mut state = self
-            .state
-            .lock()
-            .expect("InMemoryQuotaClient の Mutex ロック取得");
+        // sync コンテキストから tokio::sync::Mutex を操作するため blocking_lock() を使用する
+        let mut state = self.state.blocking_lock();
         state.policies.insert(quota_id.into(), policy);
     }
 
@@ -243,10 +237,8 @@ impl Default for InMemoryQuotaClient {
 #[async_trait]
 impl QuotaClient for InMemoryQuotaClient {
     async fn check(&self, quota_id: &str, amount: u64) -> Result<QuotaStatus, QuotaClientError> {
-        let mut state = self
-            .state
-            .lock()
-            .expect("InMemoryQuotaClient の Mutex ロック取得");
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let mut state = self.state.lock().await;
         let usage = Self::get_or_create_usage(&mut state, quota_id);
         let remaining = usage.limit.saturating_sub(usage.used);
         Ok(QuotaStatus {
@@ -258,10 +250,8 @@ impl QuotaClient for InMemoryQuotaClient {
     }
 
     async fn increment(&self, quota_id: &str, amount: u64) -> Result<QuotaUsage, QuotaClientError> {
-        let mut state = self
-            .state
-            .lock()
-            .expect("InMemoryQuotaClient の Mutex ロック取得");
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let mut state = self.state.lock().await;
         let mut usage = Self::get_or_create_usage(&mut state, quota_id);
         usage.used = usage.used.saturating_add(amount);
         state.usages.insert(quota_id.to_string(), usage.clone());
@@ -269,18 +259,14 @@ impl QuotaClient for InMemoryQuotaClient {
     }
 
     async fn get_usage(&self, quota_id: &str) -> Result<QuotaUsage, QuotaClientError> {
-        let mut state = self
-            .state
-            .lock()
-            .expect("InMemoryQuotaClient の Mutex ロック取得");
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let mut state = self.state.lock().await;
         Ok(Self::get_or_create_usage(&mut state, quota_id))
     }
 
     async fn get_policy(&self, quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
-        let state = self
-            .state
-            .lock()
-            .expect("InMemoryQuotaClient の Mutex ロック取得");
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let state = self.state.lock().await;
         Ok(Self::get_policy_internal(&state, quota_id))
     }
 }
@@ -351,7 +337,8 @@ mod tests {
         }
 
         async fn get_policy(&self, _quota_id: &str) -> Result<QuotaPolicy, QuotaClientError> {
-            let mut count = self.call_count.lock().unwrap();
+            // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+            let mut count = self.call_count.lock().await;
             *count += 1;
             Ok(self.policy_result.clone())
         }
@@ -399,7 +386,8 @@ mod tests {
         let p2 = cached.get_policy("test-quota").await.unwrap();
         assert_eq!(p1, p2);
 
-        let count = *cached.inner.call_count.lock().unwrap();
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let count = *cached.inner.call_count.lock().await;
         assert_eq!(count, 1);
     }
 
@@ -436,7 +424,8 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(10)).await;
         let _p2 = cached.get_policy("test-quota").await.unwrap();
 
-        let count = *cached.inner.call_count.lock().unwrap();
+        // async コンテキストから tokio::sync::Mutex を操作するため .await を使用する
+        let count = *cached.inner.call_count.lock().await;
         assert_eq!(count, 2);
     }
 

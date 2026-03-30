@@ -84,9 +84,12 @@ spec:
         - protocol: TCP
           port: 8200    # Vault
         - protocol: TCP
-          port: 8080    # Keycloak HTTP
+          port: 8080    # Keycloak HTTP / サービス間 HTTP REST API
+        # L-08 監査対応: Keycloak 管理ポート 9000 を追加する。
+        # Keycloak 22+ では管理 API（/health, /metrics 等）が 9000 番ポートに分離されており、
+        # ヘルスチェックやメトリクス収集のため同一 Tier からのアクセスを許可する必要がある。
         - protocol: TCP
-          port: 8080    # サービス間 HTTP REST API
+          port: 9000    # Keycloak 管理ポート（/health, /metrics）
         - protocol: TCP
           port: 50051   # サービス間 gRPC
     # messaging Namespace（Kafka ブローカー）への通信を許可

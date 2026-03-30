@@ -49,9 +49,11 @@ containerSecurityContext:
   capabilities:
     drop: ["ALL"]
 
+# H-03 監査対応: 単一 "system" ロールから個別ロール "auth-rust" に変更する。
+# 最小権限の原則に従い、auth サービスは自サービスのシークレットにのみアクセス可能とする（ADR-0045 参照）。
 vault:
   enabled: true
-  role: "system"
+  role: "auth-rust"
   secrets:
     - path: "secret/data/k1s0/system/auth-server/database"
       key: "password"

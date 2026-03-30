@@ -10,6 +10,12 @@ use k1s0_core::commands::generate::config_types::{
 
 #[allow(clippy::missing_errors_doc)]
 pub fn run() -> Result<()> {
+    // 非インタラクティブ環境（CI/CD、非TTY）では対話的プロンプトが使用できないため早期終了する
+    if crate::prompt::is_non_interactive() {
+        eprintln!("このコマンドは対話的な入力が必要です。TTY環境で実行してください。");
+        return Err(anyhow::anyhow!("非インタラクティブ環境では実行できません: K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません"));
+    }
+
     // 設定スキーマ型生成コマンドのメインエントリポイント
     println!("\n--- 設定スキーマ型生成 ---\n");
 

@@ -81,9 +81,12 @@ pub async fn run() -> anyhow::Result<()> {
 
     // --- JWT 検証 ---
     // JWKS エンドポイントが設定されている場合は JWKS ベースの検証を行い、issuer/audience を厳密にチェックする
+    // cache_ttl_secs は config から取得し、未設定時はデフォルト値（300秒）を使用する
     let jwks_url = cfg.auth.jwks.as_ref().map(|j| j.url.as_str()).unwrap_or_default();
+    let jwks_cache_ttl_secs = cfg.auth.jwks.as_ref().map(|j| j.cache_ttl_secs).unwrap_or(300);
     let jwks_verifier = Arc::new(
         JwksVerifier::new(jwks_url.to_string())?
+            .with_cache_ttl(jwks_cache_ttl_secs)
             .with_issuer_audience(Some(cfg.auth.jwt.issuer.clone()), Some(cfg.auth.jwt.audience.clone())),
     );
 

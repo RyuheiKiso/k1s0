@@ -19,8 +19,8 @@
 #   k1s0-system (50 pods):
 #     26サービス × 1.5レプリカ(平均) = 39 → バッファ含め 50 に設定
 #     ※ dev 環境のためレプリカ数を抑制。prod は scale_factor で4倍（200 pods）
-#   k1s0-business (100 pods):
-#     複数ドメインサービス × 3レプリカ(最大) = 上限 100
+#   k1s0-business (10 pods):
+#     L-04 監査対応: 現状 3〜4 サービス × 2 レプリカ + バッファ(20%) ≒ 10 に縮小
 #     ※ タスク管理・ボード・アクティビティ等のビジネスドメインを含む
 #   k1s0-service (50 pods):
 #     3サービス × 3レプリカ + バッファ = 50
@@ -58,8 +58,11 @@ spec:
     requests.memory: 32Gi
     limits.cpu: "32"
     limits.memory: 64Gi
-    # 複数ドメインサービス × 3レプリカ(最大) = 上限 100（dev 1x、staging 2x で 200）
-    pods: "100"
+    # L-04 監査対応: 現状のサービス数（taskmanagement 等 3〜4 サービス）に合わせて縮小する。
+    # 算出根拠: 最大 4 サービス × 2 レプリカ + バッファ(20%) ≒ 10（dev 1x）
+    # 過剰な上限はリソースの見積もり誤りを隠蔽するため、実態に合わせた値に引き下げる。
+    # ※ staging/prod への適用は overlays/{staging,prod}/ で scale_factor に合わせて調整すること。
+    pods: "10"
     persistentvolumeclaims: "40"
 ---
 apiVersion: v1

@@ -24,9 +24,10 @@ containerSecurityContext:
   capabilities:
     drop: ["ALL"]
 
+# H-03 監査対応: 単一 "system" ロールから個別ロール "quota-rust" に変更する（ADR-0045 参照）。
 vault:
   enabled: true
-  role: "system"
+  role: "quota-rust"
   secrets:
     - path: "secret/data/k1s0/system/quota/database"
       key: "password"

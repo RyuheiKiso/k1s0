@@ -342,7 +342,8 @@ jobs:
           for dir in regions/system/library/dart/auth regions/system/client/flutter/system_client; do
             if [ -f "$dir/pubspec.yaml" ]; then
               echo "=== dart analyze: $dir ==="
-              cd $dir && dart analyze --fatal-infos || true && cd -
+              # M-05 監査対応: || true を除去し、dart analyze の失敗を CI で正しく検出する
+              cd $dir && dart analyze --fatal-infos && cd -
             fi
           done
 
@@ -361,6 +362,26 @@ jobs:
             exit 1
           fi
 
+  # M-06 監査対応: コミット履歴内のシークレット漏洩を gitleaks で検出するジョブ
+  # 認証情報・APIキー・パスワード等がリポジトリ履歴に混入していないことを確認する
+  secret-scan:
+    name: シークレットスキャン
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      # コミット履歴内の認証情報・シークレット漏洩を検出する（M-06 監査対応）
+      - name: gitleaks シークレットスキャン
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc2580ac56f311897a37c4fc24a
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false
+
   # 全セキュリティジョブの集約ゲート
   # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
   # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする
@@ -373,6 +394,8 @@ jobs:
       - iac-scan
       - license-scan
       - sast
+      # M-06 監査対応: secret-scan ジョブをゲートに追加
+      - secret-scan
     # always() を使って前段ジョブが失敗しても本ジョブは必ず実行する
     if: always()
     permissions: {}
@@ -385,11 +408,13 @@ jobs:
           echo "iac-scan:         ${{ needs.iac-scan.result }}"
           echo "license-scan:     ${{ needs.license-scan.result }}"
           echo "sast:             ${{ needs.sast.result }}"
+          echo "secret-scan:      ${{ needs.secret-scan.result }}"
           if [ "${{ needs.trivy-scan.result }}"       = "failure" ] || \
              [ "${{ needs.dependency-check.result }}" = "failure" ] || \
              [ "${{ needs.iac-scan.result }}"         = "failure" ] || \
              [ "${{ needs.license-scan.result }}"     = "failure" ] || \
-             [ "${{ needs.sast.result }}"             = "failure" ]; then
+             [ "${{ needs.sast.result }}"             = "failure" ] || \
+             [ "${{ needs.secret-scan.result }}"      = "failure" ]; then
             echo "::error::セキュリティスキャンに失敗したジョブがあります"
             exit 1
           fi

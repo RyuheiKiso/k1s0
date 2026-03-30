@@ -15,6 +15,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/saga/v1;sag
 
 import "k1s0/system/common/v1/types.proto";
 import "google/protobuf/struct.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 // SagaStatus は Saga の実行ステータス。
 enum SagaStatus {
@@ -120,8 +122,8 @@ message WorkflowSummary {
 
 // StartSagaRequest は Saga 開始リクエスト。
 message StartSagaRequest {
-  // 実行するワークフロー名
-  string workflow_name = 1;
+  // 実行するワークフロー名（1文字以上128文字以下）
+  string workflow_name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   // 各ステップに渡す JSON ペイロード
   google.protobuf.Struct payload = 2;
   // 業務相関 ID（任意）
@@ -144,7 +146,8 @@ message StartSagaResponse {
 
 // GetSagaRequest は Saga 詳細取得リクエスト。
 message GetSagaRequest {
-  string saga_id = 1;
+  // Saga IDは1文字以上であること
+  string saga_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // GetSagaResponse は Saga 詳細取得レスポンス。
@@ -180,7 +183,8 @@ message ListSagasResponse {
 
 // CancelSagaRequest は Saga キャンセルリクエスト。
 message CancelSagaRequest {
-  string saga_id = 1;
+  // Saga IDは1文字以上であること
+  string saga_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // CancelSagaResponse は Saga キャンセルレスポンス。
@@ -191,7 +195,8 @@ message CancelSagaResponse {
 
 // CompensateSagaRequest は Saga 補償実行リクエスト。
 message CompensateSagaRequest {
-  string saga_id = 1;
+  // Saga IDは1文字以上であること
+  string saga_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // CompensateSagaResponse は Saga 補償実行レスポンス。
@@ -208,8 +213,8 @@ message CompensateSagaResponse {
 
 // RegisterWorkflowRequest はワークフロー登録リクエスト。
 message RegisterWorkflowRequest {
-  // YAML 形式のワークフロー定義文字列
-  string workflow_yaml = 1;
+  // YAML 形式のワークフロー定義文字列（1文字以上）
+  string workflow_yaml = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 // RegisterWorkflowResponse はワークフロー登録レスポンス。

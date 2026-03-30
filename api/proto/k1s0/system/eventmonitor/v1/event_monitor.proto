@@ -4,6 +4,8 @@ package k1s0.system.eventmonitor.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/eventmonitor/v1;eventmonitorv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service EventMonitorService {
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
@@ -52,7 +54,8 @@ message ListEventsResponse {
 }
 
 message TraceByCorrelationRequest {
-  string correlation_id = 1;
+  // 相関IDは1文字以上256文字以下であること
+  string correlation_id = 1 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 message TraceEvent {
@@ -126,7 +129,8 @@ message ListFlowsResponse {
 }
 
 message GetFlowRequest {
-  string id = 1;
+  // フローIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetFlowResponse {
@@ -134,9 +138,11 @@ message GetFlowResponse {
 }
 
 message CreateFlowRequest {
-  string name = 1;
+  // フロー名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
-  string domain = 3;
+  // ドメインは1文字以上128文字以下であること
+  string domain = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   repeated FlowStep steps = 4;
   FlowSlo slo = 5;
 }
@@ -146,7 +152,8 @@ message CreateFlowResponse {
 }
 
 message UpdateFlowRequest {
-  string id = 1;
+  // フローIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   optional string description = 2;
   repeated FlowStep steps = 3;
   optional FlowSlo slo = 4;
@@ -158,7 +165,8 @@ message UpdateFlowResponse {
 }
 
 message DeleteFlowRequest {
-  string id = 1;
+  // フローIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteFlowResponse {
@@ -198,7 +206,8 @@ message FlowKpi {
 }
 
 message GetFlowKpiRequest {
-  string flow_id = 1;
+  // フローIDは1文字以上であること
+  string flow_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string period = 2;
 }
 
@@ -255,7 +264,8 @@ message BurnRateWindow {
 }
 
 message GetSloBurnRateRequest {
-  string flow_id = 1;
+  // フローIDは1文字以上であること
+  string flow_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetSloBurnRateResponse {

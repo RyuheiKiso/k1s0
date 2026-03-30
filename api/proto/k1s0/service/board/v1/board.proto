@@ -8,6 +8,8 @@ package k1s0.service.board.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/service/board/v1;boardv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service BoardService {
   // タスク追加によるカラムカウント増加（在庫予約に相当）
@@ -39,9 +41,12 @@ message BoardColumn {
 // ---------- リクエスト/レスポンス ----------
 
 message IncrementColumnRequest {
-  string task_id = 1;
-  string project_id = 2;
-  string status_code = 3;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // プロジェクトIDは1文字以上であること
+  string project_id = 2 [(buf.validate.field).string.min_len = 1];
+  // ステータスコードは1文字以上64文字以下であること
+  string status_code = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
 }
 
 message IncrementColumnResponse {
@@ -49,9 +54,12 @@ message IncrementColumnResponse {
 }
 
 message DecrementColumnRequest {
-  string task_id = 1;
-  string project_id = 2;
-  string status_code = 3;
+  // タスクIDは1文字以上であること
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+  // プロジェクトIDは1文字以上であること
+  string project_id = 2 [(buf.validate.field).string.min_len = 1];
+  // ステータスコードは1文字以上64文字以下であること
+  string status_code = 3 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
   string reason = 4;
 }
 
@@ -60,7 +68,8 @@ message DecrementColumnResponse {
 }
 
 message GetBoardColumnRequest {
-  string column_id = 1;
+  // カラムIDは1文字以上であること
+  string column_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetBoardColumnResponse {
@@ -82,7 +91,8 @@ message ListBoardColumnsResponse {
 }
 
 message UpdateWipLimitRequest {
-  string column_id = 1;
+  // カラムIDは1文字以上であること
+  string column_id = 1 [(buf.validate.field).string.min_len = 1];
   int32 wip_limit = 2;
   int32 expected_version = 3;
 }

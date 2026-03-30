@@ -1,4 +1,4 @@
-﻿app:
+app:
   name: "ratelimit-server"
   version: "0.1.0"
   environment: "dev"
@@ -8,6 +8,7 @@ server:
   port: 8080
   grpc_port: 50051
 
+# 開発環境用データベース接続設定
 database:
   host: localhost
   port: 5432
@@ -31,17 +32,17 @@ observability:
     enabled: true
     path: "/metrics"
 
-# === Production configuration (uncomment as needed) ===
-database:
-  host: "localhost"
-  port: 5432
-  name: "ratelimit_db"
-  user: "app"
-  password: ""
-  ssl_mode: "require"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
+# === 本番環境向け設定（使用する場合は上記 database セクションを削除し、以下をアンコメントする） ===
+# database:
+#   host: "localhost"
+#   port: 5432
+#   name: "ratelimit_db"
+#   user: "app"
+#   password: ""
+#   ssl_mode: "require"
+#   max_open_conns: 25
+#   max_idle_conns: 5
+#   conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
 #     - "localhost:9092"

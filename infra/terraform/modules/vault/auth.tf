@@ -36,6 +36,13 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 #      例: token_policies = ["auth-rust"] (auth.hcl を参照)
 #   3. 現在の "system" ロールは全移行完了後に削除する
 #   参照: docs/architecture/adr/0045-vault-per-service-roles.md
+# H-04 監査対応（移行完了後削除予定）:
+# 全サービスの values.yaml で vault.role が個別ロールに変更されたため、
+# このロールはどのサービスからも参照されなくなった。
+# 移行完了確認後（全サービスの Helm デプロイ再起動後）にこのリソースを削除すること。
+# 削除タイミング: 全 system tier サービスのローリングアップデートが完了し、
+# Vault 監査ログで "system" ロールへのアクセスが 0 件になったことを確認してから実施すること。
+# 参照: ADR-0045（docs/architecture/adr/0045-vault-per-service-roles.md）
 resource "vault_kubernetes_auth_backend_role" "system" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "system"

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:system_client/system_client.dart' as sys;
 
 import '../config/config_provider.dart';
 import '../models/project_type.dart';
@@ -8,10 +9,17 @@ import '../utils/api_client.dart';
 
 /// DioインスタンスのProvider
 /// YAML設定ファイルから読み込んだベースURLを使用してHTTPクライアントを生成する
+/// M-20 監査対応: csrfTokenProvider を明示的に注入して CSRF 保護を確実に有効化する
 final dioProvider = Provider<Dio>((ref) {
   /// 設定プロバイダーからAPI設定を取得する
   final config = ref.watch(appConfigProvider);
-  return ApiClient.create(baseUrl: config.api.baseUrl);
+  // authProvider から CSRF トークンを取得するプロバイダーを注入する
+  // ref.read を使用して各リクエスト時に最新のトークンを取得する（キャッシュを避ける）
+  final authNotifier = ref.read(sys.authProvider.notifier);
+  return ApiClient.create(
+    baseUrl: config.api.baseUrl,
+    csrfTokenProvider: () async => authNotifier.csrfToken,
+  );
 });
 
 /// プロジェクトタイプリポジトリのProvider

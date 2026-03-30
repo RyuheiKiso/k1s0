@@ -40,9 +40,10 @@
 apiVersion: audit.k8s.io/v1
 kind: Policy
 rules:
-  # ルール1: Secrets への操作を最高レベル（RequestResponse）で記録する
-  # 認証情報の漏洩・改ざんを即座に検出するために全内容を記録する
-  - level: RequestResponse
+  # ルール1: Secrets への操作を Metadata レベルで記録する
+  # M-04 監査対応: Secretsの内容を監査ログに記録するとシークレット値が平文で残存するため Metadata レベルに変更
+  # RequestResponse では Secret の value がログに平文で記録されセキュリティリスクとなる
+  - level: Metadata
     resources:
       - group: ""
         resources: ["secrets"]

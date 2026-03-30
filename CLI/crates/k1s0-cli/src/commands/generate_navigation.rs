@@ -15,6 +15,12 @@ use k1s0_core::commands::validate::navigation::NavigationYaml;
 ///
 /// プロンプトの入出力・ファイル操作・YAML パースに失敗した場合にエラーを返す。
 pub fn run() -> Result<()> {
+    // 非インタラクティブ環境（CI/CD、非TTY）では対話的プロンプトが使用できないため早期終了する
+    if crate::prompt::is_non_interactive() {
+        eprintln!("このコマンドは対話的な入力が必要です。TTY環境で実行してください。");
+        return Err(anyhow::anyhow!("非インタラクティブ環境では実行できません: K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません"));
+    }
+
     println!("\n--- ナビゲーション型ファイル生成 ---\n");
 
     // Step 1: navigation.yaml のパス

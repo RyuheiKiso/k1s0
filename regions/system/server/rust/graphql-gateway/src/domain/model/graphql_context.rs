@@ -18,6 +18,12 @@ pub struct GraphqlContext {
     pub request_id: String,
     /// 検証済み raw JWT トークン。下流 gRPC サービスへの転送用（M-3 監査対応: クエリ引数からコンテキストへ移動）
     pub bearer_token: String,
+    /// H-15 監査対応: クライアント IP アドレス（X-Forwarded-For またはリモートアドレスから取得）
+    /// クライアントが ip_address をリクエストに含められないようサーバーサイドで抽出する
+    pub ip_address: String,
+    /// H-15 監査対応: クライアントのユーザーエージェント（User-Agent ヘッダーから取得）
+    /// クライアントが user_agent をリクエストに含められないようサーバーサイドで抽出する
+    pub user_agent: String,
     /// テナントバッチローダー
     pub tenant_loader: Arc<DataLoader<TenantLoader>>,
     /// フィーチャーフラグバッチローダー

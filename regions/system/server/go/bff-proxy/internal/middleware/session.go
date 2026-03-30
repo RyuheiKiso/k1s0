@@ -62,8 +62,10 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 		// スライディングウィンドウで TTL が延長され続けても、絶対有効期限を超えたセッションは強制無効化する。
 		// refresh token があっても絶対期限超過の場合は再認証を要求する。
 		if sess.IsAbsoluteExpired() {
-			// セッションを削除してクリーンアップする
-			_ = store.Delete(c.Request.Context(), sessionID)
+			// セッション削除失敗はユーザーの認証には影響しないが、Redisのゴミデータ蓄積を防ぐためログに記録する
+			if err := store.Delete(c.Request.Context(), sessionID); err != nil {
+				slog.Warn("セッション削除に失敗しました", "session_id", util.MaskSessionID(sessionID), "error", err)
+			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error":      "BFF_SESSION_ABSOLUTE_EXPIRED",
 				"message":    "Session has exceeded maximum lifetime, re-authentication required",

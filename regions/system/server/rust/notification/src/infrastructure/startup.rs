@@ -180,10 +180,13 @@ pub async fn run() -> anyhow::Result<()> {
         // MED-8 監査対応: WEBHOOK_URL の形式を起動時に検証する
         reqwest::Url::parse(&webhook_url)
             .context("WEBHOOK_URL が有効な URL ではありません")?;
+        // H-18: タイムアウト付き WebhookDeliveryClient を構築する。失敗時は起動エラーとして伝播する
+        let webhook_client = WebhookDeliveryClient::new(webhook_url, None)
+            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {}", e))?;
         info!("Webhook delivery client initialized");
         delivery_clients.insert(
             "webhook".to_string(),
-            Arc::new(WebhookDeliveryClient::new(webhook_url, None)),
+            Arc::new(webhook_client),
         );
     } else {
         info!("WEBHOOK_URL not configured, skipping webhook delivery client");

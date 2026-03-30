@@ -10,6 +10,9 @@ class ProjectMasterApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // H-13 監査対応: createRouter に ref を渡し、GoRouter の redirect から authProvider を参照できるようにする
+    // ref を渡すことで認証状態の変化をルーターが検知し、未認証時は /login へリダイレクトされる
+    final router = createRouter(ref);
     return MaterialApp.router(
       title: 'プロジェクトマスタ管理',
       theme: ThemeData(

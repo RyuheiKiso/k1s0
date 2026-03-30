@@ -32,6 +32,8 @@ COPY --from=builder /bff-proxy /bff-proxy
 COPY --from=busybox /bin/busybox /busybox
 COPY --from=builder /app/config/ /etc/app/
 
+# M-24 監査対応: root で実行しないよう nonroot ユーザーに切り替える（Rust サービスと同じパターン）
+USER nonroot:nonroot
 EXPOSE 8080
 
 ENTRYPOINT ["/bff-proxy"]

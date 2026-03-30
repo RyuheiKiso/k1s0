@@ -81,7 +81,9 @@ db-tests = []
 mockall = { workspace = true }
 tokio-test = { workspace = true }
 tower = { workspace = true }
-testcontainers = "0.23"
+# L-12 監査対応: testcontainers を 0.23 から 0.24 に更新する。
+# 0.24 では RUSTSEC-2025-0111（tokio-tar の脆弱性）が解消されている。
+testcontainers = "0.24"
 axum-test = "17"
 tokio = { workspace = true }
 axum = { workspace = true }

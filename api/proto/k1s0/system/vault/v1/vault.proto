@@ -7,6 +7,8 @@ package k1s0.system.vault.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/vault/v1;vaultv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service VaultService {
   rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
@@ -19,7 +21,8 @@ service VaultService {
 }
 
 message GetSecretRequest {
-  string path = 1;
+  // シークレットパスは1文字以上512文字以下であること
+  string path = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   int64 version = 2;
 }
 
@@ -32,7 +35,8 @@ message GetSecretResponse {
 }
 
 message SetSecretRequest {
-  string path = 1;
+  // シークレットパスは1文字以上512文字以下であること
+  string path = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   map<string, string> data = 2;
 }
 
@@ -43,7 +47,8 @@ message SetSecretResponse {
 }
 
 message RotateSecretRequest {
-  string path = 1;
+  // シークレットパスは1文字以上512文字以下であること
+  string path = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   map<string, string> data = 2;
 }
 
@@ -54,7 +59,8 @@ message RotateSecretResponse {
 }
 
 message DeleteSecretRequest {
-  string path = 1;
+  // シークレットパスは1文字以上512文字以下であること
+  string path = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   repeated int64 versions = 2;
 }
 
@@ -63,7 +69,8 @@ message DeleteSecretResponse {
 }
 
 message GetSecretMetadataRequest {
-  string path = 1;
+  // シークレットパスは1文字以上512文字以下であること
+  string path = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
 }
 
 message GetSecretMetadataResponse {

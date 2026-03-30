@@ -135,6 +135,8 @@ hex = "0.4"
 # Redis クライアント: 複数サービスで同一バージョンを使用するため workspace で一元管理する（L-04 監査対応）
 # script feature を必要とするサービス（distributed-lock 等）は個別に上書きすること
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+# URL パース・検証: SSRF 対策で webhook URL のスキーム・ホスト・IP 範囲を検証するために使用する
+url = "2"
 
 # ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]

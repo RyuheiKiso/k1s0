@@ -149,14 +149,13 @@ impl SessionRepository for RedisSessionRepository {
             .map_err(|e| SessionError::Internal(format!("redis MGET error: {}", e)))?;
 
         // None（TTL 切れ等で消滅したセッション）を除外しデシリアライズする
+        // flatten() で Option の None を除去し、Some の値のみを処理する（manual_flatten 対応）
         let mut sessions = Vec::new();
-        for value in values {
-            if let Some(json) = value {
-                let session: Session = serde_json::from_str(&json).map_err(|e| {
-                    SessionError::Internal(format!("deserialization error: {}", e))
-                })?;
-                sessions.push(session);
-            }
+        for json in values.into_iter().flatten() {
+            let session: Session = serde_json::from_str(&json).map_err(|e| {
+                SessionError::Internal(format!("deserialization error: {}", e))
+            })?;
+            sessions.push(session);
         }
 
         Ok(sessions)

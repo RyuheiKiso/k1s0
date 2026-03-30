@@ -78,9 +78,10 @@ config:
   mountPath: /etc/app
   data: {}
 
+# H-03 監査対応: 単一 "system" ロールから個別ロール "graphql-gateway" に変更する（ADR-0045 参照）。
 vault:
   enabled: true
-  role: "system"
+  role: "graphql-gateway"
   secrets:
     - path: "secret/data/k1s0/system/graphql-gateway/auth"
       key: "jwks-signing-key"

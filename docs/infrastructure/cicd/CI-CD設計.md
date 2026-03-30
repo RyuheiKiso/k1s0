@@ -1844,6 +1844,47 @@ gh workflow run e2e.yaml
 
 ---
 
+## Doc Sync (2026-03-30) M-05/M-06 監査対応
+
+### M-05: Dart analyze `|| true` 除去
+
+`security.yaml` の SAST ジョブ内で `dart analyze --fatal-infos || true` としていた箇所から `|| true` を除去した。
+これにより Dart の静的解析エラーが CI で正しく検出・失敗するようになる。
+
+| 変更点 | 内容 |
+| --- | --- |
+| `dart analyze --fatal-infos || true` → `dart analyze --fatal-infos` | Dart 静的解析エラーを CI で正しく検出する（M-05 監査対応） |
+
+### M-06: gitleaks シークレットスキャンジョブの追加
+
+`security.yaml` にコミット履歴内のシークレット漏洩を検出する `secret-scan` ジョブを追加した。
+`gitleaks/gitleaks-action` を使用し、認証情報・APIキー・パスワード等がリポジトリ履歴に混入していないことを自動検出する。
+
+```yaml
+secret-scan:
+  name: シークレットスキャン
+  runs-on: ubuntu-latest
+  permissions:
+    contents: read
+  steps:
+    - uses: actions/checkout@...
+      with:
+        fetch-depth: 0
+    - uses: gitleaks/gitleaks-action@...
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_ENABLE_COMMENTS: false
+```
+
+`security-gate` ジョブの `needs:` 配列に `secret-scan` を追加し、シークレットスキャンが失敗した場合もゲートが閉じるようにした。
+
+| 変更点 | 内容 |
+| --- | --- |
+| `secret-scan` ジョブ追加 | gitleaks でコミット履歴内のシークレット漏洩を検出（M-06 監査対応） |
+| `security-gate.needs` に `secret-scan` 追加 | シークレットスキャン失敗時にゲートを閉じる |
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

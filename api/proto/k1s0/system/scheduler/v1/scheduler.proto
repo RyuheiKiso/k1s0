@@ -9,6 +9,8 @@ option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/scheduler/v
 
 import "k1s0/system/common/v1/types.proto";
 import "google/protobuf/struct.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service SchedulerService {
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
@@ -40,12 +42,17 @@ message Job {
 }
 
 message CreateJobRequest {
-  string name = 1;
+  // ジョブ名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   string description = 2;
-  string cron_expression = 3;
-  string timezone = 4;
-  string target_type = 5;
-  string target = 6;
+  // cron 式は1文字以上128文字以下であること
+  string cron_expression = 3 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // タイムゾーンは1文字以上64文字以下であること（例: Asia/Tokyo）
+  string timezone = 4 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // ターゲット種別は1文字以上64文字以下であること（例: http, kafka）
+  string target_type = 5 [(buf.validate.field).string = {min_len: 1, max_len: 64}];
+  // ターゲットは1文字以上512文字以下であること（URL 等）
+  string target = 6 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
   google.protobuf.Struct payload = 7;
 }
 
@@ -54,7 +61,8 @@ message CreateJobResponse {
 }
 
 message GetJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetJobResponse {
@@ -72,7 +80,8 @@ message ListJobsResponse {
 }
 
 message UpdateJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
   string name = 2;
   string description = 3;
   string cron_expression = 4;
@@ -87,7 +96,8 @@ message UpdateJobResponse {
 }
 
 message DeleteJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteJobResponse {
@@ -96,7 +106,8 @@ message DeleteJobResponse {
 }
 
 message PauseJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message PauseJobResponse {
@@ -104,7 +115,8 @@ message PauseJobResponse {
 }
 
 message ResumeJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message ResumeJobResponse {
@@ -112,7 +124,8 @@ message ResumeJobResponse {
 }
 
 message TriggerJobRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message TriggerJobResponse {
@@ -124,7 +137,8 @@ message TriggerJobResponse {
 }
 
 message GetJobExecutionRequest {
-  string execution_id = 1;
+  // 実行IDは1文字以上であること
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetJobExecutionResponse {
@@ -132,7 +146,8 @@ message GetJobExecutionResponse {
 }
 
 message ListExecutionsRequest {
-  string job_id = 1;
+  // ジョブIDは1文字以上であること
+  string job_id = 1 [(buf.validate.field).string.min_len = 1];
   k1s0.system.common.v1.Pagination pagination = 2;
   optional string status = 3;
   optional k1s0.system.common.v1.Timestamp from = 4;

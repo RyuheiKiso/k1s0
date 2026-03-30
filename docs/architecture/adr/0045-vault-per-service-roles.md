@@ -134,7 +134,10 @@ resource "vault_kubernetes_auth_backend_role" "auth_rust" {
 | ai-gateway.hcl | AI ゲートウェイサービス（将来追加予定） |
 | k1s0-system.hcl | tier 共通ポリシー（個別ロールには不要） |
 
-各サービスの `values.yaml` の `vault.role` を個別ロール名に変更し、動作確認後に既存の単一 `system` ロールを削除すること。
+~~各サービスの `values.yaml` の `vault.role` を個別ロール名に変更し、動作確認後に既存の単一 `system` ロールを削除すること。~~
+
+H-03 対応（2026-03-30）にて、全 system tier サービス（24 サービス）の `values.yaml` を個別ロールに移行完了。
+残作業: 全サービスのローリングアップデート完了後、Vault 監査ログで "system" ロールへのアクセスが 0 件になったことを確認してから `auth.tf` の単一 `system` ロール（H-04）を削除すること。
 
 ## 更新履歴
 
@@ -142,3 +145,4 @@ resource "vault_kubernetes_auth_backend_role" "auth_rust" {
 |------|---------|--------|
 | 2026-03-29 | 初版作成（L-14 監査対応） | - |
 | 2026-03-29 | auth.tf に 26 サービス分の個別ロールを実装、variables.tf に k8s_namespace 変数を追加（H-02/L-14 対応完了） | - |
+| 2026-03-30 | 全 system tier サービス（24 SA）の Helm values.yaml を個別 Vault ロールに移行（H-03 対応）。auth.tf の旧 "system" ロールに削除予定コメントを追加（H-04）。 | - |

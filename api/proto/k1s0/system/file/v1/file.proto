@@ -4,6 +4,8 @@ package k1s0.system.file.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/file/v1;filev1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service FileService {
   rpc GetFileMetadata(GetFileMetadataRequest) returns (GetFileMetadataResponse);
@@ -31,7 +33,8 @@ message FileMetadata {
 }
 
 message GetFileMetadataRequest {
-  string id = 1;
+  // ファイルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GetFileMetadataResponse {
@@ -39,7 +42,8 @@ message GetFileMetadataResponse {
 }
 
 message ListFilesRequest {
-  string tenant_id = 1;
+  // テナントIDはUUID形式であること
+  string tenant_id = 1 [(buf.validate.field).string.uuid = true];
   // ページネーションパラメータを共通型に統一
   k1s0.system.common.v1.Pagination pagination = 2;
   // フィールド番号 3 は旧 page_size（Pagination に統一済み）
@@ -56,10 +60,14 @@ message ListFilesResponse {
 }
 
 message GenerateUploadUrlRequest {
-  string filename = 1;
-  string content_type = 2;
-  string tenant_id = 3;
-  string uploaded_by = 4;
+  // ファイル名は1文字以上512文字以下であること
+  string filename = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+  // コンテンツタイプは1文字以上128文字以下であること
+  string content_type = 2 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // テナントIDはUUID形式であること
+  string tenant_id = 3 [(buf.validate.field).string.uuid = true];
+  // アップロード者IDは1文字以上であること
+  string uploaded_by = 4 [(buf.validate.field).string.min_len = 1];
   map<string, string> tags = 5;
   optional uint32 expires_in_seconds = 6;
   int64 size_bytes = 7;
@@ -72,7 +80,8 @@ message GenerateUploadUrlResponse {
 }
 
 message CompleteUploadRequest {
-  string file_id = 1;
+  // ファイルIDは1文字以上であること
+  string file_id = 1 [(buf.validate.field).string.min_len = 1];
   optional string checksum_sha256 = 3;
 }
 
@@ -81,7 +90,8 @@ message CompleteUploadResponse {
 }
 
 message GenerateDownloadUrlRequest {
-  string id = 1;
+  // ファイルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message GenerateDownloadUrlResponse {
@@ -90,7 +100,8 @@ message GenerateDownloadUrlResponse {
 }
 
 message UpdateFileTagsRequest {
-  string id = 1;
+  // ファイルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
   map<string, string> tags = 2;
 }
 
@@ -99,7 +110,8 @@ message UpdateFileTagsResponse {
 }
 
 message DeleteFileRequest {
-  string id = 1;
+  // ファイルIDは1文字以上であること
+  string id = 1 [(buf.validate.field).string.min_len = 1];
 }
 
 message DeleteFileResponse {}

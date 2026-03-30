@@ -7,6 +7,8 @@ package k1s0.system.search.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/search/v1;searchv1";
 
 import "k1s0/system/common/v1/types.proto";
+// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
+import "buf/validate/validate.proto";
 
 service SearchService {
   rpc CreateIndex(CreateIndexRequest) returns (CreateIndexResponse);
@@ -24,7 +26,8 @@ message SearchIndex {
 }
 
 message CreateIndexRequest {
-  string name = 1;
+  // インデックス名は1文字以上128文字以下であること
+  string name = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
   bytes mapping_json = 2;
 }
 
@@ -39,8 +42,10 @@ message ListIndicesResponse {
 }
 
 message IndexDocumentRequest {
-  string index = 1;
-  string document_id = 2;
+  // インデックス名は1文字以上128文字以下であること
+  string index = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // ドキュメントIDは1文字以上256文字以下であること
+  string document_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
   bytes document_json = 3;
 }
 
@@ -51,8 +56,10 @@ message IndexDocumentResponse {
 }
 
 message SearchRequest {
-  string index = 1;
-  string query = 2;
+  // インデックス名は1文字以上128文字以下であること
+  string index = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // 検索クエリは1文字以上1024文字以下であること
+  string query = 2 [(buf.validate.field).string = {min_len: 1, max_len: 1024}];
   bytes filters_json = 3;
   uint32 from = 4;
   uint32 size = 5;
@@ -76,8 +83,10 @@ message SearchHit {
 }
 
 message DeleteDocumentRequest {
-  string index = 1;
-  string document_id = 2;
+  // インデックス名は1文字以上128文字以下であること
+  string index = 1 [(buf.validate.field).string = {min_len: 1, max_len: 128}];
+  // ドキュメントIDは1文字以上256文字以下であること
+  string document_id = 2 [(buf.validate.field).string = {min_len: 1, max_len: 256}];
 }
 
 message DeleteDocumentResponse {

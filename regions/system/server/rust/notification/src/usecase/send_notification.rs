@@ -267,6 +267,7 @@ mod tests {
             "email".to_string(),
             "email".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();
@@ -333,6 +334,7 @@ mod tests {
             "sms".to_string(),
             "sms".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             false,
         );
         let channel_id = channel.id.clone();
@@ -373,6 +375,7 @@ mod tests {
             "email".to_string(),
             "email".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();
@@ -421,6 +424,7 @@ mod tests {
             "slack".to_string(),
             "slack".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();
@@ -474,6 +478,7 @@ mod tests {
             "sms".to_string(),
             "sms".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();
@@ -525,6 +530,7 @@ mod tests {
             "email".to_string(),
             "email".to_string(),
             serde_json::json!({}),
+            "system".to_string(),
             true,
         );
         let channel_id = channel.id.clone();

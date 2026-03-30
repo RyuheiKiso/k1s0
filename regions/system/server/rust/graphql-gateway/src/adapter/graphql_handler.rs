@@ -7,7 +7,8 @@ use async_graphql::{Context, Data, ErrorExtensions, FieldResult, Object, Schema,
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
     extract::{State, WebSocketUpgrade},
-    http::StatusCode,
+    // H-15 監査対応: HeaderMap を追加して ip_address / user_agent をリクエストヘッダーから抽出する
+    http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::{get, post},
     Extension, Json, Router,
@@ -238,20 +239,15 @@ pub struct UpdateServiceInput {
 // --- Auth / Session Input types ---
 
 /// 監査ログ記録の入力型
+/// H-15 監査対応: クライアントが userId/ipAddress/userAgent を送信できないよう入力型から除去する。
+/// - userId: JWT claims の sub フィールドから取得（なりすまし防止）
+/// - ipAddress: リクエストの X-Forwarded-For / RemoteAddr ヘッダから取得
+/// - userAgent: リクエストの User-Agent ヘッダから取得
 #[derive(async_graphql::InputObject)]
 pub struct RecordAuditLogInput {
     /// イベント種別（1〜100文字）
     #[graphql(validator(min_length = 1, max_length = 100))]
     pub event_type: String,
-    /// ユーザーID（1〜255文字）
-    #[graphql(validator(min_length = 1, max_length = 255))]
-    pub user_id: String,
-    /// IPアドレス（1〜45文字）
-    #[graphql(validator(min_length = 1, max_length = 45))]
-    pub ip_address: String,
-    /// ユーザーエージェント（1〜500文字）
-    #[graphql(validator(min_length = 1, max_length = 500))]
-    pub user_agent: String,
     /// リソース名（1〜255文字）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource: String,
@@ -657,6 +653,8 @@ impl QueryRoot {
         after: Option<String>,
     ) -> FieldResult<TenantConnection> {
         ensure_read_permission(ctx)?;
+        // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
+        let first = first.map(|n| n.clamp(1, 100));
         self.tenant_query
             .list_tenants(first, after)
             .await
@@ -741,6 +739,8 @@ impl QueryRoot {
         search: Option<String>,
     ) -> FieldResult<CatalogServiceConnection> {
         ensure_read_permission(ctx)?;
+        // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
+        let first = first.map(|n| n.clamp(1, 100));
         self.service_catalog_query
             .list_services(first, tier.as_deref(), status.as_deref(), search.as_deref())
             .await
@@ -782,6 +782,8 @@ impl QueryRoot {
         enabled: Option<bool>,
     ) -> FieldResult<Vec<User>> {
         ensure_read_permission(ctx)?;
+        // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
+        let first = first.map(|n| n.clamp(1, 100));
         self.auth_query
             .list_users(first, after, search.as_deref(), enabled)
             .await
@@ -825,6 +827,8 @@ impl QueryRoot {
         result: Option<String>,
     ) -> FieldResult<AuditLogConnection> {
         ensure_read_permission(ctx)?;
+        // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
+        let first = first.map(|n| n.clamp(1, 100));
         self.auth_query
             .search_audit_logs(
                 first,
@@ -892,6 +896,8 @@ impl QueryRoot {
         limit: Option<i32>,
     ) -> FieldResult<Vec<VaultAuditLogEntry>> {
         ensure_read_permission(ctx)?;
+        // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
+        let limit = limit.map(|n| n.clamp(1, 100));
         self.vault_query
             .list_audit_logs(offset, limit)
             .await
@@ -1270,13 +1276,18 @@ impl MutationRoot {
         input: RecordAuditLogInput,
     ) -> FieldResult<RecordAuditLogPayload> {
         ensure_write_permission(ctx)?;
+        // H-15 監査対応: userId/ipAddress/userAgent はクライアント入力ではなくサーバーサイドで取得する
+        // GraphqlContext に JWT claims と HTTP ヘッダーから抽出した値が格納されている
+        let gql_ctx = ctx.data::<GraphqlContext>().map_err(|_| {
+            async_graphql::Error::new("コンテキストの取得に失敗しました")
+        })?;
         Ok(self
             .auth_mutation
             .record_audit_log(
                 &input.event_type,
-                &input.user_id,
-                &input.ip_address,
-                &input.user_agent,
+                &gql_ctx.user_id,
+                &gql_ctx.ip_address,
+                &gql_ctx.user_agent,
                 &input.resource,
                 &input.action,
                 &input.result,
@@ -1917,8 +1928,25 @@ async fn graphql_handler(
     Extension(claims): Extension<Claims>,
     // M-3 監査対応: raw トークンをコンテキスト経由で取得し、navigation 等の下流サービスへ転送する
     Extension(bearer_token): Extension<BearerToken>,
+    // H-15 監査対応: ip_address と user_agent をリクエストヘッダーから抽出してコンテキストに注入する
+    // クライアントが偽装できないサーバーサイド情報として監査ログに使用する
+    headers: HeaderMap,
     req: GraphQLRequest,
 ) -> impl IntoResponse {
+    // H-15 監査対応: X-Forwarded-For が存在する場合はプロキシ経由の実際のクライアント IP を使用する
+    // 存在しない場合は "unknown" をフォールバックとする（ConnectInfo は別途ミドルウェアで対応が必要なため省略）
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split(',').next())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+    // H-15 監査対応: User-Agent ヘッダーからクライアントエージェント文字列を取得する
+    let user_agent = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("unknown")
+        .to_string();
     let request = req
         .into_inner()
         .data(GraphqlContext {
@@ -1926,6 +1954,8 @@ async fn graphql_handler(
             roles: claims.roles(),
             request_id: uuid::Uuid::new_v4().to_string(),
             bearer_token: bearer_token.0,
+            ip_address,
+            user_agent,
             tenant_loader: state.tenant_loader.clone(),
             flag_loader: state.flag_loader.clone(),
             config_loader: state.config_loader.clone(),
@@ -2099,6 +2129,9 @@ async fn graphql_ws_handler(
                             request_id: uuid::Uuid::new_v4().to_string(),
                             // WebSocket 接続の場合、token は connection_init ペイロードから取得済み
                             bearer_token: token.clone(),
+                            // WebSocket 接続では HTTP ヘッダーが利用不可のためデフォルト値を使用する
+                            ip_address: String::new(),
+                            user_agent: String::new(),
                             tenant_loader,
                             flag_loader,
                             config_loader,

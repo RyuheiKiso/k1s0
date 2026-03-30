@@ -87,8 +87,9 @@ impl CreateSessionUseCase {
         // URL_SAFE_NO_PAD エンコードにより URL に安全な文字列として保存・送信できる。
         let mut token_bytes = [0u8; 32];
         rand::rngs::OsRng.fill_bytes(&mut token_bytes);
+        // encode() は AsRef<[u8]> を受け取るため参照は不要（needless_borrows_for_generic_args 対応）
         let session_token =
-            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&token_bytes);
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(token_bytes);
 
         let now = Utc::now();
         let session = Session {
