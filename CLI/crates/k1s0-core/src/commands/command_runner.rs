@@ -14,12 +14,25 @@ enum StreamKind {
 /// CLI から実行を許可するコマンドのホワイトリスト（H-013 監査対応）
 /// これ以外のコマンドは実行を拒否してコマンドインジェクションを防止する
 const ALLOWED_COMMANDS: &[&str] = &[
-    "docker", "docker-compose", "kubectl", "helm",
-    "cargo", "go", "flutter", "dart",
-    "npm", "pnpm", "node",
-    "buf", "just", "git",
-    "sh", "bash", "cmd",
-    "cosign", "trivy",
+    "docker",
+    "docker-compose",
+    "kubectl",
+    "helm",
+    "cargo",
+    "go",
+    "flutter",
+    "dart",
+    "npm",
+    "pnpm",
+    "node",
+    "buf",
+    "just",
+    "git",
+    "sh",
+    "bash",
+    "cmd",
+    "cosign",
+    "trivy",
 ];
 
 pub(crate) fn run_streaming_command(
@@ -30,7 +43,9 @@ pub(crate) fn run_streaming_command(
 ) -> Result<()> {
     // H-013 監査対応: ホワイトリスト外のコマンド実行を拒否してコマンドインジェクションを防止する
     if !ALLOWED_COMMANDS.contains(&cmd) {
-        anyhow::bail!("許可されていないコマンドです: '{}'. 使用可能なコマンド: {:?}", cmd, ALLOWED_COMMANDS);
+        anyhow::bail!(
+            "許可されていないコマンドです: '{cmd}'. 使用可能なコマンド: {ALLOWED_COMMANDS:?}"
+        );
     }
 
     let mut child = Command::new(cmd)
@@ -179,6 +194,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let result = run_streaming_command("malicious", &[], tmp.path(), |_| {});
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("許可されていないコマンド"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("許可されていないコマンド"));
     }
 }

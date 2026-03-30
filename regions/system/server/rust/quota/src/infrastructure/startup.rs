@@ -262,7 +262,9 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|auth_cfg| -> anyhow::Result<_> {
                 // nested 形式の AuthConfig から JWKS 検証器を初期化する
-                let jwks = auth_cfg.jwks.as_ref()
+                let jwks = auth_cfg
+                    .jwks
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("auth.jwks configuration is required"))?;
                 info!(jwks_url = %jwks.url, "initializing JWKS verifier for quota-server");
                 let jwks_verifier = Arc::new(

@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 // tokio::sync::Mutex を使用することで async コンテキスト内でのロックを安全に行う。
 // std::sync::Mutex は async タスク間で保持すると deadlock の原因となるため置き換える。
-use tokio::sync::Mutex;
 use std::time::{Duration, Instant};
+use tokio::sync::Mutex;
 
 use crate::config::QuotaClientConfig;
 use crate::error::QuotaClientError;

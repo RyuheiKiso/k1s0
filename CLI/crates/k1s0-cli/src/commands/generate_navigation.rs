@@ -29,7 +29,22 @@ pub fn run() -> Result<()> {
         .default("navigation.yaml".to_string())
         .interact_text()?;
 
-    let content = fs::read_to_string(&nav_path).map_err(|e| anyhow::anyhow!("{nav_path}: {e}"))?;
+    // HIGH-A2 監査対応: ユーザー入力パスを canonicalize してパストラバーサルを防止する。
+    // ../../../etc/passwd のような traversal を防ぐため、プロジェクトディレクトリ内のパスのみを許可する。
+    let nav_path_buf = std::path::Path::new(&nav_path)
+        .canonicalize()
+        .map_err(|e| {
+            anyhow::anyhow!("navigation.yaml へのアクセスに失敗しました '{nav_path}': {e}")
+        })?;
+    let cwd = std::env::current_dir()
+        .map_err(|e| anyhow::anyhow!("カレントディレクトリの取得に失敗しました: {e}"))?;
+    if !nav_path_buf.starts_with(&cwd) {
+        anyhow::bail!(
+            "セキュリティエラー: navigation.yaml はプロジェクトディレクトリ内にある必要があります: {nav_path}"
+        );
+    }
+    let content =
+        fs::read_to_string(&nav_path_buf).map_err(|e| anyhow::anyhow!("{nav_path}: {e}"))?;
     let nav: NavigationYaml = serde_yaml::from_str(&content)
         .map_err(|e| anyhow::anyhow!("navigation.yaml のパースエラー: {e}"))?;
 

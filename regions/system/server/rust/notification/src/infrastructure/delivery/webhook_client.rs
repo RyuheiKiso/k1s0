@@ -16,14 +16,19 @@ pub struct WebhookDeliveryClient {
 impl WebhookDeliveryClient {
     /// H-18 Webhookタイムアウト対応: 応答タイムアウト30秒・接続タイムアウト5秒を設定して
     /// 外部 Webhook エンドポイントが応答しない場合にリソースが長時間ブロックされることを防ぐ
-    pub fn new(url: String, headers: Option<HashMap<String, String>>) -> Result<Self, DeliveryError> {
+    pub fn new(
+        url: String,
+        headers: Option<HashMap<String, String>>,
+    ) -> Result<Self, DeliveryError> {
         let client = Client::builder()
             // 応答全体のタイムアウト: 外部エンドポイントの遅延応答によるリソースリークを防ぐ
             .timeout(Duration::from_secs(30))
             // TCP 接続確立のタイムアウト: ネットワーク到達不能なエンドポイントへの長時間待機を防ぐ
             .connect_timeout(Duration::from_secs(5))
             .build()
-            .map_err(|e| DeliveryError::Other(format!("HTTPクライアントの初期化に失敗しました: {}", e)))?;
+            .map_err(|e| {
+                DeliveryError::Other(format!("HTTPクライアントの初期化に失敗しました: {}", e))
+            })?;
         Ok(Self {
             url,
             headers: headers.unwrap_or_default(),
@@ -90,7 +95,10 @@ mod tests {
                 .expect("クライアント初期化に失敗");
         assert_eq!(client.headers.len(), 1);
         assert_eq!(
-            client.headers.get("Authorization").expect("ヘッダーが存在しない"),
+            client
+                .headers
+                .get("Authorization")
+                .expect("ヘッダーが存在しない"),
             "Bearer token"
         );
     }

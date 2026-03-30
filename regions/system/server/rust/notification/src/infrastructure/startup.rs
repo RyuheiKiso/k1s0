@@ -26,7 +26,6 @@ use super::kafka_producer::{
 use crate::adapter::grpc::NotificationGrpcService;
 use crate::adapter::repository::channel_postgres::ChannelPostgresRepository;
 // C-005 監査対応: 暗号化キーの hex デコードに使用する
-use secrecy::ExposeSecret;
 use crate::adapter::repository::notification_log_postgres::NotificationLogPostgresRepository;
 use crate::adapter::repository::template_postgres::TemplatePostgresRepository;
 use crate::domain::entity::notification_channel::NotificationChannel;
@@ -37,6 +36,7 @@ use crate::domain::repository::NotificationLogRepository;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::DeliveryClient;
 use k1s0_server_common::startup::{ObservabilityFields, ServerBuilder};
+use secrecy::ExposeSecret;
 
 pub async fn run() -> anyhow::Result<()> {
     // 設定ファイルを読み込む
@@ -87,7 +87,10 @@ pub async fn run() -> anyhow::Result<()> {
             .transpose()?;
 
         (
-            Arc::new(ChannelPostgresRepository::new(pool.clone(), channel_encryption_key)),
+            Arc::new(ChannelPostgresRepository::new(
+                pool.clone(),
+                channel_encryption_key,
+            )),
             Arc::new(NotificationLogPostgresRepository::new(pool.clone())),
             Arc::new(TemplatePostgresRepository::new(pool)),
         )
@@ -178,16 +181,12 @@ pub async fn run() -> anyhow::Result<()> {
 
     if let Ok(webhook_url) = std::env::var("WEBHOOK_URL") {
         // MED-8 監査対応: WEBHOOK_URL の形式を起動時に検証する
-        reqwest::Url::parse(&webhook_url)
-            .context("WEBHOOK_URL が有効な URL ではありません")?;
+        reqwest::Url::parse(&webhook_url).context("WEBHOOK_URL が有効な URL ではありません")?;
         // H-18: タイムアウト付き WebhookDeliveryClient を構築する。失敗時は起動エラーとして伝播する
         let webhook_client = WebhookDeliveryClient::new(webhook_url, None)
             .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {}", e))?;
         info!("Webhook delivery client initialized");
-        delivery_clients.insert(
-            "webhook".to_string(),
-            Arc::new(webhook_client),
-        );
+        delivery_clients.insert("webhook".to_string(), Arc::new(webhook_client));
     } else {
         info!("WEBHOOK_URL not configured, skipping webhook delivery client");
     }

@@ -745,3 +745,293 @@ spec:
     retention.ms: 2592000000
     cleanup.policy: delete
     min.insync.replicas: 2
+---
+# --- L-23 監査対応: ローカル開発と Kubernetes で定義が一致するよう不足トピックを追加 ---
+# フィーチャーフラグ変更イベント（featureflag-rust がプロデューサー、各サービスがコンシューマー）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.featureflag.changed.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# ファイルアップロードイベント（file-rust がプロデューサー、event_type=uploaded）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.file.uploaded.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# ファイル削除イベント（file-rust がプロデューサー、event_type=deleted）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.file.deleted.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# Vault シークレットローテーションイベント（vault-rust がプロデューサー、各サービスが購読して再取得）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.vault.secret_rotated.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# 通知リクエストイベント（各サービスがプロデューサー、notification-rust がコンシューマー）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.notification.requested.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# クォータ超過イベント（quota-rust がプロデューサー、各サービスが購読してリクエスト制限）
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.quota.exceeded.v1
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: event
+spec:
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000        # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# --- L-23 監査対応: 不足 DLQ トピックの追加 ---
+# DLQ: トークン検証イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.auth.token_validate.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: 権限拒否イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.auth.permission_denied.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: API スキーマ更新イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.apiregistry.schema_updated.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: マスタデータ変更イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.mastermaintenance.data_changed.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: フィーチャーフラグ変更イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.featureflag.changed.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: ファイルアップロードイベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.file.uploaded.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: ファイル削除イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.file.deleted.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: Vault シークレットローテーションイベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.vault.secret_rotated.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: 通知リクエストイベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.notification.requested.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+# DLQ: クォータ超過イベントの処理失敗退避先
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: k1s0.system.quota.exceeded.v1.dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: k1s0-kafka
+    tier: system
+    type: dlq
+spec:
+  partitions: 1
+  replicas: 3
+  config:
+    retention.ms: 2592000000       # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: 2

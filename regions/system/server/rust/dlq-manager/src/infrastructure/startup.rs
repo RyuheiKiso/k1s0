@@ -157,8 +157,16 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|auth_cfg| -> anyhow::Result<_> {
                 // JWKS URL を取得（nested 形式: auth.jwks.url）
-                let jwks_url = auth_cfg.jwks.as_ref().map(|j| j.url.as_str()).unwrap_or_default();
-                let cache_ttl = auth_cfg.jwks.as_ref().map(|j| j.cache_ttl_secs).unwrap_or(300);
+                let jwks_url = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.url.as_str())
+                    .unwrap_or_default();
+                let cache_ttl = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.cache_ttl_secs)
+                    .unwrap_or(300);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for dlq-manager");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(

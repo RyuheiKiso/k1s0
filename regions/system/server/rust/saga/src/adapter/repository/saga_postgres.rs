@@ -152,9 +152,7 @@ impl SagaRepository for SagaPostgresRepository {
         let offset = ((page - 1) * page_size) as i64;
 
         // カウントクエリを QueryBuilder で構築する
-        let mut count_qb = sqlx::QueryBuilder::new(
-            "SELECT COUNT(*)::int4 FROM saga.saga_states",
-        );
+        let mut count_qb = sqlx::QueryBuilder::new("SELECT COUNT(*)::int4 FROM saga.saga_states");
         let mut has_where = false;
 
         if let Some(ref wn) = params.workflow_name {

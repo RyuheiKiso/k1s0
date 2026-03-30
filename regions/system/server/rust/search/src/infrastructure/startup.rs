@@ -172,24 +172,29 @@ pub async fn run() -> anyhow::Result<()> {
     let auth_state = k1s0_server_common::require_auth_state(
         "search-server",
         &cfg.app.environment,
-        cfg.auth.as_ref().map(|auth_cfg| -> anyhow::Result<_> {
-            // nested 形式の AuthConfig から JWKS 検証器を初期化する
-            let jwks = auth_cfg.jwks.as_ref()
-                .ok_or_else(|| anyhow::anyhow!("auth.jwks configuration is required"))?;
-            info!(jwks_url = %jwks.url, "initializing JWKS verifier for search-server");
-            let jwks_verifier = Arc::new(
-                k1s0_auth::JwksVerifier::new(
-                    &jwks.url,
-                    &auth_cfg.jwt.issuer,
-                    &auth_cfg.jwt.audience,
-                    std::time::Duration::from_secs(jwks.cache_ttl_secs),
-                )
-                .context("JWKS 検証器の作成に失敗")?,
-            );
-            Ok(crate::adapter::middleware::auth::AuthState {
-                verifier: jwks_verifier,
+        cfg.auth
+            .as_ref()
+            .map(|auth_cfg| -> anyhow::Result<_> {
+                // nested 形式の AuthConfig から JWKS 検証器を初期化する
+                let jwks = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("auth.jwks configuration is required"))?;
+                info!(jwks_url = %jwks.url, "initializing JWKS verifier for search-server");
+                let jwks_verifier = Arc::new(
+                    k1s0_auth::JwksVerifier::new(
+                        &jwks.url,
+                        &auth_cfg.jwt.issuer,
+                        &auth_cfg.jwt.audience,
+                        std::time::Duration::from_secs(jwks.cache_ttl_secs),
+                    )
+                    .context("JWKS 検証器の作成に失敗")?,
+                );
+                Ok(crate::adapter::middleware::auth::AuthState {
+                    verifier: jwks_verifier,
+                })
             })
-        }).transpose()?,
+            .transpose()?,
     )?;
 
     let mut handler_state = crate::adapter::handler::search_handler::AppState {

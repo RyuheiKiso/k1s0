@@ -93,10 +93,7 @@ pub async fn get_file(
     let claims = match claims {
         Some(axum::extract::Extension(c)) => c,
         None => {
-            let err = ErrorResponse::new(
-                codes::file::access_denied(),
-                "authentication required",
-            );
+            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
             return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
         }
     };
@@ -122,7 +119,10 @@ pub async fn get_file(
 
                 // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
                 // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-                let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+                let resource_tenant_id =
+                    crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                        &file.storage_path,
+                    )
                     .unwrap_or("");
                 if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                     resource_tenant_id,
@@ -217,10 +217,7 @@ pub async fn delete_file(
     let claims = match claims {
         Some(axum::extract::Extension(c)) => c,
         None => {
-            let err = ErrorResponse::new(
-                codes::file::access_denied(),
-                "authentication required",
-            );
+            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
             return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
         }
     };
@@ -238,7 +235,10 @@ pub async fn delete_file(
         if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+            let resource_tenant_id =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -267,7 +267,11 @@ pub async fn delete_file(
         file_id: id,
         tenant_id: request_tenant_id,
         // sys_admin は全ファイルを削除可能なため所有者チェックをスキップする
-        expected_uploader: if is_admin { None } else { Some(claims.sub.clone()) },
+        expected_uploader: if is_admin {
+            None
+        } else {
+            Some(claims.sub.clone())
+        },
     };
 
     // MED-02 監査対応: 文字列マッチングをやめ、型安全なエラー型で HTTP ステータスを決定する
@@ -303,7 +307,10 @@ pub async fn delete_file_admin(
         if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+            let resource_tenant_id =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -352,10 +359,7 @@ pub async fn complete_upload(
     let claims = match claims {
         Some(axum::extract::Extension(c)) => c,
         None => {
-            let err = ErrorResponse::new(
-                codes::file::access_denied(),
-                "authentication required",
-            );
+            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
             return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
         }
     };
@@ -382,7 +386,10 @@ pub async fn complete_upload(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+            let resource_tenant_id =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -430,10 +437,7 @@ pub async fn download_url(
     let claims = match claims {
         Some(axum::extract::Extension(c)) => c,
         None => {
-            let err = ErrorResponse::new(
-                codes::file::access_denied(),
-                "authentication required",
-            );
+            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
             return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
         }
     };
@@ -460,7 +464,10 @@ pub async fn download_url(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+            let resource_tenant_id =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
@@ -525,10 +532,7 @@ pub async fn update_file_tags(
     let claims = match claims {
         Some(axum::extract::Extension(c)) => c,
         None => {
-            let err = ErrorResponse::new(
-                codes::file::access_denied(),
-                "authentication required",
-            );
+            let err = ErrorResponse::new(codes::file::access_denied(), "authentication required");
             return (StatusCode::UNAUTHORIZED, Json(err)).into_response();
         }
     };
@@ -555,7 +559,10 @@ pub async fn update_file_tags(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id = crate::domain::service::FileDomainService::tenant_id_from_storage_path(&file.storage_path)
+            let resource_tenant_id =
+                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                )
                 .unwrap_or("");
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,

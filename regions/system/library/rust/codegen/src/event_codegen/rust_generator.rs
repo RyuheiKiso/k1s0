@@ -128,8 +128,13 @@ pub fn generate_consumer_handler(config: &EventConfig, event: &EventDef, handler
 
     let mut lines = Vec::new();
     // LOW-05: 生成ファイル冒頭に TODO 混入警告コメントを付与し、未実装のまま本番投入されないよう注意を促す
-    lines.push("// WARNING: このファイルは k1s0-codegen により自動生成されたスタブです。".to_string());
-    lines.push("// TODO コメントの箇所にビジネスロジックを実装してから本番デプロイしてください。".to_string());
+    lines.push(
+        "// WARNING: このファイルは k1s0-codegen により自動生成されたスタブです。".to_string(),
+    );
+    lines.push(
+        "// TODO コメントの箇所にビジネスロジックを実装してから本番デプロイしてください。"
+            .to_string(),
+    );
     lines.push(String::new());
     lines.push("use k1s0_messaging::ConsumedMessage;".to_string());
     lines.push(String::new());

@@ -125,7 +125,6 @@ fn default_max_open_conns() -> u32 {
     25
 }
 
-
 impl DatabaseConfig {
     /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
     pub fn connection_url(&self) -> String {
@@ -247,8 +246,8 @@ mod tests {
     #[test]
     fn config_docker_yaml_deserializes_correctly() {
         let yaml = include_str!("../../config/config.docker.yaml");
-        let _config: Config = serde_yaml::from_str(yaml)
-            .expect("config.docker.yaml のデシリアライズに失敗しました");
+        let _config: Config =
+            serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }
 
     #[test]

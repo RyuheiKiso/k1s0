@@ -11,7 +11,9 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     routing::{get, post},
-    Extension, Json, Router,
+    Extension,
+    Json,
+    Router,
 };
 
 use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, BearerToken, Claims};
@@ -1278,9 +1280,9 @@ impl MutationRoot {
         ensure_write_permission(ctx)?;
         // H-15 監査対応: userId/ipAddress/userAgent はクライアント入力ではなくサーバーサイドで取得する
         // GraphqlContext に JWT claims と HTTP ヘッダーから抽出した値が格納されている
-        let gql_ctx = ctx.data::<GraphqlContext>().map_err(|_| {
-            async_graphql::Error::new("コンテキストの取得に失敗しました")
-        })?;
+        let gql_ctx = ctx
+            .data::<GraphqlContext>()
+            .map_err(|_| async_graphql::Error::new("コンテキストの取得に失敗しました"))?;
         Ok(self
             .auth_mutation
             .record_audit_log(

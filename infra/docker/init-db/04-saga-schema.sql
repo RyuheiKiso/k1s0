@@ -3,7 +3,9 @@
 -- 本ファイルは DB 接続先の切り替えとスキーマ作成・権限設定のみを行う。
 -- CREATE TABLE / ALTER TABLE / CREATE INDEX / CREATE TRIGGER は含まない。
 
-\connect k1s0_system;
+-- CRIT-09 監査対応: saga サービス専用 DB（k1s0_saga）に接続する。
+-- k1s0_system との共有は sqlx _sqlx_migrations テーブル競合を引き起こすため分離した。
+\connect k1s0_saga;
 
 -- saga スキーマの作成（マイグレーション実行前にスキーマが存在する必要がある）
 CREATE SCHEMA IF NOT EXISTS saga;

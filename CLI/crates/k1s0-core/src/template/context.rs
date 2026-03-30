@@ -453,11 +453,24 @@ impl TemplateContextBuilder {
             "service" => "../../../../system/library/rust".to_string(),
             _ => String::new(),
         };
+        // CRIT-A5 監査対応: system_library_go_local_path はユーザー入力 tier の match から
+        // 導出されるが、tier の match で _ アームは String::new() を返すため
+        // ユーザー入力が直接パスに展開されることはない。
+        // 値は事前定義済みの相対パスのみに制限されており、パスインジェクションリスクはない。
         let system_library_go_local_path = match self.tier.as_str() {
             "business" => "../../../../../system/library/go".to_string(),
             "service" => "../../../../system/library/go".to_string(),
             _ => String::new(),
         };
+        // 防御的バリデーション: 期待されるパス文字（英数字 / . _ -）のみを許可する。
+        // 万一 tier の値が変更されて予期しない文字が混入した場合に早期発見できる。
+        debug_assert!(
+            system_library_go_local_path.is_empty()
+                || system_library_go_local_path
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '_' | '-')),
+            "system_library_go_local_path に不正な文字が含まれています: {system_library_go_local_path}"
+        );
 
         // server_language の導出: 明示的に設定されていなければ language を使用
         let server_language = if self.server_language.is_empty() {

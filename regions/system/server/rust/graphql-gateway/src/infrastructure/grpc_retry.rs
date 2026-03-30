@@ -165,10 +165,7 @@ mod tests {
     #[tokio::test]
     async fn test_zero_max_attempts_returns_error() {
         // max_attempts = 0 の場合はパニックせずに即座にエラーを返すことを確認する
-        let result = with_retry("test-op", 0, || async {
-            Ok::<u32, _>(42)
-        })
-        .await;
+        let result = with_retry("test-op", 0, || async { Ok::<u32, _>(42) }).await;
 
         // クロージャは一切呼ばれず、internal エラーが返されることを検証する
         assert!(result.is_err());

@@ -8,7 +8,7 @@ use k1s0_core::commands::generate::config_types::{
     GeneratedTypesTarget,
 };
 
-#[allow(clippy::missing_errors_doc)]
+#[allow(clippy::missing_errors_doc, clippy::too_many_lines)]
 pub fn run() -> Result<()> {
     // 非インタラクティブ環境（CI/CD、非TTY）では対話的プロンプトが使用できないため早期終了する
     if crate::prompt::is_non_interactive() {
@@ -24,7 +24,19 @@ pub fn run() -> Result<()> {
         .with_prompt("config-schema.yaml のパス")
         .default("config-schema.yaml".to_string())
         .interact_text()?;
-    let schema = load_validated_schema_from_file(Path::new(&schema_path))
+    // HIGH-A2 監査対応: ユーザー入力パスを canonicalize してパストラバーサルを防止する。
+    // ../../../etc/passwd のような traversal を防ぐため、プロジェクトディレクトリ内のパスのみを許可する。
+    let schema_path_buf = Path::new(&schema_path).canonicalize().map_err(|e| {
+        anyhow::anyhow!("スキーマファイルへのアクセスに失敗しました '{schema_path}': {e}")
+    })?;
+    let cwd = std::env::current_dir()
+        .map_err(|e| anyhow::anyhow!("カレントディレクトリの取得に失敗しました: {e}"))?;
+    if !schema_path_buf.starts_with(&cwd) {
+        anyhow::bail!(
+            "セキュリティエラー: スキーマファイルはプロジェクトディレクトリ内にある必要があります: {schema_path}"
+        );
+    }
+    let schema = load_validated_schema_from_file(&schema_path_buf)
         .map_err(|error| anyhow::anyhow!("{schema_path}: {error}"))?;
 
     // 生成ターゲット（React / Flutter）をユーザーに選択させる

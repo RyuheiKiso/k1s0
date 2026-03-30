@@ -319,8 +319,8 @@ mod tests {
     #[test]
     fn config_docker_yaml_deserializes_correctly() {
         let yaml = include_str!("../../config/config.docker.yaml");
-        let config: Config = serde_yaml::from_str(yaml)
-            .expect("config.docker.yaml のデシリアライズに失敗しました");
+        let config: Config =
+            serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
         // AuthConfig が正しく読み込まれていることを確認する
         assert!(config.auth.is_some(), "auth 設定が読み込まれていません");
         let auth = config.auth.unwrap();

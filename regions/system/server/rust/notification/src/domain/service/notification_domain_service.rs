@@ -31,8 +31,7 @@ impl NotificationDomainService {
     /// スキーム制限（http/https のみ）、プライベートIPアドレス拒否、クラスタ内部ホスト名拒否を行う。
     pub fn validate_webhook_url(url: &str) -> Result<(), String> {
         // URL 文字列をパースして構造体に変換する
-        let parsed = url::Url::parse(url)
-            .map_err(|_| "URLの形式が不正です".to_string())?;
+        let parsed = url::Url::parse(url).map_err(|_| "URLの形式が不正です".to_string())?;
 
         // スキーム制限: http または https のみ許可し、file/ftp/data 等の危険スキームを拒否する
         match parsed.scheme() {
@@ -51,13 +50,11 @@ impl NotificationDomainService {
         if let Ok(ip) = host.parse::<std::net::IpAddr>() {
             if ip.is_loopback() || ip.is_unspecified() {
                 return Err(
-                    "ループバック・未指定IPアドレスへのWebhookは禁止されています".to_string()
+                    "ループバック・未指定IPアドレスへのWebhookは禁止されています".to_string(),
                 );
             }
             if is_private_ip(&ip) {
-                return Err(
-                    "プライベートIPアドレスへのWebhookは禁止されています".to_string()
-                );
+                return Err("プライベートIPアドレスへのWebhookは禁止されています".to_string());
             }
         }
 
@@ -68,9 +65,7 @@ impl NotificationDomainService {
             || host == "kubernetes"
             || host == "kubernetes.default"
         {
-            return Err(
-                "クラスタ内部エンドポイントへのWebhookは禁止されています".to_string()
-            );
+            return Err("クラスタ内部エンドポイントへのWebhookは禁止されています".to_string());
         }
 
         Ok(())

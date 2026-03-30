@@ -101,7 +101,10 @@ mod tests {
         assert_eq!(server_claims.sub, "user-uuid-1234");
         assert_eq!(server_claims.iss, "https://auth.example.com/realms/k1s0");
         // aud は Vec<String> として複数値が保持される
-        assert_eq!(server_claims.aud, vec!["k1s0-api".to_string(), "other-api".to_string()]);
+        assert_eq!(
+            server_claims.aud,
+            vec!["k1s0-api".to_string(), "other-api".to_string()]
+        );
         assert_eq!(server_claims.exp, 1710000900);
         assert_eq!(server_claims.iat, 1710000000);
         assert_eq!(server_claims.jti, "token-uuid-5678");

@@ -141,8 +141,9 @@ pub struct CompensateSagaResponse {
 pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => Json(serde_json::json!({"status": "ok", "database": "connected"}))
-                .into_response(),
+            Ok(_) => {
+                Json(serde_json::json!({"status": "ok", "database": "connected"})).into_response()
+            }
             Err(e) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(serde_json::json!({

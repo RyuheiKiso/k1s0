@@ -4,6 +4,7 @@ package secretstore_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -216,4 +217,219 @@ func TestVaultSecretStore_Get(t *testing.T) {
 	assert.Equal(t, "vault-s3cret", secret.Value)
 	// バージョン情報がメタデータに含まれることを確認する。
 	assert.Equal(t, "3", secret.Metadata["version"])
+}
+
+// ─────────────────────────────────────────
+// M-15 監査対応: カバレッジ向上のための追加テスト
+// ─────────────────────────────────────────
+
+// TestComponentError_Unwrap は Unwrap() が内包エラーを正しく返すことを確認する。
+// errors.Is/As によるエラーチェーン探索が機能することを検証する。
+func TestComponentError_Unwrap(t *testing.T) {
+	inner := fmt.Errorf("original error")
+	cerr := secretstore.NewComponentError("comp", "op", "message", inner)
+
+	// errors.Is でラップされたエラーを検出できることを確認する。
+	assert.ErrorIs(t, cerr, inner)
+	// errors.Unwrap で内包エラーを直接取得できることを確認する（Unwrap メソッドのカバレッジ）。
+	unwrapped := errors.Unwrap(cerr)
+	assert.Equal(t, inner, unwrapped)
+
+	// Err が nil の場合は Unwrap が nil を返すことを確認する。
+	cerrNoWrap := secretstore.NewComponentError("comp", "op", "message", nil)
+	assert.Nil(t, errors.Unwrap(cerrNoWrap))
+}
+
+// TestInMemorySecretStore_Lifecycle は Init/Status/Close のライフサイクルを検証する。
+func TestInMemorySecretStore_Lifecycle(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewInMemorySecretStore()
+
+	// Name/Version が期待通りの文字列を返すことを確認する。
+	assert.Equal(t, "inmemory-secretstore", store.Name())
+	assert.Equal(t, "1.0.0", store.Version())
+
+	// 初期化前は Uninitialized 状態であることを確認する。
+	assert.Equal(t, secretstore.StatusUninitialized, store.Status(ctx))
+
+	// Init 後は Ready 状態になることを確認する。
+	require.NoError(t, store.Init(ctx, secretstore.Metadata{Name: "test"}))
+	assert.Equal(t, secretstore.StatusReady, store.Status(ctx))
+
+	// Close 後は Closed 状態になることを確認する。
+	require.NoError(t, store.Close(ctx))
+	assert.Equal(t, secretstore.StatusClosed, store.Status(ctx))
+}
+
+// TestInMemorySecretStore_BulkGet_Error は BulkGet でエラーが発生した場合に即座に返ることを確認する。
+func TestInMemorySecretStore_BulkGet_Error(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewInMemorySecretStore()
+	store.Put("key1", "val1")
+	// key2 は存在しないため BulkGet はエラーを返す。
+	_, err := store.BulkGet(ctx, []string{"key1", "key2_missing"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestEnvSecretStore_Lifecycle は EnvSecretStore の Init/Status/Close と BulkGet を検証する。
+func TestEnvSecretStore_Lifecycle(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewEnvSecretStore("TEST_ENV_STORE_")
+
+	// Name/Version を確認する。
+	assert.Equal(t, "env-secretstore", store.Name())
+	assert.Equal(t, "1.0.0", store.Version())
+
+	// 初期化前は Uninitialized 状態であることを確認する。
+	assert.Equal(t, secretstore.StatusUninitialized, store.Status(ctx))
+
+	// Init 後は Ready 状態になることを確認する。
+	require.NoError(t, store.Init(ctx, secretstore.Metadata{Name: "test"}))
+	assert.Equal(t, secretstore.StatusReady, store.Status(ctx))
+
+	// Close 後は Closed 状態になることを確認する。
+	require.NoError(t, store.Close(ctx))
+	assert.Equal(t, secretstore.StatusClosed, store.Status(ctx))
+}
+
+// TestEnvSecretStore_BulkGet は BulkGet が複数の環境変数をまとめて取得できることを確認する。
+func TestEnvSecretStore_BulkGet(t *testing.T) {
+	ctx := context.Background()
+	t.Setenv("BULK_TEST_KEY1", "val1")
+	t.Setenv("BULK_TEST_KEY2", "val2")
+	store := secretstore.NewEnvSecretStore("BULK_TEST_")
+
+	// 複数の環境変数を一括取得できることを検証する。
+	secrets, err := store.BulkGet(ctx, []string{"KEY1", "KEY2"})
+	require.NoError(t, err)
+	require.Len(t, secrets, 2)
+}
+
+// TestEnvSecretStore_BulkGet_Error は BulkGet で存在しないキーがある場合にエラーを返すことを確認する。
+func TestEnvSecretStore_BulkGet_Error(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewEnvSecretStore("DEFINITELY_NOT_SET_XYZ_")
+	_, err := store.BulkGet(ctx, []string{"MISSING1", "MISSING2"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestFileSecretStore_Lifecycle は FileSecretStore の Init/Status/Close を検証する。
+func TestFileSecretStore_Lifecycle(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewFileSecretStore(t.TempDir())
+
+	// Name/Version を確認する。
+	assert.Equal(t, "file-secretstore", store.Name())
+	assert.Equal(t, "1.0.0", store.Version())
+
+	// 初期化前は Uninitialized 状態であることを確認する。
+	assert.Equal(t, secretstore.StatusUninitialized, store.Status(ctx))
+
+	// Init 後は Ready 状態になることを確認する。
+	require.NoError(t, store.Init(ctx, secretstore.Metadata{Name: "test"}))
+	assert.Equal(t, secretstore.StatusReady, store.Status(ctx))
+
+	// Close 後は Closed 状態になることを確認する。
+	require.NoError(t, store.Close(ctx))
+	assert.Equal(t, secretstore.StatusClosed, store.Status(ctx))
+}
+
+// TestFileSecretStore_BulkGet は複数のファイルからシークレットをまとめて取得できることを確認する。
+func TestFileSecretStore_BulkGet(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "secret1"), []byte("value1"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "secret2"), []byte("value2"), 0600))
+	store := secretstore.NewFileSecretStore(dir)
+
+	// 複数ファイルを一括取得できることを検証する。
+	secrets, err := store.BulkGet(ctx, []string{"secret1", "secret2"})
+	require.NoError(t, err)
+	require.Len(t, secrets, 2)
+}
+
+// TestFileSecretStore_BulkGet_Error は BulkGet でエラーが発生した場合に即座に返ることを確認する。
+func TestFileSecretStore_BulkGet_Error(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewFileSecretStore(t.TempDir())
+	_, err := store.BulkGet(ctx, []string{"nonexistent"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestVaultSecretStore_Lifecycle は VaultSecretStore の Init/Status/Close を検証する。
+func TestVaultSecretStore_Lifecycle(t *testing.T) {
+	ctx := context.Background()
+	store := secretstore.NewVaultSecretStore("my-vault", &mockVaultClient{secrets: map[string]secretstore.VaultSecret{}})
+
+	// Name/Version を確認する。
+	assert.Equal(t, "my-vault", store.Name())
+	assert.Equal(t, "1.0.0", store.Version())
+
+	// 初期化前は Uninitialized 状態であることを確認する。
+	assert.Equal(t, secretstore.StatusUninitialized, store.Status(ctx))
+
+	// Init 後は Ready 状態になることを確認する。
+	require.NoError(t, store.Init(ctx, secretstore.Metadata{Name: "test"}))
+	assert.Equal(t, secretstore.StatusReady, store.Status(ctx))
+
+	// Close 後は Closed 状態になることを確認する。
+	require.NoError(t, store.Close(ctx))
+	assert.Equal(t, secretstore.StatusClosed, store.Status(ctx))
+}
+
+// TestVaultSecretStore_Get_MultipleKeys は複数キーを持つシークレットが "key=value" 形式で返ることを確認する。
+func TestVaultSecretStore_Get_MultipleKeys(t *testing.T) {
+	ctx := context.Background()
+	client := &mockVaultClient{
+		secrets: map[string]secretstore.VaultSecret{
+			"secret/multi": {
+				Path:    "secret/multi",
+				Data:    map[string]string{"user": "admin", "pass": "s3cret"},
+				Version: 1,
+			},
+		},
+	}
+	store := secretstore.NewVaultSecretStore("vault-store", client)
+	secret, err := store.Get(ctx, "secret/multi")
+	require.NoError(t, err)
+	// 複数キーの場合は "key=value;key=value" 形式になることを確認する。
+	assert.Contains(t, secret.Value, "=")
+	assert.Contains(t, secret.Value, ";")
+}
+
+// TestVaultSecretStore_Get_Error は Vault エラー時に ComponentError が返ることを確認する。
+func TestVaultSecretStore_Get_Error(t *testing.T) {
+	ctx := context.Background()
+	client := &mockVaultClient{err: fmt.Errorf("vault unavailable")}
+	store := secretstore.NewVaultSecretStore("vault-store", client)
+	_, err := store.Get(ctx, "any/path")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "vault unavailable")
+}
+
+// TestVaultSecretStore_BulkGet は複数パスのシークレットをまとめて取得できることを確認する。
+func TestVaultSecretStore_BulkGet(t *testing.T) {
+	ctx := context.Background()
+	client := &mockVaultClient{
+		secrets: map[string]secretstore.VaultSecret{
+			"secret/a": {Data: map[string]string{"val": "aaa"}, Version: 1},
+			"secret/b": {Data: map[string]string{"val": "bbb"}, Version: 2},
+		},
+	}
+	store := secretstore.NewVaultSecretStore("vault-store", client)
+	secrets, err := store.BulkGet(ctx, []string{"secret/a", "secret/b"})
+	require.NoError(t, err)
+	require.Len(t, secrets, 2)
+}
+
+// TestVaultSecretStore_BulkGet_Error は BulkGet でエラーが発生した場合に即座に返ることを確認する。
+func TestVaultSecretStore_BulkGet_Error(t *testing.T) {
+	ctx := context.Background()
+	client := &mockVaultClient{err: fmt.Errorf("vault unavailable")}
+	store := secretstore.NewVaultSecretStore("vault-store", client)
+	_, err := store.BulkGet(ctx, []string{"secret/a"})
+	require.Error(t, err)
 }

@@ -193,8 +193,16 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|auth_cfg| -> anyhow::Result<_> {
                 // nested 形式の AuthConfig から JWKS URL を取得する
-                let jwks_url = auth_cfg.jwks.as_ref().map(|j| j.url.as_str()).unwrap_or_default();
-                let cache_ttl = auth_cfg.jwks.as_ref().map(|j| j.cache_ttl_secs).unwrap_or(300);
+                let jwks_url = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.url.as_str())
+                    .unwrap_or_default();
+                let cache_ttl = auth_cfg
+                    .jwks
+                    .as_ref()
+                    .map(|j| j.cache_ttl_secs)
+                    .unwrap_or(300);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for saga-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(

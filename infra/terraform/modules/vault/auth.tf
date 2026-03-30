@@ -36,31 +36,10 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 #      例: token_policies = ["auth-rust"] (auth.hcl を参照)
 #   3. 現在の "system" ロールは全移行完了後に削除する
 #   参照: docs/architecture/adr/0045-vault-per-service-roles.md
-# H-04 監査対応（移行完了後削除予定）:
-# 全サービスの values.yaml で vault.role が個別ロールに変更されたため、
-# このロールはどのサービスからも参照されなくなった。
-# 移行完了確認後（全サービスの Helm デプロイ再起動後）にこのリソースを削除すること。
-# 削除タイミング: 全 system tier サービスのローリングアップデートが完了し、
-# Vault 監査ログで "system" ロールへのアクセスが 0 件になったことを確認してから実施すること。
+# H-04 監査対応: 旧モノリシック "system" ロールを削除済み（2026-03-30）。
+# 全26サービスの Helm values.yaml で vault.role が個別ロール名に移行完了したため削除した。
+# いずれかの SA が侵害された場合の爆発半径を最小化するため、全サービスを個別ロールで管理する。
 # 参照: ADR-0045（docs/architecture/adr/0045-vault-per-service-roles.md）
-resource "vault_kubernetes_auth_backend_role" "system" {
-  backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "system"
-  bound_service_account_names      = [
-    "auth-rust", "bff-proxy-sa", "config-rust", "dlq-manager", "event-store-rust",
-    "featureflag-rust", "file-rust", "graphql-gateway", "master-maintenance",
-    "navigation-rust", "notification-rust", "policy-rust", "quota-rust",
-    "ratelimit-rust", "rule-engine-rust", "saga-rust", "scheduler-rust",
-    "search-rust", "service-catalog", "session-rust", "tenant-rust",
-    "vault-rust", "workflow-rust", "event-monitor-rust", "app-registry",
-    "api-registry-rust",
-  ]
-  bound_service_account_namespaces = ["k1s0-system"]
-  token_policies                   = ["system"]
-  token_ttl                        = 3600
-  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
-  token_max_ttl                    = 14400
-}
 
 # business Tier role - サービス別SA名で最小権限を適用
 resource "vault_kubernetes_auth_backend_role" "business" {

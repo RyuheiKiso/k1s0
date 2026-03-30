@@ -203,7 +203,9 @@ pub async fn run() -> anyhow::Result<()> {
         .as_ref()
         .ok_or_else(|| anyhow::anyhow!("auth configuration is required"))?;
     // nested 形式の AuthConfig から JWKS 検証器を初期化する
-    let jwks = auth_cfg.jwks.as_ref()
+    let jwks = auth_cfg
+        .jwks
+        .as_ref()
         .ok_or_else(|| anyhow::anyhow!("auth.jwks configuration is required"))?;
     let verifier = Arc::new(
         k1s0_auth::JwksVerifier::new(

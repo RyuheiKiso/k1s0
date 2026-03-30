@@ -123,9 +123,11 @@ utoipa-swagger-ui = { version = "9", features = ["axum"] }
 mockall = "0.14"
 tokio-test = "0.4"
 # テストコンテナ: バージョン競合防止のため workspace で一元管理する（H-2 監査対応）
-# testcontainers-modules 0.11.x は testcontainers 0.24.x を要求するため、バージョンを統一する
+# L-12 監査対応: testcontainers-modules 0.11.x は testcontainers ^0.23 を要求するため、
+# testcontainers 0.24 と共存すると型不整合が発生しテストがコンパイルできない。
+# testcontainers-modules 0.12.x 以降は testcontainers ^0.24 を要求するためバージョンを統一する。
 testcontainers = "0.24"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+testcontainers-modules = { version = "0.12", features = ["postgres"] }
 # インメモリキャッシュ: 複数サービスで同一バージョン・feature を使用するため workspace で一元管理する（L-04 監査対応）
 moka = { version = "0.12", features = ["future"] }
 # ハッシュアルゴリズム: 複数サービスで同一バージョンを使用するため workspace で一元管理する（L-04 監査対応）

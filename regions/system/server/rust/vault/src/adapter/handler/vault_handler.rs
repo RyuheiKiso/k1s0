@@ -358,10 +358,14 @@ pub async fn list_audit_logs(
                 })
                 .collect();
             // LOW-12 監査対応: next_cursor を返してクライアントが次ページを取得できるようにする
-            (StatusCode::OK, Json(serde_json::json!({
-                "logs": entries,
-                "next_cursor": output.next_cursor.map(|id| id.to_string()),
-            }))).into_response()
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "logs": entries,
+                    "next_cursor": output.next_cursor.map(|id| id.to_string()),
+                })),
+            )
+                .into_response()
         }
         Err(e) => internal_error_response(&e.to_string()).into_response(),
     }

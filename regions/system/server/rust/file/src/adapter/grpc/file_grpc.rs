@@ -177,10 +177,7 @@ impl FileGrpcService {
                 "file_id is required".to_string(),
             ));
         }
-        let input = CompleteUploadInput {
-            file_id,
-            checksum,
-        };
+        let input = CompleteUploadInput { file_id, checksum };
         // アップロード完了。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
         self.complete_upload_uc.execute(&input).await.map_err(|e| {
             use crate::usecase::complete_upload::CompleteUploadError;

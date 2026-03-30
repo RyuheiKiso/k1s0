@@ -255,7 +255,8 @@ mod tests {
     #[cfg(windows)]
     fn generate_storage_path_rejects_absolute_path_windows() {
         // Windows 形式の絶対パスはエラーを返すことを検証する（LOW-TEST-04 監査対応: Unix 環境との互換性）
-        let result = FileMetadata::generate_storage_path("tenant-abc", r"C:\Windows\System32\config");
+        let result =
+            FileMetadata::generate_storage_path("tenant-abc", r"C:\Windows\System32\config");
         assert!(result.is_err());
     }
 }

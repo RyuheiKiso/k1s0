@@ -258,8 +258,10 @@ fn status_from_domain_error(err: crate::domain::error::MasterMaintenanceError) -
         | MasterMaintenanceError::VersionConflict(_) => Status::already_exists(err.to_string()),
 
         // 内部エラー系バリアントは gRPC internal に変換する
+        // H-07 監査対応: 内部エラーの詳細（SQLエラー文字列等）をクライアントに露出しない（CWE-209: 情報漏洩防止）
         MasterMaintenanceError::SqlBuildError(_) | MasterMaintenanceError::Internal(_) => {
-            Status::internal(err.to_string())
+            tracing::error!(error = %err, "master-maintenance 内部エラー");
+            Status::internal("内部エラーが発生しました")
         }
     }
 }
@@ -285,10 +287,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .create_table(&input, "grpc-user")
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         Ok(Response::new(CreateTableDefinitionResponse {
             table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
@@ -316,10 +318,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .update_table(&req.table_name, &input, ds)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         Ok(Response::new(UpdateTableDefinitionResponse {
             table: Some(domain_table_to_proto(&table, Vec::new(), Vec::new())),
@@ -339,10 +341,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .delete_table(&req.table_name, ds)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         Ok(Response::new(DeleteTableDefinitionResponse {
             success: true,
@@ -364,10 +366,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table(&req.table_name, ds)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?
             .ok_or_else(|| Status::not_found(format!("Table '{}' not found", req.table_name)))?;
 
         let columns = self
@@ -375,20 +377,20 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .find_by_table_id(table.id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         let relationships = self
             .relationship_repo
             .find_by_table_id(table.id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         // リレーションの target_table_id を名前に解決
         let mut proto_relationships = Vec::new();
@@ -435,10 +437,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_tables(category, req.active_only, &domain_filter)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         let pagination =
             req.pagination
@@ -464,10 +466,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .find_by_table_id(table.id)
                 .await
                 .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                    // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                    tracing::error!(error = %e, "内部エラー");
+                    Status::internal("内部エラーが発生しました")
+                })?;
             let proto_columns: Vec<ProtoColumnDefinition> =
                 columns.iter().map(domain_column_to_proto).collect();
 
@@ -476,10 +478,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .find_by_table_id(table.id)
                 .await
                 .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                    // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                    tracing::error!(error = %e, "内部エラー");
+                    Status::internal("内部エラーが発生しました")
+                })?;
 
             let mut proto_relationships = Vec::new();
             for rel in &relationships {
@@ -530,10 +532,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_record(&req.table_name, &req.record_id, ds)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?
             .ok_or_else(|| {
                 Status::not_found(format!(
                     "Record '{}' not found in table '{}'",
@@ -594,10 +596,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             )
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         let proto_records: Vec<prost_types::Struct> =
             result.records.iter().filter_map(json_to_struct).collect();
@@ -750,10 +752,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .check_rules(&req.table_name, &req.rule_ids, ds)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         let total_checked = results.len() as i32;
         let error_count = results
@@ -796,10 +798,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .create_rule(&struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(CreateRuleResponse {
             rule: Some(domain_consistency_rule_to_proto(&rule)),
         }))
@@ -817,10 +819,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_rule(rule_id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?
             .ok_or_else(|| Status::not_found("rule not found"))?;
         Ok(Response::new(GetRuleResponse {
             rule: Some(domain_consistency_rule_to_proto(&rule)),
@@ -843,10 +845,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .update_rule(rule_id, &struct_to_json(data), None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(UpdateRuleResponse {
             rule: Some(domain_consistency_rule_to_proto(&rule)),
         }))
@@ -863,10 +865,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .delete_rule(rule_id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(DeleteRuleResponse { success: true }))
     }
 
@@ -902,10 +904,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_rules(table_name, rule_type, severity, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         let total_count = rules.len() as i64;
         let start = ((pagination.page - 1) * pagination.page_size) as usize;
         let paged: Vec<_> = rules
@@ -941,10 +943,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .execute_rule(rule_id, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
 
         let total_checked = results.len() as i32;
         let error_count = results
@@ -987,8 +989,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .await
             .map_err(status_from_domain_error)?;
 
-        let json_schema =
-            serde_json::to_string(&schema).map_err(|e| {
+        let json_schema = serde_json::to_string(&schema).map_err(|e| {
             // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
             tracing::error!(error = %e, "内部エラー");
             Status::internal("内部エラーが発生しました")
@@ -1010,10 +1011,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_columns(&req.table_name, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(ListColumnsResponse {
             columns: cols.iter().map(domain_column_to_proto).collect(),
         }))
@@ -1034,10 +1035,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .create_columns(&req.table_name, &payload, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(CreateColumnsResponse {
             columns: cols.iter().map(domain_column_to_proto).collect(),
         }))
@@ -1068,10 +1069,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             )
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(UpdateColumnResponse {
             column: Some(domain_column_to_proto(&updated)),
         }))
@@ -1092,10 +1093,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .delete_column(&req.table_name, &req.column_name, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(DeleteColumnResponse { success: true }))
     }
 
@@ -1108,10 +1109,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_relationships()
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         let mut proto = Vec::new();
         for rel in &rels {
             let target_name = self
@@ -1143,10 +1144,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .create_relationship(&struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         let target_name = self
             .manage_tables_uc
             .get_table_by_id(rel.target_table_id)
@@ -1176,10 +1177,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .update_relationship(id, &struct_to_json(data))
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         let target_name = self
             .manage_tables_uc
             .get_table_by_id(rel.target_table_id)
@@ -1204,10 +1205,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .delete_relationship(id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(DeleteRelationshipResponse { success: true }))
     }
 
@@ -1228,10 +1229,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .import_records(&req.table_name, &struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(ImportRecordsResponse {
             import_job: Some(domain_import_job_to_proto(job)),
         }))
@@ -1250,10 +1251,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .export_records(&req.table_name, None, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         let value = result.as_json();
         let data = json_to_struct(&value).unwrap_or_else(|| {
             let mut fields = BTreeMap::new();
@@ -1275,10 +1276,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_import_job(id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?
             .ok_or_else(|| Status::not_found("import job not found"))?;
         Ok(Response::new(GetImportJobResponse {
             import_job: Some(domain_import_job_to_proto(job)),
@@ -1298,10 +1299,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .list_display_configs(&req.table_name, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(ListDisplayConfigsResponse {
             display_configs: list
                 .into_iter()
@@ -1322,10 +1323,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_display_config(id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?
             .ok_or_else(|| Status::not_found("display config not found"))?;
         Ok(Response::new(GetDisplayConfigResponse {
             display_config: Some(domain_display_config_to_proto(cfg)),
@@ -1349,10 +1350,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .create_display_config(&req.table_name, &struct_to_json(data), "grpc-user", None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(CreateDisplayConfigResponse {
             display_config: Some(domain_display_config_to_proto(cfg)),
         }))
@@ -1374,10 +1375,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .update_display_config(id, &struct_to_json(data))
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(UpdateDisplayConfigResponse {
             display_config: Some(domain_display_config_to_proto(cfg)),
         }))
@@ -1394,10 +1395,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .delete_display_config(id)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(DeleteDisplayConfigResponse { success: true }))
     }
 
@@ -1420,10 +1421,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table_logs(&req.table_name, p.page, p.page_size, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(ListTableAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
@@ -1457,10 +1458,10 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_record_logs(&req.table_name, &req.record_id, p.page, p.page_size, None)
             .await
             .map_err(|e| {
-            // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
-            tracing::error!(error = %e, "内部エラー");
-            Status::internal("内部エラーが発生しました")
-        })?;
+                // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
+                tracing::error!(error = %e, "内部エラー");
+                Status::internal("内部エラーが発生しました")
+            })?;
         Ok(Response::new(ListRecordAuditLogsResponse {
             logs: logs.into_iter().map(domain_audit_log_to_proto).collect(),
             pagination: Some(PaginationResult {
@@ -1476,11 +1477,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         &self,
         _request: Request<ListDomainsRequest>,
     ) -> Result<Response<ListDomainsResponse>, Status> {
-        let domains = self
-            .manage_tables_uc
-            .list_domains()
-            .await
-            .map_err(|e| {
+        let domains = self.manage_tables_uc.list_domains().await.map_err(|e| {
             // 内部エラー詳細をログに記録し、クライアントには汎用メッセージのみを返す（CWE-209対策）
             tracing::error!(error = %e, "内部エラー");
             Status::internal("内部エラーが発生しました")

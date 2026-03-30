@@ -6,7 +6,9 @@ use crate::error::MigrationError;
 pub struct MigrationConfig {
     pub migrations_dir: PathBuf,
     pub database_url: String,
-    pub table_name: String,
+    // H-19 監査対応: table_name を private にして外部から直接書き換えられないようにする。
+    // 変更は with_table_name() のバリデーションを通じてのみ行う（SQL インジェクション防止）。
+    table_name: String,
 }
 
 impl MigrationConfig {
@@ -16,6 +18,11 @@ impl MigrationConfig {
             database_url,
             table_name: "_migrations".to_string(),
         }
+    }
+
+    /// テーブル名を返す。外部からの直接書き換えを防ぐため getter を通じてのみアクセスする。
+    pub fn table_name(&self) -> &str {
+        &self.table_name
     }
 
     // M-04監査対応: テーブル名を SQL クエリに直接埋め込むため、SQL インジェクション防止のために正規表現でバリデーションする。
@@ -53,7 +60,7 @@ mod tests {
             PathBuf::from("./migrations"),
             "postgres://localhost/test".to_string(),
         );
-        assert_eq!(config.table_name, "_migrations");
+        assert_eq!(config.table_name(), "_migrations");
     }
 
     // with_table_name でカスタムテーブル名を設定できることを確認する。
@@ -65,7 +72,7 @@ mod tests {
         )
         .with_table_name("custom_migrations")
         .expect("有効なテーブル名のため Ok が返るはず");
-        assert_eq!(config.table_name, "custom_migrations");
+        assert_eq!(config.table_name(), "custom_migrations");
     }
 
     // M-04監査対応: 不正なテーブル名（SQL インジェクション文字含む）でエラーが返ることを確認する。

@@ -40,14 +40,16 @@ export default tseslint.config(
 
       // React Hooks
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      // L-18 監査対応: 依存配列の漏れを見逃さないよう warn から error に変更する
+      'react-hooks/exhaustive-deps': 'error',
 
       // TypeScript
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // L-17 監査対応: any 型の使用を禁止し型安全性を強制するため warn から error に変更する
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports' },

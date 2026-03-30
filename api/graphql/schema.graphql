@@ -450,8 +450,9 @@ type Job {
   targetType: String!
   target: String!
   status: String!
-  nextRunAt: String
-  lastRunAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  nextRunAt: DateTime
+  lastRunAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -461,8 +462,9 @@ type JobExecution {
   jobId: String!
   status: String!
   triggeredBy: String!
-  startedAt: String!
-  finishedAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  startedAt: DateTime!
+  finishedAt: DateTime
   durationMs: Int
   errorMessage: String
 }
@@ -482,7 +484,8 @@ type NotificationLog {
   status: String!
   retryCount: Int!
   errorMessage: String
-  sentAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  sentAt: DateTime
   createdAt: DateTime!
 }
 
@@ -555,10 +558,11 @@ type WorkflowTask {
   stepName: String!
   assigneeId: String
   status: String!
-  dueAt: String
+  # HIGH-A1 監査対応: 日時フィールドを DateTime 型に統一する（String との混在解消）
+  dueAt: DateTime
   comment: String
   actorId: String
-  decidedAt: String
+  decidedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
 }

@@ -62,7 +62,12 @@ impl ValidateApiKeyUseCase {
         // 通常の文字列比較（!=）は最初に不一致したバイトで短絡し、タイミングの差でハッシュを推測可能になる
         use subtle::ConstantTimeEq;
         let computed_hash = hash_key(raw_key)?;
-        if computed_hash.as_bytes().ct_eq(api_key.key_hash.as_bytes()).unwrap_u8() != 1 {
+        if computed_hash
+            .as_bytes()
+            .ct_eq(api_key.key_hash.as_bytes())
+            .unwrap_u8()
+            != 1
+        {
             return Err(ValidateApiKeyError::Invalid);
         }
 

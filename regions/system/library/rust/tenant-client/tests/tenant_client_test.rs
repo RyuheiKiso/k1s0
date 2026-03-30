@@ -67,7 +67,9 @@ async fn get_tenant_not_found_returns_error() {
 async fn get_tenant_after_add_tenant() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-100", TenantStatus::Active, "pro")).await;
+    client
+        .add_tenant(make_tenant("T-100", TenantStatus::Active, "pro"))
+        .await;
     let tenant = client.get_tenant("T-100").await.unwrap();
     assert_eq!(tenant.id, "T-100");
     assert_eq!(tenant.plan, "pro");
@@ -244,7 +246,9 @@ async fn list_tenants_empty_store_returns_empty() {
 async fn is_active_returns_true_for_active_tenant() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+        .await;
     assert!(client.is_active("T-001").await.unwrap());
 }
 
@@ -253,7 +257,9 @@ async fn is_active_returns_true_for_active_tenant() {
 async fn is_active_returns_false_for_suspended_tenant() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Suspended, "basic"))
+        .await;
     assert!(!client.is_active("T-001").await.unwrap());
 }
 
@@ -262,7 +268,9 @@ async fn is_active_returns_false_for_suspended_tenant() {
 async fn is_active_returns_false_for_deleted_tenant() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-001", TenantStatus::Deleted, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Deleted, "basic"))
+        .await;
     assert!(!client.is_active("T-001").await.unwrap());
 }
 
@@ -283,7 +291,9 @@ async fn is_active_not_found_returns_error() {
 async fn get_settings_returns_tenant_settings() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+        .await;
     let settings = client.get_settings("T-001").await.unwrap();
     assert_eq!(settings.get("max_users"), Some("100"));
     assert_eq!(settings.get("feature_x"), Some("enabled"));
@@ -294,7 +304,9 @@ async fn get_settings_returns_tenant_settings() {
 async fn get_settings_missing_key_returns_none() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
-    client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+        .await;
     let settings = client.get_settings("T-001").await.unwrap();
     assert_eq!(settings.get("nonexistent_key"), None);
 }
@@ -438,7 +450,9 @@ async fn provisioning_status_not_found_for_uncreated_tenant() {
     let client = InMemoryTenantClient::new();
     // add_tenant は async fn のため await が必須（await なしではフューチャーが実行されない）
     // add_tenant はプロビジョニングステータスを設定しないため NotFound が返る
-    client.add_tenant(make_tenant("T-001", TenantStatus::Active, "basic")).await;
+    client
+        .add_tenant(make_tenant("T-001", TenantStatus::Active, "basic"))
+        .await;
     let result = client.get_provisioning_status("T-001").await;
     assert!(matches!(result, Err(TenantError::NotFound(_))));
 }

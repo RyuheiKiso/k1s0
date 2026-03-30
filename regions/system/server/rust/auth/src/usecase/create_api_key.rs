@@ -108,8 +108,8 @@ fn generate_random_key() -> String {
 fn hash_key(raw_key: &str) -> Result<String, CreateApiKeyError> {
     // API_KEY_PEPPER は必須環境変数。未設定時はパニックせずエラーを返す（C-5 監査対応）。
     // デフォルト値へのフォールバックを行わず、ペッパー未設定状態での運用を防ぐ。
-    let pepper = std::env::var("API_KEY_PEPPER")
-        .map_err(|_| CreateApiKeyError::PepperNotConfigured)?;
+    let pepper =
+        std::env::var("API_KEY_PEPPER").map_err(|_| CreateApiKeyError::PepperNotConfigured)?;
     Ok(compute_hmac_hex(raw_key, &pepper))
 }
 
@@ -124,8 +124,8 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     type HmacSha256 = Hmac<Sha256>;
 
     // HMAC-SHA256 は任意長のキーを受け入れるため、この expect() はパニックしない（RFC 2104 準拠）
-    let mut mac =
-        HmacSha256::new_from_slice(pepper.as_bytes()).expect("HMAC は任意長のキーを受け入れるためエラーにならない");
+    let mut mac = HmacSha256::new_from_slice(pepper.as_bytes())
+        .expect("HMAC は任意長のキーを受け入れるためエラーにならない");
     mac.update(raw_key.as_bytes());
     let result = mac.finalize();
     let digest = result.into_bytes();

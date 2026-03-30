@@ -7,6 +7,10 @@ positions:
   filename: /tmp/positions.yaml
 
 # Loki へのプッシュ先
+# L-06 監査対応: Docker Compose ネットワーク内では短縮ホスト名（サービス名）がサービス間通信の FQDN となる。
+# ここでの "loki" は docker-compose.yaml で定義された Loki サービス名であり、
+# Docker の内部 DNS が解決するため、これが Docker Compose 環境における正しい表記となる。
+# Kubernetes 環境では loki.k1s0-system.svc.cluster.local のような FQDN を使用すること（Helm values 参照）。
 clients:
   - url: http://loki:3100/loki/api/v1/push
 

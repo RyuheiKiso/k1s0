@@ -466,7 +466,10 @@ mod create_channel {
         let test_cases = vec![
             ("email", serde_json::json!({})),
             ("slack", serde_json::json!({})),
-            ("webhook", serde_json::json!({"url": "https://example.com/hook"})),
+            (
+                "webhook",
+                serde_json::json!({"url": "https://example.com/hook"}),
+            ),
             ("sms", serde_json::json!({})),
             ("push", serde_json::json!({})),
         ];

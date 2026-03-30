@@ -74,9 +74,8 @@ impl AuditLogRepository for AuditLogPostgresRepository {
         // QueryBuilder はパラメータ番号（$N）を自動管理するため、
         // 条件追加・削除時の番号ずれによるバグを防止できる。
         // COUNT クエリ: QueryBuilder で WHERE 句を動的に組み立てる
-        let mut count_qb = sqlx::QueryBuilder::new(
-            "SELECT COUNT(*) FROM auth.audit_logs WHERE 1=1",
-        );
+        let mut count_qb =
+            sqlx::QueryBuilder::new("SELECT COUNT(*) FROM auth.audit_logs WHERE 1=1");
 
         if let Some(ref v) = params.user_id {
             count_qb.push(" AND user_id = ").push_bind(v);

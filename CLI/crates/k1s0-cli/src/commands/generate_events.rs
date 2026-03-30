@@ -97,11 +97,9 @@ fn resolve_template_dir() -> Result<PathBuf> {
         }
     }
 
-    // カレントディレクトリの templates/events/
-    let path = PathBuf::from("templates/events");
-    if path.exists() {
-        return Ok(path);
-    }
+    // CRIT-A4 監査対応: 相対パスフォールバックを削除。
+    // カレントディレクトリ相対パスは攻撃者が任意のディレクトリに templates/events/ を配置して
+    // 悪意のあるテンプレートを注入できるため使用しない。
 
     // ワークスペースルートから実行していない可能性を含め、具体的な解決策を案内する
     anyhow::bail!(

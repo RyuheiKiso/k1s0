@@ -24,7 +24,10 @@ impl ChannelPostgresRepository {
     /// 暗号化キー付きでリポジトリを作成する
     /// encryption_key が None の場合、設定は平文で保存される（開発環境のみ許可）
     pub fn new(pool: Arc<PgPool>, encryption_key: Option<[u8; 32]>) -> Self {
-        Self { pool, encryption_key }
+        Self {
+            pool,
+            encryption_key,
+        }
     }
 
     /// PostgreSQL セッション変数 app.current_tenant_id を設定して RLS ポリシーを有効化する

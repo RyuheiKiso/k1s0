@@ -4,7 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
+	// M-16 監査対応: postgres ドライバを登録して接続エラーパスのカバレッジを向上させる。
+	// テスト専用インポート — 本番コードには影響しない。
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,11 +32,13 @@ func TestPostgresLock_DefaultPrefix(t *testing.T) {
 	assert.Equal(t, "lock", l.keyPrefix)
 }
 
-// 無効なPostgres URLからPostgresLockを生成するとエラーが返ることを確認する。
-func TestNewPostgresLockFromURL_InvalidURL(t *testing.T) {
-	// ドライバ未登録の場合 "unknown driver" エラーとなる
-	_, err := NewPostgresLockFromURL("postgres://localhost:5432/testdb")
-	require.Error(t, err)
+// NewPostgresLockFromURL は postgres ドライバが登録されていれば sql.Open が成功し
+// 非 nil の PostgresLock を返すことを確認する。
+// 実際の DB 接続は遅延して確立されるため、接続先が無効でも初期化は成功する。
+func TestNewPostgresLockFromURL_ValidURL(t *testing.T) {
+	l, err := NewPostgresLockFromURL("postgres://localhost:5432/testdb")
+	require.NoError(t, err)
+	assert.NotNil(t, l)
 }
 
 // NewPostgresLockがnilのDBで構築でき、activeLocks が初期化されることを確認する。
@@ -128,4 +135,115 @@ func TestPostgresLock_IsLocked_ConnectionError(t *testing.T) {
 
 	_, err := l.IsLocked(context.Background(), "key1")
 	assert.Error(t, err)
+}
+
+// M-16 監査対応: sqlmock を使って Acquire の成功パスをカバーする。
+// pg_try_advisory_lock が true を返す場合に LockGuard が返ることを確認する。
+func TestPostgresLock_Acquire_Success(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// pg_try_advisory_lock が true（ロック取得成功）を返すよう設定する
+	mock.ExpectQuery("SELECT pg_try_advisory_lock").
+		WillReturnRows(sqlmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(true))
+	// Release 時の pg_advisory_unlock も設定する
+	mock.ExpectQuery("SELECT pg_advisory_unlock").
+		WillReturnRows(sqlmock.NewRows([]string{"pg_advisory_unlock"}).AddRow(true))
+
+	l := NewPostgresLock(db)
+	guard, acquireErr := l.Acquire(context.Background(), "mykey", time.Second)
+	require.NoError(t, acquireErr)
+	require.NotNil(t, guard)
+	assert.Equal(t, "mykey", guard.Key)
+
+	// Acquire で取得した guard を Release して後処理する
+	require.NoError(t, l.Release(context.Background(), guard))
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// M-16 監査対応: pg_try_advisory_lock が false を返した場合に ErrAlreadyLocked が返ることを確認する。
+func TestPostgresLock_Acquire_AlreadyLocked(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// pg_try_advisory_lock が false（ロック取得失敗）を返すよう設定する
+	mock.ExpectQuery("SELECT pg_try_advisory_lock").
+		WillReturnRows(sqlmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(false))
+
+	l := NewPostgresLock(db)
+	_, acquireErr := l.Acquire(context.Background(), "mykey", time.Second)
+	assert.ErrorIs(t, acquireErr, ErrAlreadyLocked)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// M-16 監査対応: QueryRowContext がエラーを返す場合に Acquire がエラーを伝播することを確認する。
+func TestPostgresLock_Acquire_QueryError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// クエリがエラーを返すよう設定する
+	mock.ExpectQuery("SELECT pg_try_advisory_lock").
+		WillReturnError(sql.ErrConnDone)
+
+	l := NewPostgresLock(db)
+	_, acquireErr := l.Acquire(context.Background(), "mykey", time.Second)
+	require.Error(t, acquireErr)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// M-16 監査対応: pg_advisory_unlock が false を返す場合に Release が ErrLockNotFound を返すことを確認する。
+func TestPostgresLock_Release_UnlockFalse(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	// Acquire: ロック取得成功
+	mock.ExpectQuery("SELECT pg_try_advisory_lock").
+		WillReturnRows(sqlmock.NewRows([]string{"pg_try_advisory_lock"}).AddRow(true))
+	// Release: unlock が false（DB 側でロックが既に解放済み）
+	mock.ExpectQuery("SELECT pg_advisory_unlock").
+		WillReturnRows(sqlmock.NewRows([]string{"pg_advisory_unlock"}).AddRow(false))
+
+	l := NewPostgresLock(db)
+	guard, err := l.Acquire(context.Background(), "mykey", time.Second)
+	require.NoError(t, err)
+
+	releaseErr := l.Release(context.Background(), guard)
+	assert.ErrorIs(t, releaseErr, ErrLockNotFound)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// M-16 監査対応: IsLocked が true を返す場合を sqlmock で確認する。
+func TestPostgresLock_IsLocked_True(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT EXISTS").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+
+	l := NewPostgresLock(db)
+	locked, isErr := l.IsLocked(context.Background(), "mykey")
+	require.NoError(t, isErr)
+	assert.True(t, locked)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// M-16 監査対応: IsLocked が false を返す場合を sqlmock で確認する。
+func TestPostgresLock_IsLocked_False(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mock.ExpectQuery("SELECT EXISTS").
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+
+	l := NewPostgresLock(db)
+	locked, isErr := l.IsLocked(context.Background(), "mykey")
+	require.NoError(t, isErr)
+	assert.False(t, locked)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

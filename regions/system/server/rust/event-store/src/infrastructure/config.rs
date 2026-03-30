@@ -218,7 +218,7 @@ connect_timeout_seconds: 5
     #[test]
     fn config_docker_yaml_deserializes_correctly() {
         let yaml = include_str!("../../config/config.docker.yaml");
-        let _config: Config = serde_yaml::from_str(yaml)
-            .expect("config.docker.yaml のデシリアライズに失敗しました");
+        let _config: Config =
+            serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }
 }

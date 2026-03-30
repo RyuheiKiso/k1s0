@@ -80,7 +80,10 @@ impl KeycloakConfig {
                 ("grant_type", "client_credentials".to_string()),
                 ("client_id", self.client_id.clone()),
                 // expose_secret() でクライアントシークレットを取り出してフォームに設定する
-                ("client_secret", self.client_secret.expose_secret().to_string()),
+                (
+                    "client_secret",
+                    self.client_secret.expose_secret().to_string(),
+                ),
             ]
         }
     }
