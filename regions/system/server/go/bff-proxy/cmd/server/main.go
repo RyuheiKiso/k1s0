@@ -251,11 +251,13 @@ func initRouter(
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 	// M-17 監査対応: セッションの絶対最大有効期間を設定から取得する（デフォルト 24 時間）
 	absoluteMaxTTL := config.ParseDuration(cfg.Session.AbsoluteMaxTTL, 24*time.Hour)
+	// POLY-003 監査対応: ワンタイム交換コード TTL を設定から取得する（デフォルト 60 秒）
+	exchangeCodeTTL := config.ParseDuration(cfg.Session.ExchangeCodeTTL, 60*time.Second)
 	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
 	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
 	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
-	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, exchangeCodeTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
 	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
 	if err != nil {

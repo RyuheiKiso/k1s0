@@ -1,6 +1,12 @@
 # Kafka KRaft single broker for demo environment.
 # No ZooKeeper dependency. In-memory log storage (ephemeral).
 # Production config: infra/messaging/kafka/kafka-cluster.yaml
+#
+# K8S-CONFIG-001 監査対応: WARNING - このファイルはデモ・Kiali 可視化専用の設定です。
+# PLAINTEXT プロトコルを使用しており、認証・暗号化が一切ありません。
+# 本番環境では絶対に使用しないこと。
+# 本番環境の Kafka は Strimzi Operator + SASL_SSL で構築すること:
+#   infra/messaging/kafka/kafka-cluster.yaml を参照
 ---
 apiVersion: v1
 kind: Namespace

@@ -3,6 +3,12 @@
 k1s0 プロジェクトの全サーバー設計書一覧。system / business / service の3 Tier で構成される。
 各サーバーは `server.md`（設計概要）・`implementation.md`（実装詳細）・`database.md`（DB設計）・`deploy.md`（デプロイ設計）の4文書セットで管理される。
 
+> **サーバー総数:** 32（system 28 + business 1 + service 3）
+> ただし **ai-gateway**・**ai-agent** は試験運用中（`experimental-ai` プロファイル）であり、
+> 通常の Docker Compose 起動や CI/CD 審査の対象外。
+> 稼働対象となる本番稼働サーバー数は **30**（ai-* 2 件を除く）。
+> DOCS-005 監査対応: サーバー数を明示し、試験運用サービスの扱いを明確化。
+
 ## 共通ドキュメント
 
 | ドキュメント | 内容 |

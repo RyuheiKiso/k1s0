@@ -468,12 +468,14 @@ proto ファイル参照: `api/proto/k1s0/service/task/v1/task.proto`
 
 ### kafka
 
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| `brokers` | string[] | Kafka ブローカーアドレス一覧 |
-| `task_created_topic` | string | タスク作成イベントのトピック名 |
-| `task_updated_topic` | string | タスク更新イベントのトピック名 |
-| `task_cancelled_topic` | string | タスクキャンセルイベントのトピック名 |
+<!-- DOCS-010 監査対応: 設定フィールドにデフォルト値とトピック名を統一形式で追記 -->
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `brokers` | string[] | `["kafka:9092"]` | Kafka ブローカーアドレス一覧 |
+| `task_created_topic` | string | `k1s0.service.task.created.v1` | タスク作成イベントのトピック名 |
+| `task_updated_topic` | string | `k1s0.service.task.updated.v1` | タスク更新イベントのトピック名 |
+| `task_cancelled_topic` | string | `k1s0.service.task.cancelled.v1` | タスクキャンセルイベントのトピック名 |
 
 ### auth
 

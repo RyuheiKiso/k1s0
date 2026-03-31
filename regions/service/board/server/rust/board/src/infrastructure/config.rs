@@ -151,7 +151,8 @@ fn default_host() -> String { "0.0.0.0".to_string() }
 fn default_port() -> u16 { 8320 }
 fn default_grpc_port() -> u16 { 9320 }
 fn default_db_port() -> u16 { 5432 }
-fn default_schema() -> String { "board".to_string() }
+// DOCS-002 監査対応: ドキュメント（server.md）と config/default.yaml の "board_service" に統一する
+fn default_schema() -> String { "board_service".to_string() }
 fn default_ssl_mode() -> String { "disable".to_string() }
 fn default_max_conn() -> u32 { 25 }
 fn default_idle_conn() -> u32 { 5 }

@@ -18,10 +18,10 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
-// exchangeCodeTTL はワンタイム交換コードの有効期間（60秒）。
-// モバイルクライアントが /auth/callback のリダイレクト後に /auth/exchange でセッションを
-// 確立するまでの猶予時間として設定する。
-const exchangeCodeTTL = 60 * time.Second
+// defaultExchangeCodeTTL はワンタイム交換コードのデフォルト有効期間（60秒）。
+// POLY-003 監査対応: TTL は設定可能にし、AuthUseCase 生成時に注入する。
+// NewAuthUseCase の exchangeCodeTTL 引数が 0 の場合はこのデフォルト値を使用する。
+const defaultExchangeCodeTTL = 60 * time.Second
 
 // AuthOAuthClient は AuthUseCase が必要とする OAuth2/OIDC 操作のインターフェース。
 // port.OAuthClient のうち認証フロー（Login/Callback/Logout）に必要なメソッドのみを定義する。
@@ -159,17 +159,24 @@ type AuthUseCase struct {
 	// exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化を担うポートインターフェース（H-5 監査対応）。
 	// SessionData.AccessToken へのセッション ID 格納という意味論的誤用を解消するために分離する。
 	exchangeCodeStore port.ExchangeCodeStore
+	// exchangeCodeTTL はワンタイム交換コードの有効期間（POLY-003 監査対応: 設定可能化）。
+	exchangeCodeTTL time.Duration
 }
 
 // NewAuthUseCase は AuthUseCase のコンストラクタ。
 // 依存するポートインターフェースを注入する。
 // exchangeCodeStore は ExchangeCodeStore インターフェースを実装する必要がある。
 // session.RedisStore と session.EncryptedStore は両方このインターフェースを実装している。
-func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore, exchangeCodeStore port.ExchangeCodeStore) *AuthUseCase {
+// exchangeCodeTTL が 0 の場合は defaultExchangeCodeTTL（60s）を使用する（POLY-003 監査対応）。
+func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore, exchangeCodeStore port.ExchangeCodeStore, exchangeCodeTTL time.Duration) *AuthUseCase {
+	if exchangeCodeTTL <= 0 {
+		exchangeCodeTTL = defaultExchangeCodeTTL
+	}
 	return &AuthUseCase{
 		oauthClient:       oauthClient,
 		sessionStore:      sessionStore,
 		exchangeCodeStore: exchangeCodeStore,
+		exchangeCodeTTL:   exchangeCodeTTL,
 	}
 }
 
@@ -234,9 +241,9 @@ func (uc *AuthUseCase) buildMobileRedirectOutput(ctx context.Context, sessionID,
 	exchangeData := &session.ExchangeCodeData{
 		SessionID:        sessionID,
 		PostAuthRedirect: postAuthRedirect,
-		ExpiresAt:        time.Now().Add(exchangeCodeTTL).Unix(),
+		ExpiresAt:        time.Now().Add(uc.exchangeCodeTTL).Unix(),
 	}
-	exchangeCode, err := uc.exchangeCodeStore.CreateExchangeCode(ctx, exchangeData, exchangeCodeTTL)
+	exchangeCode, err := uc.exchangeCodeStore.CreateExchangeCode(ctx, exchangeData, uc.exchangeCodeTTL)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CREATE_FAILED", Err: err}
 	}

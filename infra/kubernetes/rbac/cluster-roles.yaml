@@ -53,8 +53,12 @@ rules:
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses", "networkpolicies"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # RBAC リソースの管理（H-6 監査対応: clusterroles/clusterrolebindings の操作権限は k1s0-security-admin に分離）
-  # k1s0-admin は Namespace スコープの roles/rolebindings のみ操作可能にし、権限エスカレーションリスクを軽減する
+  # RBAC リソースの管理（K8S-RBAC-001 監査対応: APIGroup の制限理由を明確化）
+  # k1s0-admin は Namespace スコープの roles/rolebindings のみ操作可能に限定する。
+  # 理由: clusterroles/clusterrolebindings を操作できると、自身に任意のクラスタ権限を
+  # 付与できる権限エスカレーション（privilege escalation）が発生するリスクがある。
+  # clusterroles/clusterrolebindings の管理は k1s0-security-admin（セキュリティチーム専用）に分離し、
+  # ADR-0038 の最小権限原則に準拠する。（H-6 監査対応）
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "rolebindings"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

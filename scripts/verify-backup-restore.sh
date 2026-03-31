@@ -48,32 +48,31 @@ run_verify_pod() {
   # 既存の同名 Pod を削除してから作成する
   kubectl delete pod "${pod_name}" -n "${VERIFY_NAMESPACE}" --ignore-not-found=true
 
+  # K8S-SCRIPT-001 監査対応: インライン JSON を外部テンプレートファイル（verify-pod-spec.json.tpl）に分離し、
+  # envsubst で変数展開する。インライン JSON の特殊文字エスケープによるメンテナンス性の低下を解消する。
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local spec_tpl="${script_dir}/verify-pod-spec.json.tpl"
+
+  if [ ! -f "${spec_tpl}" ]; then
+    log "ERROR: Pod spec template not found: ${spec_tpl}"
+    return 1
+  fi
+
+  # テンプレート変数をエクスポートして envsubst で展開する
+  export POD_NAME="${pod_name}"
+  export IMAGE="${image}"
+  export COMMAND="${command}"
+  # BACKUP_PVC は上位スコープで定義済み（envsubst 用に export）
+  export BACKUP_PVC
+  local overrides
+  overrides=$(envsubst < "${spec_tpl}")
+
   kubectl run "${pod_name}" \
     --image="${image}" \
     --restart=Never \
     --namespace="${VERIFY_NAMESPACE}" \
-    --overrides="{
-      \"spec\": {
-        \"serviceAccountName\": \"backup-verify-sa\",
-        \"containers\": [{
-          \"name\": \"${pod_name}\",
-          \"image\": \"${image}\",
-          \"command\": [\"/bin/sh\", \"-c\", \"${command}\"],
-          \"volumeMounts\": [{
-            \"name\": \"backup-volume\",
-            \"mountPath\": \"/backup\",
-            \"readOnly\": true
-          }]
-        }],
-        \"volumes\": [{
-          \"name\": \"backup-volume\",
-          \"persistentVolumeClaim\": {
-            \"claimName\": \"${BACKUP_PVC}\",
-            \"readOnly\": true
-          }
-        }]
-      }
-    }"
+    --overrides="${overrides}"
 
   # Pod 完了を最大 300 秒待機する
   if kubectl wait pod "${pod_name}" \

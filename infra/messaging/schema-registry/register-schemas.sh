@@ -8,6 +8,23 @@
 #
 # 使い方:
 #   bash infra/messaging/schema-registry/register-schemas.sh
+#
+# DOCS-009 監査対応: 制限事項と拡張計画
+# ============================================================
+# 現在このスクリプトが登録するスキーマは以下の3件のみです:
+#   1. k1s0.system.common.event-metadata.v1  (共通メタデータ参照スキーマ)
+#   2. k1s0.system.auth.audit.v1-value       (認証監査イベント)
+#   3. k1s0.system.config.changed.v1-value   (設定変更イベント)
+#
+# 未登録スキーマ（TODO: 順次追加が必要）:
+#   - k1s0.service.task.*       (task サービスイベント)
+#   - k1s0.service.board.*      (board サービスイベント)
+#   - k1s0.service.activity.*   (activity サービスイベント)
+#   - k1s0.business.taskmanagement.projectmaster.* (project-master サービスイベント)
+#   - その他 system Tier イベントスキーマ
+#
+# 本番環境では全トピックのスキーマを登録してから Kafka コンシューマーを起動すること。
+# ============================================================
 
 set -euo pipefail
 

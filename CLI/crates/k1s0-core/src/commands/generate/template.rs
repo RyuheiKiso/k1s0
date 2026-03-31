@@ -24,10 +24,18 @@ use crate::template::TemplateEngine;
 /// 見つからない場合は `CARGO_MANIFEST_DIR` 基準のフォールバックを試みる。
 pub(crate) fn resolve_template_dir(base_dir: &Path) -> PathBuf {
     // ベースディレクトリの祖先を順に探索
+    // RUST-005 監査対応: canonicalize() で symlink を解決し、祖先ディレクトリの配下であることを検証する。
+    // symlink 経由で意図しないテンプレートディレクトリが使用されるパストラバーサルリスクを防止する。
     for ancestor in base_dir.ancestors() {
         for candidate in template_dir_candidates(ancestor) {
             if is_template_dir(&candidate) {
-                return candidate;
+                if let (Ok(canonical_candidate), Ok(canonical_ancestor)) =
+                    (candidate.canonicalize(), ancestor.canonicalize())
+                {
+                    if canonical_candidate.starts_with(&canonical_ancestor) {
+                        return candidate;
+                    }
+                }
             }
         }
     }

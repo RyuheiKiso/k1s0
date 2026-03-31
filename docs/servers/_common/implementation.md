@@ -1,8 +1,9 @@
-# system-server 実装設計
+# サーバー実装共通設計
 
-> **注記**: 本ドキュメントは auth-server の実装仕様を含む。共通パターンは [Rust共通実装.md](Rust共通実装.md) を参照。
+<!-- DOCS-008 監査対応: 旧 auth-server 固有タイトル（system-server 実装設計）から共通テンプレートタイトルに修正 -->
+> **注記**: 本ドキュメントは auth-server を例示として記載するが、各サービスに共通の実装パターンを示す。共通パターンは [Rust共通実装.md](Rust共通実装.md) を参照。
 
-system-server（認証サーバー）の Rust 実装仕様。概要・API 定義・アーキテクチャは [system-server.md](../auth/server.md) を参照。
+auth-server の Rust 実装仕様（実装共通パターンの例示）。概要・API 定義・アーキテクチャは [auth server.md](../auth/server.md) を参照。
 
 ---
 

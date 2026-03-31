@@ -77,7 +77,10 @@ impl DatabaseConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
+    // DOCS-004 監査対応: デフォルト値を追加し、設定ファイルで明示しない場合も正しいトピック名が使われるようにする
+    #[serde(default = "default_activity_created_topic")]
     pub activity_created_topic: String,
+    #[serde(default = "default_activity_approved_topic")]
     pub activity_approved_topic: String,
 }
 
@@ -142,6 +145,9 @@ impl Default for TraceConfig {
     fn default() -> Self { Self { enabled: true, endpoint: default_trace_endpoint(), sample_rate: 1.0 } }
 }
 
+// DOCS-004 監査対応: Kafka トピックのデフォルト値を定義する
+fn default_activity_created_topic() -> String { "k1s0.service.activity.created.v1".to_string() }
+fn default_activity_approved_topic() -> String { "k1s0.service.activity.approved.v1".to_string() }
 fn default_version() -> String { "0.1.0".to_string() }
 fn default_env() -> String { "development".to_string() }
 fn default_host() -> String { "0.0.0.0".to_string() }

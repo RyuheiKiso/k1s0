@@ -116,12 +116,14 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _loginMobile() async {
     final webAuthCallback = ref.read(webAuthCallbackProvider);
     if (webAuthCallback == null) {
-      // flutter_web_auth_2 が未設定の場合はフォールバック
-      final loginUrl = Uri.parse('$_baseUrl/auth/login');
-      if (await canLaunchUrl(loginUrl)) {
-        await launchUrl(loginUrl, mode: LaunchMode.externalApplication);
-      }
-      return;
+      // POLY-008 監査対応: flutter_web_auth_2 が未設定の場合はサイレントフォールバックではなく
+      // 明示的なエラーをスローする。設定不足のまま認証フローが不完全に進むことを防ぐ。
+      // flutter_web_auth_2 を設定するには AuthClientProvider.overrideWithValue で
+      // webAuthCallbackProvider をオーバーライドすること。
+      throw StateError(
+        '[k1s0-auth] flutter_web_auth_2 のコールバック関数が設定されていません。'
+        'webAuthCallbackProvider を AuthClientProvider.overrideWithValue で設定してください。',
+      );
     }
 
     final callbackScheme = ref.read(authCallbackSchemeProvider);

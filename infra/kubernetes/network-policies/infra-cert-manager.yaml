@@ -25,8 +25,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
-    # API Server からの Webhook 呼び出しを許可する
-    - ports:
+    # K8S-NP-001 監査対応: from セレクタを追加し、kube-system Namespace からの通信のみ許可する。
+    # from セレクタなしでは全 Pod からの Webhook 呼び出しが許可されてしまうため、
+    # Kubernetes API Server が存在する kube-system Namespace に限定して最小権限を実現する。
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
         - protocol: TCP
           port: 10250   # cert-manager webhook ポート
 ---

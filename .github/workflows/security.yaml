@@ -382,6 +382,43 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: false
 
+  # K8S-TF-002 / K8S-BACKUP-001 監査対応: 設定値の整合性チェックジョブ
+  # - prod/backend.tf に example.com が残っている場合に失敗（未置換プレースホルダー検出）
+  # - vault バックアップイメージバージョンが docker-compose.yaml と一致することを確認
+  config-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      # K8S-TF-002 監査対応: 本番 Terraform backend に example.com プレースホルダーが
+      # 残っている場合は未設定のまま apply されるリスクがあるため CI で検出して失敗させる。
+      - name: Terraform prod backend example.com チェック
+        run: |
+          if grep -q "rgw\.internal\.example\.com" infra/terraform/environments/prod/backend.tf; then
+            echo "::error::infra/terraform/environments/prod/backend.tf に example.com エンドポイントが残っています。"
+            echo "::error::本番デプロイ前に実際の Ceph RGW エンドポイント URL に変更してください。"
+            exit 1
+          fi
+          echo "OK: prod backend.tf に example.com プレースホルダーは検出されませんでした"
+
+      # K8S-BACKUP-001 監査対応: vault バックアップ CronJob のイメージバージョンが
+      # docker-compose.yaml の vault イメージバージョンと一致することを確認する。
+      # バージョン不一致は復旧手順の差異を引き起こし、障害時のリストアに失敗するリスクがある。
+      - name: Vault バックアップイメージバージョン整合性チェック
+        run: |
+          COMPOSE_VERSION=$(grep 'image: hashicorp/vault:' docker-compose.yaml | head -1 | sed 's/.*hashicorp\/vault://' | tr -d ' ')
+          BACKUP_VERSION=$(grep 'image: hashicorp/vault:' infra/kubernetes/backup/vault-backup-cronjob.yaml | head -1 | sed 's/.*hashicorp\/vault://' | tr -d ' ')
+          echo "docker-compose.yaml vault version: ${COMPOSE_VERSION}"
+          echo "vault-backup-cronjob.yaml vault version: ${BACKUP_VERSION}"
+          if [ "${COMPOSE_VERSION}" != "${BACKUP_VERSION}" ]; then
+            echo "::error::Vault イメージバージョンが不一致です: docker-compose=${COMPOSE_VERSION}, backup-cronjob=${BACKUP_VERSION}"
+            echo "::error::infra/kubernetes/backup/vault-backup-cronjob.yaml のバージョンを ${COMPOSE_VERSION} に更新してください。"
+            exit 1
+          fi
+          echo "OK: Vault バックアップイメージバージョンが一致しています: ${COMPOSE_VERSION}"
+
   # 全セキュリティジョブの集約ゲート
   # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
   # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする
@@ -396,6 +433,8 @@ jobs:
       - sast
       # M-06 監査対応: secret-scan ジョブをゲートに追加
       - secret-scan
+      # K8S-TF-002 / K8S-BACKUP-001 監査対応: 設定値整合性チェックをゲートに追加
+      - config-validation
     # always() を使って前段ジョブが失敗しても本ジョブは必ず実行する
     if: always()
     permissions: {}
@@ -403,19 +442,52 @@ jobs:
       # 全ジョブの結果を検査し、failure があればゲートを閉じる
       - name: セキュリティスキャン全体の合否判定
         run: |
-          echo "trivy-scan:       ${{ needs.trivy-scan.result }}"
-          echo "dependency-check: ${{ needs.dependency-check.result }}"
-          echo "iac-scan:         ${{ needs.iac-scan.result }}"
-          echo "license-scan:     ${{ needs.license-scan.result }}"
-          echo "sast:             ${{ needs.sast.result }}"
-          echo "secret-scan:      ${{ needs.secret-scan.result }}"
-          if [ "${{ needs.trivy-scan.result }}"       = "failure" ] || \
-             [ "${{ needs.dependency-check.result }}" = "failure" ] || \
-             [ "${{ needs.iac-scan.result }}"         = "failure" ] || \
-             [ "${{ needs.license-scan.result }}"     = "failure" ] || \
-             [ "${{ needs.sast.result }}"             = "failure" ] || \
-             [ "${{ needs.secret-scan.result }}"      = "failure" ]; then
+          echo "trivy-scan:        ${{ needs.trivy-scan.result }}"
+          echo "dependency-check:  ${{ needs.dependency-check.result }}"
+          echo "iac-scan:          ${{ needs.iac-scan.result }}"
+          echo "license-scan:      ${{ needs.license-scan.result }}"
+          echo "sast:              ${{ needs.sast.result }}"
+          echo "secret-scan:       ${{ needs.secret-scan.result }}"
+          echo "config-validation: ${{ needs.config-validation.result }}"
+          if [ "${{ needs.trivy-scan.result }}"        = "failure" ] || \
+             [ "${{ needs.dependency-check.result }}"  = "failure" ] || \
+             [ "${{ needs.iac-scan.result }}"          = "failure" ] || \
+             [ "${{ needs.license-scan.result }}"      = "failure" ] || \
+             [ "${{ needs.sast.result }}"              = "failure" ] || \
+             [ "${{ needs.secret-scan.result }}"       = "failure" ] || \
+             [ "${{ needs.config-validation.result }}" = "failure" ]; then
             echo "::error::セキュリティスキャンに失敗したジョブがあります"
             exit 1
           fi
           echo "OK: 全セキュリティスキャンがクリア（またはスキップ）されました"
+      # INFRA-006 監査対応: セキュリティスキャン失敗時に GitHub Issues を自動作成して通知する
+      - name: セキュリティスキャン失敗時に GitHub Issue を作成
+        if: failure()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const title = `[Security] セキュリティスキャン失敗 - ${new Date().toISOString().slice(0,10)}`;
+            const body = [
+              '## セキュリティスキャン失敗通知',
+              '',
+              `**実行日時:** ${new Date().toISOString()}`,
+              `**ワークフロー:** ${{ github.workflow }}`,
+              `**実行 URL:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              '',
+              '### 失敗したジョブ',
+              `- trivy-scan: ${{ needs.trivy-scan.result }}`,
+              `- dependency-check: ${{ needs.dependency-check.result }}`,
+              `- iac-scan: ${{ needs.iac-scan.result }}`,
+              `- license-scan: ${{ needs.license-scan.result }}`,
+              `- sast: ${{ needs.sast.result }}`,
+              `- secret-scan: ${{ needs.secret-scan.result }}`,
+              '',
+              '対応が必要なセキュリティ問題が検出されました。速やかに確認してください。',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'automated'],
+            });

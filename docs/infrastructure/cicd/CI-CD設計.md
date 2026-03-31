@@ -1885,6 +1885,38 @@ secret-scan:
 
 ---
 
+## Doc Sync (2026-03-31) INFRA-006 / K8S-TF-002 / K8S-BACKUP-001 対応
+
+### INFRA-006: セキュリティスキャン失敗時の GitHub Issues 自動作成
+
+`security.yaml` の `security-gate` ジョブに、スキャン失敗時に GitHub Issues を自動作成するステップを追加した。
+
+```yaml
+# security-gate ジョブに追加
+- name: セキュリティスキャン失敗時に GitHub Issue を作成
+  if: failure()
+  uses: actions/github-script@...
+  with:
+    script: |
+      # スキャン失敗情報・ワークフロー実行 URL を含む Issue を自動作成する
+```
+
+| 変更点 | 内容 |
+| --- | --- |
+| GitHub Issue 自動作成 | `security-gate` が failure になった場合、`[Security]` ラベル付き Issue を自動生成してチームに通知する |
+| Issue 内容 | 失敗日時・ワークフロー実行 URL・各スキャンジョブの結果を記載 |
+
+### K8S-TF-002 / K8S-BACKUP-001: 設定値整合性チェックジョブ追加
+
+`security.yaml` に `config-validation` ジョブを追加し、以下の検証を実施する。
+
+| チェック項目 | 詳細 |
+| --- | --- |
+| prod backend.tf example.com チェック（K8S-TF-002） | `infra/terraform/environments/prod/backend.tf` の Ceph RGW エンドポイントに `example.com` が残存している場合に CI を失敗させる。本番デプロイ前の設定漏れを防止する |
+| Vault バックアップイメージ整合性チェック（K8S-BACKUP-001） | `docker-compose.yaml` の vault イメージバージョンと `infra/kubernetes/backup/vault-backup-cronjob.yaml` の vault イメージバージョンが一致することを確認する |
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture.md](../../architecture/overview/tier-architecture.md) — Tier アーキテクチャの詳細

@@ -253,9 +253,11 @@ pub async fn list_users(
         Err(e) => {
             // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
             // e.to_string() はデータベースエラーの詳細・接続文字列・スタックトレースを含む可能性がある
+            // RUST-006 監査対応: 内部エラーには BAD_REQUEST(400) でなく INTERNAL_SERVER_ERROR(500) を返す。
+            // クライアントのバグではなくサーバー側の問題であるため、正しい HTTP セマンティクスを使用する。
             tracing::error!(error = %e, "内部エラーが発生しました");
             let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
-            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }

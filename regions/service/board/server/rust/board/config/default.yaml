@@ -37,7 +37,8 @@ observability:
 kafka:
   brokers:
     - "kafka:9092"
-  board_column_updated_topic: "k1s0.service.board.column_updated"
+  # DOCS-003 監査対応: 実際のトピック名（topics.yaml / create-topics.sh）に合わせて .v1 接尾辞を追加
+  board_column_updated_topic: "k1s0.service.board.column_updated.v1"
 
 auth:
   jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"

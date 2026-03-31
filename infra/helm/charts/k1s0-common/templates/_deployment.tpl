@@ -62,9 +62,14 @@ spec:
             {{- toYaml .Values.container.args | nindent 12 }}
           {{- end }}
           ports:
+            {{- /* K8S-HELM-001 監査対応: gRPC 専用サービス（grpcOnly: true）の場合は HTTP ポートを公開しない。
+                 gRPC のみを使用するサービスに HTTP ポートを定義すると、未使用ポートが攻撃面を広げるリスクがある。
+                 例: saga, dlq-manager, api-registry などの純粋 gRPC サービス */}}
+            {{- if not (and .Values.container .Values.container.grpcOnly) }}
             - name: http
               containerPort: {{ if .Values.container }}{{ .Values.container.port | default 8080 }}{{ else }}8080{{ end }}
               protocol: TCP
+            {{- end }}
             {{- if and .Values.container .Values.container.grpcPort }}
             - name: grpc
               containerPort: {{ .Values.container.grpcPort }}

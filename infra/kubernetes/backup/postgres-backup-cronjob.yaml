@@ -45,28 +45,82 @@ spec:
 
                   mkdir -p "${BACKUP_DIR}"
 
-                  # 全データベースのバックアップ（L-11 監査対応: 重要 DB を網羅する）
+                  # K8S-BACKUP-002 監査対応: pg_dump 失敗時に不完全なバックアップファイルを削除する。
+                  # 部分的に書き込まれたダンプファイルが残ると、リストア時に破損バックアップを
+                  # 使用してしまうリスクがある。trap でクリーンアップを保証する。
+                  CURRENT_BACKUP_FILE=""
+                  cleanup_on_error() {
+                    if [ -n "${CURRENT_BACKUP_FILE}" ] && [ -f "${CURRENT_BACKUP_FILE}" ]; then
+                      echo "ERROR: pg_dump 失敗。不完全なバックアップファイルを削除します: ${CURRENT_BACKUP_FILE}"
+                      rm -f "${CURRENT_BACKUP_FILE}"
+                    fi
+                    exit 1
+                  }
+                  trap cleanup_on_error ERR
+
+                  # 全データベースのバックアップ（K8S-BACKUP-002 監査対応: 全サービス DB を網羅する）
+                  # system Tier DB:
                   # - k1s0_system: システム共通スキーマ（saga 等）
                   # - auth_db: 認証データ（ユーザー・セッション情報）
                   # - tenant_db: テナントデータ（マルチテナント構成の根幹）
                   # - session_db: セッション情報
                   # - config_db: サービス設定
                   # - featureflag_db: フィーチャーフラグ設定
+                  # - file_db: ファイルメタデータ
+                  # - ratelimit_db: レート制限設定
+                  # - vault_db: Vault メタデータ
+                  # - quota_db: クォータ管理
+                  # - rule_engine_db: ルールエンジン定義
+                  # - scheduler_db: スケジューラジョブ定義
+                  # - search_db: 検索インデックスメタデータ
+                  # - api_registry_db: API スキーマ
+                  # - app_registry_db: アプリバージョン情報
+                  # - service_catalog_db: サービスメタデータ
                   # - event_store_db: イベントソーシングデータ
                   # - workflow_db: ワークフロー定義・実行状態
                   # - policy_db: アクセスポリシー定義
                   # - dlq_db: デッドレターキューのメタデータ
-                  for DB in k1s0_system auth_db tenant_db session_db config_db featureflag_db event_store_db workflow_db policy_db dlq_db; do
-                    BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
+                  # business/service Tier DB:
+                  # - k1s0_saga: Saga 分散トランザクション（Rust saga サービス）
+                  # - k1s0_service: service Tier 共通スキーマ
+                  # - k1s0_business: business Tier 共通スキーマ
+                  # notification は永続化 DB なし（ステートレス配信）
+                  for DB in \
+                    k1s0_system \
+                    auth_db \
+                    tenant_db \
+                    session_db \
+                    config_db \
+                    featureflag_db \
+                    file_db \
+                    ratelimit_db \
+                    vault_db \
+                    quota_db \
+                    rule_engine_db \
+                    scheduler_db \
+                    search_db \
+                    api_registry_db \
+                    app_registry_db \
+                    service_catalog_db \
+                    event_store_db \
+                    workflow_db \
+                    policy_db \
+                    dlq_db \
+                    k1s0_saga \
+                    k1s0_service \
+                    k1s0_business; do
+                    CURRENT_BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
                     echo "Backing up database: ${DB}"
                     pg_dump \
                       -h "${PGHOST}" \
                       -U "${PGUSER}" \
                       -d "${DB}" \
                       -Fc \
-                      -f "${BACKUP_FILE}"
-                    echo "Backup completed: ${BACKUP_FILE} ($(du -h ${BACKUP_FILE} | cut -f1))"
+                      -f "${CURRENT_BACKUP_FILE}"
+                    echo "Backup completed: ${CURRENT_BACKUP_FILE} ($(du -h ${CURRENT_BACKUP_FILE} | cut -f1))"
                   done
+                  CURRENT_BACKUP_FILE=""
+                  trap - ERR
 
                   # BACKUP_RETENTION_DAYS 日より古いバックアップを削除する（デフォルト: 30日）
                   # 保持期間を変更する場合は BACKUP_RETENTION_DAYS 環境変数を設定する（L-006）

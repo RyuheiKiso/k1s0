@@ -53,12 +53,11 @@ pub async fn list_board_columns(
     claims: Option<axum::extract::Extension<Claims>>,
     Query(q): Query<ListBoardColumnsQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
-    // MED-07 監査対応: limit が未指定の場合はデフォルト値を使用し、最大値を超えた場合はクランプする
+    // MED-07 監査対応: limit が未指定の場合はデフォルト値を使用し、1〜最大値の範囲にクランプする
     let limit = q
         .limit
         .unwrap_or(LIST_DEFAULT_LIMIT)
-        .min(LIST_MAX_LIMIT)
-        .max(1);
+        .clamp(1, LIST_MAX_LIMIT);
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
     let filter = BoardColumnFilter {

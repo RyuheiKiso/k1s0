@@ -167,7 +167,7 @@ func TestLogin_Success(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		RedirectTo: "",
@@ -202,7 +202,7 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_WithValidMobileRedirect(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		// k1s0:// スキームは許可リストに含まれる
@@ -222,7 +222,7 @@ func TestLogin_WithValidMobileRedirect(t *testing.T) {
 func TestLogin_WithInvalidMobileRedirect(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Login(context.Background(), LoginInput{
 		// https:// スキームは許可リストに含まれない
@@ -247,7 +247,7 @@ func TestLogin_AuthCodeURLError(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Login(context.Background(), LoginInput{})
 
@@ -293,7 +293,7 @@ func TestCallback_BrowserFlow_Success(t *testing.T) {
 	existingSess := testutil.CreateTestSession(testutil.SessionOptions{})
 	store.sessions["old-session-id"] = existingSess
 
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Callback(context.Background(), CallbackInput{
 		ExistingSessionID: "old-session-id",
@@ -346,7 +346,7 @@ func TestCallback_MobileFlow_Success(t *testing.T) {
 	}
 
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Callback(context.Background(), CallbackInput{
 		State:            "state-value",
@@ -396,7 +396,7 @@ func contains(s, target string) bool {
 func TestCallback_StateMissing(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:       "some-state",
@@ -421,7 +421,7 @@ func TestCallback_StateMissing(t *testing.T) {
 func TestCallback_StateMismatch(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:        "request-state",
@@ -451,7 +451,7 @@ func TestCallback_TokenExchangeFailure(t *testing.T) {
 		},
 	}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	_, err := uc.Callback(context.Background(), CallbackInput{
 		State:        "state",
@@ -491,7 +491,7 @@ func TestLogout_Success(t *testing.T) {
 	})
 	store.sessions["logout-session-id"] = sess
 
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "logout-session-id",
@@ -523,7 +523,7 @@ func TestLogout_Success(t *testing.T) {
 func TestLogout_NoSession(t *testing.T) {
 	mockClient := &mockAuthOAuthClient{}
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "", // セッション ID なし
@@ -559,7 +559,7 @@ func TestLogout_IdPLogoutURLError(t *testing.T) {
 	sess := testutil.CreateTestSession(testutil.SessionOptions{IDToken: "id-token"})
 	store.sessions["session-with-idp-error"] = sess
 
-	uc := NewAuthUseCase(mockClient, store, store)
+	uc := NewAuthUseCase(mockClient, store, store, 0) // 0 → defaultExchangeCodeTTL(60s)
 
 	out, err := uc.Logout(context.Background(), LogoutInput{
 		SessionID:     "session-with-idp-error",

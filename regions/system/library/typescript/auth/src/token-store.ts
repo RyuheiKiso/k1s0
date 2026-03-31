@@ -84,11 +84,12 @@ export class DevLocalStorageTokenStore implements TokenStore {
   private readonly verifierKey = 'k1s0_pkce_verifier';
   private readonly stateKey = 'k1s0_oauth_state';
 
-  // コンストラクタで本番環境使用を検知し、開発者に警告を発する。
-  // NODE_ENV が development/test 以外の場合はコンソールに警告を出力して誤用を防ぐ。
+  // コンストラクタで本番環境使用を検知し、エラーをスローする。
+  // NODE_ENV が development/test 以外の場合はインスタンス化を拒否し、XSS によるトークン窃取を防ぐ。
+  // POLY-004 監査対応: console.warn（継続動作）から throw Error（強制停止）に変更。
   constructor() {
     if (typeof window !== 'undefined' && !this._isDevEnvironment()) {
-      console.warn(
+      throw new Error(
         '[k1s0-auth] DevLocalStorageTokenStore は開発・テスト専用です。' +
         '本番環境での使用は禁止されています。SecureTokenStore を使用してください。'
       );

@@ -30,6 +30,15 @@ RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-scheduler-server
 FROM cook AS builder
 COPY . .
 
+# RUNTIME-001 監査対応: マイグレーションファイルの存在確認（スタレイメージ防止）
+# sqlx::migrate!() はコンパイル時にマイグレーションファイルを埋め込む。
+# このチェックを設けることで、ビルド時にファイルが不足していた場合に即座に検出できる。
+# 既存イメージを使い回す場合は必ず 'docker compose build --no-cache' を実行すること。
+RUN migration_count=$(ls database/scheduler-db/migrations/*.up.sql 2>/dev/null | wc -l) && \
+    echo "INFO: scheduler-db migration files: ${migration_count} files" && \
+    ls database/scheduler-db/migrations/*.up.sql && \
+    { [ "${migration_count}" -ge 2 ] || { echo "ERROR: Expected >= 2 migration files, found ${migration_count}. Build context may be incomplete." >&2; exit 1; }; }
+
 # ローカル開発用ビルド引数: 認証バイパスを有効化するには
 # CARGO_FEATURES="k1s0-server-common/dev-auth-bypass" を指定する
 ARG CARGO_FEATURES=""

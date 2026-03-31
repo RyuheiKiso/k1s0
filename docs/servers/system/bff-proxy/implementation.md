@@ -178,6 +178,9 @@ if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && exi
 - セッションごとにランダムな nonce を生成（12 バイト、GCM standard）
 - 保存形式: `base64url(nonce || ciphertext || auth_tag)`
 - `SESSION_ENCRYPTION_KEY` 環境変数に hex エンコードされた 32 バイトの鍵を設定する
+- **POLY-002 / ADR-0063 対応**: AAD（Additional Authenticated Data）としてセッション ID を渡し、暗号文をセッション ID にバインドする。これによりセッションスワップ攻撃（暗号文を別のキーにコピーする攻撃）を防止する。
+  - `Create`, `Get`, `Update`: `gcm.Seal(nonce, nonce, plaintext, []byte(sessionID))`
+  - `CreateExchangeCode`, `GetExchangeCode`: `gcm.Seal(nonce, nonce, plaintext, []byte(code))`
 
 `main.go` の起動時に `SESSION_ENCRYPTION_KEY` が設定されていれば `EncryptedStore` を使用し、未設定の場合は `RedisStore` にフォールバックして警告を出力する。
 

@@ -191,10 +191,14 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
+      # DOCKER-003 監査対応: タイムアウトを 5s → 15s に延長し、起動待機期間を追加する。
+      # Kafka ブローカーはリーダー選出に時間がかかるため、起動直後のヘルスチェックが
+      # タイムアウトして不要な再起動が発生していた。start_period で起動猶予を確保する。
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 5
+      start_period: 60s
 
   kafka-ui:
     # バージョン固定: latest タグを避け再現性を確保する
@@ -1304,8 +1308,9 @@ services:
   kafka-init:
     image: apache/kafka:3.8.0
     profiles: [infra]
-    # リソース制限: 初期化タスクは軽量（一時的に実行されるだけ）
-    mem_limit: 256m
+    # リソース制限: kafka-topics.sh を並列実行するため JVM プロセスが複数起動する。
+    # DOCKER-001 監査対応: 256m では OOM Kill が発生し 44 トピック中 37 件が未作成になるため 1g に引き上げ。
+    mem_limit: 1g
     cpus: 0.25
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
     security_opt:

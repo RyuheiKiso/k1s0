@@ -181,19 +181,18 @@ class AuthClient {
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    // FE-09 監査対応: refresh_token は一部 IdP では省略される場合があるため nullable として扱う。
-    // null の場合は空文字で初期化し、リフレッシュ時のエラーハンドリングで対処する。
-    final rawRefreshToken = data['refresh_token'];
-    final refreshToken = rawRefreshToken != null ? rawRefreshToken as String : '';
+    // POLY-006 監査対応: refresh_token は一部 IdP では省略されるため null のまま保持する。
+    // 空文字への変換を廃止し、TokenSet.refreshToken が String? (nullable) になったことで
+    // 「リフレッシュトークンなし」を明示的に表現できるようになった。
     final tokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: refreshToken,
+      refreshToken: data['refresh_token'] as String?,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
     );
 
-    _tokenStore.setTokenSet(tokenSet);
+    await _tokenStore.setTokenSet(tokenSet); // POLY-007 監査対応: await で永続化完了を保証
     _tokenStore.clearCodeVerifier();
     _tokenStore.clearState();
     _notifyListeners(true);
@@ -205,7 +204,13 @@ class AuthClient {
   Future<void> refreshToken() async {
     final tokenSet = _tokenStore.getTokenSet();
     if (tokenSet == null) {
-      throw AuthError('No refresh token');
+      throw AuthError('No token set');
+    }
+    // POLY-006 監査対応: refreshToken が null の場合はリフレッシュ不可能なため明示的にエラーをスローする。
+    // 以前は空文字が渡されていたが、IdP が空文字の refresh_token を拒否するまでエラーが検出されなかった。
+    final currentRefreshToken = tokenSet.refreshToken;
+    if (currentRefreshToken == null || currentRefreshToken.isEmpty) {
+      throw AuthError('No refresh token available');
     }
 
     final discovery = await fetchDiscovery();
@@ -215,7 +220,7 @@ class AuthClient {
       body: {
         'grant_type': 'refresh_token',
         'client_id': _config.clientId,
-        'refresh_token': tokenSet.refreshToken,
+        'refresh_token': currentRefreshToken,
       },
     );
 
@@ -228,7 +233,7 @@ class AuthClient {
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     final newTokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
+      refreshToken: data['refresh_token'] as String?,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),

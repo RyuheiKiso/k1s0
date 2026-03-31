@@ -112,6 +112,15 @@ service tier のボード管理サーバーは以下の機能を提供する。
 | --- | --- | --- | --- |
 | `schema` | string | `board_service` | スキーマ名 |
 
+### kafka
+
+<!-- DOCS-010 監査対応: Kafka 設定フィールドをトピック名・デフォルト値付きで追記 -->
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `brokers` | string[] | `["kafka:9092"]` | Kafka ブローカーアドレス一覧 |
+| `board_column_updated_topic` | string | `k1s0.service.board.column_updated.v1` | ボードカラム更新イベントのトピック名 |
+
 ---
 
 ## アーキテクチャ

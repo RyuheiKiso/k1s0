@@ -103,6 +103,10 @@ type SessionConfig struct {
 	// スライディングウィンドウで TTL が延長され続けても、この期間を超えたセッションは無効化される。
 	// デフォルト値: "24h"
 	AbsoluteMaxTTL string `yaml:"absolute_max_ttl"`
+	// ExchangeCodeTTL はモバイルフロー用ワンタイム交換コードの有効期間（POLY-003 監査対応）。
+	// モバイルクライアントが /auth/callback のリダイレクト後に /auth/exchange でセッションを
+	// 確立するまでの猶予時間として設定する。デフォルト値: "60s"
+	ExchangeCodeTTL string `yaml:"exchange_code_ttl"`
 }
 
 // RedisSessionConfig holds Redis connection parameters for session storage.

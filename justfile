@@ -461,7 +461,39 @@ local-up-dev: _check-env
         exit 1
     fi
     echo "=== Starting local dev environment (auth bypass enabled) ==="
-    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} up -d
+    # RUNTIME-001 監査対応: インフラを先に起動し、postgres が healthy になってからシステムサービスを起動する。
+    # これにより、スタレイメージや migrate-all-docker との競合を排除し、
+    # sqlx::migrate!() がサービス起動前に必ず完了済みの postgres に対して実行される。
+    echo "--- Phase 1: インフラサービス起動 ---"
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra up -d
+    echo "--- Phase 1: postgres が healthy になるまで待機 ---"
+    PG_CONTAINER="k1s0-postgres-1"
+    for i in $(seq 1 60); do
+      STATUS=$(docker inspect --format='{{{{.State.Health.Status}}}}' "${PG_CONTAINER}" 2>/dev/null || echo "not_found")
+      if [ "${STATUS}" = "healthy" ]; then
+        echo "postgres healthy"
+        break
+      fi
+      echo "postgres 起動待機中... ${STATUS} (${i}/60)"
+      sleep 3
+    done
+    echo "=== [DOCKER-002] Vault 初期化（init-vault.sh を自動実行） ==="
+    VAULT_CONTAINER="k1s0-vault-1"
+    for i in $(seq 1 30); do
+      STATUS=$(docker inspect --format='{{{{.State.Health.Status}}}}' "${VAULT_CONTAINER}" 2>/dev/null || echo "not_found")
+      if [ "${STATUS}" = "healthy" ]; then
+        break
+      fi
+      echo "Vault 起動待機中... ${STATUS} (${i}/30)"
+      sleep 2
+    done
+    if bash infra/docker/vault/init-vault.sh; then
+      echo "=== Vault 初期化完了 ==="
+    else
+      echo "[WARN] Vault 初期化が失敗しました。手動で 'bash infra/docker/vault/init-vault.sh' を実行してください" >&2
+    fi
+    echo "--- Phase 2: システム/ビジネス/サービス層の起動 ---"
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile system --profile business --profile service --profile observability up -d
     echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
     if bash infra/kong/setup-kong-jwt.sh; then
         echo "=== Restarting Kong to apply new RSA public key configuration ==="
@@ -561,10 +593,24 @@ migrate-all:
 # Windows Git Bash など sqlx-cli 未インストール環境向け Docker 経由マイグレーション（C-03 監査対応）
 # sqlx-cli をローカルインストールせずに、実行中の postgres コンテナ経由でマイグレーションを適用する
 # 実行前提: just local-up-profile infra が完了していること（postgres コンテナが healthy 状態であること）
+#
+# ⚠️ 重要な制限事項（RUNTIME-001 監査対応）:
+#   このコマンドは raw SQL を実行するため sqlx の _sqlx_migrations 追跡テーブルを更新しない。
+#   そのため、このコマンド実行後にサービスを起動すると sqlx::migrate!() がすべてのマイグレーションを
+#   「未適用」と判断して再実行を試み、CREATE TRIGGER 等の非べき等 SQL でエラーが発生する。
+#
+#   使用可能なケース: サービスが起動していない状態で手動 SQL 検証のみ行う場合
+#   禁止されるケース: just local-up-dev や just local-up-profile system の前後
+#
+#   通常のセットアップには just migrate-all（sqlx-cli 必要）を使用すること。
+#   または just local-up-dev を直接実行すれば各サービスが起動時に自動でマイグレーションを実行する。
 migrate-all-docker:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Running all system DB migrations via Docker ==="
+    echo "[WARNING] RUNTIME-001: このコマンドは _sqlx_migrations を更新しません。" >&2
+    echo "[WARNING] 実行後にサービスを起動すると sqlx::migrate!() との競合が発生します。" >&2
+    echo "[WARNING] 通常は 'just migrate-all'（sqlx-cli 必要）を使用してください。" >&2
     for dir in regions/system/database/*/; do
         if [ ! -d "$dir/migrations" ]; then
             continue

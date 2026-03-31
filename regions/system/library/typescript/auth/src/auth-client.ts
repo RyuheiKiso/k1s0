@@ -305,7 +305,15 @@ export class AuthClient {
     if (!resp.ok) {
       throw new AuthError(`Discovery fetch failed: ${resp.status}`);
     }
-    this.discoveryCache = (await resp.json()) as OIDCDiscovery;
+    // POLY-005 監査対応: JSON パースエラーを try/catch で捕捉し AuthError にラップする。
+    // resp.json() がパース失敗した場合（不正な JSON レスポンス）、SyntaxError が AuthError に変換される。
+    let discovery: OIDCDiscovery;
+    try {
+      discovery = (await resp.json()) as OIDCDiscovery;
+    } catch (e) {
+      throw new AuthError(`Discovery JSON parse failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    this.discoveryCache = discovery;
     // キャッシュ取得時刻を記録する
     this.discoveryCacheTime = Date.now();
     return this.discoveryCache;

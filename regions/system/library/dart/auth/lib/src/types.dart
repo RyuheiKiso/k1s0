@@ -35,13 +35,16 @@ class AuthConfig {
 /// 保存用のトークンセット
 class TokenSet {
   final String accessToken;
-  final String refreshToken;
+  // POLY-006 監査対応: refresh_token は一部の IdP では発行されないため String? (nullable) に変更。
+  // 以前は null を空文字に変換していたが、null のまま保持することで「リフレッシュトークンなし」を
+  // 明示的に表現できる。refreshToken が null の場合はリフレッシュ不可能であることを意味する。
+  final String? refreshToken;
   final String idToken;
   final DateTime expiresAt;
 
   TokenSet({
     required this.accessToken,
-    required this.refreshToken,
+    this.refreshToken,
     required this.idToken,
     required this.expiresAt,
   });
@@ -63,7 +66,8 @@ class TokenSet {
 
   factory TokenSet.fromJson(Map<String, dynamic> json) => TokenSet(
         accessToken: json['accessToken'] as String,
-        refreshToken: json['refreshToken'] as String,
+        // POLY-006 監査対応: refreshToken は null を許容する（json に key がない場合も null）
+        refreshToken: json['refreshToken'] as String?,
         idToken: json['idToken'] as String,
         expiresAt: DateTime.parse(json['expiresAt'] as String),
       );

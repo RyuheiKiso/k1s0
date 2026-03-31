@@ -869,7 +869,7 @@ PKCE フローと TokenStore の実装詳細。
 |---------|------|
 | TokenStore | トークン永続化インターフェース（`getTokenSet`, `setTokenSet`, `clearTokenSet`, `getState`, `setState` 等） |
 | MemoryTokenStore | メモリ内 TokenStore 実装（テスト・SPA 向け） |
-| DevLocalStorageTokenStore | localStorage ベースの TokenStore 実装（TypeScript、開発・テスト環境専用）。旧称 `LocalStorageTokenStore`（2026-03-24 にリネーム）。本番環境での使用は非推奨（XSS リスク）。セキュリティ方針は [token-storage-security.md](../../architecture/auth/token-storage-security.md) を参照 |
+| DevLocalStorageTokenStore | localStorage ベースの TokenStore 実装（TypeScript、**開発・テスト環境専用**）。旧称 `LocalStorageTokenStore`（2026-03-24 にリネーム）。**POLY-004 監査対応**: 本番環境（`NODE_ENV !== 'development'` 等）で使用するとコンストラクタで `throw new Error` が発生する。本番環境では `SecureTokenStore` を使用すること。セキュリティ方針は [token-storage-security.md](../../architecture/auth/token-storage-security.md) を参照 |
 | generateCodeVerifier | PKCE コードベリファイア生成 |
 | generateCodeChallenge | PKCE コードチャレンジ生成（SHA-256 ハッシュ） |
 

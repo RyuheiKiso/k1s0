@@ -19,7 +19,10 @@ abstract class TokenStore {
   TokenSet? getTokenSet();
 
   /// トークンセットを保存する
-  void setTokenSet(TokenSet tokenSet);
+  /// POLY-007 監査対応: Future<void> に変更し、呼び出し元で await 可能にする。
+  /// SecureTokenStore は永続化の完了を待機できるようになった。
+  /// MemoryTokenStore は同期的に完了するため、await しても即座に返る。
+  Future<void> setTokenSet(TokenSet tokenSet);
 
   /// トークンセットを削除する
   void clearTokenSet();
@@ -102,22 +105,25 @@ class SecureTokenStore implements TokenStore {
   TokenSet? getTokenSet() => _tokenSet;
 
   @override
-  void setTokenSet(TokenSet tokenSet) {
+  // POLY-007 監査対応: Future<void> に変更し、セキュアストレージへの書き込みを await 可能にする。
+  // 以前は fire-and-forget だったため、書き込み完了前にアプリが終了した場合にトークンが
+  // 永続化されないリスクがあった。呼び出し元で await することで永続化の確実性が向上する。
+  Future<void> setTokenSet(TokenSet tokenSet) async {
     _tokenSet = tokenSet;
-    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
-    unawaited(_storage
-        .write(
-          key: '$_prefix$_kTokenSet',
-          value: jsonEncode(tokenSet.toJson()),
-        )
-        .catchError((Object e, StackTrace st) {
+    try {
+      await _storage.write(
+        key: '$_prefix$_kTokenSet',
+        value: jsonEncode(tokenSet.toJson()),
+      );
+    } catch (e, st) {
       developer.log(
         'SecureTokenStore: トークンセットの書き込みに失敗しました',
         error: e,
         stackTrace: st,
         name: 'SecureTokenStore',
       );
-    }));
+      rethrow;
+    }
   }
 
   @override
@@ -240,7 +246,8 @@ class MemoryTokenStore implements TokenStore {
   TokenSet? getTokenSet() => _tokenSet;
 
   @override
-  void setTokenSet(TokenSet tokenSet) => _tokenSet = tokenSet;
+  // POLY-007 監査対応: Future<void> に変更（インターフェースに合わせる）。即座に完了する。
+  Future<void> setTokenSet(TokenSet tokenSet) async => _tokenSet = tokenSet;
 
   @override
   void clearTokenSet() => _tokenSet = null;

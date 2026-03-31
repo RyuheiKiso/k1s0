@@ -7,7 +7,12 @@ terraform {
     bucket         = "k1s0-terraform-state-prod"
     key            = "k1s0/prod/terraform.tfstate"
     region         = "dummy"        # Ceph RGW では使用しないが required フィールドのためダミー値を設定
-    endpoint       = "https://rgw.internal.example.com"  # Ceph RGW エンドポイント
+    # K8S-TF-002 監査対応: この endpoint は必ず本番の Ceph RGW 実 URL に変更すること。
+    # example.com のままでは Terraform apply が失敗し、State バックエンドに接続できない。
+    # 変更手順: terraform init -reconfigure -backend-config="endpoint=https://実際のRGWホスト"
+    # CI での検証: security.yaml の terraform-validate ジョブが example.com を検出したら失敗する。
+    # TODO(ops): デプロイ前に実際の Ceph RGW エンドポイント URL を設定すること
+    endpoint       = "https://rgw.internal.example.com"  # Ceph RGW エンドポイント（本番前に変更必須）
     use_path_style = true           # Ceph RGW はパススタイル URL を使用
     use_lockfile   = true           # S3 上にロックファイルを作成（DynamoDB 不要）
     encrypt        = true

@@ -235,6 +235,8 @@ message RecordAuditLogRequest {
   // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
   // Deprecated: event_type_enum を使用すること。
   // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  // POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを event_type_enum フィールドに移行し、
+  // このフィールドを削除すること。削除前に全コンシューマーが event_type_enum を使用していることを確認する。
   string event_type = 1 [deprecated = true];
   string user_id = 2;
   string ip_address = 3;
@@ -246,6 +248,8 @@ message RecordAuditLogRequest {
   // SUCCESS / FAILURE
   // Deprecated: result_enum を使用すること。
   // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+  // POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを result_enum フィールドに移行し、
+  // このフィールドを削除すること。削除前に全コンシューマーが result_enum を使用していることを確認する。
   string result = 7 [deprecated = true];
   // 操作の詳細情報（client_id, grant_type 等）
   google.protobuf.Struct detail = 8;
