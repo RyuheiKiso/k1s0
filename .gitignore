@@ -28,6 +28,8 @@ nul
 vendor/
 # Goビルド成果物バイナリ: リポジトリにコミットすべきでない（L-01 監査対応）
 *.exe
+# Go テストカバレッジファイル（HIGH-01 監査対応）
+*.out
 
 # TypeScript / Node.js
 **/node_modules/

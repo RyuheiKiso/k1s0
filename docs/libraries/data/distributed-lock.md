@@ -205,6 +205,12 @@ func WithPostgresLockPrefix(prefix string) PostgresLockOption
 
 `pg_try_advisory_lock(hashtext(key))` で非ブロッキングにロックを取得し、`pg_advisory_unlock(hashtext(key))` で解放する。advisory lock はセッションスコープのため TTL は無視される。
 
+**接続クリーンアップ戦略（B-CRIT-02・MED-05 監査対応、[ADR-0062](../../architecture/adr/0062-distributed-lock-connection-cleanup.md)）**:
+
+- `db == nil` の場合、`Acquire()` はパニックではなくエラーを返す（MED-05 対応）
+- `Acquire()` 成功後、context キャンセル監視 goroutine を起動する。context がキャンセルされた場合は自動的に `Release()` を呼び出し、接続プール枯渇を防ぐ（B-CRIT-02 対応）
+- 正常に `Release()` が呼ばれた場合は goroutine を即座に終了する（goroutine リークなし）
+
 ## TypeScript 実装
 
 **配置先**: `regions/system/library/typescript/distributed-lock/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）

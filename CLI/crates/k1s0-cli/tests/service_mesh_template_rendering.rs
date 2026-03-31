@@ -50,7 +50,7 @@ fn render_service_mesh(
     if tier == "business" {
         builder = builder.domain("task");
     }
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -105,7 +105,7 @@ fn render_service_mesh_with_kind(
     if tier == "business" {
         base_builder = base_builder.domain("task");
     }
-    let base_ctx = base_builder.build();
+    let base_ctx = base_builder.try_build().unwrap();
 
     // Tera コンテキストを生成し、kind を上書き
     let mut tera_ctx = base_ctx.to_tera_context();

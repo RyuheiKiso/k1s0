@@ -48,7 +48,9 @@ impl CreateApiKeyUseCase {
 
         let id = Uuid::new_v4();
         let raw_key = format!("k1s0_{}", generate_random_key());
-        let prefix = raw_key[..13].to_string();
+        // B-MEDIUM-06 監査対応: プレフィックス長を 13 → 21 文字に延長してブルートフォース耐性を向上
+        // "k1s0_" (5文字) + 16 hex 文字 = 21 文字のプレフィックスで DB 検索キーとして使用する
+        let prefix = raw_key[..21].to_string();
         // ペッパーが未設定の場合は PepperNotConfigured エラーを返す（C-5 監査対応: expect() パニックを除去）
         let key_hash = hash_key(&raw_key)?;
         let now = Utc::now();

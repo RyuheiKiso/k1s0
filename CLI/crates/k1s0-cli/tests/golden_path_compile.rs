@@ -60,7 +60,7 @@ fn generate_and_check(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 

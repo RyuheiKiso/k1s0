@@ -29,7 +29,7 @@ fn render_loki(service_name: &str, tier: &str, server_port: u16) -> Option<(Temp
     if tier == "business" {
         builder = builder.domain("task");
     }
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

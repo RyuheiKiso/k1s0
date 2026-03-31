@@ -1,11 +1,19 @@
+// B-MEDIUM-02 監査対応: usecase レイヤーの infrastructure 依存を解消
+// このファイルは元々 usecase/postgres_support.rs に存在していたが、
+// sqlx::Postgres / sqlx::Transaction などの infrastructure 具体型を直接参照しており
+// クリーンアーキテクチャ原則（usecase は infrastructure に依存してはならない）に違反していた。
+// adapter/repository レイヤーへ移動することで依存方向を正しく修正する。
+
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use sqlx::{Postgres, Transaction};
 
+// ワークフローインスタンスをトランザクション内に新規挿入する
 pub async fn insert_instance_tx(
     tx: &mut Transaction<'_, Postgres>,
     instance: &WorkflowInstance,
 ) -> anyhow::Result<()> {
+    // current_step_id が None の場合は空文字列として挿入する
     let current_step = instance
         .current_step_id
         .as_deref()
@@ -35,10 +43,12 @@ pub async fn insert_instance_tx(
     Ok(())
 }
 
+// ワークフローインスタンスをトランザクション内で更新する
 pub async fn update_instance_tx(
     tx: &mut Transaction<'_, Postgres>,
     instance: &WorkflowInstance,
 ) -> anyhow::Result<()> {
+    // current_step_id が None の場合は空文字列として更新する
     let current_step = instance
         .current_step_id
         .as_deref()
@@ -61,10 +71,12 @@ pub async fn update_instance_tx(
     Ok(())
 }
 
+// ワークフロータスクをトランザクション内に新規挿入する
 pub async fn insert_task_tx(
     tx: &mut Transaction<'_, Postgres>,
     task: &WorkflowTask,
 ) -> anyhow::Result<()> {
+    // assignee_id が None の場合は空文字列として挿入する
     let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
     sqlx::query(
@@ -91,10 +103,12 @@ pub async fn insert_task_tx(
     Ok(())
 }
 
+// ワークフロータスクをトランザクション内で更新する
 pub async fn update_task_tx(
     tx: &mut Transaction<'_, Postgres>,
     task: &WorkflowTask,
 ) -> anyhow::Result<()> {
+    // assignee_id が None の場合は空文字列として更新する
     let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
     sqlx::query(

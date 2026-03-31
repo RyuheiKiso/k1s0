@@ -79,6 +79,9 @@ services:
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       - DATABASE_URL=postgres://dev:dev@postgres:5432/auth_db?sslmode=disable
+      # HIGH-02 監査対応: API キー HMAC-SHA256 ハッシュ生成に使用するペッパー値をホスト環境変数から注入する。
+      # .env.dev で定義されたローカル開発用固定値を使用する。本番環境では Vault から注入すること。
+      - API_KEY_PEPPER=${API_KEY_PEPPER}
 
   config-rust:
     <<: *dev-auth-bypass
@@ -90,7 +93,9 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
+      # CRIT-01 監査対応: ADR-0060 で saga は k1s0_saga 専用 DB に移行済みのため修正する。
+      # 誤った k1s0_system への接続を防ぎ、config.docker.yaml の database.name と一致させる。
+      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_saga?sslmode=disable
 
   dlq-manager:
     <<: *dev-auth-bypass

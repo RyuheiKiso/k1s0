@@ -351,6 +351,8 @@ impl SagaGrpcService {
             Some(s)
         };
 
+        // gRPC からの呼び出しでは cursor は使用しない（REST API 専用機能）
+        // 後方互換のため OFFSET ページネーションを維持する
         let params = SagaListParams {
             page: req.page,
             page_size: req.page_size,
@@ -365,6 +367,7 @@ impl SagaGrpcService {
             } else {
                 Some(req.correlation_id)
             },
+            cursor: None,
         };
 
         let (sagas, total_count) = self

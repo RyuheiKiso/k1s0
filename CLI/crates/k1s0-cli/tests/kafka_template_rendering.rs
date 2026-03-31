@@ -25,7 +25,7 @@ fn render_kafka(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>)
 
     let ctx = TemplateContextBuilder::new(service_name, tier, "go", "kafka")
         .with_kafka()
-        .build();
+        .try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

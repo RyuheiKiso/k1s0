@@ -8,6 +8,8 @@ server:
   port: 8080
 
 graphql:
+  # MED-03 監査対応: introspection と playground は開発環境専用で有効化する。
+  # ステージング・本番環境では config.yaml（introspection: false, playground: false）を使用すること。
   introspection: true
   playground: true
   max_depth: 10

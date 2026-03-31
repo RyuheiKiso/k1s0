@@ -10,6 +10,9 @@ image:
   registry: harbor.internal.example.com
   repository: k1s0-service/app
   tag: ""                              # CI/CD で上書き
+  # B-MEDIUM-01 監査対応: IfNotPresent は開発・ステージング環境向けのデフォルト値。
+  # 本番環境では values-prod.yaml で Always にオーバーライドすること。
+  # （IfNotPresent はタグが不変な場合は効率的だが、mutable タグ使用時はセキュリティパッチが適用されないリスクがある）
   pullPolicy: IfNotPresent
 
 imagePullSecrets:

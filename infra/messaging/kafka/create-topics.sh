@@ -35,6 +35,10 @@
 #   コンシューマーグループ最大3並列処理を想定。
 # - 1 partition (DLQ): Dead Letter Queue は再処理時のメッセージ順序保証を優先し、
 #   1並列処理で運用する。保持期間は30日 (retention.ms=2592000000)。
+#
+# B-MEDIUM-03 監査対応: 各トピックを & でバックグラウンド実行し並列化することで
+#   JVM 起動オーバーヘッドを削減する（43回の順次実行 → 全並列実行後 wait で完了確認）。
+#   wait コマンドの終了コードを明示的に確認し、いずれかのジョブ失敗時はスクリプトを失敗終了させる。
 
 set -euo pipefail
 
@@ -50,7 +54,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.auth.audit.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=7776000000
+  --config retention.ms=7776000000 &
 
 # 設定変更通知 (config-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -58,7 +62,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.config.changed.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # 認証ログイン (auth-server)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -66,7 +70,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.auth.login.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # 権限拒否 (auth-server -> audit)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -74,7 +78,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.auth.permission_denied.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # APIレジストリ スキーマ更新 (api-registry -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -82,7 +86,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.apiregistry.schema_updated.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # フィーチャーフラグ変更 (featureflag-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -90,7 +94,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.featureflag.changed.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # ファイルアップロード (file-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -98,7 +102,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.file.uploaded.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # ファイル削除 (file-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -106,7 +110,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.file.deleted.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # ファイル汎用イベント（file-rust がプロデューサー、event_type ヘッダーで種別を区別）（M-21 監査対応）
 # file-rust は topic_events 設定でこのトピックを使用する（uploaded.v1/deleted.v1 は将来のイベント分離用に残す）
@@ -115,7 +119,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.file.events.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # tenant イベントトピック（C-07 監査対応: データ損失防止のため追加）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -123,7 +127,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.tenant.events.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # シークレットローテーション (vault-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -131,7 +135,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.vault.secret_rotated.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # 通知リクエスト (notification-server -> delivery)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -139,7 +143,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.notification.requested.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # クォータ超過 (quota-server -> alerting)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -147,7 +151,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.quota.exceeded.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # Saga 状態変更 (saga-server -> orchestration)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -155,7 +159,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.saga.state_changed.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # トークン検証 (auth-server -> subscribers) ※topics.yaml k1s0.system.auth.token_validate.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -163,7 +167,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.auth.token_validate.v1 \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # マスタデータ変更 (mastermaintenance-server -> subscribers) ※topics.yaml k1s0.system.mastermaintenance.data_changed.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -171,7 +175,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.mastermaintenance.data_changed.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # --- Service Tier ---
 # L-07 対応: topics.yaml との突合により task.updated.v1 / task.cancelled.v1 を追加する
@@ -180,7 +184,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.service.task.created.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # タスク更新イベント ※topics.yaml k1s0.service.task.updated.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -188,7 +192,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.service.task.updated.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # タスクキャンセルイベント ※topics.yaml k1s0.service.task.cancelled.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -196,7 +200,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.service.task.cancelled.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # board サービスのトピック
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -204,7 +208,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.service.board.column_updated.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # activity サービスのトピック
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -212,14 +216,14 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.service.activity.created.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
   --topic k1s0.service.activity.approved.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # --- Business Tier ---
 # L-07 対応: topics.yaml との突合により business tier トピックを追加する
@@ -229,7 +233,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.business.taskmanagement.projectmaster.project_type_changed.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # ステータス定義変更イベント ※topics.yaml k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -237,7 +241,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # 検索インデックス更新イベント（search-rust がコンシューマー）（MED-1 監査対応）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -245,7 +249,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.search.index.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # ワークフロー状態変更イベント（workflow-rust がプロデューサー）（MED-1 監査対応）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -253,7 +257,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.workflow.state.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # スケジューライベント（scheduler-rust がプロデューサー）（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -261,7 +265,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.scheduler.created.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # スケジューラ実行イベント（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -269,7 +273,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.scheduler.executed.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # スケジューラトリガーイベント（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -277,7 +281,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.scheduler.triggered.v1 \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=604800000
+  --config retention.ms=604800000 &
 
 # スケジューラ作成 DLQ（MED-1 監査対応: scheduler.created.v1 に対する DLQ が欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -285,7 +289,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --topic k1s0.system.scheduler.created.v1.dlq \
   --partitions 1 \
   --replication-factor "${REPLICATION_FACTOR}" \
-  --config retention.ms=2592000000
+  --config retention.ms=2592000000 &
 
 # --- DLQ Topics ---
 # L-07 対応: topics.yaml との突合により不足 DLQ を追加する
@@ -323,8 +327,13 @@ for topic in \
     --topic "${topic}" \
     --partitions 1 \
     --replication-factor "${REPLICATION_FACTOR}" \
-    --config retention.ms=2592000000
+    --config retention.ms=2592000000 &
 done
+
+# 全バックグラウンドジョブの完了を待つ。
+# いずれかのジョブが失敗した場合は wait が非ゼロを返すため、
+# set -e によりスクリプトが即座に失敗終了する。
+wait
 
 echo "=== All Kafka topics created successfully ==="
 

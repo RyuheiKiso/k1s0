@@ -9,7 +9,8 @@ use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
-use crate::usecase::postgres_support::{insert_instance_tx, insert_task_tx};
+// B-MEDIUM-02 監査対応: postgres_support を adapter/repository レイヤーからインポートする
+use crate::adapter::repository::postgres_support::{insert_instance_tx, insert_task_tx};
 use tracing::error;
 
 #[derive(Debug, Clone)]

@@ -50,13 +50,15 @@
 | [ADR-0042](./0042-bff-proxy-upstream-strategy.md) | BFF-Proxy upstream 拡張戦略 | 承認済み |
 | [ADR-0043](./0043-service-tier-graphql-integration.md) | Service Tier GraphQL 統合方針 | 承認済み |
 | [ADR-0044](./0044-file-event-topic-strategy.md) | file-rust Kafka イベントトピック設計方針 | 承認済み |
-| [ADR-0045](./0045-vault-per-service-roles.md) | Vault サービス個別 Kubernetes Auth ロール実装計画 | 提案中 |
+| [ADR-0045](./0045-vault-per-service-roles.md) | Vault サービス個別 Kubernetes Auth ロール実装計画 | 実装完了 |
 | [ADR-0046](./0046-tauri-gui-deferral.md) | Tauri GUI 機能の段階的延期戦略 | 承認済み |
 | [ADR-0047](./0047-vault-secret-path-auth-server.md) | Vault シークレットパス設計（auth-server） | 承認済み |
 | [ADR-0048](./0048-ratelimit-fail-closed-default.md) | レートリミット Fail-Closed デフォルト設計 | 承認済み |
 | [ADR-0049](./0049-jwt-aud-vec-string.md) | JWT audience を Vec<String> で管理する設計 | 承認済み |
 | [ADR-0050](./0050-advisory-lock-timeout-strategy.md) | pg_try_advisory_lock + リトライによる DB マイグレーション排他制御 | 承認済み |
 | [ADR-0051](./0051-k8s-placeholder-ci-validation.md) | Kubernetes マニフェストのプレースホルダー自動検証 CI パイプライン設計 | 承認済み |
+| [ADR-0061](./0061-ropc-to-client-credentials-migration.md) | Keycloak ROPC から Client Credentials Grant への移行 | 提案中 |
+| [ADR-0062](./0062-distributed-lock-connection-cleanup.md) | distributed-lock PostgreSQL 接続クリーンアップ戦略 | 承認済み |
 
 ## ADR の追加方法
 

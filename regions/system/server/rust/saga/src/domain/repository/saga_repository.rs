@@ -5,6 +5,8 @@ use crate::domain::entity::saga_state::{SagaState, SagaStatus};
 use crate::domain::entity::saga_step_log::SagaStepLog;
 
 /// SagaListParams はSaga一覧取得のパラメータ。
+/// cursor が指定された場合は keyset ページネーションを使用し、
+/// 指定されない場合は後方互換のため OFFSET ページネーションを使用する。
 #[derive(Debug, Clone, Default)]
 pub struct SagaListParams {
     pub workflow_name: Option<String>,
@@ -12,6 +14,9 @@ pub struct SagaListParams {
     pub correlation_id: Option<String>,
     pub page: i32,
     pub page_size: i32,
+    /// keyset ページネーション用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// 指定された場合はそのカーソル位置より前のレコードを取得する。
+    pub cursor: Option<String>,
 }
 
 /// SagaRepository はSaga永続化のためのリポジトリトレイト。

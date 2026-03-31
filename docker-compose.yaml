@@ -538,6 +538,9 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/rust/saga/config:/app/config
+      # MED-01 監査対応: ワークフロー定義ファイルをコンテナに提供する
+      # config.docker.yaml の saga.workflow_dir: "workflows" に対応するマウント
+      - ./regions/system/server/rust/saga/workflows:/app/workflows:ro
     healthcheck: *rust-healthcheck
 
   dlq-manager:

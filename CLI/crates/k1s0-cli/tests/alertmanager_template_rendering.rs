@@ -29,7 +29,7 @@ fn render_alertmanager(
 
     let ctx = TemplateContextBuilder::new(service_name, tier, "go", "alertmanager")
         .server_port(server_port)
-        .build();
+        .try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

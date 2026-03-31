@@ -42,6 +42,11 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 # 参照: ADR-0045（docs/architecture/adr/0045-vault-per-service-roles.md）
 
 # business Tier role - サービス別SA名で最小権限を適用
+# MED-02 監査対応: business ティアは現在共有ロール（"business"）を使用している。
+# system ティア（ADR-0045 実装完了）は全サービスがサービス個別ロールに移行済み。
+# business ティアも将来的にサービス個別ロールへ移行する予定だが、
+# 現状は project-master の1サービスのみであり、優先度が低いため暫定的に共有ロールを維持する。
+# TODO: business ティアのサービスが2件以上になった場合はサービス個別ロールに移行すること。
 resource "vault_kubernetes_auth_backend_role" "business" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "business"
@@ -59,6 +64,11 @@ resource "vault_kubernetes_auth_backend_role" "business" {
 # H-1 監査対応: bff-proxy の SA は "bff-proxy-sa" (namespace: k1s0-system) であり、
 #   service ロール（namespace: k1s0-service）には属さない。
 #   "bff-proxy" を削除し、system ロールの "bff-proxy-sa" に統一する。
+# MED-02 監査対応: service ティアは現在共有ロール（"service"）を使用している。
+# system ティア（ADR-0045 実装完了）は全サービスがサービス個別ロールに移行済み。
+# service ティアも将来的にサービス個別ロールへ移行する予定だが、
+# 現状は task/board/activity の3サービスのみであり、優先度が低いため暫定的に共有ロールを維持する。
+# TODO: service ティアのサービス構成が変化した場合（追加・削除）はサービス個別ロールへの移行を検討すること。
 resource "vault_kubernetes_auth_backend_role" "service" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service"

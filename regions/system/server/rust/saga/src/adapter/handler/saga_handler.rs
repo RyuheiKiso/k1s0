@@ -28,6 +28,9 @@ pub struct StartSagaResponse {
     pub status: String,
 }
 
+/// Saga 一覧取得のクエリパラメータ。
+/// cursor が指定された場合は keyset ページネーションを優先する。
+/// 後方互換のため page / page_size も維持する。
 #[derive(Debug, Deserialize)]
 pub struct ListSagasQuery {
     pub workflow_name: Option<String>,
@@ -37,6 +40,9 @@ pub struct ListSagasQuery {
     pub page: i32,
     #[serde(default = "default_page_size")]
     pub page_size: i32,
+    /// keyset ページネーション用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// 指定された場合は OFFSET より優先される。
+    pub cursor: Option<String>,
 }
 
 fn default_page() -> i32 {
@@ -88,12 +94,18 @@ pub struct ListSagasResponse {
     pub pagination: PaginationResponse,
 }
 
+/// ページネーション情報レスポンス。
+/// keyset ページネーション使用時は next_cursor に次ページのカーソル値が入る。
+/// cursor が None の場合はリストの末尾に達したことを示す。
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
     pub total_count: i64,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
+    /// 次ページ取得用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// keyset ページネーション使用時のみ設定される。
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -216,17 +228,21 @@ pub async fn start_saga(
     ))
 }
 
+/// Saga 一覧を取得する。
+/// cursor が指定された場合は keyset ページネーションを使用し、
+/// 指定されない場合は OFFSET ベースのページネーション（後方互換）を使用する。
 #[utoipa::path(
     get,
     path = "/api/v1/sagas",
     params(
-        ("workflow_name" = Option<String>, Query, description = "Filter by workflow"),
-        ("status" = Option<String>, Query, description = "Filter by status"),
-        ("page" = Option<i32>, Query, description = "Page number"),
-        ("page_size" = Option<i32>, Query, description = "Page size"),
+        ("workflow_name" = Option<String>, Query, description = "ワークフロー名でフィルタ"),
+        ("status" = Option<String>, Query, description = "ステータスでフィルタ"),
+        ("page" = Option<i32>, Query, description = "ページ番号（cursor 未指定時に有効）"),
+        ("page_size" = Option<i32>, Query, description = "1ページあたりの件数"),
+        ("cursor" = Option<String>, Query, description = "keysetページネーション用カーソル。形式: {created_at_unix_ms}_{id}"),
     ),
     responses(
-        (status = 200, description = "Saga list", body = ListSagasResponse),
+        (status = 200, description = "Saga 一覧", body = ListSagasResponse),
     ),
     security(("bearer_auth" = []))
 )]
@@ -234,18 +250,21 @@ pub async fn list_sagas(
     State(state): State<AppState>,
     Query(query): Query<ListSagasQuery>,
 ) -> Result<Json<ListSagasResponse>, SagaError> {
+    // ステータス文字列をドメイン型に変換する
     let status = if let Some(ref s) = query.status {
         Some(SagaStatus::from_str_value(s).map_err(|e| SagaError::Validation(e.to_string()))?)
     } else {
         None
     };
 
+    // cursor が指定された場合は keyset ページネーション、未指定の場合は OFFSET を使用する
     let params = SagaListParams {
-        workflow_name: query.workflow_name,
+        workflow_name: query.workflow_name.clone(),
         status,
-        correlation_id: query.correlation_id,
+        correlation_id: query.correlation_id.clone(),
         page: query.page,
         page_size: query.page_size,
+        cursor: query.cursor.clone(),
     };
 
     let (sagas, total) = state
@@ -253,6 +272,25 @@ pub async fn list_sagas(
         .execute(params)
         .await
         .map_err(|e| SagaError::Internal(e.to_string()))?;
+
+    // 最後のレコードから次ページのカーソル値を生成する
+    // 形式: "{created_at_unix_ms}_{id}"
+    let next_cursor = sagas.last().map(|s| {
+        let ts_ms = s.created_at.timestamp_millis();
+        format!("{}_{}", ts_ms, s.saga_id)
+    });
+
+    // cursor 使用時は next_cursor の有無で has_next を判定する
+    // OFFSET 使用時は従来通り total_count で判定する
+    let total_i64 = i64::from(total);
+    let page_size_i32 = query.page_size;
+    let has_next = if query.cursor.is_some() {
+        // keyset ページネーション: 取得件数が page_size と同じなら次ページあり
+        sagas.len() as i32 == page_size_i32 && next_cursor.is_some()
+    } else {
+        // OFFSET ページネーション: 従来通りの計算
+        (query.page as i64 * query.page_size as i64) < total_i64
+    };
 
     let saga_responses: Vec<SagaResponse> = sagas
         .into_iter()
@@ -270,9 +308,6 @@ pub async fn list_sagas(
         })
         .collect();
 
-    let total_i64 = i64::from(total);
-    let has_next = (query.page as i64 * query.page_size as i64) < total_i64;
-
     Ok(Json(ListSagasResponse {
         sagas: saga_responses,
         pagination: PaginationResponse {
@@ -280,6 +315,12 @@ pub async fn list_sagas(
             page: query.page,
             page_size: query.page_size,
             has_next,
+            // keyset ページネーション使用時のみ next_cursor を返す
+            next_cursor: if query.cursor.is_some() || has_next {
+                next_cursor
+            } else {
+                None
+            },
         },
     }))
 }

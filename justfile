@@ -430,6 +430,18 @@ local-down: _check-env
         docker compose -f infra/docker/docker-compose.yaml {{_dc_profiles}} down
     fi
 
+# MED-06 監査対応: Volume を含めて完全クリーンアップする（DB スキーマ変更後に使用）
+# PostgreSQL の Docker Volume が既に存在する場合 init-db スクリプトが再実行されないため、
+# スキーマ変更（新規 DB 追加等）を反映させるには Volume を削除して再起動する必要がある。
+# 警告: ローカルのデータが全て失われる。本番環境では絶対に使用しないこと。
+local-down-clean: _check-env
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== [MED-06] WARNING: Removing all Docker volumes. Local data will be lost. ==="
+    echo "  本番環境での実行は禁止。ローカル開発専用コマンドです。"
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml {{_dc_profiles}} down -v
+    echo "=== Volume cleanup complete. Run 'just local-up' to restart with fresh data. ==="
+
 # 認証バイパス付きでローカル開発環境を起動（ローカル開発専用・本番では使用不可）
 # C-01監査対応: Docker Compose 起動後、Keycloak から RSA 公開鍵を取得して Kong に設定する。
 # setup-kong-jwt.sh が Keycloak の起動を最大60秒待機し、kong.dev.yaml のプレースホルダーを置換する。

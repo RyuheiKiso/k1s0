@@ -14,10 +14,10 @@ const (
 	// DefaultCSRFHeader は CSRF トークンに使用するデフォルトのヘッダー名。
 	DefaultCSRFHeader = "X-CSRF-Token"
 
-	// CSRFTokenTTL は CSRF トークンの有効期間。30分で失効する（H-12 監査対応）。
-	// MED-9 監査対応: セッション TTL（SessionTTL: 24時間）より十分短く設定している。
-	// CSRF トークンをセッション TTL に合わせると長期トークン窃取のリスクが増大するため、
-	// セッション有効中でも定期的に CSRF トークンを更新するよう 30 分に固定する。
+	// CSRFTokenTTL は CSRF トークンの有効期間（H-12 監査対応、MED-9 監査対応）。
+	// セッション TTL のデフォルト値は 30 分（config.yaml の session.ttl で変更可能）。
+	// CSRF トークンも同じく 30 分に固定し、セッション有効中でも定期的に再発行する。
+	// これによりトークン窃取時の悪用可能時間を最小化する。
 	CSRFTokenTTL = 30 * time.Minute
 )
 

@@ -144,14 +144,17 @@ impl SagaRepository for SagaPostgresRepository {
         rows.into_iter().map(|r| r.try_into()).collect()
     }
 
+    /// Saga 一覧を取得する。
+    /// cursor が指定された場合は keyset ページネーションを使用し、
+    /// 指定されない場合は後方互換のため OFFSET ページネーションを使用する。
+    /// keyset ページネーションは大規模データセットで OFFSET より高パフォーマンスを発揮する。
     async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
         // CRIT-3 監査対応: sqlx::QueryBuilder を使用してタイプセーフな動的クエリを生成する。
         // format!() + 手動 bind_idx 管理ではプレースホルダーずれが発生しうるため置換する。
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
-        let offset = ((page - 1) * page_size) as i64;
 
-        // カウントクエリを QueryBuilder で構築する
+        // カウントクエリを QueryBuilder で構築する（keyset/OFFSET 共通）
         let mut count_qb = sqlx::QueryBuilder::new("SELECT COUNT(*)::int4 FROM saga.saga_states");
         let mut has_where = false;
 
@@ -181,6 +184,7 @@ impl SagaRepository for SagaPostgresRepository {
         );
         let mut has_where = false;
 
+        // フィルタ条件を追加する（keyset/OFFSET 共通）
         if let Some(ref wn) = params.workflow_name {
             data_qb.push(if has_where { " AND " } else { " WHERE " });
             data_qb.push("workflow_name = ");
@@ -197,13 +201,44 @@ impl SagaRepository for SagaPostgresRepository {
             data_qb.push(if has_where { " AND " } else { " WHERE " });
             data_qb.push("correlation_id = ");
             data_qb.push_bind(ci);
+            has_where = true;
         }
-        let _ = has_where; // 最後のフラグ更新を明示的に無視
 
-        data_qb.push(" ORDER BY created_at DESC LIMIT ");
-        data_qb.push_bind(page_size as i64);
-        data_qb.push(" OFFSET ");
-        data_qb.push_bind(offset);
+        // cursor が指定された場合は keyset ページネーションを使用する。
+        // cursor 形式: "{created_at_unix_ms}_{id}"
+        // (created_at, id) の複合比較で一意性を保証し、重複・欠損のないページングを実現する。
+        if let Some(ref cursor) = params.cursor {
+            // カーソルを unix_ms とIDに分解する
+            if let Some((ts_str, id_str)) = cursor.split_once('_') {
+                if let (Ok(ts_ms), Ok(cursor_id)) =
+                    (ts_str.parse::<i64>(), uuid::Uuid::parse_str(id_str))
+                {
+                    // unix_ms をマイクロ秒単位の PostgreSQL TIMESTAMPTZ に変換する
+                    let cursor_ts = chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ts_ms);
+                    if let Some(cursor_ts) = cursor_ts {
+                        data_qb
+                            .push(if has_where { " AND " } else { " WHERE " });
+                        // (created_at, id) の複合条件で keyset ページネーションを実現する
+                        // DESC ソートのため「より古い」レコードを取得する
+                        data_qb.push("(created_at, id) < (");
+                        data_qb.push_bind(cursor_ts);
+                        data_qb.push(", ");
+                        data_qb.push_bind(cursor_id);
+                        data_qb.push(")");
+                    }
+                }
+            }
+            // keyset ページネーション: ORDER BY created_at DESC, id DESC
+            data_qb.push(" ORDER BY created_at DESC, id DESC LIMIT ");
+            data_qb.push_bind(page_size as i64);
+        } else {
+            // OFFSET ページネーション（後方互換）
+            let offset = ((page - 1) * page_size) as i64;
+            data_qb.push(" ORDER BY created_at DESC LIMIT ");
+            data_qb.push_bind(page_size as i64);
+            data_qb.push(" OFFSET ");
+            data_qb.push_bind(offset);
+        }
 
         let rows = data_qb
             .build_query_as::<SagaStateRow>()

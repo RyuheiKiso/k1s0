@@ -46,11 +46,14 @@ impl ValidateApiKeyUseCase {
         &self,
         raw_key: &str,
     ) -> Result<ValidateApiKeyResult, ValidateApiKeyError> {
-        if raw_key.len() < 13 {
+        // B-MEDIUM-06 監査対応: プレフィックス長を 13 → 21 文字に延長してブルートフォース耐性を向上
+        // DB 検索前に最低長チェックを行い、短すぎるキーを早期リジェクトする
+        if raw_key.len() < 21 {
             return Err(ValidateApiKeyError::Invalid);
         }
 
-        let prefix = &raw_key[..13];
+        // B-MEDIUM-06 監査対応: 21 文字のプレフィックスで DB 検索を行う
+        let prefix = &raw_key[..21];
         let api_key = self
             .repo
             .find_by_prefix(prefix)
@@ -150,7 +153,8 @@ mod tests {
             name: "Test Key".to_string(),
             // 環境変数に依存せず、固定ペッパーで直接ハッシュを生成する
             key_hash: compute_hmac_hex(raw_key, TEST_PEPPER),
-            prefix: raw_key[..13].to_string(),
+            // B-MEDIUM-06 監査対応: プレフィックス長を 21 文字に合わせる
+            prefix: raw_key[..21].to_string(),
             scopes: vec!["read".to_string()],
             expires_at,
             revoked,
@@ -168,8 +172,9 @@ mod tests {
         let api_key = make_api_key(raw_key, false, false);
 
         let mut mock = MockApiKeyRepository::new();
+        // B-MEDIUM-06 監査対応: プレフィックスが 21 文字であることを検証する
         mock.expect_find_by_prefix()
-            .withf(|p| p == "k1s0_abcdef12")
+            .withf(|p| p == "k1s0_abcdef1234567890")
             .returning(move |_| Ok(Some(api_key.clone())));
 
         let uc = ValidateApiKeyUseCase::new(Arc::new(mock));

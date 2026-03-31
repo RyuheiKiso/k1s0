@@ -46,7 +46,7 @@ fn render_server(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -1178,7 +1178,7 @@ fn test_tera_variable_substitution_consistency() {
     let ctx = TemplateContextBuilder::new("user-auth", "service", "go", "server")
         .api_style("rest")
         .with_database("postgresql")
-        .build();
+        .try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1229,7 +1229,7 @@ fn test_tera_variable_substitution_rust() {
     let ctx = TemplateContextBuilder::new("user-auth", "service", "rust", "server")
         .api_style("rest")
         .with_database("postgresql")
-        .build();
+        .try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1305,7 +1305,7 @@ fn test_go_server_multi_api_file_list() {
     let ctx = TemplateContextBuilder::new("task-api", "service", "go", "server")
         .api_styles(vec!["rest".to_string(), "grpc".to_string()])
         .with_database("postgresql")
-        .build();
+        .try_build().unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
@@ -1677,7 +1677,7 @@ fn render_server_business_rust(api_style: &str) -> (TempDir, Vec<String>) {
     let ctx = TemplateContextBuilder::new("ledger-api", "business", "rust", "server")
         .domain("taskmanagement")
         .api_style(api_style)
-        .build();
+        .try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
     let names: Vec<String> = generated
@@ -1702,7 +1702,7 @@ fn render_server_business_go(api_style: &str) -> (TempDir, Vec<String>) {
     let ctx = TemplateContextBuilder::new("ledger-api", "business", "go", "server")
         .domain("taskmanagement")
         .api_style(api_style)
-        .build();
+        .try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
     let names: Vec<String> = generated
@@ -1726,7 +1726,7 @@ fn render_server_system(lang: &str, api_style: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("auth-server", "system", lang, "server")
         .api_style(api_style)
-        .build();
+        .try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
     let names: Vec<String> = generated

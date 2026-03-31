@@ -60,13 +60,14 @@ impl KeycloakConfig {
     /// MED-15 監査対応: admin_username が設定されている場合は Resource Owner Password Credentials
     /// (ROPC) Grant を使用するが、ROPC は OAuth 2.1 (draft) で廃止予定のフローである。
     /// 将来的に Client Credentials Grant（client_id + client_secret のみ）への移行を検討すること。
-    /// 移行計画は ADR-0050 で文書化予定。
+    /// 移行計画は ADR-0061 で文書化済み。
     ///
     /// 参考: https://oauth.net/2/grant-types/password/
     pub(crate) fn admin_token_form(&self) -> Vec<(&'static str, String)> {
         if self.uses_admin_password_grant() {
-            // TODO(ADR-0050): ROPC (password grant) は OAuth 2.1 で廃止予定。
+            // TODO(ADR-0061): ROPC (password grant) は OAuth 2.1 で廃止予定。
             // Keycloak の Service Account を使った Client Credentials Grant に移行すること。
+            // 移行手順は ADR-0061 を参照。
             vec![
                 ("grant_type", "password".to_string()),
                 ("client_id", self.admin_client_id.clone()),
@@ -75,7 +76,7 @@ impl KeycloakConfig {
                 ("password", self.admin_password.expose_secret().to_string()),
             ]
         } else {
-            // Client Credentials Grant: OAuth 2.1 推奨フロー（ADR-0050 で採用予定）
+            // Client Credentials Grant: OAuth 2.1 推奨フロー（ADR-0061 で採用決定）
             vec![
                 ("grant_type", "client_credentials".to_string()),
                 ("client_id", self.client_id.clone()),
