@@ -59,9 +59,11 @@ impl StubFlagRepository {
     }
 }
 
+/// STATIC-CRITICAL-001 監査対応: StubFlagRepository の全メソッドで tenant_id を受け取る。
+/// インメモリ実装のためテナント分離は行わないが、シグネチャを正しく合わせる。
 #[async_trait]
 impl FeatureFlagRepository for StubFlagRepository {
-    async fn find_by_key(&self, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -73,14 +75,14 @@ impl FeatureFlagRepository for StubFlagRepository {
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, _tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
         Ok(self.flags.read().await.clone())
     }
 
-    async fn create(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -88,7 +90,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         Ok(())
     }
 
-    async fn update(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -101,7 +103,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         }
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -111,7 +113,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         Ok(flags.len() < len_before)
     }
 
-    async fn exists_by_key(&self, flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -228,12 +230,18 @@ impl FlagEventPublisher for StubEventPublisher {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/// システムテナントUUID: テスト共通のフォールバックテナントID
+fn system_tenant() -> Uuid {
+    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+}
+
+/// STATIC-CRITICAL-001 監査対応: テスト用フラグはシステムテナントで作成する。
 fn make_flag(key: &str, enabled: bool) -> FeatureFlag {
-    FeatureFlag::new(key.to_string(), format!("{} description", key), enabled)
+    FeatureFlag::new(system_tenant(), key.to_string(), format!("{} description", key), enabled)
 }
 
 fn make_flag_with_id(id: Uuid, key: &str, enabled: bool) -> FeatureFlag {
-    let mut flag = FeatureFlag::new(key.to_string(), format!("{} description", key), enabled);
+    let mut flag = FeatureFlag::new(system_tenant(), key.to_string(), format!("{} description", key), enabled);
     flag.id = id;
     flag
 }
@@ -299,6 +307,7 @@ async fn create_flag_success() {
     let uc = CreateFlagUseCase::new(repo.clone(), publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.dark-mode".to_string(),
         description: "Dark mode toggle".to_string(),
         enabled: true,
@@ -329,6 +338,7 @@ async fn create_flag_already_exists() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.existing".to_string(),
         description: "dup".to_string(),
         enabled: true,
@@ -348,6 +358,7 @@ async fn create_flag_validation_empty_key() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "  ".to_string(),
         description: "desc".to_string(),
         enabled: true,
@@ -367,6 +378,7 @@ async fn create_flag_validation_key_too_long() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "a".repeat(129),
         description: "desc".to_string(),
         enabled: true,
@@ -386,6 +398,7 @@ async fn create_flag_validation_negative_weight() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.test".to_string(),
         description: "desc".to_string(),
         enabled: true,
@@ -409,6 +422,7 @@ async fn create_flag_no_variants_is_valid() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.simple".to_string(),
         description: "Simple boolean flag".to_string(),
         enabled: false,
@@ -428,6 +442,7 @@ async fn create_flag_repo_error() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.test".to_string(),
         description: "desc".to_string(),
         enabled: true,
@@ -447,6 +462,7 @@ async fn create_flag_audit_log_recorded() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit.clone());
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.audited".to_string(),
         description: "Audited flag".to_string(),
         enabled: true,
@@ -468,6 +484,7 @@ async fn create_flag_event_published() {
     let uc = CreateFlagUseCase::new(repo, publisher.clone(), audit);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.published".to_string(),
         description: "desc".to_string(),
         enabled: true,
@@ -489,6 +506,7 @@ async fn create_flag_with_watch_sender() {
     let uc = CreateFlagUseCase::new(repo, publisher, audit).with_watch_sender(tx);
 
     let input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.watched".to_string(),
         description: "Watched flag".to_string(),
         enabled: true,
@@ -512,7 +530,7 @@ async fn get_flag_found() {
     let repo = Arc::new(StubFlagRepository::with_flags(vec![flag]));
     let uc = GetFlagUseCase::new(repo);
 
-    let result = uc.execute("feature.dark-mode").await.unwrap();
+    let result = uc.execute(system_tenant(), "feature.dark-mode").await.unwrap();
     assert_eq!(result.flag_key, "feature.dark-mode");
     assert!(result.enabled);
 }
@@ -522,7 +540,7 @@ async fn get_flag_not_found() {
     let repo = Arc::new(StubFlagRepository::new());
     let uc = GetFlagUseCase::new(repo);
 
-    let err = uc.execute("nonexistent").await.unwrap_err();
+    let err = uc.execute(system_tenant(), "nonexistent").await.unwrap_err();
 
     match err {
         GetFlagError::NotFound(key) => assert_eq!(key, "nonexistent"),
@@ -535,7 +553,7 @@ async fn get_flag_repo_error() {
     let repo = Arc::new(StubFlagRepository::with_error("db timeout"));
     let uc = GetFlagUseCase::new(repo);
 
-    let err = uc.execute("any-key").await.unwrap_err();
+    let err = uc.execute(system_tenant(), "any-key").await.unwrap_err();
 
     match err {
         GetFlagError::Internal(msg) => assert!(msg.contains("db timeout")),
@@ -554,6 +572,7 @@ async fn update_flag_success_partial() {
     let uc = UpdateFlagUseCase::new(repo.clone(), publisher, audit);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.update-me".to_string(),
         enabled: Some(false),
         description: Some("Updated description".to_string()),
@@ -579,6 +598,7 @@ async fn update_flag_success_add_variants_and_rules() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.complex".to_string(),
         enabled: None,
         description: None,
@@ -614,6 +634,7 @@ async fn update_flag_not_found() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "nonexistent".to_string(),
         enabled: Some(true),
         description: None,
@@ -635,6 +656,7 @@ async fn update_flag_invalid_variants() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.bad-variant".to_string(),
         enabled: None,
         description: None,
@@ -660,6 +682,7 @@ async fn update_flag_audit_log_before_and_after() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit.clone());
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.audited-update".to_string(),
         enabled: Some(false),
         description: None,
@@ -691,6 +714,7 @@ async fn update_flag_with_watch_sender() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit).with_watch_sender(tx);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.watch-update".to_string(),
         enabled: Some(false),
         description: None,
@@ -713,6 +737,7 @@ async fn update_flag_repo_error() {
     let uc = UpdateFlagUseCase::new(repo, publisher, audit);
 
     let input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "any".to_string(),
         enabled: None,
         description: None,
@@ -738,7 +763,7 @@ async fn delete_flag_success() {
     let (repo, publisher, audit) = make_stubs_with_flags(vec![flag]);
     let uc = DeleteFlagUseCase::new(repo.clone(), publisher, audit);
 
-    uc.execute(&id).await.unwrap();
+    uc.execute(system_tenant(), &id).await.unwrap();
 
     let stored = repo.flags.read().await;
     assert!(stored.is_empty());
@@ -750,7 +775,7 @@ async fn delete_flag_not_found() {
     let uc = DeleteFlagUseCase::new(repo, publisher, audit);
     let id = Uuid::new_v4();
 
-    let err = uc.execute(&id).await.unwrap_err();
+    let err = uc.execute(system_tenant(), &id).await.unwrap_err();
 
     match err {
         DeleteFlagError::NotFound(found_id) => assert_eq!(found_id, id),
@@ -765,7 +790,7 @@ async fn delete_flag_repo_error() {
     let audit = Arc::new(StubAuditLogRepository::new());
     let uc = DeleteFlagUseCase::new(repo, publisher, audit);
 
-    let err = uc.execute(&Uuid::new_v4()).await.unwrap_err();
+    let err = uc.execute(system_tenant(), &Uuid::new_v4()).await.unwrap_err();
 
     match err {
         DeleteFlagError::Internal(msg) => assert!(msg.contains("disk full")),
@@ -780,7 +805,7 @@ async fn delete_flag_audit_log_recorded() {
     let (repo, publisher, audit) = make_stubs_with_flags(vec![flag]);
     let uc = DeleteFlagUseCase::new(repo, publisher, audit.clone());
 
-    uc.execute(&id).await.unwrap();
+    uc.execute(system_tenant(), &id).await.unwrap();
 
     let logs = audit.logs.read().await;
     assert_eq!(logs.len(), 1);
@@ -799,7 +824,7 @@ async fn delete_flag_with_watch_sender() {
 
     let uc = DeleteFlagUseCase::new(repo, publisher, audit).with_watch_sender(tx);
 
-    uc.execute(&id).await.unwrap();
+    uc.execute(system_tenant(), &id).await.unwrap();
 
     let event = rx.recv().await.unwrap();
     assert_eq!(event.flag_key, "feature.watch-delete");
@@ -815,7 +840,7 @@ async fn list_flags_empty() {
     let repo = Arc::new(StubFlagRepository::new());
     let uc = ListFlagsUseCase::new(repo);
 
-    let flags = uc.execute().await.unwrap();
+    let flags = uc.execute(system_tenant()).await.unwrap();
     assert!(flags.is_empty());
 }
 
@@ -827,7 +852,7 @@ async fn list_flags_with_results() {
     let repo = Arc::new(StubFlagRepository::with_flags(vec![f1, f2, f3]));
     let uc = ListFlagsUseCase::new(repo);
 
-    let flags = uc.execute().await.unwrap();
+    let flags = uc.execute(system_tenant()).await.unwrap();
     assert_eq!(flags.len(), 3);
 }
 
@@ -836,7 +861,7 @@ async fn list_flags_repo_error() {
     let repo = Arc::new(StubFlagRepository::with_error("db error"));
     let uc = ListFlagsUseCase::new(repo);
 
-    let err = uc.execute().await.unwrap_err();
+    let err = uc.execute(system_tenant()).await.unwrap_err();
 
     match err {
         ListFlagsError::Internal(msg) => assert!(msg.contains("db error")),
@@ -854,6 +879,7 @@ async fn evaluate_flag_disabled_returns_false() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.disabled".to_string(),
         context: make_context(Some("user-1"), HashMap::new()),
     };
@@ -879,6 +905,7 @@ async fn evaluate_flag_enabled_with_variant() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.enabled".to_string(),
         context: make_context(Some("user-1"), HashMap::new()),
     };
@@ -895,6 +922,7 @@ async fn evaluate_flag_not_found() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "nonexistent".to_string(),
         context: make_context(None, HashMap::new()),
     };
@@ -912,6 +940,7 @@ async fn evaluate_flag_repo_error() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "any".to_string(),
         context: make_context(None, HashMap::new()),
     };
@@ -953,6 +982,7 @@ async fn evaluate_flag_rule_eq_match() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.eq-rule".to_string(),
         context: make_context(Some("vip-user"), HashMap::new()),
     };
@@ -983,6 +1013,7 @@ async fn evaluate_flag_rule_eq_no_match_falls_to_weighted() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.eq-nomatch".to_string(),
         context: make_context(Some("regular-user"), HashMap::new()),
     };
@@ -1016,6 +1047,7 @@ async fn evaluate_flag_rule_contains_match() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.contains-rule".to_string(),
         context: make_context(Some("beta-tester-42"), HashMap::new()),
     };
@@ -1046,6 +1078,7 @@ async fn evaluate_flag_rule_contains_no_match() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.contains-nomatch".to_string(),
         context: make_context(Some("production-user"), HashMap::new()),
     };
@@ -1079,6 +1112,7 @@ async fn evaluate_flag_rule_in_match() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.in-rule".to_string(),
         context: EvaluationContext {
             user_id: None,
@@ -1113,6 +1147,7 @@ async fn evaluate_flag_rule_in_no_match() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.in-nomatch".to_string(),
         context: EvaluationContext {
             user_id: None,
@@ -1153,6 +1188,7 @@ async fn evaluate_flag_rule_custom_attribute() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.custom-attr".to_string(),
         context: make_context(Some("user-1"), attrs),
     };
@@ -1185,6 +1221,7 @@ async fn evaluate_flag_rule_unknown_operator_skips() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.unknown-op".to_string(),
         context: make_context(Some("user-1"), HashMap::new()),
     };
@@ -1218,6 +1255,7 @@ async fn evaluate_flag_rule_missing_attribute_skips() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.missing-attr".to_string(),
         context: make_context(Some("user-1"), HashMap::new()), // no "region" attribute
     };
@@ -1266,6 +1304,7 @@ async fn evaluate_flag_multiple_rules_first_match_wins() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.multi-rule".to_string(),
         context: make_context(Some("vip-user"), HashMap::new()),
     };
@@ -1299,6 +1338,7 @@ async fn evaluate_flag_rule_variant_not_in_variants_list_skips() {
     let uc = EvaluateFlagUseCase::new(repo);
 
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.orphan-variant".to_string(),
         context: make_context(Some("user-1"), HashMap::new()),
     };
@@ -1334,6 +1374,7 @@ async fn evaluate_flag_weighted_selection_deterministic() {
 
     // Same user_id should always produce the same variant (deterministic hashing)
     let input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.weighted".to_string(),
         context: make_context(Some("consistent-user"), HashMap::new()),
     };
@@ -1405,6 +1446,7 @@ async fn flag_crud_workflow() {
     // 1. Create
     let create_uc = CreateFlagUseCase::new(repo.clone(), publisher.clone(), audit.clone());
     let create_input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.workflow".to_string(),
         description: "Workflow test flag".to_string(),
         enabled: true,
@@ -1419,13 +1461,14 @@ async fn flag_crud_workflow() {
 
     // 2. Get
     let get_uc = GetFlagUseCase::new(repo.clone());
-    let fetched = get_uc.execute("feature.workflow").await.unwrap();
+    let fetched = get_uc.execute(system_tenant(), "feature.workflow").await.unwrap();
     assert_eq!(fetched.flag_key, "feature.workflow");
     assert!(fetched.enabled);
 
     // 3. Evaluate (enabled => should get variant)
     let eval_uc = EvaluateFlagUseCase::new(repo.clone());
     let eval_input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.workflow".to_string(),
         context: make_context(Some("user-1"), HashMap::new()),
     };
@@ -1436,6 +1479,7 @@ async fn flag_crud_workflow() {
     // 4. Update (disable)
     let update_uc = UpdateFlagUseCase::new(repo.clone(), publisher.clone(), audit.clone());
     let update_input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.workflow".to_string(),
         enabled: Some(false),
         description: Some("Disabled workflow flag".to_string()),
@@ -1453,15 +1497,15 @@ async fn flag_crud_workflow() {
 
     // 6. List
     let list_uc = ListFlagsUseCase::new(repo.clone());
-    let flags = list_uc.execute().await.unwrap();
+    let flags = list_uc.execute(system_tenant()).await.unwrap();
     assert_eq!(flags.len(), 1);
 
     // 7. Delete
     let delete_uc = DeleteFlagUseCase::new(repo.clone(), publisher, audit.clone());
-    delete_uc.execute(&flag_id).await.unwrap();
+    delete_uc.execute(system_tenant(), &flag_id).await.unwrap();
 
     // 8. Verify deleted
-    let err = get_uc.execute("feature.workflow").await.unwrap_err();
+    let err = get_uc.execute(system_tenant(), "feature.workflow").await.unwrap_err();
     assert!(matches!(err, GetFlagError::NotFound(_)));
 
     // 9. Verify audit trail
@@ -1481,6 +1525,7 @@ async fn flag_evaluate_with_rules_workflow() {
     // 1. Create flag with variants
     let create_uc = CreateFlagUseCase::new(repo.clone(), publisher.clone(), audit.clone());
     let create_input = CreateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.ab-test".to_string(),
         description: "A/B test".to_string(),
         enabled: true,
@@ -1502,6 +1547,7 @@ async fn flag_evaluate_with_rules_workflow() {
     // 2. Add targeting rules via update
     let update_uc = UpdateFlagUseCase::new(repo.clone(), publisher, audit);
     let update_input = UpdateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.ab-test".to_string(),
         enabled: None,
         description: None,
@@ -1518,6 +1564,7 @@ async fn flag_evaluate_with_rules_workflow() {
     // 3. Evaluate for premium tenant => treatment
     let eval_uc = EvaluateFlagUseCase::new(repo.clone());
     let eval_input = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.ab-test".to_string(),
         context: EvaluationContext {
             user_id: Some("user-1".to_string()),
@@ -1531,6 +1578,7 @@ async fn flag_evaluate_with_rules_workflow() {
 
     // 4. Evaluate for non-premium tenant => weighted selection (either control or treatment)
     let eval_input2 = EvaluateFlagInput {
+        tenant_id: system_tenant(),
         flag_key: "feature.ab-test".to_string(),
         context: EvaluationContext {
             user_id: Some("user-2".to_string()),

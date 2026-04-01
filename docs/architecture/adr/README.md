@@ -57,8 +57,22 @@
 | [ADR-0049](./0049-jwt-aud-vec-string.md) | JWT audience を Vec<String> で管理する設計 | 承認済み |
 | [ADR-0050](./0050-advisory-lock-timeout-strategy.md) | pg_try_advisory_lock + リトライによる DB マイグレーション排他制御 | 承認済み |
 | [ADR-0051](./0051-k8s-placeholder-ci-validation.md) | Kubernetes マニフェストのプレースホルダー自動検証 CI パイプライン設計 | 承認済み |
-| [ADR-0061](./0061-ropc-to-client-credentials-migration.md) | Keycloak ROPC から Client Credentials Grant への移行 | 提案中 |
+| [ADR-0052](./0052-jsonb-column-encryption.md) | JSONB カラム暗号化戦略 | 部分実装済み |
+| [ADR-0053](./0053-auth-config-nested-format.md) | AuthConfig ネスト形式統一 | 承認済み |
+| [ADR-0054](./0054-rls-remaining-tenant-tables.md) | RLS 段階的実装戦略 | 承認済み |
+| [ADR-0055](./0055-audit-response-2026-03-29.md) | 2026-03-29 外部技術監査対応 | 承認済み |
+| [ADR-0056](./0056-multitenancy-scope-decision.md) | マルチテナント設計の明確化 | 承認済み |
+| [ADR-0057](./0057-kong-jwt-istio-authz-separation.md) | Kong JWT/Istio AuthZ 分離 | 承認済み |
+| [ADR-0058](./0058-graphql-record-audit-log-input-breaking-change.md) | GraphQL RecordAuditLogInput 破壊的変更 | 承認済み |
+| [ADR-0059](./0059-grafana-postgresql-migration.md) | Grafana SQLite → PostgreSQL 移行 | 承認済み |
+| [ADR-0060](./0060-saga-dedicated-database.md) | saga-rust 専用データベース分離 | 承認済み |
+| [ADR-0061](./0061-ropc-to-client-credentials-migration.md) | Keycloak ROPC から Client Credentials Grant への移行 | 承認済み（STATIC-MEDIUM-003 監査対応）|
 | [ADR-0062](./0062-distributed-lock-connection-cleanup.md) | distributed-lock PostgreSQL 接続クリーンアップ戦略 | 承認済み |
+| [ADR-0063](./0063-aes-gcm-aad-session-binding.md) | セッション暗号化 AAD 導入 | 承認済み |
+| [ADR-0064](./0064-tenant-isolation-db-and-cache.md) | マルチテナント分離 DB+キャッシュ | 承認済み |
+| [ADR-0065](./0065-cosign-signature-verification.md) | app-registry Cosign 署名検証 | 承認済み |
+| [ADR-0066](./0066-config-value-encryption.md) | config サービス設定値 AES-256-GCM 暗号化 | 承認済み |
+| [ADR-0067](./0067-bff-proxy-ssrf-allowlist.md) | BFF プロキシ SSRF ホワイトリスト | 承認済み |
 
 ## ADR の追加方法
 

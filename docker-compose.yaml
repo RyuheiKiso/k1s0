@@ -488,9 +488,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/auth/config:/app/config
     healthcheck: *rust-healthcheck
@@ -514,9 +514,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/config/config:/app/config
     healthcheck: *rust-healthcheck
@@ -540,9 +540,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/saga/config:/app/config
       # MED-01 監査対応: ワークフロー定義ファイルをコンテナに提供する
@@ -566,9 +566,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/dlq-manager/config:/app/config
     healthcheck: *rust-healthcheck
@@ -588,9 +588,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/featureflag/config:/app/config
     healthcheck: *rust-healthcheck
@@ -612,9 +612,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ratelimit/config:/app/config
     healthcheck: *rust-healthcheck
@@ -636,9 +636,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/tenant/config:/app/config
     healthcheck: *rust-healthcheck
@@ -661,9 +661,9 @@ services:
       # Vault の準備完了を確認してから起動する（service_started ではヘルスチェック未通過で接続失敗の可能性がある）
       vault:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
     healthcheck: *rust-healthcheck
@@ -682,9 +682,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/api-registry/config:/app/config
     healthcheck: *rust-healthcheck
@@ -705,9 +705,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/app-registry/config:/app/config
     healthcheck: *rust-healthcheck
@@ -730,9 +730,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/event-monitor/config:/app/config
     healthcheck: *rust-healthcheck
@@ -751,9 +751,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/event-store/config:/app/config
     healthcheck: *rust-healthcheck
@@ -772,9 +772,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/file/config:/app/config
     healthcheck: *rust-healthcheck
@@ -795,9 +795,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/master-maintenance/config:/app/config
     healthcheck: *rust-healthcheck
@@ -818,9 +818,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/navigation/config:/app/config
     healthcheck: *rust-healthcheck
@@ -842,9 +842,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/notification/config:/app/config
     healthcheck: *rust-healthcheck
@@ -865,9 +865,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/policy/config:/app/config
     healthcheck: *rust-healthcheck
@@ -888,9 +888,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/quota/config:/app/config
     healthcheck: *rust-healthcheck
@@ -911,9 +911,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/rule-engine/config:/app/config
     healthcheck: *rust-healthcheck
@@ -934,9 +934,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/scheduler/config:/app/config
     healthcheck: *rust-healthcheck
@@ -955,9 +955,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/search/config:/app/config
     healthcheck: *rust-healthcheck
@@ -976,9 +976,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/service-catalog/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1001,9 +1001,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/session/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1028,9 +1028,9 @@ services:
       # scheduler-rust が未起動の場合は DNS エラーでクラッシュするため依存を明示する（CRIT-2 監査対応）。
       scheduler-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/workflow/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1051,9 +1051,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ai-gateway/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1076,9 +1076,9 @@ services:
         condition: service_healthy
       ai-gateway-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ai-agent/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1134,9 +1134,9 @@ services:
         condition: service_healthy
       event-monitor-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/graphql-gateway/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1157,9 +1157,9 @@ services:
         condition: service_healthy
       redis-session:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
     # CRITICAL-003 監査対応: /readyz は OIDC discovery + Redis 接続を確認する readiness probe
@@ -1197,9 +1197,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/business/taskmanagement/server/rust/project-master/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1222,9 +1222,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/task/server/rust/task/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1247,9 +1247,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/board/server/rust/board/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1272,9 +1272,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/activity/server/rust/activity/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1349,8 +1349,10 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     # H-01 監査対応: system プロファイルでも jaeger が起動するよう profiles に system を追加する
-    # system サービス群が depends_on: jaeger (service_healthy) を持つため、
+    # system サービス群が depends_on: jaeger (service_started) を持つため、
     # --profile system 単独起動時に jaeger が見つからず依存解決に失敗する問題を修正する
+    # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop ヘルスチェックタイムアウト問題を避けるため
+    # jaeger 依存条件を service_healthy → service_started に変更済み
     profiles: [system, observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1515,8 +1517,9 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   postgres-data:

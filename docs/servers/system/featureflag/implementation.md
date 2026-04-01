@@ -109,10 +109,13 @@ regions/system/server/rust/featureflag/
 | DB | 全テーブルに `tenant_id UUID NOT NULL`、全クエリに `WHERE tenant_id = $X` |
 | リポジトリトレイト | 全メソッドの第1引数が `tenant_id: Uuid` |
 | ユースケース入力 | `CreateFlagInput` / `UpdateFlagInput` / `EvaluateFlagInput` に `tenant_id: Uuid` |
-| ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出、未認証時はシステムテナント UUID をフォールバックに使用 |
+| gRPC adapter | ADR-0028 Phase 1: `x-tenant-id` gRPC メタデータから取得し、未設定時はシステムテナント UUID にフォールバック。`tenant_id_from_metadata()` ヘルパーを使用 |
+| REST ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出、未認証時はシステムテナント UUID をフォールバックに使用 |
 | キャッシュキー | `{tenant_id}:{flag_key}` 形式（テナント間のキャッシュ汚染を防ぐ） |
+| Kafka キャッシュ無効化 | イベントペイロードに `tenant_id` フィールドを含め、対象テナントのキャッシュのみ無効化 |
 
 - システムテナント UUID: `00000000-0000-0000-0000-000000000001`
+- ADR-0028 Phase 2 完了後: gRPC メタデータの `x-tenant-id` を必須化し、フォールバックを廃止する
 
 #### キャッシュ戦略
 

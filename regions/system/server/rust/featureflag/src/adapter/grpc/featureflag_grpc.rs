@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::evaluation::EvaluationContext;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::usecase::create_flag::{CreateFlagError, CreateFlagInput, CreateFlagUseCase};
@@ -12,11 +14,34 @@ use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 use super::watch_stream::WatchFeatureFlagStreamHandler;
 
+/// gRPC リクエストの tenant_id 文字列を Uuid にパースするヘルパー。
+/// ADR-0028 Phase 1: gRPC メタデータ x-tenant-id から取得した文字列を検証する。
+fn parse_tenant_id(tenant_id_str: &str) -> Result<Uuid, GrpcError> {
+    Uuid::parse_str(tenant_id_str)
+        .map_err(|_| GrpcError::InvalidArgument("tenant_id の形式が不正です".to_string()))
+}
+
+/// SYSTEM_TENANT_ID: テナントIDが未指定の場合のフォールバック値。
+/// ADR-0028 Phase 1: x-tenant-id メタデータが存在しない場合、システムテナントUUIDを使用する。
+/// Phase 2 でメタデータ必須化後にこのフォールバックは廃止予定。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// gRPC メタデータから tenant_id を取得するヘルパー。
+/// ADR-0028 Phase 1: x-tenant-id ヘッダーを優先し、存在しない場合はシステムテナントにフォールバックする。
+pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<Uuid, GrpcError> {
+    let tenant_id_str = metadata
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or(SYSTEM_TENANT_ID);
+    parse_tenant_id(tenant_id_str)
+}
+
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagRequest {
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub user_id: String,
-    pub tenant_id: String,
+    pub context_tenant_id: String,
     pub attributes: std::collections::HashMap<String, String>,
 }
 
@@ -30,6 +55,7 @@ pub struct EvaluateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetFlagRequest {
+    pub tenant_id: Uuid,
     pub flag_key: String,
 }
 
@@ -61,7 +87,9 @@ pub struct PbFlagRule {
 }
 
 #[derive(Debug, Clone)]
-pub struct ListFlagsRequest {}
+pub struct ListFlagsRequest {
+    pub tenant_id: Uuid,
+}
 
 #[derive(Debug, Clone)]
 pub struct ListFlagsResponse {
@@ -70,6 +98,7 @@ pub struct ListFlagsResponse {
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagRequest {
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
@@ -90,6 +119,7 @@ pub struct CreateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagRequest {
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
@@ -111,6 +141,7 @@ pub struct UpdateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct DeleteFlagRequest {
+    pub tenant_id: Uuid,
     pub flag_key: String,
 }
 
@@ -202,11 +233,14 @@ impl FeatureFlagGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを評価する。
+    /// EvaluateFlagInput に tenant_id を含めてユースケースに渡す。
     pub async fn evaluate_flag(
         &self,
         req: EvaluateFlagRequest,
     ) -> Result<EvaluateFlagResponse, GrpcError> {
         let input = EvaluateFlagInput {
+            tenant_id: req.tenant_id,
             flag_key: req.flag_key,
             context: EvaluationContext {
                 user_id: if req.user_id.is_empty() {
@@ -214,10 +248,10 @@ impl FeatureFlagGrpcService {
                 } else {
                     Some(req.user_id)
                 },
-                tenant_id: if req.tenant_id.is_empty() {
+                tenant_id: if req.context_tenant_id.is_empty() {
                     None
                 } else {
-                    Some(req.tenant_id)
+                    Some(req.context_tenant_id)
                 },
                 attributes: req.attributes,
             },
@@ -237,8 +271,9 @@ impl FeatureFlagGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを取得する。
     pub async fn get_flag(&self, req: GetFlagRequest) -> Result<GetFlagResponse, GrpcError> {
-        match self.get_flag_uc.execute(&req.flag_key).await {
+        match self.get_flag_uc.execute(req.tenant_id, &req.flag_key).await {
             Ok(flag) => Ok(GetFlagResponse {
                 id: flag.id.to_string(),
                 flag_key: flag.flag_key,
@@ -256,8 +291,9 @@ impl FeatureFlagGrpcService {
         }
     }
 
-    pub async fn list_flags(&self, _req: ListFlagsRequest) -> Result<ListFlagsResponse, GrpcError> {
-        let flags = self.list_flags_uc.execute().await.map_err(|e| match e {
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープのフィーチャーフラグ一覧を取得する。
+    pub async fn list_flags(&self, req: ListFlagsRequest) -> Result<ListFlagsResponse, GrpcError> {
+        let flags = self.list_flags_uc.execute(req.tenant_id).await.map_err(|e| match e {
             ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
         })?;
 
@@ -278,11 +314,13 @@ impl FeatureFlagGrpcService {
         })
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを作成する。
     pub async fn create_flag(
         &self,
         req: CreateFlagRequest,
     ) -> Result<CreateFlagResponse, GrpcError> {
         let input = CreateFlagInput {
+            tenant_id: req.tenant_id,
             flag_key: req.flag_key,
             description: req.description,
             enabled: req.enabled,
@@ -316,11 +354,13 @@ impl FeatureFlagGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを更新する。
     pub async fn update_flag(
         &self,
         req: UpdateFlagRequest,
     ) -> Result<UpdateFlagResponse, GrpcError> {
         let input = UpdateFlagInput {
+            tenant_id: req.tenant_id,
             flag_key: req.flag_key,
             enabled: req.enabled,
             description: req.description,
@@ -373,13 +413,15 @@ impl FeatureFlagGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを削除する。
+    /// get_flag でフラグの存在確認後、delete_flag_uc で削除を実行する。
     pub async fn delete_flag(
         &self,
         req: DeleteFlagRequest,
     ) -> Result<DeleteFlagResponse, GrpcError> {
         let flag = self
             .get_flag_uc
-            .execute(&req.flag_key)
+            .execute(req.tenant_id, &req.flag_key)
             .await
             .map_err(|e| match e {
                 GetFlagError::NotFound(key) => {
@@ -389,7 +431,7 @@ impl FeatureFlagGrpcService {
             })?;
 
         self.delete_flag_uc
-            .execute(&flag.id)
+            .execute(req.tenant_id, &flag.id)
             .await
             .map_err(|e| match e {
                 DeleteFlagError::NotFound(id) => {
@@ -439,6 +481,11 @@ mod tests {
     use crate::infrastructure::kafka_producer::NoopFlagEventPublisher;
     use std::collections::HashMap;
 
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
+
     struct NoopAuditRepo;
 
     #[async_trait::async_trait]
@@ -482,10 +529,20 @@ mod tests {
         )
     }
 
+    /// FeatureFlag エンティティをテスト用に生成するヘルパー。
+    fn make_flag(flag_key: &str, enabled: bool) -> FeatureFlag {
+        FeatureFlag::new(
+            system_tenant(),
+            flag_key.to_string(),
+            format!("{} description", flag_key),
+            enabled,
+        )
+    }
+
     #[tokio::test]
     async fn test_evaluate_flag_success() {
         let mut mock = MockFeatureFlagRepository::new();
-        let mut flag = FeatureFlag::new("dark-mode".to_string(), "Dark mode".to_string(), true);
+        let mut flag = make_flag("dark-mode", true);
         flag.variants
             .push(crate::domain::entity::feature_flag::FlagVariant {
                 name: "on".to_string(),
@@ -494,15 +551,17 @@ mod tests {
             });
         let return_flag = flag.clone();
 
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_find_by_key()
-            .withf(|key| key == "dark-mode")
-            .returning(move |_| Ok(return_flag.clone()));
+            .withf(|_tid, key| key == "dark-mode")
+            .returning(move |_, _| Ok(return_flag.clone()));
 
         let svc = make_service(mock);
         let req = EvaluateFlagRequest {
+            tenant_id: system_tenant(),
             flag_key: "dark-mode".to_string(),
             user_id: "user-1".to_string(),
-            tenant_id: String::new(),
+            context_tenant_id: String::new(),
             attributes: HashMap::new(),
         };
         let resp = svc.evaluate_flag(req).await.unwrap();
@@ -515,23 +574,26 @@ mod tests {
     #[tokio::test]
     async fn test_list_flags_success() {
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_find_all().returning(|| Ok(vec![]));
+        // STATIC-CRITICAL-001: tenant_id を含む1引数シグネチャ
+        mock.expect_find_all().returning(|_| Ok(vec![]));
 
         let svc = make_service(mock);
-        let resp = svc.list_flags(ListFlagsRequest {}).await.unwrap();
+        let resp = svc.list_flags(ListFlagsRequest { tenant_id: system_tenant() }).await.unwrap();
         assert!(resp.flags.is_empty());
     }
 
     #[tokio::test]
     async fn test_create_flag_success() {
         let mut mock = MockFeatureFlagRepository::new();
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_exists_by_key()
-            .withf(|key| key == "new-flag")
-            .returning(|_| Ok(false));
-        mock.expect_create().returning(|_| Ok(()));
+            .withf(|_tid, key| key == "new-flag")
+            .returning(|_, _| Ok(false));
+        mock.expect_create().returning(|_, _| Ok(()));
 
         let svc = make_service(mock);
         let req = CreateFlagRequest {
+            tenant_id: system_tenant(),
             flag_key: "new-flag".to_string(),
             description: "New flag".to_string(),
             enabled: true,
@@ -546,16 +608,18 @@ mod tests {
     #[tokio::test]
     async fn test_update_flag_success() {
         let mut mock = MockFeatureFlagRepository::new();
-        let flag = FeatureFlag::new("dark-mode".to_string(), "Dark mode".to_string(), true);
+        let flag = make_flag("dark-mode", true);
         let return_flag = flag.clone();
 
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_find_by_key()
-            .withf(|key| key == "dark-mode")
-            .returning(move |_| Ok(return_flag.clone()));
-        mock.expect_update().returning(|_| Ok(()));
+            .withf(|_tid, key| key == "dark-mode")
+            .returning(move |_, _| Ok(return_flag.clone()));
+        mock.expect_update().returning(|_, _| Ok(()));
 
         let svc = make_service(mock);
         let req = UpdateFlagRequest {
+            tenant_id: system_tenant(),
             flag_key: "dark-mode".to_string(),
             enabled: Some(false),
             description: None,
@@ -566,5 +630,60 @@ mod tests {
 
         assert_eq!(resp.flag_key, "dark-mode");
         assert!(!resp.enabled);
+    }
+
+    #[tokio::test]
+    async fn test_delete_flag_success() {
+        let mut mock = MockFeatureFlagRepository::new();
+        // 固定IDを使ってfind_by_keyとfind_allが同じフラグを指すようにする
+        let fixed_id = uuid::Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap();
+        let flag = FeatureFlag::new(
+            system_tenant(),
+            "old-flag".to_string(),
+            "old-flag description".to_string(),
+            true,
+        );
+        // IDを固定値に差し替える
+        let mut flag_with_id = flag.clone();
+        flag_with_id.id = fixed_id;
+        let return_flag = flag_with_id.clone();
+        let return_flag2 = flag_with_id.clone();
+
+        // STATIC-CRITICAL-001: get_flag（find_by_key）と delete（find_all + delete）の2引数シグネチャ
+        mock.expect_find_by_key()
+            .withf(|_tid, key| key == "old-flag")
+            .returning(move |_, _| Ok(return_flag.clone()));
+        mock.expect_find_all()
+            .returning(move |_| Ok(vec![return_flag2.clone()]));
+        mock.expect_delete()
+            .withf(move |_tid, id| *id == fixed_id)
+            .returning(|_, _| Ok(true));
+
+        let svc = make_service(mock);
+        let req = DeleteFlagRequest {
+            tenant_id: system_tenant(),
+            flag_key: "old-flag".to_string(),
+        };
+        let resp = svc.delete_flag(req).await.unwrap();
+
+        assert!(resp.success);
+        assert!(resp.message.contains("old-flag"));
+    }
+
+    #[tokio::test]
+    async fn test_parse_tenant_id_valid() {
+        let result = parse_tenant_id("00000000-0000-0000-0000-000000000001");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), system_tenant());
+    }
+
+    #[tokio::test]
+    async fn test_parse_tenant_id_invalid() {
+        let result = parse_tenant_id("not-a-uuid");
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            GrpcError::InvalidArgument(msg) => assert!(msg.contains("tenant_id")),
+            e => unreachable!("unexpected error: {:?}", e),
+        }
     }
 }

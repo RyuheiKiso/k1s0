@@ -533,6 +533,88 @@ export SESSION_GRPC_HOST_PORT=50205
 
 ---
 
+## 12. Docker Desktop on Windows: ヘルスチェックタイムアウト問題
+
+### 症状
+
+`just local-up-dev` 実行後、以下のようなエラーが発生してサービスが起動しない:
+
+```
+Container k1s0-jaeger-1 Error dependency jaeger failed to start
+Container k1s0-kafka-1 Error dependency kafka failed to start
+dependency failed to start: container k1s0-jaeger-1 is unhealthy
+```
+
+`docker inspect` でコンテナのヘルス状態を確認すると `unhealthy` になっている:
+
+```bash
+docker inspect k1s0-jaeger-1 --format '{{json .State.Health}}' | jq
+```
+
+### 原因
+
+Docker Desktop on Windows では、`CMD-SHELL` 形式のヘルスチェックが特定の条件下でタイムアウトになる問題がある。
+PostgreSQL・Redis・Vault・Kafka・Jaeger が `unhealthy` 状態になり、これらに `service_healthy` 条件で依存するサービスが起動を待ち続ける。
+
+### 対策 1: ヘルスチェックタイムアウトを延長する（推奨）
+
+`docker-compose.override.yaml` を作成してタイムアウト値を延長する:
+
+```yaml
+# docker-compose.override.yaml（.gitignore 対象、ローカル専用）
+services:
+  postgres:
+    healthcheck:
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+  kafka:
+    healthcheck:
+      timeout: 30s
+      retries: 10
+      start_period: 120s
+  jaeger:
+    healthcheck:
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+  vault:
+    healthcheck:
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+```
+
+### 対策 2: WSL2 バックエンドを使用する（推奨）
+
+Docker Desktop の設定で「Use the WSL 2 based engine」を有効にすると、Linux ネイティブのヘルスチェックが使われてタイムアウト問題が解消されることが多い。
+
+### 対策 3: 手動で健全性を確認してから起動する
+
+インフラサービスを先に起動し、状態を手動確認してからアプリを起動する:
+
+```bash
+# Step 1: インフラ起動
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra up -d
+
+# Step 2: PostgreSQL が接続できるまで待機
+until docker exec k1s0-postgres-1 pg_isready -U k1s0 2>/dev/null; do
+  echo "Waiting for postgres..."; sleep 3
+done
+
+# Step 3: その後アプリ起動
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile system up -d
+```
+
+### 参考
+
+- [ADR-0040](../../../architecture/adr/0040-grpc-port-range-hyper-v-avoidance.md): Hyper-V ポート予約回避
+- Docker Desktop 公式: WSL 2 バックエンドの利用推奨
+
+---
+
 ## 関連ドキュメント
 
 - [Windows クイックスタート](./windows-quickstart.md) — 3 つのセットアップ方法と手順

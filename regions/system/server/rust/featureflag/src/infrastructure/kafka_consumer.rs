@@ -7,13 +7,23 @@ use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::Message;
 use serde::Deserialize;
 
+use uuid::Uuid;
+
 use crate::infrastructure::cache::FlagCache;
 use crate::infrastructure::config::KafkaConfig;
 
+/// フラグ変更イベントの Kafka メッセージ構造体。
+/// STATIC-CRITICAL-001 監査対応: tenant_id を含めてキャッシュキーを正確に特定する。
+/// tenant_id が存在しない場合はシステムテナント UUID にフォールバックする（ADR-0028 Phase 1）。
 #[derive(Debug, Deserialize)]
 struct FlagChangedEvent {
     flag_key: String,
+    #[serde(default)]
+    tenant_id: Option<String>,
 }
+
+/// システムテナントUUID: Kafka イベントに tenant_id が含まれない場合のフォールバック値。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// フィーチャーフラグ変更イベントを購読し、キャッシュを無効化するバックグラウンドタスクを起動する。
 ///
@@ -44,7 +54,16 @@ pub fn spawn_flag_cache_invalidator(
                     if let Some(payload) = m.payload() {
                         match serde_json::from_slice::<FlagChangedEvent>(payload) {
                             Ok(event) => {
-                                cache.invalidate(&event.flag_key).await;
+                                // tenant_id が含まれない場合はシステムテナント UUID にフォールバックする（ADR-0028 Phase 1）
+                                let tenant_id = event
+                                    .tenant_id
+                                    .as_deref()
+                                    .and_then(|s| Uuid::parse_str(s).ok())
+                                    .unwrap_or_else(|| {
+                                        Uuid::parse_str(SYSTEM_TENANT_ID)
+                                            .expect("SYSTEM_TENANT_ID は有効な UUID である")
+                                    });
+                                cache.invalidate(tenant_id, &event.flag_key).await;
                             }
                             Err(e) => {
                                 tracing::warn!(error = %e, "failed to decode FLAG_CHANGED event");

@@ -73,9 +73,48 @@ containerSecurityContext:
   capabilities:
     drop: ["ALL"]
 
+# ConfigMap に注入する設定値（regions/system/server/rust/tenant/config/config.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
 config:
   mountPath: /etc/app
-  data: {}
+  data:
+    config.yaml: |
+      app:
+        name: "tenant-server"
+        version: "0.1.0"
+
+      server:
+        http_port: 8089
+        grpc_port: 50051
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: "/metrics"
+
+      # テナント検索結果のインメモリキャッシュ設定
+      cache:
+        ttl_secs: 60
+        max_entries: 100
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "tenant_db"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
+        max_idle_conns: 5
+        conn_max_lifetime: "5m"
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "tenant-rust" に変更する（ADR-0045 参照）。
 vault:

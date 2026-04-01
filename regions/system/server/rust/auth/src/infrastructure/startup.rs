@@ -214,7 +214,12 @@ pub async fn run() -> anyhow::Result<()> {
         ));
 
         if let Err(err) = table.sync_once().await {
+            // Keycloak 接続失敗時は構造化ログでアラートを記録し、静的 RBAC フォールバックへ移行する。
+            // alert=true と keycloak_fallback=true を付与することで、Grafana/Loki 等の
+            // ログ集計基盤でフィルタリングしてアラートルールを設定できるようにする。
             tracing::warn!(
+                alert = true,
+                keycloak_fallback = true,
                 error = %err,
                 "initial keycloak role-permission sync failed; static RBAC fallback will be used"
             );
@@ -237,6 +242,14 @@ pub async fn run() -> anyhow::Result<()> {
 
         Some(table)
     } else {
+        // Keycloak 未設定時は静的 RBAC フォールバックを使用することを記録する。
+        // alert=true と keycloak_not_configured=true を付与することで、ログ集計基盤での
+        // フィルタリングとアラートルール設定が可能になる。
+        tracing::warn!(
+            alert = true,
+            keycloak_not_configured = true,
+            "keycloak is not configured; static RBAC fallback will be used"
+        );
         None
     };
 

@@ -302,7 +302,8 @@ async fn check_rate_limit_with_stub_single_rule_allowed() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -321,8 +322,9 @@ async fn check_rate_limit_exact_match_takes_priority_over_wildcard() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // user-vip は FixedWindow のルールにマッチするはず
-    let decision = uc.execute("api", "user-vip", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "user-vip", 60).await.unwrap();
 
     assert!(decision.allowed);
     // FixedWindowのcheck_fixed_windowが呼ばれることを間接的に検証
@@ -341,8 +343,9 @@ async fn check_rate_limit_falls_back_to_wildcard_when_no_exact_match() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 通常ユーザーはワイルドカードルールにフォールバック
-    let decision = uc.execute("api", "normal-user", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "normal-user", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -357,8 +360,9 @@ async fn check_rate_limit_disabled_rule_skipped() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 無効ルールはスキップされ、デフォルトが使用される
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     // rule_id はマッチしないルールなので空文字列
@@ -372,7 +376,8 @@ async fn check_rate_limit_empty_identifier_error() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let result = uc.execute("api", "", 60).await;
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let result = uc.execute("test-tenant", "api", "", 60).await;
 
     assert!(result.is_err());
 }
@@ -385,7 +390,8 @@ async fn check_rate_limit_fail_open_with_matched_rule() {
     let state = Arc::new(StubRateLimitStateStore::with_error());
 
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 100, 60);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert!(decision.reason.contains("fail-open"));
@@ -398,7 +404,8 @@ async fn check_rate_limit_fail_closed_returns_error() {
     let state = Arc::new(StubRateLimitStateStore::with_error());
 
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, false, 100, 60);
-    let result = uc.execute("api", "user-1", 60).await;
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let result = uc.execute("test-tenant", "api", "user-1", 60).await;
 
     assert!(result.is_err());
 }
@@ -411,7 +418,8 @@ async fn check_rate_limit_leaky_bucket_algorithm() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let decision = uc.execute("api", "user-1", 30).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 30).await.unwrap();
 
     assert!(decision.allowed);
 }
@@ -424,7 +432,8 @@ async fn check_rate_limit_fallback_policy_zero_limit_clamped_to_one() {
 
     // limit=0, window=0 は内部で max(1) に矯正される
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 0, 0);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
 }
@@ -783,7 +792,8 @@ async fn get_usage_with_state_store_returns_snapshot() {
     let state = Arc::new(StubRateLimitStateStore::with_counter(25));
 
     let uc = GetUsageUseCase::with_state_store(repo, state);
-    let info = uc.execute(&rule_id.to_string()).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
+    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
 
     assert_eq!(info.limit, 100);
     assert_eq!(info.used, Some(25));
@@ -799,7 +809,8 @@ async fn get_usage_without_state_store_returns_none_values() {
     let repo = Arc::new(StubRateLimitRepository::with_rules(vec![rule]));
 
     let uc = GetUsageUseCase::new(repo);
-    let info = uc.execute(&rule_id.to_string()).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
+    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
 
     assert_eq!(info.limit, 100);
     assert!(info.used.is_none());
@@ -818,6 +829,8 @@ async fn reset_rate_limit_with_stub_success() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "user-1".to_string(),
         })
@@ -834,6 +847,8 @@ async fn reset_rate_limit_empty_identifier_error() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "".to_string(),
         })
@@ -850,6 +865,8 @@ async fn reset_rate_limit_state_store_error() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "user-1".to_string(),
         })

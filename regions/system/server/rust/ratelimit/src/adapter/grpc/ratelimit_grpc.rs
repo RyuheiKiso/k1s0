@@ -23,6 +23,8 @@ pub enum GrpcError {
 }
 
 pub struct CheckRateLimitRequest {
+    /// STATIC-CRITICAL-001: テナントスコープでレートリミットを特定する（未指定時はシステムテナントUUIDをフォールバックとして使用）
+    pub tenant_id: Option<String>,
     pub scope: String,
     pub identifier: String,
     pub window: i64,
@@ -65,6 +67,8 @@ pub struct GetRuleResponse {
 }
 
 pub struct GetUsageRequest {
+    /// STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する（未指定時はシステムテナントUUIDをフォールバックとして使用）
+    pub tenant_id: Option<String>,
     pub rule_id: String,
 }
 
@@ -127,6 +131,8 @@ pub struct PaginationResponse {
 }
 
 pub struct ResetLimitRequest {
+    /// STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する（未指定時はシステムテナントUUIDをフォールバックとして使用）
+    pub tenant_id: Option<String>,
     pub scope: String,
     pub identifier: String,
 }
@@ -204,10 +210,18 @@ impl RateLimitGrpcService {
             ));
         }
 
+        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
+        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
+        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+        let tenant_id = req
+            .tenant_id
+            .filter(|id| !id.is_empty())
+            .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string());
+
         let window = if req.window > 0 { req.window } else { 60 };
         let decision = self
             .check_uc
-            .execute(&req.scope, &req.identifier, window)
+            .execute(&tenant_id, &req.scope, &req.identifier, window)
             .await
             .map_err(|e| match e {
                 crate::usecase::check_rate_limit::CheckRateLimitError::RuleNotFound(msg) => {
@@ -337,9 +351,17 @@ impl RateLimitGrpcService {
             ));
         }
 
+        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
+        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
+        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+        let tenant_id = req
+            .tenant_id
+            .filter(|id| !id.is_empty())
+            .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string());
+
         let info = self
             .usage_uc
-            .execute(&req.rule_id)
+            .execute(&tenant_id, &req.rule_id)
             .await
             .map_err(|e| match e {
                 crate::usecase::get_usage::GetUsageError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -497,7 +519,17 @@ impl RateLimitGrpcService {
         &self,
         req: ResetLimitRequest,
     ) -> Result<ResetLimitResponse, GrpcError> {
+        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
+        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
+        // HTTP handler の extract_tenant_id_str() と同じフォールバック戦略に統一する。
+        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+        let tenant_id = req
+            .tenant_id
+            .filter(|id| !id.is_empty())
+            .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string());
+
         let input = ResetRateLimitInput {
+            tenant_id,
             scope: req.scope,
             identifier: req.identifier,
         };
@@ -592,6 +624,8 @@ mod tests {
         let svc = make_service_with(check_uc, create_uc, get_uc);
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
+                // STATIC-CRITICAL-001: テナントスコープでレートリミットを特定する
+                tenant_id: None,
                 scope: "service".to_string(),
                 identifier: "user-123".to_string(),
                 window: 60,
@@ -621,6 +655,8 @@ mod tests {
 
         let result = svc
             .check_rate_limit(CheckRateLimitRequest {
+                // STATIC-CRITICAL-001: テナントスコープでレートリミットを特定する
+                tenant_id: None,
                 scope: "".to_string(),
                 identifier: "user-123".to_string(),
                 window: 60,

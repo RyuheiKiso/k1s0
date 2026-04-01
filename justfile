@@ -368,7 +368,8 @@ docker-build:
         server_name="$(basename "$(dirname "$dockerfile")")"
         if [ "$server_name" = "graphql-gateway" ]; then
             # graphql-gateway はリポジトリルートをビルドコンテキストとする例外サービス
-            # 理由: tonic-build が api/proto ディレクトリへのアクセスを必要とするため
+            # 理由: build.rs が api/proto/gen/rust/ の生成済み .rs ファイルを参照するため
+            # buf/validate.proto は BSR 依存のため protoc では解決できず、生成済みファイルを使用する（CRIT-004）
             # 詳細: regions/system/server/rust/graphql-gateway/Dockerfile の冒頭コメントを参照
             start_build "$server_name" docker build -f "$dockerfile" --build-arg "CARGO_FEATURES=${CARGO_FEATURES_ARG}" -t "k1s0-$server_name" .
         else

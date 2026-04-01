@@ -71,3 +71,90 @@ kafka:
 
 redis:
   enabled: false
+
+# ConfigMap に注入する設定値（regions/system/server/rust/auth/config/config.yaml から引用）
+# 機密情報（DB パスワード、Keycloak client_secret）は Vault 経由で /vault/secrets/ に注入される。
+# SERVER_HOST / DATABASE_URL 等は環境変数で上書き可能。
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      app:
+        name: "auth-server"
+        version: "0.1.0"
+        environment: "production"
+
+      server:
+        host: "0.0.0.0"
+        port: 8080
+        grpc_port: 50051
+
+      auth:
+        jwt:
+          issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+          audience: "k1s0-api"
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "k1s0_system"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
+        max_idle_conns: 5
+        conn_max_lifetime: "5m"
+
+      kafka:
+        brokers:
+          - "kafka-0.messaging.svc.cluster.local:9092"
+        consumer_group: "auth-server.default"
+        security_protocol: "SASL_SSL"
+        topics:
+          publish:
+            - "k1s0.system.auth.login.v1"
+            - "k1s0.system.auth.token_validate.v1"
+            - "k1s0.system.auth.permission_denied.v1"
+          subscribe: []
+
+      # Keycloak client_secret は Vault 経由で注入される
+      keycloak:
+        base_url: "https://auth.k1s0.internal.example.com"
+        realm: "k1s0"
+        client_id: "auth-server"
+        client_secret: ""
+
+      permission_cache:
+        ttl_secs: 300
+        refresh_on_miss: true
+
+      audit:
+        kafka_enabled: true
+        retention_days: 365
+
+      keycloak_admin:
+        token_cache_ttl_secs: 300
+        refresh_interval_secs: 300
+
+      cache:
+        user_cache_max_entries: 5000
+        user_cache_ttl_secs: 300
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: "/metrics"
+
+      tier_hierarchy:
+        tiers:
+          - "system"
+          - "business"
+          - "service"

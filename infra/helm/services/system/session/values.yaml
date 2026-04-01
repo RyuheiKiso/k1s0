@@ -72,3 +72,42 @@ redis:
   # L-9 監査対応: redis.enabled=true の場合、redis.host は必須。
   # 環境変数 REDIS_HOST として REDIS_PORT と共にコンテナへ注入される。
   host: redis.k1s0-system.svc.cluster.local
+
+# ConfigMap に注入する設定値（regions/system/server/rust/session/config/config.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      server:
+        host: "0.0.0.0"
+        port: 8102
+        grpc_port: 50051
+
+      session:
+        default_ttl_seconds: 3600
+        max_ttl_seconds: 86400
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: "/metrics"
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "session_db"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
+        max_idle_conns: 5
+        conn_max_lifetime: "5m"

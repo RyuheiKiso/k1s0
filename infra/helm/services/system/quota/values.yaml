@@ -47,3 +47,43 @@ kafka:
 
 redis:
   enabled: true
+
+# ConfigMap に注入する設定値（regions/system/server/rust/quota/config/config.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      app:
+        name: k1s0-quota-server
+        version: "0.1.0"
+        environment: production
+
+      server:
+        host: "0.0.0.0"
+        port: 8097
+        grpc_port: 50051
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: "/metrics"
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "quota_db"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
+        max_idle_conns: 5
+        conn_max_lifetime: "5m"

@@ -40,8 +40,11 @@ kafka:
   activity_created_topic: "k1s0.service.activity.created.v1"
   activity_approved_topic: "k1s0.service.activity.approved.v1"
 
+# AuthConfig ネスト形式（ADR-0053 準拠）。jwt と jwks をサブキーに分離して Rust 構造体と整合させる。
 auth:
-  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://keycloak:8080/realms/k1s0"
-  audience: "k1s0-api"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300

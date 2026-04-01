@@ -71,9 +71,40 @@ containerSecurityContext:
   capabilities:
     drop: ["ALL"]
 
+# ConfigMap に注入する設定値（regions/system/server/rust/scheduler/config/config.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
 config:
   mountPath: /etc/app
-  data: {}
+  data:
+    config.yaml: |
+      app:
+        name: k1s0-scheduler-server
+        version: "0.1.0"
+        environment: production
+
+      server:
+        host: "0.0.0.0"
+        port: 8095
+        grpc_port: 50051
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "scheduler_db"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "scheduler-rust" に変更する（ADR-0045 参照）。
 vault:

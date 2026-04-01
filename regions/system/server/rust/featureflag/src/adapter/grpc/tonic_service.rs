@@ -2,6 +2,8 @@
 //!
 //! proto 生成コード (`src/proto/`) の FeatureFlagService トレイトを実装する。
 //! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の FeatureFlagGrpcService に委譲する。
+//! ADR-0028 Phase 1: x-tenant-id gRPC メタデータからテナントIDを取得し、
+//! 未指定の場合はシステムテナント UUID にフォールバックする。
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な change_type 文字列フィールドと
 // 新 change_type_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
@@ -25,8 +27,9 @@ use crate::proto::k1s0::system::featureflag::v1::{
 };
 
 use super::featureflag_grpc::{
-    CreateFlagRequest, DeleteFlagRequest, EvaluateFlagRequest, FeatureFlagGrpcService,
-    GetFlagRequest, GrpcError, ListFlagsRequest, PbFlagRule, PbFlagVariant, UpdateFlagRequest,
+    tenant_id_from_metadata, CreateFlagRequest, DeleteFlagRequest, EvaluateFlagRequest,
+    FeatureFlagGrpcService, GetFlagRequest, GrpcError, ListFlagsRequest, PbFlagRule, PbFlagVariant,
+    UpdateFlagRequest,
 };
 
 fn to_proto_timestamp(
@@ -154,16 +157,22 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         )))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを評価する。
+    /// proto の EvaluationContext に含まれる tenant_id は評価コンテキスト用（RLS ではなく属性マッチング用）。
     async fn evaluate_flag(
         &self,
         request: Request<ProtoEvaluateFlagRequest>,
     ) -> Result<Response<ProtoEvaluateFlagResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let ctx = inner.context.unwrap_or_default();
         let req = EvaluateFlagRequest {
+            tenant_id,
             flag_key: inner.flag_key,
             user_id: ctx.user_id.unwrap_or_default(),
-            tenant_id: ctx.tenant_id.unwrap_or_default(),
+            context_tenant_id: ctx.tenant_id.unwrap_or_default(),
             attributes: ctx.attributes,
         };
         let resp = self
@@ -180,12 +189,17 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         }))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを取得する。
     async fn get_flag(
         &self,
         request: Request<ProtoGetFlagRequest>,
     ) -> Result<Response<ProtoGetFlagResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = GetFlagRequest {
+            tenant_id,
             flag_key: inner.flag_key,
         };
         let resp = self
@@ -226,14 +240,17 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         }))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグ一覧を取得する。
     async fn list_flags(
         &self,
-        _request: Request<ProtoListFlagsRequest>,
+        request: Request<ProtoListFlagsRequest>,
     ) -> Result<Response<ProtoListFlagsResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let resp = self
             .inner
-            // ページネーションフィールドは内部リクエスト型に含まれないためデフォルト値を使用する
-            .list_flags(ListFlagsRequest {})
+            .list_flags(ListFlagsRequest { tenant_id })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -273,12 +290,17 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         }))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを作成する。
     async fn create_flag(
         &self,
         request: Request<ProtoCreateFlagRequest>,
     ) -> Result<Response<ProtoCreateFlagResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = CreateFlagRequest {
+            tenant_id,
             flag_key: inner.flag_key,
             description: inner.description,
             enabled: inner.enabled,
@@ -330,12 +352,17 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         }))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを更新する。
     async fn update_flag(
         &self,
         request: Request<ProtoUpdateFlagRequest>,
     ) -> Result<Response<ProtoUpdateFlagResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let req = UpdateFlagRequest {
+            tenant_id,
             flag_key: inner.flag_key,
             enabled: inner.enabled,
             description: inner.description.filter(|v| !v.is_empty()),
@@ -398,14 +425,19 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
         }))
     }
 
+    /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを削除する。
     async fn delete_flag(
         &self,
         request: Request<ProtoDeleteFlagRequest>,
     ) -> Result<Response<ProtoDeleteFlagResponse>, Status> {
+        // gRPC メタデータからテナントIDを取得する（ADR-0028 Phase 1: フォールバックあり）
+        let tenant_id = tenant_id_from_metadata(request.metadata())
+            .map_err(Into::<Status>::into)?;
         let inner = request.into_inner();
         let resp = self
             .inner
             .delete_flag(DeleteFlagRequest {
+                tenant_id,
                 flag_key: inner.flag_key,
             })
             .await
