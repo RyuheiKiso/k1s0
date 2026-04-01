@@ -110,7 +110,7 @@ jobs:
           name: go-coverage
           path: coverage/
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
           # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
@@ -233,7 +233,7 @@ jobs:
           name: rust-coverage
           path: coverage/
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
           # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
@@ -349,7 +349,7 @@ jobs:
           name: ts-coverage
           path: coverage/
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
           # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
@@ -474,7 +474,7 @@ jobs:
           name: dart-coverage
           path: coverage/
       - name: Upload coverage
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v5
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
         with:
           # M-1対応: Codecov 障害時に CI 全体をブロックしない（外部サービス障害で開発が止まるリスクを排除する）
           # カバレッジはアーティファクトとして保存されるため、ローカルでの確認は引き続き可能
