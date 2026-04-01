@@ -3,7 +3,7 @@ module github.com/k1s0-platform/system-library-go-config
 go 1.26.1
 
 require (
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/k1s0-platform/api v0.0.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/grpc v1.79.3
