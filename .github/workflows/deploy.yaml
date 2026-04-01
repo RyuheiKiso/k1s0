@@ -209,7 +209,7 @@ jobs:
           retention-days: 365
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Install Cosign
-        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
       # cosign v2+ では --yes フラグで keyless 署名が有効（COSIGN_EXPERIMENTAL は非推奨）
       - name: Sign image with Cosign
         run: |
@@ -271,7 +271,7 @@ jobs:
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      - uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
       - name: Verify image signature
         run: |
           cosign verify \
@@ -347,7 +347,7 @@ jobs:
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      - uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
       - name: Verify image signature
         run: |
           cosign verify \
@@ -427,7 +427,7 @@ jobs:
           echo "helm_path=${HELM_PATH}" >> "$GITHUB_OUTPUT"
           echo "namespace=k1s0-${TIER}" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      - uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
       - name: Verify image signature
         run: |
           cosign verify \
