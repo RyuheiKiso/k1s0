@@ -92,6 +92,9 @@ impl FileStorageRepository for LocalFsStorageRepository {
     }
 
     /// ファイルのメタデータ（サイズ、コンテンツタイプ）を取得する。
+    /// STATIC-HIGH-003 監査対応: infer クレートのマジックバイト検出を優先し、
+    /// 拡張子のみに依存したコンテンツタイプ推定を廃止する。
+    /// マジックバイトで判定できない場合は拡張子ベースの許可リストにフォールバックする。
     async fn get_object_metadata(
         &self,
         storage_key: &str,
@@ -100,19 +103,36 @@ impl FileStorageRepository for LocalFsStorageRepository {
         let metadata = tokio::fs::metadata(&full_path).await?;
         let mut result = HashMap::new();
         result.insert("content_length".to_string(), metadata.len().to_string());
-        // 拡張子からコンテンツタイプを推定する
-        let content_type = full_path
-            .extension()
-            .and_then(|ext| ext.to_str())
-            .map(|ext| match ext {
-                "pdf" => "application/pdf",
-                "png" => "image/png",
-                "jpg" | "jpeg" => "image/jpeg",
-                "json" => "application/json",
-                _ => "application/octet-stream",
-            })
-            .unwrap_or("application/octet-stream");
-        result.insert("content_type".to_string(), content_type.to_string());
+
+        // マジックバイト検出のためにファイル先頭部分を読み込む（最大 8KB で十分）
+        let head_bytes = tokio::fs::read(&full_path).await?;
+
+        // infer によるマジックバイト検出を優先する
+        let content_type = infer::get(&head_bytes)
+            .map(|t| t.mime_type().to_string())
+            .unwrap_or_else(|| {
+                // フォールバック: 拡張子から許可リスト内のコンテンツタイプを推定する
+                full_path
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| match ext {
+                        "pdf" => "application/pdf",
+                        "png" => "image/png",
+                        "jpg" | "jpeg" => "image/jpeg",
+                        "gif" => "image/gif",
+                        "webp" => "image/webp",
+                        "txt" => "text/plain",
+                        "csv" => "text/csv",
+                        "json" => "application/json",
+                        "zip" => "application/zip",
+                        "gz" => "application/gzip",
+                        _ => "application/octet-stream",
+                    })
+                    .unwrap_or("application/octet-stream")
+                    .to_string()
+            });
+
+        result.insert("content_type".to_string(), content_type);
         Ok(result)
     }
 }

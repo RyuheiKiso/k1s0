@@ -63,8 +63,10 @@ impl CheckRateLimitUseCase {
         }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: tenant_id をキーにテナントごとにレートリミット状態を分離する。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         scope: &str,
         identifier: &str,
         window_secs: i64,
@@ -104,8 +106,9 @@ impl CheckRateLimitUseCase {
             window_secs,
         );
 
-        // Redis キー: ratelimit:{scope}:{identifier}
-        let redis_key = format!("ratelimit:{}:{}", scope, identifier);
+        // Redis キー: ratelimit:{tenant_id}:{scope}:{identifier}
+        // STATIC-CRITICAL-001: テナントIDプレフィックスでテナント間のレートリミット状態を分離する
+        let redis_key = format!("ratelimit:{}:{}:{}", tenant_id, scope, identifier);
 
         // マッチするルールがある場合はそのアルゴリズムを使用、なければトークンバケット
         let algorithm = RateLimitDomainService::resolve_algorithm(matched_rule);
@@ -142,6 +145,7 @@ impl CheckRateLimitUseCase {
                     // 攻撃者がバックエンドを意図的にダウンさせた場合、レートリミットが無効化される可能性がある。
                     // 運用チームはこの警告を監視し、頻発する場合は fail_open=false への切替を検討すること。
                     tracing::warn!(
+                        tenant_id = tenant_id,
                         scope = scope,
                         identifier = identifier,
                         error = %e,
@@ -189,6 +193,9 @@ mod tests {
     };
     use chrono::TimeZone;
 
+    /// システムテナントUUID: テスト共通
+    const SYSTEM_TENANT: &str = "00000000-0000-0000-0000-000000000001";
+
     fn ts(seconds: i64) -> chrono::DateTime<chrono::Utc> {
         chrono::Utc.timestamp_opt(seconds, 0).single().unwrap()
     }
@@ -218,7 +225,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, ts(1700000060))));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
 
         assert!(result.is_ok());
         let decision = result.unwrap();
@@ -248,7 +255,7 @@ mod tests {
             });
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
 
         assert!(result.is_ok());
         let decision = result.unwrap();
@@ -268,7 +275,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, ts(1700000060))));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("user", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "user", "user-123", 60).await;
 
         assert!(result.is_ok());
         let decision = result.unwrap();
@@ -281,7 +288,7 @@ mod tests {
         let state_store = MockRateLimitStateStore::new();
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "", "user-123", 60).await;
 
         assert!(result.is_err());
         assert!(matches!(
@@ -306,7 +313,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 50, ts(1700000060))));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
@@ -328,7 +335,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 75, ts(1700000060))));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
@@ -350,7 +357,7 @@ mod tests {
             .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 80, ts(1700000060))));
 
         let uc = CheckRateLimitUseCase::new(Arc::new(repo), Arc::new(state_store));
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
 
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
@@ -373,7 +380,7 @@ mod tests {
             100,
             60,
         );
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
         assert!(result.is_ok());
         assert!(result.unwrap().allowed);
     }
@@ -395,7 +402,38 @@ mod tests {
             100,
             60,
         );
-        let result = uc.execute("service", "user-123", 60).await;
+        let result = uc.execute(SYSTEM_TENANT, "service", "user-123", 60).await;
         assert!(matches!(result, Err(CheckRateLimitError::Internal(_))));
+    }
+
+    #[tokio::test]
+    async fn test_tenant_isolation_uses_different_redis_keys() {
+        // STATIC-CRITICAL-001: テナントAとテナントBで異なるRedisキーが使われることを確認する
+        let tenant_a = "00000000-0000-0000-0000-000000000001";
+        let tenant_b = "00000000-0000-0000-0000-000000000002";
+
+        let mut repo_a = MockRateLimitRepository::new();
+        repo_a.expect_find_by_scope().returning(|_| Ok(vec![]));
+        let mut state_store_a = MockRateLimitStateStore::new();
+        state_store_a
+            .expect_check_token_bucket()
+            .withf(|key, _, _| key.starts_with("ratelimit:00000000-0000-0000-0000-000000000001:"))
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 99, chrono::Utc::now())));
+
+        let uc_a = CheckRateLimitUseCase::new(Arc::new(repo_a), Arc::new(state_store_a));
+        let result_a = uc_a.execute(tenant_a, "service", "user-1", 60).await;
+        assert!(result_a.is_ok());
+
+        let mut repo_b = MockRateLimitRepository::new();
+        repo_b.expect_find_by_scope().returning(|_| Ok(vec![]));
+        let mut state_store_b = MockRateLimitStateStore::new();
+        state_store_b
+            .expect_check_token_bucket()
+            .withf(|key, _, _| key.starts_with("ratelimit:00000000-0000-0000-0000-000000000002:"))
+            .returning(|_, _, _| Ok(RateLimitDecision::allowed(100, 50, chrono::Utc::now())));
+
+        let uc_b = CheckRateLimitUseCase::new(Arc::new(repo_b), Arc::new(state_store_b));
+        let result_b = uc_b.execute(tenant_b, "service", "user-1", 60).await;
+        assert!(result_b.is_ok());
     }
 }

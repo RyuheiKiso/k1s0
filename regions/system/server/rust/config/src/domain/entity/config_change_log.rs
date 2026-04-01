@@ -9,6 +9,8 @@ use uuid::Uuid;
 pub struct ConfigChangeLog {
     /// ログの一意識別子
     pub id: Uuid,
+    /// STATIC-CRITICAL-001 監査対応: テナント分離のためのテナント識別子
+    pub tenant_id: Uuid,
     /// 変更対象の設定エントリ ID
     pub config_entry_id: Uuid,
     /// 変更対象の名前空間
@@ -37,6 +39,8 @@ pub struct ConfigChangeLog {
 /// `ConfigChangeLog::new` に渡すことでログエントリを生成する。
 #[derive(Debug, Clone)]
 pub struct CreateChangeLogRequest {
+    /// STATIC-CRITICAL-001 監査対応: テナント分離のためのテナント識別子
+    pub tenant_id: Uuid,
     /// 変更対象の設定エントリ ID
     pub config_entry_id: Uuid,
     /// 変更対象の名前空間
@@ -64,6 +68,7 @@ impl ConfigChangeLog {
     pub fn new(req: CreateChangeLogRequest) -> Self {
         Self {
             id: Uuid::new_v4(),
+            tenant_id: req.tenant_id,
             config_entry_id: req.config_entry_id,
             namespace: req.namespace,
             key: req.key,
@@ -87,7 +92,9 @@ mod tests {
     #[test]
     fn test_config_change_log_creation() {
         let entry_id = Uuid::new_v4();
+        let tenant_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let log = ConfigChangeLog::new(CreateChangeLogRequest {
+            tenant_id,
             config_entry_id: entry_id,
             namespace: "system.auth.database".to_string(),
             key: "max_connections".to_string(),
@@ -116,6 +123,7 @@ mod tests {
     fn test_config_change_log_created() {
         let entry_id = Uuid::new_v4();
         let log = ConfigChangeLog::new(CreateChangeLogRequest {
+            tenant_id: Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
             config_entry_id: entry_id,
             namespace: "system.auth.jwt".to_string(),
             key: "issuer".to_string(),
@@ -139,6 +147,7 @@ mod tests {
     fn test_config_change_log_deleted() {
         let entry_id = Uuid::new_v4();
         let log = ConfigChangeLog::new(CreateChangeLogRequest {
+            tenant_id: Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
             config_entry_id: entry_id,
             namespace: "system.auth.database".to_string(),
             key: "deprecated_setting".to_string(),
@@ -160,6 +169,7 @@ mod tests {
     fn test_config_change_log_serialization_roundtrip() {
         let entry_id = Uuid::new_v4();
         let log = ConfigChangeLog::new(CreateChangeLogRequest {
+            tenant_id: Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
             config_entry_id: entry_id,
             namespace: "system.auth.database".to_string(),
             key: "max_connections".to_string(),

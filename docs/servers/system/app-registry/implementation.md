@@ -124,6 +124,55 @@ pub struct DownloadResult {
 
 ---
 
+## Cosign 署名検証（STATIC-CRITICAL-002）
+
+サプライチェーン攻撃対策として、バージョン登録時に Cosign 署名を検証する。
+
+### 設計
+
+| コンポーネント | ファイル | 説明 |
+|--------------|---------|------|
+| `CosignVerifier` トレイト | `infrastructure/signature_verifier.rs` | 署名検証の抽象インターフェース |
+| `StubCosignVerifier` | 同上 | 開発・テスト用スタブ（常に `true` を返す） |
+| `SubprocessCosignVerifier` | 同上 | `cosign verify-blob` CLI を呼び出す本番実装 |
+
+### `AppVersion` エンティティ
+
+`cosign_signature: Option<String>` フィールドを追加。DB の `app_versions.cosign_signature TEXT` カラムに永続化される（マイグレーション `007_add_cosign_signature.up.sql`）。
+
+### `CreateVersionRequest`
+
+`cosign_signature: Option<String>` フィールドを追加。署名が提供された場合、ハンドラーが検証する。
+
+### 検証フロー
+
+```
+POST /api/v1/apps/{id}/versions
+  ├─ cosign_signature が Some の場合
+  │   ├─ CosignVerifier::verify(checksum_sha256, signature) を呼び出す
+  │   ├─ Ok(true) → バージョン登録を継続
+  │   ├─ Ok(false) → 422 Unprocessable Entity を返す
+  │   └─ Err(...) → 500 Internal Server Error を返す
+  └─ cosign_signature が None の場合 → 検証をスキップ
+```
+
+### 設定（config.yaml）
+
+```yaml
+cosign:
+  verify_enabled: false   # 本番環境では true を推奨
+  public_key_path: "/etc/cosign/cosign.pub"
+```
+
+- **開発環境**: `verify_enabled: false`（StubCosignVerifier が使用される）
+- **本番環境**: `verify_enabled: true`（cosign CLI が PATH 上にある必要がある）
+
+### ADR
+
+[ADR-0065](../../architecture/adr/0065-cosign-signature-verification.md) を参照。
+
+---
+
 ## FileStorage 設計
 
 ### FileStorage

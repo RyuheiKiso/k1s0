@@ -19,7 +19,7 @@ use crate::usecase::{
 // --- アプリケーション状態 ---
 
 /// 全ユースケースとメトリクスを保持するアプリケーション共有状態
-/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
+/// db_pool は /readyz エンドポイントで DB 接続確認に使用する（CRITICAL-003 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub create_workflow_uc: Arc<CreateWorkflowUseCase>,

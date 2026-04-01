@@ -43,16 +43,19 @@ config-db は system Tier に属する PostgreSQL 17 データベースであり
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | UUID | PK, DEFAULT gen_random_uuid() | 設定エントリ識別子 |
+| tenant_id | UUID | NOT NULL | テナント識別子（STATIC-CRITICAL-001） |
 | namespace | VARCHAR(255) | NOT NULL | 設定の名前空間（例: system.auth.database） |
 | key | VARCHAR(255) | NOT NULL | 設定キー（例: host, port） |
-| value_json | JSONB | NOT NULL DEFAULT '{}' | 設定値（JSON 形式） |
+| value_json | JSONB | NOT NULL DEFAULT '{}' | 設定値（JSON 形式）。is_encrypted=true の場合は空 JSON |
+| encrypted_value | TEXT | NULL | AES-256-GCM 暗号文（base64）。is_encrypted=true の場合のみ使用（STATIC-HIGH-002） |
+| is_encrypted | BOOLEAN | NOT NULL DEFAULT false | 暗号化済みフラグ（STATIC-HIGH-002） |
 | version | INT | NOT NULL DEFAULT 1 | 楽観的ロック用バージョン番号 |
 | description | TEXT | | 設定の説明 |
 | created_by | VARCHAR(255) | NOT NULL | 作成者（ユーザー名またはシステム名） |
 | updated_by | VARCHAR(255) | NOT NULL | 最終更新者 |
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 更新日時（トリガーで自動更新） |
-| | | UNIQUE(namespace, key) | 名前空間とキーの組み合わせで一意 |
+| | | UNIQUE(tenant_id, namespace, key) | テナント内で名前空間とキーの組み合わせで一意 |
 
 ### config_change_logs テーブル
 
@@ -248,6 +251,9 @@ migrations/
 | 006 | create_config_schemas | config_schemas テーブル・インデックス・updated_at トリガー |
 | 007 | add_version_columns_to_change_logs | config_change_logs に old_version/new_version 列を追加 |
 | 008 | fix_version_columns_default | config_change_logs の old_version/new_version に NOT NULL DEFAULT 0 制約を適用 |
+| 009 | add_composite_indexes | テナント分離用複合インデックス追加 |
+| 010 | add_tenant_id | config_entries / config_change_logs に tenant_id UUID NOT NULL 追加（STATIC-CRITICAL-001） |
+| 011 | encrypt_config_values | config_entries に encrypted_value TEXT / is_encrypted BOOLEAN 追加（STATIC-HIGH-002） |
 
 ### 001_create_schema.up.sql
 

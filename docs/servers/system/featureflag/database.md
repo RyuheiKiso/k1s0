@@ -15,13 +15,15 @@ CREATE SCHEMA IF NOT EXISTS featureflag;
 | テーブル名 | 説明 |
 | --- | --- |
 | feature_flags | フィーチャーフラグ定義 |
+| flag_audit_logs | フラグ変更監査ログ |
 
 ---
 
 ## ER 図
 
 ```
-feature_flags（単独テーブル、FK なし）
+feature_flags
+  └── flag_audit_logs (flag_id -> feature_flags.id)
 ```
 
 ---
@@ -30,34 +32,75 @@ feature_flags（単独テーブル、FK なし）
 
 ### feature_flags（フィーチャーフラグ定義）
 
-フィーチャーフラグのキー・有効状態・バリアント・ルールを管理する。
+フィーチャーフラグのキー・有効状態・バリアント・ルールをテナントスコープで管理する。
 
 ```sql
 CREATE TABLE IF NOT EXISTS featureflag.feature_flags (
     id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    flag_key    VARCHAR(255) NOT NULL UNIQUE,
+    tenant_id   UUID         NOT NULL,
+    flag_key    VARCHAR(255) NOT NULL,
     description TEXT         NOT NULL DEFAULT '',
     enabled     BOOLEAN      NOT NULL DEFAULT false,
     variants    JSONB        NOT NULL DEFAULT '[]',
     rules       JSONB        NOT NULL DEFAULT '[]',
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_feature_flags_tenant_key UNIQUE (tenant_id, flag_key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_feature_flags_flag_key ON featureflag.feature_flags (flag_key);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_tenant_id ON featureflag.feature_flags (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_feature_flags_tenant_key ON featureflag.feature_flags (tenant_id, flag_key);
 CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled ON featureflag.feature_flags (enabled);
 ```
 
 | カラム | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
 | id | UUID | PK | 主キー |
-| flag_key | VARCHAR(255) | UNIQUE, NOT NULL | フラグキー（一意識別子） |
+| tenant_id | UUID | NOT NULL | テナントID（STATIC-CRITICAL-001 テナント分離） |
+| flag_key | VARCHAR(255) | NOT NULL | フラグキー（テナント内一意） |
 | description | TEXT | NOT NULL, DEFAULT '' | 説明 |
 | enabled | BOOLEAN | NOT NULL, DEFAULT false | 有効フラグ |
 | variants | JSONB | NOT NULL, DEFAULT '[]' | バリアント定義（A/B テスト等） |
 | rules | JSONB | NOT NULL, DEFAULT '[]' | 評価ルール定義 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時 |
+
+> **テナント分離**: `(tenant_id, flag_key)` の複合 UNIQUE 制約により、テナント間でのフラグキー衝突を防ぐ。全クエリに `WHERE tenant_id = $X` を必須とする。
+
+---
+
+### flag_audit_logs（フラグ変更監査ログ）
+
+フラグの変更履歴をテナントスコープで記録する。
+
+```sql
+CREATE TABLE IF NOT EXISTS featureflag.flag_audit_logs (
+    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID         NOT NULL,
+    flag_id     UUID         NOT NULL,
+    flag_key    VARCHAR(255) NOT NULL,
+    action      VARCHAR(50)  NOT NULL,
+    before_json JSONB,
+    after_json  JSONB,
+    changed_by  VARCHAR(255) NOT NULL,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_flag_audit_logs_tenant_id ON featureflag.flag_audit_logs (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_flag_audit_logs_flag_id ON featureflag.flag_audit_logs (flag_id);
+```
+
+| カラム | 型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | UUID | PK | 主キー |
+| tenant_id | UUID | NOT NULL | テナントID（STATIC-CRITICAL-001 テナント分離） |
+| flag_id | UUID | NOT NULL | 対象フラグの ID |
+| flag_key | VARCHAR(255) | NOT NULL | 対象フラグキー（非正規化） |
+| action | VARCHAR(50) | NOT NULL | 操作種別（CREATED / UPDATED / DELETED） |
+| before_json | JSONB | NULL 許可 | 変更前スナップショット |
+| after_json | JSONB | NULL 許可 | 変更後スナップショット |
+| changed_by | VARCHAR(255) | NOT NULL | 変更者識別子（ユーザー名等） |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 記録日時 |
 
 ---
 
@@ -71,6 +114,10 @@ CREATE INDEX IF NOT EXISTS idx_feature_flags_enabled ON featureflag.feature_flag
 | `001_create_schema.down.sql` | スキーマ削除 |
 | `002_create_feature_flags.up.sql` | feature_flags テーブル作成 |
 | `002_create_feature_flags.down.sql` | テーブル削除 |
+| `003_create_flag_audit_logs.up.sql` | flag_audit_logs テーブル作成 |
+| `003_create_flag_audit_logs.down.sql` | テーブル削除 |
+| `004_add_tenant_id.up.sql` | feature_flags / flag_audit_logs に tenant_id カラム追加（STATIC-CRITICAL-001） |
+| `004_add_tenant_id.down.sql` | tenant_id カラム削除 |
 
 ---
 
@@ -89,3 +136,12 @@ CREATE TRIGGER trigger_feature_flags_update_updated_at
     BEFORE UPDATE ON featureflag.feature_flags
     FOR EACH ROW EXECUTE FUNCTION featureflag.update_updated_at();
 ```
+
+---
+
+## テナント分離設計（STATIC-CRITICAL-001）
+
+- 全テーブルに `tenant_id UUID NOT NULL` カラムを設け、テナント境界を DB レベルで強制する
+- リポジトリ実装の全クエリに `WHERE tenant_id = $X` を付与する
+- システムテナント UUID: `00000000-0000-0000-0000-000000000001`（JWT クレームが存在しない場合のフォールバック）
+- キャッシュキー形式: `{tenant_id}:{flag_key}`（テナント間のキャッシュ汚染を防ぐ）

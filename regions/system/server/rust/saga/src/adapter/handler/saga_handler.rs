@@ -147,32 +147,35 @@ pub struct CompensateSagaResponse {
 
 // --- Handlers ---
 
-/// ヘルスチェックエンドポイント: DB 接続確認込みで稼働状態を応答する（C-02 対応）
-/// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す
-#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK"), (status = 503, description = "Service unavailable")))]
-pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+/// liveness probe: プロセスが起動していれば常に ok を返す。
+/// CRITICAL-003 監査対応: DB 確認は readyz に移動し、healthz は liveness のみとする。
+#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
+pub async fn healthz() -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+/// readiness probe: DB 接続確認を行い、サービスがリクエスト受付可能かを返す。
+/// CRITICAL-003 監査対応: Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
+/// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す。
+#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready"), (status = 503, description = "Not ready")))]
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
             Ok(_) => {
-                Json(serde_json::json!({"status": "ok", "database": "connected"})).into_response()
+                Json(serde_json::json!({"status": "ready", "database": "connected"})).into_response()
             }
             Err(e) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(serde_json::json!({
-                    "status": "unhealthy",
+                    "status": "not_ready",
                     "database": e.to_string()
                 })),
             )
                 .into_response(),
         }
     } else {
-        Json(serde_json::json!({"status": "ok", "database": "not_configured"})).into_response()
+        Json(serde_json::json!({"status": "ready", "database": "not_configured"})).into_response()
     }
-}
-
-#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
-pub async fn readyz() -> &'static str {
-    "ok"
 }
 
 #[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]

@@ -77,14 +77,19 @@ pub async fn run() -> anyhow::Result<()> {
         None
     };
 
+    // CRITICAL-003 対応: readyz ハンドラに渡す db_pool を事前確保する
+    let mut db_pool_for_readyz: Option<sqlx::PgPool> = None;
+
     let (policy_repo, usage_repo): (
         Arc<dyn QuotaPolicyRepository>,
         Arc<dyn QuotaUsageRepository>,
     ) = if let Some(ref db_cfg) = cfg.database {
         info!(url = %db_cfg.url, "connecting to PostgreSQL");
         match infrastructure::database::create_pool(&db_cfg.url, db_cfg.max_connections).await {
-            Ok(pool) => {
-                let pool = Arc::new(pool);
+            Ok(raw_pool) => {
+                // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+                db_pool_for_readyz = Some(raw_pool.clone());
+                let pool = Arc::new(raw_pool);
                 info!("PostgreSQL connection pool created successfully");
                 let policy_repo = Arc::new(
                     adapter::repository::QuotaPolicyPostgresRepository::new(pool.clone()),
@@ -294,6 +299,8 @@ pub async fn run() -> anyhow::Result<()> {
         reset_usage_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
+        db_pool: db_pool_for_readyz,
     };
     // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
     let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, quota_grpc_action);

@@ -100,9 +100,23 @@ regions/system/server/rust/featureflag/
 | `EvaluateFlagUseCase` | ユーザー・テナント・属性に基づくフラグ評価 |
 | `WatchFeatureFlagUseCase` | gRPC Server Stream によるフラグ変更のリアルタイム通知 |
 
+#### テナント分離（STATIC-CRITICAL-001）
+
+全データアクセスはテナントスコープで分離される。
+
+| レイヤー | 実装 |
+|---------|------|
+| DB | 全テーブルに `tenant_id UUID NOT NULL`、全クエリに `WHERE tenant_id = $X` |
+| リポジトリトレイト | 全メソッドの第1引数が `tenant_id: Uuid` |
+| ユースケース入力 | `CreateFlagInput` / `UpdateFlagInput` / `EvaluateFlagInput` に `tenant_id: Uuid` |
+| ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出、未認証時はシステムテナント UUID をフォールバックに使用 |
+| キャッシュキー | `{tenant_id}:{flag_key}` 形式（テナント間のキャッシュ汚染を防ぐ） |
+
+- システムテナント UUID: `00000000-0000-0000-0000-000000000001`
+
 #### キャッシュ戦略
 
-- moka で評価結果を TTL 60 秒キャッシュする
+- moka で評価結果を TTL 60 秒キャッシュする（キャッシュキー: `{tenant_id}:{flag_key}`）
 - Kafka `k1s0.system.featureflag.changed.v1` 通知受信時にキャッシュを即座に無効化する
 
 ### エラーハンドリング方針

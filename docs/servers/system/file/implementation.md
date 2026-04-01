@@ -99,6 +99,18 @@ regions/system/server/rust/file/
 - **LocalFs Storage** (`infrastructure/local_fs_storage.rs`): tokio::fs でローカルファイルシステム（PV マウント）を操作する。バックエンドは config で切り替え可能
 - **Kafka Producer** (`infrastructure/kafka_producer.rs`): `k1s0.system.file.events.v1` トピックにファイルイベントを通知する
 
+#### セキュリティ制御（STATIC-HIGH-003 監査対応）
+
+| 制御 | 実装箇所 | 概要 |
+|-----|---------|------|
+| MIME タイプ許可リスト | `domain/service/file_domain_service.rs` | `ALLOWED_CONTENT_TYPES` 定数で許可 MIME タイプを定義。`generate_upload_url.rs` ユースケースでアップロード前に検証し、許可リスト外は HTTP 400 を返す |
+| マジックバイト MIME 検証 | `infrastructure/local_fs_storage.rs` | `get_object_metadata` でファイル先頭バイトを `infer` クレートで解析し、拡張子による推定よりも精度の高い MIME タイプを返す |
+| Content-Disposition ヘッダー | `adapter/handler/storage_handler.rs` | `/internal/storage/{*key}` エンドポイントで `Content-Disposition: attachment; filename="..."` を付与し、ブラウザの自動実行を防止する |
+| MIME スニッフィング無効化 | `adapter/handler/storage_handler.rs` | `X-Content-Type-Options: nosniff` ヘッダーを付与 |
+| マジックバイトと拡張子の不一致チェック | `adapter/handler/storage_handler.rs` | 実際のファイルバイトから検出した MIME と拡張子から推定した MIME が一致しない場合は HTTP 415 を返す |
+
+**許可 MIME タイプ一覧**: `application/pdf`, `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `text/plain`, `text/csv`, `application/json`, `application/zip`, `application/gzip`, `application/octet-stream`
+
 ### エラーハンドリング方針
 
 - ユースケース層で `anyhow::Result` を返却し、adapter 層で HTTP/gRPC ステータスコードに変換する

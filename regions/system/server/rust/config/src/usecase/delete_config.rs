@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::repository::ConfigRepository;
 
 /// DeleteConfigError は設定値削除に関するエラーを表す。
@@ -22,10 +24,11 @@ impl DeleteConfigUseCase {
         Self { config_repo }
     }
 
-    /// 設定値を削除する。
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープで設定値を削除する。
     /// deleted_by は削除実行者を表す（監査ログ用）。
     pub async fn execute(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         key: &str,
         deleted_by: &str,
@@ -33,14 +36,14 @@ impl DeleteConfigUseCase {
         // 旧値を取得（監査ログ用）
         let old_entry = self
             .config_repo
-            .find_by_namespace_and_key(namespace, key)
+            .find_by_namespace_and_key(tenant_id, namespace, key)
             .await
             .ok()
             .flatten();
 
         let deleted = self
             .config_repo
-            .delete(namespace, key)
+            .delete(tenant_id, namespace, key)
             .await
             .map_err(|e| DeleteConfigError::Internal(e.to_string()))?;
 
@@ -55,6 +58,7 @@ impl DeleteConfigUseCase {
         if let Some(ref entry) = old_entry {
             let change_log = crate::domain::entity::config_change_log::ConfigChangeLog::new(
                 crate::domain::entity::config_change_log::CreateChangeLogRequest {
+                    tenant_id,
                     config_entry_id: entry.id,
                     namespace: namespace.to_string(),
                     key: key.to_string(),
@@ -89,7 +93,11 @@ mod tests {
     use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
-    use uuid::Uuid;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_test_entry() -> ConfigEntry {
         ConfigEntry {
@@ -111,15 +119,16 @@ mod tests {
         let mut mock = MockConfigRepository::new();
         let entry = make_test_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(move |_, _| Ok(Some(entry.clone())));
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
         mock.expect_delete()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(|_, _| Ok(true));
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(|_, _, _| Ok(true));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                system_tenant(),
                 "system.auth.database",
                 "max_connections",
                 "admin@example.com",
@@ -132,12 +141,17 @@ mod tests {
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_delete().returning(|_, _| Ok(false));
+            .returning(|_, _, _| Ok(None));
+        mock.expect_delete().returning(|_, _, _| Ok(false));
 
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
-            .execute("nonexistent.namespace", "missing_key", "admin@example.com")
+            .execute(
+                system_tenant(),
+                "nonexistent.namespace",
+                "missing_key",
+                "admin@example.com",
+            )
             .await;
         assert!(result.is_err());
 
@@ -155,8 +169,8 @@ mod tests {
     async fn test_delete_config_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_delete().returning(|_, _| {
+            .returning(|_, _, _| Ok(None));
+        mock.expect_delete().returning(|_, _, _| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "connection refused"
             )))
@@ -165,6 +179,7 @@ mod tests {
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                system_tenant(),
                 "system.auth.database",
                 "max_connections",
                 "admin@example.com",
@@ -183,8 +198,8 @@ mod tests {
         let mut mock = MockConfigRepository::new();
         let entry = make_test_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(move |_, _| Ok(Some(entry.clone())));
-        mock.expect_delete().returning(|_, _| Ok(true));
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
+        mock.expect_delete().returning(|_, _, _| Ok(true));
         mock.expect_record_change_log()
             .withf(|log| {
                 log.change_type == "DELETED"
@@ -199,6 +214,7 @@ mod tests {
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                system_tenant(),
                 "system.auth.database",
                 "max_connections",
                 "operator@example.com",
@@ -212,8 +228,8 @@ mod tests {
         let mut mock = MockConfigRepository::new();
         let entry = make_test_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(move |_, _| Ok(Some(entry.clone())));
-        mock.expect_delete().returning(|_, _| Ok(true));
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
+        mock.expect_delete().returning(|_, _, _| Ok(true));
         mock.expect_record_change_log().returning(|_| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "db error"
@@ -223,6 +239,7 @@ mod tests {
         let uc = DeleteConfigUseCase::new(Arc::new(mock));
         let result = uc
             .execute(
+                system_tenant(),
                 "system.auth.database",
                 "max_connections",
                 "admin@example.com",

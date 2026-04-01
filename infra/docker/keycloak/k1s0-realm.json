@@ -623,5 +623,55 @@
     "RESET_PASSWORD"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+  "users": [
+    {
+      "username": "dev-admin",
+      "email": "dev-admin@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevAdmin@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["sys_admin", "user"]
+    },
+    {
+      "username": "dev-user",
+      "email": "dev-user@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevUser@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "dev-task-mgr",
+      "email": "dev-task-mgr@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "TaskMgr",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevTask@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["biz_taskmanagement_manager", "svc_task_user", "user"]
+    }
+  ]
 }

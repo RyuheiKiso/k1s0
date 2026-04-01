@@ -18,6 +18,9 @@ pub struct AppVersion {
     pub storage_key: String,
     pub release_notes: Option<String>,
     pub mandatory: bool,
+    /// STATIC-CRITICAL-002: Cosign 署名文字列（base64 エンコード）。
+    /// 本番環境では必須。開発環境は None 許可（検証スキップ）。
+    pub cosign_signature: Option<String>,
     pub published_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 }

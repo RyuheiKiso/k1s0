@@ -4,12 +4,18 @@ use axum::Json;
 
 use super::AppState;
 
-/// ヘルスチェックエンドポイント。
-/// DLQ クライアントが NoopDlqClient の場合は degraded ステータスを返し、
-/// replay 機能が利用不可であることを明示する。
-pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+/// liveness probe: プロセスが起動していれば常に ok を返す。
+/// CRITICAL-003 監査対応: DB・DLQ 確認は readyz に移動し、healthz は liveness のみとする。
+pub async fn healthz() -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+/// readiness probe: DLQ 接続状態を確認し、サービスがリクエスト受付可能かを返す。
+/// CRITICAL-003 監査対応: DLQ クライアントが NoopDlqClient の場合は degraded を返す。
+/// Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if state.dlq_noop {
-        // Noop 使用時: サーバーは動作しているが DLQ 連携が無効であることを示す
+        // Noop 使用時: サービスは起動しているが DLQ 連携が無効であることを示す
         Json(serde_json::json!({
             "status": "degraded",
             "components": {
@@ -22,16 +28,11 @@ pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
         }))
     } else {
         Json(serde_json::json!({
-            "status": "ok",
+            "status": "ready",
             "components": {
                 "server": "ok",
                 "dlq_client": {"status": "connected"}
             }
         }))
     }
-}
-
-/// レディネスチェックエンドポイント。サーバーがリクエストを受付可能かを返す。
-pub async fn readyz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ready"}))
 }

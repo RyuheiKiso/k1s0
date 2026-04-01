@@ -55,6 +55,11 @@ rdkafka = { version = "0.39", features = ["cmake-build"] }
 # パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
 secrecy = {workspace = true}
 
+# STATIC-HIGH-002: 設定値の AES-256-GCM 暗号化ライブラリ
+k1s0-encryption = { path = "../../../library/rust/encryption" }
+# 暗号化鍵の base64 エンコード/デコード
+base64 = "0.22"
+
 # Auth library (JWKS verifier + middleware)
 k1s0-auth = { path = "../../../library/rust/auth" }
 

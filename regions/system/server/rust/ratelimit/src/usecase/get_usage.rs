@@ -57,7 +57,8 @@ impl GetUsageUseCase {
         }
     }
 
-    pub async fn execute(&self, rule_id: &str) -> Result<UsageInfo, GetUsageError> {
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープのレートリミット使用状況を取得する。
+    pub async fn execute(&self, tenant_id: &str, rule_id: &str) -> Result<UsageInfo, GetUsageError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetUsageError::InvalidRuleId(rule_id.to_string()))?;
 
@@ -67,7 +68,12 @@ impl GetUsageUseCase {
             .await
             .map_err(|e| GetUsageError::NotFound(e.to_string()))?;
 
-        let key = format!("ratelimit:{}:{}", rule.scope, rule.identifier_pattern);
+        // Redis キー: ratelimit:{tenant_id}:{scope}:{identifier_pattern}
+        // STATIC-CRITICAL-001: テナントIDプレフィックスでテナント間のレートリミット状態を分離する
+        let key = format!(
+            "ratelimit:{}:{}:{}",
+            tenant_id, rule.scope, rule.identifier_pattern
+        );
         let (used, remaining, reset_at) = if let Some(ref store) = self.state_store {
             match store
                 .get_usage(&key, i64::from(rule.limit), i64::from(rule.window_seconds))
@@ -105,6 +111,9 @@ mod tests {
     use crate::domain::entity::{Algorithm, RateLimitRule};
     use crate::domain::repository::rate_limit_repository::MockRateLimitRepository;
 
+    /// システムテナントUUID: テスト共通
+    const SYSTEM_TENANT: &str = "00000000-0000-0000-0000-000000000001";
+
     #[tokio::test]
     async fn test_get_usage_success() {
         let rule = RateLimitRule::new(
@@ -122,7 +131,7 @@ mod tests {
             .returning(move |_| Ok(return_rule.clone()));
 
         let uc = GetUsageUseCase::new(Arc::new(repo));
-        let result = uc.execute(&rule_id.to_string()).await;
+        let result = uc.execute(SYSTEM_TENANT, &rule_id.to_string()).await;
         assert!(result.is_ok());
 
         let info = result.unwrap();
@@ -140,7 +149,9 @@ mod tests {
             .returning(|_| Err(anyhow::anyhow!("not found")));
 
         let uc = GetUsageUseCase::new(Arc::new(repo));
-        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+        let result = uc
+            .execute(SYSTEM_TENANT, "550e8400-e29b-41d4-a716-446655440000")
+            .await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GetUsageError::NotFound(_)));
     }
@@ -149,7 +160,7 @@ mod tests {
     async fn test_get_usage_invalid_uuid() {
         let repo = MockRateLimitRepository::new();
         let uc = GetUsageUseCase::new(Arc::new(repo));
-        let result = uc.execute("not-a-uuid").await;
+        let result = uc.execute(SYSTEM_TENANT, "not-a-uuid").await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),

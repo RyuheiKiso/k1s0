@@ -66,13 +66,18 @@ pub async fn run() -> anyhow::Result<()> {
     );
 
     // --- Repository wiring: PostgreSQL or InMemory fallback ---
+    // CRITICAL-003 対応: readyz ハンドラに渡す db_pool を事前確保する
+    let mut db_pool_for_readyz: Option<sqlx::PgPool> = None;
     let (channel_repo, log_repo, template_repo): (
         Arc<dyn NotificationChannelRepository>,
         Arc<dyn NotificationLogRepository>,
         Arc<dyn NotificationTemplateRepository>,
     ) = if let Some(ref db_cfg) = cfg.database {
         info!("connecting to PostgreSQL");
-        let pool = Arc::new(infrastructure::database::connect(db_cfg).await?);
+        let raw_pool = infrastructure::database::connect(db_cfg).await?;
+        // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+        db_pool_for_readyz = Some(raw_pool.clone());
+        let pool = Arc::new(raw_pool);
         info!("PostgreSQL connection established");
 
         // C-005 監査対応: 設定からチャンネル暗号化キーを取得して hex デコードする
@@ -352,6 +357,8 @@ pub async fn run() -> anyhow::Result<()> {
         delete_template_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
+        db_pool: db_pool_for_readyz,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

@@ -591,7 +591,7 @@ func TestCheckSession_Success(t *testing.T) {
 	})
 	store.sessions["valid-session-id"] = sess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	out, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "valid-session-id",
@@ -617,7 +617,7 @@ func TestCheckSession_Success(t *testing.T) {
 // TestCheckSession_NotFound はセッション ID が空の場合にエラーが返ることを検証する。
 func TestCheckSession_NotFound(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	_, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "", // 空の SessionID
@@ -642,7 +642,7 @@ func TestCheckSession_Expired(t *testing.T) {
 	expiredSess := testutil.CreateExpiredSession("expired-subject", "expired-csrf")
 	store.sessions["expired-session-id"] = expiredSess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	_, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "expired-session-id",
@@ -672,7 +672,7 @@ func TestCheckSession_RolesNilToEmpty(t *testing.T) {
 	}
 	store.sessions["nil-roles-session"] = sess
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	out, err := uc.CheckSession(context.Background(), SessionCheckInput{
 		SessionID: "nil-roles-session",
@@ -710,7 +710,7 @@ func TestExchangeCode_Success(t *testing.T) {
 	exchangeEntry := testutil.CreateExchangeCodeEntry("real-session-id", 60*time.Second)
 	store.exchangeCodes["one-time-code"] = exchangeEntry
 
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	out, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code:       "one-time-code",
@@ -741,7 +741,7 @@ func TestExchangeCode_Success(t *testing.T) {
 // TestExchangeCode_InvalidCode は存在しない交換コードの場合にエラーが返ることを検証する。
 func TestExchangeCode_InvalidCode(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	_, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code:       "nonexistent-code",
@@ -763,7 +763,7 @@ func TestExchangeCode_InvalidCode(t *testing.T) {
 // TestExchangeCode_EmptyCode は交換コードが空の場合にエラーが返ることを検証する。
 func TestExchangeCode_EmptyCode(t *testing.T) {
 	store := newMockSessionStoreForAuth()
-	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store)
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0) // 0 → defaultExchangeCodeTTL(60s) MEDIUM-006 監査対応
 
 	_, err := uc.ExchangeCode(context.Background(), ExchangeInput{
 		Code: "", // 空コード

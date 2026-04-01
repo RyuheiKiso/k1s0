@@ -7,6 +7,7 @@ use tracing::info;
 use super::config::{parse_pool_duration, Config};
 use super::file_storage::FileStorage;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
+use crate::infrastructure::signature_verifier::{CosignVerifier, StubCosignVerifier, SubprocessCosignVerifier};
 use crate::adapter::repository::app_postgres::AppPostgresRepository;
 use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRepository;
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
@@ -172,6 +173,21 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.auth.jwt.audience,
     ));
 
+    // STATIC-CRITICAL-002: Cosign 署名検証器の初期化
+    // verify_enabled が true の場合は cosign CLI を使用、false の場合はスタブを使用する
+    let cosign_verifier: Arc<dyn CosignVerifier> = if cfg.cosign.verify_enabled {
+        info!(
+            public_key_path = %cfg.cosign.public_key_path,
+            "Cosign 署名検証を有効化します（SubprocessCosignVerifier）"
+        );
+        Arc::new(SubprocessCosignVerifier::new(
+            cfg.cosign.public_key_path.clone(),
+        ))
+    } else {
+        info!("Cosign 署名検証は無効です（StubCosignVerifier）。本番環境では cosign.verify_enabled: true を設定してください");
+        Arc::new(StubCosignVerifier)
+    };
+
     // AppState
     let state = AppState {
         list_apps_uc,
@@ -186,6 +202,7 @@ pub async fn run() -> anyhow::Result<()> {
         get_download_stats_uc,
         generate_download_url_uc,
         validate_token_uc,
+        cosign_verifier,
         metrics: metrics.clone(),
         db_pool,
     };

@@ -2,6 +2,8 @@
 # k1s0-common/values.yaml との重複定義だが、standalone 実行時の安全性を優先する
 
 image:
+  # LOW-001/LOW-002 監査対応: 本番デプロイ前に実際のレジストリ URL・タグに置き換えること
+  # 例: registry: harbor.prod.example.com, tag: v1.2.3
   registry: harbor.internal.example.com
   repository: k1s0-system/quota
   tag: ""

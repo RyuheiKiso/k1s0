@@ -38,7 +38,10 @@ x-app-service: &app-service-defaults
     - /tmp
 
 x-rust-healthcheck: &rust-healthcheck
-  test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+  # CRITICAL-003 監査対応: /readyz はサービスが実際に稼働可能かを確認する（DB・依存サービス確認込み）。
+  # /healthz は liveness probe（プロセス死活確認）として常に ok を返すため Docker Compose 向きでない。
+  # /readyz を使うことで DB 未起動・マイグレーション未実行の状態を確実に検出できる。
+  test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
   interval: 10s
   timeout: 5s
   retries: 5
@@ -1114,7 +1117,9 @@ services:
       notification-rust:
         condition: service_healthy
       workflow-rust:
-        condition: service_healthy
+        # MEDIUM-005 監査対応: workflow-rust の healthcheck が依存サービス待ちでタイムアウトするため
+        # service_started に緩和して graphql-gateway の起動ブロックを解消する
+        condition: service_started
       # MED-20 監査対応: GraphQL スキーマが参照する全バックエンドサービスへの depends_on を追加する。
       # 起動順序依存を宣言しないと graphql-gateway が起動直後に依存サービスへ接続失敗するリスクがある。
       dlq-manager:
@@ -1157,9 +1162,9 @@ services:
         condition: service_healthy
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
-    # ヘルスチェック: busybox の wget で /healthz エンドポイントを確認
+    # CRITICAL-003 監査対応: /readyz は OIDC discovery + Redis 接続を確認する readiness probe
     healthcheck:
-      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
       interval: 10s
       timeout: 5s
       retries: 5

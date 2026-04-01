@@ -63,6 +63,9 @@ pub struct ConfigServerConfig {
     pub audit: ConfigServerAuditConfig,
     #[serde(default)]
     pub namespace: ConfigServerNamespaceConfig,
+    /// STATIC-HIGH-002: 設定値の AES-256-GCM 暗号化設定
+    #[serde(default)]
+    pub encryption: EncryptionConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -168,6 +171,39 @@ fn default_namespace_allowed_tiers() -> Vec<String> {
 
 fn default_namespace_max_depth() -> usize {
     4
+}
+
+/// STATIC-HIGH-002: 設定値暗号化設定。
+/// enabled が true の場合、sensitive_namespaces にマッチする設定値を AES-256-GCM で暗号化する。
+/// 暗号化鍵は環境変数 CONFIG_ENCRYPTION_KEY（base64 エンコード 32 バイト）または key_base64 から取得する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct EncryptionConfig {
+    /// 暗号化を有効にするフラグ。本番環境では true を推奨
+    #[serde(default)]
+    pub enabled: bool,
+    /// 暗号化対象の namespace プレフィックスリスト
+    #[serde(default = "default_sensitive_namespaces")]
+    pub sensitive_namespaces: Vec<String>,
+    /// 暗号化鍵（base64 エンコード 32 バイト）。環境変数 CONFIG_ENCRYPTION_KEY でも指定可能
+    #[serde(default)]
+    pub key_base64: String,
+}
+
+impl Default for EncryptionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            sensitive_namespaces: default_sensitive_namespaces(),
+            key_base64: String::new(),
+        }
+    }
+}
+
+fn default_sensitive_namespaces() -> Vec<String> {
+    vec![
+        "system.auth".to_string(),
+        "system.database".to_string(),
+    ]
 }
 
 /// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・

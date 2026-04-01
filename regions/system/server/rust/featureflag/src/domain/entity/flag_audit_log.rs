@@ -1,10 +1,14 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+/// FlagAuditLog はフィーチャーフラグの変更監査ログエンティティ。
+/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープの監査ログを実現する。
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FlagAuditLog {
     pub id: Uuid,
+    /// テナント識別子: 監査ログのテナント分離に使用する。
+    pub tenant_id: Uuid,
     pub flag_id: Uuid,
     pub flag_key: String,
     pub action: String,
@@ -17,6 +21,7 @@ pub struct FlagAuditLog {
 
 impl FlagAuditLog {
     pub fn new(
+        tenant_id: Uuid,
         flag_id: Uuid,
         flag_key: String,
         action: String,
@@ -26,6 +31,7 @@ impl FlagAuditLog {
     ) -> Self {
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             flag_id,
             flag_key,
             action,

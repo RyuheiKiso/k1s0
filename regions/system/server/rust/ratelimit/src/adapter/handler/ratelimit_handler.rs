@@ -1,13 +1,33 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     Json,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::{AppState, ErrorDetail, ErrorResponse};
+
+/// システムテナントUUID: JWT クレームが存在しない場合のフォールバック
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// JWT クレームからテナントIDを文字列として抽出するヘルパー。
+/// クレームがない場合はシステムテナントUUIDをフォールバックとして使用する。
+fn extract_tenant_id_str(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
+    claims
+        .as_ref()
+        .and_then(|ext| {
+            // UUID として有効な場合のみ使用する
+            if Uuid::parse_str(&ext.0.tenant_id).is_ok() {
+                Some(ext.0.tenant_id.clone())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string())
+}
 
 #[utoipa::path(
     get,
@@ -120,13 +140,16 @@ fn parse_window_secs(window: &Option<String>) -> i64 {
 )]
 pub async fn check_rate_limit(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<CheckRateLimitRequest>,
 ) -> impl IntoResponse {
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let tenant_id = extract_tenant_id_str(&claims);
     let window_secs = parse_window_secs(&req.window);
 
     match state
         .check_uc
-        .execute(&req.scope, &req.identifier, window_secs)
+        .execute(&tenant_id, &req.scope, &req.identifier, window_secs)
         .await
     {
         Ok(decision) => {
@@ -197,11 +220,15 @@ pub struct ResetRateLimitRequest {
 )]
 pub async fn reset_rate_limit(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<ResetRateLimitRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::reset_rate_limit::ResetRateLimitInput;
 
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット状態をリセットする
+    let tenant_id = extract_tenant_id_str(&claims);
     let input = ResetRateLimitInput {
+        tenant_id,
         scope: req.scope.clone(),
         identifier: req.identifier.clone(),
     };
@@ -585,10 +612,13 @@ pub async fn delete_rule(
 )]
 pub async fn get_usage(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     use crate::usecase::get_usage::GetUsageError;
 
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
+    let tenant_id = extract_tenant_id_str(&claims);
     let rule_id = match params.get("rule_id") {
         Some(id) => id.clone(),
         None => {
@@ -597,7 +627,7 @@ pub async fn get_usage(
         }
     };
 
-    match state.get_usage_uc.execute(&rule_id).await {
+    match state.get_usage_uc.execute(&tenant_id, &rule_id).await {
         Ok(info) => (
             StatusCode::OK,
             Json(UsageResponse {

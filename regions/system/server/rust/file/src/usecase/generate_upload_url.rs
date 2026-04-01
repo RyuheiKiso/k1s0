@@ -77,6 +77,14 @@ impl GenerateUploadUrlUseCase {
                 "content_type is required".to_string(),
             ));
         }
+        // STATIC-HIGH-003 監査対応: 許可リスト外のコンテンツタイプを拒否する
+        if !FileDomainService::is_allowed_content_type(&input.content_type) {
+            return Err(GenerateUploadUrlError::Validation(format!(
+                "content_type '{}' は許可されていません。許可されているタイプ: {}",
+                input.content_type,
+                FileDomainService::ALLOWED_CONTENT_TYPES.join(", ")
+            )));
+        }
 
         let file_id = format!("file_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
         // パストラバーサル検証を含むストレージパス生成。不正なファイル名の場合は Validation エラーを返す
@@ -185,6 +193,27 @@ mod tests {
 
         match result.unwrap_err() {
             GenerateUploadUrlError::Validation(msg) => assert!(msg.contains("size_bytes")),
+            e => unreachable!("unexpected error: {:?}", e),
+        }
+    }
+
+    /// STATIC-HIGH-003 監査対応: 許可リスト外のコンテンツタイプは Validation エラーになる
+    #[tokio::test]
+    async fn validation_disallowed_content_type() {
+        let metadata_mock = MockFileMetadataRepository::new();
+        let storage_mock = MockFileStorageRepository::new();
+
+        let uc = GenerateUploadUrlUseCase::new(Arc::new(metadata_mock), Arc::new(storage_mock));
+        let mut input = valid_input();
+        input.content_type = "text/html".to_string();
+
+        let result = uc.execute(&input).await;
+        assert!(result.is_err());
+
+        match result.unwrap_err() {
+            GenerateUploadUrlError::Validation(msg) => {
+                assert!(msg.contains("text/html"), "エラーメッセージに拒否対象の型が含まれること");
+            }
             e => unreachable!("unexpected error: {:?}", e),
         }
     }

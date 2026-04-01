@@ -1,5 +1,6 @@
 pub mod file_handler;
 pub mod health;
+pub mod storage_handler;
 
 use std::sync::Arc;
 
@@ -28,6 +29,12 @@ pub struct AppState {
     pub update_file_tags_uc: Arc<UpdateFileTagsUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（CRITICAL-003 対応: /readyz で SELECT 1 チェックに使用）
+    pub db_pool: Option<sqlx::PgPool>,
+    /// STATIC-HIGH-003 監査対応: ローカルFSストレージのルートパス。
+    /// /internal/storage/ ハンドラーがファイルを提供するために使用する。
+    /// S3 バックエンド使用時は None。
+    pub storage_root_path: Option<std::path::PathBuf>,
 }
 
 impl AppState {
@@ -40,10 +47,16 @@ impl AppState {
 /// Build the REST API router.
 pub fn router(state: AppState) -> Router {
     // 認証不要のエンドポイント
+    // STATIC-HIGH-003 監査対応: /internal/storage/ はローカルFS用のファイル配信エンドポイント。
+    // Content-Disposition: attachment ヘッダーでブラウザの自動実行を防止する。
     let public_routes = Router::new()
         .route("/healthz", get(health::healthz))
         .route("/readyz", get(health::readyz))
-        .route("/metrics", get(metrics_handler));
+        .route("/metrics", get(metrics_handler))
+        .route(
+            "/internal/storage/{*key}",
+            get(storage_handler::serve_internal_storage),
+        );
 
     // 認証が設定されている場合は RBAC 付きルーティング、そうでなければオープンアクセス
     let api_routes = if let Some(ref auth_state) = state.auth_state {

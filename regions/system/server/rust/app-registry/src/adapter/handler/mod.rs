@@ -14,6 +14,7 @@ pub use k1s0_server_common::{ErrorBody, ErrorResponse};
 
 use crate::adapter::middleware::auth::auth_middleware;
 use crate::adapter::middleware::rbac::make_rbac_middleware;
+use crate::infrastructure::signature_verifier::CosignVerifier;
 use crate::usecase::{
     CreateAppUseCase, CreateVersionUseCase, DeleteAppUseCase, DeleteVersionUseCase,
     GenerateDownloadUrlUseCase, GetAppUseCase, GetDownloadStatsUseCase, GetLatestUseCase,
@@ -77,6 +78,8 @@ pub struct AppState {
     pub get_download_stats_uc: Arc<GetDownloadStatsUseCase>,
     pub generate_download_url_uc: Arc<GenerateDownloadUrlUseCase>,
     pub validate_token_uc: Arc<ValidateTokenUseCase>,
+    /// STATIC-CRITICAL-002: Cosign 署名検証器。本番は SubprocessCosignVerifier、開発は StubCosignVerifier。
+    pub cosign_verifier: Arc<dyn CosignVerifier>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub db_pool: Option<sqlx::PgPool>,
 }

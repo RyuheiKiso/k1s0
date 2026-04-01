@@ -1,10 +1,11 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::AppState;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
@@ -13,9 +14,28 @@ use crate::usecase::update_flag::UpdateFlagInput;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
+/// システムテナントUUID: JWT クレームが存在しない場合のフォールバック
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// JWT クレームからテナントIDを抽出するヘルパー。
+/// クレームがない場合はシステムテナントUUIDをフォールバックとして使用する。
+fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> Uuid {
+    claims
+        .as_ref()
+        .and_then(|ext| Uuid::parse_str(&ext.0.tenant_id).ok())
+        .unwrap_or_else(|| {
+            Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID is valid")
+        })
+}
+
 /// GET /api/v1/flags
-pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_flags_uc.execute().await {
+pub async fn list_flags(
+    State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+) -> impl IntoResponse {
+    // STATIC-CRITICAL-001: テナントスコープでフラグ一覧を取得する
+    let tenant_id = extract_tenant_id(&claims);
+    match state.list_flags_uc.execute(tenant_id).await {
         Ok(flags) => {
             let items: Vec<FlagResponse> = flags.into_iter().map(FlagResponse::from).collect();
             (StatusCode::OK, Json(serde_json::json!({ "flags": items }))).into_response()
@@ -29,8 +49,14 @@ pub async fn list_flags(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// GET /api/v1/flags/:key
-pub async fn get_flag(State(state): State<AppState>, Path(key): Path<String>) -> impl IntoResponse {
-    match state.get_flag_uc.execute(&key).await {
+pub async fn get_flag(
+    State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    Path(key): Path<String>,
+) -> impl IntoResponse {
+    // STATIC-CRITICAL-001: テナントスコープでフラグを取得する
+    let tenant_id = extract_tenant_id(&claims);
+    match state.get_flag_uc.execute(tenant_id, &key).await {
         Ok(flag) => {
             // フラグレスポンスを直接 Json<FlagResponse> として返す（.expect() 排除）
             let resp = FlagResponse::from(flag);
@@ -54,9 +80,13 @@ pub async fn get_flag(State(state): State<AppState>, Path(key): Path<String>) ->
 /// POST /api/v1/flags
 pub async fn create_flag(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<CreateFlagRequest>,
 ) -> impl IntoResponse {
+    // STATIC-CRITICAL-001: テナントスコープでフラグを作成する
+    let tenant_id = extract_tenant_id(&claims);
     let input = CreateFlagInput {
+        tenant_id,
         flag_key: req.flag_key,
         description: req.description,
         enabled: req.enabled,
@@ -91,10 +121,14 @@ pub async fn create_flag(
 /// PUT /api/v1/flags/:key
 pub async fn update_flag(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(key): Path<String>,
     Json(req): Json<UpdateFlagRequest>,
 ) -> impl IntoResponse {
+    // STATIC-CRITICAL-001: テナントスコープでフラグを更新する
+    let tenant_id = extract_tenant_id(&claims);
     let input = UpdateFlagInput {
+        tenant_id,
         flag_key: key,
         enabled: req.enabled,
         description: req.description,
@@ -126,11 +160,15 @@ pub async fn update_flag(
 /// DELETE /api/v1/flags/:key
 pub async fn delete_flag(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(key): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_flag::DeleteFlagError;
 
-    let flag = match state.get_flag_uc.execute(&key).await {
+    // STATIC-CRITICAL-001: テナントスコープでフラグを削除する
+    let tenant_id = extract_tenant_id(&claims);
+
+    let flag = match state.get_flag_uc.execute(tenant_id, &key).await {
         Ok(f) => f,
         Err(e) => {
             let msg = e.to_string();
@@ -150,7 +188,7 @@ pub async fn delete_flag(
         }
     };
 
-    match state.delete_flag_uc.execute(&flag.id).await {
+    match state.delete_flag_uc.execute(tenant_id, &flag.id).await {
         Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({"success": true, "message": format!("flag {} deleted", key)})),
@@ -172,13 +210,17 @@ pub async fn delete_flag(
 /// POST /api/v1/flags/:key/evaluate
 pub async fn evaluate_flag(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(key): Path<String>,
     Json(req): Json<EvaluateFlagRequest>,
 ) -> impl IntoResponse {
     use crate::domain::entity::evaluation::EvaluationContext;
     use crate::usecase::evaluate_flag::EvaluateFlagInput;
 
+    // STATIC-CRITICAL-001: テナントスコープでフラグを評価する
+    let tenant_id = extract_tenant_id(&claims);
     let input = EvaluateFlagInput {
+        tenant_id,
         flag_key: key,
         context: EvaluationContext {
             user_id: req.context.user_id,

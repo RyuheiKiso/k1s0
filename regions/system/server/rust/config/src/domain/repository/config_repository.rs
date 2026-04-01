@@ -2,23 +2,26 @@ use crate::domain::entity::config_change_log::ConfigChangeLog;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::domain::error::ConfigRepositoryError;
 use async_trait::async_trait;
+use uuid::Uuid;
 
 /// ConfigRepository は設定値の永続化のためのリポジトリトレイト。
 /// 実装は PostgreSQL を通じて設定値を管理する。
-/// 戻り値は型安全な ConfigRepositoryError を使用する。
+/// STATIC-CRITICAL-001 監査対応: 全クエリに tenant_id フィルタを追加してテナント分離を強制する。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ConfigRepository: Send + Sync {
-    /// namespace と key で設定値を取得する。
+    /// tenant_id + namespace + key で設定値を取得する。
     async fn find_by_namespace_and_key(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError>;
 
-    /// namespace 内の設定値一覧を取得する。
+    /// テナント内の namespace 設定値一覧を取得する。
     async fn list_by_namespace(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         page: i32,
         page_size: i32,
@@ -29,6 +32,7 @@ pub trait ConfigRepository: Send + Sync {
     /// expected_version と現在のバージョンが一致しない場合はエラーを返す。
     async fn update(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         key: &str,
         value_json: &serde_json::Value,
@@ -38,11 +42,17 @@ pub trait ConfigRepository: Send + Sync {
     ) -> Result<ConfigEntry, ConfigRepositoryError>;
 
     /// 設定値を削除する。
-    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError>;
+    async fn delete(
+        &self,
+        tenant_id: Uuid,
+        namespace: &str,
+        key: &str,
+    ) -> Result<bool, ConfigRepositoryError>;
 
     /// サービス名に紐づく設定値を一括取得する。
     async fn find_by_service_name(
         &self,
+        tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError>;
 
@@ -57,14 +67,18 @@ mod tests {
     use crate::domain::entity::config_entry::{
         ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
     };
-    use uuid::Uuid;
+
+    /// システムテナントUUID: 全テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     #[tokio::test]
     async fn test_mock_config_repository_find_by_namespace_and_key() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(|_, _| {
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(|_, _, _| {
                 Ok(Some(ConfigEntry {
                     id: Uuid::new_v4(),
                     namespace: "system.auth.database".to_string(),
@@ -80,7 +94,11 @@ mod tests {
             });
 
         let result = mock
-            .find_by_namespace_and_key("system.auth.database", "max_connections")
+            .find_by_namespace_and_key(
+                system_tenant(),
+                "system.auth.database",
+                "max_connections",
+            )
             .await
             .unwrap();
         assert!(result.is_some());
@@ -95,7 +113,7 @@ mod tests {
     async fn test_mock_config_repository_list_by_namespace() {
         let mut mock = MockConfigRepository::new();
         mock.expect_list_by_namespace()
-            .returning(|_, page, page_size, _| {
+            .returning(|_, _, page, page_size, _| {
                 Ok(ConfigListResult {
                     entries: vec![],
                     pagination: Pagination {
@@ -108,7 +126,7 @@ mod tests {
             });
 
         let result = mock
-            .list_by_namespace("system.auth.database", 1, 20, None)
+            .list_by_namespace(system_tenant(), "system.auth.database", 1, 20, None)
             .await
             .unwrap();
         assert_eq!(result.pagination.page, 1);
@@ -120,8 +138,8 @@ mod tests {
     async fn test_mock_config_repository_find_by_service_name() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_service_name()
-            .withf(|name| name == "auth-server")
-            .returning(|_| {
+            .withf(|_tid, name| name == "auth-server")
+            .returning(|_, _| {
                 Ok(ServiceConfigResult {
                     service_name: "auth-server".to_string(),
                     entries: vec![ServiceConfigEntry {
@@ -133,7 +151,10 @@ mod tests {
                 })
             });
 
-        let result = mock.find_by_service_name("auth-server").await.unwrap();
+        let result = mock
+            .find_by_service_name(system_tenant(), "auth-server")
+            .await
+            .unwrap();
         assert_eq!(result.service_name, "auth-server");
         assert_eq!(result.entries.len(), 1);
     }
@@ -142,11 +163,15 @@ mod tests {
     async fn test_mock_config_repository_delete() {
         let mut mock = MockConfigRepository::new();
         mock.expect_delete()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(|_, _| Ok(true));
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(|_, _, _| Ok(true));
 
         let result = mock
-            .delete("system.auth.database", "max_connections")
+            .delete(
+                system_tenant(),
+                "system.auth.database",
+                "max_connections",
+            )
             .await
             .unwrap();
         assert!(result);

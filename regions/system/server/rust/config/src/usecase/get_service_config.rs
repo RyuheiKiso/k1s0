@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::config_entry::ServiceConfigResult;
 use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
@@ -24,15 +26,16 @@ impl GetServiceConfigUseCase {
         Self { config_repo }
     }
 
-    /// サービス名で設定値を一括取得する。
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでサービス名の設定値を一括取得する。
     /// 型安全なパターンマッチングでリポジトリエラーを分類する。
     pub async fn execute(
         &self,
+        tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, GetServiceConfigError> {
         let result = self
             .config_repo
-            .find_by_service_name(service_name)
+            .find_by_service_name(tenant_id, service_name)
             .await
             .map_err(|e| match e {
                 ConfigRepositoryError::ServiceNotFound(_) => {
@@ -56,12 +59,17 @@ mod tests {
     use crate::domain::entity::config_entry::{ServiceConfigEntry, ServiceConfigResult};
     use crate::domain::repository::config_repository::MockConfigRepository;
 
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
+
     #[tokio::test]
     async fn test_get_service_config_success() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_service_name()
-            .withf(|name| name == "auth-server")
-            .returning(|_| {
+            .withf(|_tid, name| name == "auth-server")
+            .returning(|_, _| {
                 Ok(ServiceConfigResult {
                     service_name: "auth-server".to_string(),
                     entries: vec![
@@ -90,7 +98,7 @@ mod tests {
             });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("auth-server").await;
+        let result = uc.execute(system_tenant(), "auth-server").await;
         assert!(result.is_ok());
 
         let config = result.unwrap();
@@ -102,14 +110,14 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name().returning(|_| {
+        mock.expect_find_by_service_name().returning(|_, _| {
             Err(ConfigRepositoryError::ServiceNotFound(
                 "nonexistent-service".to_string(),
             ))
         });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent-service").await;
+        let result = uc.execute(system_tenant(), "nonexistent-service").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -121,7 +129,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_empty_entries() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name().returning(|name| {
+        mock.expect_find_by_service_name().returning(|_, name| {
             Ok(ServiceConfigResult {
                 service_name: name.to_string(),
                 entries: vec![],
@@ -129,7 +137,7 @@ mod tests {
         });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("empty-service").await;
+        let result = uc.execute(system_tenant(), "empty-service").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -142,14 +150,14 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name().returning(|_| {
+        mock.expect_find_by_service_name().returning(|_, _| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "connection refused"
             )))
         });
 
         let uc = GetServiceConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("auth-server").await;
+        let result = uc.execute(system_tenant(), "auth-server").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

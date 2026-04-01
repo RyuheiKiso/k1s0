@@ -17,9 +17,13 @@ pub struct FlagRule {
     pub variant: String,
 }
 
+/// FeatureFlag はフィーチャーフラグのドメインエンティティ。
+/// STATIC-CRITICAL-001 監査対応: tenant_id でテナント分離を実現する。
 #[derive(Debug, Clone)]
 pub struct FeatureFlag {
     pub id: Uuid,
+    /// テナント識別子: テナントごとのフラグ分離に使用する。
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
@@ -30,10 +34,11 @@ pub struct FeatureFlag {
 }
 
 impl FeatureFlag {
-    pub fn new(flag_key: String, description: String, enabled: bool) -> Self {
+    pub fn new(tenant_id: Uuid, flag_key: String, description: String, enabled: bool) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             flag_key,
             description,
             enabled,

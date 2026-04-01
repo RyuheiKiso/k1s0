@@ -2,7 +2,7 @@
 
 ## ステータス
 
-提案中
+承認済み（STATIC-MEDIUM-003 監査対応: ROPC は実装されていないことを確認。Client Credentials Grant のみを使用）
 
 ## コンテキスト
 

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
 use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
@@ -7,8 +9,11 @@ use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
 use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
+/// CreateFlagInput はフィーチャーフラグ作成の入力データ。
+/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
@@ -53,6 +58,7 @@ impl CreateFlagUseCase {
         self
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを作成する。
     pub async fn execute(&self, input: &CreateFlagInput) -> Result<FeatureFlag, CreateFlagError> {
         FeatureFlagDomainService::validate_flag_key(&input.flag_key)
             .map_err(CreateFlagError::Internal)?;
@@ -61,7 +67,7 @@ impl CreateFlagUseCase {
 
         let exists = self
             .repo
-            .exists_by_key(&input.flag_key)
+            .exists_by_key(input.tenant_id, &input.flag_key)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
@@ -70,6 +76,7 @@ impl CreateFlagUseCase {
         }
 
         let mut flag = FeatureFlag::new(
+            input.tenant_id,
             input.flag_key.clone(),
             input.description.clone(),
             input.enabled,
@@ -77,7 +84,7 @@ impl CreateFlagUseCase {
         flag.variants = input.variants.clone();
 
         self.repo
-            .create(&flag)
+            .create(input.tenant_id, &flag)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
@@ -90,6 +97,7 @@ impl CreateFlagUseCase {
         });
         self.audit_repo
             .create(&FlagAuditLog::new(
+                input.tenant_id,
                 flag.id,
                 flag.flag_key.clone(),
                 "CREATED".to_string(),
@@ -126,13 +134,19 @@ mod tests {
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
 
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
+
     #[tokio::test]
     async fn success() {
         let mut mock = MockFeatureFlagRepository::new();
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_exists_by_key()
-            .withf(|key| key == "new-feature")
-            .returning(|_| Ok(false));
-        mock.expect_create().returning(|_| Ok(()));
+            .withf(|_tid, key| key == "new-feature")
+            .returning(|_, _| Ok(false));
+        mock.expect_create().returning(|_, _| Ok(()));
         let mut mock_audit_repo = MockFlagAuditLogRepository::new();
         mock_audit_repo.expect_create().returning(|_| Ok(()));
         let mut mock_publisher = MockFlagEventPublisher::new();
@@ -153,6 +167,7 @@ mod tests {
             Arc::new(mock_audit_repo),
         );
         let input = CreateFlagInput {
+            tenant_id: system_tenant(),
             flag_key: "new-feature".to_string(),
             description: "A new feature".to_string(),
             enabled: true,
@@ -176,8 +191,8 @@ mod tests {
     async fn already_exists() {
         let mut mock = MockFeatureFlagRepository::new();
         mock.expect_exists_by_key()
-            .withf(|key| key == "existing-feature")
-            .returning(|_| Ok(true));
+            .withf(|_tid, key| key == "existing-feature")
+            .returning(|_, _| Ok(true));
 
         let mock_audit_repo = MockFlagAuditLogRepository::new();
         let uc = CreateFlagUseCase::new(
@@ -186,6 +201,7 @@ mod tests {
             Arc::new(mock_audit_repo),
         );
         let input = CreateFlagInput {
+            tenant_id: system_tenant(),
             flag_key: "existing-feature".to_string(),
             description: "Existing".to_string(),
             enabled: true,

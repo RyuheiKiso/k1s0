@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::domain::entity::config_entry::ConfigListResult;
 use crate::domain::repository::ConfigRepository;
@@ -44,9 +45,10 @@ impl ListConfigsUseCase {
         Self { config_repo }
     }
 
-    /// namespace 内の設定値一覧を取得する。
+    /// STATIC-CRITICAL-001 監査対応: テナント内の namespace 設定値一覧を取得する。
     pub async fn execute(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         params: &ListConfigsParams,
     ) -> Result<ConfigListResult, ListConfigsError> {
@@ -64,6 +66,7 @@ impl ListConfigsUseCase {
 
         self.config_repo
             .list_by_namespace(
+                tenant_id,
                 namespace,
                 params.page,
                 params.page_size,
@@ -82,7 +85,11 @@ mod tests {
     use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
-    use uuid::Uuid;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_test_entry(key: &str) -> ConfigEntry {
         ConfigEntry {
@@ -103,10 +110,10 @@ mod tests {
     async fn test_list_configs_success() {
         let mut mock = MockConfigRepository::new();
         mock.expect_list_by_namespace()
-            .withf(|ns, page, page_size, _| {
+            .withf(|_tid, ns, page, page_size, _| {
                 ns == "system.auth.database" && *page == 1 && *page_size == 20
             })
-            .returning(|_, page, page_size, _| {
+            .returning(|_, _, page, page_size, _| {
                 Ok(ConfigListResult {
                     entries: vec![
                         make_test_entry("max_connections"),
@@ -127,7 +134,9 @@ mod tests {
             page_size: 20,
             search: None,
         };
-        let result = uc.execute("system.auth.database", &params).await;
+        let result = uc
+            .execute(system_tenant(), "system.auth.database", &params)
+            .await;
         assert!(result.is_ok());
 
         let list = result.unwrap();
@@ -140,8 +149,8 @@ mod tests {
     async fn test_list_configs_with_search() {
         let mut mock = MockConfigRepository::new();
         mock.expect_list_by_namespace()
-            .withf(|_, _, _, search| search.as_deref() == Some("max"))
-            .returning(|_, page, page_size, _| {
+            .withf(|_, _, _, _, search| search.as_deref() == Some("max"))
+            .returning(|_, _, page, page_size, _| {
                 Ok(ConfigListResult {
                     entries: vec![make_test_entry("max_connections")],
                     pagination: Pagination {
@@ -159,7 +168,9 @@ mod tests {
             page_size: 20,
             search: Some("max".to_string()),
         };
-        let result = uc.execute("system.auth.database", &params).await;
+        let result = uc
+            .execute(system_tenant(), "system.auth.database", &params)
+            .await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().entries.len(), 1);
     }
@@ -183,7 +194,9 @@ mod tests {
                 page_size,
                 search: None,
             };
-            let result = uc.execute("system.auth.database", &params).await;
+            let result = uc
+                .execute(system_tenant(), "system.auth.database", &params)
+                .await;
             match result {
                 Err(ListConfigsError::Validation(msg)) => {
                     assert!(
@@ -202,7 +215,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_configs_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_list_by_namespace().returning(|_, _, _, _| {
+        mock.expect_list_by_namespace().returning(|_, _, _, _, _| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "connection refused"
             )))
@@ -215,7 +228,9 @@ mod tests {
             search: None,
         };
 
-        let result = uc.execute("system.auth.database", &params).await;
+        let result = uc
+            .execute(system_tenant(), "system.auth.database", &params)
+            .await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -228,7 +243,7 @@ mod tests {
     async fn test_list_configs_empty_result() {
         let mut mock = MockConfigRepository::new();
         mock.expect_list_by_namespace()
-            .returning(|_, page, page_size, _| {
+            .returning(|_, _, page, page_size, _| {
                 Ok(ConfigListResult {
                     entries: vec![],
                     pagination: Pagination {
@@ -247,7 +262,10 @@ mod tests {
             search: None,
         };
 
-        let result = uc.execute("empty.namespace", &params).await.unwrap();
+        let result = uc
+            .execute(system_tenant(), "empty.namespace", &params)
+            .await
+            .unwrap();
         assert!(result.entries.is_empty());
         assert_eq!(result.pagination.total_count, 0);
     }

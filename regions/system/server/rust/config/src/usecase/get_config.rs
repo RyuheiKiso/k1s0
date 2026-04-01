@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::repository::ConfigRepository;
 
@@ -23,10 +25,15 @@ impl GetConfigUseCase {
         Self { config_repo }
     }
 
-    /// namespace と key で設定値を取得する。
-    pub async fn execute(&self, namespace: &str, key: &str) -> Result<ConfigEntry, GetConfigError> {
+    /// STATIC-CRITICAL-001 監査対応: tenant_id + namespace + key で設定値を取得する。
+    pub async fn execute(
+        &self,
+        tenant_id: Uuid,
+        namespace: &str,
+        key: &str,
+    ) -> Result<ConfigEntry, GetConfigError> {
         self.config_repo
-            .find_by_namespace_and_key(namespace, key)
+            .find_by_namespace_and_key(tenant_id, namespace, key)
             .await
             .map_err(|e| GetConfigError::Internal(e.to_string()))?
             .ok_or_else(|| GetConfigError::NotFound(namespace.to_string(), key.to_string()))
@@ -40,7 +47,11 @@ mod tests {
     use crate::domain::error::ConfigRepositoryError;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
-    use uuid::Uuid;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_test_entry() -> ConfigEntry {
         ConfigEntry {
@@ -64,11 +75,13 @@ mod tests {
         let expected_entry = entry.clone();
 
         mock.expect_find_by_namespace_and_key()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(move |_, _| Ok(Some(entry.clone())));
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("system.auth.database", "max_connections").await;
+        let result = uc
+            .execute(system_tenant(), "system.auth.database", "max_connections")
+            .await;
         assert!(result.is_ok());
 
         let entry = result.unwrap();
@@ -82,10 +95,12 @@ mod tests {
     async fn test_get_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
+            .returning(|_, _, _| Ok(None));
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent.namespace", "missing_key").await;
+        let result = uc
+            .execute(system_tenant(), "nonexistent.namespace", "missing_key")
+            .await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -101,14 +116,16 @@ mod tests {
     #[tokio::test]
     async fn test_get_config_internal_error() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_namespace_and_key().returning(|_, _| {
+        mock.expect_find_by_namespace_and_key().returning(|_, _, _| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "connection refused"
             )))
         });
 
         let uc = GetConfigUseCase::new(Arc::new(mock));
-        let result = uc.execute("system.auth.database", "max_connections").await;
+        let result = uc
+            .execute(system_tenant(), "system.auth.database", "max_connections")
+            .await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

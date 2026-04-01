@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::{ConfigRepository, ConfigSchemaRepository};
@@ -27,8 +29,11 @@ pub enum UpdateConfigError {
 }
 
 /// UpdateConfigInput は設定値更新のリクエストを表す。
+/// STATIC-CRITICAL-001 監査対応: tenant_id フィールドを追加。
 #[derive(Debug, Clone)]
 pub struct UpdateConfigInput {
+    /// テナント識別子（JWT Claims から抽出）
+    pub tenant_id: Uuid,
     pub namespace: String,
     pub key: String,
     pub value: serde_json::Value,
@@ -92,7 +97,7 @@ impl UpdateConfigUseCase {
         self
     }
 
-    /// 設定値を更新する（楽観的排他制御付き）。
+    /// STATIC-CRITICAL-001 監査対応: テナント内の設定値を更新する（楽観的排他制御付き）。
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
     /// 監査ログも記録する（ベストエフォート）。
@@ -123,7 +128,7 @@ impl UpdateConfigUseCase {
         // 旧値を取得（監査ログ用）
         let old_entry = self
             .config_repo
-            .find_by_namespace_and_key(&input.namespace, &input.key)
+            .find_by_namespace_and_key(input.tenant_id, &input.namespace, &input.key)
             .await
             .ok()
             .flatten();
@@ -132,6 +137,7 @@ impl UpdateConfigUseCase {
         let updated_entry = self
             .config_repo
             .update(
+                input.tenant_id,
                 &input.namespace,
                 &input.key,
                 &input.value,
@@ -153,6 +159,7 @@ impl UpdateConfigUseCase {
         // 監査ログ記録（ベストエフォート）
         let change_log = crate::domain::entity::config_change_log::ConfigChangeLog::new(
             crate::domain::entity::config_change_log::CreateChangeLogRequest {
+                tenant_id: input.tenant_id,
                 config_entry_id: updated_entry.id,
                 namespace: updated_entry.namespace.clone(),
                 key: updated_entry.key.clone(),
@@ -216,19 +223,6 @@ impl UpdateConfigUseCase {
 }
 
 /// スキーマ定義に基づいて value を検証する。
-///
-/// schema_json は以下の構造を期待する:
-/// ```json
-/// {
-///   "categories": [{
-///     "id": "...",
-///     "fields": [{
-///       "key": "max_connections",
-///       "type": "integer" | "string" | "boolean" | "float"
-///     }]
-///   }]
-/// }
-/// ```
 fn validate_value_against_schema(
     key: &str,
     value: &serde_json::Value,
@@ -236,7 +230,7 @@ fn validate_value_against_schema(
 ) -> Result<(), UpdateConfigError> {
     let categories = match schema_json.get("categories").and_then(|c| c.as_array()) {
         Some(cats) => cats,
-        None => return Ok(()), // スキーマに categories がなければスキップ
+        None => return Ok(()),
     };
 
     for category in categories {
@@ -255,7 +249,7 @@ fn validate_value_against_schema(
                 "float" | "number" => value.is_number(),
                 "string" => value.is_string(),
                 "boolean" => value.is_boolean(),
-                _ => true, // 不明な型はスキップ
+                _ => true,
             };
             if !type_ok {
                 return Err(UpdateConfigError::SchemaValidation(format!(
@@ -267,7 +261,6 @@ fn validate_value_against_schema(
         }
     }
 
-    // スキーマにフィールド定義がない場合はパス
     Ok(())
 }
 
@@ -277,7 +270,11 @@ mod tests {
     use super::*;
     use crate::domain::repository::config_repository::MockConfigRepository;
     use chrono::Utc;
-    use uuid::Uuid;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_updated_entry() -> ConfigEntry {
         ConfigEntry {
@@ -296,6 +293,7 @@ mod tests {
 
     fn make_update_input() -> UpdateConfigInput {
         UpdateConfigInput {
+            tenant_id: system_tenant(),
             namespace: "system.auth.database".to_string(),
             key: "max_connections".to_string(),
             value: serde_json::json!(50),
@@ -327,12 +325,12 @@ mod tests {
         let expected = updated.clone();
 
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
         mock.expect_update()
-            .withf(|ns, key, _, ver, _, _| {
+            .withf(|_tid, ns, key, _, ver, _, _| {
                 ns == "system.auth.database" && key == "max_connections" && *ver == 3
             })
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
@@ -350,8 +348,8 @@ mod tests {
     async fn test_update_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_update().returning(|_, _, _, _, _, _| {
+            .returning(|_, _, _| Ok(None));
+        mock.expect_update().returning(|_, _, _, _, _, _, _| {
             Err(ConfigRepositoryError::NotFound {
                 namespace: "system.auth.database".to_string(),
                 key: "max_connections".to_string(),
@@ -376,8 +374,8 @@ mod tests {
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
-        mock.expect_update().returning(|_, _, _, _, _, _| {
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
+        mock.expect_update().returning(|_, _, _, _, _, _, _| {
             Err(ConfigRepositoryError::VersionConflict {
                 expected: 3,
                 current: 4,
@@ -402,8 +400,8 @@ mod tests {
     async fn test_update_config_internal_error() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_update().returning(|_, _, _, _, _, _| {
+            .returning(|_, _, _| Ok(None));
+        mock.expect_update().returning(|_, _, _, _, _, _, _| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "connection refused"
             )))
@@ -425,6 +423,7 @@ mod tests {
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
 
         let input = UpdateConfigInput {
+            tenant_id: system_tenant(),
             namespace: "".to_string(),
             key: "max_connections".to_string(),
             value: serde_json::json!(50),
@@ -448,6 +447,7 @@ mod tests {
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
 
         let input = UpdateConfigInput {
+            tenant_id: system_tenant(),
             namespace: "system.auth.database".to_string(),
             key: "".to_string(),
             value: serde_json::json!(50),
@@ -469,13 +469,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_config_without_kafka_succeeds() {
-        // kafka_producer が None のとき Kafka 通知なしで成功する
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
         mock.expect_update()
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
@@ -485,7 +484,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_new_returns_uc_without_kafka() {
-        // new() で作成した UeCase は kafka_producer が None
         let mock = MockConfigRepository::new();
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
         assert!(uc.kafka_producer.is_none());
@@ -504,13 +502,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_config_notifies_watch_sender() {
-        // 更新成功後に broadcast watch イベントが送信されることを確認する
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
         mock.expect_update()
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let (tx, mut rx) = tokio::sync::broadcast::channel::<ConfigChangeEvent>(16);
@@ -532,8 +529,8 @@ mod tests {
     async fn test_update_config_watch_not_sent_on_failure() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_update().returning(|_, _, _, _, _, _| {
+            .returning(|_, _, _| Ok(None));
+        mock.expect_update().returning(|_, _, _, _, _, _, _| {
             Err(ConfigRepositoryError::NotFound {
                 namespace: "system.auth.database".to_string(),
                 key: "max_connections".to_string(),
@@ -552,13 +549,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_config_no_watch_sender_still_succeeds() {
-        // watch_sender が None でも更新は成功する（後方互換性）
         let mut mock = MockConfigRepository::new();
         let updated = make_updated_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
         mock.expect_update()
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let uc = UpdateConfigUseCase::new(Arc::new(mock));
@@ -576,9 +572,9 @@ mod tests {
         let old = make_old_entry();
         let updated = make_updated_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(move |_, _| Ok(Some(old.clone())));
+            .returning(move |_, _, _| Ok(Some(old.clone())));
         mock.expect_update()
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log()
             .withf(|log| {
                 log.change_type == "UPDATED"
@@ -601,10 +597,10 @@ mod tests {
     async fn test_update_config_change_log_failure_is_best_effort() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_old_entry())));
+            .returning(|_, _, _| Ok(Some(make_old_entry())));
         let updated = make_updated_entry();
         mock.expect_update()
-            .returning(move |_, _, _, _, _, _| Ok(updated.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(updated.clone()));
         mock.expect_record_change_log().returning(|_| {
             Err(ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                 "db error"

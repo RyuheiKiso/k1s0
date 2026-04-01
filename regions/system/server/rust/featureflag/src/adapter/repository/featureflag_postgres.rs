@@ -21,9 +21,11 @@ impl FeatureFlagPostgresRepository {
 }
 
 /// PostgreSQL の行をマッピングするための内部構造体。
+/// STATIC-CRITICAL-001 監査対応: tenant_id カラムを含む。
 #[derive(sqlx::FromRow)]
 struct FeatureFlagRow {
     id: Uuid,
+    tenant_id: Uuid,
     flag_key: String,
     description: String,
     enabled: bool,
@@ -39,6 +41,7 @@ impl From<FeatureFlagRow> for FeatureFlag {
         let rules: Vec<FlagRule> = serde_json::from_value(row.rules).unwrap_or_default();
         FeatureFlag {
             id: row.id,
+            tenant_id: row.tenant_id,
             flag_key: row.flag_key,
             description: row.description,
             enabled: row.enabled,
@@ -52,11 +55,13 @@ impl From<FeatureFlagRow> for FeatureFlag {
 
 #[async_trait]
 impl FeatureFlagRepository for FeatureFlagPostgresRepository {
-    async fn find_by_key(&self, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    /// STATIC-CRITICAL-001 監査対応: tenant_id + flag_key でフラグを取得する。
+    async fn find_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         let row: Option<FeatureFlagRow> = sqlx::query_as(
-            "SELECT id, flag_key, description, enabled, variants, rules, created_at, updated_at \
-             FROM featureflag.feature_flags WHERE flag_key = $1",
+            "SELECT id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at \
+             FROM featureflag.feature_flags WHERE tenant_id = $1 AND flag_key = $2",
         )
+        .bind(tenant_id)
         .bind(flag_key)
         .fetch_optional(self.pool.as_ref())
         .await?;
@@ -65,27 +70,31 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<FeatureFlag>> {
+    /// STATIC-CRITICAL-001 監査対応: テナント内の全フラグを取得する。
+    async fn find_all(&self, tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
         let rows: Vec<FeatureFlagRow> = sqlx::query_as(
-            "SELECT id, flag_key, description, enabled, variants, rules, created_at, updated_at \
-             FROM featureflag.feature_flags ORDER BY created_at DESC",
+            "SELECT id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at \
+             FROM featureflag.feature_flags WHERE tenant_id = $1 ORDER BY created_at DESC",
         )
+        .bind(tenant_id)
         .fetch_all(self.pool.as_ref())
         .await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn create(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフラグを作成する。
+    async fn create(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
         sqlx::query(
             "INSERT INTO featureflag.feature_flags \
-             (id, flag_key, description, enabled, variants, rules, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+             (id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(flag.id)
+        .bind(tenant_id)
         .bind(&flag.flag_key)
         .bind(&flag.description)
         .bind(flag.enabled)
@@ -99,20 +108,23 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(())
     }
 
-    async fn update(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを更新する。
+    async fn update(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
         let result = sqlx::query(
             "UPDATE featureflag.feature_flags \
-             SET description = $2, enabled = $3, variants = $4, rules = $5 \
-             WHERE flag_key = $1",
+             SET description = $3, enabled = $4, variants = $5, rules = $6, updated_at = $7 \
+             WHERE tenant_id = $1 AND flag_key = $2",
         )
+        .bind(tenant_id)
         .bind(&flag.flag_key)
         .bind(&flag.description)
         .bind(flag.enabled)
         .bind(&variants_json)
         .bind(&rules_json)
+        .bind(flag.updated_at)
         .execute(self.pool.as_ref())
         .await?;
 
@@ -123,21 +135,27 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
-        let result = sqlx::query("DELETE FROM featureflag.feature_flags WHERE id = $1")
-            .bind(id)
-            .execute(self.pool.as_ref())
-            .await?;
+    /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを削除する。
+    async fn delete(&self, tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+        let result =
+            sqlx::query("DELETE FROM featureflag.feature_flags WHERE tenant_id = $1 AND id = $2")
+                .bind(tenant_id)
+                .bind(id)
+                .execute(self.pool.as_ref())
+                .await?;
 
         Ok(result.rows_affected() > 0)
     }
 
-    async fn exists_by_key(&self, flag_key: &str) -> anyhow::Result<bool> {
-        let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM featureflag.feature_flags WHERE flag_key = $1")
-                .bind(flag_key)
-                .fetch_one(self.pool.as_ref())
-                .await?;
+    /// STATIC-CRITICAL-001 監査対応: テナント内でのフラグキー存在確認。
+    async fn exists_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+        let count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM featureflag.feature_flags WHERE tenant_id = $1 AND flag_key = $2",
+        )
+        .bind(tenant_id)
+        .bind(flag_key)
+        .fetch_one(self.pool.as_ref())
+        .await?;
 
         Ok(count.0 > 0)
     }
@@ -147,10 +165,16 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 mod tests {
     use super::*;
 
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
+
     #[test]
     fn test_feature_flag_row_conversion() {
         let row = FeatureFlagRow {
             id: Uuid::new_v4(),
+            tenant_id: system_tenant(),
             flag_key: "test-flag".to_string(),
             description: "A test flag".to_string(),
             enabled: true,
@@ -180,6 +204,7 @@ mod tests {
     fn test_feature_flag_row_conversion_empty_json() {
         let row = FeatureFlagRow {
             id: Uuid::new_v4(),
+            tenant_id: system_tenant(),
             flag_key: "empty-flag".to_string(),
             description: "".to_string(),
             enabled: false,
@@ -200,6 +225,7 @@ mod tests {
     fn test_feature_flag_row_conversion_invalid_json_fallback() {
         let row = FeatureFlagRow {
             id: Uuid::new_v4(),
+            tenant_id: system_tenant(),
             flag_key: "invalid-json-flag".to_string(),
             description: "".to_string(),
             enabled: false,

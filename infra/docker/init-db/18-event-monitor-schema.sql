@@ -21,3 +21,6 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA event_monitor
     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO k1s0_event_monitor_rw;
 -- マイグレーション用ロールにもスキーマ操作権限を付与する
 GRANT ALL ON SCHEMA event_monitor TO k1s0_migration;
+-- HIGH-005 監査対応: k1s0 アプリケーションユーザーに k1s0_event_monitor_rw ロールを付与する
+-- これがなければ k1s0 ユーザーは event_monitor スキーマのテーブルにアクセスできない
+GRANT k1s0_event_monitor_rw TO k1s0;

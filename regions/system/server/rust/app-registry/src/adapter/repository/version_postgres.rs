@@ -21,6 +21,8 @@ pub struct VersionRow {
     pub storage_key: String,
     pub release_notes: Option<String>,
     pub mandatory: bool,
+    /// STATIC-CRITICAL-002: Cosign 署名（base64）。NULL は未検証または開発環境。
+    pub cosign_signature: Option<String>,
     pub published_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
@@ -41,6 +43,7 @@ impl TryFrom<VersionRow> for AppVersion {
             storage_key: row.storage_key,
             release_notes: row.release_notes,
             mandatory: row.mandatory,
+            cosign_signature: row.cosign_signature,
             published_at: row.published_at,
             created_at: row.created_at,
         })
@@ -78,7 +81,7 @@ impl VersionRepository for VersionPostgresRepository {
         let rows = sqlx::query_as::<_, VersionRow>(
             r#"
             SELECT id, app_id, version, platform, arch, size_bytes, checksum_sha256,
-                   storage_key, release_notes, mandatory, published_at, created_at
+                   storage_key, release_notes, mandatory, cosign_signature, published_at, created_at
             FROM app_registry.app_versions
             WHERE app_id = $1
             ORDER BY published_at DESC
@@ -101,14 +104,15 @@ impl VersionRepository for VersionPostgresRepository {
 
     async fn create(&self, version: &AppVersion) -> anyhow::Result<AppVersion> {
         let start = std::time::Instant::now();
+        // STATIC-CRITICAL-002: cosign_signature を INSERT に含め、署名を永続化する
         let row = sqlx::query_as::<_, VersionRow>(
             r#"
             INSERT INTO app_registry.app_versions
                 (app_id, version, platform, arch, size_bytes, checksum_sha256,
-                 storage_key, release_notes, mandatory, published_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                 storage_key, release_notes, mandatory, cosign_signature, published_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id, app_id, version, platform, arch, size_bytes, checksum_sha256,
-                      storage_key, release_notes, mandatory, published_at, created_at
+                      storage_key, release_notes, mandatory, cosign_signature, published_at, created_at
             "#,
         )
         .bind(&version.app_id)
@@ -120,6 +124,7 @@ impl VersionRepository for VersionPostgresRepository {
         .bind(&version.storage_key)
         .bind(&version.release_notes)
         .bind(version.mandatory)
+        .bind(&version.cosign_signature)
         .bind(version.published_at)
         .fetch_one(&self.pool)
         .await?;

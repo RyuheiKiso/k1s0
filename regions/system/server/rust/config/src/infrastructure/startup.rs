@@ -1,4 +1,7 @@
 use anyhow::Context;
+// base64 エンコードされた暗号化鍵のデコードに使用
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine;
 // proto stubs・未接続の gRPC インフラは将来の proto codegen 後に使用される
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -64,6 +67,40 @@ pub async fn run() -> anyhow::Result<()> {
     // Metrics (shared across layers and repositories)
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-config-server"));
 
+    // STATIC-HIGH-002: AES-256-GCM 暗号化鍵の初期化
+    // CONFIG_ENCRYPTION_KEY 環境変数（優先）または config_server.encryption.key_base64 から取得する
+    let encryption_key: Option<[u8; 32]> = if cfg.config_server.encryption.enabled {
+        let key_b64 = std::env::var("CONFIG_ENCRYPTION_KEY")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .or_else(|| {
+                if cfg.config_server.encryption.key_base64.is_empty() {
+                    None
+                } else {
+                    Some(cfg.config_server.encryption.key_base64.clone())
+                }
+            })
+            .context("config_server.encryption.enabled = true の場合、CONFIG_ENCRYPTION_KEY 環境変数または config_server.encryption.key_base64 が必要です")?;
+
+        let key_bytes = BASE64_STANDARD
+            .decode(&key_b64)
+            .context("CONFIG_ENCRYPTION_KEY の base64 デコードに失敗しました")?;
+
+        anyhow::ensure!(
+            key_bytes.len() == 32,
+            "CONFIG_ENCRYPTION_KEY は 32 バイト（base64 エンコード後 44 文字）である必要があります。実際: {} バイト",
+            key_bytes.len()
+        );
+
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&key_bytes);
+        info!("設定値暗号化を有効化しました（対象 namespace: {:?}）", cfg.config_server.encryption.sensitive_namespaces);
+        Some(key)
+    } else {
+        info!("設定値暗号化は無効です（config_server.encryption.enabled = false）。本番環境では有効化を推奨します");
+        None
+    };
+
     // Config repository: PostgreSQL if DATABASE_URL or database config is set, otherwise in-memory
     let (config_repo, schema_repo): (
         Arc<dyn crate::domain::repository::ConfigRepository>,
@@ -88,10 +125,13 @@ pub async fn run() -> anyhow::Result<()> {
             .connect(&database_url)
             .await?;
         info!("connected to PostgreSQL");
-        let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
-            pool.clone(),
-            metrics.clone(),
-        ));
+        // STATIC-HIGH-002: 暗号化が有効な場合は暗号化鍵を設定する
+        let base_pg_repo = ConfigPostgresRepository::with_metrics(pool.clone(), metrics.clone());
+        let pg_repo = Arc::new(if let Some(key) = encryption_key {
+            base_pg_repo.set_encryption(key, cfg.config_server.encryption.sensitive_namespaces.clone())
+        } else {
+            base_pg_repo
+        });
         let schema_pg_repo = Arc::new(ConfigSchemaPostgresRepository::with_metrics(
             pool,
             metrics.clone(),
@@ -134,10 +174,13 @@ pub async fn run() -> anyhow::Result<()> {
             .connect(&db_cfg.connection_url())
             .await?;
         info!("connected to PostgreSQL");
-        let pg_repo = Arc::new(ConfigPostgresRepository::with_metrics(
-            pool.clone(),
-            metrics.clone(),
-        ));
+        // STATIC-HIGH-002: 暗号化が有効な場合は暗号化鍵を設定する
+        let base_pg_repo = ConfigPostgresRepository::with_metrics(pool.clone(), metrics.clone());
+        let pg_repo = Arc::new(if let Some(key) = encryption_key {
+            base_pg_repo.set_encryption(key, cfg.config_server.encryption.sensitive_namespaces.clone())
+        } else {
+            base_pg_repo
+        });
         let schema_pg_repo = Arc::new(ConfigSchemaPostgresRepository::with_metrics(
             pool,
             metrics.clone(),
@@ -398,6 +441,7 @@ use crate::domain::entity::config_entry::{
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::error::ConfigRepositoryError;
 use tokio::sync::RwLock;
+use uuid::Uuid;
 
 /// InMemoryConfigRepository は開発用のインメモリ設定リポジトリ。
 struct InMemoryConfigRepository {
@@ -415,8 +459,10 @@ impl InMemoryConfigRepository {
 #[async_trait::async_trait]
 impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     /// namespace と key で設定値を取得する（インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn find_by_namespace_and_key(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
@@ -428,8 +474,10 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// namespace 内の設定値一覧を取得する（インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn list_by_namespace(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         page: i32,
         page_size: i32,
@@ -471,8 +519,10 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// 設定値を更新する（インメモリ実装、楽観的排他制御付き）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn update(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         key: &str,
         value_json: &serde_json::Value,
@@ -512,7 +562,13 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// 設定値を削除する（インメモリ実装）。
-    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    async fn delete(
+        &self,
+        _tenant_id: Uuid,
+        namespace: &str,
+        key: &str,
+    ) -> Result<bool, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let len_before = entries.len();
         entries.retain(|e| !(e.namespace == namespace && e.key == key));
@@ -520,8 +576,10 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// サービス名に紐づく設定値を一括取得する（インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn find_by_service_name(
         &self,
+        _tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;

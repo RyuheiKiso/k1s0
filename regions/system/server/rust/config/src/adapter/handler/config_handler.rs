@@ -5,11 +5,32 @@ use axum::{
     Extension, Json,
 };
 use serde::Deserialize;
+use uuid::Uuid;
 
 use super::AppState;
 use crate::domain::entity::config_entry::{ConfigEntry, ConfigListResult, ServiceConfigResult};
 use crate::usecase::list_configs::ListConfigsParams;
 use crate::usecase::update_config::UpdateConfigInput;
+
+/// システムテナントUUID: JWT Claims がない場合（dev モード / ヘルスチェック）のフォールバック値。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// Claims からテナントIDを抽出する。
+/// 空文字または Claims 未設定の場合はシステムテナントにフォールバックする。
+fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> Uuid {
+    claims
+        .as_ref()
+        .and_then(|Extension(c)| {
+            if c.tenant_id.is_empty() {
+                None
+            } else {
+                Uuid::parse_str(&c.tenant_id).ok()
+            }
+        })
+        .unwrap_or_else(|| {
+            Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID must be valid")
+        })
+}
 
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
 pub async fn healthz() -> impl IntoResponse {
@@ -18,10 +39,12 @@ pub async fn healthz() -> impl IntoResponse {
 
 #[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready"), (status = 503, description = "Not ready")))]
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    // DB 接続確認: 軽量クエリで疎通チェック
+    // システムテナントで軽量クエリを実行して DB 接続確認を行う
+    let system_tenant =
+        Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID must be valid");
     let db_ok = state
         .config_repo
-        .list_by_namespace("__readyz__", 1, 1, None)
+        .list_by_namespace(system_tenant, "__readyz__", 1, 1, None)
         .await
         .is_ok();
 
@@ -78,9 +101,11 @@ pub async fn metrics(State(state): State<AppState>) -> impl IntoResponse {
 )]
 pub async fn get_config(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    match state.get_config_uc.execute(&namespace, &key).await {
+    let tenant_id = extract_tenant_id(&claims);
+    match state.get_config_uc.execute(tenant_id, &namespace, &key).await {
         Ok(entry) => {
             let resp = serde_json::json!({
                 "id": entry.id,
@@ -112,10 +137,16 @@ pub async fn get_config(
 )]
 pub async fn list_configs(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(namespace): Path<String>,
     Query(params): Query<ListConfigsParams>,
 ) -> impl IntoResponse {
-    match state.list_configs_uc.execute(&namespace, &params).await {
+    let tenant_id = extract_tenant_id(&claims);
+    match state
+        .list_configs_uc
+        .execute(tenant_id, &namespace, &params)
+        .await
+    {
         Ok(result) => (StatusCode::OK, Json(result)).into_response(),
         Err(e) => e.into_response(),
     }
@@ -156,11 +187,13 @@ pub async fn update_config(
     Path((namespace, key)): Path<(String, String)>,
     Json(req): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
+    let tenant_id = extract_tenant_id(&claims);
     let updated_by = claims
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
 
     let input = UpdateConfigInput {
+        tenant_id,
         namespace,
         key,
         value: req.value,
@@ -204,13 +237,14 @@ pub async fn delete_config(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
+    let tenant_id = extract_tenant_id(&claims);
     let deleted_by = claims
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
 
     match state
         .delete_config_uc
-        .execute(&namespace, &key, &deleted_by)
+        .execute(tenant_id, &namespace, &key, &deleted_by)
         .await
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
@@ -232,10 +266,16 @@ pub async fn delete_config(
 )]
 pub async fn get_service_config(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(service_name): Path<String>,
     Query(query): Query<ServiceConfigQuery>,
 ) -> impl IntoResponse {
-    match state.get_service_config_uc.execute(&service_name).await {
+    let tenant_id = extract_tenant_id(&claims);
+    match state
+        .get_service_config_uc
+        .execute(tenant_id, &service_name)
+        .await
+    {
         Ok(mut result) => {
             if let Some(environment) = query.environment {
                 result
@@ -328,17 +368,19 @@ mod tests {
     #[tokio::test]
     async fn test_readyz() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_list_by_namespace().returning(|_, _, _, _| {
-            Ok(ConfigListResult {
-                entries: vec![],
-                pagination: Pagination {
-                    total_count: 0,
-                    page: 1,
-                    page_size: 1,
-                    has_next: false,
-                },
-            })
-        });
+        // STATIC-CRITICAL-001: tenant_id を含む5引数シグネチャ
+        mock.expect_list_by_namespace()
+            .returning(|_, _, page, page_size, _| {
+                Ok(ConfigListResult {
+                    entries: vec![],
+                    pagination: Pagination {
+                        total_count: 0,
+                        page,
+                        page_size,
+                        has_next: false,
+                    },
+                })
+            });
         let state = make_app_state(mock);
         let app = router(state);
 
@@ -383,9 +425,10 @@ mod tests {
     async fn test_get_config_success() {
         let mut mock = MockConfigRepository::new();
         let entry = make_test_entry();
+        // STATIC-CRITICAL-001: tenant_id を含む3引数シグネチャ
         mock.expect_find_by_namespace_and_key()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(move |_, _| Ok(Some(entry.clone())));
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -416,7 +459,7 @@ mod tests {
     async fn test_get_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
+            .returning(|_, _, _| Ok(None));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -443,8 +486,9 @@ mod tests {
     #[tokio::test]
     async fn test_list_configs_success() {
         let mut mock = MockConfigRepository::new();
+        // STATIC-CRITICAL-001: tenant_id を含む5引数シグネチャ
         mock.expect_list_by_namespace()
-            .returning(|_, page, page_size, _| {
+            .returning(|_, _, page, page_size, _| {
                 Ok(ConfigListResult {
                     entries: vec![ConfigEntry {
                         id: Uuid::new_v4(),
@@ -499,10 +543,12 @@ mod tests {
     #[tokio::test]
     async fn test_update_config_success() {
         let mut mock = MockConfigRepository::new();
+        // STATIC-CRITICAL-001: tenant_id を含む3引数シグネチャ
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_test_entry())));
+            .returning(|_, _, _| Ok(Some(make_test_entry())));
+        // STATIC-CRITICAL-001: tenant_id を含む7引数シグネチャ
         mock.expect_update()
-            .returning(|ns, key, value, _, desc, updated_by| {
+            .returning(|_, ns, key, value, _, desc, updated_by| {
                 Ok(ConfigEntry {
                     id: Uuid::new_v4(),
                     namespace: ns.to_string(),
@@ -549,8 +595,9 @@ mod tests {
     async fn test_update_config_version_conflict() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(Some(make_test_entry())));
-        mock.expect_update().returning(|_, _, _, _, _, _| {
+            .returning(|_, _, _| Ok(Some(make_test_entry())));
+        // STATIC-CRITICAL-001: 7引数シグネチャ
+        mock.expect_update().returning(|_, _, _, _, _, _, _| {
             Err(ConfigRepositoryError::VersionConflict {
                 expected: 3,
                 current: 4,
@@ -586,10 +633,11 @@ mod tests {
         let mut mock = MockConfigRepository::new();
         let entry = make_test_entry();
         mock.expect_find_by_namespace_and_key()
-            .returning(move |_, _| Ok(Some(entry.clone())));
+            .returning(move |_, _, _| Ok(Some(entry.clone())));
+        // STATIC-CRITICAL-001: tenant_id を含む3引数シグネチャ
         mock.expect_delete()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
-            .returning(|_, _| Ok(true));
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
+            .returning(|_, _, _| Ok(true));
         mock.expect_record_change_log().returning(|_| Ok(()));
 
         let state = make_app_state(mock);
@@ -612,8 +660,8 @@ mod tests {
     async fn test_delete_config_not_found() {
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .returning(|_, _| Ok(None));
-        mock.expect_delete().returning(|_, _| Ok(false));
+            .returning(|_, _, _| Ok(None));
+        mock.expect_delete().returning(|_, _, _| Ok(false));
 
         let state = make_app_state(mock);
         let app = router(state);
@@ -641,9 +689,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_success() {
         let mut mock = MockConfigRepository::new();
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_find_by_service_name()
-            .withf(|name| name == "auth-server")
-            .returning(|_| {
+            .withf(|_tid, name| name == "auth-server")
+            .returning(|_, _| {
                 Ok(ServiceConfigResult {
                     service_name: "auth-server".to_string(),
                     entries: vec![
@@ -695,7 +744,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_config_not_found() {
         let mut mock = MockConfigRepository::new();
-        mock.expect_find_by_service_name().returning(|_| {
+        mock.expect_find_by_service_name().returning(|_, _| {
             Err(ConfigRepositoryError::ServiceNotFound(
                 "nonexistent-service".to_string(),
             ))

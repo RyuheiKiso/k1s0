@@ -126,6 +126,18 @@ regions/system/server/rust/auth/
 - **Keycloak Client** (`infrastructure/keycloak_client.rs`): Keycloak Admin API からユーザー情報・ロールを取得する。Admin API トークンをキャッシュ付きで管理する
 - **JWKS Provider** (`infrastructure/jwks_provider.rs`): JWKS エンドポイントから公開鍵を取得・キャッシュする
 
+#### Keycloak 認証方式（STATIC-MEDIUM-003 監査対応 / ADR-0061）
+
+Keycloak Admin API への認証方式を **Client Credentials Grant のみ** に統一した（ROPC廃止）。
+
+| 項目 | 変更前 | 変更後 |
+|-----|--------|--------|
+| 認証フロー | ROPC (admin_username + admin_password) または Client Credentials | Client Credentials Grant のみ |
+| 設定フィールド | `admin_username`, `admin_password`, `admin_realm`, `admin_client_id` | 廃止（`client_id` + `client_secret` のみ） |
+| Keycloak 側設定 | admin アカウントを直接使用 | `auth-rust-admin` Service Account を作成し `realm-management` ロールを付与 |
+
+**理由**: ROPC は OAuth 2.1 草案で廃止予定。Client Credentials Grant は M2M 通信の標準フローであり、認証情報漏洩リスクが低い（詳細は `docs/architecture/adr/0061-ropc-to-client-credentials-migration.md` を参照）。
+
 ### エラーハンドリング方針
 
 - ユースケース層で `AuthError` 型を返却し、adapter 層で `ErrorResponse` に変換する

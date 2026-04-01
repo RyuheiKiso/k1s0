@@ -40,8 +40,10 @@ impl TestConfigRepository {
 #[async_trait]
 impl ConfigRepository for TestConfigRepository {
     /// namespace と key で設定値を取得する（テスト用インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、テスト用のため分離しない。
     async fn find_by_namespace_and_key(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
@@ -53,8 +55,10 @@ impl ConfigRepository for TestConfigRepository {
     }
 
     /// namespace 内の設定値一覧を取得する（テスト用インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、テスト用のため分離しない。
     async fn list_by_namespace(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         page: i32,
         page_size: i32,
@@ -96,8 +100,10 @@ impl ConfigRepository for TestConfigRepository {
     }
 
     /// 設定値を更新する（テスト用インメモリ実装、楽観的排他制御付き）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、テスト用のため分離しない。
     async fn update(
         &self,
+        _tenant_id: Uuid,
         namespace: &str,
         key: &str,
         value_json: &serde_json::Value,
@@ -137,7 +143,13 @@ impl ConfigRepository for TestConfigRepository {
     }
 
     /// 設定値を削除する（テスト用インメモリ実装）。
-    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、テスト用のため分離しない。
+    async fn delete(
+        &self,
+        _tenant_id: Uuid,
+        namespace: &str,
+        key: &str,
+    ) -> Result<bool, ConfigRepositoryError> {
         let mut entries = self.entries.write().await;
         let len_before = entries.len();
         entries.retain(|e| !(e.namespace == namespace && e.key == key));
@@ -145,8 +157,10 @@ impl ConfigRepository for TestConfigRepository {
     }
 
     /// サービス名に紐づく設定値を一括取得する（テスト用インメモリ実装）。
+    /// STATIC-CRITICAL-001: tenant_id は受け取るが、テスト用のため分離しない。
     async fn find_by_service_name(
         &self,
+        _tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
         let entries = self.entries.read().await;

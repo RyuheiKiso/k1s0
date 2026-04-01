@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::domain::entity::evaluation::{EvaluationContext, EvaluationResult};
 use crate::domain::repository::FeatureFlagRepository;
 use crate::domain::service::FeatureFlagDomainService;
 
+/// EvaluateFlagInput はフィーチャーフラグ評価の入力データ。
+/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagInput {
+    pub tenant_id: Uuid,
     pub flag_key: String,
     pub context: EvaluationContext,
 }
@@ -28,18 +33,23 @@ impl EvaluateFlagUseCase {
         Self { repo }
     }
 
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを評価する。
     pub async fn execute(
         &self,
         input: &EvaluateFlagInput,
     ) -> Result<EvaluationResult, EvaluateFlagError> {
-        let flag = self.repo.find_by_key(&input.flag_key).await.map_err(|e| {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                EvaluateFlagError::FlagNotFound(input.flag_key.clone())
-            } else {
-                EvaluateFlagError::Internal(msg)
-            }
-        })?;
+        let flag = self
+            .repo
+            .find_by_key(input.tenant_id, &input.flag_key)
+            .await
+            .map_err(|e| {
+                let msg = e.to_string();
+                if msg.contains("not found") {
+                    EvaluateFlagError::FlagNotFound(input.flag_key.clone())
+                } else {
+                    EvaluateFlagError::Internal(msg)
+                }
+            })?;
         let (enabled, variant, reason) = FeatureFlagDomainService::evaluate(&flag, &input.context);
         Ok(EvaluationResult {
             flag_key: flag.flag_key,
@@ -56,7 +66,13 @@ mod tests {
     use super::*;
     use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
+    use chrono::Utc;
     use std::collections::HashMap;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_context() -> EvaluationContext {
         EvaluationContext {
@@ -66,10 +82,24 @@ mod tests {
         }
     }
 
+    fn make_flag(flag_key: &str, enabled: bool) -> FeatureFlag {
+        FeatureFlag {
+            id: Uuid::new_v4(),
+            tenant_id: system_tenant(),
+            flag_key: flag_key.to_string(),
+            description: String::new(),
+            enabled,
+            variants: vec![],
+            rules: vec![],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
     #[tokio::test]
     async fn enabled_flag_returns_result() {
         let mut mock = MockFeatureFlagRepository::new();
-        let mut flag = FeatureFlag::new("dark-mode".to_string(), "Dark mode".to_string(), true);
+        let mut flag = make_flag("dark-mode", true);
         flag.variants.push(FlagVariant {
             name: "on".to_string(),
             value: "true".to_string(),
@@ -77,12 +107,14 @@ mod tests {
         });
         let return_flag = flag.clone();
 
+        // STATIC-CRITICAL-001: tenant_id を含む2引数シグネチャ
         mock.expect_find_by_key()
-            .withf(|key| key == "dark-mode")
-            .returning(move |_| Ok(return_flag.clone()));
+            .withf(|_tid, key| key == "dark-mode")
+            .returning(move |_, _| Ok(return_flag.clone()));
 
         let uc = EvaluateFlagUseCase::new(Arc::new(mock));
         let input = EvaluateFlagInput {
+            tenant_id: system_tenant(),
             flag_key: "dark-mode".to_string(),
             context: make_context(),
         };
@@ -97,14 +129,15 @@ mod tests {
     #[tokio::test]
     async fn disabled_flag_returns_false() {
         let mut mock = MockFeatureFlagRepository::new();
-        let flag = FeatureFlag::new("beta-feature".to_string(), "Beta".to_string(), false);
+        let flag = make_flag("beta-feature", false);
         let return_flag = flag.clone();
 
         mock.expect_find_by_key()
-            .returning(move |_| Ok(return_flag.clone()));
+            .returning(move |_, _| Ok(return_flag.clone()));
 
         let uc = EvaluateFlagUseCase::new(Arc::new(mock));
         let input = EvaluateFlagInput {
+            tenant_id: system_tenant(),
             flag_key: "beta-feature".to_string(),
             context: make_context(),
         };
@@ -119,10 +152,11 @@ mod tests {
     async fn not_found_flag_error() {
         let mut mock = MockFeatureFlagRepository::new();
         mock.expect_find_by_key()
-            .returning(|_| Err(anyhow::anyhow!("flag not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("flag not found")));
 
         let uc = EvaluateFlagUseCase::new(Arc::new(mock));
         let input = EvaluateFlagInput {
+            tenant_id: system_tenant(),
             flag_key: "nonexistent".to_string(),
             context: make_context(),
         };
