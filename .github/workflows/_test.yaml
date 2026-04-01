@@ -364,7 +364,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
-      - uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: "3.24.0"
       - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4

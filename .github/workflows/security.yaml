@@ -68,7 +68,7 @@ jobs:
       # Flutter/Dart SDK のセットアップ
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Flutter セットアップ
-        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
 
@@ -297,7 +297,7 @@ jobs:
       # Flutter/Dart SDK のセットアップ（Dart SAST で使用）
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Flutter セットアップ
-        uses: subosito/flutter-action@0ca7a949e71ae44c8e688a51c5e7e93b2c87e295 # v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           channel: stable
 
