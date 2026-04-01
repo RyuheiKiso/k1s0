@@ -8,18 +8,21 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 # ベースリソース: 全 Namespace の共通設定（NetworkPolicy, RBAC 等）
-# HIGH-15 監査対応: prod 環境では security/cert-manager/backup/ingress/limit-ranges も含める
-# - security: etcd 暗号化設定・監査ポリシー（本番環境で必須）
+# HIGH-15 監査対応: prod 環境では cert-manager/backup/ingress/limit-ranges も含める
 # - cert-manager: TLS 証明書自動更新（prod は Let's Encrypt Cluster Issuer を使用）
 # - backup: etcd/DB/Vault の定期バックアップ CronJob（障害復旧要件）
 # - ingress: Kong Ingress / grafana consumer 設定
 # - limit-ranges: コンテナごとのリソース上限強制（暴走コンテナによるノード枯渇防止）
+#
+# CRIT-005 対応: ../../security を resources から除外。
+# security/ ディレクトリの audit-policy.yaml と encryption-config.yaml は
+# kube-apiserver の設定ファイルであり Kubernetes API オブジェクトではない。
+# これらは CI/CD パイプラインまたは手動で Master ノードに配置すること（各ファイルのコメント参照）。
 resources:
   - ../../namespaces
   - ../../network-policies
   - ../../rbac
   - ../../resource-quotas
-  - ../../security
   - ../../cert-manager
   - ../../backup
   - ../../ingress

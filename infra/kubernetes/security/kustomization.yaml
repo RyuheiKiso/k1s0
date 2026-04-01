@@ -1,9 +1,16 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# セキュリティ関連リソース一覧
-# Kubernetes API サーバーの監査ポリシーと etcd 暗号化設定を管理する。
-# HIGH-004 監査対応: kustomization.yaml が欠落していたため prod overlay 適用不可だった問題を修正。
-resources:
-  - audit-policy.yaml
-  - encryption-config.yaml
+# セキュリティ関連 control-plane 設定ファイル管理ディレクトリ
+#
+# ⚠️ このディレクトリの audit-policy.yaml / encryption-config.yaml は
+# Kubernetes API オブジェクト（kubectl apply の対象）ではなく、
+# kube-apiserver の起動オプションで指定する設定ファイルである。
+# kustomize の resources リストに含めると kustomize build が失敗するため除外する。
+#
+# CRIT-005 対応: audit-policy.yaml と encryption-config.yaml を resources から除外。
+#   - audit-policy.yaml    → kube-apiserver --audit-policy-file 引数で指定
+#   - encryption-config.yaml → kube-apiserver --encryption-provider-config 引数で指定
+# 両ファイルの配置手順は各ファイルのコメントを参照すること。
+#
+# これらのファイルは CI/CD パイプラインまたは手動で Master ノードに配置する。

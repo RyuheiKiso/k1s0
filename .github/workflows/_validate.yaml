@@ -278,6 +278,8 @@ jobs:
   # M-008 監査対応: kustomize build による k8s マニフェスト構文検証を CI に組み込む
   # Docker Desktop k8s がない環境でも、kustomize build でマニフェストの構文・参照整合性を確認する
   # H-003 対応: 実クラスターなしでのマニフェスト品質保証を自動化する
+  # CRIT-005 対応: prod overlay の kustomize build を CI に追加し、audit-policy.yaml 等の
+  #   非 K8s リソースが resources に混入して kustomize build が失敗する事態を防止する
   kustomize-validate:
     runs-on: ubuntu-latest
     permissions:
@@ -293,6 +295,13 @@ jobs:
         run: |
           kustomize build infra/kubernetes/ > /dev/null
           echo "kustomize build: 成功（infra/kubernetes/）"
+      - name: prod overlay の kustomize build を検証する（CRIT-005 再発防止）
+        shell: bash
+        run: |
+          # CRIT-005: audit-policy.yaml / encryption-config.yaml は kube-apiserver 設定ファイルであり
+          # Kubernetes API オブジェクトではないため、overlays/prod/kustomization.yaml の resources に含めない
+          kustomize build infra/kubernetes/overlays/prod > /dev/null
+          echo "kustomize build: 成功（infra/kubernetes/overlays/prod）"
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:

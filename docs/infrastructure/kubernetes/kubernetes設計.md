@@ -801,6 +801,11 @@ head -c 32 /dev/urandom | base64
 
 ### L-02: 監査ポリシー適用（L-02 監査対応）
 
+> **⚠️ CRIT-005 対応（2026-04-01）**: `audit-policy.yaml` および `encryption-config.yaml` は
+> Kubernetes API オブジェクトではないため `infra/kubernetes/security/kustomization.yaml` の
+> resources リストから除外した。`kubectl kustomize infra/kubernetes/overlays/prod` はこれらのファイルを
+> デプロイしない。以下の手順で手動または CI/CD 経由で Master ノードに配置すること。
+
 `infra/kubernetes/security/audit-policy.yaml` を kube-apiserver に適用すること。
 
 ```bash
