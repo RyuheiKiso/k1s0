@@ -10,10 +10,16 @@ import type {
   VersionListResponse,
 } from './types';
 
+// 未認証時のナビゲーション関数（テスト時にモック差し替え可能）
+// window.location.href を直接参照しないことでテスト環境での副作用を防ぐ
+let navigateToLogin = () => { window.location.href = '/auth/login'; };
+export const setNavigateToLogin = (fn: () => void) => { navigateToLogin = fn; };
+
 // BFF プロキシ経由でリクエストを送信する（L-11 監査対応: ハードコードを廃止し appConfig から取得する）
 const api = createApiClient({
   baseURL: appConfig.api.base_url,
-  onUnauthorized: () => { window.location.href = '/auth/login'; },
+  // 未認証時は navigateToLogin を経由することでテスト時のモック差し替えを可能にする
+  onUnauthorized: () => navigateToLogin(),
 });
 
 export async function fetchApps(params?: AppListParams): Promise<App[]> {

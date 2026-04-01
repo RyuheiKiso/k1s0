@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -197,6 +198,20 @@ func ParseDuration(s string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return d
+}
+
+// AllowedUpstreamHosts はアップストリーム設定（upstream.base_url）からホスト名を抽出し、
+// SSRF 許可リストとして返す。設定ファイル由来の静的ホスト名のみが許可対象となるため、
+// 動的ユーザー入力に基づくターゲットは引き続き SSRF チェックが適用される。
+func (c *BFFConfig) AllowedUpstreamHosts() map[string]bool {
+	hosts := make(map[string]bool)
+	if c.Upstream.BaseURL != "" {
+		u, err := url.Parse(c.Upstream.BaseURL)
+		if err == nil && u.Hostname() != "" {
+			hosts[u.Hostname()] = true
+		}
+	}
+	return hosts
 }
 
 // Load reads the base YAML configuration and optionally merges an environment overlay.

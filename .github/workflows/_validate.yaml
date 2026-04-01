@@ -210,6 +210,53 @@ jobs:
         shell: bash
         run: bash scripts/check-placeholder-secrets.sh
 
+  # CRIT-003 監査対応: SQLファイルへの UTF-8 BOM 混入を検出する
+  # 過去に BOM 混入による sqlx マイグレーションエラーが発生したため、CI で継続的に検出する
+  # python3 のバイナリ読み取りで BOM バイト列（0xEF 0xBB 0xBF）を確実に検出する
+  validate-sql-bom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: BOM混入チェック（UTF-8 BOMを含むSQLファイルを検出する）
+        run: |
+          BOM_FILES=$(python3 -c "
+          import sys, glob
+          bom = b'\xef\xbb\xbf'
+          found = []
+          for f in glob.glob('regions/system/database/**/*.sql', recursive=True):
+              with open(f, 'rb') as fh:
+                  if fh.read(3) == bom:
+                      found.append(f)
+          print('\n'.join(found))
+          ")
+          if [ -n "$BOM_FILES" ]; then
+              echo "ERROR: BOMが検出されました:"
+              echo "$BOM_FILES"
+              exit 1
+          fi
+          echo "BOMチェック: OK"
+
+  # MED-005 監査対応: encryption-config プレースホルダー残存の警告チェック
+  # ローカル開発環境では常にプレースホルダーのため warning のみ出力し exit 1 はしない
+  # 本番デプロイパイプライン（deploy.yaml）では validate-k8s-placeholders がブロッカーとなる
+  validate-encryption-config-placeholder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: encryption-configプレースホルダーチェック（本番鍵の未設定を検出する）
+        run: |
+          if grep -r '<REPLACE_WITH_BASE64_32BYTE_KEY>' infra/kubernetes/security/ 2>/dev/null; then
+              echo "WARNING: encryption-config.yaml にプレースホルダーが残存しています"
+              echo "本番デプロイ前に実際の暗号化キーを設定してください"
+              # CI では warning のみ（deploy pipeline ではブロッカーとする）
+          else
+              echo "encryption-configチェック: OK"
+          fi
+
   # セキュリティスキャン（Trivy）
   security-scan:
     runs-on: ubuntu-latest

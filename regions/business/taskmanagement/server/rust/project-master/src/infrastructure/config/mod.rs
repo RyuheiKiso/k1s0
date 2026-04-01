@@ -1,6 +1,8 @@
 // サーバー設定モジュール。YAML ファイルから設定を読み込む。
+// CRIT-004 監査対応: secrecy クレートを使用してデータベースパスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
 pub mod auth_config;
 
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -61,7 +63,10 @@ impl Default for ServerConfig {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+// CRIT-004 監査対応: DatabaseConfig の Debug derive を削除し、手動実装でパスワードをマスクする。
+// Secret<String> は Debug で [REDACTED] と表示されるため、derive(Debug) でも安全だが、
+// master-maintenance との一貫性を保つため Clone + Deserialize のみを derive する。
+#[derive(Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
     #[serde(default = "default_db_port")]
@@ -70,8 +75,9 @@ pub struct DatabaseConfig {
     #[serde(default = "default_schema")]
     pub schema: String,
     pub user: String,
-    #[serde(default)]
-    pub password: String,
+    // パスワードは Secret<String> で保持し、誤って Debug 出力に漏れないようにする（CRIT-004 監査対応）
+    // Secret<String> は Default 未実装のため serde(default) を設定しない（必須項目）
+    pub password: Secret<String>,
     #[serde(default = "default_ssl_mode")]
     pub ssl_mode: String,
     #[serde(default = "default_max_connections")]
@@ -82,6 +88,24 @@ pub struct DatabaseConfig {
     pub conn_max_lifetime: u64,
 }
 
+// パスワードフィールドをマスクして Debug 出力に漏洩しないようにする（CRIT-004 監査対応）
+impl std::fmt::Debug for DatabaseConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseConfig")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("name", &self.name)
+            .field("schema", &self.schema)
+            .field("user", &self.user)
+            .field("password", &"***")
+            .field("ssl_mode", &self.ssl_mode)
+            .field("max_connections", &self.max_connections)
+            .field("max_idle_conns", &self.max_idle_conns)
+            .field("conn_max_lifetime", &self.conn_max_lifetime)
+            .finish()
+    }
+}
+
 fn default_db_port() -> u16 { 5432 }
 fn default_schema() -> String { "project_master".to_string() }
 fn default_ssl_mode() -> String { "prefer".to_string() }
@@ -90,11 +114,18 @@ fn default_max_idle_conns() -> u32 { 5 }
 fn default_conn_max_lifetime() -> u64 { 300 }
 
 impl DatabaseConfig {
-    pub fn connection_url(&self) -> String {
-        format!(
+    // データベース接続 URL を Secret<String> として返す（パスワード漏洩防止: CRIT-004 監査対応）
+    pub fn connection_url(&self) -> Secret<String> {
+        Secret::new(format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}&options=-c search_path%3D{}",
-            self.user, self.password, self.host, self.port, self.name, self.ssl_mode, self.schema
-        )
+            self.user,
+            self.password.expose_secret(),
+            self.host,
+            self.port,
+            self.name,
+            self.ssl_mode,
+            self.schema
+        ))
     }
 }
 

@@ -391,6 +391,16 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
+      - name: encryption-configプレースホルダー検出（MED-005 本番デプロイブロッカー）
+        # 本番鍵が未設定のままデプロイされると etcd の Secrets/ConfigMaps が平文保存になる。
+        # プレースホルダーが残存している場合は本番デプロイを中断し、Vault からの鍵注入を強制する。
+        run: |
+          if grep -r '<REPLACE_WITH_BASE64_32BYTE_KEY>' infra/kubernetes/security/ 2>/dev/null; then
+            echo "ERROR: encryption-config.yaml にプレースホルダーが残存しています。"
+            echo "       本番デプロイ前に Vault から暗号化キーを注入してください。"
+            exit 1
+          fi
+          echo "encryption-config チェック: OK"
       - name: Set short SHA
         id: sha
         # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）

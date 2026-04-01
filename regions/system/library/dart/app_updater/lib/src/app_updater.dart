@@ -91,6 +91,9 @@ class AppRegistryAppUpdater implements AppUpdater {
     final mandatoryVersions =
         versions.where((version) => version.mandatory).toList()
           ..sort((left, right) {
+            // publishedAt が null（未公開バージョン）の場合はエポック時刻（1970-01-01）として扱い、
+            // 最古バージョンとしてソートする
+            // （安全側設計: 未公開バージョンを最新扱いにしない）
             final leftPublishedAt =
                 left.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
             final rightPublishedAt =

@@ -7,6 +7,8 @@ use anyhow::Context;
 use crate::adapter::handler::{AppState, router};
 use crate::adapter::middleware::auth::AuthState;
 use crate::infrastructure::config::Config;
+// CRIT-004 監査対応: connection_url() が Secret<String> を返すため expose_secret() で取り出す
+use secrecy::ExposeSecret;
 use crate::usecase::{
     event_publisher::NoopProjectMasterEventPublisher,
     get_status_definition_versions::GetStatusDefinitionVersionsUseCase,
@@ -37,10 +39,10 @@ pub async fn run() -> anyhow::Result<()> {
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
         .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {}", e))?;
 
-    // DB 接続
+    // DB 接続（CRIT-004 監査対応: connection_url() は Secret<String> を返すため expose_secret() で取り出す）
     let db_pool = if let Some(ref db_cfg) = cfg.database {
         let url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| db_cfg.connection_url());
+            .unwrap_or_else(|_| db_cfg.connection_url().expose_secret().clone());
         let pool = sqlx::postgres::PgPoolOptions::new()
             .max_connections(db_cfg.max_connections)
             .connect(&url)

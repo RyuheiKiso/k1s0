@@ -97,8 +97,10 @@ export class DevLocalStorageTokenStore implements TokenStore {
   }
 
   // NODE_ENV が development または test であるかを確認する。
+  // NODE_ENV が未定義の場合は本番環境として扱う（安全側のデフォルト: 未定義時に開発扱いにしない）
   private _isDevEnvironment(): boolean {
-    return process.env['NODE_ENV'] === 'development' || process.env['NODE_ENV'] === 'test';
+    const env = process.env['NODE_ENV'] ?? 'production';
+    return env === 'development' || env === 'test';
   }
 
   getTokenSet(): TokenSet | null {

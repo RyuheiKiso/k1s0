@@ -259,7 +259,10 @@ func initRouter(
 	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
 	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, exchangeCodeTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
-	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
+	// 設定ファイル由来の静的アップストリームホストを許可リストとして抽出する。
+	// allowedHosts に含まれるホストは SSRF チェックをバイパスし、Docker/K8s 内部通信を可能にする。
+	allowedHosts := cfg.AllowedUpstreamHosts()
+	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger, allowedHosts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create proxy handler: %w", err)
 	}

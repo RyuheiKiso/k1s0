@@ -45,6 +45,11 @@ set -euo pipefail
 BOOTSTRAP_SERVER="${KAFKA_BOOTSTRAP_SERVER:-kafka:9092}"
 REPLICATION_FACTOR="${KAFKA_REPLICATION_FACTOR:-1}"
 
+# HIGH-004 監査対応: 各バックグラウンドジョブの PID を追跡する配列
+# wait だけでは最後に終了したジョブの終了コードしか返さないため、
+# 各 PID を個別に wait で確認することで全ジョブの失敗を検出する。
+declare -a PIDS=()
+
 echo "=== Creating Kafka topics (bootstrap: ${BOOTSTRAP_SERVER}) ==="
 
 # --- System Tier ---
@@ -55,6 +60,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=7776000000 &
+PIDS+=($!)
 
 # 設定変更通知 (config-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -63,6 +69,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # 認証ログイン (auth-server)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -71,6 +78,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # 権限拒否 (auth-server -> audit)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -79,6 +87,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # APIレジストリ スキーマ更新 (api-registry -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -87,6 +96,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # フィーチャーフラグ変更 (featureflag-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -95,6 +105,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # ファイルアップロード (file-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -103,6 +114,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # ファイル削除 (file-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -111,6 +123,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # ファイル汎用イベント（file-rust がプロデューサー、event_type ヘッダーで種別を区別）（M-21 監査対応）
 # file-rust は topic_events 設定でこのトピックを使用する（uploaded.v1/deleted.v1 は将来のイベント分離用に残す）
@@ -120,6 +133,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # tenant イベントトピック（C-07 監査対応: データ損失防止のため追加）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -128,6 +142,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # シークレットローテーション (vault-server -> subscribers)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -136,6 +151,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # 通知リクエスト (notification-server -> delivery)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -144,6 +160,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # クォータ超過 (quota-server -> alerting)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -152,6 +169,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # Saga 状態変更 (saga-server -> orchestration)
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -160,6 +178,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # トークン検証 (auth-server -> subscribers) ※topics.yaml k1s0.system.auth.token_validate.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -168,6 +187,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 6 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # マスタデータ変更 (mastermaintenance-server -> subscribers) ※topics.yaml k1s0.system.mastermaintenance.data_changed.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -176,6 +196,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # --- Service Tier ---
 # L-07 対応: topics.yaml との突合により task.updated.v1 / task.cancelled.v1 を追加する
@@ -185,6 +206,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # タスク更新イベント ※topics.yaml k1s0.service.task.updated.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -193,6 +215,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # タスクキャンセルイベント ※topics.yaml k1s0.service.task.cancelled.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -201,6 +224,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # board サービスのトピック
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -209,6 +233,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # activity サービスのトピック
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -217,6 +242,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --create --if-not-exists \
@@ -224,6 +250,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # --- Business Tier ---
 # L-07 対応: topics.yaml との突合により business tier トピックを追加する
@@ -234,6 +261,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # ステータス定義変更イベント ※topics.yaml k1s0.business.taskmanagement.projectmaster.status_definition_changed.v1 と対応
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -242,6 +270,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # 検索インデックス更新イベント（search-rust がコンシューマー）（MED-1 監査対応）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -250,6 +279,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # ワークフロー状態変更イベント（workflow-rust がプロデューサー）（MED-1 監査対応）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -258,6 +288,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # スケジューライベント（scheduler-rust がプロデューサー）（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -266,6 +297,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # スケジューラ実行イベント（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -274,6 +306,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # スケジューラトリガーイベント（M-20 監査対応: メイントピックが欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -282,6 +315,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 3 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=604800000 &
+PIDS+=($!)
 
 # スケジューラ作成 DLQ（MED-1 監査対応: scheduler.created.v1 に対する DLQ が欠落していた）
 kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
@@ -290,6 +324,7 @@ kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" \
   --partitions 1 \
   --replication-factor "${REPLICATION_FACTOR}" \
   --config retention.ms=2592000000 &
+PIDS+=($!)
 
 # --- DLQ Topics ---
 # L-07 対応: topics.yaml との突合により不足 DLQ を追加する
@@ -328,12 +363,20 @@ for topic in \
     --partitions 1 \
     --replication-factor "${REPLICATION_FACTOR}" \
     --config retention.ms=2592000000 &
+  PIDS+=($!)
 done
 
-# 全バックグラウンドジョブの完了を待つ。
-# いずれかのジョブが失敗した場合は wait が非ゼロを返すため、
-# set -e によりスクリプトが即座に失敗終了する。
-wait
+# HIGH-004 監査対応: 各バックグラウンドジョブを PID 単位で個別確認する。
+# wait だけでは最後に終了したジョブの終了コードしか返さず、途中のジョブ失敗を見逃す偽陽性が発生する。
+# PID 配列をループして wait $pid で全ジョブの成否を確認し、一件でも失敗があればエラー終了する。
+FAILED=0
+for pid in "${PIDS[@]}"; do
+  if ! wait "$pid"; then
+    echo "ERROR: PID $pid のトピック作成に失敗しました" >&2
+    FAILED=1
+  fi
+done
+[ "$FAILED" -eq 0 ] || { echo "ERROR: 一部のトピック作成に失敗しました" >&2; exit 1; }
 
 echo "=== All Kafka topics created successfully ==="
 

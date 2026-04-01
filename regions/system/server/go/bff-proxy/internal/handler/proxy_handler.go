@@ -28,6 +28,8 @@ type ProxyHandler struct {
 
 // NewProxyHandler はアップストリーム URL を対象とした新しいリバースプロキシハンドラーを生成する。
 // oauthClient は port.OAuthClient インターフェース型で受け取り、nil も許容する（リフレッシュ不要時）。
+// allowedHosts は設定ファイル由来の静的アップストリームホスト名のセット。
+// nil を渡した場合はすべてのターゲットに SSRF チェックを適用する。
 func NewProxyHandler(
 	upstreamURL string,
 	sessionStore port.SessionStore,
@@ -35,8 +37,10 @@ func NewProxyHandler(
 	sessionTTL time.Duration,
 	timeout time.Duration,
 	logger *slog.Logger,
+	allowedHosts map[string]bool,
 ) (*ProxyHandler, error) {
-	reverseProxy, err := upstream.NewReverseProxy(upstreamURL, timeout)
+	// allowedHosts を渡すことで、設定ファイル由来の静的アップストリームは SSRF チェックをバイパスする
+	reverseProxy, err := upstream.NewReverseProxy(upstreamURL, timeout, allowedHosts)
 	if err != nil {
 		return nil, err
 	}

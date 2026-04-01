@@ -789,12 +789,13 @@ plugins:
   # INFRA-005: Admin API への不正アクセスを防止するため、内部ネットワークからのみアクセスを許可する
   - name: ip-restriction
     config:
-      # Kong Admin API へのアクセスを Kubernetes Pod CIDR に限定する（H-03 対応）
-      # デフォルト: 10.244.0.0/16（Kubernetes Pod CIDR）
-      # 旧デフォルト 10.0.0.0/8 はクラス A 全体を許可する広すぎる範囲であり、盗聴・不正アクセスリスクがある
-      # 本番環境では KONG_ADMIN_ALLOWED_IPS 環境変数で実際のクラスタ Pod CIDR を設定すること
+      # HIGH-005 監査対応: Kong Admin API へのアクセスを localhost のみに制限する。
+      # 10.244.0.0/16（Kubernetes Pod CIDR 全体）はクラスタ内の全 Pod からのアクセスを許可するため過剰であった。
+      # デフォルトを 127.0.0.1 に変更し、同一ホスト（Pod 内）からのアクセスのみを許可する。
+      # 本番環境では KONG_ADMIN_ALLOWED_IPS 環境変数で NetworkPolicy と組み合わせた適切な CIDR を設定すること。
+      # NetworkPolicy による保護も infra/kubernetes/network-policies/system.yaml に追加済み（HIGH-005）。
       allow:
-        - ${KONG_ADMIN_ALLOWED_IPS:-10.244.0.0/16}
+        - ${KONG_ADMIN_ALLOWED_IPS:-127.0.0.1}
 
 # ============================================================
 # Consumers - Keycloak JWKS 連携 + サービス間認証

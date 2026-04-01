@@ -465,7 +465,9 @@ local-up-dev: _check-env
     # これにより、スタレイメージや migrate-all-docker との競合を排除し、
     # sqlx::migrate!() がサービス起動前に必ず完了済みの postgres に対して実行される。
     echo "--- Phase 1: インフラサービス起動 ---"
-    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra up -d
+    # CRIT-002 監査対応: --build フラグを追加してスタレイメージを防止する。
+    # --build なしでは既存のローカルイメージが使用され、コード変更が反映されないスタレイメージ問題が発生する。
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile infra up -d --build
     echo "--- Phase 1: postgres が healthy になるまで待機 ---"
     PG_CONTAINER="k1s0-postgres-1"
     for i in $(seq 1 60); do
@@ -493,7 +495,8 @@ local-up-dev: _check-env
       echo "[WARN] Vault 初期化が失敗しました。手動で 'bash infra/docker/vault/init-vault.sh' を実行してください" >&2
     fi
     echo "--- Phase 2: システム/ビジネス/サービス層の起動 ---"
-    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile system --profile business --profile service --profile observability up -d
+    # CRIT-002 監査対応: --build フラグでスタレイメージを防止する（Phase 1 と同様）
+    docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile system --profile business --profile service --profile observability up -d --build
     echo "=== [C-01] Setting up Kong JWT RSA public key (waiting for Keycloak...) ==="
     if bash infra/kong/setup-kong-jwt.sh; then
         echo "=== Restarting Kong to apply new RSA public key configuration ==="
@@ -509,7 +512,8 @@ local-up-profile profile: _check-env
     #!/usr/bin/env bash
     set -euo pipefail
     echo "=== Starting profile: {{profile}} ==="
-    docker compose --profile {{profile}} up -d
+    # CRIT-002 監査対応: --build フラグを追加してスタレイメージを防止する
+    docker compose --profile {{profile}} up -d --build
 
 # 可観測性スタック（Jaeger / Prometheus / Grafana / Loki）を起動
 observability-up: _check-env
@@ -566,15 +570,15 @@ migrate-all:
             dir_name=$(basename "$dir")
             # ディレクトリ名から実際のDB名への明示的マッピング
             # 単純な tr '-' '_' では導出できない例外を case で処理する:
-            #   dlq-manager-db        → dlq_db      (05-dlq-schema.sql が dlq_db に dlq スキーマを作成)
+            #   dlq-manager-db        → dlq_db       (05-dlq-schema.sql が dlq_db に dlq スキーマを作成)
             #   event-monitor-db      → k1s0_system  (event_monitor スキーマは k1s0_system 内に配置)
             #   master-maintenance-db → k1s0_system  (master_maintenance スキーマは k1s0_system 内に配置)
-            #   saga-db               → k1s0_system  (saga スキーマは k1s0_system 内に配置)
+            #   saga-db               → k1s0_saga    (HIGH-006 監査対応: saga は k1s0_saga 専用 DB（ADR-0060で移行済み）)
             case "$dir_name" in
                 dlq-manager-db)        db_name="dlq_db" ;;
                 event-monitor-db)      db_name="k1s0_system" ;;
                 master-maintenance-db) db_name="k1s0_system" ;;
-                saga-db)               db_name="k1s0_system" ;;
+                saga-db)               db_name="k1s0_saga" ;;
                 *)                     db_name=$(echo "$dir_name" | tr '-' '_') ;;
             esac
             db_url="postgresql://${PG_USER}:${PG_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
@@ -603,7 +607,13 @@ migrate-all:
 #   禁止されるケース: just local-up-dev や just local-up-profile system の前後
 #
 #   通常のセットアップには just migrate-all（sqlx-cli 必要）を使用すること。
-#   または just local-up-dev を直接実行すれば各サービスが起動時に自動でマイグレーションを実行する。
+#
+# MED-004 監査対応: 起動時自動マイグレーションの対象は限定的である点に注意。
+#   自動マイグレーションを実行するのは以下の4サービス（sqlx::migrate!() 実装済み）のみ:
+#     saga, workflow, scheduler, master-maintenance
+#   残りの19サービスは事前に `just migrate-all` または `just migrate-all-docker` の実行が必要。
+#   `just local-up-dev` はこれらの事前マイグレーションを自動実行しないため、
+#   初回セットアップ時は Phase 1（infra 起動）完了後に `just migrate-all` を手動実行すること。
 migrate-all-docker:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -617,11 +627,12 @@ migrate-all-docker:
         fi
         db_dir=$(basename "$dir")
         # ディレクトリ名から実際のDB名への明示的マッピング（migrate-all と同様のロジック）
+        # HIGH-006 監査対応: saga-db は k1s0_saga 専用 DB（ADR-0060で移行済み）。migrate-all と統一する。
         case "$db_dir" in
             dlq-manager-db)        db_name="dlq_db" ;;
             event-monitor-db)      db_name="k1s0_system" ;;
             master-maintenance-db) db_name="k1s0_system" ;;
-            saga-db)               db_name="k1s0_system" ;;
+            saga-db)               db_name="k1s0_saga" ;;
             *)                     db_name=$(echo "$db_dir" | tr '-' '_') ;;
         esac
         echo "--- Migrating via Docker: $db_dir → $db_name ---"

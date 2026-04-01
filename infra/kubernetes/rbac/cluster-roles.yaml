@@ -66,10 +66,14 @@ rules:
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # ストレージの管理
+  # MED-006 監査対応: ストレージリソースの権限を参照のみに限定する。
+  # storageclasses と persistentvolumes はクラスタ全体のリソースであり、
+  # k1s0-admin が delete/patch 権限を持つと意図しないストレージ削除によるデータ損失リスクがある。
+  # アプリケーション運用に必要な参照（get, list, watch）のみを許可し、
+  # ストレージの構成変更は k1s0-security-admin または外部プロビジョナーに委任する。
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses", "persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch"]
 ---
 # セキュリティ管理者用 Role（H-6 監査対応: ADR-0038）
 # ClusterRole/ClusterRoleBinding への操作権限を分離し、セキュリティチームのみに付与する。

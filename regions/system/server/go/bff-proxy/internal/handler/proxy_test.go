@@ -82,7 +82,9 @@ func TestProxyHandler_InjectsAuthHeader(t *testing.T) {
 		ExpiresAt:   time.Now().Add(10 * time.Minute).Unix(),
 	}
 
-	handler, err := NewProxyHandler(upstream.URL, store, nil, 30*time.Minute, 10*time.Second, nil)
+	// テスト用バックエンドは 127.0.0.1 を使用するため allowedHosts に追加して SSRF チェックをバイパスする
+	allowedHosts := map[string]bool{"127.0.0.1": true}
+	handler, err := NewProxyHandler(upstream.URL, store, nil, 30*time.Minute, 10*time.Second, nil, allowedHosts)
 	require.NoError(t, err)
 
 	router := gin.New()
@@ -150,7 +152,9 @@ func TestProxyHandler_RefreshFailure_DeletesSession(t *testing.T) {
 	}
 
 	// ログ出力をテストログに流すため slog.Default() を使用する（nil ロガーはパニックの原因になる）
-	handler, err := NewProxyHandler(upstreamServer.URL, store, oauthClient, 30*time.Minute, 10*time.Second, slog.Default())
+	// テスト用バックエンドは 127.0.0.1 を使用するため allowedHosts に追加して SSRF チェックをバイパスする
+	allowedHosts := map[string]bool{"127.0.0.1": true}
+	handler, err := NewProxyHandler(upstreamServer.URL, store, oauthClient, 30*time.Minute, 10*time.Second, slog.Default(), allowedHosts)
 	require.NoError(t, err)
 
 	router := gin.New()
@@ -180,7 +184,9 @@ func TestProxyHandler_NoSession(t *testing.T) {
 	defer upstream.Close()
 
 	store := newProxyTestStore()
-	handler, err := NewProxyHandler(upstream.URL, store, nil, 30*time.Minute, 10*time.Second, nil)
+	// テスト用バックエンドは 127.0.0.1 を使用するため allowedHosts に追加して SSRF チェックをバイパスする
+	allowedHosts := map[string]bool{"127.0.0.1": true}
+	handler, err := NewProxyHandler(upstream.URL, store, nil, 30*time.Minute, 10*time.Second, nil, allowedHosts)
 	require.NoError(t, err)
 
 	router := gin.New()

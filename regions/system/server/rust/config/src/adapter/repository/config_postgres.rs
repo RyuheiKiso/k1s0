@@ -387,9 +387,10 @@ impl ConfigRepository for ConfigPostgresRepository {
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(ConfigRepositoryError::Infrastructure)?;
 
+            // HIGH-003 監査対応: COUNT クエリにも ESCAPE '\' を追加し SELECT クエリと整合させる
             let start = std::time::Instant::now();
             let count_row: (i64,) = sqlx::query_as(
-                "SELECT COUNT(*) FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key LIKE $3",
+                "SELECT COUNT(*) FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key LIKE $3 ESCAPE '\\'",
             )
             .bind(tenant_id)
             .bind(namespace)

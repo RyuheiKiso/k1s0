@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+// HIGH-003 監査対応: LIKE 検索前に %_\ をエスケープして意図しない全件マッチを防止する
+use k1s0_server_common::escape_like_pattern;
 use sqlx::PgPool;
 
 use crate::domain::entity::secret::{Secret, SecretValue, SecretVersion};
@@ -197,9 +199,10 @@ impl SecretStore for SecretStorePostgresRepository {
     }
 
     async fn list(&self, path_prefix: &str) -> anyhow::Result<Vec<String>> {
-        let like_pattern = format!("{}%", path_prefix);
+        // HIGH-003 監査対応: LIKE 検索のワイルドカード特殊文字をエスケープし、ESCAPE '\' を指定する
+        let like_pattern = format!("{}%", escape_like_pattern(path_prefix));
         let rows: Vec<(String,)> = sqlx::query_as(
-            "SELECT key_path FROM vault.secrets WHERE key_path LIKE $1 ORDER BY key_path",
+            "SELECT key_path FROM vault.secrets WHERE key_path LIKE $1 ESCAPE '\\' ORDER BY key_path",
         )
         .bind(&like_pattern)
         .fetch_all(self.pool.as_ref())

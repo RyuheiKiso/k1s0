@@ -114,3 +114,27 @@ spec:
           port: 4318    # OTEL Collector HTTP（メトリクス・トレース送信）
         - protocol: TCP
           port: 9090    # Prometheus スクレイプ
+---
+# HIGH-005 監査対応: Kong Admin API ポート(8001)へのインバウンドを制限する NetworkPolicy。
+# デフォルト拒否ポリシー（default-deny-all）に対し、Kong Admin API へのアクセスを
+# app.kubernetes.io/component: kong-admin ラベルを持つ Pod からのみ許可する。
+# これにより、クラスタ内の任意の Pod から Kong Admin API が操作されるリスクを排除する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kong-admin-api-restriction
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app: kong
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8001    # Kong Admin API ポート
+      from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: kong-admin

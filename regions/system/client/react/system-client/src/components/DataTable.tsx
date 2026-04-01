@@ -141,12 +141,20 @@ export function DataTable<T>({
               key={rowKey(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               style={{ cursor: onRowClick ? 'pointer' : 'default' }}
-              role={onRowClick ? 'button' : undefined}
+              // クリック可能な行には role="row" を維持しつつ tabIndex とキーボード操作を付与する
+              // role="button" は <tr> に不適切なため使用しない（アクセシビリティ準拠）
               tabIndex={onRowClick ? 0 : undefined}
+              aria-label={onRowClick ? `行を選択: ${rowKey(row)}` : undefined}
               onKeyDown={
                 onRowClick
                   ? (e) => {
-                      if (e.key === 'Enter' || e.key === ' ') onRowClick(row);
+                      if (e.key === 'Enter') {
+                        onRowClick(row);
+                      } else if (e.key === ' ') {
+                        // Space キーによるデフォルトスクロール動作を防止してクリックイベントを発火する
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
                     }
                   : undefined
               }
