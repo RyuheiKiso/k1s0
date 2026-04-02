@@ -203,6 +203,10 @@ dlq-manager:
 | dlq-manager | `${DLQ_REST_HOST_PORT:-8086}` | - | DLQ 管理サーバー（gRPC なし） |
 | event-monitor-rust | `${EVENT_MONITOR_REST_HOST_PORT:-8095}` | `${EVENT_MONITOR_GRPC_HOST_PORT:-50200}` | ※50200 は Hyper-V 除外範囲回避（ADR-0040） |
 | master-maintenance-rust | `${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}` | `${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50201}` | ※50201 は Hyper-V 除外範囲回避（ADR-0040） |
+
+> **設計注記**: master-maintenance は `k1s0_system` DB（`master_maintenance` スキーマ）を使用する。
+> 他サービスは `<service>_db` 形式だが、master-maintenance は複数マスターテーブルを共有スキーマで管理する設計のため。
+
 | navigation-rust | `${NAVIGATION_REST_HOST_PORT:-8099}` | `${NAVIGATION_GRPC_HOST_PORT:-50202}` | ※50202 は Hyper-V 除外範囲回避（ADR-0040） |
 | policy-rust | `${POLICY_REST_HOST_PORT:-8101}` | `${POLICY_GRPC_HOST_PORT:-50203}` | ※50203 は Hyper-V 除外範囲回避（ADR-0040） |
 | rule-engine-rust | `${RULE_ENGINE_REST_HOST_PORT:-8103}` | `${RULE_ENGINE_GRPC_HOST_PORT:-50204}` | ※50204 は Hyper-V 除外範囲回避（ADR-0040） |
@@ -457,10 +461,10 @@ kong:
     KONG_DATABASE: "off"
     KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yaml
     KONG_PROXY_LISTEN: "0.0.0.0:8000"
-    KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    KONG_ADMIN_LISTEN: "127.0.0.1:8001"
     # Status API はメトリクス・ヘルスチェックのみ提供（設定変更不可）
     # Docker 内部ネットワーク限定でホストへの ports 公開なし
-    # Admin API（127.0.0.1:8001）とは異なり全 NIC バインドが安全
+    # Admin API はループバックのみにバインドし、共有ネットワーク上の不正アクセスを防止（MED-003 監査対応）
     KONG_STATUS_LISTEN: "0.0.0.0:8100"
     KONG_PROXY_ACCESS_LOG: /dev/stdout
     KONG_ADMIN_ACCESS_LOG: /dev/stdout

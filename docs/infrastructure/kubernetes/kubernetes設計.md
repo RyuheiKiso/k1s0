@@ -831,6 +831,17 @@ tail -f /var/log/kubernetes/audit.log | head -20
 
 ---
 
+## Helm と Kustomize の役割分担
+
+| 管理ツール | 対象リソース |
+|----------|------------|
+| Helm | Deployment, Service, ConfigMap, HPA（アプリケーション固有リソース） |
+| Kustomize | Namespace, NetworkPolicy, RBAC, ResourceQuota（クラスター基盤リソース） |
+
+> `kubectl kustomize overlays/prod` の出力に Deployment が含まれないのは設計上の意図です（LOW-004 監査確認済み）。
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture](../../architecture/overview/tier-architecture.md)

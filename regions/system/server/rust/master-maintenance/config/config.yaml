@@ -25,11 +25,14 @@ kafka:
     - "localhost:9092"
   topic: "k1s0.system.mastermaintenance.data_changed.v1"
 
+# ADR-0053 AuthConfig ネスト形式移行: フラット形式から jwt/jwks サブキーにネスト化する
 auth:
-  jwks_url: "http://localhost:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://localhost:8080/realms/k1s0"
-  audience: "k1s0-system"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://localhost:8080/realms/k1s0"
+    audience: "k1s0-system"
+  jwks:
+    url: "http://localhost:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300
 
 rule_engine:
   max_rules_per_table: 100
@@ -69,7 +72,11 @@ database:
 #   brokers:
 #     - "localhost:9092"
 #   security_protocol: "PLAINTEXT"
+# ADR-0053 AuthConfig ネスト形式: 本番設定のコメント例も新形式に統一する
 # auth:
-#   jwks_url: "http://auth:8080/jwks"
-#   issuer: "k1s0"
-#   audience: "k1s0-system"
+#   jwt:
+#     issuer: "http://auth:8080/realms/k1s0"
+#     audience: "k1s0-system"
+#   jwks:
+#     url: "http://auth:8080/jwks"
+#     cache_ttl_secs: 300

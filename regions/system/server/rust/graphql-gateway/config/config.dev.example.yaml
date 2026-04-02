@@ -14,11 +14,15 @@ graphql:
   max_complexity: 1000
 
 auth:
-  jwks_url: "http://localhost:8080/jwks"
-  # JWT issuer 検証（ローカル auth サーバーの iss クレームと一致させる）
-  issuer: "k1s0"
-  # JWT audience 検証（ローカル auth サーバーの aud クレームと一致させる）
-  audience: "k1s0-system"
+  # HIGH-010: ADR-0053 AuthConfig ネスト形式（dev.yaml の example 版も同期更新）
+  jwt:
+    # JWT issuer 検証（ローカル auth サーバーの iss クレームと一致させる）
+    issuer: "k1s0"
+    # JWT audience 検証（ローカル auth サーバーの aud クレームと一致させる）
+    audience: "k1s0-system"
+  jwks:
+    url: "http://localhost:8080/jwks"
+    cache_ttl_secs: 300
 
 backends:
   tenant:

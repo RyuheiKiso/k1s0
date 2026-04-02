@@ -26,8 +26,11 @@ database:
   max_idle_conns: 5
   conn_max_lifetime: 300
 
+# ADR-0053 AuthConfig ネスト形式移行: フラット形式から jwt/jwks サブキーにネスト化する
 auth:
-  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://keycloak:8080/realms/k1s0"
-  audience: "k1s0-api"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300

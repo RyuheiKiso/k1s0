@@ -56,17 +56,23 @@ impl ProjectMasterKafkaProducer {
 #[async_trait]
 impl ProjectMasterEventPublisher for ProjectMasterKafkaProducer {
     async fn publish_project_type_changed(&self, event: &ProjectTypeChangedEvent) -> anyhow::Result<()> {
-        let payload = serde_json::to_vec(event).unwrap_or_default();
+        // HIGH-013: シリアライズ失敗時は空ペイロードを送信せずエラーを伝播させる
+        let payload = serde_json::to_vec(event)
+            .map_err(|e| anyhow::anyhow!("Kafkaイベントのシリアライズに失敗: {}", e))?;
         self.publish(&self.project_type_changed_topic, &event.project_type_id, &payload).await
     }
 
     async fn publish_status_definition_changed(&self, event: &StatusDefinitionChangedEvent) -> anyhow::Result<()> {
-        let payload = serde_json::to_vec(event).unwrap_or_default();
+        // HIGH-013: シリアライズ失敗時は空ペイロードを送信せずエラーを伝播させる
+        let payload = serde_json::to_vec(event)
+            .map_err(|e| anyhow::anyhow!("Kafkaイベントのシリアライズに失敗: {}", e))?;
         self.publish(&self.status_definition_changed_topic, &event.status_definition_id, &payload).await
     }
 
     async fn publish_tenant_extension_changed(&self, event: &TenantExtensionChangedEvent) -> anyhow::Result<()> {
-        let payload = serde_json::to_vec(event).unwrap_or_default();
+        // HIGH-013: シリアライズ失敗時は空ペイロードを送信せずエラーを伝播させる
+        let payload = serde_json::to_vec(event)
+            .map_err(|e| anyhow::anyhow!("Kafkaイベントのシリアライズに失敗: {}", e))?;
         self.publish(&self.tenant_extension_changed_topic, &event.tenant_id, &payload).await
     }
 }

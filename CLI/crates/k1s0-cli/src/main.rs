@@ -35,7 +35,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// プロジェクトを初期化する
-    Init,
+    Init {
+        /// プロジェクト名（--non-interactive 時は必須）
+        #[arg(long, value_name = "NAME")]
+        name: Option<String>,
+    },
     /// ひな形を生成する
     Generate,
     /// ビルドを実行する
@@ -142,7 +146,14 @@ fn main() {
 
         // 各サブコマンドを対話モードと同じ run() 関数に委譲する
         let result = match command {
-            Commands::Init => commands::init::run(),
+            // LOW-001 対応: --name が指定された場合は非インタラクティブモードで直接実行する
+            Commands::Init { name } => {
+                if non_interactive {
+                    commands::init::run_non_interactive(name)
+                } else {
+                    commands::init::run()
+                }
+            }
             Commands::Generate => commands::generate::run(),
             Commands::Build => commands::build::run(),
             Commands::Test => commands::test_cmd::run(),

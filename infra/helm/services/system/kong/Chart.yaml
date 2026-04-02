@@ -1,6 +1,7 @@
 apiVersion: v2
 name: kong
 description: Kong API Gateway for the k1s0 system tier
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/assets/k1s0-icon.png
 type: application
 version: 0.1.0
 appVersion: "3.8.0"

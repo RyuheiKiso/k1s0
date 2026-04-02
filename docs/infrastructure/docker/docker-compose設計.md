@@ -62,6 +62,30 @@ docker compose --profile infra --profile system up -d
 docker compose --profile infra --profile observability --profile system --profile business --profile service up -d
 ```
 
+## 推奨 Docker Desktop リソース要件
+
+全プロファイル（infra + system + business + service + observability）を同時起動する場合:
+
+| リソース | 最低要件 | 推奨 |
+|---------|---------|------|
+| CPU | 4コア | 8コア以上 |
+| メモリ | 8GB | 16GB以上 |
+| ディスク空き | 50GB | 100GB以上 |
+
+> **注意**: リソースが不足すると、起動後 30〜60 分で healthcheck timeout が多発し、
+> コンテナが段階的に unhealthy になります（HIGH-009 監査指摘）。
+> Docker Desktop の **Settings → Resources** で CPU とメモリを増加してください。
+
+### プロファイル別の目安
+
+| プロファイル | コンテナ数 | 追加メモリ目安 |
+|------------|----------|-------------|
+| infra | 8 | 3GB |
+| system | 25 | 6GB |
+| business + service | 4 | 1GB |
+| observability | 5 | 2GB |
+| **合計** | **42** | **12GB** |
+
 ## docker-compose.yaml
 
 ```yaml

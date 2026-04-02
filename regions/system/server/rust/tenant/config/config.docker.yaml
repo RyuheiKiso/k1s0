@@ -12,3 +12,11 @@ kafka:
   brokers:
     - "kafka:9092"
   security_protocol: "PLAINTEXT"
+
+# HIGH-007: readyz エンドポイントで Keycloak への疎通確認を有効化する
+# keycloak セクションが Some の場合、startup.rs で keycloak_health_url が構築され readyz でチェックされる
+keycloak:
+  base_url: "http://keycloak:8080"
+  realm: "k1s0"
+  client_id: "admin-cli"
+  client_secret: ""

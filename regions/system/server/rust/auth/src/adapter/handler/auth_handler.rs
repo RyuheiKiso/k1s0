@@ -100,7 +100,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     (
         status_code,
         Json(serde_json::json!({
-            "status": if overall_ok { "ready" } else { "not ready" },
+            // MED-001: ステータス文字列を "not_ready" に統一（"not ready" はスペース付きで不統一）
+            "status": if overall_ok { "ready" } else { "not_ready" },
             "checks": {
                 "database": db_status,
                 "keycloak": kc_status

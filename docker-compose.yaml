@@ -449,6 +449,10 @@ services:
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_LOG_LEVEL: info
+      # MED-002: worker event broker タイムアウト対策
+      # worker_state_update_frequency を延ばすことで "failed to receive the header bytes: timeout" の多発を抑制する
+      # Kong 3.x でサポートされる環境変数（デフォルト: 5秒）
+      KONG_WORKER_STATE_UPDATE_FREQUENCY: "10"
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
@@ -1316,7 +1320,8 @@ services:
     # リソース制限: kafka-topics.sh を並列実行するため JVM プロセスが複数起動する。
     # DOCKER-001 監査対応: 256m では OOM Kill が発生し 44 トピック中 37 件が未作成になるため 1g に引き上げ。
     mem_limit: 1g
-    cpus: 0.25
+    # CRIT-004 監査対応: 57トピックを並列JVMプロセスで作成する際、cpus: 0.25 ではJVMがSIGKILLされトピック作成が断続的に失敗するため 1.0 に引き上げ。
+    cpus: 1.0
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
     security_opt:
       - no-new-privileges:true

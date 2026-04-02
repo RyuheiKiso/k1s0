@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use std::path::Path;
 
 use crate::prompt::{self, ConfirmResult};
@@ -16,6 +16,43 @@ enum Step {
     SparseCheckout,
     TierSelection,
     Confirm,
+}
+
+/// 非インタラクティブモードでプロジェクト初期化を実行する。
+///
+/// `--name` が指定されていない場合はエラーを返す。
+/// `git_init`・`sparse_checkout` はデフォルト値（false）を使用し、
+/// 全Tierをチェックアウト対象とする。
+///
+/// # Errors
+///
+/// `--name` が未指定の場合、またはプロジェクト初期化に失敗した場合にエラーを返す。
+pub fn run_non_interactive(name: Option<String>) -> Result<()> {
+    // --name が未指定の場合は使用方法を案内してエラーを返す
+    let project_name = match name {
+        Some(n) if !n.is_empty() => n,
+        _ => bail!(
+            "非インタラクティブモードでは --name が必須です。\n\
+            使用例: k1s0 init --name my-project --non-interactive"
+        ),
+    };
+
+    // 既にディレクトリが存在する場合は上書きを防ぐためエラーを返す
+    if Path::new(&project_name).exists() {
+        bail!("'{project_name}' は既に存在します。別の名前を指定してください。");
+    }
+
+    // 非インタラクティブモードのデフォルト設定: git_init=false, sparse_checkout=false, 全Tier
+    let config = InitConfig {
+        project_name: project_name.clone(),
+        git_init: false,
+        sparse_checkout: false,
+        tiers: vec![Tier::System, Tier::Business, Tier::Service],
+    };
+
+    execute_init(&config)?;
+    println!("\nプロジェクト '{project_name}' の初期化が完了しました。");
+    Ok(())
 }
 
 /// プロジェクト初期化コマンドを実行する。

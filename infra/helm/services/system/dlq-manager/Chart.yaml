@@ -1,6 +1,7 @@
 apiVersion: v2
 name: dlq-manager
 description: k1s0 dlq-manager service
+icon: https://raw.githubusercontent.com/k1s0/k1s0/main/docs/assets/k1s0-icon.png
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

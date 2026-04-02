@@ -20,9 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_workflow_tasks_assignee_id ON workflow.workflow_t
 CREATE INDEX IF NOT EXISTS idx_workflow_tasks_status ON workflow.workflow_tasks (status);
 CREATE INDEX IF NOT EXISTS idx_workflow_tasks_due_at ON workflow.workflow_tasks (due_at);
 
--- CRIT-10 監査対応: CREATE OR REPLACE TRIGGER を使用してべき等性を保証する（PostgreSQL 14+）
--- CREATE TRIGGER のみでは再適用時に "trigger already exists" エラーが発生し起動不能になるリスクがある。
-CREATE OR REPLACE TRIGGER trigger_workflow_tasks_update_updated_at
+CREATE TRIGGER trigger_workflow_tasks_update_updated_at
     BEFORE UPDATE ON workflow.workflow_tasks
     FOR EACH ROW
     EXECUTE FUNCTION workflow.update_updated_at();

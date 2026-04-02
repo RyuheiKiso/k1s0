@@ -83,6 +83,27 @@ L-22 対応: image.tag が空文字の場合にエラーを発生させる。
 {{- if not .Values.image.tag -}}
 {{- fail "image.tag は必須です。helm install/upgrade 時に --set image.tag=<version> を指定してください。" -}}
 {{- end -}}
+{{/* HIGH-011: database.password は Vault Agent Injector 経由で各 Pod の /vault/secrets/db-password に
+     ファイルベースでマウントされる設計（ADR-0045）のため、Helm values レベルでのチェックは不要。
+     全 k1s0 サービスの config は values.yaml の config.data["config.yaml"] 内の YAML 文字列として管理されており
+     Helm テンプレートから password フィールドを直接参照できない構造のため、ここではチェックを行わない。
+     Vault ロール設定（infra/vault/）で DB シークレットへのアクセス制御を実施すること。 */}}
+{{/* HIGH-011 (grafana): grafana.database.password が空の場合はデプロイを失敗させる。
+     Grafana の PostgreSQL バックエンド接続に使用するパスワードが空だとDB認証が通らずサービスが起動しない。
+     Vault / Helm --set で必ず上書きすること。 */}}
+{{- if hasKey .Values "grafana" -}}
+{{- if hasKey .Values.grafana "database" -}}
+{{- if not .Values.grafana.database.password -}}
+{{- fail "grafana.database.password は必須です。--set grafana.database.password=<value> を指定してください。" -}}
+{{- end -}}
+{{- end -}}
+{{/* HIGH-011 (grafana): grafana.adminPassword が空の場合はデプロイを失敗させる。
+     デフォルト空パスワードのまま Grafana を本番デプロイすると管理者アカウントが無防備になる。
+     Vault / Helm --set で必ず上書きすること。 */}}
+{{- if not .Values.grafana.adminPassword -}}
+{{- fail "grafana.adminPassword は必須です。--set grafana.adminPassword=<value> を指定してください。" -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 
 {{/*

@@ -1991,89 +1991,115 @@ async fn healthz() -> Json<serde_json::Value> {
 }
 
 async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let tenant_status = match state.tenant_client.list_tenants(1, 1).await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let featureflag_status = match state.feature_flag_client.list_flags(None).await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let config_status = match state
-        .config_client
-        .get_config("__readyz__", "__readyz__")
-        .await
-    {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let navigation_status = match state.navigation_client.get_navigation("").await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let service_catalog_status = match state
-        .service_catalog_client
-        .list_services(1, 1, None, None, None)
-        .await
-    {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let auth_status = match state.auth_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let session_status = match state.session_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let vault_status = match state.vault_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let scheduler_status = match state.scheduler_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let notification_status = match state.notification_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let workflow_status = match state.workflow_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
+    // HIGH-001 対応: 全バックエンドサービスを tokio::join! で並列チェックし、
+    // 直列実行による応答時間の累積（約4.1秒）を解消する。
+    // 各チェックには2秒のタイムアウトを設定し、5秒の healthcheck timeout に収まるようにする。
+    // essential サービス（auth/session/tenant/config）の失敗のみ not_ready とし、
+    // non-essential サービスの失敗は degraded として HTTP 200 で返す。
+    // MED-005 対応: workflow など1サービスの障害で gateway 全体が not_ready になる問題を解消する。
+    use std::time::Duration;
 
-    let ready = tenant_status == "ok"
+    // 各バックエンドチェックのタイムアウト（2秒）
+    let timeout = Duration::from_secs(2);
+
+    // 全11サービスを同時に並列実行する
+    let (
+        auth_result,
+        session_result,
+        tenant_result,
+        config_result,
+        featureflag_result,
+        navigation_result,
+        service_catalog_result,
+        vault_result,
+        scheduler_result,
+        notification_result,
+        workflow_result,
+    ) = tokio::join!(
+        tokio::time::timeout(timeout, state.auth_client.health_check()),
+        tokio::time::timeout(timeout, state.session_client.health_check()),
+        tokio::time::timeout(timeout, state.tenant_client.list_tenants(1, 1)),
+        tokio::time::timeout(
+            timeout,
+            state.config_client.get_config("__readyz__", "__readyz__")
+        ),
+        tokio::time::timeout(timeout, state.feature_flag_client.list_flags(None)),
+        tokio::time::timeout(timeout, state.navigation_client.get_navigation("")),
+        tokio::time::timeout(
+            timeout,
+            state.service_catalog_client.list_services(1, 1, None, None, None)
+        ),
+        tokio::time::timeout(timeout, state.vault_client.health_check()),
+        tokio::time::timeout(timeout, state.scheduler_client.health_check()),
+        tokio::time::timeout(timeout, state.notification_client.health_check()),
+        tokio::time::timeout(timeout, state.workflow_client.health_check()),
+    );
+
+    // Result<Result<T, E>, Elapsed> をステータス文字列に変換するローカルヘルパー関数
+    fn to_status<T, E: std::fmt::Display>(
+        r: Result<Result<T, E>, tokio::time::error::Elapsed>,
+    ) -> String {
+        match r {
+            Ok(Ok(_)) => "ok".to_string(),
+            Ok(Err(e)) => format!("error: {}", e),
+            Err(_) => "error: timeout".to_string(),
+        }
+    }
+
+    // 各サービスの結果をステータス文字列に変換する
+    let auth_status = to_status(auth_result);
+    let session_status = to_status(session_result);
+    let tenant_status = to_status(tenant_result);
+    let config_status = to_status(config_result);
+    let featureflag_status = to_status(featureflag_result);
+    let navigation_status = to_status(navigation_result);
+    let service_catalog_status = to_status(service_catalog_result);
+    let vault_status = to_status(vault_result);
+    let scheduler_status = to_status(scheduler_result);
+    let notification_status = to_status(notification_result);
+    let workflow_status = to_status(workflow_result);
+
+    // essential サービス（基幹機能）が全て ok の場合のみ ready または degraded とする
+    let essential_ok = auth_status == "ok"
+        && session_status == "ok"
+        && tenant_status == "ok"
+        && config_status == "ok";
+
+    // non-essential を含む全サービスが ok かどうか確認する
+    let all_ok = essential_ok
         && featureflag_status == "ok"
-        && config_status == "ok"
         && navigation_status == "ok"
         && service_catalog_status == "ok"
-        && auth_status == "ok"
-        && session_status == "ok"
         && vault_status == "ok"
         && scheduler_status == "ok"
         && notification_status == "ok"
         && workflow_status == "ok";
-    let status_code = if ready {
-        StatusCode::OK
+
+    // ステータスと HTTP ステータスコードを決定する:
+    // - 全サービス ok → "ready" / 200
+    // - essential のみ ok → "degraded" / 200（non-essential の障害は許容）
+    // - essential に失敗あり → "not_ready" / 503
+    let (status_str, status_code) = if all_ok {
+        ("ready", StatusCode::OK)
+    } else if essential_ok {
+        ("degraded", StatusCode::OK)
     } else {
-        StatusCode::SERVICE_UNAVAILABLE
+        ("not_ready", StatusCode::SERVICE_UNAVAILABLE)
     };
 
     (
         status_code,
         Json(serde_json::json!({
-            "status": if ready { "ready" } else { "not_ready" },
+            "status": status_str,
             "checks": {
+                "auth_grpc": auth_status,
+                "session_grpc": session_status,
                 "tenant_grpc": tenant_status,
-                "featureflag_grpc": featureflag_status,
                 "config_grpc": config_status,
+                "featureflag_grpc": featureflag_status,
                 "navigation_grpc": navigation_status,
                 // service-catalog は REST 接続のため key 名を http に変更
                 "service_catalog_http": service_catalog_status,
-                "auth_grpc": auth_status,
-                "session_grpc": session_status,
                 "vault_grpc": vault_status,
                 "scheduler_grpc": scheduler_status,
                 "notification_grpc": notification_status,

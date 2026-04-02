@@ -27,3 +27,31 @@ jobs:
       service-path: regions/system/server/rust/ratelimit
       package-name: k1s0-ratelimit-server
       workspace-path: regions/system
+
+  # HIGH-014: testcontainers を使用した DB 統合テストを CI で実行する
+  # ubuntu-latest ランナーには Docker が含まれているため DinD 不要
+  test-db-integration:
+    name: DB統合テスト（testcontainers）
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Rustツールチェーンセットアップ
+        uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+        with:
+          toolchain: stable
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - name: Rustキャッシュ設定
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: regions/system
+      - name: testcontainersDB統合テスト実行
+        # HIGH-014: testcontainers を使用した DB 統合テストを CI で実行する
+        # ubuntu-latest ランナーには Docker が含まれているため DinD 不要
+        run: |
+          cargo test --manifest-path regions/system/Cargo.toml \
+            -p k1s0-ratelimit-server \
+            --test db_integration_test \
+            -- --include-ignored --test-threads=1
