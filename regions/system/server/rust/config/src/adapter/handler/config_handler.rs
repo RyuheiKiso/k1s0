@@ -58,7 +58,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     };
 
     let all_ok = db_ok && (!state.kafka_configured || kafka_status == "ok");
-    let status = if all_ok { "ready" } else { "not_ready" };
+    // ADR-0068 準拠: "healthy"/"unhealthy" を使用する（MED-006 監査対応）
+    let status = if all_ok { "healthy" } else { "unhealthy" };
     let code = if all_ok {
         StatusCode::OK
     } else {
@@ -400,7 +401,8 @@ mod tests {
             .expect("request build should succeed");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("request build should succeed");
-        assert_eq!(json["status"], "ready");
+        // ADR-0068 準拠: "healthy" が正しい値（MED-006 監査対応）
+        assert_eq!(json["status"], "healthy");
         assert_eq!(json["checks"]["database"], "ok");
     }
 

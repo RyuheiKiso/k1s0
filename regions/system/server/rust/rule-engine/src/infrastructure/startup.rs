@@ -12,6 +12,10 @@ use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 
 use crate::adapter;
+use crate::adapter::repository::{
+    EvaluationLogPostgresRepository, RulePostgresRepository, RuleSetPostgresRepository,
+    RuleSetVersionPostgresRepository,
+};
 use crate::infrastructure;
 use crate::proto;
 use crate::usecase;
@@ -63,8 +67,7 @@ pub async fn run() -> anyhow::Result<()> {
         cfg.cache.ttl_seconds,
     ));
 
-    // Repositories: InMemory fallback (PostgreSQL would be similar to policy-server)
-    // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
+    // Repositories: DB 設定が存在する場合は PostgreSQL リポジトリを使用する（MED-007 監査対応）
     // cfg.database または DATABASE_URL が設定されている場合は "present" として扱う
     let db_present = cfg
         .database
@@ -77,12 +80,6 @@ pub async fn run() -> anyhow::Result<()> {
         &cfg.app.environment,
         db_present,
     )?;
-    let rule_repo: Arc<dyn RuleRepository> = Arc::new(InMemoryRuleRepository::new());
-    let rule_set_repo: Arc<dyn RuleSetRepository> = Arc::new(InMemoryRuleSetRepository::new());
-    let version_repo: Arc<dyn RuleSetVersionRepository> =
-        Arc::new(InMemoryRuleSetVersionRepository::new());
-    let eval_log_repo: Arc<dyn EvaluationLogRepository> =
-        Arc::new(InMemoryEvaluationLogRepository::new());
 
     // Kafka event publisher
     let event_publisher: Arc<dyn RuleEventPublisher> = if let Some(ref kafka_cfg) = cfg.kafka {
@@ -126,6 +123,58 @@ pub async fn run() -> anyhow::Result<()> {
             })
             .transpose()?,
     )?;
+
+    // MED-007 監査対応: DB 設定が存在する場合は PostgreSQL リポジトリを使用する。
+    // 接続に失敗した場合のみ in-memory フォールバックを使用する。
+    let (rule_repo, rule_set_repo, version_repo, eval_log_repo, backend_kind, db_pool) =
+        if cfg.database.is_some() || std::env::var("DATABASE_URL").is_ok() {
+            match infrastructure::database::connect_optional(&cfg).await {
+                Some(pool) => {
+                    info!("connected to PostgreSQL for rule-engine, using pg-backed repositories");
+                    let pool = Arc::new(pool);
+                    let rule_repo: Arc<dyn RuleRepository> =
+                        Arc::new(RulePostgresRepository::new(pool.clone()));
+                    let rule_set_repo: Arc<dyn RuleSetRepository> =
+                        Arc::new(RuleSetPostgresRepository::new(pool.clone()));
+                    let version_repo: Arc<dyn RuleSetVersionRepository> =
+                        Arc::new(RuleSetVersionPostgresRepository::new(pool.clone()));
+                    let eval_log_repo: Arc<dyn EvaluationLogRepository> =
+                        Arc::new(EvaluationLogPostgresRepository::new(pool.clone()));
+                    (
+                        rule_repo,
+                        rule_set_repo,
+                        version_repo,
+                        eval_log_repo,
+                        "postgres".to_string(),
+                        Some(pool),
+                    )
+                }
+                None => {
+                    info!("PostgreSQL connection failed, falling back to in-memory backend");
+                    (
+                        Arc::new(InMemoryRuleRepository::new()) as Arc<dyn RuleRepository>,
+                        Arc::new(InMemoryRuleSetRepository::new()) as Arc<dyn RuleSetRepository>,
+                        Arc::new(InMemoryRuleSetVersionRepository::new())
+                            as Arc<dyn RuleSetVersionRepository>,
+                        Arc::new(InMemoryEvaluationLogRepository::new())
+                            as Arc<dyn EvaluationLogRepository>,
+                        "in-memory".to_string(),
+                        None,
+                    )
+                }
+            }
+        } else {
+            (
+                Arc::new(InMemoryRuleRepository::new()) as Arc<dyn RuleRepository>,
+                Arc::new(InMemoryRuleSetRepository::new()) as Arc<dyn RuleSetRepository>,
+                Arc::new(InMemoryRuleSetVersionRepository::new())
+                    as Arc<dyn RuleSetVersionRepository>,
+                Arc::new(InMemoryEvaluationLogRepository::new())
+                    as Arc<dyn EvaluationLogRepository>,
+                "in-memory".to_string(),
+                None,
+            )
+        };
 
     let create_rule_uc = Arc::new(usecase::CreateRuleUseCase::with_publisher(
         rule_repo.clone(),
@@ -191,10 +240,6 @@ pub async fn run() -> anyhow::Result<()> {
         evaluate_uc.clone(),
     ));
 
-    // バックエンド種別を health エンドポイントで返すために設定
-    // 現在は in-memory リポジトリのみ。database 構成追加時に "postgres" へ変更すること。
-    let backend_kind = "in-memory".to_string();
-
     let mut state = adapter::handler::AppState {
         create_rule_uc,
         get_rule_uc,
@@ -213,6 +258,7 @@ pub async fn run() -> anyhow::Result<()> {
         metrics: metrics.clone(),
         auth_state: None,
         backend_kind,
+        db_pool,
     };
     // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
     let grpc_auth_layer =

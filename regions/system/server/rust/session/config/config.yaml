@@ -35,7 +35,7 @@ database:
 #   connect_timeout_seconds: 3
 # kafka:
 #   brokers:
-#     - "kafka-0.messaging.svc.cluster.local:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9093"
 #   consumer_group: "session-server.default"
 #   security_protocol: "PLAINTEXT"
 #   topic_revoke_all: "k1s0.system.session.revoke_all.v1"

@@ -84,7 +84,9 @@ spec:
                   # - k1s0_saga: Saga 分散トランザクション（Rust saga サービス）
                   # - k1s0_service: service Tier 共通スキーマ
                   # - k1s0_business: business Tier 共通スキーマ
-                  # notification は永続化 DB なし（ステートレス配信）
+                  # - notification_db: 通知履歴・配信状態（MED-013 監査対応）
+                  # - k1s0_event_monitor: イベント監視メタデータ（MED-013 監査対応）
+                  # - k1s0_master_maintenance: マスターメンテナンス定義（MED-013 監査対応）
                   for DB in \
                     k1s0_system \
                     auth_db \
@@ -108,7 +110,10 @@ spec:
                     dlq_db \
                     k1s0_saga \
                     k1s0_service \
-                    k1s0_business; do
+                    k1s0_business \
+                    notification_db \
+                    k1s0_event_monitor \
+                    k1s0_master_maintenance; do
                     CURRENT_BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
                     echo "Backing up database: ${DB}"
                     pg_dump \

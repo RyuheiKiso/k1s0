@@ -19,9 +19,13 @@ pub async fn metrics_handler() -> impl IntoResponse {
     use prometheus::Encoder;
     let encoder = prometheus::TextEncoder::new();
     let mut buffer = Vec::new();
+    // MED-015 監査対応: エンコードエラーをサイレント無視せずログ出力する
+    // unwrap_or_default() はエラーを完全に無視するため、検知不能な障害を引き起こす可能性がある
     encoder
         .encode(&prometheus::gather(), &mut buffer)
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            tracing::error!(error = %e, "prometheus metrics encode failed");
+        });
     (
         StatusCode::OK,
         [("content-type", "text/plain; version=0.0.4")],

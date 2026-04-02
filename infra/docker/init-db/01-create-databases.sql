@@ -32,10 +32,8 @@ CREATE DATABASE tenant_db;
 -- vault-server 用DB
 CREATE DATABASE vault_db;
 
--- task-server 用DB（M-2 監査対応: 使用意図を明記）
--- k1s0_task は将来実装予定の task-server サービスが使用するデータベース
--- 現時点では未実装のため孤立状態だが、将来的にタスク管理機能を提供するサービスで利用される予定
-CREATE DATABASE k1s0_task;
+-- task サービスは k1s0_service DB を使用するため k1s0_task は不要（MED-009 監査対応: 孤立 DB 削除）
+-- task/config/default.yaml の database.name: k1s0_service を参照
 
 -- event-store-server 用DB
 CREATE DATABASE event_store_db;
@@ -77,8 +75,12 @@ CREATE DATABASE service_catalog_db;
 -- master-maintenance サービスも k1s0_system を使用するため、同一 DB の共有は sqlx マイグレーション競合を引き起こす。
 CREATE DATABASE k1s0_saga;
 
--- master-maintenance 用スキーマ (k1s0_system 内)
--- master_maintenance スキーマは k1s0_system DB 内で作成される
+-- event-monitor サービス専用DB（CRIT-001 監査対応: k1s0_system からの分離で _sqlx_migrations 競合を解消）
+-- event-monitor-db と master-maintenance-db が同一 DB を共有すると migration 番号が衝突する
+CREATE DATABASE k1s0_event_monitor;
+
+-- master-maintenance サービス専用DB（CRIT-001 監査対応: k1s0_system からの分離で _sqlx_migrations 競合を解消）
+CREATE DATABASE k1s0_master_maintenance;
 
 -- api-registry 用DB
 CREATE DATABASE api_registry_db;
@@ -91,7 +93,9 @@ CREATE DATABASE app_registry_db;
 GRANT CONNECT ON DATABASE k1s0_service TO k1s0;
 GRANT CONNECT ON DATABASE k1s0_system TO k1s0;
 GRANT CONNECT ON DATABASE k1s0_business TO k1s0;
-GRANT CONNECT ON DATABASE k1s0_task TO k1s0;
+-- k1s0_task は MED-009 対応で削除済みのため GRANT も削除
+GRANT CONNECT ON DATABASE k1s0_event_monitor TO k1s0;
+GRANT CONNECT ON DATABASE k1s0_master_maintenance TO k1s0;
 GRANT CONNECT ON DATABASE auth_db TO k1s0;
 GRANT CONNECT ON DATABASE config_db TO k1s0;
 GRANT CONNECT ON DATABASE featureflag_db TO k1s0;

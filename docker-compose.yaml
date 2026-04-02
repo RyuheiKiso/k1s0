@@ -1341,9 +1341,8 @@ services:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
     # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
-    # HIGH-10 監査対応: Kafka ブローカー起動遅延で3回失敗するとトピック未作成のまま終了するため
-    # 最大10回に増加してブローカー起動完了を十分に待機できるようにする
-    restart: "on-failure:10"
+    # HIGH-004 監査対応: --if-not-exists 使用で冪等なため3回で十分（以前の10回は過剰だった）
+    restart: "on-failure:3"
 
   # ============================================================
   # 可観測性

@@ -141,7 +141,7 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 | コマンド | 説明 |
 |---------|------|
 | `just local-up` | `local-up-dev` の別名。開発環境の標準起動コマンド。 |
-| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**2フェーズ起動**（RUNTIME-001 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認、Vault init を実行後、Phase 2 でシステム/ビジネス/サービス層を起動。各サービスが `sqlx::migrate!()` で安全にマイグレーションを実行できる。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。自動マイグレーションは saga / workflow / scheduler / master-maintenance の4サービスのみ。残り19サービスは事前に `just migrate-all` の実行が必要（MED-004 監査対応）。 |
+| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003 監査対応）、Phase 2 でシステム/ビジネス/サービス層を起動。`sqlx-cli` が未インストールの場合は WARN を出力して続行（`just doctor` で確認を推奨）。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。 |
 | `just local-up-base` | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
 
 ### Docker Compose プロファイル構成

@@ -70,9 +70,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut kc_status = "skipped";
     let mut overall_ok = true;
 
-    // DB check
+    // DB check: テーブル存在確認まで行い、スキーマ未初期化でも "ready" を返す誤検知を防ぐ（MED-006 監査対応）
+    // `SELECT 1` だけでは DB 接続の疎通確認のみでスキーマ未初期化を見逃すため、実テーブルを参照する
     if let Some(ref pool) = state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool).await {
+        match sqlx::query("SELECT 1 FROM auth.users LIMIT 0").execute(pool).await {
             Ok(_) => db_status = "ok",
             Err(_) => {
                 db_status = "error";
@@ -100,8 +101,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     (
         status_code,
         Json(serde_json::json!({
-            // MED-001: ステータス文字列を "not_ready" に統一（"not ready" はスペース付きで不統一）
-            "status": if overall_ok { "ready" } else { "not_ready" },
+            // ADR-0068 準拠: status は healthy / unhealthy の2値を使用する（MED-006 監査対応）
+            // "ready"/"not_ready" は非標準のため "healthy"/"unhealthy" に統一する
+            "status": if overall_ok { "healthy" } else { "unhealthy" },
             "checks": {
                 "database": db_status,
                 "keycloak": kc_status
@@ -443,7 +445,8 @@ mod tests {
             .expect("レスポンスボディの読み取りに失敗");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
-        assert_eq!(json["status"], "ready");
+        // ADR-0068 準拠: "healthy" が正しい値（MED-006 監査対応）
+        assert_eq!(json["status"], "healthy");
     }
 
     #[tokio::test]

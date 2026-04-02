@@ -615,6 +615,72 @@ docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.
 
 ---
 
+## 13. K8s desktop-worker ノードが NotReady 状態（LOW-012 監査対応）
+
+### 症状
+
+```bash
+kubectl get nodes
+# NAME              STATUS     ROLES           AGE
+# docker-desktop    Ready      control-plane   ...
+# desktop-worker    NotReady   <none>          ...
+```
+
+または `kubectl describe node desktop-worker` で以下のメッセージが確認される:
+
+```
+Kubelet stopped posting node status.
+```
+
+### 原因
+
+Docker Desktop の Kubernetes 機能を使用している場合、`desktop-worker` はワーカーノードとして自動作成される仮想ノードである。以下の状況で `NotReady` になる:
+
+- Docker Desktop の再起動後に kubelet が自動復旧しなかった
+- Docker Desktop のリソース不足（メモリ・CPU）でノードエージェントが停止した
+- Kubernetes クラスターの内部状態の破損
+
+### 対処
+
+**方法 1: Docker Desktop ごと再起動する（最も簡単）**
+
+```
+Docker Desktop タスクバーアイコン → Restart
+```
+
+再起動後、`kubectl get nodes` で `desktop-worker` が `Ready` になることを確認する。
+
+**方法 2: Kubernetes クラスターをリセットする**
+
+```
+Docker Desktop → Settings → Kubernetes → Reset Kubernetes Cluster
+```
+
+> **注意**: クラスターのリセットは全デプロイ・ConfigMap・Secret を削除する。ローカルで適用した K8s リソースは再適用が必要。
+
+**方法 3: ノードを強制削除して再参加させる**
+
+```bash
+# ノードを削除する（kubelet 再起動後に自動再参加する）
+kubectl delete node desktop-worker
+
+# Docker Desktop の Kubernetes を再起動する
+# （Restart ではなく Reset Kubernetes Cluster）
+```
+
+### CI/CD への影響
+
+この問題はローカル Docker Desktop 固有であり、CI/CD 環境には影響しない。
+
+CI/CD の K8s 統合テストには独立した環境（GitHub Actions の K8s サービスコンテナ、または専用クラスター）を使用すること。ローカルの `desktop-worker` 状態に依存したテストは書かないこと。
+
+### 参考
+
+- [kubernetes 設計](../kubernetes/kubernetes設計.md) — K8s 全体設計
+- [デプロイ手順書](../kubernetes/デプロイ手順書.md) — K8s デプロイ手順
+
+---
+
 ## 関連ドキュメント
 
 - [Windows クイックスタート](./windows-quickstart.md) — 3 つのセットアップ方法と手順

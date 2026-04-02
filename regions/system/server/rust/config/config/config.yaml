@@ -25,7 +25,7 @@ database:
 
 kafka:
   brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-0.messaging.svc.cluster.local:9093"
     - "kafka-1.messaging.svc.cluster.local:9092"
     - "kafka-2.messaging.svc.cluster.local:9092"
   consumer_group: "config-server.default"

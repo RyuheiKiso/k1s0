@@ -495,6 +495,21 @@ local-up-dev: _check-env
     else
       echo "[WARN] Vault 初期化が失敗しました。手動で 'bash infra/docker/vault/init-vault.sh' を実行してください" >&2
     fi
+    echo "--- Phase 1.5: データベースマイグレーション実行 (HIGH-003 監査対応) ---"
+    # sqlx-cli がインストール済みの場合はマイグレーションを自動実行する
+    # 未インストールの場合は WARN を出力して続行する（just doctor で sqlx の確認を推奨）
+    if command -v sqlx &>/dev/null; then
+        if just migrate-all; then
+            echo "--- Phase 1.5: マイグレーション完了 ---"
+        else
+            echo "[WARN] マイグレーションが失敗しました。サービス起動に影響する可能性があります。" >&2
+            echo "  手動でのマイグレーション: just migrate-all" >&2
+        fi
+    else
+        echo "[WARN] sqlx-cli が未インストールのためマイグレーションをスキップします。" >&2
+        echo "  インストール: cargo install sqlx-cli --no-default-features --features postgres" >&2
+        echo "  その後手動実行: just migrate-all" >&2
+    fi
     echo "--- Phase 2: システム/ビジネス/サービス層の起動 ---"
     # CRIT-002 監査対応: --build フラグでスタレイメージを防止する（Phase 1 と同様）
     docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml --profile system --profile business --profile service --profile observability up -d --build
@@ -571,14 +586,14 @@ migrate-all:
             dir_name=$(basename "$dir")
             # ディレクトリ名から実際のDB名への明示的マッピング
             # 単純な tr '-' '_' では導出できない例外を case で処理する:
-            #   dlq-manager-db        → dlq_db       (05-dlq-schema.sql が dlq_db に dlq スキーマを作成)
-            #   event-monitor-db      → k1s0_system  (event_monitor スキーマは k1s0_system 内に配置)
-            #   master-maintenance-db → k1s0_system  (master_maintenance スキーマは k1s0_system 内に配置)
-            #   saga-db               → k1s0_saga    (HIGH-006 監査対応: saga は k1s0_saga 専用 DB（ADR-0060で移行済み）)
+            #   dlq-manager-db        → dlq_db                (05-dlq-schema.sql が dlq_db に dlq スキーマを作成)
+            #   event-monitor-db      → k1s0_event_monitor   (CRIT-001 監査対応: k1s0_system から専用 DB に分離)
+            #   master-maintenance-db → k1s0_master_maintenance (CRIT-001 監査対応: k1s0_system から専用 DB に分離)
+            #   saga-db               → k1s0_saga             (HIGH-006 監査対応: saga は k1s0_saga 専用 DB（ADR-0060で移行済み）)
             case "$dir_name" in
                 dlq-manager-db)        db_name="dlq_db" ;;
-                event-monitor-db)      db_name="k1s0_system" ;;
-                master-maintenance-db) db_name="k1s0_system" ;;
+                event-monitor-db)      db_name="k1s0_event_monitor" ;;
+                master-maintenance-db) db_name="k1s0_master_maintenance" ;;
                 saga-db)               db_name="k1s0_saga" ;;
                 *)                     db_name=$(echo "$dir_name" | tr '-' '_') ;;
             esac

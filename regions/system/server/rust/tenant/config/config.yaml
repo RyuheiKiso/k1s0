@@ -36,7 +36,7 @@ database:
   conn_max_lifetime: "5m"
 # kafka:
 #   brokers:
-#     - "kafka-0.messaging.svc.cluster.local:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9093"
 #   security_protocol: "PLAINTEXT"
 #   topics:
 #     publish:

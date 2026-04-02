@@ -11,9 +11,10 @@ server:
   grpc_port: 50051
 
 database:
+  # CRIT-001 監査対応: k1s0_system から専用 DB に分離（_sqlx_migrations 競合解消）
   host: "postgres"
   port: 5432
-  name: "k1s0_system"
+  name: "k1s0_master_maintenance"
   schema: "master_maintenance"
   user: "dev"
   password: "${DB_PASSWORD:-dev}"

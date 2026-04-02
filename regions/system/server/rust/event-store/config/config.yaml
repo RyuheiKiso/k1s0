@@ -28,7 +28,7 @@ database:
   connect_timeout_seconds: 5
 # kafka:
 #   brokers:
-#     - "kafka-0.messaging.svc.cluster.local:9092"
+#     - "kafka-0.messaging.svc.cluster.local:9093"
 #   security_protocol: "PLAINTEXT"
 #   topic_published: "k1s0.system.eventstore.event.published.v1"
 #   producer_acks: "all"

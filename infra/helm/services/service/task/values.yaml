@@ -89,7 +89,7 @@ config:
 
       kafka:
         brokers:
-          - "kafka-0.messaging.svc.cluster.local:9092"
+          - "kafka-0.messaging.svc.cluster.local:9093"
         task_created_topic: "k1s0.service.task.created.v1"
         task_updated_topic: "k1s0.service.task.updated.v1"
         task_cancelled_topic: "k1s0.service.task.cancelled.v1"

@@ -83,8 +83,9 @@ jobs:
       - name: Go カバレッジ閾値チェック
         shell: bash
         run: |
-          # カバレッジ閾値: 70%（Rust/Go は初期値として70%から開始し、段階的に引き上げる）
-          GO_COVERAGE_THRESHOLD=70
+          # カバレッジ閾値: 75%（LOW-015 対応で 70% → 75% に引き上げ）
+          # TODO: 次回監査までに 80% を目標とする
+          GO_COVERAGE_THRESHOLD=75
           failed=0
           for covfile in coverage/*.out; do
             [ -f "$covfile" ] || continue
@@ -201,9 +202,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p coverage
-          # カバレッジ閾値: 70%（業界標準 80% からの暫定値、段階的引き上げを予定）
-          # M-04 対応: 実質的なビジネスロジックカバレッジ向上のために閾値を 80% に引き上げることを検討中
-          RUST_COVERAGE_THRESHOLD=70
+          # カバレッジ閾値: 75%（LOW-015 対応で 70% → 75% に引き上げ）
+          # TODO: 次回監査までに 80% を目標とする
+          RUST_COVERAGE_THRESHOLD=75
           # カバレッジ計測から以下を除外する:
           # - "*/tests/*": テストコード自体（カバレッジ対象外）
           # - "*/proto/*": Protocol Buffers 自動生成コード（品質評価対象外）

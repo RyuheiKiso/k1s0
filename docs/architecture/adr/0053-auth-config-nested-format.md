@@ -79,7 +79,7 @@ pub struct JwksConfig {
 
 ## 参考
 
-- [ADR-0004: JWT 認証設計](0004-jwt-authentication.md)
+- [ADR-0008: JWT 秘密鍵ローテーション手順](0008-jwt-key-rotation.md)
 
 ## 更新履歴
 

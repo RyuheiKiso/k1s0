@@ -193,7 +193,12 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut is_ready = true;
 
     if let Some(pool) = &state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+        // MED-006 監査対応: SELECT 1 ではなくスキーマ固有テーブルを参照して
+        // マイグレーション未実行でも ready を返す誤検知を防ぐ（ADR-0068 準拠）
+        match sqlx::query("SELECT 1 FROM tenant.tenants LIMIT 0")
+            .execute(pool.as_ref())
+            .await
+        {
             Ok(_) => {
                 checks.insert("database".to_string(), serde_json::json!("ok"));
             }
@@ -256,7 +261,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         checks.insert("keycloak".to_string(), serde_json::json!("not_configured"));
     }
 
-    let status = if is_ready { "ready" } else { "not_ready" };
+    // ADR-0068 準拠: status は healthy / unhealthy の2値を使用する（MED-006 監査対応）
+    let status = if is_ready { "healthy" } else { "unhealthy" };
     let code = if is_ready {
         StatusCode::OK
     } else {

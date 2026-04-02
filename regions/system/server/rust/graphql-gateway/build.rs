@@ -116,7 +116,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             && std::path::Path::new(workflow_proto).exists();
 
         if protos_exist {
-            // tonic-build v0.14 の Builder API を使用してクライアントコードのみを生成する。
+            // tonic-build v0.12 の Builder API を使用してクライアントコードのみを生成する。
             // build_server(false) でサーバースタブを生成しない（gateway はクライアントとしてのみ動作）。
             // 注意: buf/validate.proto が BSR 依存のため、protoc + libprotobuf-dev のみでは
             // コンパイルに失敗する可能性がある。その場合は api/proto/gen/rust/ を参照のこと。

@@ -18,7 +18,7 @@ database:
   conn_max_lifetime: "5m"
 kafka:
   brokers:
-    - "kafka-0.messaging-staging.svc.cluster.local:9092"
+    - "kafka-0.messaging-staging.svc.cluster.local:9093"
   consumer_group: "dlq-manager.staging"
   security_protocol: "PLAINTEXT"
   # DLQトピックのマッチングパターン（*.v1.dlq 形式に統一）

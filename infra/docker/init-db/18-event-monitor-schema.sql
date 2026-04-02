@@ -2,9 +2,10 @@
 -- スキーマ定義はマイグレーション（regions/system/server/rust/event-monitor/...）が担当する。
 -- 本ファイルは DB 接続先の切り替えとスキーマ・拡張機能の初期作成・権限設定のみを行う。
 -- CREATE TABLE / ALTER TABLE / CREATE INDEX / CREATE TRIGGER は含まない。
--- event_monitor スキーマは k1s0_system データベース内に作成する
+-- event_monitor スキーマは k1s0_event_monitor 専用データベース内に作成する
+-- CRIT-001 監査対応: k1s0_system からの分離で master-maintenance との _sqlx_migrations 競合を解消
 
-\c k1s0_system;
+\c k1s0_event_monitor;
 
 -- pgcrypto 拡張（gen_random_uuid 関数に必要）
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

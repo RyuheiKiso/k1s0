@@ -237,6 +237,15 @@ else
     warn "buf: buf が見つかりません → scripts/setup-wsl.sh を参考にインストールしてください"
 fi
 
+# sqlx-cli: just migrate-all の実行に必要（MED-010/HIGH-003 監査対応）
+if has sqlx; then
+    sqlx_ver=$(sqlx --version 2>/dev/null | awk '{print $2}')
+    ok "sqlx: ${sqlx_ver}"
+else
+    warn "sqlx: sqlx-cli が見つかりません → 'just migrate-all' の実行に必要です"
+    warn "  インストール: cargo install sqlx-cli --no-default-features --features postgres"
+fi
+
 # =============================================================================
 # チェック4: Dockerデーモンチェック
 # =============================================================================

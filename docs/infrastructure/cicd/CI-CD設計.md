@@ -32,7 +32,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | **Go サービス CI (reusable)** | `_go-service-ci.yaml` | `workflow_call` | Go サービスの共通 lint → test → build |
 | **サービス Deploy (reusable)** | `_service-deploy.yaml` | `workflow_call` | サービスの共通 build-push → deploy (dev→staging→prod) |
 | Proto Check       | `proto.yaml`      | `api/proto/**` 変更時       | proto lint + breaking（ci.yaml の lint-proto ジョブでも実行） |
-| Security Scan     | `security.yaml`   | 日次 + PR 時 + main マージ後 | 脆弱性スキャン。image-scan は schedule/push 時のみ実行（PR 時はイメージ未存在）。全ティアのサービスイメージをマトリクスでスキャン |
+| Security Scan     | `security.yaml`   | 日次 + PR 時 + main マージ後 | 脆弱性スキャン。image-scan は schedule/push 時のみ実行（PR 時はイメージ未存在）。全ティアのサービスイメージをマトリクスでスキャン（ai-gateway / ai-agent は試験中サービスのため除外、HIGH-010 監査対応） |
 | Kong Config Sync  | `kong-sync.yaml`  | main マージ時 (`infra/kong/**` 変更) | dev → staging → prod    |
 | OpenAPI Lint      | `api-lint.yaml`   | push (`**/api/openapi/**`)  | OpenAPI バリデーション & SDK 生成 |
 | Tauri GUI Build   | `tauri-build.yaml` | PR 時 + main マージ時 (`CLI/crates/k1s0-gui/**` 変更) | GUI クロスプラットフォームビルド（[TauriGUI設計](../../cli/gui/TauriGUI設計.md) 参照） |

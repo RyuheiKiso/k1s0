@@ -73,6 +73,11 @@
 | [ADR-0065](./0065-cosign-signature-verification.md) | app-registry Cosign 署名検証 | 承認済み |
 | [ADR-0066](./0066-config-value-encryption.md) | config サービス設定値 AES-256-GCM 暗号化 | 承認済み |
 | [ADR-0067](./0067-bff-proxy-ssrf-allowlist.md) | BFF プロキシ SSRF ホワイトリスト | 承認済み |
+| [ADR-0068](./0068-readyz-response-format.md) | readyz エンドポイントレスポンス形式の標準化 | 承認済み |
+| [ADR-0069](./0069-audit-response-2026-04-02.md) | 外部技術監査 2026-04-02 対応記録 | 承認済み |
+| [ADR-0070](./0070-db-isolation-event-monitor-master-maintenance.md) | event-monitor / master-maintenance の独立 DB 分離 | 承認済み |
+| [ADR-0071](./0071-tonic-012-proto-compatibility.md) | tonic 0.12 互換のための Proto 生成コード対応方針 | 承認済み |
+| [ADR-0072](./0072-rls-policy-type-cast-standardization.md) | RLS ポリシーの tenant_id 型キャスト標準化 | 承認済み |
 
 ## ADR の追加方法
 

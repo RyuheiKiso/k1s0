@@ -184,10 +184,8 @@ jobs:
             service: event-monitor
           - tier: system
             service: api-registry
-          - tier: system
-            service: ai-gateway
-          - tier: system
-            service: ai-agent
+          # ai-gateway, ai-agent は試験中サービスのため image-scan 対象から除外（HIGH-010 監査対応）
+          # renovate.json の excludePackagePatterns と統一する
           - tier: system
             service: service-catalog
           # --- business ティア ---

@@ -117,7 +117,7 @@
 - [ADR-0063: AES-GCM AAD セッションバインディング](0063-aes-gcm-aad-session-binding.md)
 - [ADR-0067: BFF プロキシ SSRF allowlist](0067-bff-proxy-ssrf-allowlist.md)
 - [ADR-0068: readyz レスポンス形式標準化](0068-readyz-response-format.md)
-- [tasks/lessons.md](../../../../tasks/lessons.md) — migration 改ざん禁止ポリシー
+- [tasks/lessons.md](../../../tasks/lessons.md) — migration 改ざん禁止ポリシー（LOW-013 監査対応: パス修正）
 
 ## 更新履歴
 

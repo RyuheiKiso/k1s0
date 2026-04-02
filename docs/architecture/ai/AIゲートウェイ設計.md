@@ -1999,8 +1999,8 @@ curl -X POST http://localhost:8120/api/v1/ai/embeddings \
 - [認証認可設計.md](../auth/認証認可設計.md) -- D-001: 認証設計、D-005: RBAC 設計
 - [gRPC設計.md](../api/gRPC設計.md) -- D-009: gRPC サービス定義パターン
 - [REST-API設計.md](../api/REST-API設計.md) -- D-007: 統一エラーレスポンス
-- [system-search-server.md](../../servers/search/server.md) -- 検索サーバー設計（OpenSearch 連携）
-- [system-workflow-server.md](../../servers/workflow/server.md) -- ワークフローサーバー設計（承認フロー）
-- [system-rule-engine-server.md](../../servers/rule-engine/server.md) -- ルールエンジンサーバー設計（ビジネスルール）
+- [system-search-server.md](../../servers/system/search/server.md) -- 検索サーバー設計（OpenSearch 連携）
+- [system-workflow-server.md](../../servers/system/workflow/server.md) -- ワークフローサーバー設計（承認フロー）
+- [system-rule-engine-server.md](../../servers/system/rule-engine/server.md) -- ルールエンジンサーバー設計（ビジネスルール）
 - [共通実装パターン.md](../../libraries/_common/共通実装パターン.md) -- ライブラリ共通パターン
 - [tier-architecture.md](../overview/tier-architecture.md) -- Tier アーキテクチャの詳細
