@@ -368,6 +368,14 @@ pub async fn run() -> anyhow::Result<()> {
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
         .layer(k1s0_correlation::layer::CorrelationLayer::new());
 
+    // gRPC Health Check Protocol サービスを登録する。
+    // readyz エンドポイントや Kubernetes の livenessProbe/readinessProbe が
+    // Bearer token なしでヘルスチェックできるようにするため。
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<NotificationServiceServer<adapter::grpc::NotificationServiceTonic>>()
+        .await;
+
     // gRPC グレースフルシャットダウン用シグナル
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
 
@@ -377,6 +385,7 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(health_service)
             .add_service(NotificationServiceServer::new(notification_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;

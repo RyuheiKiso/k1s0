@@ -15,21 +15,34 @@ use crate::usecase::update_config::UpdateConfigInput;
 /// システムテナントUUID: JWT Claims がない場合（dev モード / ヘルスチェック）のフォールバック値。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// Claims からテナントIDを抽出する。
-/// 空文字または Claims 未設定の場合はシステムテナントにフォールバックする。
-fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> Uuid {
-    claims
+/// JWT クレームからテナントIDを抽出する。
+/// クレームが存在しない場合、または tenant_id が無効な UUID の場合は 401 を返す。
+fn extract_tenant_id(
+    claims: &Option<Extension<k1s0_auth::Claims>>,
+) -> Result<Uuid, (StatusCode, Json<serde_json::Value>)> {
+    let tenant_id_str = claims
         .as_ref()
-        .and_then(|Extension(c)| {
-            if c.tenant_id.is_empty() {
-                None
-            } else {
-                Uuid::parse_str(&c.tenant_id).ok()
-            }
-        })
-        .unwrap_or_else(|| {
-            Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID must be valid")
-        })
+        .map(|Extension(c)| c.tenant_id.as_str())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": "Authentication required",
+                    "code": 401
+                })),
+            )
+        })?;
+
+    Uuid::parse_str(tenant_id_str).map_err(|_| {
+        (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "error": "Invalid tenant_id in JWT claims",
+                "code": 401
+            })),
+        )
+    })
 }
 
 #[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
@@ -105,7 +118,11 @@ pub async fn get_config(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let tenant_id = extract_tenant_id(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     match state.get_config_uc.execute(tenant_id, &namespace, &key).await {
         Ok(entry) => {
             let resp = serde_json::json!({
@@ -142,7 +159,11 @@ pub async fn list_configs(
     Path(namespace): Path<String>,
     Query(params): Query<ListConfigsParams>,
 ) -> impl IntoResponse {
-    let tenant_id = extract_tenant_id(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     match state
         .list_configs_uc
         .execute(tenant_id, &namespace, &params)
@@ -188,7 +209,11 @@ pub async fn update_config(
     Path((namespace, key)): Path<(String, String)>,
     Json(req): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
-    let tenant_id = extract_tenant_id(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let updated_by = claims
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
@@ -238,7 +263,11 @@ pub async fn delete_config(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let tenant_id = extract_tenant_id(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let deleted_by = claims
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
@@ -271,7 +300,11 @@ pub async fn get_service_config(
     Path(service_name): Path<String>,
     Query(query): Query<ServiceConfigQuery>,
 ) -> impl IntoResponse {
-    let tenant_id = extract_tenant_id(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     match state
         .get_service_config_uc
         .execute(tenant_id, &service_name)
@@ -318,6 +351,31 @@ mod tests {
     use std::sync::Arc;
     use tower::ServiceExt;
     use uuid::Uuid;
+
+    /// テスト用の有効なテナントUUID
+    const TEST_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+    /// テスト用の有効なJWT Claimsを作成するヘルパー。
+    /// リクエストに認証情報を注入する際に使用する。
+    fn make_test_claims() -> k1s0_auth::Claims {
+        k1s0_auth::Claims {
+            sub: "test-user".to_string(),
+            iss: "https://auth.example.com".to_string(),
+            aud: k1s0_auth::Audience(vec!["test".to_string()]),
+            exp: 9999999999,
+            iat: 0,
+            jti: None,
+            typ: None,
+            azp: None,
+            scope: None,
+            preferred_username: Some("test-user".to_string()),
+            email: None,
+            realm_access: None,
+            resource_access: None,
+            tier_access: None,
+            tenant_id: TEST_TENANT_ID.to_string(),
+        }
+    }
 
     fn make_test_entry() -> ConfigEntry {
         ConfigEntry {
@@ -435,10 +493,12 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/config/system.auth.database/max_connections")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -466,10 +526,12 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/config/nonexistent.namespace/missing_key")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -516,10 +578,12 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/config/system.auth.database?page=1&page_size=20")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -569,7 +633,8 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .method("PUT")
             .uri("/api/v1/config/system.auth.database/max_connections")
             .header("content-type", "application/json")
@@ -577,6 +642,7 @@ mod tests {
                 r#"{"value":50,"version":3,"description":"増設"}"#,
             ))
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -609,12 +675,14 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .method("PUT")
             .uri("/api/v1/config/system.auth.database/max_connections")
             .header("content-type", "application/json")
             .body(Body::from(r#"{"value":50,"version":3}"#))
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -645,11 +713,13 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .method("DELETE")
             .uri("/api/v1/config/system.auth.database/max_connections")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -668,11 +738,13 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .method("DELETE")
             .uri("/api/v1/config/nonexistent.namespace/missing_key")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -717,10 +789,12 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/config/services/auth-server")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -755,10 +829,12 @@ mod tests {
         let state = make_app_state(mock);
         let app = router(state);
 
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してリクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/config/services/nonexistent-service")
             .body(Body::empty())
             .expect("request build should succeed");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -772,5 +848,34 @@ mod tests {
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("request build should succeed");
         assert_eq!(json["error"]["code"], "SYS_CONFIG_SERVICE_NOT_FOUND");
+    }
+
+    /// JWT クレームなし（認証情報未設定）の場合に 401 を返すことを確認するテスト。
+    /// これにより SYSTEM テナントへのフォールバックが廃止されたことを検証する。
+    #[tokio::test]
+    async fn test_get_config_unauthorized_no_claims() {
+        let state = make_app_state(MockConfigRepository::new());
+        let app = router(state);
+
+        // JWT Claimsを注入せずにリクエストを送信する
+        let req = Request::builder()
+            .uri("/api/v1/config/system.auth.database/max_connections")
+            .body(Body::empty())
+            .expect("request build should succeed");
+
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("request build should succeed");
+        // クレームなしの場合は 401 が返されることを確認する
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .expect("request build should succeed");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("request build should succeed");
+        assert_eq!(json["error"], "Authentication required");
+        assert_eq!(json["code"], 401);
     }
 }

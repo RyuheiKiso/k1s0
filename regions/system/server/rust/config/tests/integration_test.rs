@@ -10,6 +10,31 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 use k1s0_config_server::adapter::handler::{router, AppState};
+
+/// テスト用の有効なテナントUUID
+const TEST_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// テスト用の有効なJWT Claimsを作成するヘルパー。
+/// リクエストに認証情報を注入する際に使用する。
+fn make_test_claims() -> k1s0_auth::Claims {
+    k1s0_auth::Claims {
+        sub: "test-user".to_string(),
+        iss: "https://auth.example.com".to_string(),
+        aud: k1s0_auth::Audience(vec!["test".to_string()]),
+        exp: 9999999999,
+        iat: 0,
+        jti: None,
+        typ: None,
+        azp: None,
+        scope: None,
+        preferred_username: Some("test-user".to_string()),
+        email: None,
+        realm_access: None,
+        resource_access: None,
+        tier_access: None,
+        tenant_id: TEST_TENANT_ID.to_string(),
+    }
+}
 use k1s0_config_server::domain::entity::config_change_log::ConfigChangeLog;
 use k1s0_config_server::domain::entity::config_entry::{
     ConfigEntry, ConfigListResult, Pagination, ServiceConfigEntry, ServiceConfigResult,
@@ -340,10 +365,12 @@ async fn test_full_config_get() {
     )];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .uri("/api/v1/config/system.auth.database/max_connections")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -362,10 +389,12 @@ async fn test_full_config_get() {
 async fn test_get_config_not_found_returns_404() {
     let app = make_empty_app();
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .uri("/api/v1/config/nonexistent.namespace/missing_key")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
@@ -407,10 +436,12 @@ async fn test_list_configs_with_pagination() {
     ];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .uri("/api/v1/config/system.auth.database?page=1&page_size=2")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -487,7 +518,8 @@ async fn test_update_config_with_correct_version() {
     )];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .method("PUT")
         .uri("/api/v1/config/system.auth.database/max_connections")
         .header("content-type", "application/json")
@@ -495,6 +527,7 @@ async fn test_update_config_with_correct_version() {
             r#"{"value":50,"version":3,"description":"増設"}"#,
         ))
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -517,12 +550,14 @@ async fn test_update_config_version_conflict_returns_409() {
     )];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .method("PUT")
         .uri("/api/v1/config/system.auth.database/max_connections")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"value":50,"version":3}"#)) // expects version 3
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::CONFLICT);
@@ -538,12 +573,14 @@ async fn test_update_config_version_conflict_returns_409() {
 async fn test_update_config_not_found_returns_404() {
     let app = make_empty_app();
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .method("PUT")
         .uri("/api/v1/config/system.auth.database/missing_key")
         .header("content-type", "application/json")
         .body(Body::from(r#"{"value":"test","version":1}"#))
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
@@ -565,11 +602,13 @@ async fn test_delete_config_returns_204() {
     )];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .method("DELETE")
         .uri("/api/v1/config/system.auth.database/deprecated_setting")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -579,11 +618,13 @@ async fn test_delete_config_returns_204() {
 async fn test_delete_config_not_found_returns_404() {
     let app = make_empty_app();
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .method("DELETE")
         .uri("/api/v1/config/nonexistent/missing")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
@@ -625,10 +666,12 @@ async fn test_get_service_config_returns_all_entries() {
     ];
     let app = make_app_with_entries(entries);
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .uri("/api/v1/config/services/auth-server")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -646,10 +689,12 @@ async fn test_get_service_config_returns_all_entries() {
 async fn test_get_service_config_not_found() {
     let app = make_empty_app();
 
-    let req = Request::builder()
+    // 有効なJWT Claimsを注入してリクエストを送信する
+    let mut req = Request::builder()
         .uri("/api/v1/config/services/nonexistent-service")
         .body(Body::empty())
         .unwrap();
+    req.extensions_mut().insert(make_test_claims());
 
     let resp = app.oneshot(req).await.unwrap();
     assert_eq!(resp.status(), StatusCode::NOT_FOUND);
@@ -680,6 +725,7 @@ async fn test_healthz_returns_ok() {
     assert_eq!(json["status"], "ok");
 }
 
+/// ADR-0068 準拠: readyz エンドポイントは "healthy"/"unhealthy" を返す（MED-006 監査対応）。
 #[tokio::test]
 async fn test_readyz_returns_ready() {
     let app = make_empty_app();
@@ -696,7 +742,8 @@ async fn test_readyz_returns_ready() {
         .await
         .unwrap();
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
-    assert_eq!(json["status"], "ready");
+    // ADR-0068 準拠: "healthy" が正しい値（"ready" ではない）
+    assert_eq!(json["status"], "healthy");
     assert_eq!(json["checks"]["database"], "ok");
     assert_eq!(json["checks"]["kafka"], "not_configured");
 }

@@ -16,6 +16,9 @@ nul
 
 # Rust
 **/target/
+# docs/servers/service/target/ は Rust ビルド成果物ではなくドキュメントディレクトリのため除外対象外とする
+!docs/servers/service/target/
+!docs/servers/service/target/**
 **/Cargo.lock
 !CLI/Cargo.lock
 !regions/system/Cargo.lock

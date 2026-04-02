@@ -30,6 +30,13 @@ impl MasterMaintenanceKafkaProducer {
         &self.topic
     }
 
+    /// シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）。
+    pub async fn close(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer.flush(Duration::from_secs(10))?;
+        Ok(())
+    }
+
     pub async fn publish_data_changed(&self, event: &Value) -> anyhow::Result<()> {
         let payload = serde_json::to_vec(event)?;
         let key = event

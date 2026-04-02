@@ -33,7 +33,7 @@
   "oauth2DeviceCodeLifespan": 600,
   "oauth2DevicePollingInterval": 5,
   "defaultSignatureAlgorithm": "RS256",
-  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and specialChars(1) and digits(1) and notUsername() and passwordHistory(5)",
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and specialChars(1) and digits(1) and notUsername() and passwordHistory(12)",
   "roles": {
     "realm": [
       {
@@ -564,5 +564,6 @@
     "RESET_PASSWORD"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+  "defaultRequiredActions": ["UPDATE_PASSWORD"]
 }

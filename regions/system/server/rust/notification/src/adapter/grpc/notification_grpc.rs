@@ -125,6 +125,9 @@ pub struct CreateChannelRequest {
     pub channel_type: String,
     pub config_json: Option<String>,
     pub enabled: bool,
+    /// gRPC メタデータ x-tenant-id から取得したテナント ID（ADR-0028 Phase 1）。
+    /// 未指定の場合はシステムテナント "system" にフォールバックする。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -258,6 +261,24 @@ pub enum GrpcError {
 
     #[error("internal: {0}")]
     Internal(String),
+}
+
+// --- テナント ID ヘルパー ---
+
+/// システムテナントを示すフォールバック値。
+/// gRPC メタデータに x-tenant-id が含まれない場合に使用する（ADR-0028 Phase 1 準拠）。
+const SYSTEM_TENANT_ID: &str = "system";
+
+/// gRPC メタデータから x-tenant-id ヘッダーを取得してテナント ID 文字列を返すヘルパー。
+/// ヘッダーが存在しない場合は SYSTEM_TENANT_ID にフォールバックする（ADR-0028 Phase 1）。
+/// Phase 2 でメタデータ必須化後にこのフォールバックは廃止予定。
+pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> String {
+    metadata
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .filter(|s| !s.is_empty())
+        .unwrap_or(SYSTEM_TENANT_ID)
+        .to_string()
 }
 
 // --- NotificationGrpcService ---
@@ -528,13 +549,14 @@ impl NotificationGrpcService {
                 .map_err(|e| GrpcError::InvalidArgument(format!("invalid config_json: {}", e)))?,
             _ => serde_json::json!({}),
         };
-        // H-012 監査対応: gRPC 経由のチャンネル作成でも tenant_id を設定する
-        // TODO: gRPC メタデータからテナント ID を取得する（ADR-0056 ロードマップ参照）
+        // H-012 監査対応: gRPC メタデータ x-tenant-id からテナント ID を取得してチャンネルを作成する。
+        // ADR-0028 Phase 1: x-tenant-id ヘッダーが存在しない場合はシステムテナントにフォールバックする。
+        // ADR-0056: notification.channels はテナントスコープ設計のため、テナント ID 強制が必要。
         let input = CreateChannelInput {
             name: req.name,
             channel_type: req.channel_type,
             config,
-            tenant_id: "system".to_string(),
+            tenant_id: req.tenant_id,
             enabled: req.enabled,
         };
         let channel = uc

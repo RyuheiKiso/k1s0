@@ -25,7 +25,9 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("main-db", "system", db_type, "database").try_build().unwrap();
+    let ctx = TemplateContextBuilder::new("main-db", "system", db_type, "database")
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

@@ -7,7 +7,9 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface AuthProviderProps {
   children: ReactNode;
-  apiBaseURL?: string;
+  // BFF のベース URL（必須）。呼び出し側アプリの設定ファイル（config.yaml 等）から取得して渡すこと（FE-004 監査対応）
+  // ハードコードを禁止し、呼び出し元が必ず設定から渡すよう強制する
+  apiBaseURL: string;
 }
 
 // BFF /auth/session のレスポンス型
@@ -19,13 +21,14 @@ interface SessionResponse {
   roles?: string[];
 }
 
-export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProps) {
+export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // 相対パス検証: 外部URLによるオープンリダイレクト防止（M-28 監査対応）
-  // '/' で始まらない値（http:// 等の外部URLを含む）はデフォルト値にフォールバックする
-  const safeApiBaseURL = apiBaseURL.startsWith('/') ? apiBaseURL : '/bff';
+  // '/' で始まらない値（http:// 等の外部URLを含む）はルートパスにフォールバックする
+  // apiBaseURL は呼び出し元が必ず渡す必須 prop のため、フォールバックは最終セーフティネット
+  const safeApiBaseURL = apiBaseURL.startsWith('/') ? apiBaseURL : '/';
 
   // APIクライアントをメモ化し、safeApiBaseURL が変わらない限り再生成しない（レンダーごとの無駄な生成を防止）
   const apiClient = useMemo(() => createApiClient({

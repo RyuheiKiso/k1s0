@@ -33,17 +33,22 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                     }
                 })),
             ),
-            Err(e) => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "status": "not_ready",
-                    "service": "vault",
-                    "backend": "postgres",
-                    "checks": {
-                        "database": e.to_string(),
-                    }
-                })),
-            ),
+            Err(e) => {
+                // DBエラーの詳細はログにのみ記録し、クライアントには汎用メッセージを返す
+                // エラー詳細をクライアントに公開すると内部実装・DB構造が漏洩する恐れがある
+                tracing::error!("readyz データベースチェック失敗: {}", e);
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({
+                        "status": "not_ready",
+                        "service": "vault",
+                        "backend": "postgres",
+                        "checks": {
+                            "database": "database check failed",  // 詳細エラーをクライアントに漏洩しない
+                        }
+                    })),
+                )
+            }
         }
     } else {
         // DB 未構成時は in-memory で動作中のため degraded を返す

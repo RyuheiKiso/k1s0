@@ -95,7 +95,7 @@ just proto
 | `docker-build` | 全 Docker イメージのローカルビルド（最大 4 並列）。環境変数 `CARGO_FEATURES` を設定すると `--build-arg CARGO_FEATURES=...` 経由で各 Dockerfile に渡される（HIGH-3 監査対応）。例: `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass just docker-build` |
 | `docker-build-safe` | **OOM 防止**のための安全なビルド（`--parallel 2` に制限）。WSL2 や Docker Desktop でメモリ不足が発生する場合に使用（HIGH-2 監査対応） |
 | `migrate path` | 指定パスの DB マイグレーションを実行（`sqlx migrate run`） |
-| `migrate-all` | **全システム DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応） |
+| `migrate-all` | **全 DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応）。AVAIL-002 対応: system tier は `dev` ユーザー、business/service tier は `k1s0` ユーザーで実行。`K1S0_DB_PASSWORD` 環境変数でパスワードを設定可能（デフォルト: `dev-k1s0-local`） |
 | `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose exec postgres` 経由で `*_up.sql` を適用する。⚠️ **制限**: raw SQL 実行のため `_sqlx_migrations` を更新しない。このコマンド実行後にサービスを起動すると `sqlx::migrate!()` との競合（`CREATE TRIGGER` 再実行エラー）が発生する。**診断・手動検証専用**。通常のセットアップには `just migrate-all` または `just local-up-dev` を使用すること（RUNTIME-001 監査対応） |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
@@ -141,7 +141,7 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 | コマンド | 説明 |
 |---------|------|
 | `just local-up` | `local-up-dev` の別名。開発環境の標準起動コマンド。 |
-| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003 監査対応）、Phase 2 でシステム/ビジネス/サービス層を起動。`sqlx-cli` が未インストールの場合は WARN を出力して続行（`just doctor` で確認を推奨）。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。 |
+| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003/AVAIL-002 対応: system/business/service 全 tier 対象）、Phase 2 でシステム/ビジネス/サービス層を起動。`sqlx-cli` が未インストールの場合は WARN を出力して続行（`just doctor` で確認を推奨）。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。 |
 | `just local-up-base` | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
 
 ### Docker Compose プロファイル構成

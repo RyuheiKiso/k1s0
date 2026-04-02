@@ -7,6 +7,9 @@ use crate::infrastructure::config::KafkaConfig;
 #[async_trait]
 pub trait FileEventPublisher: Send + Sync {
     async fn publish(&self, event_type: &str, payload: &serde_json::Value) -> anyhow::Result<()>;
+    // シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）
+    #[allow(dead_code)]
+    async fn close(&self) -> anyhow::Result<()>;
 }
 
 /// NoopFileEventPublisher は何もしないダミー実装。
@@ -15,6 +18,10 @@ pub struct NoopFileEventPublisher;
 #[async_trait]
 impl FileEventPublisher for NoopFileEventPublisher {
     async fn publish(&self, _event_type: &str, _payload: &serde_json::Value) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    async fn close(&self) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -90,6 +97,13 @@ impl FileEventPublisher for FileKafkaProducer {
 
         Ok(())
     }
+
+    async fn close(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        // シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）
+        self.producer.flush(std::time::Duration::from_secs(10))?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -101,15 +115,18 @@ mod tests {
         let publisher = NoopFileEventPublisher;
         let payload = serde_json::json!({"file_id": "file_001"});
         assert!(publisher.publish("file.uploaded", &payload).await.is_ok());
+        assert!(publisher.close().await.is_ok());
     }
 
     #[tokio::test]
     async fn test_mock_publisher() {
         let mut mock = MockFileEventPublisher::new();
         mock.expect_publish().returning(|_, _| Ok(()));
+        mock.expect_close().returning(|| Ok(()));
 
         let payload = serde_json::json!({"file_id": "file_001"});
         assert!(mock.publish("file.uploaded", &payload).await.is_ok());
+        assert!(mock.close().await.is_ok());
     }
 
     #[tokio::test]

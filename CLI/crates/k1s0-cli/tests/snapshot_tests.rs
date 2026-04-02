@@ -132,7 +132,8 @@ fn render_client(framework: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-app", "service", framework, "client")
         .framework(framework)
-        .try_build().unwrap();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -159,7 +160,9 @@ fn render_library(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("task-lib", "system", lang, "library").try_build().unwrap();
+    let ctx = TemplateContextBuilder::new("task-lib", "system", lang, "library")
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -188,7 +191,8 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-db", "service", db_type, "database")
         .with_database(db_type)
-        .try_build().unwrap();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -384,7 +388,8 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
-        .try_build().unwrap();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -876,7 +881,8 @@ fn render_service_mesh(
         .api_style(api_style)
         .server_port(server_port)
         .grpc_port(grpc_port)
-        .try_build().unwrap();
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

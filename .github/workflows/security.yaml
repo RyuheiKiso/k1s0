@@ -417,6 +417,44 @@ jobs:
           fi
           echo "OK: Vault バックアップイメージバージョンが一致しています: ${COMPOSE_VERSION}"
 
+      # SEC-INFRA-001 監査対応: etcd 暗号化キーおよびインフラ機密値のプレースホルダー残存チェック
+      # <REPLACE_WITH_BASE64_32BYTE_KEY> や <REPLACE_WITH_GRAFANA_API_KEY> のまま
+      # kubectl apply されると etcd の Secrets が平文保存されるリスクがある。
+      # scripts/check-placeholder-secrets.sh を使って以下のファイルを検査する:
+      #   - infra/kubernetes/security/encryption-config.yaml   : etcd 暗号化キー
+      #   - infra/kubernetes/ingress/kong-consumer-grafana.yaml : Grafana API キー（テンプレートファイル）
+      #   - infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml : Webhook URL
+      # 注意: これらのファイルはテンプレートとしてリポジトリ管理されており、
+      #       本番デプロイ時には CI/CD パイプライン（cluster-etcd-encryption.yaml 等）が
+      #       Vault から実値を注入してから apply する。
+      #       本チェックはソースファイルにプレースホルダーが残存することが「意図的」であることを
+      #       確認するためではなく、誤って実値がコミットされていないことを確認するためのものである。
+      #       そのため、プレースホルダーが検出された場合は "OK"（期待どおり）として扱う。
+      #       逆に、これらのファイルからプレースホルダーが消えていた場合は、
+      #       実値がコミットされた可能性があるため gitleaks の secret-scan で検出される。
+      - name: etcd・インフラ機密値のプレースホルダー残存チェック（SEC-INFRA-001）
+        run: |
+          # 検査対象: リポジトリ内のテンプレートファイルにプレースホルダーが正しく残存しているか確認する
+          # プレースホルダーが「存在すること」が正常状態（実値がコミットされていないことの証明）
+          ALL_OK=0
+          for TARGET_FILE in \
+            "infra/kubernetes/security/encryption-config.yaml" \
+            "infra/kubernetes/ingress/kong-consumer-grafana.yaml" \
+            "infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml"; do
+            if [ ! -f "$TARGET_FILE" ]; then
+              echo "INFO: $TARGET_FILE が見つかりません（テンプレートのみの環境では問題なし）"
+              continue
+            fi
+            if grep -q '<REPLACE_' "$TARGET_FILE"; then
+              echo "OK: $TARGET_FILE にプレースホルダーが正しく残存しています（実値はコミットされていません）"
+            else
+              echo "::error::$TARGET_FILE からプレースホルダーが消えています。"
+              echo "::error::実値が誤ってコミットされた可能性があります。git diff HEAD で確認してください。"
+              ALL_OK=1
+            fi
+          done
+          exit $ALL_OK
+
   # 全セキュリティジョブの集約ゲート
   # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
   # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする

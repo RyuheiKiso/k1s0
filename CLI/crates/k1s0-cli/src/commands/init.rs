@@ -37,6 +37,10 @@ pub fn run_non_interactive(name: Option<String>) -> Result<()> {
         ),
     };
 
+    // プロジェクト名のバリデーション: 英小文字・数字・ハイフンのみ許可（パストラバーサル防止）
+    prompt::validate_name(&project_name)
+        .map_err(|e| anyhow::anyhow!("プロジェクト名が無効です: {}", e))?;
+
     // 既にディレクトリが存在する場合は上書きを防ぐためエラーを返す
     if Path::new(&project_name).exists() {
         bail!("'{project_name}' は既に存在します。別の名前を指定してください。");

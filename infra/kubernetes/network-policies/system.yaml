@@ -117,8 +117,22 @@ spec:
 ---
 # HIGH-005 監査対応: Kong Admin API ポート(8001)へのインバウンドを制限する NetworkPolicy。
 # デフォルト拒否ポリシー（default-deny-all）に対し、Kong Admin API へのアクセスを
-# app.kubernetes.io/component: kong-admin ラベルを持つ Pod からのみ許可する。
-# これにより、クラスタ内の任意の Pod から Kong Admin API が操作されるリスクを排除する。
+# 明示的に許可された Pod からのみ受け付ける。
+#
+# INFRA-005 修正: app.kubernetes.io/component: kong-admin ラベルを持つ Pod は
+# 実在しないことを確認した（infra/helm/services/system/kong/values.yaml に component 値なし）。
+# Kong Admin API は運用者が kubectl exec または踏み台 Pod 経由で手動操作する設計であり、
+# クラスタ内 Pod から恒常的に呼び出す構成は持たない（values.yaml: admin.http.enabled: false）。
+#
+# 代替制御として以下の対策を適用する:
+#   1. ingress.from に podSelector を設定せず、ポートのみを指定することでクラスタ内通信を
+#      デフォルト拒否ポリシーで遮断する（別途 allow ルールがなければ到達不可）。
+#   2. 将来的に管理 Job/CronJob を追加する場合は、その Pod に
+#      app.kubernetes.io/component: kong-admin-client ラベルを付与し
+#      以下の podSelector にそのラベルを追加すること。
+#
+# 確認方法:
+#   kubectl get pods -n k1s0-system -l app.kubernetes.io/name=kong -o jsonpath='{.items[*].metadata.labels}'
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -127,7 +141,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: kong
+      app.kubernetes.io/name: kong
   policyTypes:
     - Ingress
   ingress:
@@ -135,6 +149,13 @@ spec:
         - protocol: TCP
           port: 8001    # Kong Admin API ポート
       from:
+        # k1s0-common の selectorLabels: app.kubernetes.io/name + app.kubernetes.io/instance
+        # Kong Pod 自身のみが self-referential に到達可能（ヘルスチェック用）
         - podSelector:
             matchLabels:
-              app.kubernetes.io/component: kong-admin
+              app.kubernetes.io/name: kong
+        # 将来的な管理クライアント Pod 用プレースホルダー:
+        # 管理 Job を追加する場合は以下のコメントを解除し、ラベルを付与すること
+        # - podSelector:
+        #     matchLabels:
+        #       app.kubernetes.io/component: kong-admin-client

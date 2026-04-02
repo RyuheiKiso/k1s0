@@ -3,10 +3,10 @@
 k1s0 プロジェクトの全サーバー設計書一覧。system / business / service の3 Tier で構成される。
 各サーバーは `server.md`（設計概要）・`implementation.md`（実装詳細）・`database.md`（DB設計）・`deploy.md`（デプロイ設計）の4文書セットで管理される。
 
-> **サーバー総数:** 32（system 28 + business 1 + service 3）
+> **サーバー総数:** 33（system 28 + business 1 + service 4）
 > ただし **ai-gateway**・**ai-agent** は試験運用中（`experimental-ai` プロファイル）であり、
 > 通常の Docker Compose 起動や CI/CD 審査の対象外。
-> 稼働対象となる本番稼働サーバー数は **30**（ai-* 2 件を除く）。
+> 稼働対象となる本番稼働サーバー数は **31**（ai-* 2 件を除く）。
 > DOCS-005 監査対応: サーバー数を明示し、試験運用サービスの扱いを明確化。
 
 ## 共通ドキュメント
@@ -77,6 +77,7 @@ k1s0 プロジェクトの全サーバー設計書一覧。system / business / s
 | **board** | ボードカラム管理・WIP制限・照会・更新・Kafka イベント配信 | [server.md](./service/board/server.md) / [db](./service/board/database.md) / [deploy](./service/board/deploy.md) |
 | **task** | タスク作成・照会・ステータス管理・Kafka イベント配信 | [server.md](./service/task/server.md) / [db](./service/task/database.md) / [deploy](./service/task/deploy.md) |
 | **activity** | アクティビティ記録・承認フロー・完了・失敗・Kafka イベント配信 | [server.md](./service/activity/server.md) / [db](./service/activity/database.md) / [deploy](./service/activity/deploy.md) |
+| **target** | OKR 目標（Objective/Key Results）管理・進捗更新・ステータス遷移・Kafka イベント配信 | [server.md](./service/target/server.md) / [impl](./service/target/implementation.md) / [db](./service/target/database.md) / [deploy](./service/target/deploy.md) |
 
 ---
 

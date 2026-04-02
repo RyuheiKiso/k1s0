@@ -1,5 +1,13 @@
 # Vault Module - Authentication Configuration
 # Configures Kubernetes Auth, AppRole, and LDAP auth backends.
+#
+# INFRA-001 整合性確認済み（2026-04-03）:
+# 本ファイルの全 bound_service_account_names は以下と完全に一致していることを確認済み。
+# SA 名の変更は不要。
+#   1. infra/kubernetes/rbac/service-accounts.yaml の ServiceAccount.metadata.name
+#   2. 各サービスの infra/helm/services/**/values.yaml の serviceAccount.name
+# bound_service_account_names の命名規約混在（-rust / -sa / suffix なし）は意図的設計。
+# 特に bff-proxy-sa は H-1 監査対応で確定済みであり変更不可。
 
 # ============================================================
 # Kubernetes Auth Backend

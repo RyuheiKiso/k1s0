@@ -2002,7 +2002,10 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // 各バックエンドチェックのタイムアウト（2秒）
     let timeout = Duration::from_secs(2);
 
-    // 全11サービスを同時に並列実行する
+    // 全11サービスを同時に並列実行する。
+    // AVAIL-001 対応: 各バックエンドサービスに gRPC Health Check Protocol を使って疎通確認する。
+    // Bearer token なしで接続できるため readyz が認証エラーで 503 になる問題を解消する。
+    // service-catalog は REST のみ提供するため list_services で疎通確認する（認証不要）。
     let (
         auth_result,
         session_result,
@@ -2018,13 +2021,10 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     ) = tokio::join!(
         tokio::time::timeout(timeout, state.auth_client.health_check()),
         tokio::time::timeout(timeout, state.session_client.health_check()),
-        tokio::time::timeout(timeout, state.tenant_client.list_tenants(1, 1)),
-        tokio::time::timeout(
-            timeout,
-            state.config_client.get_config("__readyz__", "__readyz__")
-        ),
-        tokio::time::timeout(timeout, state.feature_flag_client.list_flags(None)),
-        tokio::time::timeout(timeout, state.navigation_client.get_navigation("")),
+        tokio::time::timeout(timeout, state.tenant_client.health_check()),
+        tokio::time::timeout(timeout, state.config_client.health_check()),
+        tokio::time::timeout(timeout, state.feature_flag_client.health_check()),
+        tokio::time::timeout(timeout, state.navigation_client.health_check()),
         tokio::time::timeout(
             timeout,
             state.service_catalog_client.list_services(1, 1, None, None, None)

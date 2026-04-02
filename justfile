@@ -567,20 +567,33 @@ migrate path=".":
     echo "=== Running migrations from $migrations_dir ==="
     sqlx migrate run --database-url "$db_url" --source "$migrations_dir"
 
-# 全システム DB のマイグレーションを一括実行する（初回セットアップ用）
-# インフラサービス（postgres）が起動した後、システムサービスを起動する前に実行する（HIGH-3/HIGH-4 監査対応）
-# ビジネス/サービス層のサービスは sqlx 自動マイグレーションを持つため対象外
+# 全 DB のマイグレーションを一括実行する（初回セットアップ用）
+# インフラサービス（postgres）が起動した後、システム/ビジネス/サービスを起動する前に実行する（HIGH-3/HIGH-4 監査対応）
+# AVAIL-002 対応: business/service tier のマイグレーションを k1s0 ユーザーで実行する。
+#   system tier は専用 _rw ロール（k1s0_auth_rw 等）で接続するため dev ユーザーで DDL 実行が必要。
+#   business/service tier のサービスは k1s0 ユーザーで接続するため、k1s0 がテーブルオーナーで
+#   ある必要がある（ALTER TABLE ENABLE ROW LEVEL SECURITY 等を k1s0 ユーザーが実行するため）。
 # 実行前提: just local-up-profile infra が完了していること
 migrate-all:
     #!/usr/bin/env bash
     set -euo pipefail
     PG_HOST="${PG_HOST:-localhost}"
     PG_PORT="${PG_PORT:-5432}"
+    # system tier のマイグレーションは dev（postgres スーパーユーザー相当）で実行する。
+    # 専用 _rw ロール（k1s0_auth_rw 等）には DDL 権限がないため dev で DDL を実行し、
+    # 99-finalize-grants.sh で DML 権限を付与する設計になっている。
     PG_USER="${PG_USER:-dev}"
     PG_PASS="${PG_PASS:-dev}"
-    echo "=== Running all system DB migrations ==="
-    echo "  DB host: $PG_HOST:$PG_PORT (user: $PG_USER)"
+    # business/service tier のマイグレーションは k1s0 ユーザーで実行する（AVAIL-002 対応）。
+    # サービス起動時も k1s0 ユーザーで接続するため、k1s0 がテーブルオーナーである必要がある。
+    # k1s0 のパスワードは .env.dev の K1S0_DB_PASSWORD（ローカル開発: dev-k1s0-local）。
+    K1S0_USER="${K1S0_USER:-k1s0}"
+    K1S0_PASS="${K1S0_DB_PASSWORD:-dev-k1s0-local}"
+    echo "=== Running all DB migrations (system: $PG_USER, business/service: $K1S0_USER) ==="
+    echo "  DB host: $PG_HOST:$PG_PORT"
     failed=0
+    # --- system tier: dev ユーザーで実行 ---
+    echo "--- [system tier] Running migrations as $PG_USER ---"
     for dir in regions/system/database/*/; do
         if [ -d "$dir/migrations" ]; then
             dir_name=$(basename "$dir")
@@ -607,8 +620,58 @@ migrate-all:
             fi
         fi
     done
+    # --- business tier: k1s0 ユーザーで実行（AVAIL-002 対応）---
+    # k1s0_business DB に project_master スキーマが存在し、k1s0 に CONNECT + CREATE 権限が付与済み。
+    # （infra/docker/init-db/12-project-master-schema.sql で設定）
+    echo "--- [business tier] Running migrations as $K1S0_USER ---"
+    for dir in regions/business/*/database/*/; do
+        if [ -d "$dir/migrations" ]; then
+            domain=$(echo "$dir" | cut -d'/' -f3)
+            dir_name=$(basename "$dir")
+            # business tier の DB マッピング:
+            #   project-master-db → k1s0_business（12-project-master-schema.sql）
+            case "$dir_name" in
+                project-master-db) db_name="k1s0_business" ;;
+                *)                 db_name=$(echo "$dir_name" | tr '-' '_') ;;
+            esac
+            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
+            echo "--- Migrating: $domain/$dir_name → $db_name ---"
+            if sqlx migrate run --database-url "$db_url" --source "$dir/migrations" 2>&1; then
+                echo "  OK: $domain/$dir_name → $db_name"
+            else
+                echo "  FAILED: $domain/$dir_name → $db_name" >&2
+                failed=1
+            fi
+        fi
+    done
+    # --- service tier: k1s0 ユーザーで実行（AVAIL-002 対応）---
+    # task/board/activity はすべて k1s0_service DB を使用。k1s0 に CONNECT + CREATE 権限が付与済み。
+    # （infra/docker/init-db/13〜15-*-schema.sql で設定）
+    # 各サービスの _sqlx_migrations は別スキーマ（task_service/board_service/activity_service）に
+    # 保存されるため、同一 DB への複数マイグレーション実行は安全に行える。
+    echo "--- [service tier] Running migrations as $K1S0_USER ---"
+    for dir in regions/service/*/database/*/; do
+        if [ -d "$dir/migrations" ]; then
+            svc=$(echo "$dir" | cut -d'/' -f3)
+            dir_name=$(basename "$dir")
+            # service tier の DB マッピング:
+            #   postgres → k1s0_service（task/board/activity が共有; 13〜15-*-schema.sql）
+            case "$dir_name" in
+                postgres) db_name="k1s0_service" ;;
+                *)        db_name=$(echo "$dir_name" | tr '-' '_') ;;
+            esac
+            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
+            echo "--- Migrating: $svc/$dir_name → $db_name ---"
+            if sqlx migrate run --database-url "$db_url" --source "$dir/migrations" 2>&1; then
+                echo "  OK: $svc/$dir_name → $db_name"
+            else
+                echo "  FAILED: $svc/$dir_name → $db_name" >&2
+                failed=1
+            fi
+        fi
+    done
     [ "$failed" -eq 0 ] || { echo "ERROR: 一部のマイグレーションが失敗しました" >&2; exit 1; }
-    echo "=== All system DB migrations completed ==="
+    echo "=== All DB migrations completed (system/business/service) ==="
 
 # Windows Git Bash など sqlx-cli 未インストール環境向け Docker 経由マイグレーション（C-03 監査対応）
 # sqlx-cli をローカルインストールせずに、実行中の postgres コンテナ経由でマイグレーションを適用する

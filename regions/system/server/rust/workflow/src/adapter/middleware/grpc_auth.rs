@@ -59,6 +59,13 @@ where
         let path = req.uri().path().to_string();
 
         Box::pin(async move {
+            // gRPC Health Check Protocol のパスは認証をバイパスする。
+            // readyz エンドポイントや外部ヘルスチェックが Bearer token なしで接続できるようにするため。
+            // 参考: https://github.com/grpc/grpc/blob/master/doc/health-checking.md
+            if path == "/grpc.health.v1.Health/Check" || path == "/grpc.health.v1.Health/Watch" {
+                return inner.call(req).await;
+            }
+
             if let Some(auth_state) = auth_state {
                 let token = match extract_bearer_token(&req) {
                     Some(token) => token,

@@ -40,6 +40,12 @@
 # WARNING: このファイルにはプレースホルダー値が含まれている。
 #          <REPLACE_WITH_BASE64_32BYTE_KEY> のまま本番環境にデプロイしないこと。
 #
+# SEC-INFRA-001 監査対応: CI ガード追加
+# .github/workflows/security.yaml の config-validation ジョブにプレースホルダー
+# 残存チェックステップを追加した。PR 時に本ファイルからプレースホルダーが消えていた場合
+#（実値が誤ってコミットされた場合）は CI が検出して失敗する。
+# 本番デプロイは必ず cluster-etcd-encryption.yaml ワークフロー経由で行うこと。
+#
 # 本番デプロイ前に以下を必ず実施すること（L-01 監査対応）:
 #   1. 32 バイトのランダムキーを生成する:
 #      head -c 32 /dev/urandom | base64

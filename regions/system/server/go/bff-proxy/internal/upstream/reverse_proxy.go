@@ -39,7 +39,11 @@ var blockedCIDRs = func() []*net.IPNet {
 // allowedHosts によるバイパスが有効な場合でも、このアドレス範囲は常にブロックする。
 // AWS/GCP/Azure のメタデータエンドポイント（169.254.169.254）への意図しないアクセスを防止する。
 var cloudMetadataCIDR = func() *net.IPNet {
-	_, ipNet, _ := net.ParseCIDR("169.254.0.0/16")
+	// クラウドメタデータサービスの CIDR - nil の場合 SSRF リスクがあるためパニックで早期検出する
+	_, ipNet, err := net.ParseCIDR("169.254.0.0/16")
+	if err != nil || ipNet == nil {
+		panic(fmt.Sprintf("cloudMetadataCIDR の初期化に失敗しました: %v", err))
+	}
 	return ipNet
 }()
 

@@ -46,8 +46,8 @@ cargo build -p k1s0-cli
 cargo build -p k1s0-cli --release
 
 # 実行ファイルの場所
-# デバッグ: target/debug/k1s0-cli
-# リリース: target/release/k1s0-cli
+# デバッグ: target/debug/k1s0（Windows では target/debug/k1s0.exe）
+# リリース: target/release/k1s0（Windows では target/release/k1s0.exe）
 ```
 
 ### Core ライブラリのビルド

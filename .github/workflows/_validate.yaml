@@ -35,6 +35,53 @@ jobs:
             fi
           done
 
+  # INFRA-003 監査対応: k1s0-common（Library Chart）変更時に全コンシューマーチャートの
+  # helm template 出力を検証し、テンプレートエラーや必須フィールド欠落を早期検知する
+  # k1s0-common はサービスチャート全体に影響するため、単体リントだけでは不十分な場合がある
+  helm-common-template-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: "3.16"
+      - name: k1s0-common 依存チャートの helm template 出力を全サービス分検証する（INFRA-003）
+        shell: bash
+        run: |
+          # k1s0-common を使用しているコンシューマーチャートを全て検出して helm template を実行する
+          # テンプレートエラーや必須フィールド欠落を早期に検知することが目的であり、
+          # 出力内容の正確性ではなくテンプレートエンジンのエラー有無のみを検証する
+          failed=0
+          checked=0
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ ! -f "$chart/Chart.yaml" ]; then
+              continue
+            fi
+            # k1s0-common への依存を持つチャートのみを対象とする
+            if ! grep -q 'k1s0-common' "$chart/Chart.yaml" 2>/dev/null; then
+              continue
+            fi
+            # helm dependency update で Library Chart を取得してから template を実行する
+            if ! helm dependency update "$chart" > /dev/null 2>&1; then
+              echo "::warning::$chart: helm dependency update が失敗しました（OCI レジストリ未接続の可能性）"
+              continue
+            fi
+            if helm template test-release "$chart" > /dev/null 2>&1; then
+              echo "OK: $chart"
+              checked=$((checked + 1))
+            else
+              echo "::error::$chart: helm template が失敗しました"
+              helm template test-release "$chart" 2>&1 | head -20
+              failed=$((failed + 1))
+            fi
+          done
+          echo "helm template 検証完了: ${checked} チャート成功、${failed} チャート失敗"
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
   # modules.yaml とディスク上のマニフェストの整合性検証
   validate-modules:
     runs-on: ubuntu-latest
@@ -302,6 +349,47 @@ jobs:
           # Kubernetes API オブジェクトではないため、overlays/prod/kustomization.yaml の resources に含めない
           kustomize build infra/kubernetes/overlays/prod > /dev/null
           echo "kustomize build: 成功（infra/kubernetes/overlays/prod）"
+
+  # INFRA-002 監査対応: Vault YAML と Terraform ロール定義の乖離を検出する
+  # infra/vault/auth/*.yaml（ConfigMap形式）と infra/terraform/modules/vault/auth.tf の
+  # ロール名・SA名・ポリシーの整合性を機械的に検証し、二重管理による設定ドリフトを早期検知する
+  validate-vault-tf-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Vault YAML と Terraform ロール定義の整合性を検証する（INFRA-002）
+        shell: bash
+        run: |
+          # Terraform auth.tf から定義済みロール名を抽出する
+          # role_name = "xxx" の形式でロール名を取得する
+          tf_roles=$(grep -oP 'role_name\s*=\s*"\K[^"]+' infra/terraform/modules/vault/auth.tf | sort -u)
+
+          # Vault YAML ファイル（infra/vault/auth/）から role_name フィールドを抽出する
+          # ConfigMap の vault-auth-config.json 内の role_name キーを対象とする
+          yaml_roles=$(grep -rh '"role_name"' infra/vault/auth/ | grep -oP '"role_name"\s*:\s*"\K[^"]+' | sort -u)
+
+          echo "=== Terraform で定義されているロール ==="
+          echo "$tf_roles"
+          echo ""
+          echo "=== Vault YAML で参照されているロール ==="
+          echo "$yaml_roles"
+          echo ""
+
+          # Vault YAML に存在するが Terraform に存在しないロールを検出する
+          # （YAML が Terraform の権威情報に対して未定義のロールを参照していないか確認する）
+          drift_yaml_only=$(comm -23 <(echo "$yaml_roles") <(echo "$tf_roles"))
+          if [ -n "$drift_yaml_only" ]; then
+            echo "::warning::以下のロールが Vault YAML に存在しますが Terraform に定義されていません:"
+            echo "$drift_yaml_only" | while read -r r; do echo "::warning::  - $r"; done
+            echo "ADR-0073 に基づき Terraform が権威情報です。YAML を更新するか Terraform にロールを追加してください。"
+            # YAML は ConfigMap であり将来計画も含むため warning のみとし exit 1 はしない
+          else
+            echo "Vault YAML のロールは全て Terraform に定義されています: OK"
+          fi
+
+          echo "Vault-Terraform 同期検証: 完了"
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:

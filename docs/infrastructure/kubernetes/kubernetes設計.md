@@ -392,6 +392,22 @@ spec:
 - バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
 - **オフサイト保存**: PVC ローカル保存のみ。外部オブジェクトストレージ（S3/Ceph RGW）は使用しない
 
+#### etcd-backup コンテナのセキュリティ設定（HIGH-2 / HIGH-SEC-01 監査対応）
+
+`infra/kubernetes/backup/etcd-backup-cronjob.yaml` では以下のセキュリティ強化が実装済み。
+
+| 設定 | 値 | 効果 |
+|------|----|----|
+| `seccompProfile.type` | `RuntimeDefault` | システムコールを制限し、攻撃面を縮小する |
+| `readOnlyRootFilesystem` | `true` | ルートファイルシステムへの書き込みを禁止する |
+| `allowPrivilegeEscalation` | `false` | 権限昇格を禁止する |
+| `capabilities.drop` | `["ALL"]` | 不要な Linux ケーパビリティを全て削除する |
+| `runAsNonRoot` | `true` | 非 root ユーザー（UID 1000）で実行する |
+| `hostNetwork` | `false` | ホストネットワークへのアクセスを禁止する |
+| `/tmp` マウント | `emptyDir` | `readOnlyRootFilesystem` 有効時の一時書き込み先として emptyDir を提供する |
+
+etcd 証明書の hostPath マウント（`/etc/kubernetes/pki/etcd`）は etcd バックアップに必須だが、`readOnly: true` で書き込み不可とし、上記セキュリティ設定で緩和している。
+
 ### リストア手順・定期テスト
 
 障害発生時のリストア手順および定期リストアテスト（四半期に1回以上）の手順は以下を参照すること。

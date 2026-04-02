@@ -45,9 +45,11 @@ resource "vault_kubernetes_auth_backend_role" "auth_rust" {
   bound_service_account_namespaces = ["k1s0-system"]
   token_policies                   = ["auth-rust"]  # 個別ポリシーを参照
   token_ttl                        = 3600
-  token_max_ttl                    = 14400
+  token_max_ttl                    = 86400  # 実装値: 24時間。当初案は4時間（14400）だったが、サービス再起動頻度・運用負荷を考慮して24時間に変更（L-02 対応）
 }
 ```
+
+> **L-02 TTL 実装差異の説明（2026-03-27）**: 当初 ADR では `token_max_ttl = 14400`（4時間）を提案したが、実際の実装では `token_max_ttl = 86400`（24時間）を採用した。理由は、Vault Agent Injector によるトークン自動更新機構が `token_ttl`（1時間）ベースで動作するため、`token_max_ttl` を短くしても実質的なセキュリティ向上が限定的であることと、ローリングアップデート等の運用イベント時にトークン期限切れによる障害リスクを軽減するためである。`infra/vault/auth/` 配下の各 ConfigMap は `token_max_ttl: 86400` で統一済み。
 
 ### 対象サービス（27 SA）
 

@@ -154,7 +154,9 @@ pub struct BackendsConfig {
     pub config: BackendConfig,
     #[serde(default)]
     pub navigation: BackendConfig,
-    #[serde(default)]
+    // YAML キー名は "service-catalog"（ハイフン区切り）のため serde rename が必要
+    // serde_yaml はハイフンとアンダースコアを区別するため明示的に rename する
+    #[serde(default, rename = "service-catalog")]
     pub service_catalog: BackendConfig,
     #[serde(default)]
     pub auth: BackendConfig,

@@ -88,11 +88,17 @@ autoscaling:
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
   # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ、OOM 前にスケールアウトする余裕を確保する
+  # メモリ使用率によるスケールアウトを追加（AVAIL-003 監査対応）
+  # Kafka コンシューマや大量 JSON 処理サービスの OOM Kill を防止する
+  targetMemoryUtilizationPercentage: 80
 
 # PodDisruptionBudget
 # I-2 対応: minAvailable を絶対値（1）から相対値（"50%"）に変更
 # 絶対値だとレプリカ数が少ない場合に可用性保証が不十分になるため、
 # レプリカ数に依存しない割合指定とすることで常に半数以上の Pod 稼働を保証する
+# minAvailable: "50%" はレプリカ数によって保護 Pod 数が変わる（AVAIL-004 監査対応）
+# 例: replicaCount=3 なら 2Pod 保護 → ローリングアップデート時に同時停止可能な Pod は 1 つのみ
+# prod 環境で高速ロールアウトが必要な場合は各サービスの values-prod.yaml で絶対値を指定する
 pdb:
   enabled: true
   minAvailable: "50%"

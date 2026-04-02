@@ -453,6 +453,117 @@ fn test_validation_error_equality() {
 }
 
 // ===========================================================================
+// validation_test_cases.json の全ケースを網羅するテスト（H-18 4言語統一）
+// ===========================================================================
+
+// email: valid ケース（JSON仕様の全有効値を受け入れること）
+#[test]
+fn test_json_email_valid_cases() {
+    assert!(validate_email("email", "user@example.com").is_ok());
+    assert!(validate_email("email", "user.name+tag@example.co.jp").is_ok());
+    assert!(validate_email("email", "test123@sub.domain.org").is_ok());
+}
+
+// email: invalid ケース（JSON仕様の全無効値を拒否すること）
+#[test]
+fn test_json_email_invalid_cases() {
+    // 空文字列
+    assert!(validate_email("email", "").is_err());
+    // @ なし
+    assert!(validate_email("email", "not-an-email").is_err());
+    // ドメインなし
+    assert!(validate_email("email", "user@").is_err());
+    // ローカルパートなし
+    assert!(validate_email("email", "@example.com").is_err());
+    // TLD が 1 文字（.c）
+    assert!(validate_email("email", "user@example.c").is_err());
+    // スペースを含む
+    assert!(validate_email("email", "user @example.com").is_err());
+}
+
+// uuid_v4: valid ケース（JSON仕様の全有効 UUID v4 を受け入れること）
+#[test]
+fn test_json_uuid_valid_cases() {
+    assert!(validate_uuid("id", "550e8400-e29b-41d4-a716-446655440000").is_ok());
+    assert!(validate_uuid("id", "6ba7b810-9dad-41d5-80b4-00c04fd430c8").is_ok());
+    assert!(validate_uuid("id", "f47ac10b-58cc-4372-a567-0e02b2c3d479").is_ok());
+}
+
+// uuid_v4: invalid ケース（JSON仕様の全無効 UUID を拒否すること）
+#[test]
+fn test_json_uuid_invalid_cases() {
+    // 空文字列
+    assert!(validate_uuid("id", "").is_err());
+    // UUID 形式でない文字列
+    assert!(validate_uuid("id", "not-a-uuid").is_err());
+    // v1（バージョンビット 1）
+    assert!(validate_uuid("id", "550e8400-e29b-11d4-a716-446655440000").is_err());
+    // v2（バージョンビット 2）
+    assert!(validate_uuid("id", "550e8400-e29b-21d4-a716-446655440000").is_err());
+    // v3（バージョンビット 3）
+    assert!(validate_uuid("id", "550e8400-e29b-31d4-a716-446655440000").is_err());
+    // v5（バージョンビット 5）
+    assert!(validate_uuid("id", "550e8400-e29b-51d4-a716-446655440000").is_err());
+    // バリアントビット不正（c716 は許可されないバリアント）
+    assert!(validate_uuid("id", "550e8400-e29b-41d4-c716-446655440000").is_err());
+    // 不正な文字を含む
+    assert!(validate_uuid("id", "ZZZZZZZZ-ZZZZ-4ZZZ-8ZZZ-ZZZZZZZZZZZZ").is_err());
+}
+
+// tenant_id: valid ケース（JSON仕様の全有効テナントIDを受け入れること）
+#[test]
+fn test_json_tenant_id_valid_cases() {
+    assert!(validate_tenant_id("tenant", "abc").is_ok());
+    assert!(validate_tenant_id("tenant", "my-tenant").is_ok());
+    assert!(validate_tenant_id("tenant", "tenant-123").is_ok());
+    assert!(validate_tenant_id("tenant", "a1b2c3d4").is_ok());
+}
+
+// tenant_id: invalid ケース（JSON仕様の全無効テナントIDを拒否すること）
+#[test]
+fn test_json_tenant_id_invalid_cases() {
+    // 空文字列
+    assert!(validate_tenant_id("tenant", "").is_err());
+    // 1 文字
+    assert!(validate_tenant_id("tenant", "a").is_err());
+    // 2 文字（最小長不足）
+    assert!(validate_tenant_id("tenant", "ab").is_err());
+    // 先頭がハイフン
+    assert!(validate_tenant_id("tenant", "-abc").is_err());
+    // 末尾がハイフン
+    assert!(validate_tenant_id("tenant", "abc-").is_err());
+    // 大文字を含む
+    assert!(validate_tenant_id("tenant", "ABC").is_err());
+    // アンダースコアを含む
+    assert!(validate_tenant_id("tenant", "my_tenant").is_err());
+    // スペースを含む
+    assert!(validate_tenant_id("tenant", "my tenant").is_err());
+}
+
+// pagination: valid ケース（JSON仕様の全有効ページネーションを受け入れること）
+#[test]
+fn test_json_pagination_valid_cases() {
+    assert!(validate_pagination("pagination", 1, 1).is_ok());
+    assert!(validate_pagination("pagination", 1, 50).is_ok());
+    assert!(validate_pagination("pagination", 1, 100).is_ok());
+    assert!(validate_pagination("pagination", 10, 25).is_ok());
+}
+
+// pagination: invalid ケース（JSON仕様の全無効ページネーションを拒否すること）
+#[test]
+fn test_json_pagination_invalid_cases() {
+    // page が 0（1 未満）
+    assert!(validate_pagination("pagination", 0, 10).is_err());
+    // page が u32 では -1 は表現不可だが 0 で代替確認
+    // per_page が 0
+    assert!(validate_pagination("pagination", 1, 0).is_err());
+    // per_page が 101（上限超過）
+    assert!(validate_pagination("pagination", 1, 101).is_err());
+    // per_page が 200（大きく上限超過）
+    assert!(validate_pagination("pagination", 1, 200).is_err());
+}
+
+// ===========================================================================
 // validate! macro accumulation
 // ===========================================================================
 

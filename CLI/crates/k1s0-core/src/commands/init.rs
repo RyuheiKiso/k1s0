@@ -66,6 +66,10 @@ pub fn execute_init(config: &InitConfig) -> Result<()> {
 // 関数の行数が多いが、初期化処理のフローを一連の手続きとして表現するため分割せず許容する
 #[allow(clippy::too_many_lines)]
 pub fn execute_init_at(config: &InitConfig, base_dir: &Path) -> Result<PathBuf> {
+    // プロジェクト名に '..' が含まれる場合はパストラバーサルを防止する（Defense in Depth）
+    if config.project_name.contains("..") {
+        bail!("プロジェクト名に '..' を含めることはできません");
+    }
     let parent_dir = base_dir.canonicalize().with_context(|| {
         format!(
             "failed to resolve initialization directory {}",

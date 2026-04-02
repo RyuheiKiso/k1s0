@@ -21,6 +21,8 @@ tower-http = {workspace = true}
 
 # gRPC
 tonic = {workspace = true}
+# gRPC Health Check Protocol クライアントの実装に使用する
+tonic-health = {workspace = true}
 prost = {workspace = true}
 prost-types = {workspace = true}
 

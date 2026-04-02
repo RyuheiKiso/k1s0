@@ -17,17 +17,23 @@ impl MasterKey {
         let key_hex = match std::env::var("VAULT_MASTER_KEY") {
             Ok(key) => key,
             Err(_) => {
-                // 本番・ステージング環境ではゼロ鍵を許可しない
+                // 本番・ステージング環境では VAULT_MASTER_KEY が必須
                 // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
                 let env_lower = environment.to_lowercase();
                 if env_lower == "production" || env_lower == "staging" {
                     return Err(anyhow::anyhow!(
-                        "VAULT_MASTER_KEY must be set in {} environment",
-                        environment
+                        "VAULT_MASTER_KEY 環境変数は本番・ステージング環境では必須です"
                     ));
                 }
-                tracing::warn!("VAULT_MASTER_KEY not set, using zero key (development only)");
-                "0".repeat(64) // 32 bytes hex = 64 chars, dev default
+                // 開発環境: 起動ごとにランダムな鍵を生成（再起動でデータ復号不可になる点に注意）
+                // ゼロ鍵は既知の弱い鍵であるため使用しない
+                tracing::warn!(
+                    "VAULT_MASTER_KEY が設定されていません。開発環境用にランダム鍵を生成します（再起動で暗号化データが失われます）"
+                );
+                let mut key_bytes = [0u8; 32];
+                // aes_gcm クレートが依存する rand_core の OsRng で安全な乱数を生成する
+                OsRng.fill_bytes(&mut key_bytes);
+                hex::encode(key_bytes)
             }
         };
         let key_bytes = hex::decode(&key_hex)?;
@@ -135,10 +141,41 @@ mod tests {
     fn test_from_env_default_key() {
         // 環境変数操作の競合を防ぐためロックを取得
         let _guard = ENV_LOCK.lock().unwrap();
-        // VAULT_MASTER_KEY が未設定の場合、ゼロ鍵が使われる
+        // VAULT_MASTER_KEY が未設定の場合、開発環境ではランダム鍵が生成されて Ok が返る
         std::env::remove_var("VAULT_MASTER_KEY");
+        // APP_ENVIRONMENT が空（開発環境扱い）のため、ランダム鍵が生成される
+        std::env::remove_var("APP_ENVIRONMENT");
         let result = MasterKey::from_env();
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_from_env_random_key_is_unique() {
+        // 環境変数操作の競合を防ぐためロックを取得
+        let _guard = ENV_LOCK.lock().unwrap();
+        // 開発環境では呼び出しごとに異なるランダム鍵が生成されることを確認
+        std::env::remove_var("VAULT_MASTER_KEY");
+        std::env::remove_var("APP_ENVIRONMENT");
+        let key1 = MasterKey::from_env().unwrap();
+        let key2 = MasterKey::from_env().unwrap();
+        // 鍵の内容が異なることを確認（同一ゼロ鍵が返らないことの検証）
+        let pt = b"test";
+        let (ct1, n1) = key1.encrypt(pt).unwrap();
+        let (ct2, n2) = key2.encrypt(pt).unwrap();
+        // 異なる鍵で暗号化されたため、一方の鍵で他方を復号できない
+        assert!(key1.decrypt(&ct2, &n2).is_err() || key2.decrypt(&ct1, &n1).is_err());
+    }
+
+    #[test]
+    fn test_from_env_production_requires_key() {
+        // 環境変数操作の競合を防ぐためロックを取得
+        let _guard = ENV_LOCK.lock().unwrap();
+        // 本番環境で VAULT_MASTER_KEY が未設定の場合はエラーになる
+        std::env::remove_var("VAULT_MASTER_KEY");
+        std::env::set_var("APP_ENVIRONMENT", "production");
+        let result = MasterKey::from_env();
+        assert!(result.is_err());
+        std::env::remove_var("APP_ENVIRONMENT");
     }
 
     #[test]

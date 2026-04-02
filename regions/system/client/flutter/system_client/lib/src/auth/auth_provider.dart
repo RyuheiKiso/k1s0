@@ -23,13 +23,32 @@ final authApiBaseUrlProvider = Provider<String>(
   (_) => '/bff',
 );
 
+/// FE-005 監査対応: OAuth カスタムスキームをビルド時定数として設定可能にする
+/// dart compile で --define=OAUTH_CALLBACK_SCHEME=myscheme を指定することで上書きできる。
+/// 未指定時は 'k1s0' をデフォルト値として使用する。
+const _oauthCallbackScheme = String.fromEnvironment(
+  'OAUTH_CALLBACK_SCHEME',
+  defaultValue: 'k1s0',
+);
+
+/// FE-005 監査対応: OAuth コールバックパスをビルド時定数として設定可能にする
+/// dart compile で --define=OAUTH_CALLBACK_PATH=auth/callback を指定することで上書きできる。
+/// 未指定時は 'auth/callback' をデフォルト値として使用する。
+const _oauthCallbackPath = String.fromEnvironment(
+  'OAUTH_CALLBACK_PATH',
+  defaultValue: 'auth/callback',
+);
+
 /// モバイル OAuth のカスタム URL スキーム Provider
+/// ビルド時定数 OAUTH_CALLBACK_SCHEME から取得したスキームを提供する。
+/// テスト時は overrideWithValue で差し替え可能にする。
 final authCallbackSchemeProvider = Provider<String>(
-  (_) => 'k1s0',
+  (_) => _oauthCallbackScheme,
 );
 
 /// セッションクッキーインターセプター Provider（モバイル専用）
 /// テスト時は FlutterSecureStorage を使わないモックインスタンスに差し替え可能にする
+/// 本番では AuthNotifier.build() 内でセッション期限切れコールバック付きのインスタンスを生成する
 final sessionCookieInterceptorProvider = Provider<SessionCookieInterceptor>(
   (_) => SessionCookieInterceptor(),
 );
@@ -48,8 +67,22 @@ class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
     _baseUrl = ref.read(authApiBaseUrlProvider);
-    // Provider 経由でインターセプターを取得する（テスト時のモック差し替えを可能にする）
-    _sessionCookieInterceptor = ref.read(sessionCookieInterceptorProvider);
+
+    // テスト時はモック差し替え可能な Provider からインターセプターを取得する
+    // ただし NoOpSessionCookieInterceptor 等のサブクラスが注入された場合はそのまま使用し、
+    // デフォルト実装（SessionCookieInterceptor そのもの）の場合はセッション期限切れコールバックを付与して再生成する
+    final injected = ref.read(sessionCookieInterceptorProvider);
+    if (injected.runtimeType == SessionCookieInterceptor) {
+      // 本番パス: onSessionExpired コールバックを注入してセッション有効期限管理を有効にする
+      _sessionCookieInterceptor = SessionCookieInterceptor(
+        cookieName: injected.cookieName,
+        onSessionExpired: _handleSessionExpired,
+      );
+    } else {
+      // テスト/モックパス: 注入されたインスタンスをそのまま使用する
+      _sessionCookieInterceptor = injected;
+    }
+
     _apiClient = ApiClient.create(
       baseUrl: _baseUrl,
       // CSRF トークンを自動付与する
@@ -66,6 +99,15 @@ class AuthNotifier extends Notifier<AuthState> {
   /// 401 Unauthorized を検出した際にクライアント側のセッション情報をリセットする
   /// ApiClient から同期的に呼び出されるため、非同期処理は行わない
   void _handleUnauthorized() {
+    _csrfToken = null;
+    if (ref.mounted) {
+      state = const AuthUnauthenticated();
+    }
+  }
+
+  /// セッション有効期限切れを検出した際にクライアント側のセッション情報をリセットする
+  /// SessionCookieInterceptor から同期的に呼び出されるため、非同期処理は行わない
+  void _handleSessionExpired() {
     _csrfToken = null;
     if (ref.mounted) {
       state = const AuthUnauthenticated();
@@ -127,7 +169,8 @@ class AuthNotifier extends Notifier<AuthState> {
     }
 
     final callbackScheme = ref.read(authCallbackSchemeProvider);
-    final callbackUrl = '$callbackScheme://auth/callback';
+    // FE-005 監査対応: コールバックパスも定数 _oauthCallbackPath から取得してハードコードを排除する
+    final callbackUrl = '$callbackScheme://$_oauthCallbackPath';
     // FE-10 監査対応: redirect_to パラメータは URI エンコードが必要。
     // callbackUrl に "://" が含まれ BFF 側でパース時に切り捨てられる危険を防ぐ。
     final encodedCallbackUrl = Uri.encodeComponent(callbackUrl);

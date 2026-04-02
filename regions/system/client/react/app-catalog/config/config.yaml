@@ -17,5 +17,10 @@ proxy:
   path: "/api"
   target: "http://localhost:8080"
 
+# BFF 設定: ブラウザから見た BFF のベースパス（FE-004 監査対応）
+# 本番環境では環境別設定ファイル（config.production.yaml 等）でオーバーライドすること
+bff:
+  base_url: "/bff"
+
 # フィーチャーフラグ: 機能の有効/無効を制御
 features: {}

@@ -10,23 +10,37 @@ use uuid::Uuid;
 
 use super::{AppState, ErrorDetail, ErrorResponse};
 
-/// システムテナントUUID: JWT クレームが存在しない場合のフォールバック
-const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
-
 /// JWT クレームからテナントIDを文字列として抽出するヘルパー。
-/// クレームがない場合はシステムテナントUUIDをフォールバックとして使用する。
-fn extract_tenant_id_str(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
-    claims
+/// クレームが存在しない場合、または tenant_id が無効な UUID の場合は 401 を返す。
+fn extract_tenant_id_str(
+    claims: &Option<Extension<k1s0_auth::Claims>>,
+) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
+    let tenant_id_str = claims
         .as_ref()
-        .and_then(|ext| {
-            // UUID として有効な場合のみ使用する
-            if Uuid::parse_str(&ext.0.tenant_id).is_ok() {
-                Some(ext.0.tenant_id.clone())
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string())
+        .map(|ext| ext.0.tenant_id.as_str())
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": "Authentication required",
+                    "code": 401
+                })),
+            )
+        })?;
+
+    // UUID として有効かどうかを検証する
+    if Uuid::parse_str(tenant_id_str).is_err() {
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "error": "Invalid tenant_id in JWT claims",
+                "code": 401
+            })),
+        ));
+    }
+
+    Ok(tenant_id_str.to_string())
 }
 
 #[utoipa::path(
@@ -144,8 +158,11 @@ pub async fn check_rate_limit(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<CheckRateLimitRequest>,
 ) -> impl IntoResponse {
-    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
-    let tenant_id = extract_tenant_id_str(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let window_secs = parse_window_secs(&req.window);
 
     match state
@@ -226,8 +243,11 @@ pub async fn reset_rate_limit(
 ) -> impl IntoResponse {
     use crate::usecase::reset_rate_limit::ResetRateLimitInput;
 
-    // STATIC-CRITICAL-001: テナントスコープのレートリミット状態をリセットする
-    let tenant_id = extract_tenant_id_str(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let input = ResetRateLimitInput {
         tenant_id,
         scope: req.scope.clone(),
@@ -618,8 +638,11 @@ pub async fn get_usage(
 ) -> impl IntoResponse {
     use crate::usecase::get_usage::GetUsageError;
 
-    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
-    let tenant_id = extract_tenant_id_str(&claims);
+    // テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let rule_id = match params.get("rule_id") {
         Some(id) => id.clone(),
         None => {
@@ -671,6 +694,31 @@ mod tests {
     use chrono::TimeZone;
     use std::sync::Arc;
     use tower::ServiceExt;
+
+    /// テスト用の有効なテナントUUID
+    const TEST_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+    /// テスト用の有効なJWT Claimsを作成するヘルパー。
+    /// リクエストに認証情報を注入する際に使用する。
+    fn make_test_claims() -> k1s0_auth::Claims {
+        k1s0_auth::Claims {
+            sub: "test-user".to_string(),
+            iss: "https://auth.example.com".to_string(),
+            aud: k1s0_auth::Audience(vec!["test".to_string()]),
+            exp: 9999999999,
+            iat: 0,
+            jti: None,
+            typ: None,
+            azp: None,
+            scope: None,
+            preferred_username: Some("test-user".to_string()),
+            email: None,
+            realm_access: None,
+            resource_access: None,
+            tier_access: None,
+            tenant_id: TEST_TENANT_ID.to_string(),
+        }
+    }
 
     // テスト用タイムスタンプヘルパー（指定秒数からUTCのDateTimeを生成する）
     fn ts(seconds: i64) -> DateTime<Utc> {
@@ -861,8 +909,8 @@ mod tests {
             "identifier": "user-123"
         });
 
-        // レート制限チェックリクエストのJSONをシリアライズする
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してレート制限チェックリクエストを送信する
+        let mut req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/check")
             .header("content-type", "application/json")
@@ -870,6 +918,7 @@ mod tests {
                 serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
             ))
             .expect("rate limit checkリクエストの構築に失敗");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -951,8 +1000,8 @@ mod tests {
             "identifier": "user-123"
         });
 
-        // レート制限拒否ケースのリクエストを送信する
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してレート制限拒否ケースのリクエストを送信する
+        let mut req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/check")
             .header("content-type", "application/json")
@@ -960,6 +1009,7 @@ mod tests {
                 serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
             ))
             .expect("rate limit check deniedリクエストの構築に失敗");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -1135,8 +1185,8 @@ mod tests {
             "identifier": "user-123"
         });
 
-        // レート制限リセットリクエストを送信する
-        let req = Request::builder()
+        // 有効なJWT Claimsを注入してレート制限リセットリクエストを送信する
+        let mut req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/reset")
             .header("content-type", "application/json")
@@ -1144,6 +1194,7 @@ mod tests {
                 serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
             ))
             .expect("rate limit resetリクエストの構築に失敗");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -1158,5 +1209,46 @@ mod tests {
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
         assert_eq!(json["success"], true);
+    }
+
+    /// JWT クレームなし（認証情報未設定）の場合に 401 を返すことを確認するテスト。
+    /// これにより SYSTEM テナントへのフォールバックが廃止されたことを検証する。
+    #[tokio::test]
+    async fn test_check_rate_limit_unauthorized_no_claims() {
+        let state = make_app_state(
+            MockRateLimitRepository::new(),
+            MockRateLimitStateStore::new(),
+        );
+        let app = router(state);
+
+        let body = serde_json::json!({
+            "scope": "service",
+            "identifier": "user-123"
+        });
+
+        // JWT Claimsを注入せずにリクエストを送信する
+        let req = Request::builder()
+            .method("POST")
+            .uri("/api/v1/ratelimit/check")
+            .header("content-type", "application/json")
+            .body(Body::from(
+                serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
+            ))
+            .expect("rate limit check unauthorizedリクエストの構築に失敗");
+
+        let resp = app
+            .oneshot(req)
+            .await
+            .expect("rate limit check unauthorizedリクエストの送信に失敗");
+        // クレームなしの場合は 401 が返されることを確認する
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+
+        let body = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .expect("レスポンスボディの読み取りに失敗");
+        let json: serde_json::Value =
+            serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
+        assert_eq!(json["error"], "Authentication required");
+        assert_eq!(json["code"], 401);
     }
 }

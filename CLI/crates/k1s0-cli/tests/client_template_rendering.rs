@@ -27,7 +27,8 @@ fn render_client(framework: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("test-app", "service", framework, "client")
         .framework(framework)
-        .try_build().unwrap();
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
