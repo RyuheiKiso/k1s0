@@ -530,55 +530,13 @@ services:
   #         policy: local
 
   # ============================================================
-  # Health Endpoints (no auth required)
+  # Health Endpoints
   # ============================================================
-  - name: auth-health
-    url: http://auth-rust:8080
-    routes:
-      - name: auth-health-check
-        paths:
-          - /healthz
-          - /readyz
-        strip_path: false
-        plugins:
-          - name: jwt
-            enabled: false
-
-  - name: config-health
-    url: http://config-rust:8080
-    routes:
-      - name: config-health-check
-        paths:
-          - /healthz
-          - /readyz
-        strip_path: false
-        plugins:
-          - name: jwt
-            enabled: false
-
-  - name: saga-health
-    url: http://saga-rust:8080
-    routes:
-      - name: saga-health-check
-        paths:
-          - /healthz
-          - /readyz
-        strip_path: false
-        plugins:
-          - name: jwt
-            enabled: false
-
-  - name: dlq-manager-health
-    url: http://dlq-manager:8080
-    routes:
-      - name: dlq-manager-health-check
-        paths:
-          - /healthz
-          - /readyz
-        strip_path: false
-        plugins:
-          - name: jwt
-            enabled: false
+  # INFRA-CRIT-001 対応: /healthz, /readyz は Kong 経由でルーティングしない。
+  # Kong の DB-less モードではルートレベルの plugins[].enabled=false はグローバル JWT プラグインを
+  # 上書きしないため、ルートを定義しても 401 が返る（機能しない）。
+  # K8s liveness/readiness probe および Prometheus は各サービスの ClusterIP に直接アクセスする設計。
+  # 本番環境: NetworkPolicy により kube-system / monitoring namespace からの直接アクセスのみ許可する。
 
 # ============================================================
 # Global Plugins

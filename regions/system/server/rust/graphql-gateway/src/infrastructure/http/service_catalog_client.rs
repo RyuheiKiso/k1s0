@@ -313,6 +313,27 @@ impl ServiceCatalogHttpClient {
         Ok(true)
     }
 
+    /// service-catalog サーバー自身のヘルスチェックを行う。
+    /// DOCKER-CRIT-001 対応: /api/v1/services は認証が必要なため readyz チェックには不向きである。
+    /// /healthz エンドポイントは認証不要で呼び出し可能なため、ヘルスチェックに使用する。
+    #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    pub async fn healthz(&self) -> anyhow::Result<()> {
+        let url = format!("{}/healthz", self.base_url);
+        let resp = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.Healthz HTTP エラー: {}", e))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            anyhow::bail!("ServiceCatalog.Healthz 失敗: status={}", status);
+        }
+
+        Ok(())
+    }
+
     /// サービスのヘルスチェック状態を取得する。
     /// service_id が指定された場合は特定サービスのヘルス状態のみ返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]

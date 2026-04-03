@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use crate::domain::repository::WorkflowDefinitionRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct DeleteWorkflowInput {
+    pub tenant_id: String,
     pub id: String,
 }
 
@@ -26,9 +28,10 @@ impl DeleteWorkflowUseCase {
     }
 
     pub async fn execute(&self, input: &DeleteWorkflowInput) -> Result<(), DeleteWorkflowError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let deleted = self
             .repo
-            .delete(&input.id)
+            .delete(&input.tenant_id, &input.id)
             .await
             .map_err(|e| DeleteWorkflowError::Internal(e.to_string()))?;
 
@@ -49,10 +52,11 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_delete().returning(|_| Ok(true));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteWorkflowUseCase::new(Arc::new(mock));
         let input = DeleteWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -62,10 +66,11 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteWorkflowUseCase::new(Arc::new(mock));
         let input = DeleteWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_missing".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -79,10 +84,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowDefinitionRepository::new();
         mock.expect_delete()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = DeleteWorkflowUseCase::new(Arc::new(mock));
         let input = DeleteWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
         };
         let result = uc.execute(&input).await;

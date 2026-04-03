@@ -4,8 +4,10 @@ use crate::domain::entity::workflow_definition::WorkflowDefinition;
 use crate::domain::entity::workflow_step::WorkflowStep;
 use crate::domain::repository::WorkflowDefinitionRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct UpdateWorkflowInput {
+    pub tenant_id: String,
     pub id: String,
     pub name: Option<String>,
     pub description: Option<String>,
@@ -35,9 +37,10 @@ impl UpdateWorkflowUseCase {
         &self,
         input: &UpdateWorkflowInput,
     ) -> Result<WorkflowDefinition, UpdateWorkflowError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let mut definition = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.tenant_id, &input.id)
             .await
             .map_err(|e| UpdateWorkflowError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateWorkflowError::NotFound(input.id.clone()))?;
@@ -58,7 +61,7 @@ impl UpdateWorkflowUseCase {
         definition.updated_at = chrono::Utc::now();
 
         self.repo
-            .update(&definition)
+            .update(&input.tenant_id, &definition)
             .await
             .map_err(|e| UpdateWorkflowError::Internal(e.to_string()))?;
 
@@ -87,11 +90,12 @@ mod tests {
         let mut mock = MockWorkflowDefinitionRepository::new();
         let def = existing_def();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(def.clone())));
-        mock.expect_update().returning(|_| Ok(()));
+            .returning(move |_, _| Ok(Some(def.clone())));
+        mock.expect_update().returning(|_, _| Ok(()));
 
         let uc = UpdateWorkflowUseCase::new(Arc::new(mock));
         let input = UpdateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
             name: Some("updated".to_string()),
             description: None,
@@ -110,10 +114,11 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateWorkflowUseCase::new(Arc::new(mock));
         let input = UpdateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_missing".to_string(),
             name: None,
             description: None,
@@ -131,10 +136,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowDefinitionRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = UpdateWorkflowUseCase::new(Arc::new(mock));
         let input = UpdateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
             name: None,
             description: None,

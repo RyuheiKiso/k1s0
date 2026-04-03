@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::repository::WorkflowInstanceRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct ListInstancesInput {
+    pub tenant_id: String,
     pub status: Option<String>,
     pub workflow_id: Option<String>,
     pub initiator_id: Option<String>,
@@ -40,13 +42,16 @@ impl ListInstancesUseCase {
         &self,
         input: &ListInstancesInput,
     ) -> Result<ListInstancesOutput, ListInstancesError> {
-        // ページ番号は最小1に制限し、page_size は 1〜200 にクランプして異常値を防ぐ（H-07 監査対応）
-        let page = input.page.max(1);
+        // RUST-MED-002 対応: page に上限を設けることで OFFSET の過大計算を防ぐ
+        // page_size は 1〜200 にクランプして異常値を防ぐ（H-07 監査対応）
+        let page = input.page.clamp(1, 10_000);
         let page_size = input.page_size.clamp(1, 200);
 
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let (instances, total_count) = self
             .repo
             .find_all(
+                &input.tenant_id,
                 input.status.clone(),
                 input.workflow_id.clone(),
                 input.initiator_id.clone(),
@@ -78,10 +83,11 @@ mod tests {
     async fn success() {
         let mut mock = MockWorkflowInstanceRepository::new();
         mock.expect_find_all()
-            .returning(|_, _, _, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _, _, _| Ok((vec![], 0)));
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {
+            tenant_id: "test-tenant".to_string(),
             status: None,
             workflow_id: None,
             initiator_id: None,
@@ -104,6 +110,7 @@ mod tests {
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {
+            tenant_id: "test-tenant".to_string(),
             status: Some("running".to_string()),
             workflow_id: None,
             initiator_id: None,
@@ -122,6 +129,7 @@ mod tests {
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {
+            tenant_id: "test-tenant".to_string(),
             status: None,
             workflow_id: None,
             initiator_id: None,

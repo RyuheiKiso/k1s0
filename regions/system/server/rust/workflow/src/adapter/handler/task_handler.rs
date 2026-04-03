@@ -1,10 +1,12 @@
 // タスク管理ハンドラ
 // タスクの一覧取得・期限超過チェック・承認・却下・再割り当て操作を提供する
+// RUST-CRIT-001 対応: Claims から tenant_id を取得してテナント境界を適用する
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use k1s0_auth::Claims;
 
 use crate::usecase::approve_task::{ApproveTaskError, ApproveTaskInput};
 use crate::usecase::check_overdue_tasks::CheckOverdueTasksError;
@@ -17,14 +19,25 @@ use super::dto::{
     RejectTaskRequest,
 };
 
+/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
+    claims
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 /// GET /api/v1/tasks
 /// フィルタ条件に基づいてタスク一覧を取得する
 pub async fn list_tasks(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListTasksQuery>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     // クエリパラメータからユースケース入力を組み立てる
     let input = ListTasksInput {
+        tenant_id,
         assignee_id: query.assignee_id,
         status: query.status,
         instance_id: query.instance_id,
@@ -127,10 +140,14 @@ pub async fn check_overdue_tasks(State(state): State<AppState>) -> impl IntoResp
 /// タスクを承認し、次のステップへ進行させる
 pub async fn approve_task(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<ApproveTaskRequest>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     let input = ApproveTaskInput {
+        tenant_id,
         task_id: id.clone(),
         actor_id: req.actor_user_id,
         comment: req.comment,
@@ -197,10 +214,14 @@ pub async fn approve_task(
 /// タスクを却下し、ワークフローを分岐させる
 pub async fn reject_task(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<RejectTaskRequest>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     let input = RejectTaskInput {
+        tenant_id,
         task_id: id.clone(),
         actor_id: req.actor_user_id,
         comment: req.comment,
@@ -267,10 +288,14 @@ pub async fn reject_task(
 /// タスクを別のユーザーに再割り当てする
 pub async fn reassign_task(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<ReassignTaskRequest>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     let input = ReassignTaskInput {
+        tenant_id,
         task_id: id.clone(),
         new_assignee_id: req.new_assignee_id,
         reason: req.reason,

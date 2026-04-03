@@ -2005,7 +2005,9 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // 全11サービスを同時に並列実行する。
     // AVAIL-001 対応: 各バックエンドサービスに gRPC Health Check Protocol を使って疎通確認する。
     // Bearer token なしで接続できるため readyz が認証エラーで 503 になる問題を解消する。
-    // service-catalog は REST のみ提供するため list_services で疎通確認する（認証不要）。
+    // DOCKER-CRIT-001 対応: service-catalog は /api/v1/services ではなく /healthz を使用する。
+    // /api/v1/services は認証が必要なため readyz チェック時に 401 エラーが発生していた。
+    // /healthz は認証不要で呼び出し可能なため、ヘルスチェックに使用する。
     let (
         auth_result,
         session_result,
@@ -2027,7 +2029,7 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         tokio::time::timeout(timeout, state.navigation_client.health_check()),
         tokio::time::timeout(
             timeout,
-            state.service_catalog_client.list_services(1, 1, None, None, None)
+            state.service_catalog_client.healthz()
         ),
         tokio::time::timeout(timeout, state.vault_client.health_check()),
         tokio::time::timeout(timeout, state.scheduler_client.health_check()),
@@ -2183,11 +2185,13 @@ fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Opt
         if token.is_empty() {
             return None;
         }
-        if let Some(bearer) = token
-            .strip_prefix("Bearer ")
-            .or_else(|| token.strip_prefix("bearer "))
+        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+        if token.len() >= BEARER_PREFIX_LEN
+            && token[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ")
         {
-            let trimmed = bearer.trim();
+            let trimmed = token[BEARER_PREFIX_LEN..].trim();
             if trimmed.is_empty() {
                 None
             } else {

@@ -62,9 +62,15 @@ impl EventStoreServiceTonic {
         let auth_header = auth_header
             .to_str()
             .map_err(|_| Status::unauthenticated("invalid Authorization metadata"))?;
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or_else(|| Status::unauthenticated("Authorization must be Bearer token"))?;
+        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+        if auth_header.len() < BEARER_PREFIX_LEN
+            || !auth_header[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ")
+        {
+            return Err(Status::unauthenticated("Authorization must be Bearer token"));
+        }
+        let token = &auth_header[BEARER_PREFIX_LEN..];
 
         let claims = auth_state
             .verifier

@@ -630,11 +630,13 @@ migrate-all:
             dir_name=$(basename "$dir")
             # business tier の DB マッピング:
             #   project-master-db → k1s0_business（12-project-master-schema.sql）
+            # DOCKER-HIGH-004 対応: search_path を設定して sqlx の _sqlx_migrations テーブルを
+            # サービス固有スキーマに作成する（public スキーマへの CREATE 権限エラーを回避する）
             case "$dir_name" in
-                project-master-db) db_name="k1s0_business" ;;
-                *)                 db_name=$(echo "$dir_name" | tr '-' '_') ;;
+                project-master-db) db_name="k1s0_business" ; schema_name="project_master" ;;
+                *)                 db_name=$(echo "$dir_name" | tr '-' '_') ; schema_name="public" ;;
             esac
-            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
+            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}?options=-c%20search_path%3D${schema_name}"
             echo "--- Migrating: $domain/$dir_name → $db_name ---"
             if sqlx migrate run --database-url "$db_url" --source "$dir/migrations" 2>&1; then
                 echo "  OK: $domain/$dir_name → $db_name"
@@ -656,11 +658,14 @@ migrate-all:
             dir_name=$(basename "$dir")
             # service tier の DB マッピング:
             #   postgres → k1s0_service（task/board/activity が共有; 13〜15-*-schema.sql）
+            # DOCKER-HIGH-004 対応: search_path を設定して sqlx の _sqlx_migrations テーブルを
+            # サービス固有スキーマに作成する（public スキーマへの CREATE 権限エラーを回避する）
+            # サービス名からスキーマ名を導出: task → task_service, board → board_service, activity → activity_service
             case "$dir_name" in
-                postgres) db_name="k1s0_service" ;;
-                *)        db_name=$(echo "$dir_name" | tr '-' '_') ;;
+                postgres) db_name="k1s0_service" ; schema_name="${svc}_service" ;;
+                *)        db_name=$(echo "$dir_name" | tr '-' '_') ; schema_name="public" ;;
             esac
-            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}"
+            db_url="postgresql://${K1S0_USER}:${K1S0_PASS}@${PG_HOST}:${PG_PORT}/${db_name}?options=-c%20search_path%3D${schema_name}"
             echo "--- Migrating: $svc/$dir_name → $db_name ---"
             if sqlx migrate run --database-url "$db_url" --source "$dir/migrations" 2>&1; then
                 echo "  OK: $svc/$dir_name → $db_name"

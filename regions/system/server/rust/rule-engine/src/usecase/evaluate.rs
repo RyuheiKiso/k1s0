@@ -48,6 +48,8 @@ pub struct EvaluateUseCase {
     rule_set_repo: Arc<dyn RuleSetRepository>,
     rule_repo: Arc<dyn RuleRepository>,
     eval_log_repo: Arc<dyn EvaluationLogRepository>,
+    /// 正規表現コンパイル結果キャッシュ付き評価器（RUST-HIGH-003 対応）
+    condition_evaluator: ConditionEvaluator,
 }
 
 impl EvaluateUseCase {
@@ -60,6 +62,8 @@ impl EvaluateUseCase {
             rule_set_repo,
             rule_repo,
             eval_log_repo,
+            // ConditionEvaluator は regex LruCache を内部で持つため、ユースケース生成時に一度だけ初期化する
+            condition_evaluator: ConditionEvaluator::new(),
         }
     }
 
@@ -88,7 +92,7 @@ impl EvaluateUseCase {
         let now = chrono::Utc::now();
         let evaluation_id = Uuid::new_v4();
 
-        let (matched_rules, result, default_applied) = Self::evaluate_rules(
+        let (matched_rules, result, default_applied) = self.evaluate_rules(
             &rules,
             &rule_set.evaluation_mode,
             &input.input,
@@ -136,7 +140,9 @@ impl EvaluateUseCase {
         Ok((parts[0].to_string(), parts[1].to_string()))
     }
 
+    /// ルール評価ループ。ConditionEvaluator のキャッシュを再利用するためインスタンスメソッドとする
     fn evaluate_rules(
+        &self,
         rules: &[Rule],
         mode: &EvaluationMode,
         input: &serde_json::Value,
@@ -148,7 +154,9 @@ impl EvaluateUseCase {
             let condition = ConditionParser::parse(&rule.when_condition)
                 .map_err(EvaluateError::EvaluationError)?;
 
-            let is_match = ConditionEvaluator::evaluate(&condition, input)
+            let is_match = self
+                .condition_evaluator
+                .evaluate(&condition, input)
                 .map_err(EvaluateError::EvaluationError)?;
 
             if is_match {

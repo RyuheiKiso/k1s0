@@ -20,12 +20,16 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         } else {
             StatusCode::SERVICE_UNAVAILABLE
         },
+        // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+        let timestamp = chrono::Utc::now().to_rfc3339();
         Json(serde_json::json!({
-            "status": if ready { "ready" } else { "not_ready" },
+            // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
+            "status": if ready { "healthy" } else { "unhealthy" },
             "checks": {
                 "database": if db_ok { "ok" } else { "error" },
                 "kafka": if kafka_ok { "ok" } else { "error" }
-            }
+            },
+            "timestamp": timestamp
         })),
     )
 }

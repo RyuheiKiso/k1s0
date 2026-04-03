@@ -56,6 +56,9 @@ grafana:
     runAsUser: 472        # grafana 公式イメージのデフォルト UID
     runAsGroup: 472
     fsGroup: 472
+    # PSS restricted 準拠: K8S-CRIT-001 対応
+    seccompProfile:
+      type: RuntimeDefault
 
   # Pod Anti-Affinity: 複数レプリカを異なるノードに分散配置してノード障害時の影響を最小化する
   affinity:

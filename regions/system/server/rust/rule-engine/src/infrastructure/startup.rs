@@ -146,7 +146,8 @@ pub async fn run() -> anyhow::Result<()> {
                         version_repo,
                         eval_log_repo,
                         "postgres".to_string(),
-                        Some(pool),
+                        // Arc<Pool<Postgres>> から Pool<Postgres> を取り出して Option<PgPool> に変換する
+                        Some((*pool).clone()),
                     )
                 }
                 None => {

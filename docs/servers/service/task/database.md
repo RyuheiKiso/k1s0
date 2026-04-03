@@ -51,7 +51,7 @@ outbox_events（独立、tasks との直接 FK なし）
 
 | カラム | 型 | 制約 | 説明 |
 |--------|------|-------------|-------------|
-| id | UUID | PK | タスク識別子 |
+| id | UUID | PK | タスク識別子（アプリケーション側で UUID を生成して挿入） |
 | project_id | UUID | NOT NULL | プロジェクト ID（migration 008 で TEXT → UUID に変更済み）<!-- H-22 監査対応: 型を UUID に修正 --> |
 | title | TEXT | NOT NULL | タスクタイトル |
 | description | TEXT | | タスク説明 |
@@ -68,9 +68,11 @@ outbox_events（独立、tasks との直接 FK なし）
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 更新日時 |
 
+<!-- DOCS-HIGH-004 対応: migration の実装に合わせて id カラムの DEFAULT を削除（2026-04-03） -->
+<!-- 実装では UUID はアプリケーション（Rust）側で生成し DB に挿入するため DEFAULT gen_random_uuid() は不要 -->
 ```sql
 CREATE TABLE task_service.tasks (
-    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    id           UUID         PRIMARY KEY,
     project_id   UUID         NOT NULL,  -- H-22 監査対応: migration 008 で TEXT → UUID に変更済み
     title        TEXT         NOT NULL,
     description  TEXT,
@@ -113,9 +115,10 @@ CREATE INDEX idx_tasks_tenant_project ON task_service.tasks (tenant_id, project_
 | created_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | 更新日時 |
 
+<!-- DOCS-HIGH-004 対応: migration の実装に合わせて id カラムの DEFAULT を削除（2026-04-03） -->
 ```sql
 CREATE TABLE task_service.task_checklist_items (
-    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    id           UUID         PRIMARY KEY,
     task_id      UUID         NOT NULL REFERENCES task_service.tasks(id) ON DELETE CASCADE,
     title        TEXT         NOT NULL,
     is_completed BOOLEAN      NOT NULL DEFAULT FALSE,

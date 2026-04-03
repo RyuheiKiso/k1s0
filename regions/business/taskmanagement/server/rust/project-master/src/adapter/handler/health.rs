@@ -10,8 +10,18 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 /// Readiness probe（DB 接続確認）
+/// ADR-0068 対応: "ready" から "healthy" に統一し、timestamp フィールドを追加する
 pub async fn readyz(State(_state): State<AppState>) -> impl IntoResponse {
-    (StatusCode::OK, Json(json!({"status": "ready"})))
+    // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+    let timestamp = chrono::Utc::now().to_rfc3339();
+    (
+        StatusCode::OK,
+        Json(json!({
+            "status": "healthy",
+            "checks": {},
+            "timestamp": timestamp
+        })),
+    )
 }
 
 /// Prometheus メトリクスエンドポイント

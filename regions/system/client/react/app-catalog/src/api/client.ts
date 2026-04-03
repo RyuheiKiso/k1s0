@@ -28,12 +28,14 @@ export async function fetchApps(params?: AppListParams): Promise<App[]> {
 }
 
 export async function fetchApp(appId: string): Promise<App> {
-  const { data } = await api.get<App>(`/apps/${appId}`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<App>(`/apps/${encodeURIComponent(appId)}`);
   return data;
 }
 
 export async function fetchAppVersions(appId: string): Promise<AppVersion[]> {
-  const { data } = await api.get<VersionListResponse>(`/apps/${appId}/versions`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<VersionListResponse>(`/apps/${encodeURIComponent(appId)}/versions`);
   return data.versions;
 }
 
@@ -61,7 +63,8 @@ export async function fetchDownloadUrl(
 }
 
 export async function fetchDownloadStats(appId: string): Promise<DownloadStats> {
-  const { data } = await api.get<DownloadStats>(`/apps/${appId}/stats`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<DownloadStats>(`/apps/${encodeURIComponent(appId)}/stats`);
   return data;
 }
 

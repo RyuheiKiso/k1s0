@@ -97,8 +97,8 @@ pub fn run() -> Result<()> {
         }
     }
 
-    if prompt::confirm_prompt()? == prompt::ConfirmResult::Yes {
-    } else {
+    // 確認プロンプトで「はい」以外が選択された場合はキャンセルする
+    if prompt::confirm_prompt()? != prompt::ConfirmResult::Yes {
         println!("キャンセルしました。");
         return Ok(());
     }

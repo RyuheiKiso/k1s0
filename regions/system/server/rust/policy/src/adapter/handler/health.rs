@@ -20,10 +20,13 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         "healthy"
     };
 
+    // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+    let timestamp = chrono::Utc::now().to_rfc3339();
     Json(serde_json::json!({
         "status": status,
         "checks": {
             "policy_backend": state.backend_kind
-        }
+        },
+        "timestamp": timestamp
     }))
 }

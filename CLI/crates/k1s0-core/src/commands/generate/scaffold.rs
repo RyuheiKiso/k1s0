@@ -633,9 +633,11 @@ ENTRYPOINT ["/bin/{service_name}"]
     )
 }
 
+// FE-LOW-002 対応: scaffold の Rust バージョンを workspace の MSRV と揃える
+// 1.75 は 2023 年末のバージョンで古い。現在のプロジェクトは 1.85 以降を使用している
 fn generate_rust_dockerfile(service_name: &str) -> String {
     format!(
-        r#"FROM rust:1.75 AS builder
+        r#"FROM rust:1.85 AS builder
 WORKDIR /app
 COPY . .
 RUN cargo build --release

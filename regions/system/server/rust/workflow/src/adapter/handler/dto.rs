@@ -176,10 +176,14 @@ pub struct UpdateWorkflowRequest {
 // --- インスタンス関連 DTO ---
 
 /// ワークフロー実行（インスタンス開始）リクエスト
+/// RUST-LOW-001 対応: initiator_id は JWT Claims の sub から取得するため省略可能とする
+/// Claims が存在する場合は sub を優先し、存在しない場合はリクエストの値にフォールバックする
 #[derive(Debug, Deserialize)]
 pub struct ExecuteWorkflowRequest {
     pub title: String,
-    pub initiator_id: String,
+    /// 省略時は JWT Claims の sub から自動設定される
+    #[serde(default)]
+    pub initiator_id: Option<String>,
     #[serde(default)]
     pub context: serde_json::Value,
 }

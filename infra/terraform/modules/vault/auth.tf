@@ -49,42 +49,61 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 # いずれかの SA が侵害された場合の爆発半径を最小化するため、全サービスを個別ロールで管理する。
 # 参照: ADR-0045（docs/architecture/adr/0045-vault-per-service-roles.md）
 
-# business Tier role - サービス別SA名で最小権限を適用
-# MED-02 監査対応: business ティアは現在共有ロール（"business"）を使用している。
-# system ティア（ADR-0045 実装完了）は全サービスがサービス個別ロールに移行済み。
-# business ティアも将来的にサービス個別ロールへ移行する予定だが、
-# 現状は project-master の1サービスのみであり、優先度が低いため暫定的に共有ロールを維持する。
-# TODO: business ティアのサービスが2件以上になった場合はサービス個別ロールに移行すること。
-resource "vault_kubernetes_auth_backend_role" "business" {
+# INFRA-HIGH-002 対応: business/service ティアも system ティア（ADR-0045）と同様に
+# サービス個別 Vault ロールに分離する（ADR-0077 参照）。
+# 共有ロールでは1サービス侵害で同ティア全シークレットが漏洩するリスクがあるため廃止する。
+
+# project-master-rust 個別 Vault ロール（business ティア）
+# ADR-0077: 旧共有ロール "business" を廃止し、project-master 専用ロールに移行する
+resource "vault_kubernetes_auth_backend_role" "project_master_rust" {
   backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "business"
-  bound_service_account_names      = [
-    "project-master-rust",
-  ]
+  role_name                        = "project-master-rust"
+  bound_service_account_names      = ["project-master-rust"]
   bound_service_account_namespaces = ["k1s0-business"]
-  token_policies                   = ["business"]
+  # business 共通ポリシーと project-master 専用ポリシーを付与する
+  token_policies                   = ["business", "project-master"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400
 }
 
-# service Tier role - サービス別SA名で最小権限を適用
-# H-1 監査対応: bff-proxy の SA は "bff-proxy-sa" (namespace: k1s0-system) であり、
-#   service ロール（namespace: k1s0-service）には属さない。
-#   "bff-proxy" を削除し、system ロールの "bff-proxy-sa" に統一する。
-# MED-02 監査対応: service ティアは現在共有ロール（"service"）を使用している。
-# system ティア（ADR-0045 実装完了）は全サービスがサービス個別ロールに移行済み。
-# service ティアも将来的にサービス個別ロールへ移行する予定だが、
-# 現状は task/board/activity の3サービスのみであり、優先度が低いため暫定的に共有ロールを維持する。
-# TODO: service ティアのサービス構成が変化した場合（追加・削除）はサービス個別ロールへの移行を検討すること。
-resource "vault_kubernetes_auth_backend_role" "service" {
+# task-rust 個別 Vault ロール（service ティア）
+# ADR-0077: 旧共有ロール "service" を廃止し、task 専用ロールに移行する
+resource "vault_kubernetes_auth_backend_role" "task_rust" {
   backend                          = vault_auth_backend.kubernetes.path
-  role_name                        = "service"
-  bound_service_account_names      = [
-    "task-rust", "board-rust", "activity-rust",
-  ]
+  role_name                        = "task-rust"
+  bound_service_account_names      = ["task-rust"]
   bound_service_account_namespaces = ["k1s0-service"]
-  token_policies                   = ["service"]
+  # service 共通ポリシーと task 専用ポリシーを付与する
+  token_policies                   = ["service", "task"]
+  token_ttl                        = 3600
+  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
+}
+
+# board-rust 個別 Vault ロール（service ティア）
+# ADR-0077: 旧共有ロール "service" を廃止し、board 専用ロールに移行する
+resource "vault_kubernetes_auth_backend_role" "board_rust" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "board-rust"
+  bound_service_account_names      = ["board-rust"]
+  bound_service_account_namespaces = ["k1s0-service"]
+  # service 共通ポリシーと board 専用ポリシーを付与する
+  token_policies                   = ["service", "board"]
+  token_ttl                        = 3600
+  # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
+}
+
+# activity-rust 個別 Vault ロール（service ティア）
+# ADR-0077: 旧共有ロール "service" を廃止し、activity 専用ロールに移行する
+resource "vault_kubernetes_auth_backend_role" "activity_rust" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "activity-rust"
+  bound_service_account_names      = ["activity-rust"]
+  bound_service_account_namespaces = ["k1s0-service"]
+  # service 共通ポリシーと activity 専用ポリシーを付与する
+  token_policies                   = ["service", "activity"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400

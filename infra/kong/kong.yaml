@@ -678,6 +678,13 @@ plugins:
   # key_claim_name: iss により jwt.claims.iss と consumer.jwt_secrets[].key（Keycloak レルム URL）を照合する。
   # iss が一致しないトークン（他システム発行）は 401 で拒否される。
   # aud 検証は post-function access フェーズで実施する（下記参照）。
+  #
+  # INFRA-CRIT-001 対応: Kong のグローバル JWT プラグインはルートレベルの `enabled: false` では上書きされない。
+  # ヘルスチェックエンドポイント（/healthz, /readyz）を Kong 経由で認証なしにアクセスさせることはできない。
+  # 内部監視システム（Prometheus / Kubernetes liveness/readiness probe）からは
+  # Kong を経由せず直接サービスの ClusterIP にアクセスすること。
+  # 本番環境では Kong にヘルスチェックルートを定義せず、K8s NetworkPolicy で
+  # Prometheus / kube-system Pod からの直接アクセスのみを許可する設計とすること。
   - name: jwt
     config:
       uri_param_names: []

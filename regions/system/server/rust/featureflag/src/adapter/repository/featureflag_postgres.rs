@@ -37,8 +37,20 @@ struct FeatureFlagRow {
 
 impl From<FeatureFlagRow> for FeatureFlag {
     fn from(row: FeatureFlagRow) -> Self {
-        let variants: Vec<FlagVariant> = serde_json::from_value(row.variants).unwrap_or_default();
-        let rules: Vec<FlagRule> = serde_json::from_value(row.rules).unwrap_or_default();
+        // RUST-MED-004 対応: デシリアライズ失敗をサイレントに無視せず警告ログを出力する
+        let variants: Vec<FlagVariant> = serde_json::from_value(row.variants)
+            .map_err(|e| {
+                tracing::warn!("variants のデシリアライズに失敗しました: {:?}", e);
+                e
+            })
+            .unwrap_or_default();
+        // RUST-MED-004 対応: rules のデシリアライズ失敗も警告ログを出力する
+        let rules: Vec<FlagRule> = serde_json::from_value(row.rules)
+            .map_err(|e| {
+                tracing::warn!("rules のデシリアライズに失敗しました: {:?}", e);
+                e
+            })
+            .unwrap_or_default();
         FeatureFlag {
             id: row.id,
             tenant_id: row.tenant_id,

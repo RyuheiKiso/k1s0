@@ -1,21 +1,42 @@
+use std::num::NonZeroUsize;
+use std::sync::Mutex;
+
+use lru::LruCache;
+
 use crate::domain::entity::condition::{Combinator, ConditionNode, Operator};
 
 /// 条件評価の最大再帰深度。これを超えるとスタックオーバーフローを引き起こす可能性があるため制限する
 const MAX_EVALUATION_DEPTH: usize = 32;
 
-pub struct ConditionEvaluator;
+/// 正規表現コンパイル結果をキャッシュする構造体
+/// RUST-HIGH-003 対応: 毎回コンパイルする代わりにキャッシュを利用し ReDoS リスクを軽減する
+pub struct ConditionEvaluator {
+    regex_cache: Mutex<LruCache<String, regex::Regex>>,
+}
 
 impl ConditionEvaluator {
+    /// ConditionEvaluator を生成する。
+    /// キャッシュサイズは 256 パターン（メモリ効率とヒット率のバランス）
+    pub fn new() -> Self {
+        Self {
+            regex_cache: Mutex::new(LruCache::new(
+                NonZeroUsize::new(256).expect("256 is non-zero"),
+            )),
+        }
+    }
+
     /// 条件ノードを評価する（外部向けエントリーポイント）
     pub fn evaluate(
+        &self,
         condition: &ConditionNode,
         context: &serde_json::Value,
     ) -> Result<bool, String> {
-        Self::evaluate_inner(condition, context, 0)
+        self.evaluate_inner(condition, context, 0)
     }
 
     /// 条件ノードを評価する（再帰深度を追跡する内部実装）
     fn evaluate_inner(
+        &self,
         condition: &ConditionNode,
         context: &serde_json::Value,
         depth: usize,
@@ -37,7 +58,7 @@ impl ConditionEvaluator {
             match combinator {
                 Combinator::All => {
                     for child in children {
-                        if !Self::evaluate_inner(child, context, depth + 1)? {
+                        if !self.evaluate_inner(child, context, depth + 1)? {
                             return Ok(false);
                         }
                     }
@@ -45,7 +66,7 @@ impl ConditionEvaluator {
                 }
                 Combinator::Any => {
                     for child in children {
-                        if Self::evaluate_inner(child, context, depth + 1)? {
+                        if self.evaluate_inner(child, context, depth + 1)? {
                             return Ok(true);
                         }
                     }
@@ -53,7 +74,7 @@ impl ConditionEvaluator {
                 }
                 Combinator::None => {
                     for child in children {
-                        if Self::evaluate_inner(child, context, depth + 1)? {
+                        if self.evaluate_inner(child, context, depth + 1)? {
                             return Ok(false);
                         }
                     }
@@ -74,7 +95,7 @@ impl ConditionEvaluator {
             let actual = Self::resolve_field(context, field);
             let expected = condition.value.as_ref();
 
-            Self::evaluate_operator(operator, actual, expected)
+            self.evaluate_operator(operator, actual, expected)
         }
     }
 
@@ -90,6 +111,7 @@ impl ConditionEvaluator {
     }
 
     fn evaluate_operator(
+        &self,
         operator: &Operator,
         actual: Option<&serde_json::Value>,
         expected: Option<&serde_json::Value>,
@@ -104,7 +126,7 @@ impl ConditionEvaluator {
             Operator::In => Self::evaluate_in(actual, expected),
             Operator::NotIn => Self::evaluate_in(actual, expected).map(|v| !v),
             Operator::Contains => Self::evaluate_contains(actual, expected),
-            Operator::Regex => Self::evaluate_regex(actual, expected),
+            Operator::Regex => self.evaluate_regex(actual, expected),
         }
     }
 
@@ -147,7 +169,10 @@ impl ConditionEvaluator {
         Ok(haystack.contains(needle))
     }
 
+    /// 正規表現マッチングを行う。LruCache でコンパイル済みパターンを再利用する。
+    /// ReDoS 緩和: 長大なパターン（1024 文字超）を拒否する
     fn evaluate_regex(
+        &self,
         actual: Option<&serde_json::Value>,
         expected: Option<&serde_json::Value>,
     ) -> Result<bool, String> {
@@ -157,9 +182,30 @@ impl ConditionEvaluator {
         let pattern = expected
             .and_then(|v| v.as_str())
             .ok_or_else(|| "expected value is not a string for 'regex'".to_string())?;
+
+        // ReDoS 緩和: 長大なパターンを拒否する（1024 文字を上限とする）
+        if pattern.len() > 1024 {
+            return Err(format!(
+                "regex pattern too long: {} chars (max 1024)",
+                pattern.len()
+            ));
+        }
+
+        let mut cache = self
+            .regex_cache
+            .lock()
+            .map_err(|e| format!("cache lock error: {}", e))?;
+
+        if let Some(re) = cache.get(pattern) {
+            return Ok(re.is_match(text));
+        }
+
+        // キャッシュミス: 正規表現をコンパイルしてキャッシュに追加する
         let re = regex::Regex::new(pattern)
             .map_err(|e| format!("invalid regex pattern '{}': {}", pattern, e))?;
-        Ok(re.is_match(text))
+        let result = re.is_match(text);
+        cache.put(pattern.to_string(), re);
+        Ok(result)
     }
 }
 
@@ -171,7 +217,8 @@ mod tests {
 
     fn eval(condition_json: serde_json::Value, context: serde_json::Value) -> bool {
         let node = ConditionParser::parse(&condition_json).unwrap();
-        ConditionEvaluator::evaluate(&node, &context).unwrap()
+        let evaluator = ConditionEvaluator::new();
+        evaluator.evaluate(&node, &context).unwrap()
     }
 
     #[test]
@@ -260,6 +307,35 @@ mod tests {
             serde_json::json!({"field": "code", "operator": "regex", "value": "^TAX-\\d{4}$"}),
             serde_json::json!({"code": "TAX-1234"}),
         ));
+    }
+
+    /// 正規表現キャッシュが同じパターンで再利用されることを確認する
+    #[test]
+    fn test_regex_cache_reuse() {
+        let evaluator = ConditionEvaluator::new();
+        let node = ConditionParser::parse(
+            &serde_json::json!({"field": "code", "operator": "regex", "value": "^TAX-\\d{4}$"}),
+        )
+        .unwrap();
+        let context = serde_json::json!({"code": "TAX-1234"});
+        // 2回評価してもキャッシュが壊れないことを確認する
+        assert!(evaluator.evaluate(&node, &context).unwrap());
+        assert!(evaluator.evaluate(&node, &context).unwrap());
+    }
+
+    /// 長大な正規表現パターンが拒否されることを確認する（ReDoS 緩和）
+    #[test]
+    fn test_regex_too_long_pattern_rejected() {
+        let evaluator = ConditionEvaluator::new();
+        let long_pattern = "a".repeat(1025);
+        let node = ConditionParser::parse(
+            &serde_json::json!({"field": "text", "operator": "regex", "value": long_pattern}),
+        )
+        .unwrap();
+        let context = serde_json::json!({"text": "aaa"});
+        let result = evaluator.evaluate(&node, &context);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("too long"));
     }
 
     #[test]
@@ -353,7 +429,8 @@ mod tests {
             };
         }
         let context = serde_json::json!({"status": "active"});
-        let result = ConditionEvaluator::evaluate(&node, &context);
+        let evaluator = ConditionEvaluator::new();
+        let result = evaluator.evaluate(&node, &context);
         assert!(
             result.is_err(),
             "深度制限超過時はエラーが返される必要があります"
@@ -383,7 +460,8 @@ mod tests {
             };
         }
         let context = serde_json::json!({"status": "active"});
-        let result = ConditionEvaluator::evaluate(&node, &context);
+        let evaluator = ConditionEvaluator::new();
+        let result = evaluator.evaluate(&node, &context);
         assert!(
             result.is_ok(),
             "深度制限以内のネストは正常に評価される必要があります"

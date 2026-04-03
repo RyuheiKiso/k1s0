@@ -77,6 +77,10 @@ spec:
     # INFRA-004 対応: podSelector: {} は同一 Namespace 内の全 Pod への egress を許可するため
     # 過剰許可になる。実際に通信が必要なコンポーネント（Prometheus/Loki/Jaeger/k1s0配下）
     # のラベルを明示的に列挙し、不要な通信経路を遮断する。
+    # INFRA-MED-002 対応: part-of: k1s0 は全コンポーネントにマッチするため
+    # prometheus/loki/jaeger への個別指定が優先される。
+    # part-of: k1s0 は observability namespace 内の k1s0 管理コンポーネント（Grafana 等）への
+    # 通信を許可するためのものであり、他 namespace への影響はない（namespaceSelector なし）。
     - to:
         - podSelector:
             matchLabels:

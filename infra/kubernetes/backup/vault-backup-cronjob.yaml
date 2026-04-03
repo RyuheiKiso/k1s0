@@ -29,11 +29,16 @@ spec:
               # MED-11 監査対応: restore-test-cronjob と同一バージョン（1.19）に統一する。
               # バックアップと復元テストのバージョン不一致は復元テストが本番バックアップを正確に再現しないリスクがある。
               image: hashicorp/vault:1.19
-              # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
+              # INFRA-HIGH-001 対応: PSS restricted 準拠 - 読み取り専用ルートファイルシステム
+              # 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化する
+              # バックアップスクリプトの一時書き込み先は emptyDir ボリューム（tmp-dir）を使用する
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -81,6 +86,9 @@ spec:
                 - name: vault-tls
                   mountPath: /vault/tls
                   readOnly: true
+                # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+                - name: tmp-dir
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 100m
@@ -95,3 +103,6 @@ spec:
             - name: vault-tls
               secret:
                 secretName: vault-tls-cert
+            # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+            - name: tmp-dir
+              emptyDir: {}

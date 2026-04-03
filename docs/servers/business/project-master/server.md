@@ -194,39 +194,44 @@ CREATE INDEX idx_tenant_project_extensions_type ON project_master.tenant_project
 
 全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `BIZ_PROJECTMASTER_` とする。
 
+<!-- DOCS-CRIT-003 対応: 実装（adapter/handler/mod.rs）に合わせてパスパラメータを UUID ベースに修正 -->
+<!-- {code} → {project_type_id}（UUID）、{status_code} → {status_id}（UUID）へ変更 -->
+<!-- バージョン履歴・テナント拡張もフラット構造に修正 -->
+
 #### プロジェクトタイプ管理
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/project-types` | プロジェクトタイプ一覧取得 | `project_type:read` |
-| POST | `/api/v1/project-types` | プロジェクトタイプ作成 | `project_type:write` |
-| GET | `/api/v1/project-types/{code}` | プロジェクトタイプ詳細取得 | `project_type:read` |
-| PUT | `/api/v1/project-types/{code}` | プロジェクトタイプ更新 | `project_type:write` |
-| DELETE | `/api/v1/project-types/{code}` | プロジェクトタイプ削除 | `project_type:admin` |
+| GET | `/api/v1/project-types` | プロジェクトタイプ一覧取得 | `project-master:read` |
+| POST | `/api/v1/project-types` | プロジェクトタイプ作成 | `project-master:write` |
+| GET | `/api/v1/project-types/{project_type_id}` | プロジェクトタイプ詳細取得 | `project-master:read` |
+| PUT | `/api/v1/project-types/{project_type_id}` | プロジェクトタイプ更新 | `project-master:write` |
+| DELETE | `/api/v1/project-types/{project_type_id}` | プロジェクトタイプ削除 | `project-master:admin` |
 
 #### ステータス定義管理
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/project-types/{code}/statuses` | ステータス定義一覧取得 | `status_definition:read` |
-| POST | `/api/v1/project-types/{code}/statuses` | ステータス定義作成 | `status_definition:write` |
-| GET | `/api/v1/project-types/{code}/statuses/{status_code}` | ステータス定義詳細取得 | `status_definition:read` |
-| PUT | `/api/v1/project-types/{code}/statuses/{status_code}` | ステータス定義更新 | `status_definition:write` |
-| DELETE | `/api/v1/project-types/{code}/statuses/{status_code}` | ステータス定義削除 | `project_type:admin` |
+| GET | `/api/v1/project-types/{project_type_id}/statuses` | ステータス定義一覧取得 | `project-master:read` |
+| POST | `/api/v1/project-types/{project_type_id}/statuses` | ステータス定義作成 | `project-master:write` |
+| GET | `/api/v1/project-types/{project_type_id}/statuses/{status_id}` | ステータス定義詳細取得 | `project-master:read` |
+| PUT | `/api/v1/project-types/{project_type_id}/statuses/{status_id}` | ステータス定義更新 | `project-master:write` |
+| DELETE | `/api/v1/project-types/{project_type_id}/statuses/{status_id}` | ステータス定義削除 | `project-master:admin` |
 
 #### ステータス定義バージョン履歴
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/project-types/{code}/statuses/{status_code}/versions` | バージョン履歴一覧 | `status_definition:read` |
+| GET | `/api/v1/statuses/{status_id}/versions` | バージョン履歴一覧 | `project-master:read` |
 
 #### テナント拡張管理
 
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/tenants/{tenant_id}/project-types/{code}` | テナント拡張取得 | `tenant_extension:read` |
-| PUT | `/api/v1/tenants/{tenant_id}/project-types/{code}` | テナント拡張作成・更新 | `tenant_extension:write` |
-| DELETE | `/api/v1/tenants/{tenant_id}/project-types/{code}` | テナント拡張削除 | `tenant_extension:write` |
+| GET | `/api/v1/tenants/{tenant_id}/statuses/{status_id}` | テナント拡張取得 | `project-master:read` |
+| PUT | `/api/v1/tenants/{tenant_id}/statuses/{status_id}` | テナント拡張作成・更新 | `project-master:write` |
+| DELETE | `/api/v1/tenants/{tenant_id}/statuses/{status_id}` | テナント拡張削除 | `project-master:admin` |
+| GET | `/api/v1/tenants/{tenant_id}/project-types/{project_type_id}/statuses` | テナントのステータス一覧取得 | `project-master:read` |
 
 #### ヘルスチェック
 

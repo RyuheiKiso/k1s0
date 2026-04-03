@@ -36,7 +36,8 @@ chrono = {workspace = true}
 anyhow = {workspace = true}
 thiserror = {workspace = true}
 async-trait = {workspace = true}
-regex = "1"
+# 正規表現エンジン（バージョン一元管理: RUST-MED-003 対応）
+regex = {workspace = true}
 
 # CSV/Excel
 csv = "1"

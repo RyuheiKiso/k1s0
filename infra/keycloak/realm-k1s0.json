@@ -429,6 +429,24 @@
       ]
     },
     {
+      "clientId": "auth-rust-admin",
+      "name": "AuthRustAdmin",
+      "description": "DOCKER-HIGH-003 対応: auth サービスが Keycloak から RBAC ロールマッピングを取得するためのサービスアカウント。Client Credentials Grant を使用して realm-management ロールを付与する（ADR-0061 準拠）。",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "dev-service-secret",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    {
       "clientId": "config-server",
       "name": "ConfigServer",
       "enabled": true,

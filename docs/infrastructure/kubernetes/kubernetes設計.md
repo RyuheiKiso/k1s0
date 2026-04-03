@@ -847,6 +847,49 @@ tail -f /var/log/kubernetes/audit.log | head -20
 
 ---
 
+## Kubernetes 監査ポリシー（K8S-MED-003 対応）
+
+### audit-policy.yaml の適用手順
+
+`infra/kubernetes/security/audit-policy.yaml` は Kustomize の管理対象から除外されており、
+**デプロイ時に自動適用されない**。kube-apiserver の起動オプションに手動で指定する必要がある。
+
+#### セルフホスト Kubernetes への適用手順
+
+```bash
+# 1. 全 Master ノードにポリシーファイルをコピーする
+sudo cp infra/kubernetes/security/audit-policy.yaml /etc/kubernetes/audit-policy.yaml
+
+# 2. /etc/kubernetes/manifests/kube-apiserver.yaml に以下の起動オプションを追加する
+#    --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+#    --audit-log-path=/var/log/kubernetes/audit.log
+#    --audit-log-maxage=30
+#    --audit-log-maxbackup=10
+#    --audit-log-maxsize=100
+
+# 3. kube-apiserver の自動再起動を確認する（静的 Pod は変更後自動で再起動される）
+kubectl get pod -n kube-system kube-apiserver-<node-name>
+
+# 4. 監査ログが出力されているか確認する
+tail -f /var/log/kubernetes/audit.log
+```
+
+#### マネージド Kubernetes（EKS / GKE / AKS）の場合
+
+各プロバイダーの監査ログ機能を使用すること（このファイルの直接適用は不要）。
+
+| プロバイダー | 有効化方法 |
+|------------|-----------|
+| EKS | CloudWatch Logs で Kubernetes 監査ログを有効化 |
+| GKE | Cloud Audit Logs（Data Access 監査ログ）を有効化 |
+| AKS | Azure Monitor の診断設定でクラスタ監査ログを有効化 |
+
+> **注意**: `audit-policy.yaml` は Kustomize リソースから意図的に除外されている。
+> 詳細は `infra/kubernetes/security/kustomization.yaml` と
+> `infra/kubernetes/security/audit-policy.yaml` 先頭コメントを参照。
+
+---
+
 ## Helm と Kustomize の役割分担
 
 | 管理ツール | 対象リソース |

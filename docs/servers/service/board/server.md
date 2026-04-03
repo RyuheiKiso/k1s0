@@ -61,13 +61,14 @@ service tier のボード管理サーバーは以下の機能を提供する。
 
 全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SVC_BOARD_` とする。
 
+<!-- DOCS-CRIT-001 対応: 実装（adapter/handler/mod.rs）に合わせてパス構造をフラット化し、パラメータ名を修正 -->
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/boards/increment` | カラムのタスク数 +1 | `board:write` |
-| POST | `/api/v1/boards/decrement` | カラムのタスク数 -1 | `board:write` |
-| GET | `/api/v1/boards/{project_id}/columns` | カラム一覧取得 | `board:read` |
-| GET | `/api/v1/boards/{project_id}/columns/{status_code}` | カラム単体取得 | `board:read` |
-| PUT | `/api/v1/boards/{project_id}/columns/{status_code}/wip-limit` | WIP制限更新 | `board:write` |
+| POST | `/api/v1/board-columns/increment` | カラムのタスク数 +1 | `board-columns:write` |
+| POST | `/api/v1/board-columns/decrement` | カラムのタスク数 -1 | `board-columns:write` |
+| GET | `/api/v1/board-columns` | カラム一覧取得 | `board-columns:read` |
+| GET | `/api/v1/board-columns/{id}` | カラム単体取得 | `board-columns:read` |
+| PUT | `/api/v1/board-columns/{id}` | WIP制限更新 | `board-columns:write` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |

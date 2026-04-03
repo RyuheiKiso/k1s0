@@ -115,6 +115,7 @@ impl From<anyhow::Error> for AppError {
 
 /// MasterMaintenanceError を AppError に型安全に変換する実装（C-04対応）。
 /// 文字列マッチングを廃止し、enum の各バリアントに対して正確な HTTP ステータスコードとエラーコードを割り当てる。
+/// RUST-LOW-004 対応: Internal/SqlBuildError の詳細はクライアントに漏洩しない（固定文字列を返す）
 impl From<MasterMaintenanceError> for AppError {
     fn from(err: MasterMaintenanceError) -> Self {
         match &err {
@@ -154,8 +155,11 @@ impl From<MasterMaintenanceError> for AppError {
             MasterMaintenanceError::ImportFailed(_) => {
                 Self::bad_request("SYS_MM_IMPORT_FAILED", &err.to_string())
             }
-            MasterMaintenanceError::SqlBuildError(_) => {
-                Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+            // RUST-LOW-004 対応: SQL 構築エラーの詳細（クエリ内容等）はクライアントに漏洩しない
+            // 詳細はサーバーログにのみ記録する
+            MasterMaintenanceError::SqlBuildError(e) => {
+                tracing::error!("SQL構築エラーが発生しました: {:?}", e);
+                Self::internal("SYS_MM_INTERNAL_ERROR", "内部エラーが発生しました")
             }
             MasterMaintenanceError::ValidationFailed(_) => {
                 Self::bad_request("SYS_MM_VALIDATION_ERROR", &err.to_string())
@@ -172,8 +176,11 @@ impl From<MasterMaintenanceError> for AppError {
             MasterMaintenanceError::VersionConflict(_) => {
                 Self::conflict("SYS_MM_VERSION_CONFLICT", &err.to_string())
             }
-            MasterMaintenanceError::Internal(_) => {
-                Self::internal("SYS_MM_INTERNAL_ERROR", &err.to_string())
+            // RUST-LOW-004 対応: Internal エラーの詳細はクライアントに漏洩しない
+            // 詳細はサーバーログにのみ記録する
+            MasterMaintenanceError::Internal(e) => {
+                tracing::error!("内部エラーが発生しました: {:?}", e);
+                Self::internal("SYS_MM_INTERNAL_ERROR", "内部エラーが発生しました")
             }
         }
     }

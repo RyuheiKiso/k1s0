@@ -84,11 +84,12 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     (
         status_code,
         Json(serde_json::json!({
-            // MED-001: ステータス文字列を "not_ready" に統一（"not ready" はスペース付きで不統一）
-            "status": if overall_ok { "ready" } else { "not_ready" },
+            // ADR-0068 準拠: "healthy"/"unhealthy" + timestamp
+            "status": if overall_ok { "healthy" } else { "unhealthy" },
             "checks": {
                 "database": db_status
-            }
+            },
+            "timestamp": Utc::now().to_rfc3339()
         })),
     )
         .into_response()

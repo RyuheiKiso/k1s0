@@ -1,5 +1,6 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -114,7 +115,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoR
     } else {
         axum::http::StatusCode::SERVICE_UNAVAILABLE
     };
-    let status = if ready { "ready" } else { "not_ready" };
+    // ADR-0068 準拠: "healthy"/"unhealthy" + timestamp
+    let status = if ready { "healthy" } else { "unhealthy" };
 
     (
         status_code,
@@ -123,7 +125,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoR
             "checks": {
                 "database": db_status,
                 "kafka": kafka_status
-            }
+            },
+            "timestamp": Utc::now().to_rfc3339()
         })),
     )
 }

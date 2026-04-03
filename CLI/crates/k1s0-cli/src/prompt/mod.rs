@@ -23,11 +23,15 @@ pub fn is_non_interactive() -> bool {
     NON_INTERACTIVE.load(Ordering::Relaxed)
 }
 
+// MED-CLI-003 対応: 非インタラクティブモードのエラーメッセージを定数として統一する
+// 全プロンプト関数が同一メッセージフォーマットを使用することで、CI/CD での診断を容易にする
+const NON_INTERACTIVE_ERROR: &str = "非インタラクティブモードでは入力プロンプトを使用できません";
+
 /// 非インタラクティブ時に対話プロンプトが呼ばれた場合に返すエラー。
 /// CI/CD 環境での誤用を早期に検出するためにエラーとして伝播する。
 fn non_interactive_error(prompt: &str) -> anyhow::Error {
     anyhow::anyhow!(
-        "非インタラクティブモードでは対話プロンプト '{prompt}' を使用できません。\n\
+        "{NON_INTERACTIVE_ERROR}: '{prompt}'\n\
         ヒント: サブコマンドに必要な引数をフラグで指定するか、K1S0_NON_INTERACTIVE=false で無効化してください。"
     )
 }

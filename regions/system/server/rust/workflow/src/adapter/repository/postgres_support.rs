@@ -4,15 +4,25 @@
 // クリーンアーキテクチャ原則（usecase は infrastructure に依存してはならない）に違反していた。
 // adapter/repository レイヤーへ移動することで依存方向を正しく修正する。
 
+// RUST-CRIT-001 対応: テナント分離のため各 TX 操作に tenant_id を追加する
+
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use sqlx::{Postgres, Transaction};
 
 // ワークフローインスタンスをトランザクション内に新規挿入する
+// tenant_id を SET LOCAL で設定してから INSERT する
 pub async fn insert_instance_tx(
     tx: &mut Transaction<'_, Postgres>,
     instance: &WorkflowInstance,
+    tenant_id: &str,
 ) -> anyhow::Result<()> {
+    // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        .bind(tenant_id)
+        .execute(&mut **tx)
+        .await?;
+
     // current_step_id が None の場合は空文字列として挿入する
     let current_step = instance
         .current_step_id
@@ -23,8 +33,8 @@ pub async fn insert_instance_tx(
     sqlx::query(
         "INSERT INTO workflow.workflow_instances \
          (id, definition_id, workflow_name, title, initiator_id, current_step_id, \
-          status, context, started_at, completed_at, created_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+          status, context, started_at, completed_at, created_at, tenant_id) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
     )
     .bind(&instance.id)
     .bind(&instance.workflow_id)
@@ -37,6 +47,7 @@ pub async fn insert_instance_tx(
     .bind(instance.started_at)
     .bind(instance.completed_at)
     .bind(instance.created_at)
+    .bind(tenant_id)
     .execute(&mut **tx)
     .await?;
 
@@ -47,7 +58,14 @@ pub async fn insert_instance_tx(
 pub async fn update_instance_tx(
     tx: &mut Transaction<'_, Postgres>,
     instance: &WorkflowInstance,
+    tenant_id: &str,
 ) -> anyhow::Result<()> {
+    // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        .bind(tenant_id)
+        .execute(&mut **tx)
+        .await?;
+
     // current_step_id が None の場合は空文字列として更新する
     let current_step = instance
         .current_step_id
@@ -72,18 +90,26 @@ pub async fn update_instance_tx(
 }
 
 // ワークフロータスクをトランザクション内に新規挿入する
+// tenant_id を SET LOCAL で設定してから INSERT する
 pub async fn insert_task_tx(
     tx: &mut Transaction<'_, Postgres>,
     task: &WorkflowTask,
+    tenant_id: &str,
 ) -> anyhow::Result<()> {
+    // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        .bind(tenant_id)
+        .execute(&mut **tx)
+        .await?;
+
     // assignee_id が None の場合は空文字列として挿入する
     let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 
     sqlx::query(
         "INSERT INTO workflow.workflow_tasks \
          (id, instance_id, step_id, step_name, assignee_id, status, \
-          comment, actor_id, due_at, decided_at, created_at, updated_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+          comment, actor_id, due_at, decided_at, created_at, updated_at, tenant_id) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
     )
     .bind(&task.id)
     .bind(&task.instance_id)
@@ -97,6 +123,7 @@ pub async fn insert_task_tx(
     .bind(task.decided_at)
     .bind(task.created_at)
     .bind(task.updated_at)
+    .bind(tenant_id)
     .execute(&mut **tx)
     .await?;
 
@@ -107,7 +134,14 @@ pub async fn insert_task_tx(
 pub async fn update_task_tx(
     tx: &mut Transaction<'_, Postgres>,
     task: &WorkflowTask,
+    tenant_id: &str,
 ) -> anyhow::Result<()> {
+    // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        .bind(tenant_id)
+        .execute(&mut **tx)
+        .await?;
+
     // assignee_id が None の場合は空文字列として更新する
     let assignee = task.assignee_id.as_deref().unwrap_or("").to_string();
 

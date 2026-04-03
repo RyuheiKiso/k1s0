@@ -2,6 +2,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -161,20 +162,31 @@ pub async fn healthz() -> impl IntoResponse {
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => {
-                Json(serde_json::json!({"status": "ready", "database": "connected"})).into_response()
-            }
-            Err(e) => (
+            // ADR-0068 準拠: "healthy"/"unhealthy" + checks + timestamp
+            Ok(_) => Json(serde_json::json!({
+                "status": "healthy",
+                "checks": { "database": "ok" },
+                "timestamp": Utc::now().to_rfc3339()
+            }))
+            .into_response(),
+            Err(_) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(serde_json::json!({
-                    "status": "not_ready",
-                    "database": e.to_string()
+                    "status": "unhealthy",
+                    "checks": { "database": "error" },
+                    "timestamp": Utc::now().to_rfc3339()
                 })),
             )
                 .into_response(),
         }
     } else {
-        Json(serde_json::json!({"status": "ready", "database": "not_configured"})).into_response()
+        // DB 未構成でも起動完了とみなす（ADR-0068 準拠）
+        Json(serde_json::json!({
+            "status": "healthy",
+            "checks": { "database": "not_configured" },
+            "timestamp": Utc::now().to_rfc3339()
+        }))
+        .into_response()
     }
 }
 

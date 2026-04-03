@@ -13,8 +13,10 @@ use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
 use crate::adapter::repository::postgres_support::{insert_instance_tx, insert_task_tx};
 use tracing::error;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct StartInstanceInput {
+    pub tenant_id: String,
     pub workflow_id: String,
     pub title: String,
     pub initiator_id: String,
@@ -87,9 +89,10 @@ impl StartInstanceUseCase {
         &self,
         input: &StartInstanceInput,
     ) -> Result<StartInstanceOutput, StartInstanceError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let definition = self
             .definition_repo
-            .find_by_id(&input.workflow_id)
+            .find_by_id(&input.tenant_id, &input.workflow_id)
             .await
             .map_err(|e| StartInstanceError::Internal(e.to_string()))?
             .ok_or_else(|| StartInstanceError::WorkflowNotFound(input.workflow_id.clone()))?;
@@ -131,14 +134,15 @@ impl StartInstanceUseCase {
         );
 
         if let Some(pool) = &self.pool {
+            // テナント分離: トランザクション内でtenant_idを渡してRLSを有効化する
             let mut tx = pool
                 .begin()
                 .await
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
-            insert_instance_tx(&mut tx, &instance)
+            insert_instance_tx(&mut tx, &instance, &input.tenant_id)
                 .await
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
-            insert_task_tx(&mut tx, &task)
+            insert_task_tx(&mut tx, &task, &input.tenant_id)
                 .await
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
             tx.commit()
@@ -146,12 +150,12 @@ impl StartInstanceUseCase {
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
         } else {
             self.instance_repo
-                .create(&instance)
+                .create(&input.tenant_id, &instance)
                 .await
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
 
             self.task_repo
-                .create(&task)
+                .create(&input.tenant_id, &task)
                 .await
                 .map_err(|e| StartInstanceError::Internal(e.to_string()))?;
         }
@@ -214,9 +218,9 @@ mod tests {
 
         def_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(sample_definition())));
-        inst_mock.expect_create().returning(|_| Ok(()));
-        task_mock.expect_create().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(sample_definition())));
+        inst_mock.expect_create().returning(|_, _| Ok(()));
+        task_mock.expect_create().returning(|_, _| Ok(()));
         let mut publisher = MockWorkflowEventPublisher::new();
         publisher
             .expect_publish_instance_started()
@@ -230,6 +234,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = StartInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "PC Purchase".to_string(),
             initiator_id: "user-001".to_string(),
@@ -250,7 +255,7 @@ mod tests {
         let task_mock = MockWorkflowTaskRepository::new();
         let publisher = MockWorkflowEventPublisher::new();
 
-        def_mock.expect_find_by_id().returning(|_| Ok(None));
+        def_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = StartInstanceUseCase::new(
             Arc::new(def_mock),
@@ -259,6 +264,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = StartInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_missing".to_string(),
             title: "test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -282,7 +288,7 @@ mod tests {
         def.enabled = false;
         def_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(def.clone())));
+            .returning(move |_, _| Ok(Some(def.clone())));
 
         let uc = StartInstanceUseCase::new(
             Arc::new(def_mock),
@@ -291,6 +297,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = StartInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -312,7 +319,7 @@ mod tests {
 
         def_mock
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = StartInstanceUseCase::new(
             Arc::new(def_mock),
@@ -321,6 +328,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = StartInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -342,9 +350,9 @@ mod tests {
 
         def_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(sample_definition())));
-        inst_mock.expect_create().returning(|_| Ok(()));
-        task_mock.expect_create().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(sample_definition())));
+        inst_mock.expect_create().returning(|_, _| Ok(()));
+        task_mock.expect_create().returning(|_, _| Ok(()));
         publisher
             .expect_publish_instance_started()
             .times(1)
@@ -358,6 +366,7 @@ mod tests {
         );
         let result = uc
             .execute(&StartInstanceInput {
+                tenant_id: "test-tenant".to_string(),
                 workflow_id: "wf_001".to_string(),
                 title: "PC Purchase".to_string(),
                 initiator_id: "user-001".to_string(),

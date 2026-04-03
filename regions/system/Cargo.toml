@@ -142,6 +142,10 @@ hex = "0.4"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 # URL パース・検証: SSRF 対策で webhook URL のスキーム・ホスト・IP 範囲を検証するために使用する
 url = "2"
+# 正規表現エンジン: 複数サービスで同一バージョンを使用するため workspace で一元管理する（RUST-MED-003 対応）
+regex = "1"
+# LRU キャッシュ: 正規表現コンパイル結果のキャッシュに使用する（RUST-HIGH-003 対応）
+lru = "0.12"
 
 # ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]

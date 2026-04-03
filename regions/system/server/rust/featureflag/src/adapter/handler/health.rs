@@ -22,18 +22,22 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let kafka_ok = state.event_publisher.health_check().await.is_ok();
     let ready = db_ok && kafka_ok;
 
+    // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+    let timestamp = chrono::Utc::now().to_rfc3339();
     (
         if ready {
             StatusCode::OK
         } else {
             StatusCode::SERVICE_UNAVAILABLE
         },
+        // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
         Json(serde_json::json!({
-            "status": if ready { "ready" } else { "not_ready" },
+            "status": if ready { "healthy" } else { "unhealthy" },
             "checks": {
                 "database": if db_ok { "ok" } else { "error" },
                 "kafka": if kafka_ok { "ok" } else { "error" }
-            }
+            },
+            "timestamp": timestamp
         })),
     )
 }

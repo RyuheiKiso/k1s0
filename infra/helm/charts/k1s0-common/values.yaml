@@ -87,10 +87,11 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
-  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ、OOM 前にスケールアウトする余裕を確保する
+  # INFRA-MED-001 対応: OOM Kill 前にスケールアウトする余裕を確保するため 70% に修正
+  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ
   # メモリ使用率によるスケールアウトを追加（AVAIL-003 監査対応）
   # Kafka コンシューマや大量 JSON 処理サービスの OOM Kill を防止する
-  targetMemoryUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 70
 
 # PodDisruptionBudget
 # I-2 対応: minAvailable を絶対値（1）から相対値（"50%"）に変更

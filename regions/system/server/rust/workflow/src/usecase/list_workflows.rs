@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::workflow_definition::WorkflowDefinition;
 use crate::domain::repository::WorkflowDefinitionRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct ListWorkflowsInput {
+    pub tenant_id: String,
     pub enabled_only: bool,
     pub page: u32,
     pub page_size: u32,
@@ -38,13 +40,15 @@ impl ListWorkflowsUseCase {
         &self,
         input: &ListWorkflowsInput,
     ) -> Result<ListWorkflowsOutput, ListWorkflowsError> {
-        // ページ番号は最小1に制限し、page_size は 1〜200 にクランプして異常値を防ぐ（H-07 監査対応）
-        let page = input.page.max(1);
+        // RUST-MED-002 対応: page に上限を設けることで OFFSET の過大計算を防ぐ
+        // page_size は 1〜200 にクランプして異常値を防ぐ（H-07 監査対応）
+        let page = input.page.clamp(1, 10_000);
         let page_size = input.page_size.clamp(1, 200);
 
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let (workflows, total_count) = self
             .repo
-            .find_all(input.enabled_only, page, page_size)
+            .find_all(&input.tenant_id, input.enabled_only, page, page_size)
             .await
             .map_err(|e| ListWorkflowsError::Internal(e.to_string()))?;
 
@@ -69,7 +73,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_all().returning(|_, _, _| {
+        mock.expect_find_all().returning(|_, _, _, _| {
             Ok((
                 vec![WorkflowDefinition::new(
                     "wf_001".to_string(),
@@ -84,6 +88,7 @@ mod tests {
 
         let uc = ListWorkflowsUseCase::new(Arc::new(mock));
         let input = ListWorkflowsInput {
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,
@@ -100,10 +105,11 @@ mod tests {
     #[tokio::test]
     async fn has_next_page() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_all().returning(|_, _, _| Ok((vec![], 50)));
+        mock.expect_find_all().returning(|_, _, _, _| Ok((vec![], 50)));
 
         let uc = ListWorkflowsUseCase::new(Arc::new(mock));
         let input = ListWorkflowsInput {
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,
@@ -117,10 +123,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowDefinitionRepository::new();
         mock.expect_find_all()
-            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListWorkflowsUseCase::new(Arc::new(mock));
         let input = ListWorkflowsInput {
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,

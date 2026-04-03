@@ -53,7 +53,9 @@ func (c *DlqClient) ListMessages(ctx context.Context, req *ListDlqMessagesReques
 
 	if resp.StatusCode != http.StatusOK {
 		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
-		respBody, readErr := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if readErr != nil {
 			// レスポンスボディの読み取りに失敗した場合はエラーを返す
 			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
@@ -91,7 +93,9 @@ func (c *DlqClient) GetMessage(ctx context.Context, messageID string) (*DlqMessa
 
 	if resp.StatusCode != http.StatusOK {
 		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
-		respBody, readErr := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if readErr != nil {
 			// レスポンスボディの読み取りに失敗した場合はエラーを返す
 			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
@@ -130,7 +134,9 @@ func (c *DlqClient) RetryMessage(ctx context.Context, messageID string) (*RetryD
 
 	if resp.StatusCode != http.StatusOK {
 		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
-		respBody, readErr := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if readErr != nil {
 			// レスポンスボディの読み取りに失敗した場合はエラーを返す
 			return nil, fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
@@ -168,7 +174,9 @@ func (c *DlqClient) DeleteMessage(ctx context.Context, messageID string) error {
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
-		respBody, readErr := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if readErr != nil {
 			// レスポンスボディの読み取りに失敗した場合はエラーを返す
 			return fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)
@@ -202,7 +210,9 @@ func (c *DlqClient) RetryAll(ctx context.Context, topic string) error {
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		// レスポンスボディの読み取りエラーはエラーメッセージに含めて返す
-		respBody, readErr := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		respBody, readErr := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if readErr != nil {
 			// レスポンスボディの読み取りに失敗した場合はエラーを返す
 			return fmt.Errorf("HTTP %d レスポンスボディの読み取りに失敗しました: %w", resp.StatusCode, readErr)

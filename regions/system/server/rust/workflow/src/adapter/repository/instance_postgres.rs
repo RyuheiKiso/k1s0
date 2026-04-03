@@ -57,21 +57,32 @@ impl From<InstanceRow> for WorkflowInstance {
 
 #[async_trait]
 impl WorkflowInstanceRepository for InstancePostgresRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからSELECTを実行する
+    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+        let mut tx = self.pool.begin().await?;
+        // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let row: Option<InstanceRow> = sqlx::query_as(
             "SELECT id, definition_id, workflow_name, title, initiator_id, current_step_id, \
                     status, context, started_at, completed_at, created_at \
              FROM workflow.workflow_instances WHERE id = $1",
         )
         .bind(id)
-        .fetch_optional(self.pool.as_ref())
+        .fetch_optional(&mut *tx)
         .await?;
 
+        tx.commit().await?;
         Ok(row.map(Into::into))
     }
 
+    // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してから一覧取得を実行する
     async fn find_all(
         &self,
+        tenant_id: &str,
         status: Option<String>,
         workflow_id: Option<String>,
         initiator_id: Option<String>,
@@ -81,7 +92,7 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
 
-        // Build dynamic query with optional filters
+        // 動的フィルタ条件を構築する
         let mut conditions: Vec<String> = Vec::new();
         let mut param_idx = 1u32;
 
@@ -119,6 +130,13 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
             where_clause
         );
 
+        let mut tx = self.pool.begin().await?;
+        // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let mut query = sqlx::query_as::<_, InstanceRow>(&query_str);
         let mut count_query = sqlx::query_as::<_, (i64,)>(&count_str);
 
@@ -137,24 +155,33 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
 
         query = query.bind(limit).bind(offset);
 
-        let rows = query.fetch_all(self.pool.as_ref()).await?;
-        let count = count_query.fetch_one(self.pool.as_ref()).await?;
+        let rows = query.fetch_all(&mut *tx).await?;
+        let count = count_query.fetch_one(&mut *tx).await?;
+        tx.commit().await?;
 
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
     }
 
-    async fn create(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからINSERTを実行する
+    async fn create(&self, tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         let current_step = instance
             .current_step_id
             .as_deref()
             .unwrap_or("")
             .to_string();
 
+        let mut tx = self.pool.begin().await?;
+        // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         sqlx::query(
             "INSERT INTO workflow.workflow_instances \
              (id, definition_id, workflow_name, title, initiator_id, current_step_id, \
-              status, context, started_at, completed_at, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+              status, context, started_at, completed_at, created_at, tenant_id) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         )
         .bind(&instance.id)
         .bind(&instance.workflow_id)
@@ -167,18 +194,28 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
         .bind(instance.started_at)
         .bind(instance.completed_at)
         .bind(instance.created_at)
-        .execute(self.pool.as_ref())
+        .bind(tenant_id)
+        .execute(&mut *tx)
         .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
-    async fn update(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからUPDATEを実行する
+    async fn update(&self, tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         let current_step = instance
             .current_step_id
             .as_deref()
             .unwrap_or("")
             .to_string();
+
+        let mut tx = self.pool.begin().await?;
+        // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
+        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
 
         sqlx::query(
             "UPDATE workflow.workflow_instances \
@@ -190,9 +227,10 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
         .bind(&instance.status)
         .bind(&instance.context)
         .bind(instance.completed_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 }

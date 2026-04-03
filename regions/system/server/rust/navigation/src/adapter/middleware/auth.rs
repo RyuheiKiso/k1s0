@@ -18,12 +18,25 @@ use serde_json::json;
 use k1s0_auth::JwksVerifier;
 
 /// Authorization ヘッダーから Bearer トークンを抽出する。
+/// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    headers
+    let auth_str = headers
         .get("Authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .map(|t| t.to_owned())
+        .and_then(|v| v.to_str().ok())?;
+    // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+    const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    if auth_str.len() < BEARER_PREFIX_LEN {
+        return None;
+    }
+    if !auth_str[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ") {
+        return None;
+    }
+    let token = &auth_str[BEARER_PREFIX_LEN..];
+    if token.is_empty() {
+        None
+    } else {
+        Some(token.to_owned())
+    }
 }
 
 /// エラーレスポンスを生成するヘルパー。

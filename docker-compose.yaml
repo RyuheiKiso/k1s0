@@ -179,7 +179,8 @@ services:
       # 開発環境では固定値を使用（コンテナ再起動後もトピック/オフセットを引き継ぐため一定値が必要）。
       # 本番 K8s 環境は Strimzi Operator が自動生成するため、この値は開発専用。
       # チームで共通の CLUSTER_ID を使うことでローカル環境間のデータ互換性を維持する。
-      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.6.1 /opt/kafka/bin/kafka-storage.sh random-uuid
+      # INFRA-LOW-002 対応: バージョン参照を実際のイメージバージョン 3.8.0 に合わせる
+      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.8.0 /opt/kafka/bin/kafka-storage.sh random-uuid
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -264,7 +265,8 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      # INFRA-LOW-003 対応: ヘルスチェックを wget に統一する（他サービスと同じ方法で curl 依存を排除）
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -376,8 +378,8 @@ services:
   vault:
     # H-20 監査対応: Vault バージョンを 1.19 に統一する
     # 旧バージョン 1.17.6 は既知のセキュリティ脆弱性が修正された 1.19 系に更新する
-    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
-    image: hashicorp/vault:1.19
+    # INFRA-MED-006 対応: パッチバージョンを固定して意図しない自動アップグレードを防止
+    image: hashicorp/vault:1.19.5
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1319,7 +1321,8 @@ services:
     profiles: [infra]
     # リソース制限: kafka-topics.sh を並列実行するため JVM プロセスが複数起動する。
     # DOCKER-001 監査対応: 256m では OOM Kill が発生し 44 トピック中 37 件が未作成になるため 1g に引き上げ。
-    mem_limit: 1g
+    # DOCKER-MED-002 対応: 並列 JVM プロセスによる OOM Kill を防ぐためメモリを 1g → 1.5g に増加
+    mem_limit: 1.5g
     # CRIT-004 監査対応: 57トピックを並列JVMプロセスで作成する際、cpus: 0.25 ではJVMがSIGKILLされトピック作成が断続的に失敗するため 1.0 に引き上げ。
     cpus: 1.0
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
@@ -1337,6 +1340,8 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka:9092
       KAFKA_REPLICATION_FACTOR: "1"
       PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      # DOCKER-MED-002 対応: JVM ヒープを明示的に制限し、コンテナのメモリ上限内に収める
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     volumes:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
@@ -1438,7 +1443,8 @@ services:
       start_period: 30s
 
   promtail:
-    image: grafana/promtail:2.9.0
+    # INFRA-HIGH-004 対応: 2.9.0 (2023年, 非推奨) → 3.3.2 に更新
+    image: grafana/promtail:3.3.2
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped

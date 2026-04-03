@@ -26,11 +26,16 @@ spec:
           containers:
             - name: harbor-backup
               image: postgres:17-alpine
-              # H-7 対応: 最小権限でコンテナを実行する（他のバックアップジョブと統一）
+              # INFRA-HIGH-001 対応: PSS restricted 準拠 - 読み取り専用ルートファイルシステム
+              # 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化する
+              # バックアップスクリプトの一時書き込み先は emptyDir ボリューム（tmp-dir）を使用する
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -76,6 +81,9 @@ spec:
               volumeMounts:
                 - name: backup-volume
                   mountPath: /backup
+                # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+                - name: tmp-dir
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 200m
@@ -87,3 +95,6 @@ spec:
             - name: backup-volume
               persistentVolumeClaim:
                 claimName: backup-pvc
+            # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+            - name: tmp-dir
+              emptyDir: {}

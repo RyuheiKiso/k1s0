@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::workflow_task::WorkflowTask;
 use crate::domain::repository::WorkflowTaskRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct ReassignTaskInput {
+    pub tenant_id: String,
     pub task_id: String,
     pub new_assignee_id: String,
     /// 再割り当て理由（将来のログ・監査用に保持）
@@ -46,9 +48,10 @@ impl ReassignTaskUseCase {
         &self,
         input: &ReassignTaskInput,
     ) -> Result<ReassignTaskOutput, ReassignTaskError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let mut task = self
             .repo
-            .find_by_id(&input.task_id)
+            .find_by_id(&input.tenant_id, &input.task_id)
             .await
             .map_err(|e| ReassignTaskError::Internal(e.to_string()))?
             .ok_or_else(|| ReassignTaskError::TaskNotFound(input.task_id.clone()))?;
@@ -61,7 +64,7 @@ impl ReassignTaskUseCase {
         task.reassign(input.new_assignee_id.clone());
 
         self.repo
-            .update(&task)
+            .update(&input.tenant_id, &task)
             .await
             .map_err(|e| ReassignTaskError::Internal(e.to_string()))?;
 
@@ -93,11 +96,12 @@ mod tests {
     async fn success() {
         let mut mock = MockWorkflowTaskRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Ok(Some(assigned_task())));
-        mock.expect_update().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(assigned_task())));
+        mock.expect_update().returning(|_, _| Ok(()));
 
         let uc = ReassignTaskUseCase::new(Arc::new(mock));
         let input = ReassignTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: Some("reassignment".to_string()),
@@ -114,10 +118,11 @@ mod tests {
     #[tokio::test]
     async fn task_not_found() {
         let mut mock = MockWorkflowTaskRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ReassignTaskUseCase::new(Arc::new(mock));
         let input = ReassignTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_missing".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -136,10 +141,11 @@ mod tests {
         let mut task = assigned_task();
         task.approve("prev".to_string(), None);
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(task.clone())));
+            .returning(move |_, _| Ok(Some(task.clone())));
 
         let uc = ReassignTaskUseCase::new(Arc::new(mock));
         let input = ReassignTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -156,10 +162,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowTaskRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ReassignTaskUseCase::new(Arc::new(mock));
         let input = ReassignTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
