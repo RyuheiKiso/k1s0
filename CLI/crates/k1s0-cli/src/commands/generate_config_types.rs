@@ -133,8 +133,10 @@ pub fn run() -> Result<()> {
     println!("\n型定義を生成しています...");
     let generated = write_generated_types_to_targets(&schema, &target_specs)
         .map_err(|error| anyhow::anyhow!("{error}"))?;
+    // LOW-006 監査対応: 生成ファイル出力形式を generate events / generate navigation と統一する。
+    // 他コマンド（generate_events.rs, generate_navigation.rs）に合わせて ✅ マークを使用する。
     for path in &generated {
-        println!("  OK {}", path.display());
+        println!("  ✅ {}", path.display());
     }
 
     println!("\n設定型の生成が完了しました。");

@@ -14,12 +14,15 @@ pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
 
 /// MED-007 監査対応: Config または DATABASE_URL 環境変数から PostgreSQL に接続を試みる。
 /// 接続に失敗した場合は None を返し、in-memory フォールバックを許容する。
+/// serde_yaml はシェル変数を展開しないため、DATABASE_URL 環境変数が設定されている場合は常に優先する。
 pub async fn connect_optional(cfg: &Config) -> Option<PgPool> {
-    // cfg.database が存在する場合はそちらの接続 URL を優先する
-    let url = if let Some(ref db_cfg) = cfg.database {
-        db_cfg.connection_url()
-    } else if let Ok(url) = std::env::var("DATABASE_URL") {
+    // DATABASE_URL 環境変数が設定されている場合は最優先で使用する。
+    // config.docker.yaml の password フィールドは serde_yaml がシェル変数を展開しないため
+    // "${DB_PASSWORD:-dev}" のような文字列リテラルがそのまま格納される場合がある。
+    let url = if let Ok(url) = std::env::var("DATABASE_URL") {
         url
+    } else if let Some(ref db_cfg) = cfg.database {
+        db_cfg.connection_url()
     } else {
         return None;
     };

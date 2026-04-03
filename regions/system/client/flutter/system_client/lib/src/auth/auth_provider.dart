@@ -197,10 +197,16 @@ class AuthNotifier extends Notifier<AuthState> {
       final data = response.data;
       if (data != null && data['authenticated'] == true) {
         _csrfToken = data['csrf_token'] as String?;
+        // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
+        // state 更新で例外が発生するため ref.mounted チェックを追加する。
+        if (!ref.mounted) return;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
     } catch (e) {
       // ユーザーキャンセル・ネットワークエラー・交換失敗時は未認証状態を維持する
+      // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
+      // state 更新で例外が発生するため ref.mounted チェックを追加する。
+      if (!ref.mounted) return;
       state = const AuthUnauthenticated();
     }
   }
@@ -218,6 +224,9 @@ class AuthNotifier extends Notifier<AuthState> {
         // clearSession() は非同期メソッドのため await が必須
         await _sessionCookieInterceptor.clearSession();
       }
+      // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
+      // state 更新で例外が発生するため ref.mounted チェックを追加する。
+      if (!ref.mounted) return;
       state = const AuthUnauthenticated();
     }
   }

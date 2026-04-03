@@ -238,7 +238,8 @@ services:
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: Schema Registry は中程度のリソースを使用
-    mem_limit: 512m
+    # MED-005 監査対応: schema-registry が 87% 到達（512MiB）のためスキーマ数増加に備えて 1g に引き上げ
+    mem_limit: 1g
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Schema Registry運用に必要な最小限のみ付与
     security_opt:
@@ -424,8 +425,8 @@ services:
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
-    # リソース制限: API Gateway のメモリ使用量（外部監査で98%到達を確認、1536mへ増加）
-    mem_limit: 1536m
+    # HIGH-001 監査対応: Kong worker プロセスが 1.5GiB で99%に到達しOOMリスクがあるため 2g に引き上げる
+    mem_limit: 2g
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Kong運用に必要な最小限のみ付与
     security_opt:
@@ -455,6 +456,10 @@ services:
       # worker_state_update_frequency を延ばすことで "failed to receive the header bytes: timeout" の多発を抑制する
       # Kong 3.x でサポートされる環境変数（デフォルト: 5秒）
       KONG_WORKER_STATE_UPDATE_FREQUENCY: "10"
+      # post-function プラグインでの JWT claims デコードに cjson.safe が必要なため許可リストに追加する
+      # Kong のデフォルト sandbox モードでは require が制限されているが、
+      # ngx.decode_base64 + cjson.safe による JWT payload デコードは安全な操作であるため許可する
+      KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: "cjson.safe"
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
@@ -586,7 +591,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "127.0.0.1:${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
+      # HIGH-008 監査対応: Docker Desktop の NAT レイヤーと 8087 が競合するためデフォルトを 8187 に変更する
+      - "127.0.0.1:${FEATUREFLAG_REST_HOST_PORT:-8187}:8080"
       - "127.0.0.1:${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
@@ -1366,7 +1372,8 @@ services:
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用
-    mem_limit: 512m
+    # MED-005 監査対応: Jaeger が 78% 到達（512MiB）のためトレース蓄積に備えて 768m に引き上げ
+    mem_limit: 768m
     cpus: 0.5
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除
     security_opt:

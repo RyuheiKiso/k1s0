@@ -68,6 +68,10 @@ impl TemplateEngine {
     /// エラーが発生した場合。
     pub fn new(template_dir: &Path) -> Result<Self> {
         let mut tera = Tera::default();
+        // MED-008 監査対応: コード生成テンプレートでは HTML エスケープは不要のため明示的に無効化する。
+        // デフォルトでは .html/.htm/.xml 拡張子にのみ autoescape が適用されるが、
+        // 生成対象（.rs/.go/.ts/.dart）には適用されないため、意図を明確化するために明示的に設定する。
+        tera.autoescape_on(vec![]);
         filters::register_filters(&mut tera);
 
         Ok(Self {

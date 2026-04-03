@@ -54,8 +54,20 @@ export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
         } else {
           setUser(null);
         }
-      } catch {
-        setUser(null);
+      } catch (error) {
+        // MED-007 監査対応: HTTP ステータスコードに応じてエラーハンドリングを分岐する。
+        // Axios エラーオブジェクトの response.status で判断し、ユーザー状態を適切に保持する。
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status === 403) {
+          // 403 Forbidden: 認可エラーのためユーザー情報は保持し、警告ログを出力する
+          console.warn('[k1s0-auth] セッション確認で 403 Forbidden が返されました。権限が不足しています。');
+        } else if (status !== undefined && status >= 500) {
+          // 5xx Server Error: サービス障害のためユーザー情報は保持し、警告ログを出力する
+          console.warn(`[k1s0-auth] セッション確認でサーバーエラー (${status}) が返されました。サービスが一時的に利用できません。`);
+        } else {
+          // 401 未認証・ネットワークエラー・その他: ユーザー情報をクリアしてログアウト状態にする
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -74,8 +86,15 @@ export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
   const logout = useCallback(async () => {
     try {
       await apiClient.post('/auth/logout');
-    } catch {
-      // サーバー側のログアウトが失敗してもクライアント側のセッションは必ずクリアする
+    } catch (error) {
+      // MED-007 監査対応: ログアウト時もステータスコードに応じてログを分岐する。
+      // いずれの場合も finally でクライアント側のセッションは必ずクリアする。
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status !== undefined && status >= 500) {
+        // 5xx Server Error: サービス障害を警告ログに記録する
+        console.warn(`[k1s0-auth] ログアウトリクエストでサーバーエラー (${status}) が返されました。`);
+      }
+      // それ以外（ネットワークエラー等）はサイレントに処理する（finally でクリア済み）
     } finally {
       setCsrfToken(null);
       setUser(null);

@@ -20,6 +20,7 @@ kafka:
   brokers:
     - "kafka:9092"
   consumer_group: "dlq-manager.docker"
-  # DLQトピックのマッチングパターン（*.v1.dlq 形式に統一）
-  dlq_topic_pattern: "*.v1.dlq"
+  # CRIT-005 監査対応: librdkafka は ^ プレフィックス付き文字列を正規表現として扱う。
+  # glob パターン（*.v1.dlq）はリテラルトピック名として解釈されるため、正規表現形式に変更する。
+  dlq_topic_pattern: "^.*\\.v1\\.dlq$"
   security_protocol: "PLAINTEXT"

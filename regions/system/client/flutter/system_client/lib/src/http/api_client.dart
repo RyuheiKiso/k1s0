@@ -93,12 +93,13 @@ class SessionCookieInterceptor extends Interceptor {
     handler.next(response);
   }
 
-  // M-012 監査対応: セッション ID に Cookie ヘッダーを破損させる文字が含まれていないことを検証する
-  // ';' が含まれると複数 Cookie として解析され、セキュリティ上の問題が発生する可能性がある
+  // MED-006 監査対応: RFC 6265 準拠の Session ID バリデーション。
+  // ブラックリスト方式（特殊文字の拒否）ではなく、ホワイトリスト方式（許可文字のみ）に変更する。
+  // RFC 6265 Section 4.1.1: cookie-value = *cookie-octet / ( DQUOTE *cookie-octet DQUOTE )
+  // セキュリティのため英数字とハイフン・アンダースコアのみを許可する。
   bool _isValidSessionId(String sessionId) {
-    // RFC 6265 に従い、Cookie 値として無効な文字を拒否する
     return sessionId.isNotEmpty &&
-        !sessionId.contains(RegExp(r'[;\r\n\s]'));
+        RegExp(r'^[a-zA-Z0-9_\-]+$').hasMatch(sessionId);
   }
 
   /// セキュアストレージに保存された有効期限と現在時刻を比較してセッションが期限切れかどうかを返す

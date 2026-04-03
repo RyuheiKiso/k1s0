@@ -165,9 +165,10 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      # event_monitor スキーマは k1s0_system 内に配置する（18-event-monitor-schema.sql で作成）
+      # event_monitor スキーマは k1s0_event_monitor 専用 DB 内に配置する（18-event-monitor-schema.sql 参照）
+      # CRIT-001 監査対応: k1s0_system から k1s0_event_monitor に分離済み。k1s0_system への誤接続を修正。
       # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
-      - DATABASE_URL=postgres://k1s0:${K1S0_DB_PASSWORD:-dev-k1s0-local}@postgres:5432/k1s0_system?sslmode=disable
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_event_monitor?sslmode=disable
 
   event-store-rust:
     <<: *dev-auth-bypass

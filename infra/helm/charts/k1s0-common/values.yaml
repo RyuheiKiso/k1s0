@@ -1,5 +1,9 @@
 # k1s0-common Library Chart default values
 # These values serve as defaults and are typically overridden by service-specific values.yaml
+# DOC-LOW-001: Helm values 同期方針
+# このファイルはすべてのサービスの共通デフォルト値を定義する。
+# 各サービス固有の値は infra/helm/services/<tier>/<service>/values.yaml で上書きする。
+# ドキュメントとの同期は docs-check スキルで検証する（/docs-check コマンド参照）。
 
 # 共通設定
 nameOverride: ""
@@ -13,6 +17,8 @@ image:
   # B-MEDIUM-01 監査対応: IfNotPresent は開発・ステージング環境向けのデフォルト値。
   # 本番環境では values-prod.yaml で Always にオーバーライドすること。
   # （IfNotPresent はタグが不変な場合は効率的だが、mutable タグ使用時はセキュリティパッチが適用されないリスクがある）
+  # LOW-002 監査対応: 本番環境では pullPolicy を Always に上書きすること。
+  # 本番用 values-prod.yaml で pullPolicy: Always を設定し、セキュリティパッチ適用済みイメージへの更新を保証する。
   pullPolicy: IfNotPresent
 
 imagePullSecrets:
@@ -94,15 +100,13 @@ autoscaling:
   targetMemoryUtilizationPercentage: 70
 
 # PodDisruptionBudget
-# I-2 対応: minAvailable を絶対値（1）から相対値（"50%"）に変更
-# 絶対値だとレプリカ数が少ない場合に可用性保証が不十分になるため、
-# レプリカ数に依存しない割合指定とすることで常に半数以上の Pod 稼働を保証する
-# minAvailable: "50%" はレプリカ数によって保護 Pod 数が変わる（AVAIL-004 監査対応）
-# 例: replicaCount=3 なら 2Pod 保護 → ローリングアップデート時に同時停止可能な Pod は 1 つのみ
-# prod 環境で高速ロールアウトが必要な場合は各サービスの values-prod.yaml で絶対値を指定する
+# MED-003 対応: replicaCount=1 の場合 "50%" は floor(0.5)=0 となり実質無効なため絶対値 1 に変更。
+# 絶対値 1 とすることで replicaCount に関わらず常に最低 1 Pod の稼働を保証する。
+# 例: replicaCount=2 なら 1Pod 保護 → ローリングアップデート時に同時停止可能な Pod は 1 つ
+# prod 環境で高速ロールアウトが必要な場合は各サービスの values-prod.yaml で値を調整すること
 pdb:
   enabled: true
-  minAvailable: "50%"
+  minAvailable: 1
 
 # L-9 監査対応: Ingress はデフォルト無効。
 # 外部トラフィックは原則として k1s0-system の Kong Gateway 経由でルーティングする。
@@ -138,6 +142,9 @@ config:
   data: {}                             # ConfigMap として作成
 
 # Vault Agent Injector
+# MED-004 監査対応: vault.role の共通デフォルト値は "service"。
+# 各サービス固有のポリシーがある場合は、個別の values.yaml で role を上書きすること。
+# ADR-0045 参照: per-service Vault ロール分離設計。
 vault:
   enabled: true
   role: "service"

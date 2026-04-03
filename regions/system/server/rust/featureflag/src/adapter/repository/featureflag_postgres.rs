@@ -67,39 +67,63 @@ impl From<FeatureFlagRow> for FeatureFlag {
 
 #[async_trait]
 impl FeatureFlagRepository for FeatureFlagPostgresRepository {
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: tenant_id + flag_key でフラグを取得する。
     async fn find_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+        // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
+        // lessons.md: SET LOCAL = $1 は禁止。set_config() を使うこと。
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         let row: Option<FeatureFlagRow> = sqlx::query_as(
             "SELECT id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at \
              FROM featureflag.feature_flags WHERE tenant_id = $1 AND flag_key = $2",
         )
         .bind(tenant_id)
         .bind(flag_key)
-        .fetch_optional(self.pool.as_ref())
+        .fetch_optional(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         row.map(Into::into)
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内の全フラグを取得する。
     async fn find_all(&self, tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
+        // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         let rows: Vec<FeatureFlagRow> = sqlx::query_as(
             "SELECT id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at \
              FROM featureflag.feature_flags WHERE tenant_id = $1 ORDER BY created_at DESC",
         )
         .bind(tenant_id)
-        .fetch_all(self.pool.as_ref())
+        .fetch_all(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフラグを作成する。
     async fn create(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
+        // テナント分離のため set_config でセッション変数を設定してから INSERT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         sqlx::query(
             "INSERT INTO featureflag.feature_flags \
              (id, tenant_id, flag_key, description, enabled, variants, rules, created_at, updated_at) \
@@ -114,17 +138,25 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         .bind(&rules_json)
         .bind(flag.created_at)
         .bind(flag.updated_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         Ok(())
     }
 
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを更新する。
     async fn update(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
+        // テナント分離のため set_config でセッション変数を設定してから UPDATE を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         let result = sqlx::query(
             "UPDATE featureflag.feature_flags \
              SET description = $3, enabled = $4, variants = $5, rules = $6, updated_at = $7 \
@@ -137,8 +169,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         .bind(&variants_json)
         .bind(&rules_json)
         .bind(flag.updated_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if result.rows_affected() == 0 {
             return Err(anyhow::anyhow!("flag not found: {}", flag.flag_key));
@@ -147,27 +180,43 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(())
     }
 
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを削除する。
     async fn delete(&self, tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+        // テナント分離のため set_config でセッション変数を設定してから DELETE を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         let result =
             sqlx::query("DELETE FROM featureflag.feature_flags WHERE tenant_id = $1 AND id = $2")
                 .bind(tenant_id)
                 .bind(id)
-                .execute(self.pool.as_ref())
+                .execute(&mut *tx)
                 .await?;
+        tx.commit().await?;
 
         Ok(result.rows_affected() > 0)
     }
 
+    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内でのフラグキー存在確認。
     async fn exists_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+        // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&mut *tx)
+            .await?;
         let count: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM featureflag.feature_flags WHERE tenant_id = $1 AND flag_key = $2",
         )
         .bind(tenant_id)
         .bind(flag_key)
-        .fetch_one(self.pool.as_ref())
+        .fetch_one(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         Ok(count.0 > 0)
     }

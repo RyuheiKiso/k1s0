@@ -38,6 +38,9 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
+          # LOW-001 監査対応: fault_tolerant: false は Redis 障害時に全リクエストを 500 で拒否する。
+          # 本番環境では Redis HA 構成（クラスタリングまたはレプリケーション）を必須とする。
+          # Redis が単一障害点にならないよう Sentinel または Cluster を構成すること。
           fault_tolerant: false
     routes:
       - name: auth-v1-route

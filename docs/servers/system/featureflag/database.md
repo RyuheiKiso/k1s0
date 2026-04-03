@@ -118,6 +118,20 @@ CREATE INDEX IF NOT EXISTS idx_flag_audit_logs_flag_id ON featureflag.flag_audit
 | `003_create_flag_audit_logs.down.sql` | テーブル削除 |
 | `004_add_tenant_id.up.sql` | feature_flags / flag_audit_logs に tenant_id カラム追加（STATIC-CRITICAL-001） |
 | `004_add_tenant_id.down.sql` | tenant_id カラム削除 |
+| `005_add_rls.up.sql` | feature_flags テーブルに RLS（行レベルセキュリティ）追加（CRIT-001 監査対応） |
+| `005_add_rls.down.sql` | RLS ポリシー・設定削除 |
+
+### 005_add_rls.up.sql
+**目的**: Row Level Security (RLS) によるテナント分離の強化
+
+| 変更内容 | 詳細 |
+|---------|------|
+| RLS 有効化 | `ALTER TABLE featureflag.feature_flags ENABLE ROW LEVEL SECURITY;` |
+| FORCE RLS | `ALTER TABLE featureflag.feature_flags FORCE ROW LEVEL SECURITY;` |
+| テナント分離ポリシー | `CREATE POLICY tenant_isolation ON featureflag.feature_flags USING (tenant_id::TEXT = current_setting('app.current_tenant_id', true)::TEXT);` |
+
+**CRIT-001 監査対応**: アプリケーション層の `WHERE tenant_id = $1` に加え、DB レベルの RLS を二重防御として設定する。
+アプリケーションコードは全クエリの冒頭で `SELECT set_config('app.current_tenant_id', $1, true)` を呼び出す必要がある。
 
 ---
 

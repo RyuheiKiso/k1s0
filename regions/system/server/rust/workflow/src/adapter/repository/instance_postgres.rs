@@ -61,7 +61,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
     async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
@@ -132,7 +133,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
@@ -172,7 +174,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
@@ -212,7 +215,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await?;

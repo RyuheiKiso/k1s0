@@ -18,7 +18,8 @@ pub async fn insert_instance_tx(
     tenant_id: &str,
 ) -> anyhow::Result<()> {
     // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+    // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
         .bind(tenant_id)
         .execute(&mut **tx)
         .await?;
@@ -61,7 +62,8 @@ pub async fn update_instance_tx(
     tenant_id: &str,
 ) -> anyhow::Result<()> {
     // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+    // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
         .bind(tenant_id)
         .execute(&mut **tx)
         .await?;
@@ -97,7 +99,8 @@ pub async fn insert_task_tx(
     tenant_id: &str,
 ) -> anyhow::Result<()> {
     // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+    // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
         .bind(tenant_id)
         .execute(&mut **tx)
         .await?;
@@ -137,7 +140,8 @@ pub async fn update_task_tx(
     tenant_id: &str,
 ) -> anyhow::Result<()> {
     // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
-    sqlx::query("SET LOCAL app.current_tenant_id = $1")
+    // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
+    sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
         .bind(tenant_id)
         .execute(&mut **tx)
         .await?;

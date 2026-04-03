@@ -333,6 +333,8 @@ service FeatureFlagService {
   rpc CreateFlag(CreateFlagRequest) returns (CreateFlagResponse);
   rpc UpdateFlag(UpdateFlagRequest) returns (UpdateFlagResponse);
   rpc DeleteFlag(DeleteFlagRequest) returns (DeleteFlagResponse);
+  // フラグ変更をリアルタイムでクライアントにストリーミングするサーバーサイドストリーミング RPC
+  rpc WatchFeatureFlag(WatchFeatureFlagRequest) returns (stream WatchFeatureFlagResponse);
 }
 
 message EvaluateFlagRequest {
@@ -361,7 +363,13 @@ message GetFlagResponse {
   FeatureFlag flag = 1;
 }
 
-message ListFlagsRequest {}
+// ListFlagsRequest: ページネーション対応のフラグ一覧取得リクエスト
+message ListFlagsRequest {
+  // 1ページあたりの取得件数（省略時はサーバーデフォルト値を使用）
+  int32 page_size = 1;
+  // 次ページのトークン（初回リクエスト時は省略、2ページ目以降は前レスポンスの next_page_token を指定）
+  string page_token = 2;
+}
 
 message ListFlagsResponse {
   repeated FeatureFlag flags = 1;
@@ -399,6 +407,18 @@ message DeleteFlagResponse {
   string message = 2;
 }
 
+// フラグ変更監視リクエスト: 監視対象のテナントとフラグキーを指定する
+message WatchFeatureFlagRequest {
+  string tenant_id = 1;
+  string flag_key = 2;
+}
+
+// フラグ変更監視レスポンス: 変更後のフラグ定義とイベント種別をストリームで返す
+message WatchFeatureFlagResponse {
+  FeatureFlag feature_flag = 1;
+  string event_type = 2;
+}
+
 message FeatureFlag {
   string id = 1;
   string flag_key = 2;
@@ -423,6 +443,30 @@ message FlagRule {
   string variant = 4;
 }
 ```
+
+#### WatchFeatureFlag RPC
+
+フラグの変更をリアルタイムでストリーミングするサーバーサイドストリーミング RPC。クライアントがフラグ変更を即座に検知する場合に使用する。
+
+| 項目 | 内容 |
+| --- | --- |
+| RPC 種別 | サーバーサイドストリーミング |
+| 認可 | `flags/read`（`sys_auditor` 以上） |
+| ユースケース | クライアントが特定フラグの変更イベントをリアルタイムで受信する（キャッシュ無効化・UI 即時反映等） |
+
+**リクエスト（WatchFeatureFlagRequest）**
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `tenant_id` | string | 監視対象のテナント ID |
+| `flag_key` | string | 監視対象のフラグキー |
+
+**レスポンス（stream WatchFeatureFlagResponse）**
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `feature_flag` | FeatureFlag | 変更後のフラグ定義（削除時は空） |
+| `event_type` | string | イベント種別（`CREATED` / `UPDATED` / `DELETED`） |
 
 ---
 
@@ -458,8 +502,11 @@ message FlagRule {
    - その他 → `context.attributes[key]`
 2. **オペレーター判定**: 解決した値と `rule.value` を比較
    - `eq`: 完全一致
+   - `ne`: 等しくない（完全不一致）
    - `contains`: 部分文字列一致
    - `in`: カンマ区切りリスト内に一致する値があるか
+   - `gt`: より大きい（数値比較）
+   - `lt`: より小さい（数値比較）
 3. **バリアント検証**: マッチしたルールの `variant` が `variants` に存在することを確認
 4. 最初にマッチしたルールの `variant` を返す（マッチなしの場合は重み付き選択へフォールバック）
 
@@ -569,7 +616,7 @@ message FlagRule {
 | フィールド | 型 | 説明 |
 | --- | --- | --- |
 | `attribute` | String | 評価対象属性名 |
-| `operator` | String | 比較演算子（`eq`, `contains`, `in`） |
+| `operator` | String | 比較演算子（`eq`, `ne`, `contains`, `in`, `gt`, `lt`） |
 | `value` | String | 比較値 |
 | `variant` | String | マッチ時に返すバリアント名 |
 
@@ -771,13 +818,16 @@ vault:
 ## Doc Sync (2026-03-03)
 
 ### gRPC Canonical RPCs (proto)
-- `EvaluateFlag`, `GetFlag`, `ListFlags`, `CreateFlag`, `UpdateFlag`, `DeleteFlag`
+- `EvaluateFlag`, `GetFlag`, `ListFlags`, `CreateFlag`, `UpdateFlag`, `DeleteFlag`, `WatchFeatureFlag`
 
 ### Message/Field Corrections
 - Canonical list messages are `ListFlagsRequest` and `ListFlagsResponse`.
+- `ListFlagsRequest` supports pagination via `page_size` (int32) and `page_token` (string) fields.
 - `FeatureFlag.rules` exists as `repeated FlagRule` (field `8`).
 - `EvaluateFlagResponse.variant` is `optional string`.
 - `UpdateFlagRequest.enabled` and `UpdateFlagRequest.description` are optional.
+- `WatchFeatureFlag` is a server-side streaming RPC; request carries `tenant_id` and `flag_key`; response streams `feature_flag` and `event_type`.
+- `FlagRule.operator` supports: `eq`, `ne`, `contains`, `in`, `gt`, `lt`.
 ---
 
 ## ObservabilityConfig（log/trace/metrics）

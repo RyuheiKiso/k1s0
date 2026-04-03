@@ -463,6 +463,24 @@
       "defaultRoles": ["svc_internal"]
     },
     {
+      "clientId": "auth-rust-admin",
+      "name": "AuthRustAdmin",
+      "description": "auth-rust サービスが Keycloak Admin API を呼び出すための Client Credentials フロー専用クライアント（CRIT-002 監査対応）",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "${KC_AUTH_ADMIN_SECRET:-dev-service-secret}",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
+    },
+    {
       "clientId": "auth-server",
       "name": "AuthServer",
       "enabled": true,

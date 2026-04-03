@@ -2,6 +2,42 @@
 
 k1s0 CLI（Rust 製対話式 CLI）の設計・コード生成・マイグレーション・GUI に関するドキュメント一覧。
 
+## インストール
+
+<!-- LOW-007 監査対応: k1s0 doctor が PATH 上のバイナリを自己検出できるよう、
+     cargo install でバイナリを ~/.cargo/bin/ にインストールすること。 -->
+
+```bash
+cargo install --path CLI/crates/k1s0-cli
+```
+
+インストール後、`k1s0 doctor` が PATH から `k1s0` バイナリを検出できるようになる。
+
+---
+
+## 非インタラクティブモード制限事項
+
+<!-- LOW-003 監査対応: 非インタラクティブ環境（CI/CD・非TTY）での制限事項を明記する。 -->
+
+各コマンドの `--non-interactive` / 非TTY 環境における対応状況：
+
+| コマンド | TTY 必須 | 備考 |
+|---------|---------|------|
+| `k1s0 generate` | 必須 | 対話的ウィザード形式のため TTY が必要 |
+| `k1s0 generate events` | 必須 | `events.yaml` パスをプロンプトで入力するため TTY が必要 |
+| `k1s0 generate config-types` | 必須 | スキーマパス・ターゲット選択に TTY が必要 |
+| `k1s0 generate navigation` | 必須 | `navigation.yaml` パスをプロンプトで入力するため TTY が必要 |
+| `k1s0 migrate` | 必須 | 対話的確認ステップがあるため TTY が必要 |
+| `k1s0 doctor` | 不要 | `scripts/doctor.sh` を直接実行するため非TTY で動作可能 |
+| `k1s0 validate` | 不要 | ファイルパスを引数で受け付けるため非TTY で動作可能 |
+| `k1s0 deps` | 不要 | JSON 出力モードあり、CI での使用可能 |
+
+TTY が割り当てられていない環境（CI/CD 等）でインタラクティブコマンドを実行すると、
+`K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません` エラーが返される。
+その場合はシェルスクリプトやサブコマンドを直接実行すること（例: `bash scripts/doctor.sh`）。
+
+---
+
 ## トップレベル設計書
 
 | ドキュメント | 内容 |
