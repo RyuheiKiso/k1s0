@@ -1,7 +1,10 @@
 -- featureflag テーブルに RLS ポリシーを追加する
 -- RUST-HIGH-002 対応: DB 層でのテナント分離を保証する
 -- tenant_id は UUID 型（004_add_tenant_id.up.sql で定義）のため ::TEXT キャストで文字列比較する
-SET search_path TO featureflag;
+-- CRIT-003 監査対応: SET LOCAL でトランザクションスコープに限定し、セッション汚染を防止する
+-- SET search_path（セッションレベル）は sqlx の _sqlx_migrations テーブル（public スキーマ）を
+-- 見つけられなくするため、SET LOCAL + public を含む形に修正する
+SET LOCAL search_path TO featureflag, public;
 
 -- feature_flags テーブルの RLS 有効化
 ALTER TABLE featureflag.feature_flags ENABLE ROW LEVEL SECURITY;

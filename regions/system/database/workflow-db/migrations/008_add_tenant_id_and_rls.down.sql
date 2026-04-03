@@ -1,5 +1,6 @@
 -- workflow テナント分離の逆マイグレーション
-SET search_path TO workflow;
+-- CRIT-002 監査対応: SET LOCAL でトランザクションスコープに限定し、セッション汚染を防止する
+SET LOCAL search_path TO workflow, public;
 
 DROP POLICY IF EXISTS tenant_isolation ON workflow.workflow_tasks;
 ALTER TABLE workflow.workflow_tasks DISABLE ROW LEVEL SECURITY;

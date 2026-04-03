@@ -1134,6 +1134,17 @@ Rust サービス用の共通 CI パイプライン（lint → test → build）
 | `rust-version` | 任意 | Rust ツールチェインバージョン（デフォルト: 1.93） |
 | `standalone` | 任意 | ワークスペースの `-p` フラグを使わないモード（デフォルト: false） |
 
+### `_rust-service-ci.yaml` カバレッジ閾値と unwrap 件数可視化（HIGH-004/HIGH-001 監査対応）
+
+**2026-04-03 更新**: tarpaulin に `--fail-under 65` を追加し、65% 未満の場合に CI を失敗させる。  
+また、Clippy に `-W clippy::unwrap_used -W clippy::expect_used`（`continue-on-error: true`）を追加し、  
+unwrap/expect 件数を可視化する（HIGH-001 対応）。unwrap のステップは CI をブロックしない（情報収集フェーズ）。
+
+| 閾値 | ワークフロー | 備考 |
+|------|------------|------|
+| 65% | `_rust-service-ci.yaml` | HIGH-004 対応で新規追加。段階的に75%へ引き上げ予定 |
+| 75% | `_test.yaml`（集約） | 既存の閾値 |
+
 ### `_go-service-ci.yaml`
 
 Go サービス用の共通 CI パイプライン（lint → test → build）。テストカバレッジを計測し、**70% 未満の場合は CI を失敗**させる（QUALITY-001 監査対応）。
@@ -1557,6 +1568,9 @@ security-gate:
 | --- | --- |
 | `security-gate` ジョブ追加 | 全スキャン結果（trivy-scan / dependency-check / iac-scan / license-scan / sast）を `needs` で集約し、いずれかが failure の場合にジョブ全体を失敗させる |
 | ブランチ保護ルール簡略化 | Required status checks に `security-gate` のみを登録すれば全スキャン結果を一元管理できる |
+| `image-scan` を security-gate に追加（MED-008 監査対応） | image-scan が PR 時 skipped でも security-gate が正しく判定するよう needs に追加。skipped/success は許容、failure のみゲートをブロック |
+| `example.com` 検出ステップ追加（LOW-005 監査対応） | config-validation ジョブに Helm values.yaml の example.com プレースホルダー検出ステップを追加（INFO レベル） |
+| `fresh-deploy-smoke.yaml` 追加（報告書 7.3 監査対応） | CRIT-001/002/003 のリグレッション防止 CI。毎週日曜・workflow_dispatch・critical ファイル変更時に docker compose --profile infra up → migrate-all → kafka トピック数検証を実施。 |
 
 ---
 

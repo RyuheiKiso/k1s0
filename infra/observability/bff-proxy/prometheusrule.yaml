@@ -13,6 +13,9 @@ spec:
   groups:
     - name: bff_proxy.rules
       rules:
+        # MED-006 監査対応: アラート閾値の SLO 根拠は docs/architecture/observability/SLO設計.md を参照
+        # エラーレート閾値 1%（> 0.01） = 可用性 99% SLO の 1-availability 換算値
+        # P99 レイテンシ閾値 500ms（> 0.5） = レイテンシ SLO の P99 目標値
         # エラーレートが 5 分間 5% を超えた場合に critical アラートを発火
         - alert: bff_proxy_high_error_rate
           expr: |

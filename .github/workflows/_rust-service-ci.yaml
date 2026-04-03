@@ -61,6 +61,28 @@ jobs:
       - name: Clippy (workspace)
         if: ${{ !inputs.standalone }}
         run: cargo clippy --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all-targets -- -D warnings
+      # HIGH-001 監査対応: unwrap_used/expect_used の件数を報告する（段階的排除の進捗確認）
+      # continue-on-error: true で CI をブロックしない（現在は情報収集フェーズ）
+      # 四半期ごとに件数を確認し、0 件になったら -D clippy::unwrap_used に昇格する
+      - name: Clippy unwrap_used 件数確認 (standalone)
+        if: inputs.standalone
+        continue-on-error: true
+        run: |
+          COUNT=$(cargo clippy --manifest-path ${{ inputs.service-path }}/Cargo.toml --all-targets \
+            -- -W clippy::unwrap_used -W clippy::expect_used 2>&1 \
+            | grep -c "warning\[clippy::unwrap_used\]\|warning\[clippy::expect_used\]" || echo 0)
+          echo "unwrap/expect 件数: ${COUNT}"
+          echo "HIGH-001: 0 件になったら -D clippy::unwrap_used に昇格予定"
+      - name: Clippy unwrap_used 件数確認 (workspace)
+        if: ${{ !inputs.standalone }}
+        continue-on-error: true
+        run: |
+          COUNT=$(cargo clippy --manifest-path ${{ inputs.workspace-path }}/Cargo.toml \
+            -p ${{ inputs.package-name }} --all-targets \
+            -- -W clippy::unwrap_used -W clippy::expect_used 2>&1 \
+            | grep -c "warning\[clippy::unwrap_used\]\|warning\[clippy::expect_used\]" || echo 0)
+          echo "unwrap/expect 件数: ${COUNT}"
+          echo "HIGH-001: 0 件になったら -D clippy::unwrap_used に昇格予定"
 
   # ユニットテスト実行
   test:
@@ -111,7 +133,9 @@ jobs:
           curl -sL "https://github.com/xd009642/tarpaulin/releases/download/${TARPAULIN_VERSION}/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz" \
             | tar xz -C "$HOME/.cargo/bin"
           chmod +x "$HOME/.cargo/bin/cargo-tarpaulin"
-      # カバレッジ計測を実行する（standalone / workspace モード対応）
+      # HIGH-004 監査対応: カバレッジ計測と閾値チェックを実行する（standalone / workspace モード対応）
+      # --fail-under 65 で 65% 未満の場合に CI を失敗させる
+      # 閾値は現行の最低カバレッジに合わせた控えめな値。_test.yaml の 75% に段階的に引き上げ予定
       - name: カバレッジ計測 (standalone)
         if: inputs.standalone
         run: |
@@ -121,6 +145,7 @@ jobs:
             --exclude-files "*/tests/*" "*/proto/*" \
             --skip-clean \
             --timeout 300 \
+            --fail-under 65 \
             --out Json Html \
             --output-dir coverage
       # カバレッジ計測を実行する（workspace モード: -p でパッケージ指定）
@@ -134,6 +159,7 @@ jobs:
             --exclude-files "*/tests/*" "*/proto/*" \
             --skip-clean \
             --timeout 300 \
+            --fail-under 65 \
             --out Json Html \
             --output-dir coverage
       # カバレッジレポートを Artifact として保存し後から参照できるようにする

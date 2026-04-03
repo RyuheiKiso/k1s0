@@ -25,3 +25,11 @@ spec:
         - sourceLabels: [__name__]
           regex: "go_.*"
           action: drop
+        # LOW-003 監査対応: プロセスメトリクスは Kubernetes レベルで取得可能なため除外
+        - sourceLabels: [__name__]
+          regex: "process_.*"
+          action: drop
+        # LOW-003 監査対応: HTTP 計装ライブラリ内部メトリクスは不要
+        - sourceLabels: [__name__]
+          regex: "promhttp_.*"
+          action: drop

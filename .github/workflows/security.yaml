@@ -455,15 +455,72 @@ jobs:
           done
           exit $ALL_OK
 
+      # LOW-005 監査対応: Helm values.yaml の example.com プレースホルダー残存チェック
+      # harbor.internal.example.com 等は本番デプロイ時に実レジストリ URL に置換が必要
+      # 現時点では INFO レベル（exit 0）で検出のみ行い、本番デプロイパイプラインで exit 1 に昇格予定
+      - name: Helm values example.com プレースホルダー検出
+        run: |
+          echo "=== Helm values.yaml の example.com プレースホルダー確認 ==="
+          FOUND=$(grep -rl "example\.com" infra/helm/ --include="*.yaml" 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "INFO: 以下のファイルに example.com プレースホルダーが残存しています"
+            echo "INFO: 本番デプロイ前に実際のドメインに置換してください"
+            echo "${FOUND}"
+            COUNT=$(echo "${FOUND}" | wc -l)
+            echo "::notice::${COUNT} ファイルに example.com プレースホルダーが残存しています（本番デプロイ前に要置換）"
+          else
+            echo "OK: infra/helm/ に example.com プレースホルダーは検出されませんでした"
+          fi
+              # INFO レベルのため exit 0（本番デプロイパイプラインでは exit 1 に昇格）
+
+      # HIGH-005 監査対応: advisory-ignore-list.txt と deny.toml の整合性チェック
+      # advisory-ignore-list.txt が SINGLE SOURCE OF TRUTH となるため、
+      # deny.toml との差異がある場合は CI でブロックする（二重管理の乖離防止）
+      - name: advisory-ignore-list.txt と deny.toml の整合性チェック
+        run: |
+          echo "=== advisory-ignore-list.txt ↔ deny.toml 整合性チェック ==="
+          IGNORE_LIST="scripts/security/advisory-ignore-list.txt"
+          failed=0
+
+          # 方向1: advisory-ignore-list.txt → deny.toml（リストの全エントリが deny.toml に存在するか）
+          while IFS= read -r line; do
+            [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+            advisory=$(echo "$line" | awk '{print $1}')
+            [[ -z "$advisory" ]] && continue
+            if ! grep -q "\"${advisory}\"" deny.toml; then
+              echo "::error::${advisory} は advisory-ignore-list.txt にあるが deny.toml の ignore リストにありません"
+              failed=1
+            fi
+          done < "${IGNORE_LIST}"
+
+          # 方向2: deny.toml → advisory-ignore-list.txt（deny.toml の全エントリがリストに存在するか）
+          while IFS= read -r line; do
+            if [[ "$line" =~ \"(RUSTSEC-[0-9]{4}-[0-9]+)\" ]]; then
+              advisory="${BASH_REMATCH[1]}"
+              if ! grep -q "^${advisory}" "${IGNORE_LIST}"; then
+                echo "::error::${advisory} は deny.toml にあるが advisory-ignore-list.txt にありません"
+                failed=1
+              fi
+            fi
+          done < deny.toml
+
+          if [ "$failed" -eq 0 ]; then
+            echo "OK: advisory-ignore-list.txt と deny.toml は同期されています"
+          fi
+          exit $failed
+
   # 全セキュリティジョブの集約ゲート
   # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
-  # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする
+  # MED-008 監査対応: image-scan を needs に追加し、失敗時にゲートをブロックする
+  # image-scan は PR 時 skipped（イメージ未存在）、schedule/push 時に実行される
+  # skipped および success は許容、failure のみゲートをブロックする
   security-gate:
     runs-on: ubuntu-latest
     # 全セキュリティジョブが完了（成功・失敗問わず）してから実行する
     needs:
       - trivy-scan
       - dependency-check
+      - image-scan
       - iac-scan
       - license-scan
       - sast
@@ -476,10 +533,13 @@ jobs:
     permissions: {}
     steps:
       # 全ジョブの結果を検査し、failure があればゲートを閉じる
+      # MED-008: image-scan は skipped（PR 時）または success/failure のいずれかになる
+      #          skipped は許容するが failure はブロックする
       - name: セキュリティスキャン全体の合否判定
         run: |
           echo "trivy-scan:        ${{ needs.trivy-scan.result }}"
           echo "dependency-check:  ${{ needs.dependency-check.result }}"
+          echo "image-scan:        ${{ needs.image-scan.result }}"
           echo "iac-scan:          ${{ needs.iac-scan.result }}"
           echo "license-scan:      ${{ needs.license-scan.result }}"
           echo "sast:              ${{ needs.sast.result }}"
@@ -487,6 +547,7 @@ jobs:
           echo "config-validation: ${{ needs.config-validation.result }}"
           if [ "${{ needs.trivy-scan.result }}"        = "failure" ] || \
              [ "${{ needs.dependency-check.result }}"  = "failure" ] || \
+             [ "${{ needs.image-scan.result }}"        = "failure" ] || \
              [ "${{ needs.iac-scan.result }}"          = "failure" ] || \
              [ "${{ needs.license-scan.result }}"      = "failure" ] || \
              [ "${{ needs.sast.result }}"              = "failure" ] || \
@@ -513,6 +574,7 @@ jobs:
               '### 失敗したジョブ',
               `- trivy-scan: ${{ needs.trivy-scan.result }}`,
               `- dependency-check: ${{ needs.dependency-check.result }}`,
+              `- image-scan: ${{ needs.image-scan.result }}`,
               `- iac-scan: ${{ needs.iac-scan.result }}`,
               `- license-scan: ${{ needs.license-scan.result }}`,
               `- sast: ${{ needs.sast.result }}`,

@@ -1,0 +1,20 @@
+# 脆弱性無視リスト（SINGLE SOURCE OF TRUTH）
+#
+# このファイルが cargo-audit.sh と deny.toml の両方の根拠となる唯一の管理場所。
+# HIGH-005 監査対応: deny.toml と cargo-audit.sh の二重管理を解消する。
+#
+# Advisory の追加・削除はこのファイルのみで行い、deny.toml はこのファイルと
+# 同期されていることを CI の整合性チェック（security.yaml config-validation）が保証する。
+#
+# フォーマット:
+#   RUSTSEC-YYYY-NNNN  # 理由。解消目標: YYYY-MM-DD
+#
+# 注意:
+#   - コメント行（# で始まる行）と空行は無視される
+#   - deny.toml に変更を加える場合は必ずこのファイルも同期すること
+#   - cargo-audit.sh はこのファイルを動的に読み込む
+
+# RUSTSEC-2025-0111: tokio-tar（testcontainers 経由の間接依存、テスト専用、本番影響なし）
+# 解消目標: 2026-06-30（四半期レビューで再評価、testcontainers アップデートで解消予定）
+# 追跡: https://rustsec.org/advisories/RUSTSEC-2025-0111.html
+RUSTSEC-2025-0111

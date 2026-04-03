@@ -406,7 +406,8 @@ spec:
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
-# system tier: 権限拒否イベント（3パーティション: 正常フローより低頻度のため中程度）
+# system tier: 権限拒否イベント（MED-005 監査対応: create-topics.sh に合わせて 6パーティション に統一）
+# create-topics.sh では 6 partitions で作成している（高優先度セキュリティイベントのため）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -416,14 +417,15 @@ metadata:
     strimzi.io/cluster: k1s0-kafka
     tier: system
 spec:
-  partitions: 3
+  partitions: 6
   replicas: 3
   config:
     retention.ms: 604800000
     cleanup.policy: delete
     min.insync.replicas: 2
 ---
-# system tier: API スキーマ更新イベント（3パーティション: 低頻度の管理操作）
+# system tier: API スキーマ更新イベント（MED-005 監査対応: create-topics.sh に合わせて 6パーティション に統一）
+# create-topics.sh では 6 partitions で作成している（高優先度システムイベントのため）
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
@@ -433,7 +435,7 @@ metadata:
     strimzi.io/cluster: k1s0-kafka
     tier: system
 spec:
-  partitions: 3
+  partitions: 6
   replicas: 3
   config:
     retention.ms: 604800000

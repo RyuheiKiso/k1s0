@@ -78,6 +78,13 @@
 | [ADR-0070](./0070-db-isolation-event-monitor-master-maintenance.md) | event-monitor / master-maintenance の独立 DB 分離 | 承認済み |
 | [ADR-0071](./0071-tonic-012-proto-compatibility.md) | tonic 0.12 互換のための Proto 生成コード対応方針 | 承認済み |
 | [ADR-0072](./0072-rls-policy-type-cast-standardization.md) | RLS ポリシーの tenant_id 型キャスト標準化 | 承認済み |
+| [ADR-0073](./0073-vault-terraform-yaml-sync-strategy.md) | Vault Terraform/YAML 同期戦略 | 承認済み |
+| [ADR-0074](./0074-k1s0-common-template-validation-ci.md) | k1s0-common Helm テンプレート CI 検証 | 承認済み |
+| [ADR-0075](./0075-vault-backup-dynamic-token.md) | Vault バックアップ動的トークン | 承認済み |
+| [ADR-0076](./0076-gitops-networkpolicy-drift-prevention.md) | GitOps NetworkPolicy ドリフト防止 | 承認済み |
+| [ADR-0077](./0077-vault-business-service-role-isolation.md) | Vault ビジネス/サービス層ロール分離 | 承認済み |
+| [ADR-0078](./0078-audit-response-2026-04-03.md) | 外部技術監査 2026-04-03 対応記録（v1） | 承認済み |
+| [ADR-0079](./0079-external-audit-remediation-2026-04-03-v2.md) | 外部技術監査 2026-04-03 v2 対応記録 | 承認済み |
 
 ## ADR の追加方法
 

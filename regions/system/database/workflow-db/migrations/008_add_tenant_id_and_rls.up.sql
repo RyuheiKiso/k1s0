@@ -1,6 +1,9 @@
 -- workflow テナント分離: 全テーブルに tenant_id カラムと RLS ポリシーを追加する
 -- RUST-CRIT-001 対応: テナント間のデータ漏洩を防止する
-SET search_path TO workflow;
+-- CRIT-002 監査対応: SET LOCAL でトランザクションスコープに限定し、セッション汚染を防止する
+-- SET search_path（セッションレベル）は sqlx の _sqlx_migrations テーブル（public スキーマ）を
+-- 見つけられなくするため、SET LOCAL + public を含む形に修正する
+SET LOCAL search_path TO workflow, public;
 
 -- workflow_definitions テーブルへの tenant_id 追加
 ALTER TABLE workflow.workflow_definitions

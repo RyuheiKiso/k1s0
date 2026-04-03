@@ -11,6 +11,9 @@ spec:
   groups:
     - name: config_server.rules
       rules:
+        # MED-006 監査対応: アラート閾値の SLO 根拠は docs/architecture/observability/SLO設計.md を参照
+        # エラーレート閾値 1%（> 0.01） = 可用性 99% SLO の 1-availability 換算値
+        # P99 レイテンシ閾値 500ms（> 0.5） = レイテンシ SLO の P99 目標値
         # High Error Rate
         - alert: config_server_high_error_rate
           expr: |

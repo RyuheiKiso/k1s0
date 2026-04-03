@@ -10,8 +10,10 @@ use super::AppState;
 /// STATIC-CRITICAL-001 監査対応: find_all の第1引数として使用する。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
+/// MED-001 監査対応: StatusCode を明示的に返すタプルパターンを使用し、
+/// Content-Type: application/json と HTTP 200 が確実に返されることを保証する
 pub async fn healthz() -> impl IntoResponse {
-    Json(serde_json::json!({"status": "ok"}))
+    (StatusCode::OK, Json(serde_json::json!({"status": "ok"})))
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {

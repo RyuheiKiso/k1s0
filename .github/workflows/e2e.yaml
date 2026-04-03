@@ -98,7 +98,9 @@ jobs:
         run: |
           echo "Keycloak の起動完了を待機します..."
           for i in $(seq 1 24); do
-            if curl -sf http://localhost:8180/health/ready > /dev/null 2>&1; then
+            # LOW-002 監査対応: Keycloak 26.x のプライマリエンドポイントは /health
+            # docker-compose.yaml の L-04 対応（/health/ready → /health）と統一
+            if curl -sf http://localhost:8180/health > /dev/null 2>&1; then
               echo "Keycloak が起動しました"
               break
             fi
