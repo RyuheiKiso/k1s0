@@ -50,6 +50,8 @@ vendor/
 .env.local
 .env.*.local
 # .env.dev は意図的に git 管理対象とする（開発専用の固定値のみ記載。実秘密情報は Vault で管理、CRITICAL-SEC-05 監査対応）
+# M-019 監査対応: Ansible インベントリの実 IP は環境変数で管理し、このファイルにコミット禁止
+infra/ansible/inventory/.env.ansible
 **/config/config.dev.yaml
 **/config/config.local.yaml
 **/config/config.docker.yaml

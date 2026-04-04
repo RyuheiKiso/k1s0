@@ -474,6 +474,23 @@ jobs:
           fi
               # INFO レベルのため exit 0（本番デプロイパイプラインでは exit 1 に昇格）
 
+      # M-019 監査対応: Ansible inventory ファイルに内部 IP が平文コミットされていないか検証する
+      # hosts.yaml は lookup('env', ...) で環境変数から IP を取得する形式でなければならない
+      - name: Ansible inventory 平文 IP 漏洩チェック
+        run: |
+          echo "=== Ansible hosts.yaml に平文 IP アドレスが含まれていないか確認 ==="
+          # ansible_host に直接 IP アドレス（数字.数字.数字.数字 形式）が記載されていないか検証する
+          # lookup('env', ...) 形式でのみ記載が許可される
+          FOUND=$(grep -E "ansible_host:\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" \
+            infra/ansible/inventory/hosts.yaml 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Ansible inventory に平文 IP アドレスが検出されました。"
+            echo "::error::IP は lookup('env', 'ANSIBLE_..._IP') 形式で環境変数から取得してください。"
+            echo "${FOUND}"
+            exit 1
+          fi
+          echo "OK: Ansible hosts.yaml に平文 IP アドレスは検出されませんでした"
+
       # HIGH-005 監査対応: advisory-ignore-list.txt と deny.toml の整合性チェック
       # advisory-ignore-list.txt が SINGLE SOURCE OF TRUTH となるため、
       # deny.toml との差異がある場合は CI でブロックする（二重管理の乖離防止）

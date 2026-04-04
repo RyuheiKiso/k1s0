@@ -151,8 +151,12 @@ class SessionCookieInterceptor extends Interceptor {
     return null;
   }
 
-  /// RFC 7231 の HTTP-date 形式（例: "Thu, 01 Jan 2026 00:00:00 GMT"）を DateTime に変換する
+  /// RFC 7231 の HTTP-date 形式を DateTime に変換する。3 形式をサポートする:
+  ///   imf-fixdate: "Thu, 01 Jan 2026 00:00:00 GMT"（推奨形式）
+  ///   obs-date (RFC 850): "Thursday, 01-Jan-26 00:00:00 GMT"（2 桁年、ハイフン区切り）
+  ///   asctime: "Thu Jan  1 00:00:00 2026"（ANSI C の asctime() 出力）
   /// dart:io の HttpDate に依存せず、純粋な Dart で実装することでフルプラットフォーム互換を保つ
+  /// M-035 監査対応: obs-date および asctime 形式を追加サポートする
   DateTime? _parseHttpDate(String httpDate) {
     // 月名を数値にマッピングするテーブル
     const monthMap = {
@@ -160,15 +164,39 @@ class SessionCookieInterceptor extends Interceptor {
       'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
     };
 
-    // カンマ・空白で分割して空文字を除去する
-    // 例: "Thu, 01 Jan 2026 00:00:00 GMT" → ["Thu", "01", "Jan", "2026", "00:00:00", "GMT"]
-    // 例: "01 Jan 2026 00:00:00 GMT" → ["01", "Jan", "2026", "00:00:00", "GMT"]
+    final trimmed = httpDate.trim();
+
+    // asctime 形式の検出: "Thu Jan  1 00:00:00 2026"（月名が曜日の次）
+    // カンマを含まず、2 番目トークンが月名マップに含まれる場合に asctime と判定する
+    if (!trimmed.contains(',')) {
+      final asctimeParts =
+          trimmed.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+      // asctime は必ず 5 トークン: 曜日 月名 日 時刻 年
+      if (asctimeParts.length == 5 && monthMap.containsKey(asctimeParts[1])) {
+        final month = monthMap[asctimeParts[1]];
+        final day = int.tryParse(asctimeParts[2]);
+        final timeParts = asctimeParts[3].split(':');
+        final year = int.tryParse(asctimeParts[4]);
+        if (month != null && day != null && year != null &&
+            timeParts.length == 3) {
+          final hour = int.tryParse(timeParts[0]);
+          final minute = int.tryParse(timeParts[1]);
+          final second = int.tryParse(timeParts[2]);
+          if (hour != null && minute != null && second != null) {
+            // HTTP-date は常に UTC で表現される
+            return DateTime.utc(year, month, day, hour, minute, second);
+          }
+        }
+      }
+    }
+
+    // imf-fixdate および obs-date 形式: カンマ・空白・ハイフンで分割する
+    // imf-fixdate 例: ["Thu", "01", "Jan", "2026", "00:00:00", "GMT"]
+    // obs-date 例: "Thursday, 01-Jan-26 ..." → ["Thursday", "01", "Jan", "26", "00:00:00", "GMT"]
     final normalized =
-        httpDate.split(RegExp(r'[\s,]+')).where((p) => p.isNotEmpty).toList();
+        trimmed.split(RegExp(r'[\s,\-]+')).where((p) => p.isNotEmpty).toList();
 
     // 先頭トークンが月名マップに含まれない場合は曜日（例: "Thu"）とみなしてオフセットをずらす
-    // normalized[0] が "Thu" のような曜日なら normalized[1] が日付開始位置
-    // normalized[0] が "01" のような数値なら offset 不要
     final hasDayOfWeek =
         normalized.isNotEmpty && !monthMap.containsKey(normalized[0]) &&
         int.tryParse(normalized[0]) == null;
@@ -179,10 +207,16 @@ class SessionCookieInterceptor extends Interceptor {
 
     final day = int.tryParse(normalized[0 + offset]);
     final month = monthMap[normalized[1 + offset]];
-    final year = int.tryParse(normalized[2 + offset]);
+    var year = int.tryParse(normalized[2 + offset]);
     final timeParts = normalized[3 + offset].split(':');
     if (day == null || month == null || year == null || timeParts.length != 3) {
       return null;
+    }
+
+    // obs-date の 2 桁年を 4 桁に変換する（RFC 7231 Section 7.1.1.2 準拠）
+    // 00-49 → 2000-2049、50-99 → 1950-1999
+    if (year < 100) {
+      year = year < 50 ? 2000 + year : 1900 + year;
     }
 
     final hour = int.tryParse(timeParts[0]);
