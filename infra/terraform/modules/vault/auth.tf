@@ -53,6 +53,30 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 # サービス個別 Vault ロールに分離する（ADR-0077 参照）。
 # 共有ロールでは1サービス侵害で同ティア全シークレットが漏洩するリスクがあるため廃止する。
 
+# AI ゲートウェイサービス（ai-gateway）個別 Vault ロール（MED-005 監査対応）
+# ai-gateway の Helm values.yaml の vault.role が "ai-gateway" と一致させる
+resource "vault_kubernetes_auth_backend_role" "ai_gateway" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "ai-gateway"
+  bound_service_account_names      = ["ai-gateway"]
+  bound_service_account_namespaces = [var.k8s_namespace]
+  token_ttl                        = 3600
+  token_max_ttl                    = 14400
+  token_policies                   = ["system", "ai-gateway"]
+}
+
+# AI エージェントサービス（ai-agent）個別 Vault ロール（MED-005 監査対応）
+# ai-agent の Helm values.yaml の vault.role が "ai-agent" と一致させる
+resource "vault_kubernetes_auth_backend_role" "ai_agent" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "ai-agent"
+  bound_service_account_names      = ["ai-agent"]
+  bound_service_account_namespaces = [var.k8s_namespace]
+  token_ttl                        = 3600
+  token_max_ttl                    = 14400
+  token_policies                   = ["system", "ai-agent"]
+}
+
 # project-master-rust 個別 Vault ロール（business ティア）
 # ADR-0077: 旧共有ロール "business" を廃止し、project-master 専用ロールに移行する
 resource "vault_kubernetes_auth_backend_role" "project_master_rust" {

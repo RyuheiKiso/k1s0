@@ -792,6 +792,40 @@ config_server:
 
 ---
 
+---
+
+## 本番環境セキュリティ要件（MED-001 監査対応）
+
+### 設定値暗号化の本番環境必須化
+
+`config_server.encryption.enabled = false` の場合、本番環境（`app.environment` が `dev` / `development` / `local` / `test` 以外）では起動を拒否する（`startup.rs` にて）。
+
+設定値にはデータベースパスワード・APIキー等の機密情報が含まれる可能性があるため、本番での平文保存はセキュリティリスクとなる。
+
+**本番環境の必須設定:**
+
+```yaml
+# config/config.prod.yaml
+app:
+  environment: "production"
+
+config_server:
+  encryption:
+    enabled: true                       # 必須: false にすると起動エラー
+    sensitive_namespaces:
+      - "database"
+      - "secrets"
+      - "credentials"
+```
+
+```bash
+# 暗号化キーは環境変数で渡す（Kubernetes では SecretProviderClass 経由）
+# 32 バイト（AES-256）のランダムキーを base64 エンコードして設定する
+export CONFIG_ENCRYPTION_KEY=$(openssl rand -base64 32)
+```
+
+---
+
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。

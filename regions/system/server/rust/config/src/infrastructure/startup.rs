@@ -97,7 +97,19 @@ pub async fn run() -> anyhow::Result<()> {
         info!("設定値暗号化を有効化しました（対象 namespace: {:?}）", cfg.config_server.encryption.sensitive_namespaces);
         Some(key)
     } else {
-        info!("設定値暗号化は無効です（config_server.encryption.enabled = false）。本番環境では有効化を推奨します");
+        // 本番環境（dev/development/local/test 以外）では暗号化を必須とする（MED-001 監査対応）
+        // 設定値にはデータベースパスワード・APIキー等の機密情報が含まれる可能性があるため、
+        // 本番での平文保存はセキュリティリスクとなる
+        let env = cfg.app.environment.as_str();
+        if !matches!(env, "dev" | "development" | "local" | "test") {
+            anyhow::bail!(
+                "本番環境（environment={}）では config_server.encryption.enabled = true が必須です。\
+                config/config.prod.yaml の encryption.enabled を true に設定し、\
+                CONFIG_ENCRYPTION_KEY 環境変数に 32 バイト（base64 エンコード）の鍵を設定してください。",
+                env
+            );
+        }
+        info!("設定値暗号化は無効です（environment={}: 開発環境のみ許可）", env);
         None
     };
 

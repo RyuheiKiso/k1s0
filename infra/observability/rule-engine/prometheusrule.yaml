@@ -1,0 +1,78 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rule-engine-server-alerts
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: rule-engine-server
+    tier: system
+    service: rule-engine
+spec:
+  groups:
+    - name: rule_engine_server.rules
+      rules:
+        # LOW-008 監査対応: rule-engine の PrometheusRule を追加する
+        # アラート閾値の SLO 根拠は docs/architecture/observability/SLO設計.md を参照
+        # エラーレート閾値 1%（> 0.01）= 可用性 99% SLO の 1-availability 換算値
+        # High Error Rate
+        - alert: rule_engine_server_high_error_rate
+          expr: |
+            (
+              sum(rate(http_requests_total{service="rule-engine-server", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{service="rule-engine-server"}[5m]))
+            ) > 0.01
+          for: 5m
+          labels:
+            severity: critical
+            service: rule-engine-server
+            tier: system
+          annotations:
+            summary: "High error rate on rule-engine-server"
+            description: "Error rate is above 1% for rule-engine-server in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-error-rate.md"
+
+        # High Latency (P99)
+        - alert: rule_engine_server_high_latency
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{service="rule-engine-server"}[5m])) by (le)
+            ) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            service: rule-engine-server
+            tier: system
+          annotations:
+            summary: "High P99 latency on rule-engine-server"
+            description: "P99 latency is above 500ms for rule-engine-server in k1s0-system"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/high-latency.md"
+
+        # Pod Restart
+        - alert: rule_engine_server_pod_restart
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="k1s0-system", pod=~"rule-engine-server.*"}[1h]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            service: rule-engine-server
+            tier: system
+          annotations:
+            summary: "Pod restarts detected for rule-engine-server"
+            description: "Pod rule-engine-server in k1s0-system has restarted more than 3 times in the last hour"
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/architecture/observability/runbooks/common/pod-restart.md"
+
+        # Backend Degraded（rule-engine 固有: in-memory バックエンドで稼働中の場合）
+        # rule-engine が PostgreSQL に接続できず in-memory で稼働していることを検出する
+        - alert: rule_engine_backend_degraded
+          expr: |
+            k1s0_rule_engine_backend_type{service="rule-engine-server"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            service: rule-engine-server
+            tier: system
+          annotations:
+            summary: "rule-engine is using in-memory backend"
+            description: "rule-engine-server is running with in-memory backend. Kafka events will not be published."
+            runbook_url: "https://github.com/k1s0/k1s0/blob/main/docs/infrastructure/devenv/troubleshooting.md"

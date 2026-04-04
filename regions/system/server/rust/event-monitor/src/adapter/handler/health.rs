@@ -6,31 +6,43 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    // DB 疎通確認には単純な SELECT 1 を使用する。
-    // ビジネスロジック経由の確認は RLS や UC の副作用の影響を受けるため禁止する。
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
     let timestamp = chrono::Utc::now().to_rfc3339();
-    match sqlx::query("SELECT 1").execute(&state.db_pool).await {
-        Ok(_) => (
+
+    // DB 疎通確認: AppState に db_pool が存在する場合のみ実行する。
+    // in-memory モード（db_pool = None）ではスキップし "skipped" を返す。
+    // ビジネスロジック経由の確認は RLS や UC の副作用の影響を受けるため直接 SELECT 1 を使用する。
+    let (db_status, overall_ok) = if let Some(ref pool) = state.db_pool {
+        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+            Ok(_) => ("ok", true),
+            Err(e) => {
+                tracing::error!(error = %e, "readyz: DB ping failed");
+                ("error", false)
+            }
+        }
+    } else {
+        ("skipped", true)
+    };
+
+    // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
+    if overall_ok {
+        (
             StatusCode::OK,
-            // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
             Json(serde_json::json!({
                 "status": "healthy",
-                "checks": { "postgres": "ok" },
+                "checks": { "postgres": db_status },
                 "timestamp": timestamp
             })),
-        ),
-        Err(e) => {
-            tracing::error!(error = %e, "readyz: DB ping failed");
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "status": "unhealthy",
-                    "checks": { "postgres": "error" },
-                    "timestamp": timestamp
-                })),
-            )
-        }
+        )
+    } else {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "status": "unhealthy",
+                "checks": { "postgres": db_status },
+                "timestamp": timestamp
+            })),
+        )
     }
 }
 

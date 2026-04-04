@@ -620,7 +620,7 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `SAGA_REST_HOST_PORT` | 8085 | saga-rust | Saga Server（REST） |
 | `SAGA_GRPC_HOST_PORT` | 50055 | saga-rust | Saga Server（gRPC） |
 | `DLQ_REST_HOST_PORT` | 8086 | dlq-manager | DLQ Manager（REST） |
-| `FEATUREFLAG_REST_HOST_PORT` | 8087 | featureflag-rust | Feature Flag（REST） |
+| `FEATUREFLAG_REST_HOST_PORT` | 8187 | featureflag-rust | Feature Flag（REST）（8087 は Docker Desktop NAT 競合のため 8187 に変更済み） |
 | `FEATUREFLAG_GRPC_HOST_PORT` | 50056 | featureflag-rust | Feature Flag（gRPC） |
 | `RATELIMIT_REST_HOST_PORT` | 8088 | ratelimit-rust | Rate Limit（REST） |
 | `RATELIMIT_GRPC_HOST_PORT` | 50057 | ratelimit-rust | Rate Limit（gRPC） |

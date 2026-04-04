@@ -81,7 +81,8 @@ config:
 
 vault:
   enabled: true
-  role: "system"
+  # MED-005 監査対応: "system" 共有ロールから "ai-agent" 個別ロールに変更する
+  role: "ai-agent"
   secrets:
     - path: "secret/data/k1s0/system/ai-agent/database"
       key: "password"
@@ -92,7 +93,7 @@ tolerations: []
 affinity: {}
 
 # Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
-# NOTE: ai-agent は現時点で auth.tf の bound_service_account_names に未登録
+# MED-005 監査対応: auth.tf に vault_kubernetes_auth_backend_role.ai_agent を追加済み
 serviceAccount:
   create: true
   name: "ai-agent"

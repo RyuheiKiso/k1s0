@@ -133,9 +133,8 @@ jobs:
           curl -sL "https://github.com/xd009642/tarpaulin/releases/download/${TARPAULIN_VERSION}/cargo-tarpaulin-x86_64-unknown-linux-musl.tar.gz" \
             | tar xz -C "$HOME/.cargo/bin"
           chmod +x "$HOME/.cargo/bin/cargo-tarpaulin"
-      # HIGH-004 監査対応: カバレッジ計測と閾値チェックを実行する（standalone / workspace モード対応）
-      # --fail-under 65 で 65% 未満の場合に CI を失敗させる
-      # 閾値は現行の最低カバレッジに合わせた控えめな値。_test.yaml の 75% に段階的に引き上げ予定
+      # MED-003 監査対応: カバレッジ閾値を 65% → 75% に引き上げ（_test.yaml と統一）
+      # Go/TypeScript/Dart はいずれも 75〜80% 閾値のため Rust も同水準に揃える
       - name: カバレッジ計測 (standalone)
         if: inputs.standalone
         run: |
@@ -145,7 +144,7 @@ jobs:
             --exclude-files "*/tests/*" "*/proto/*" \
             --skip-clean \
             --timeout 300 \
-            --fail-under 65 \
+            --fail-under 75 \
             --out Json Html \
             --output-dir coverage
       # カバレッジ計測を実行する（workspace モード: -p でパッケージ指定）
@@ -159,7 +158,7 @@ jobs:
             --exclude-files "*/tests/*" "*/proto/*" \
             --skip-clean \
             --timeout 300 \
-            --fail-under 65 \
+            --fail-under 75 \
             --out Json Html \
             --output-dir coverage
       # カバレッジレポートを Artifact として保存し後から参照できるようにする

@@ -480,6 +480,45 @@ observability:
 
 ---
 
+### LOW-007 監査対応: SESSION_ENCRYPTION_KEY ローテーション手順
+
+**背景**: `EncryptedStore`（`internal/session/encrypted_store.go`）は現時点でシングルキーのみをサポートする。デュアルキー（新旧両方で復号）は将来の拡張課題。
+
+**鍵ローテーション手順（シングルキー方式）:**
+
+1. **新鍵の生成と保存**:
+   ```bash
+   # 32 バイト（AES-256）の鍵を生成する
+   NEW_KEY=$(openssl rand -hex 32)
+
+   # Vault に保存する（旧鍵は上書きされることに注意）
+   vault kv put secret/k1s0/system/bff-proxy SESSION_ENCRYPTION_KEY="${NEW_KEY}"
+   ```
+
+2. **Kubernetes ローリングリスタート**:
+   ```bash
+   # SecretProviderClass が新鍵を取得するよう Pod を順次再起動する
+   kubectl rollout restart deployment/bff-proxy -n k1s0-system
+
+   # ローリングアップデートの完了を待機する
+   kubectl rollout status deployment/bff-proxy -n k1s0-system
+   ```
+
+3. **旧セッションの自動失効**:
+   - 旧鍵で暗号化されたセッションは新鍵での復号に失敗し、自動的に無効化される
+   - **ユーザーへの影響**: 全ユーザーは再ログインが必要になる
+   - ローリングリスタート中（旧 Pod と新 Pod が混在する間）は一部ユーザーが認証失敗する可能性がある
+
+4. **事前通知の推奨**:
+   - 計画的なメンテナンスとして事前にユーザーへ通知すること
+   - 影響を最小化するため、業務時間外にローテーションを実施すること
+
+**将来の改善計画（デュアルキー対応）:**
+- `EncryptedStore` にデュアルキーサポートを追加し、旧鍵での復号→新鍵での再暗号化を実装する
+- これにより、ローテーション中もユーザーの再ログインが不要になる
+
+---
+
 ## 関連ドキュメント
 
 > 共通関連ドキュメントは [deploy.md](../../_common/deploy.md#共通関連ドキュメント) を参照。

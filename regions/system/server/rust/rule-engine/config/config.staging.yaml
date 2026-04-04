@@ -1,0 +1,14 @@
+# MED-007 監査対応: 本番・ステージング環境固有設定ファイル
+app:
+  environment: "staging"
+
+database:
+  ssl_mode: "require"
+  max_open_conns: 30
+  max_idle_conns: 8
+
+observability:
+  log:
+    level: "info"
+  trace:
+    sample_rate: 0.5

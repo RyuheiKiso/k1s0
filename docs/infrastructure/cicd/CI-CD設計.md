@@ -1136,14 +1136,24 @@ Rust サービス用の共通 CI パイプライン（lint → test → build）
 
 ### `_rust-service-ci.yaml` カバレッジ閾値と unwrap 件数可視化（HIGH-004/HIGH-001 監査対応）
 
-**2026-04-03 更新**: tarpaulin に `--fail-under 65` を追加し、65% 未満の場合に CI を失敗させる。  
+**2026-04-04 更新（MED-003 監査対応）**: tarpaulin の閾値を `--fail-under 65` から `--fail-under 75` に引き上げ、`_test.yaml` と統一した。Go/TypeScript/Dart（75〜80%）と同水準になった。  
 また、Clippy に `-W clippy::unwrap_used -W clippy::expect_used`（`continue-on-error: true`）を追加し、  
 unwrap/expect 件数を可視化する（HIGH-001 対応）。unwrap のステップは CI をブロックしない（情報収集フェーズ）。
 
-| 閾値 | ワークフロー | 備考 |
-|------|------------|------|
-| 65% | `_rust-service-ci.yaml` | HIGH-004 対応で新規追加。段階的に75%へ引き上げ予定 |
-| 75% | `_test.yaml`（集約） | 既存の閾値 |
+| 言語 | 閾値 | ワークフロー | 備考 |
+|------|------|------------|------|
+| Rust（per-service CI） | 75% | `_rust-service-ci.yaml` | MED-003 対応で 65%→75% に統一 |
+| Rust（集約） | 75% | `_test.yaml` | 既存の閾値（LOW-015 対応で 70%→75% 引き上げ済み） |
+| Go | 75% | `_test.yaml` | LOW-015 対応で 70%→75% 引き上げ済み |
+| TypeScript | 80% | `_test.yaml` | 設定済み |
+| Dart/Flutter | 80% | `_test.yaml` | 設定済み |
+
+### E2E テストのシークレット管理（MED-002 監査対応）
+
+**2026-04-04 更新**: `.github/workflows/e2e.yaml` のシークレット管理を改善した。  
+従来は `cat > .env << EOF` でシークレットをディスクに平文書き込みしていたが、  
+GitHub Actions の `env:` ブロックで環境変数として渡し、docker compose に直接注入する方式に変更した。  
+これにより、ランナーディスク上への平文書き込みリスクを排除した。
 
 ### `_go-service-ci.yaml`
 

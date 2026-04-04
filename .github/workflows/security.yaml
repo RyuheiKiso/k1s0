@@ -378,7 +378,8 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc2580ac56f311897a37c4fc24a
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_COMMENTS: false
+          # MED-006 監査対応: PR コメントを有効化してシークレット検出を開発者に可視化する
+          GITLEAKS_ENABLE_COMMENTS: true
 
   # K8S-TF-002 / K8S-BACKUP-001 監査対応: 設定値の整合性チェックジョブ
   # - prod/backend.tf に example.com が残っている場合に失敗（未置換プレースホルダー検出）

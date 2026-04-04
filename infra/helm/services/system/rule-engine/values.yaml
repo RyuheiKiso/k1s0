@@ -107,6 +107,12 @@ kafka:
   enabled: false
   brokers: []
 
+# LOW-008 監査対応: Prometheus ServiceMonitor を有効化する
+# infra/observability/rule-engine/ に PrometheusRule と ServiceMonitor の定義を追加済み
+serviceMonitor:
+  enabled: true
+  interval: 15s
+
 redis:
   enabled: false
   host: ""
