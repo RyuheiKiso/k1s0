@@ -10,7 +10,7 @@ pub struct ServiceInfo {
     /// サービス UUID
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
-    /// サービス名（例: auth, tenant, order）
+    /// サービス名（例: auth, tenant, task）
     #[prost(string, tag="2")]
     pub name: ::prost::alloc::string::String,
     /// 表示名
@@ -54,20 +54,26 @@ pub struct ServiceInfo {
 /// RegisterServiceRequest はサービス登録リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RegisterServiceRequest {
+    /// サービス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
+    /// 表示名は1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub display_name: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub description: ::prost::alloc::string::String,
+    /// Tier は1文字以上64文字以下であること（例: system, business, service）
     #[prost(string, tag="4")]
     pub tier: ::prost::alloc::string::String,
+    /// バージョンは1文字以上64文字以下であること
     #[prost(string, tag="5")]
     pub version: ::prost::alloc::string::String,
+    /// ベース URL は1文字以上512文字以下であること
     #[prost(string, tag="6")]
     pub base_url: ::prost::alloc::string::String,
     #[prost(string, optional, tag="7")]
     pub grpc_endpoint: ::core::option::Option<::prost::alloc::string::String>,
+    /// ヘルスチェック URL は1文字以上512文字以下であること
     #[prost(string, tag="8")]
     pub health_url: ::prost::alloc::string::String,
     #[prost(map="string, string", tag="9")]
@@ -86,7 +92,7 @@ pub struct RegisterServiceResponse {
 /// GetServiceRequest はサービス取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetServiceRequest {
-    /// サービス UUID または名前
+    /// サービス UUID または名前（1文字以上であること）
     #[prost(string, tag="1")]
     pub service_id: ::prost::alloc::string::String,
 }
@@ -130,6 +136,7 @@ pub struct ListServicesResponse {
 /// UpdateServiceRequest はサービス更新リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateServiceRequest {
+    /// サービス IDは1文字以上であること
     #[prost(string, tag="1")]
     pub service_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -160,6 +167,7 @@ pub struct UpdateServiceResponse {
 /// DeleteServiceRequest はサービス削除リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteServiceRequest {
+    /// サービス IDは1文字以上であること
     #[prost(string, tag="1")]
     pub service_id: ::prost::alloc::string::String,
 }

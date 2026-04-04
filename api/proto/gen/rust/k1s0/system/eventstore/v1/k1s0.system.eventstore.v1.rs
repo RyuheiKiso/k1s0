@@ -29,12 +29,14 @@ pub struct StreamInfo {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppendEventsRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="2")]
     pub events: ::prost::alloc::vec::Vec<EventData>,
     #[prost(int64, tag="3")]
     pub expected_version: i64,
+    /// アグリゲート種別は1文字以上128文字以下であること
     #[prost(string, tag="4")]
     pub aggregate_type: ::prost::alloc::string::String,
 }
@@ -49,6 +51,7 @@ pub struct AppendEventsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReadEventsRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
@@ -74,6 +77,7 @@ pub struct ReadEventsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReadEventBySequenceRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
     #[prost(uint64, tag="2")]
@@ -86,10 +90,12 @@ pub struct ReadEventBySequenceResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateSnapshotRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
     #[prost(int64, tag="2")]
     pub snapshot_version: i64,
+    /// アグリゲート種別は1文字以上128文字以下であること
     #[prost(string, tag="3")]
     pub aggregate_type: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="4")]
@@ -111,6 +117,7 @@ pub struct CreateSnapshotResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetLatestSnapshotRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
 }
@@ -121,6 +128,7 @@ pub struct GetLatestSnapshotResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteStreamRequest {
+    /// ストリームIDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub stream_id: ::prost::alloc::string::String,
 }

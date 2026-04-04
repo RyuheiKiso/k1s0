@@ -5,6 +5,29 @@ import { navigateTo } from './navigation';
 // ローディング中のスピナー表示に使用する既存コンポーネントをインポートする
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
+/**
+ * L-003/L-016 監査対応: unknown 型の catch 例外から HTTP ステータスコードを安全に取り出すヘルパー。
+ * TypeScript の catch(e) は e が unknown 型のため、直接プロパティアクセスは型安全でない。
+ * typeof/instanceof チェックを通じて安全に値を取得し、危険な型アサーション (as SomeType) を最小化する。
+ * Record<string, unknown> へのキャストは、in 演算子による存在確認後の安全な narrowing として使用する。
+ */
+function extractHttpStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+  // 'response' キーの存在を確認してから型を narrowing する
+  if (!('response' in error)) {
+    return undefined;
+  }
+  const asRecord = error as Record<string, unknown>;
+  const response = asRecord['response'];
+  if (typeof response !== 'object' || response === null) {
+    return undefined;
+  }
+  const status = (response as Record<string, unknown>)['status'];
+  return typeof status === 'number' ? status : undefined;
+}
+
 interface AuthProviderProps {
   children: ReactNode;
   // BFF のベース URL（必須）。呼び出し側アプリの設定ファイル（config.yaml 等）から取得して渡すこと（FE-004 監査対応）
@@ -56,8 +79,8 @@ export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
         }
       } catch (error) {
         // MED-007 監査対応: HTTP ステータスコードに応じてエラーハンドリングを分岐する。
-        // Axios エラーオブジェクトの response.status で判断し、ユーザー状態を適切に保持する。
-        const status = (error as { response?: { status?: number } })?.response?.status;
+        // L-003/L-016 監査対応: (error as {...}) の型アサーションを排除し、extractHttpStatus() で安全にステータスを取得する。
+        const status = extractHttpStatus(error);
         if (status === 403) {
           // 403 Forbidden: 認可エラーのためユーザー情報は保持し、警告ログを出力する
           console.warn('[k1s0-auth] セッション確認で 403 Forbidden が返されました。権限が不足しています。');
@@ -88,8 +111,8 @@ export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
       await apiClient.post('/auth/logout');
     } catch (error) {
       // MED-007 監査対応: ログアウト時もステータスコードに応じてログを分岐する。
-      // いずれの場合も finally でクライアント側のセッションは必ずクリアする。
-      const status = (error as { response?: { status?: number } })?.response?.status;
+      // L-003/L-016 監査対応: (error as {...}) の型アサーションを排除し、extractHttpStatus() で安全にステータスを取得する。
+      const status = extractHttpStatus(error);
       if (status !== undefined && status >= 500) {
         // 5xx Server Error: サービス障害を警告ログに記録する
         console.warn(`[k1s0-auth] ログアウトリクエストでサーバーエラー (${status}) が返されました。`);
@@ -111,6 +134,9 @@ export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
       value={{
         user,
         isAuthenticated: user !== null,
+        // M-009 監査対応: ローディング状態をコンテキストに公開する
+        // ProtectedRoute が使用して fallback フラッシュを防止する
+        loading,
         login,
         logout,
       }}

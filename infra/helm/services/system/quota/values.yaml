@@ -12,8 +12,13 @@ image:
 imagePullSecrets:
   - name: harbor-pull-secret
 
+# H-004 監査対応: アプリの grpc_port (50051) に合わせて K8s Service/container に gRPC ポートを追加
 container:
   port: 8080
+  grpcPort: 50051
+
+service:
+  grpcPort: 50051
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:

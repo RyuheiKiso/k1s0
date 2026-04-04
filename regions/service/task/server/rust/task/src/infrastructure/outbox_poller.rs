@@ -1,10 +1,13 @@
 // Outbox ポーラー。未送信イベントを定期的に Kafka へ発行する。
 // FOR UPDATE SKIP LOCKED により複数インスタンスが同一レコードを重複処理しないようにする。
 // Kafka 送信失敗時はログを記録してスキップし、他のイベントの処理を継続する。
+// M-011 監査対応: CancellationToken による graceful shutdown を追加する
+// 以前は無限ループで停止できなかった。tokio_util::sync::CancellationToken を使用する
 use crate::infrastructure::kafka::task_producer::TaskKafkaProducer;
 use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub struct OutboxPoller {
@@ -18,12 +21,22 @@ impl OutboxPoller {
     }
 
     /// ポーリングループ。サービス起動後にバックグラウンドタスクとして実行する。
-    pub async fn run(self) {
+    /// CancellationToken がキャンセルされた場合はループを終了して graceful shutdown する。
+    pub async fn run(self, token: CancellationToken) {
         loop {
-            if let Err(e) = self.poll_once().await {
-                tracing::warn!(error = %e, "outbox poll error");
+            // CancellationToken がキャンセルされた場合はループを終了する
+            tokio::select! {
+                biased;
+                _ = token.cancelled() => {
+                    tracing::info!("outbox poller received shutdown signal, stopping");
+                    break;
+                }
+                _ = tokio::time::sleep(Duration::from_secs(5)) => {
+                    if let Err(e) = self.poll_once().await {
+                        tracing::warn!(error = %e, "outbox poll error");
+                    }
+                }
             }
-            tokio::time::sleep(Duration::from_secs(5)).await;
         }
     }
 

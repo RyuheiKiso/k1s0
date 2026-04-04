@@ -1,9 +1,11 @@
 // アクティビティエンティティ。承認フロー (Active → Submitted → Approved/Rejected) を持つ。
 // payment の冪等性パターンを踏襲する。
+// H-021 監査対応: validator クレートを使用して CreateActivity のフィールドバリデーションを追加する。
 use crate::domain::error::ActivityError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 /// 文字列パースエラー型（thiserror ベースで型安全なエラー分類を実現する）
 #[derive(Debug, thiserror::Error)]
@@ -134,17 +136,28 @@ impl Activity {
 }
 
 /// アクティビティ作成 DTO（冪等性キー付き）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// H-021 監査対応: Validate derive を追加し content フィールドに最大長バリデーションを付与する。
+// content は任意項目（Option<String>）だが、入力された場合は 10000 文字以内に制限する。
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct CreateActivity {
     pub task_id: Uuid,
     pub activity_type: ActivityType,
+    // コメント・作業メモ等のテキスト。最大 10000 文字（XSS・ペイロード肥大化防止）
+    #[validate(length(max = 10000, message = "content must be 10000 characters or fewer"))]
     pub content: Option<String>,
     pub duration_minutes: Option<i32>,
     pub idempotency_key: Option<String>,
 }
 
 impl CreateActivity {
+    // ドメインルールの検証に加え、validator クレートが生成したフィールドバリデーションを実行する。
+    // H-021 監査対応: Validate::validate() を呼び出して content の最大長チェックを行う。
     pub fn validate(&self) -> Result<(), ActivityError> {
+        // validator クレートが生成したバリデーション（content 最大長等）を先に実行する
+        Validate::validate(self).map_err(|e| {
+            ActivityError::ValidationFailed(e.to_string())
+        })?;
+        // ドメイン固有ルール: TimeEntry の場合は duration_minutes が必須
         if self.activity_type == ActivityType::TimeEntry && self.duration_minutes.is_none() {
             return Err(ActivityError::ValidationFailed(
                 "duration_minutes is required for TimeEntry".to_string(),

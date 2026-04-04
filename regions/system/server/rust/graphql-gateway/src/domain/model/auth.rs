@@ -1,11 +1,16 @@
 use async_graphql::{Enum, SimpleObject};
 
 /// 監査ログのイベント種別（C-9 監査対応: 文字列フィールドから型安全な enum へ移行）。
+/// C-004 監査対応: proto との双方向整合のため TokenRefresh, PermissionCheck を追加する。
 /// スキーマの AuditEventType enum に対応する。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Enum)]
 pub enum AuditEventType {
     Login,
     Logout,
+    /// C-004 監査対応: proto AUDIT_EVENT_TYPE_TOKEN_REFRESH に対応
+    TokenRefresh,
+    /// C-004 監査対応: proto AUDIT_EVENT_TYPE_PERMISSION_CHECK に対応
+    PermissionCheck,
     Create,
     Update,
     Delete,
@@ -27,11 +32,15 @@ pub enum AuditResult {
 }
 
 /// AuditLog.event_type（文字列）から AuditEventType enum へ変換するヘルパー関数。
+/// C-004 監査対応: TOKEN_REFRESH, PERMISSION_CHECK の変換パターンを追加する。
 /// 未知の文字列は None を返す（クライアントは eventTypeEnum が null の場合は eventType 文字列を参照すること）。
 pub fn parse_audit_event_type(s: &str) -> Option<AuditEventType> {
     match s.to_ascii_uppercase().as_str() {
         "LOGIN" => Some(AuditEventType::Login),
         "LOGOUT" => Some(AuditEventType::Logout),
+        // C-004 監査対応: proto の TOKEN_REFRESH / PERMISSION_CHECK に対応
+        "TOKEN_REFRESH" => Some(AuditEventType::TokenRefresh),
+        "PERMISSION_CHECK" => Some(AuditEventType::PermissionCheck),
         "CREATE" => Some(AuditEventType::Create),
         "UPDATE" => Some(AuditEventType::Update),
         "DELETE" => Some(AuditEventType::Delete),

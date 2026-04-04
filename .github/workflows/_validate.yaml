@@ -391,6 +391,38 @@ jobs:
 
           echo "Vault-Terraform 同期検証: 完了"
 
+  # H-024 監査対応: GraphQL スキーマの構文バリデーションを CI に追加する
+  # api/graphql/schema.graphql は手動管理のため、構文エラーを早期検知することが目的である。
+  # schema-gen バイナリが実装された際は、このジョブを実装との差分検出に切り替えること（MED-014 参照）。
+  validate-graphql-schema:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Node.js セットアップ（graphql パッケージによるスキーマ構文検証）
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "20"
+      - name: GraphQL スキーマ構文バリデーション（H-024 監査対応）
+        shell: bash
+        run: |
+          # graphql パッケージを一時インストールしてスキーマの構文を検証する
+          # スキーマが手動管理のため、構文エラーを CI で早期検知することが目的である
+          npm install --no-save graphql 2>/dev/null
+          node --input-type=module << 'EOF'
+          import { buildSchema } from 'graphql';
+          import { readFileSync } from 'fs';
+          try {
+            const schema = readFileSync('api/graphql/schema.graphql', 'utf8');
+            buildSchema(schema);
+            console.log('GraphQL schema syntax validation: OK');
+          } catch (e) {
+            console.error('GraphQL schema syntax error:', e.message);
+            process.exit(1);
+          }
+          EOF
+
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:
     runs-on: ubuntu-latest

@@ -36,11 +36,13 @@ spec:
             matchLabels:
               tier: service
       # I-1 対応: ポート制限を追加し、system Tier アプリケーションの許可ポートを明示的に制限
+      # H-005 確認: ai-agent (50062→50051)、ai-gateway (50061→50051) を 50051 に統一済み。
+      #             このポリシーの変更は不要。
       ports:
         - protocol: TCP
           port: 8080    # HTTP REST API ポート
         - protocol: TCP
-          port: 50051   # gRPC ポート
+          port: 50051   # gRPC ポート（ai-agent/ai-gateway を含む全 system Tier サービスは 50051 を使用）
         - protocol: TCP
           port: 9090    # Prometheus メトリクスポート
 ---

@@ -45,6 +45,10 @@ permissions: {}
 # - Cargo/Go キャッシュ: 各言語の依存関係は CI ワークフロー（ci.yaml）側で管理
 # - Docker Registry Cache: Harbor レジストリ上の既存レイヤーを活用（push 済みイメージ）
 env:
+  # H-009 監査対応: TODO — 本番デプロイ前に REGISTRY を実際のレジストリ URL に変更すること。
+  # 現在の値 "harbor.internal.example.com" はプレースホルダーであり、本番環境では使用不可。
+  # 変更例: harbor.prod.example.com（本番 Harbor）, ghcr.io/your-org（GitHub Container Registry）など
+  # セキュリティ: レジストリ認証情報は GitHub Secrets (REGISTRY_USERNAME / REGISTRY_PASSWORD) で管理すること。
   REGISTRY: harbor.internal.example.com
 
 jobs:

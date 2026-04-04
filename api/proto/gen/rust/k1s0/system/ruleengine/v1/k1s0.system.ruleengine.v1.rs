@@ -43,6 +43,7 @@ pub struct ListRulesResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -53,6 +54,7 @@ pub struct GetRuleResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateRuleRequest {
+    /// ルール名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -71,6 +73,7 @@ pub struct CreateRuleResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -91,6 +94,7 @@ pub struct UpdateRuleResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -144,6 +148,7 @@ pub struct ListRuleSetsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetRuleSetRequest {
+    /// ルールセットIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -154,12 +159,15 @@ pub struct GetRuleSetResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateRuleSetRequest {
+    /// ルールセット名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub description: ::prost::alloc::string::String,
+    /// ドメインは1文字以上128文字以下であること
     #[prost(string, tag="3")]
     pub domain: ::prost::alloc::string::String,
+    /// 評価モードは1文字以上64文字以下であること（例: first_match, all_match）
     #[prost(string, tag="4")]
     pub evaluation_mode: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="5")]
@@ -174,6 +182,7 @@ pub struct CreateRuleSetResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateRuleSetRequest {
+    /// ルールセットIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -194,6 +203,7 @@ pub struct UpdateRuleSetResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteRuleSetRequest {
+    /// ルールセットIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -206,6 +216,7 @@ pub struct DeleteRuleSetResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PublishRuleSetRequest {
+    /// ルールセットIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -222,6 +233,7 @@ pub struct PublishRuleSetResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RollbackRuleSetRequest {
+    /// ルールセットIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -240,6 +252,7 @@ pub struct RollbackRuleSetResponse {
 
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct EvaluateRequest {
+    /// ルールセット識別子は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub rule_set: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="2")]
@@ -280,7 +293,7 @@ pub struct EvaluateResponse {
 /// ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct EvaluateDryRunRequest {
-    /// 評価対象のルールセット識別子
+    /// 評価対象のルールセット識別子（1文字以上128文字以下）
     #[prost(string, tag="1")]
     pub rule_set: ::prost::alloc::string::String,
     /// 評価入力データ（JSON 形式）

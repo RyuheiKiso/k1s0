@@ -101,8 +101,9 @@ fn default_port() -> u16 {
     8121
 }
 
+// H-005 監査対応: 非標準ポート (50062) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
 fn default_grpc_port() -> u16 {
-    50062
+    50051
 }
 
 /// DatabaseConfig はデータベース接続の設定を表す

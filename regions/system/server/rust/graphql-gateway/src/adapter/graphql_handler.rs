@@ -159,11 +159,22 @@ fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
 // --- Input types ---
 
 /// テナント作成の入力型
+/// C-003 監査対応: GraphQL スキーマの CreateTenantInput（4フィールド必須）に合わせて
+/// displayName, ownerId, plan フィールドを追加する。proto CreateTenantRequest と整合させる。
 #[derive(async_graphql::InputObject)]
 pub struct CreateTenantInput {
     /// テナント名（1〜255文字）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// テナント表示名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
+    pub display_name: String,
+    /// オーナーユーザー UUID（必須）
+    #[graphql(validator(min_length = 1, max_length = 255))]
+    pub owner_id: String,
+    /// プラン名（free, standard, enterprise 等）（1〜64文字）
+    #[graphql(validator(min_length = 1, max_length = 64))]
+    pub plan: String,
 }
 
 /// テナント更新の入力型
@@ -1154,11 +1165,11 @@ impl MutationRoot {
         input: CreateTenantInput,
     ) -> FieldResult<CreateTenantPayload> {
         ensure_write_permission(ctx)?;
-        let claims = ctx.data::<Claims>().ok();
-        let owner_user_id = claims.map(|c| c.sub.as_str()).unwrap_or("unknown");
+        // C-003 監査対応: input の全フィールド（name, display_name, owner_id, plan）を渡す。
+        // JWT claims の owner_id よりも input.owner_id を優先する（スキーマ仕様に従う）。
         Ok(self
             .tenant_mutation
-            .create_tenant(&input.name, owner_user_id)
+            .create_tenant(&input.name, &input.display_name, &input.owner_id, &input.plan)
             .await)
     }
 

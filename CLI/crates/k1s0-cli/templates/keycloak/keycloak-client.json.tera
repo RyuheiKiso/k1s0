@@ -7,6 +7,7 @@
   "rootUrl": "https://{{ service_name }}.{{ namespace }}.svc.cluster.local",
   "baseUrl": "/",
   "redirectUris": [
+    // TODO: デプロイ前に実際のホスト名に変更すること（L-013 監査対応: example.com はプレースホルダー）
     "https://app.k1s0.internal.example.com/*"
   ],
   "webOrigins": [

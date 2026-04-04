@@ -92,12 +92,13 @@ impl EvaluateUseCase {
         let now = chrono::Utc::now();
         let evaluation_id = Uuid::new_v4();
 
+        // L-002 監査対応: evaluate_rules が async になったため .await が必要
         let (matched_rules, result, default_applied) = self.evaluate_rules(
             &rules,
             &rule_set.evaluation_mode,
             &input.input,
             &rule_set.default_result,
-        )?;
+        ).await?;
 
         // Log evaluation (unless dry_run)
         if !input.dry_run {
@@ -141,7 +142,8 @@ impl EvaluateUseCase {
     }
 
     /// ルール評価ループ。ConditionEvaluator のキャッシュを再利用するためインスタンスメソッドとする
-    fn evaluate_rules(
+    /// L-002 監査対応: ConditionEvaluator::evaluate が async になったため async fn にする
+    async fn evaluate_rules(
         &self,
         rules: &[Rule],
         mode: &EvaluationMode,
@@ -154,9 +156,11 @@ impl EvaluateUseCase {
             let condition = ConditionParser::parse(&rule.when_condition)
                 .map_err(EvaluateError::EvaluationError)?;
 
+            // L-002 監査対応: tokio::sync::Mutex の .lock().await が内部で呼ばれるため .await が必要
             let is_match = self
                 .condition_evaluator
                 .evaluate(&condition, input)
+                .await
                 .map_err(EvaluateError::EvaluationError)?;
 
             if is_match {
@@ -179,7 +183,7 @@ impl EvaluateUseCase {
             let result = matched[0].result.clone();
             Ok((matched, result, false))
         } else {
-            // AllMatch: merge results into array
+            // AllMatch: 全マッチ結果を配列にマージして返す
             let results: Vec<serde_json::Value> =
                 matched.iter().map(|m| m.result.clone()).collect();
             Ok((matched, serde_json::Value::Array(results), false))

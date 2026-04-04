@@ -27,7 +27,7 @@ pub mod tenant_service_client {
     }
     impl<T> TenantServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod tenant_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             TenantServiceClient::new(InterceptedService::new(inner, interceptor))
@@ -105,7 +105,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/CreateTenant",
             );
@@ -134,7 +134,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/GetTenant",
             );
@@ -160,7 +160,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/ListTenants",
             );
@@ -186,7 +186,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/UpdateTenant",
             );
@@ -215,7 +215,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/SuspendTenant",
             );
@@ -244,7 +244,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/ActivateTenant",
             );
@@ -273,7 +273,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/DeleteTenant",
             );
@@ -302,7 +302,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/AddMember",
             );
@@ -328,7 +328,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/ListMembers",
             );
@@ -354,7 +354,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/RemoveMember",
             );
@@ -364,6 +364,35 @@ pub mod tenant_service_client {
                     GrpcMethod::new(
                         "k1s0.system.tenant.v1.TenantService",
                         "RemoveMember",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_member_role(
+            &mut self,
+            request: impl tonic::IntoRequest<super::UpdateMemberRoleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateMemberRoleResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/k1s0.system.tenant.v1.TenantService/UpdateMemberRole",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "k1s0.system.tenant.v1.TenantService",
+                        "UpdateMemberRole",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -383,7 +412,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/GetProvisioningStatus",
             );
@@ -412,7 +441,7 @@ pub mod tenant_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.tenant.v1.TenantService/WatchTenant",
             );
@@ -508,6 +537,13 @@ pub mod tenant_service_server {
             tonic::Response<super::RemoveMemberResponse>,
             tonic::Status,
         >;
+        async fn update_member_role(
+            &self,
+            request: tonic::Request<super::UpdateMemberRoleRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateMemberRoleResponse>,
+            tonic::Status,
+        >;
         async fn get_provisioning_status(
             &self,
             request: tonic::Request<super::GetProvisioningStatusRequest>,
@@ -594,7 +630,7 @@ pub mod tenant_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::BoxBody>;
+        type Response = http::Response<tonic::body::Body>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -635,7 +671,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -680,7 +716,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -725,7 +761,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTenantsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -770,7 +806,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -815,7 +851,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SuspendTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -860,7 +896,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ActivateTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -905,7 +941,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -950,7 +986,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = AddMemberSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -995,7 +1031,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListMembersSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1040,7 +1076,53 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RemoveMemberSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/k1s0.system.tenant.v1.TenantService/UpdateMemberRole" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateMemberRoleSvc<T: TenantService>(pub Arc<T>);
+                    impl<
+                        T: TenantService,
+                    > tonic::server::UnaryService<super::UpdateMemberRoleRequest>
+                    for UpdateMemberRoleSvc<T> {
+                        type Response = super::UpdateMemberRoleResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::UpdateMemberRoleRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as TenantService>::update_member_role(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateMemberRoleSvc(inner);
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1089,7 +1171,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetProvisioningStatusSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1135,7 +1217,7 @@ pub mod tenant_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = WatchTenantSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1153,7 +1235,7 @@ pub mod tenant_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::BoxBody::default(),
+                            tonic::body::Body::default(),
                         );
                         let headers = response.headers_mut();
                         headers

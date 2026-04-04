@@ -6,6 +6,10 @@ const DEV_SERVER_ADDR: &str = "127.0.0.1:1420";
 #[cfg(dev)]
 const DEV_SERVER_IPV6_ADDR: &str = "[::1]:1420";
 
+/// M-037 監査対応: 静的ファイルサーバーは開発用のみ（本番ビルドに混入しないよう条件コンパイル）
+/// `#[cfg(dev)]` によりデバッグビルド（`cargo tauri dev`）でのみコンパイルされる。
+/// リリースビルド（`cargo tauri build`）ではこの関数全体が除外される。
+///
 /// In dev mode, if the Vite dev server (port 1420) is not running,
 /// start a minimal static file server from `ui/dist/` so the exe works standalone.
 #[cfg(dev)]

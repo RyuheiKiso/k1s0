@@ -13,6 +13,11 @@
 #   3. TODO: 将来的に CI で `cargo run --bin schema-gen > api/graphql/schema.graphql`
 #            を実行して差分があれば CI 失敗とする自動化を検討する（MED-014）
 #
+# H-024 監査対応: CI でのスキーマ構文バリデーション
+# `.github/workflows/_validate.yaml` の `validate-graphql-schema` ジョブが
+# graphql パッケージを使用してこのファイルの構文を自動検証する。
+# スキーマを変更した場合は CI が構文エラーを検知するため、必ず CI を通過させること。
+#
 # 最終更新: 2026-03-27（外部監査 C-9 対応: AuditEventType/AuditResult enum 追加・M-3 対応: navigation bearerToken 引数除去）
 # L-15 監査対応: DateTime スカラー型を追加。RFC 3339 形式（例: "2026-03-27T12:00:00Z"）で表現する。
 # createdAt / updatedAt 等の日時フィールドは String! ではなく DateTime! を使用すること。
@@ -189,10 +194,24 @@ enum TenantStatus {
   DELETED
 }
 
+# C-001 監査対応: Relay カーソルスタイルに変更。Rust 実装の TenantEdge/TenantConnection/PageInfo に合わせる。
+type TenantEdge {
+  node: Tenant!
+  cursor: String!
+}
+
 type TenantConnection {
-  nodes: [Tenant!]!
+  edges: [TenantEdge!]!
+  pageInfo: PageInfo!
   totalCount: Int!
-  hasNext: Boolean!
+}
+
+# C-001 監査対応: Relay 仕様に準拠したページネーション情報型。
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 # ===========================================================================
@@ -202,6 +221,11 @@ type TenantConnection {
 type FeatureFlag {
   key: String!
   name: String!
+  # L-011 監査対応: description フィールドを追加する。
+  # フィーチャーフラグの目的・用途を人間が読める形式で記録するために必須のフィールド。
+  # featureflag サービスの DB スキーマ（feature_flags.description カラム）および
+  # Rust 実装（FeatureFlag struct）と整合させる。
+  description: String
   enabled: Boolean!
   rolloutPercentage: Int!
   targetEnvironments: [String!]!
@@ -343,11 +367,18 @@ type PermissionCheck {
 
 """
 監査ログのイベント種別（C-9 監査対応: 文字列フィールドを型安全な enum に移行）。
+C-004 監査対応: proto の AuditEventType と双方向整合させる。
+  - proto に存在するが GraphQL に欠落していた TOKEN_REFRESH, PERMISSION_CHECK を追加。
+  - GraphQL に存在するが proto に欠落していた値は proto 側に追加済み（auth.proto 参照）。
 新規クライアントは eventType（文字列）の代わりにこの enum を使用すること。
 """
 enum AuditEventType {
   LOGIN
   LOGOUT
+  # C-004 監査対応: proto AUDIT_EVENT_TYPE_TOKEN_REFRESH に対応
+  TOKEN_REFRESH
+  # C-004 監査対応: proto AUDIT_EVENT_TYPE_PERMISSION_CHECK に対応
+  PERMISSION_CHECK
   CREATE
   UPDATE
   DELETE
@@ -558,10 +589,11 @@ type WorkflowInstance {
   contextJson: String
   # L-20 監査対応: 日時フィールドを適切な型に変更する。
   # startedAt / completedAt は日時フィールドのため DateTime 型を使用する。
-  # createdAt は NULL 不可フィールドのため DateTime! に修正する（常に存在する値のため）。
+  # M-021 監査対応: createdAt は proto の optional Timestamp に対応するため nullable に変更する。
+  # start_instance レスポンスでは created_at が返却されないケースがあるため DateTime（nullable）を使用する。
   startedAt: DateTime!
   completedAt: DateTime
-  createdAt: DateTime!
+  createdAt: DateTime
 }
 
 type WorkflowTask {

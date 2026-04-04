@@ -51,7 +51,8 @@ pub struct ServerConfig {
 
 fn default_host() -> String { "0.0.0.0".to_string() }
 fn default_port() -> u16 { 8210 }
-fn default_grpc_port() -> u16 { 9210 }
+// H-005 監査対応: 非標準ポート (9210) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+fn default_grpc_port() -> u16 { 50051 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
@@ -188,7 +189,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8210
-  grpc_port: 9210
+  grpc_port: 50051
 auth:
   jwt:
     issuer: "http://keycloak:8080/realms/k1s0"

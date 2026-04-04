@@ -13,6 +13,7 @@ pub struct SearchIndex {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateIndexRequest {
+    /// インデックス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="2")]
@@ -33,8 +34,10 @@ pub struct ListIndicesResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct IndexDocumentRequest {
+    /// インデックス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub index: ::prost::alloc::string::String,
+    /// ドキュメントIDは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub document_id: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="3")]
@@ -51,8 +54,10 @@ pub struct IndexDocumentResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SearchRequest {
+    /// インデックス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub index: ::prost::alloc::string::String,
+    /// 検索クエリは1文字以上1024文字以下であること
     #[prost(string, tag="2")]
     pub query: ::prost::alloc::string::String,
     #[prost(bytes="vec", tag="3")]
@@ -89,8 +94,10 @@ pub struct SearchHit {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteDocumentRequest {
+    /// インデックス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub index: ::prost::alloc::string::String,
+    /// ドキュメントIDは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub document_id: ::prost::alloc::string::String,
 }

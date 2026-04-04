@@ -19,6 +19,10 @@ image:
   # （IfNotPresent はタグが不変な場合は効率的だが、mutable タグ使用時はセキュリティパッチが適用されないリスクがある）
   # LOW-002 監査対応: 本番環境では pullPolicy を Always に上書きすること。
   # 本番用 values-prod.yaml で pullPolicy: Always を設定し、セキュリティパッチ適用済みイメージへの更新を保証する。
+  # M-033 監査対応: 本番環境では values-prod.yaml で pullPolicy: Always を設定すること。
+  # 例: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
+  #   image:
+  #     pullPolicy: Always
   pullPolicy: IfNotPresent
 
 imagePullSecrets:
@@ -216,8 +220,15 @@ istio:
 # pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない
 # L-8 監査対応: 本番環境の values.yaml では required: true を設定すること。
 # required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
+# L-010 監査対応: alertmanager.required のデフォルト値は false（開発環境用）。
+# 警告: 本番環境では必ず true に設定すること。false のままでは AlertManager が未設定でも
+# デプロイが成功してしまい、障害通知が届かない。
+# 設定方法: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
+#   alertmanager:
+#     required: true
+#     webhookUrl: "https://hooks.teams.microsoft.com/..."
 alertmanager:
-  required: false           # 本番環境では true に設定すること（L-8 監査対応: 障害通知欠落防止）
+  required: false           # 本番環境では true に設定すること（L-8/L-010 監査対応: 障害通知欠落防止）
   webhookUrl: ""            # Microsoft Teams デフォルト Webhook URL（環境別に上書きすること）
   criticalWebhookUrl: ""    # Microsoft Teams critical Webhook URL（環境別に上書きすること）
   warningWebhookUrl: ""     # Microsoft Teams warning Webhook URL（環境別に上書きすること）

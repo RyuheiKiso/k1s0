@@ -10,8 +10,13 @@ image:
 imagePullSecrets:
   - name: harbor-pull-secret
 
+# H-004 監査対応: アプリの grpc_port (50051) に合わせて K8s Service/container に gRPC ポートを追加
 container:
   port: 8080
+  grpcPort: 50051
+
+service:
+  grpcPort: 50051
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
@@ -63,7 +68,8 @@ config:
       server:
         host: "0.0.0.0"
         port: 8080
-        grpc_port: 9310
+        # H-005 監査対応: 非標準ポート (9310) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+        grpc_port: 50051
 
       # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
       database:

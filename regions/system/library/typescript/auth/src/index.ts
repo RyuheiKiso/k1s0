@@ -13,6 +13,9 @@ export { MemoryTokenStore } from './token-store.js';
 // XSS 攻撃に脆弱なため、本番環境では SecureTokenStore を使用してください。
 // 将来のバージョンでは dev サブパス（@k1s0/auth/dev）に移動予定です。
 export { DevLocalStorageTokenStore } from './token-store.js';
+// H-007 監査対応: 本番環境用の BFF パターンを使用した安全なトークンストア。
+// httpOnly Cookie 経由でトークンを管理するため、XSS によるトークン窃取を防止する。
+export { SecureTokenStore } from './token-store.js';
 export type {
   AuthConfig,
   TokenResponse,

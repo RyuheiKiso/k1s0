@@ -95,3 +95,18 @@ variable "k8s_namespace" {
   type        = string
   default     = "k1s0-system"
 }
+
+# M-031 監査対応: Vault 監査ログ永続化用 PVC のストレージサイズ。
+# デフォルト値 10Gi は最低限のコンプライアンス要件を満たす容量。
+# 本番環境では監査ログ量・保管期間に応じて拡大すること。
+# 拡大方法: Ceph RBD は allowVolumeExpansion: true のため kubectl edit pvc で動的拡張可能。
+variable "vault_audit_storage_size" {
+  description = "Vault 監査ログ永続化用 PVC のストレージサイズ（例: 10Gi, 50Gi）"
+  type        = string
+  default     = "10Gi"
+  validation {
+    # ストレージサイズのフォーマットを検証する（数値 + Si/Gi/Ti 単位）
+    condition     = can(regex("^[0-9]+(Mi|Gi|Ti)$", var.vault_audit_storage_size))
+    error_message = "vault_audit_storage_size は '10Gi' のような形式で指定してください（単位: Mi/Gi/Ti）。"
+  }
+}

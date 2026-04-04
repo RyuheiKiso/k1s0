@@ -29,7 +29,7 @@ cargo install --path CLI/crates/k1s0-cli
 | `k1s0 generate navigation` | 必須 | `navigation.yaml` パスをプロンプトで入力するため TTY が必要 |
 | `k1s0 migrate` | 必須 | 対話的確認ステップがあるため TTY が必要 |
 | `k1s0 doctor` | 不要 | `scripts/doctor.sh` を直接実行するため非TTY で動作可能 |
-| `k1s0 validate` | 不要 | ファイルパスを引数で受け付けるため非TTY で動作可能 |
+| `k1s0 validate` | 必須 | M-025 監査対応: `select_prompt` を使用するため非インタラクティブモードでは実行不可（TTY 必須） |
 | `k1s0 deps` | 不要 | JSON 出力モードあり、CI での使用可能 |
 
 TTY が割り当てられていない環境（CI/CD 等）でインタラクティブコマンドを実行すると、

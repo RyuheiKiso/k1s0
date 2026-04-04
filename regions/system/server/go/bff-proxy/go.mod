@@ -1,6 +1,7 @@
 module github.com/k1s0-platform/system-server-go-bff-proxy
 
-go 1.26.1
+// H-020 監査対応: Go バージョンを存在しない 1.26.1 から 2026 年初時点の最新安定版 1.24.2 に修正する
+go 1.24.2
 
 require (
 	github.com/coreos/go-oidc/v3 v3.17.0

@@ -18,6 +18,8 @@ pub struct SagaStateProto {
     pub current_step: i32,
     /// Deprecated: use status_enum instead.
     /// ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="4")]
     pub status: ::prost::alloc::string::String,
     /// 各ステップに渡す JSON ペイロード
@@ -95,7 +97,7 @@ pub struct WorkflowSummary {
 /// StartSagaRequest は Saga 開始リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StartSagaRequest {
-    /// 実行するワークフロー名
+    /// 実行するワークフロー名（1文字以上128文字以下）
     #[prost(string, tag="1")]
     pub workflow_name: ::prost::alloc::string::String,
     /// 各ステップに渡す JSON ペイロード
@@ -125,6 +127,7 @@ pub struct StartSagaResponse {
 /// GetSagaRequest は Saga 詳細取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetSagaRequest {
+    /// Saga IDは1文字以上であること
     #[prost(string, tag="1")]
     pub saga_id: ::prost::alloc::string::String,
 }
@@ -170,6 +173,7 @@ pub struct ListSagasResponse {
 /// CancelSagaRequest は Saga キャンセルリクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelSagaRequest {
+    /// Saga IDは1文字以上であること
     #[prost(string, tag="1")]
     pub saga_id: ::prost::alloc::string::String,
 }
@@ -184,6 +188,7 @@ pub struct CancelSagaResponse {
 /// CompensateSagaRequest は Saga 補償実行リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CompensateSagaRequest {
+    /// Saga IDは1文字以上であること
     #[prost(string, tag="1")]
     pub saga_id: ::prost::alloc::string::String,
 }
@@ -206,7 +211,7 @@ pub struct CompensateSagaResponse {
 /// RegisterWorkflowRequest はワークフロー登録リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RegisterWorkflowRequest {
-    /// YAML 形式のワークフロー定義文字列
+    /// YAML 形式のワークフロー定義文字列（1文字以上）
     #[prost(string, tag="1")]
     pub workflow_yaml: ::prost::alloc::string::String,
 }

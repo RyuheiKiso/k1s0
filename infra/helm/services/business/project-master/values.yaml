@@ -12,10 +12,12 @@ imagePullSecrets:
 
 container:
   port: 8210
-  grpcPort: 9210
+  # H-005 監査対応: 非標準ポート (9210) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+  grpcPort: 50051
 
 service:
-  grpcPort: 9210
+  # H-005 監査対応: container.grpcPort と同値に統一する
+  grpcPort: 50051
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:

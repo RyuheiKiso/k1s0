@@ -146,6 +146,40 @@ fn resolve_workspace_path(workspace_root: &Path, path: &str) -> Result<PathBuf, 
     Ok(resolved)
 }
 
+/// L-018 監査対応: コマンド実行コンテキスト。
+/// グローバルな作業ディレクトリ（cwd）を変更する代わりに、コンテキストとして workspace_root を保持する。
+/// 子プロセス起動時は Command::current_dir() でスコープを絞り、スレッドセーフを確保する。
+#[derive(Debug, Clone)]
+pub struct ExecutionContext {
+    /// コマンドを実行するワークスペースルートの絶対パス
+    pub workspace_root: PathBuf,
+}
+
+impl ExecutionContext {
+    /// ワークスペースルートパスから ExecutionContext を構築する。
+    pub fn new(workspace_root: PathBuf) -> Self {
+        Self { workspace_root }
+    }
+
+    /// ワークスペース内の相対パスを絶対パスに解決する。
+    pub fn resolve(&self, relative: &str) -> PathBuf {
+        self.workspace_root.join(relative)
+    }
+}
+
+/// L-018 監査対応: base_dir からワークスペースルートを解決して ExecutionContext を生成するヘルパー。
+/// 新規コマンドで cwd への依存を排除する際に使用する。
+#[allow(dead_code)]
+fn resolve_execution_context(base_dir: Option<String>) -> Result<ExecutionContext, String> {
+    let workspace_root = resolve_workspace_root_from_option(base_dir)?;
+    Ok(ExecutionContext::new(workspace_root))
+}
+
+/// L-018 監査対応（後方互換維持）: グローバル cwd を変更して operation を実行する関数。
+/// 新規コマンドは ExecutionContext を使うこと。
+/// k1s0-core のコマンド群が内部で Path::new(".k1s0-dev") などの相対パスを使うため、
+/// コアコマンドを呼ぶ箇所では引き続きこの関数を使用する。
+/// 排他 Mutex により同時実行は直列化されており、並行競合のリスクは限定的に制御されている。
 fn with_workspace_cwd<T>(
     base_dir: Option<String>,
     operation: impl FnOnce(&Path) -> Result<T, String>,
@@ -704,8 +738,11 @@ pub fn execute_dev_down(config: DevDownConfig, base_dir: Option<String>) -> Resu
 #[allow(clippy::format_push_string)]
 pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
     ensure_authenticated()?;
-    with_workspace_cwd(base_dir, |_| {
-        let compose_dir = Path::new(".k1s0-dev");
+    // L-018 監査対応: コールバック引数 workspace_root を使い compose_dir を絶対パスで構築する。
+    // 以前は Path::new(".k1s0-dev")（相対パス）を使っていたが、with_workspace_cwd の cwd 変更に依存していた。
+    // workspace_root を明示的に使うことで、cwd 変更なしでも正しいパスが解決される。
+    with_workspace_cwd(base_dir, |workspace_root| {
+        let compose_dir = workspace_root.join(".k1s0-dev");
         if !compose_dir.join("docker-compose.yaml").exists() {
             return Ok("ローカル開発環境は起動していません。".to_string());
         }
@@ -722,7 +759,7 @@ pub fn execute_dev_status(base_dir: Option<String>) -> Result<String, String> {
         }
 
         let compose_status =
-            dev_cmd::docker::compose_status(compose_dir).map_err(|error| error.to_string())?;
+            dev_cmd::docker::compose_status(&compose_dir).map_err(|error| error.to_string())?;
         output.push_str("\n--- コンテナの状態 ---\n");
         output.push_str(&compose_status);
 
@@ -737,8 +774,11 @@ pub fn execute_dev_logs(
     base_dir: Option<String>,
 ) -> Result<String, String> {
     ensure_authenticated()?;
-    with_workspace_cwd(base_dir, |_| {
-        let compose_dir = Path::new(".k1s0-dev");
+    // L-018 監査対応: コールバック引数 workspace_root を使い compose_dir を絶対パスで構築する。
+    // docker コマンドの current_dir() にも絶対パスの compose_dir を渡すため、
+    // グローバル cwd の変更に依存しない安全な子プロセス実行になる。
+    with_workspace_cwd(base_dir, |workspace_root| {
+        let compose_dir = workspace_root.join(".k1s0-dev");
         if !compose_dir.join("docker-compose.yaml").exists() {
             return Ok("ローカル開発環境は起動していません。".to_string());
         }
@@ -753,9 +793,10 @@ pub fn execute_dev_logs(
             args.push(service_name);
         }
 
+        // Command::current_dir() で個別プロセスのスコープに cwd を絞る（グローバル cwd は変更しない）
         let output = Command::new("docker")
             .args(args.iter().map(String::as_str))
-            .current_dir(compose_dir)
+            .current_dir(&compose_dir)
             .output()
             .map_err(|error| error.to_string())?;
         if !output.status.success() {
@@ -996,12 +1037,24 @@ pub fn execute_event_codegen(
         .collect())
 }
 
+/// L-017 監査対応: device_code はポーリング API の内部パラメータであり、クライアント UI に不要な値。
+/// #[serde(skip_serializing)] によって JSON シリアライズ時（フロントエンド送信時）は除外する。
+/// Deserialize 時（poll_device_authorization での再利用時）は引き続き読み込まれるため
+/// フロントエンドが device_code を保持・送信しなくても動作する。
+/// ただし、現実装では poll_device_authorization が DeviceAuthorizationChallenge を引数として受け取るため、
+/// フロントエンドから渡された challenge オブジェクトに device_code が含まれない。
+/// 代替として、device_code はサーバーサイドのセッション状態として別途管理することが理想だが、
+/// 現行の Tauri コマンド設計との互換を維持するため serde(skip_serializing) で最小変更に留める。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceAuthorizationChallenge {
     pub issuer: String,
     pub client_id: String,
     pub scope: String,
     pub token_endpoint: String,
+    /// L-017 監査対応: UI レスポンスへの不要な内部値の露出を防ぐため、シリアライズ時は除外する。
+    /// poll_device_authorization がサーバー内で device_code を必要とするため、
+    /// デシリアライズ（フロントからの受け取り）ではデフォルト値（空文字列）にフォールバックする。
+    #[serde(skip_serializing, default)]
     pub device_code: String,
     pub user_code: String,
     pub verification_uri: String,

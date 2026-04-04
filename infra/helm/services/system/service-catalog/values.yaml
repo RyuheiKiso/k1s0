@@ -14,7 +14,9 @@ replicaCount: 2
 
 container:
   port: 8313
-  grpcPort: 0
+  # M-018 監査対応: service-catalog は gRPC を使用しないため null を設定する
+  # 0 はポート番号として有効な値に見えるため誤解を招く。null は明示的な無効化を表す。
+  grpcPort: null
   command: []
   args: []
 
@@ -45,7 +47,8 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 0
+  # M-018 監査対応: gRPC 無効（null は明示的な無効化）
+  grpcPort: null
 
 autoscaling:
   enabled: true

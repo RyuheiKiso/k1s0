@@ -203,7 +203,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 checks.insert("database".to_string(), serde_json::json!("ok"));
             }
             Err(e) => {
-                checks.insert("database".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（DB接続文字列等）を露出しない
+                tracing::warn!(error = %e, "readyz database check failed");
+                checks.insert("database".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }
@@ -227,12 +229,16 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                     checks.insert("kafka".to_string(), serde_json::json!("ok"));
                 }
                 Err(e) => {
-                    checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                    // M-001 監査対応: readyz に内部エラー詳細（Kafka接続文字列等）を露出しない
+                    tracing::warn!(error = %e, "readyz kafka metadata check failed");
+                    checks.insert("kafka".to_string(), serde_json::json!("error"));
                     is_ready = false;
                 }
             },
             Err(e) => {
-                checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（Kafka設定等）を露出しない
+                tracing::warn!(error = %e, "readyz kafka consumer creation failed");
+                checks.insert("kafka".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }
@@ -253,7 +259,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 is_ready = false;
             }
             Err(e) => {
-                checks.insert("keycloak".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（Keycloak URL等）を露出しない
+                tracing::warn!(error = %e, "readyz keycloak health check failed");
+                checks.insert("keycloak".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }

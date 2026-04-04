@@ -28,6 +28,10 @@ observability:
     path: /metrics
 
 auth:
+  # L-019 監査対応: 開発環境のみ HTTP（非TLS）を使用する。
+  # 本番環境では必ず HTTPS/TLS を使用し、OIDC Discovery URL と redirect_uri を
+  # https:// スキームに変更すること。HTTP のままでは認証トークンが平文で送受信され
+  # 中間者攻撃（MITM）のリスクがある。
   discovery_url: "http://keycloak:8080/realms/k1s0"
   client_id: "k1s0-bff"
   client_secret: ""

@@ -27,7 +27,7 @@ pub mod scheduler_service_client {
     }
     impl<T> SchedulerServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod scheduler_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             SchedulerServiceClient::new(InterceptedService::new(inner, interceptor))
@@ -105,7 +105,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/CreateJob",
             );
@@ -131,7 +131,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/GetJob",
             );
@@ -160,7 +160,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/ListJobs",
             );
@@ -189,7 +189,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/UpdateJob",
             );
@@ -218,7 +218,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/DeleteJob",
             );
@@ -247,7 +247,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/PauseJob",
             );
@@ -276,7 +276,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/ResumeJob",
             );
@@ -305,7 +305,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/TriggerJob",
             );
@@ -334,7 +334,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/GetJobExecution",
             );
@@ -363,7 +363,7 @@ pub mod scheduler_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.scheduler.v1.SchedulerService/ListExecutions",
             );
@@ -525,7 +525,7 @@ pub mod scheduler_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::BoxBody>;
+        type Response = http::Response<tonic::body::Body>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -566,7 +566,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -611,7 +611,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -656,7 +656,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListJobsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -701,7 +701,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -746,7 +746,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -791,7 +791,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = PauseJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -836,7 +836,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ResumeJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -881,7 +881,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = TriggerJobSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -927,7 +927,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetJobExecutionSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -973,7 +973,7 @@ pub mod scheduler_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListExecutionsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -991,7 +991,7 @@ pub mod scheduler_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::BoxBody::default(),
+                            tonic::body::Body::default(),
                         );
                         let headers = response.headers_mut();
                         headers

@@ -143,6 +143,8 @@ resource "vault_kubernetes_auth_backend_role" "activity_rust" {
 # ============================================================
 
 # 認証サービス（auth-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、auth 専用ポリシーのみを付与する
+# auth サービスは JWT 署名・Transit・auth DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "auth_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "auth-rust"
@@ -150,7 +152,7 @@ resource "vault_kubernetes_auth_backend_role" "auth_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "auth-server"]
+  token_policies                   = ["auth"]
 }
 
 # BFF プロキシサービス（bff-proxy-sa）個別 Vault ロール
@@ -198,6 +200,8 @@ resource "vault_kubernetes_auth_backend_role" "event_store_rust" {
 }
 
 # フィーチャーフラグサービス（featureflag-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、featureflag 専用ポリシーのみを付与する
+# featureflag サービスは featureflag DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "featureflag_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "featureflag-rust"
@@ -205,10 +209,12 @@ resource "vault_kubernetes_auth_backend_role" "featureflag_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "featureflag"]
+  token_policies                   = ["featureflag"]
 }
 
 # ファイル管理サービス（file-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、file 専用ポリシーのみを付与する
+# file サービスは file DB・S3 クレデンシャルのみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "file_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "file-rust"
@@ -216,10 +222,12 @@ resource "vault_kubernetes_auth_backend_role" "file_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "file"]
+  token_policies                   = ["file"]
 }
 
 # GraphQL ゲートウェイサービス（graphql-gateway）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、graphql-gateway 専用ポリシーのみを付与する
+# graphql-gateway はゲートウェイ設定・PKI のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "graphql_gateway" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "graphql-gateway"
@@ -227,7 +235,7 @@ resource "vault_kubernetes_auth_backend_role" "graphql_gateway" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "graphql-gateway"]
+  token_policies                   = ["graphql-gateway"]
 }
 
 # マスターメンテナンスサービス（master-maintenance）個別 Vault ロール
@@ -253,6 +261,8 @@ resource "vault_kubernetes_auth_backend_role" "navigation_rust" {
 }
 
 # 通知サービス（notification-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、notification 専用ポリシーのみを付与する
+# notification サービスは notification DB・Kafka・外部通知クレデンシャルのみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "notification_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "notification-rust"
@@ -260,10 +270,12 @@ resource "vault_kubernetes_auth_backend_role" "notification_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "notification"]
+  token_policies                   = ["notification"]
 }
 
 # ポリシー管理サービス（policy-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、policy 専用ポリシーのみを付与する
+# policy サービスは policy DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "policy_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "policy-rust"
@@ -271,10 +283,12 @@ resource "vault_kubernetes_auth_backend_role" "policy_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "policy"]
+  token_policies                   = ["policy"]
 }
 
 # クォータ管理サービス（quota-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、quota 専用ポリシーのみを付与する
+# quota サービスは quota DB・Redis のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "quota_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "quota-rust"
@@ -282,10 +296,12 @@ resource "vault_kubernetes_auth_backend_role" "quota_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "quota"]
+  token_policies                   = ["quota"]
 }
 
 # レートリミットサービス（ratelimit-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、ratelimit 専用ポリシーのみを付与する
+# ratelimit サービスは ratelimit DB・Redis のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "ratelimit_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "ratelimit-rust"
@@ -293,10 +309,12 @@ resource "vault_kubernetes_auth_backend_role" "ratelimit_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "ratelimit"]
+  token_policies                   = ["ratelimit"]
 }
 
 # ルールエンジンサービス（rule-engine-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、rule-engine 専用ポリシーのみを付与する
+# rule-engine サービスは rule-engine DB・Kafka のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "rule_engine_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "rule-engine-rust"
@@ -304,7 +322,7 @@ resource "vault_kubernetes_auth_backend_role" "rule_engine_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "rule-engine"]
+  token_policies                   = ["rule-engine"]
 }
 
 # Saga オーケストレーションサービス（saga-rust）個別 Vault ロール
@@ -319,6 +337,8 @@ resource "vault_kubernetes_auth_backend_role" "saga_rust" {
 }
 
 # スケジューラーサービス（scheduler-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、scheduler 専用ポリシーのみを付与する
+# scheduler サービスは scheduler DB・Kafka のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "scheduler_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "scheduler-rust"
@@ -326,7 +346,7 @@ resource "vault_kubernetes_auth_backend_role" "scheduler_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "scheduler"]
+  token_policies                   = ["scheduler"]
 }
 
 # 検索サービス（search-rust）個別 Vault ロール
@@ -341,6 +361,8 @@ resource "vault_kubernetes_auth_backend_role" "search_rust" {
 }
 
 # サービスカタログサービス（service-catalog）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、service-catalog 専用ポリシーのみを付与する
+# service-catalog サービスは service-catalog DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "service_catalog" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "service-catalog"
@@ -348,10 +370,12 @@ resource "vault_kubernetes_auth_backend_role" "service_catalog" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "service-catalog"]
+  token_policies                   = ["service-catalog"]
 }
 
 # セッション管理サービス（session-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、session 専用ポリシーのみを付与する
+# session サービスは session DB・Redis のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "session_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "session-rust"
@@ -359,10 +383,12 @@ resource "vault_kubernetes_auth_backend_role" "session_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "session"]
+  token_policies                   = ["session"]
 }
 
 # テナント管理サービス（tenant-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、tenant 専用ポリシーのみを付与する
+# tenant サービスは tenant DB・Kafka のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "tenant_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "tenant-rust"
@@ -370,7 +396,7 @@ resource "vault_kubernetes_auth_backend_role" "tenant_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "tenant"]
+  token_policies                   = ["tenant"]
 }
 
 # Vault シークレット管理サービス（vault-rust）個別 Vault ロール
@@ -385,6 +411,8 @@ resource "vault_kubernetes_auth_backend_role" "vault_rust" {
 }
 
 # ワークフローサービス（workflow-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、workflow 専用ポリシーのみを付与する
+# workflow サービスは workflow DB・Kafka のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "workflow_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "workflow-rust"
@@ -392,10 +420,12 @@ resource "vault_kubernetes_auth_backend_role" "workflow_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "workflow"]
+  token_policies                   = ["workflow"]
 }
 
 # イベント監視サービス（event-monitor-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、event-monitor 専用ポリシーのみを付与する
+# event-monitor サービスは event-monitor DB・Kafka のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "event_monitor_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "event-monitor-rust"
@@ -403,10 +433,12 @@ resource "vault_kubernetes_auth_backend_role" "event_monitor_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "event-monitor"]
+  token_policies                   = ["event-monitor"]
 }
 
 # アプリケーションレジストリサービス（app-registry）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、app-registry 専用ポリシーのみを付与する
+# app-registry サービスは app-registry DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "app_registry" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "app-registry"
@@ -414,10 +446,12 @@ resource "vault_kubernetes_auth_backend_role" "app_registry" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "app-registry"]
+  token_policies                   = ["app-registry"]
 }
 
 # API レジストリサービス（api-registry-rust）個別 Vault ロール
+# H-010 監査対応: "system" 共通ポリシーを削除し、api-registry 専用ポリシーのみを付与する
+# api-registry サービスは api-registry DB のみアクセス可能とする
 resource "vault_kubernetes_auth_backend_role" "api_registry_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "api-registry-rust"
@@ -425,7 +459,7 @@ resource "vault_kubernetes_auth_backend_role" "api_registry_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "api-registry"]
+  token_policies                   = ["api-registry"]
 }
 
 # ============================================================

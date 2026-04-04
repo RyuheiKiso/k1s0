@@ -69,7 +69,9 @@ pub async fn list_policies(
                 .into_response()
         }
         Err(crate::usecase::list_policies::ListPoliciesError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -88,7 +90,9 @@ pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -150,7 +154,9 @@ pub async fn create_policy(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -175,12 +181,15 @@ pub async fn update_policy(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(e) => {
+            // M-005 TODO: 型付きエラー enum への移行が望ましい（現状は文字列マッチングで代替）
             let msg = e.to_string();
             if msg.contains("not found") {
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+                // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+                tracing::error!("policy_handler update internal error: {msg}");
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -209,7 +218,9 @@ pub async fn delete_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeletePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -244,7 +255,9 @@ pub async fn evaluate_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+                // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+                tracing::error!("policy_handler evaluate internal error: {msg}");
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -264,7 +277,9 @@ pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -283,7 +298,9 @@ pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::get_bundle::GetBundleError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -320,7 +337,9 @@ pub async fn create_bundle(
             (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

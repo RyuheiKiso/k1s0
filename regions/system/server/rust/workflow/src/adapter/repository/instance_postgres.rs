@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+// L-001 監査対応: QueryBuilder を使ってパラメータインデックスを自動管理する
+use sqlx::QueryBuilder;
 
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::repository::WorkflowInstanceRepository;
@@ -81,6 +83,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
     }
 
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してから一覧取得を実行する
+    // L-001 監査対応: QueryBuilder を使ってパラメータインデックスの手動カウントを廃止する
+    // push_bind() が自動的に $1, $2, ... を割り当てるため、条件追加時のバグリスクが解消される
     async fn find_all(
         &self,
         tenant_id: &str,
@@ -93,43 +97,59 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
 
-        // 動的フィルタ条件を構築する
-        let mut conditions: Vec<String> = Vec::new();
-        let mut param_idx = 1u32;
-
-        if status.is_some() {
-            conditions.push(format!("status = ${}", param_idx));
-            param_idx += 1;
-        }
-        if workflow_id.is_some() {
-            conditions.push(format!("definition_id = ${}", param_idx));
-            param_idx += 1;
-        }
-        if initiator_id.is_some() {
-            conditions.push(format!("initiator_id = ${}", param_idx));
-            param_idx += 1;
-        }
-
-        let where_clause = if conditions.is_empty() {
-            String::new()
-        } else {
-            format!("WHERE {}", conditions.join(" AND "))
-        };
-
-        let query_str = format!(
+        // データ取得クエリを QueryBuilder で構築する
+        // SELECT 句は固定、WHERE 句は動的に push_bind() で条件を追加する
+        let mut query_builder: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
             "SELECT id, definition_id, workflow_name, title, initiator_id, current_step_id, \
                     status, context, started_at, completed_at, created_at \
-             FROM workflow.workflow_instances {} \
-             ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
-            where_clause,
-            param_idx,
-            param_idx + 1
+             FROM workflow.workflow_instances",
         );
 
-        let count_str = format!(
-            "SELECT COUNT(*) FROM workflow.workflow_instances {}",
-            where_clause
-        );
+        // カウントクエリも同様に QueryBuilder で構築する
+        let mut count_builder: QueryBuilder<sqlx::Postgres> =
+            QueryBuilder::new("SELECT COUNT(*) FROM workflow.workflow_instances");
+
+        // 動的フィルタ条件を QueryBuilder に追加する
+        // push_where_or_and() の代わりに手動で WHERE/AND を管理する
+        let mut first_condition = true;
+
+        // status フィルタ: 指定された場合のみ WHERE 句に追加する
+        if let Some(ref s) = status {
+            query_builder.push(if first_condition { " WHERE " } else { " AND " });
+            query_builder.push("status = ");
+            query_builder.push_bind(s.clone());
+            count_builder.push(if first_condition { " WHERE " } else { " AND " });
+            count_builder.push("status = ");
+            count_builder.push_bind(s.clone());
+            first_condition = false;
+        }
+
+        // workflow_id フィルタ: 指定された場合のみ条件に追加する
+        if let Some(ref w) = workflow_id {
+            query_builder.push(if first_condition { " WHERE " } else { " AND " });
+            query_builder.push("definition_id = ");
+            query_builder.push_bind(w.clone());
+            count_builder.push(if first_condition { " WHERE " } else { " AND " });
+            count_builder.push("definition_id = ");
+            count_builder.push_bind(w.clone());
+            first_condition = false;
+        }
+
+        // initiator_id フィルタ: 指定された場合のみ条件に追加する
+        if let Some(ref i) = initiator_id {
+            query_builder.push(if first_condition { " WHERE " } else { " AND " });
+            query_builder.push("initiator_id = ");
+            query_builder.push_bind(i.clone());
+            count_builder.push(if first_condition { " WHERE " } else { " AND " });
+            count_builder.push("initiator_id = ");
+            count_builder.push_bind(i.clone());
+        }
+
+        // ORDER BY / LIMIT / OFFSET を追加する（インデックスは QueryBuilder が自動管理）
+        query_builder.push(" ORDER BY created_at DESC LIMIT ");
+        query_builder.push_bind(limit);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset);
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
@@ -139,26 +159,17 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let mut query = sqlx::query_as::<_, InstanceRow>(&query_str);
-        let mut count_query = sqlx::query_as::<_, (i64,)>(&count_str);
+        // QueryBuilder からクエリを生成して実行する
+        let rows = query_builder
+            .build_query_as::<InstanceRow>()
+            .fetch_all(&mut *tx)
+            .await?;
 
-        if let Some(ref s) = status {
-            query = query.bind(s.clone());
-            count_query = count_query.bind(s.clone());
-        }
-        if let Some(ref w) = workflow_id {
-            query = query.bind(w.clone());
-            count_query = count_query.bind(w.clone());
-        }
-        if let Some(ref i) = initiator_id {
-            query = query.bind(i.clone());
-            count_query = count_query.bind(i.clone());
-        }
+        let count: (i64,) = count_builder
+            .build_query_as::<(i64,)>()
+            .fetch_one(&mut *tx)
+            .await?;
 
-        query = query.bind(limit).bind(offset);
-
-        let rows = query.fetch_all(&mut *tx).await?;
-        let count = count_query.fetch_one(&mut *tx).await?;
         tx.commit().await?;
 
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))

@@ -27,7 +27,7 @@ pub mod service_catalog_service_client {
     }
     impl<T> ServiceCatalogServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod service_catalog_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             ServiceCatalogServiceClient::new(InterceptedService::new(inner, interceptor))
@@ -105,7 +105,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/RegisterService",
             );
@@ -134,7 +134,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/GetService",
             );
@@ -163,7 +163,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/ListServices",
             );
@@ -192,7 +192,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/UpdateService",
             );
@@ -221,7 +221,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/DeleteService",
             );
@@ -250,7 +250,7 @@ pub mod service_catalog_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.servicecatalog.v1.ServiceCatalogService/HealthCheck",
             );
@@ -388,7 +388,7 @@ pub mod service_catalog_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::BoxBody>;
+        type Response = http::Response<tonic::body::Body>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -433,7 +433,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RegisterServiceSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -479,7 +479,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetServiceSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -525,7 +525,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListServicesSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -574,7 +574,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateServiceSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -623,7 +623,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteServiceSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -669,7 +669,7 @@ pub mod service_catalog_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HealthCheckSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -687,7 +687,7 @@ pub mod service_catalog_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::BoxBody::default(),
+                            tonic::body::Body::default(),
                         );
                         let headers = response.headers_mut();
                         headers

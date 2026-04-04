@@ -1,6 +1,6 @@
 /**
  * トークン保存ストア
- * メモリストアと localStorage ストアの 2 種類を提供する。
+ * メモリストア、localStorage ストア（開発専用）、BFF 経由の安全なストアの 3 種類を提供する。
  */
 
 import type { TokenSet, TokenStore } from './types.js';
@@ -142,5 +142,162 @@ export class DevLocalStorageTokenStore implements TokenStore {
 
   clearState(): void {
     sessionStorage.removeItem(this.stateKey);
+  }
+}
+
+/**
+ * H-007 監査対応: 本番環境用の安全なトークンストア
+ * BFF（Backend for Frontend）パターンが必須: トークンは httpOnly Cookie に保存されるため
+ * このクラスは直接トークンを保管せず、BFF サーバー経由のみアクセス可能。
+ *
+ * @requires BFF サーバーが以下のエンドポイントを実装していること:
+ *   - GET  /bff/token    → TokenSet を返す（httpOnly Cookie セッションで認証）
+ *   - POST /bff/token    → TokenSet を保存する
+ *   - DELETE /bff/token  → TokenSet を削除する
+ *   - GET  /bff/verifier → PKCE verifier を返す
+ *   - POST /bff/verifier → PKCE verifier を保存する
+ *   - DELETE /bff/verifier → PKCE verifier を削除する
+ *   - GET  /bff/state    → OAuth state を返す
+ *   - POST /bff/state    → OAuth state を保存する
+ *   - DELETE /bff/state  → OAuth state を削除する
+ *
+ * @security XSS 対策
+ * ブラウザ側 JavaScript はトークンへ一切アクセスできない。
+ * BFF サーバーが httpOnly Cookie でセッションを管理し、トークンはサーバーサイドのみに保持する。
+ */
+export class SecureTokenStore implements TokenStore {
+  // BFF エンドポイントのベース URL（デフォルトは同一オリジンの /bff）
+  private readonly bffBaseUrl: string;
+
+  constructor(bffBaseUrl = '/bff') {
+    // BFF が利用できない環境（SSR 等）での誤使用を検知してエラーをスローする。
+    // window が存在しない場合は BFF Cookie ベースの認証フローが成立しないため使用不可とする。
+    if (typeof window === 'undefined') {
+      throw new Error(
+        '[k1s0-auth] SecureTokenStore はブラウザ環境でのみ使用可能です。' +
+          'SSR 環境では MemoryTokenStore を使用してください。'
+      );
+    }
+    this.bffBaseUrl = bffBaseUrl;
+  }
+
+  // BFF エンドポイントへ fetch リクエストを送信する共通ヘルパー。
+  // credentials: 'include' により httpOnly Cookie が自動送信される。
+  // BFF が応答しない場合は意味のあるエラーメッセージをスローする。
+  private async _request<T>(
+    method: string,
+    path: string,
+    body?: unknown
+  ): Promise<T | null> {
+    const url = `${this.bffBaseUrl}${path}`;
+    const init: RequestInit = {
+      method,
+      // httpOnly Cookie を自動的に送受信するために credentials: 'include' が必須
+      credentials: 'include',
+      headers: body !== undefined ? { 'Content-Type': 'application/json' } : {},
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    };
+    let res: Response;
+    try {
+      res = await fetch(url, init);
+    } catch (cause) {
+      throw new Error(
+        `[k1s0-auth] SecureTokenStore: BFF サーバー (${url}) へ接続できません。` +
+          'BFF サーバーが起動しているか確認してください。',
+        { cause }
+      );
+    }
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      throw new Error(
+        `[k1s0-auth] SecureTokenStore: BFF サーバーがエラーを返しました (${res.status} ${res.statusText})。` +
+          `エンドポイント: ${method} ${url}`
+      );
+    }
+    if (method === 'GET' && res.status !== 204) {
+      return (await res.json()) as T;
+    }
+    return null;
+  }
+
+  // BFF 経由でトークンセットを取得する。BFF が未起動の場合は null を返す。
+  getTokenSet(): TokenSet | null {
+    // SecureTokenStore は非同期 BFF 通信が必要なため、同期 getTokenSet() はスタブとして null を返す。
+    // 本番アプリケーションでは BFF セッション Cookie により認証状態を判定すること。
+    // 完全な非同期取得が必要な場合は getTokenSetAsync() を使用すること。
+    return null;
+  }
+
+  // BFF 経由でトークンセットを非同期取得する（推奨: 本番用途はこちらを使用）。
+  async getTokenSetAsync(): Promise<TokenSet | null> {
+    return this._request<TokenSet>('GET', '/token');
+  }
+
+  // BFF 経由でトークンセットを保存する（httpOnly Cookie セッションに紐付けて BFF が保管する）。
+  setTokenSet(tokenSet: TokenSet): void {
+    // 非同期操作の結果をキャッチするため、エラーはコンソールに出力する。
+    // 同期インターフェース制約のため void を返す。本番では setTokenSetAsync() を推奨。
+    this._request('POST', '/token', tokenSet).catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: トークンの保存に失敗しました。', err);
+    });
+  }
+
+  // BFF 経由でトークンセットを削除する。
+  clearTokenSet(): void {
+    this._request('DELETE', '/token').catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: トークンの削除に失敗しました。', err);
+    });
+  }
+
+  // BFF 経由で PKCE code verifier を取得する（同期インターフェース制約のため null を返す）。
+  getCodeVerifier(): string | null {
+    // PKCE フローでは getCodeVerifierAsync() を使用すること。
+    return null;
+  }
+
+  // BFF 経由で PKCE code verifier を非同期取得する。
+  async getCodeVerifierAsync(): Promise<string | null> {
+    const result = await this._request<{ verifier: string }>('GET', '/verifier');
+    return result?.verifier ?? null;
+  }
+
+  // BFF 経由で PKCE code verifier を保存する。
+  setCodeVerifier(verifier: string): void {
+    this._request('POST', '/verifier', { verifier }).catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: PKCE verifier の保存に失敗しました。', err);
+    });
+  }
+
+  // BFF 経由で PKCE code verifier を削除する。
+  clearCodeVerifier(): void {
+    this._request('DELETE', '/verifier').catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: PKCE verifier の削除に失敗しました。', err);
+    });
+  }
+
+  // BFF 経由で OAuth state を取得する（同期インターフェース制約のため null を返す）。
+  getState(): string | null {
+    // OAuth state フローでは getStateAsync() を使用すること。
+    return null;
+  }
+
+  // BFF 経由で OAuth state を非同期取得する。
+  async getStateAsync(): Promise<string | null> {
+    const result = await this._request<{ state: string }>('GET', '/state');
+    return result?.state ?? null;
+  }
+
+  // BFF 経由で OAuth state を保存する。
+  setState(state: string): void {
+    this._request('POST', '/state', { state }).catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: OAuth state の保存に失敗しました。', err);
+    });
+  }
+
+  // BFF 経由で OAuth state を削除する。
+  clearState(): void {
+    this._request('DELETE', '/state').catch((err: unknown) => {
+      console.error('[k1s0-auth] SecureTokenStore: OAuth state の削除に失敗しました。', err);
+    });
   }
 }

@@ -81,7 +81,9 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 
 		// CSRF トークンの有効期間（30分 TTL）を検証する（H-12 監査対応）。
 		// FE-MED-004: CSRFTokenCreatedAt が 0 の場合は旧バージョンセッションとして TTL チェックをスキップする
-		// TODO: マイグレーション完了後（全セッションが CSRFTokenCreatedAt を持つようになった後）このフォールバックを削除する
+		// M-014 監査対応 TODO(2026-Q3): CSRFTokenCreatedAt = 0 のセッション（旧実装で作成）は
+		// CSRF トークン TTL チェックをバイパスできる。
+		// 旧セッションが確実に期限切れになる 2026-Q3 以降にこのフォールバックを削除すること。
 		if sess.CSRFTokenCreatedAt > 0 {
 			csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
 			if csrfAge > CSRFTokenTTL {

@@ -117,6 +117,15 @@ Content-Type: application/json
 
 ### GET /readyz（Readiness Probe）
 
+> **M-006 監査対応 — スタレイメージ問題**
+>
+> `/readyz` エンドポイントは以前 `ListServices` を呼び出しており、Keycloak 未認証の場合に 401 エラーを返す問題があった。
+> コードは修正済みだが、ローカル開発環境で古い Docker イメージがキャッシュされている場合は以下を実行して再ビルドすること:
+>
+> ```bash
+> docker compose build graphql-gateway-rust
+> ```
+
 バックエンド gRPC サービスへの接続確認。全バックエンドが応答した場合に `200 OK` を返す。失敗時は `503 Service Unavailable` を返し、Service のエンドポイントから除外される。
 
 ```json

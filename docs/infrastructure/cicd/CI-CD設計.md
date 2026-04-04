@@ -678,6 +678,19 @@ jobs:
 
 ### Proto Check ワークフロー（proto.yaml）
 
+> **H-012/H-013 監査対応: buf.lock の必須化**
+>
+> `api/proto/buf.lock` はリポジトリにコミットして依存バージョンを固定する必要がある。
+> このファイルが存在しない場合、`buf generate` 実行時に依存関係が毎回最新版で解決され、
+> ビルドの再現性が損なわれる（サプライチェーンリスク）。
+>
+> - **初回生成**: `cd api/proto && buf mod update` を実行して `buf.lock` を生成する
+> - **更新方法**: 依存バージョンをアップグレードする場合のみ `buf mod update` を実行し、差分をレビューしてコミットする
+> - **CI**: `buf generate` は `buf.lock` が存在する場合、そのピン留めされたバージョンを使用する
+>
+> 生成されたRustコード（`api/proto/gen/rust/k1s0/event/`）は空ディレクトリになっている場合、
+> `buf generate api/proto --template buf.gen.yaml` を実行して再生成すること（H-013）。
+
 ```yaml
 # .github/workflows/proto.yaml
 name: Proto Check
@@ -688,6 +701,7 @@ on:
       - 'api/proto/**'
       - 'api/proto/buf.yaml'
       - 'api/proto/buf.gen.yaml'
+      - 'api/proto/buf.lock'    # H-012: buf.lock 変更時も Proto Check を実行する
 
 jobs:
   proto-lint:
@@ -703,6 +717,14 @@ jobs:
         run: buf breaking api/proto --against '.git#branch=main'
       - name: Generate (dry-run)
         run: buf generate api/proto --template buf.gen.yaml
+      # H-012 監査対応: buf.lock の存在を検証する（依存バージョン固定の強制）
+      - name: Verify buf.lock exists
+        run: |
+          if [ ! -f api/proto/buf.lock ]; then
+            echo "::error::api/proto/buf.lock が存在しません。cd api/proto && buf mod update を実行してください。"
+            exit 1
+          fi
+          echo "buf.lock: OK"
 ```
 
 ### Security Scan ワークフロー（security.yaml）

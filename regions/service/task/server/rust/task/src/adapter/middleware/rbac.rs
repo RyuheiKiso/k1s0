@@ -38,11 +38,13 @@ async fn rbac_check(req: Request<Body>, next: Next, resource: &str, action: &str
     let claims = match req.extensions().get::<Claims>() {
         Some(c) => c.clone(),
         None => {
+            // M-017 監査対応: service tier エラーコードは SVC_{DOMAIN}_{ERROR} 規約に準拠する
+            // AUTH は system tier ドメインのため、task service では SVC_TASK_AUTH を使用する
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
                     "error": {
-                        "code": "SVC_AUTH_MISSING_CLAIMS",
+                        "code": "SVC_TASK_AUTH_MISSING_CLAIMS",
                         "message": "Authentication is required. Please provide a valid Bearer token."
                     }
                 })),
@@ -57,11 +59,13 @@ async fn rbac_check(req: Request<Body>, next: Next, resource: &str, action: &str
     if check_permission(Tier::Service, &roles, action) {
         next.run(req).await
     } else {
+        // M-017 監査対応: service tier エラーコードは SVC_{DOMAIN}_{ERROR} 規約に準拠する
+        // AUTH は system tier ドメインのため、task service では SVC_TASK_AUTH を使用する
         (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
                 "error": {
-                    "code": "SVC_AUTH_PERMISSION_DENIED",
+                    "code": "SVC_TASK_AUTH_PERMISSION_DENIED",
                     "message": format!(
                         "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
                         action, resource

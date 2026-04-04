@@ -51,6 +51,7 @@ pub struct ListEventsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TraceByCorrelationRequest {
+    /// 相関IDは1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub correlation_id: ::prost::alloc::string::String,
 }
@@ -167,6 +168,7 @@ pub struct ListFlowsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetFlowRequest {
+    /// フローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -177,10 +179,12 @@ pub struct GetFlowResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateFlowRequest {
+    /// フロー名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub description: ::prost::alloc::string::String,
+    /// ドメインは1文字以上128文字以下であること
     #[prost(string, tag="3")]
     pub domain: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="4")]
@@ -195,6 +199,7 @@ pub struct CreateFlowResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlowRequest {
+    /// フローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -213,6 +218,7 @@ pub struct UpdateFlowResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteFlowRequest {
+    /// フローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -276,6 +282,7 @@ pub struct FlowKpi {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetFlowKpiRequest {
+    /// フローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub flow_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -363,6 +370,7 @@ pub struct BurnRateWindow {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetSloBurnRateRequest {
+    /// フローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub flow_id: ::prost::alloc::string::String,
 }

@@ -14,7 +14,8 @@ replicaCount: 2
 
 container:
   port: 8091
-  grpcPort: 50059
+  # C-006 監査対応: アプリの grpc_port (config.yaml: 50051) と一致させる。旧値 50059 はアプリが実際にリッスンしない
+  grpcPort: 50051
   command: []
   args: []
 
@@ -45,7 +46,8 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50059
+  # C-006 監査対応: container.grpcPort と同値に統一
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

@@ -17,9 +17,9 @@ pub struct LoginEvent {
     pub ip_address: ::prost::alloc::string::String,
     #[prost(string, tag="6")]
     pub user_agent: ::prost::alloc::string::String,
-    /// SUCCESS / FAILURE
-    #[prost(string, tag="7")]
-    pub result: ::prost::alloc::string::String,
+    /// ログイン結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+    #[prost(enumeration="AuditResult", tag="7")]
+    pub result: i32,
     /// 失敗時のみ
     #[prost(string, tag="8")]
     pub failure_reason: ::prost::alloc::string::String,
@@ -80,7 +80,39 @@ pub struct AuditLogRecordedEvent {
     pub resource: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub action: ::prost::alloc::string::String,
-    #[prost(string, tag="8")]
-    pub result: ::prost::alloc::string::String,
+    /// 監査結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+    #[prost(enumeration="AuditResult", tag="8")]
+    pub result: i32,
+}
+/// AuditResult は認証・監査イベントの結果を表す enum。
+/// string 型の代わりに使用することで型安全性と一貫性を確保する。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AuditResult {
+    Unspecified = 0,
+    Success = 1,
+    Failure = 2,
+}
+impl AuditResult {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AUDIT_RESULT_UNSPECIFIED",
+            Self::Success => "AUDIT_RESULT_SUCCESS",
+            Self::Failure => "AUDIT_RESULT_FAILURE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AUDIT_RESULT_UNSPECIFIED" => Some(Self::Unspecified),
+            "AUDIT_RESULT_SUCCESS" => Some(Self::Success),
+            "AUDIT_RESULT_FAILURE" => Some(Self::Failure),
+            _ => None,
+        }
+    }
 }
 // @@protoc_insertion_point(module)

@@ -22,3 +22,9 @@ database:
 cache:
   max_entries: 100000
   ttl_seconds: 60
+
+# H-011 監査対応: kafka セクションを追加してイベント発行を有効化する
+# 未設定の場合は no-op publisher が使用されルールエンジンのイベント発行が無効になる
+kafka:
+  brokers: "${KAFKA_BROKERS:-kafka:9092}"
+  topic: "k1s0.system.rule_engine.event.v1"

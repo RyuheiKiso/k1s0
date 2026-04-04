@@ -51,7 +51,8 @@ describe('AuthPage', () => {
         client_id: 'desktop-gui',
         scope: defaults.scope,
         token_endpoint: 'https://issuer.example.com/token',
-        device_code: 'device-code',
+        // L-017 監査対応: 実際のサーバーレスポンスには device_code は含まれない（skip_serializing）。
+        // このテストはモックデータのため device_code を含むが、UI コードは device_code に依存しないことを確認する。
         user_code: 'ABCD-EFGH',
         verification_uri: 'https://issuer.example.com/verify',
         verification_uri_complete: 'https://issuer.example.com/verify?user_code=ABCD-EFGH',

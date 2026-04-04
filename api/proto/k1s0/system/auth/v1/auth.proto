@@ -213,6 +213,8 @@ message CheckPermissionResponse {
 // ============================================================
 
 // AuditEventType は監査イベントの種別。
+// C-004 監査対応: GraphQL スキーマの AuditEventType と双方向整合させる。
+// GraphQL に存在するが proto に欠落していた CREATE/UPDATE/DELETE/READ/PERMISSION_DENIED/SECRET_ACCESSED/SECRET_ROTATED を追加する。
 enum AuditEventType {
   AUDIT_EVENT_TYPE_UNSPECIFIED = 0;
   AUDIT_EVENT_TYPE_LOGIN = 1;
@@ -221,13 +223,25 @@ enum AuditEventType {
   AUDIT_EVENT_TYPE_PERMISSION_CHECK = 4;
   AUDIT_EVENT_TYPE_API_KEY_CREATED = 5;
   AUDIT_EVENT_TYPE_API_KEY_REVOKED = 6;
+  // C-004 監査対応: GraphQL スキーマに存在する汎用 CRUD 操作イベント種別を追加
+  AUDIT_EVENT_TYPE_CREATE = 7;
+  AUDIT_EVENT_TYPE_UPDATE = 8;
+  AUDIT_EVENT_TYPE_DELETE = 9;
+  AUDIT_EVENT_TYPE_READ = 10;
+  // C-004 監査対応: GraphQL スキーマに存在するセキュリティイベント種別を追加
+  AUDIT_EVENT_TYPE_PERMISSION_DENIED = 11;
+  AUDIT_EVENT_TYPE_SECRET_ACCESSED = 12;
+  AUDIT_EVENT_TYPE_SECRET_ROTATED = 13;
 }
 
 // AuditResult は監査イベントの結果。
+// C-010 監査対応: GraphQL スキーマの AuditResult.PARTIAL に対応する AUDIT_RESULT_PARTIAL を追加する。
 enum AuditResult {
   AUDIT_RESULT_UNSPECIFIED = 0;
   AUDIT_RESULT_SUCCESS = 1;
   AUDIT_RESULT_FAILURE = 2;
+  // C-010 監査対応: GraphQL の PARTIAL に対応（部分成功を表す）
+  AUDIT_RESULT_PARTIAL = 3;
 }
 
 // RecordAuditLogRequest は監査ログ記録リクエスト。

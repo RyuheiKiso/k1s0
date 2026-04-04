@@ -41,6 +41,13 @@ probes:
     initialDelaySeconds: 5
     periodSeconds: 5
     failureThreshold: 3
+  # H-023 監査対応: grpcHealthCheck.enabled: true の場合、テンプレートが startup セクションを参照する。
+  # startup が未定義だと startupProbe が生成されず、コンテナ起動中に liveness が誤って失敗するリスクがある。
+  # initialDelaySeconds を明示することで nil 参照エラーを防ぎ、Vault init コンテナ完了まで猶予を与える。
+  startup:
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
   # L-10 監査対応: gRPC サービスのヘルスチェックを有効化する
   grpcHealthCheck:
     enabled: true

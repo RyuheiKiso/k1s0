@@ -217,7 +217,10 @@ pub struct Money {
     /// amount は金額（最小通貨単位）。負の値は返金・クレジットを表す。
     #[prost(int64, tag="1")]
     pub amount: i64,
-    /// currency_code は ISO 4217 通貨コード（例: "JPY", "USD"）。
+    /// currency_code は ISO 4217 準拠の3文字通貨コード（例: JPY, USD）を指定すること。
+    /// 実装側でバリデーションが必要: 空文字・3文字以外・ISO 4217 非準拠コードは拒否すること。
+    /// 参考: <https://www.iso.org/iso-4217-currency-codes.html>
+    /// L-24 対応: バリデーション要件をコメントで明示し、実装漏れを防止する。
     #[prost(string, tag="2")]
     pub currency_code: ::prost::alloc::string::String,
 }

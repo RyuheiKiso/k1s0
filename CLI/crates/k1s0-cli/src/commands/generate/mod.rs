@@ -44,10 +44,25 @@ fn placement_was_skipped(tier: Tier) -> bool {
 /// 各ステップで Esc を押すと前のステップに戻る。
 /// 最初のステップで Esc → メインメニューに戻る。
 ///
+/// M-038 監査対応: 非インタラクティブモード（TTY なし / --non-interactive）では
+/// 対話プロンプトを使用するためエラーを返す。CI 等の非TTY 環境での誤実行を防止する。
+///
 /// # Errors
 ///
 /// プロンプトの入出力に失敗した場合、またはひな形生成に失敗した場合にエラーを返す。
+/// 非インタラクティブモード（TTY なし・--non-interactive フラグ）の場合にエラーを返す。
 pub fn run() -> Result<()> {
+    // M-038 監査対応: 非インタラクティブモードでは明確なエラーメッセージを返す
+    // CI/CD 等の TTY なし環境でひな形生成を試みた場合に、原因不明のプロンプトエラーではなく
+    // 分かりやすいエラーメッセージを提供する
+    if crate::prompt::is_non_interactive() {
+        return Err(anyhow::anyhow!(
+            "k1s0 generate は TTY が必要なインタラクティブコマンドです。\n\
+            非インタラクティブモード（--non-interactive / TTY なし環境）では実行できません。\n\
+            ヒント: TTY 付きのターミナルで `k1s0 generate` を実行してください。"
+        ));
+    }
+
     println!("\n--- ひな形生成 ---\n");
 
     let mut step = Step::Kind;

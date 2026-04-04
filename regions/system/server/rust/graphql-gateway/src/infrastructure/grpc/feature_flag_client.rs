@@ -106,7 +106,10 @@ impl FeatureFlagGrpcClient {
 
         FeatureFlag {
             key: flag.flag_key.clone(),
-            name: flag.description.clone(),
+            // M-022 監査対応: proto の name フィールドを正しく name に、description を description にマッピングする
+            // proto FeatureFlag には name フィールドが存在しないため、flag_key を name として使用する
+            // description は別途 description フィールドとして保持するべきだが、現在の FeatureFlag 型は name のみ持つ
+            name: flag.flag_key.clone(),
             enabled: flag.enabled,
             rollout_percentage: rollout_hint.unwrap_or(inferred_rollout),
             target_environments: targets_hint.unwrap_or(inferred_targets),

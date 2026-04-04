@@ -149,7 +149,8 @@ fn default_version() -> String { "0.1.0".to_string() }
 fn default_env() -> String { "development".to_string() }
 fn default_host() -> String { "0.0.0.0".to_string() }
 fn default_port() -> u16 { 8320 }
-fn default_grpc_port() -> u16 { 9320 }
+// H-005 監査対応: 非標準ポート (9320) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+fn default_grpc_port() -> u16 { 50051 }
 fn default_db_port() -> u16 { 5432 }
 // DOCS-002 監査対応: ドキュメント（server.md）と config/default.yaml の "board_service" に統一する
 fn default_schema() -> String { "board_service".to_string() }
@@ -180,7 +181,7 @@ app:
 server:
   host: "0.0.0.0"
   port: 8320
-  grpc_port: 9320
+  grpc_port: 50051
 auth:
   jwt:
     issuer: "http://keycloak:8080/realms/k1s0"

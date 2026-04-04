@@ -4,6 +4,19 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+// M-013/M-036 監査対応: allowed_transitions を型付き構造体に変更してバリデーションを追加する
+// serde_json::Value を使うと遷移先コードの存在チェックやロールバリデーションが実行時まで検出できないため、
+// コンパイル時に型安全性を保証する構造体を定義する。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct StatusTransition {
+    /// 遷移先のステータスコード
+    pub to_status: String,
+    /// 遷移に必要な権限（省略可能）
+    pub required_role: Option<String>,
+    /// 遷移条件（省略可能）
+    pub condition: Option<String>,
+}
+
 /// ステータス定義（会計の MasterItem に相当）
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatusDefinition {
@@ -13,7 +26,7 @@ pub struct StatusDefinition {
     pub display_name: String,
     pub description: Option<String>,
     pub color: Option<String>,
-    pub allowed_transitions: Option<serde_json::Value>,
+    pub allowed_transitions: Option<Vec<StatusTransition>>,
     pub is_initial: bool,
     pub is_terminal: bool,
     pub sort_order: i32,
@@ -30,7 +43,7 @@ pub struct CreateStatusDefinition {
     pub display_name: String,
     pub description: Option<String>,
     pub color: Option<String>,
-    pub allowed_transitions: Option<serde_json::Value>,
+    pub allowed_transitions: Option<Vec<StatusTransition>>,
     pub is_initial: Option<bool>,
     pub is_terminal: Option<bool>,
     pub sort_order: Option<i32>,
@@ -42,7 +55,7 @@ pub struct UpdateStatusDefinition {
     pub display_name: Option<String>,
     pub description: Option<String>,
     pub color: Option<String>,
-    pub allowed_transitions: Option<serde_json::Value>,
+    pub allowed_transitions: Option<Vec<StatusTransition>>,
     pub is_initial: Option<bool>,
     pub is_terminal: Option<bool>,
     pub sort_order: Option<i32>,

@@ -7,6 +7,7 @@
 /// ValidateTokenRequest はトークン検証リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ValidateTokenRequest {
+    /// JWT Bearer トークン文字列（必須）
     #[prost(string, tag="1")]
     pub token: ::prost::alloc::string::String,
 }
@@ -86,6 +87,7 @@ pub struct ClientRoles {
 /// GetUserRequest はユーザー情報取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetUserRequest {
+    /// ユーザー UUID（必須）
     #[prost(string, tag="1")]
     pub user_id: ::prost::alloc::string::String,
 }
@@ -151,6 +153,7 @@ pub struct StringList {
 /// GetUserRolesRequest はユーザーロール取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetUserRolesRequest {
+    /// ユーザー UUID（必須）
     #[prost(string, tag="1")]
     pub user_id: ::prost::alloc::string::String,
 }
@@ -189,12 +192,13 @@ pub struct RoleList {
 /// CheckPermissionRequest はパーミッション確認リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckPermissionRequest {
+    /// ユーザー UUID（省略可、JWT から自動取得する場合）
     #[prost(string, optional, tag="1")]
     pub user_id: ::core::option::Option<::prost::alloc::string::String>,
-    /// read, write, delete, admin
+    /// 権限種別: read, write, delete, admin（必須）
     #[prost(string, tag="2")]
     pub permission: ::prost::alloc::string::String,
-    /// users, auth_config, audit_logs, etc.
+    /// リソース名: users, auth_config, audit_logs 等（必須）
     #[prost(string, tag="3")]
     pub resource: ::prost::alloc::string::String,
     /// JWT Claims から取得したロール一覧
@@ -215,6 +219,10 @@ pub struct CheckPermissionResponse {
 pub struct RecordAuditLogRequest {
     /// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    /// POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを event_type_enum フィールドに移行し、
+    /// このフィールドを削除すること。削除前に全コンシューマーが event_type_enum を使用していることを確認する。
+    #[deprecated]
     #[prost(string, tag="1")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -231,6 +239,10 @@ pub struct RecordAuditLogRequest {
     pub action: ::prost::alloc::string::String,
     /// SUCCESS / FAILURE
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    /// POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを result_enum フィールドに移行し、
+    /// このフィールドを削除すること。削除前に全コンシューマーが result_enum を使用していることを確認する。
+    #[deprecated]
     #[prost(string, tag="7")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（client_id, grant_type 等）
@@ -266,6 +278,8 @@ pub struct SearchAuditLogsRequest {
     #[prost(string, tag="2")]
     pub user_id: ::prost::alloc::string::String,
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="3")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag="4")]
@@ -274,6 +288,8 @@ pub struct SearchAuditLogsRequest {
     pub to: ::core::option::Option<super::super::common::v1::Timestamp>,
     /// SUCCESS / FAILURE
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="6")]
     pub result: ::prost::alloc::string::String,
     /// 監査イベント種別フィルタ（enum）
@@ -297,6 +313,8 @@ pub struct AuditLog {
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     /// Deprecated: event_type_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="2")]
     pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
@@ -310,6 +328,8 @@ pub struct AuditLog {
     #[prost(string, tag="7")]
     pub action: ::prost::alloc::string::String,
     /// Deprecated: result_enum を使用すること。
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="8")]
     pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（変更前後の値等）
@@ -335,6 +355,8 @@ pub struct AuditLog {
 // ============================================================
 
 /// AuditEventType は監査イベントの種別。
+/// C-004 監査対応: GraphQL スキーマの AuditEventType と双方向整合させる。
+/// GraphQL に存在するが proto に欠落していた CREATE/UPDATE/DELETE/READ/PERMISSION_DENIED/SECRET_ACCESSED/SECRET_ROTATED を追加する。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AuditEventType {
@@ -345,6 +367,15 @@ pub enum AuditEventType {
     PermissionCheck = 4,
     ApiKeyCreated = 5,
     ApiKeyRevoked = 6,
+    /// C-004 監査対応: GraphQL スキーマに存在する汎用 CRUD 操作イベント種別を追加
+    Create = 7,
+    Update = 8,
+    Delete = 9,
+    Read = 10,
+    /// C-004 監査対応: GraphQL スキーマに存在するセキュリティイベント種別を追加
+    PermissionDenied = 11,
+    SecretAccessed = 12,
+    SecretRotated = 13,
 }
 impl AuditEventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -360,6 +391,13 @@ impl AuditEventType {
             Self::PermissionCheck => "AUDIT_EVENT_TYPE_PERMISSION_CHECK",
             Self::ApiKeyCreated => "AUDIT_EVENT_TYPE_API_KEY_CREATED",
             Self::ApiKeyRevoked => "AUDIT_EVENT_TYPE_API_KEY_REVOKED",
+            Self::Create => "AUDIT_EVENT_TYPE_CREATE",
+            Self::Update => "AUDIT_EVENT_TYPE_UPDATE",
+            Self::Delete => "AUDIT_EVENT_TYPE_DELETE",
+            Self::Read => "AUDIT_EVENT_TYPE_READ",
+            Self::PermissionDenied => "AUDIT_EVENT_TYPE_PERMISSION_DENIED",
+            Self::SecretAccessed => "AUDIT_EVENT_TYPE_SECRET_ACCESSED",
+            Self::SecretRotated => "AUDIT_EVENT_TYPE_SECRET_ROTATED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -372,17 +410,27 @@ impl AuditEventType {
             "AUDIT_EVENT_TYPE_PERMISSION_CHECK" => Some(Self::PermissionCheck),
             "AUDIT_EVENT_TYPE_API_KEY_CREATED" => Some(Self::ApiKeyCreated),
             "AUDIT_EVENT_TYPE_API_KEY_REVOKED" => Some(Self::ApiKeyRevoked),
+            "AUDIT_EVENT_TYPE_CREATE" => Some(Self::Create),
+            "AUDIT_EVENT_TYPE_UPDATE" => Some(Self::Update),
+            "AUDIT_EVENT_TYPE_DELETE" => Some(Self::Delete),
+            "AUDIT_EVENT_TYPE_READ" => Some(Self::Read),
+            "AUDIT_EVENT_TYPE_PERMISSION_DENIED" => Some(Self::PermissionDenied),
+            "AUDIT_EVENT_TYPE_SECRET_ACCESSED" => Some(Self::SecretAccessed),
+            "AUDIT_EVENT_TYPE_SECRET_ROTATED" => Some(Self::SecretRotated),
             _ => None,
         }
     }
 }
 /// AuditResult は監査イベントの結果。
+/// C-010 監査対応: GraphQL スキーマの AuditResult.PARTIAL に対応する AUDIT_RESULT_PARTIAL を追加する。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AuditResult {
     Unspecified = 0,
     Success = 1,
     Failure = 2,
+    /// C-010 監査対応: GraphQL の PARTIAL に対応（部分成功を表す）
+    Partial = 3,
 }
 impl AuditResult {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -394,6 +442,7 @@ impl AuditResult {
             Self::Unspecified => "AUDIT_RESULT_UNSPECIFIED",
             Self::Success => "AUDIT_RESULT_SUCCESS",
             Self::Failure => "AUDIT_RESULT_FAILURE",
+            Self::Partial => "AUDIT_RESULT_PARTIAL",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -402,6 +451,7 @@ impl AuditResult {
             "AUDIT_RESULT_UNSPECIFIED" => Some(Self::Unspecified),
             "AUDIT_RESULT_SUCCESS" => Some(Self::Success),
             "AUDIT_RESULT_FAILURE" => Some(Self::Failure),
+            "AUDIT_RESULT_PARTIAL" => Some(Self::Partial),
             _ => None,
         }
     }

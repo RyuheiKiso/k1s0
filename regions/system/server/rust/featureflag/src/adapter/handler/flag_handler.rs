@@ -9,8 +9,10 @@ use uuid::Uuid;
 
 use super::AppState;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
-use crate::usecase::create_flag::CreateFlagInput;
-use crate::usecase::update_flag::UpdateFlagInput;
+use crate::usecase::create_flag::{CreateFlagError, CreateFlagInput};
+use crate::usecase::evaluate_flag::EvaluateFlagError;
+use crate::usecase::get_flag::GetFlagError;
+use crate::usecase::update_flag::{UpdateFlagError, UpdateFlagInput};
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
@@ -62,17 +64,13 @@ pub async fn get_flag(
             let resp = FlagResponse::from(flag);
             (StatusCode::OK, Json(resp)).into_response()
         }
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
-            } else {
-                error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    codes::featureflag::get_failed(),
-                    &msg,
-                )
-            }
+        // M-005 監査対応: 文字列マッチングから型付きエラー enum へ移行する
+        Err(GetFlagError::NotFound(key)) => {
+            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
+        }
+        Err(GetFlagError::Internal(msg)) => {
+            tracing::error!("get_flag internal error: {msg}");
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::get_failed(), "Internal server error")
         }
     }
 }
@@ -99,21 +97,13 @@ pub async fn create_flag(
             let resp = FlagResponse::from(flag);
             (StatusCode::CREATED, Json(resp)).into_response()
         }
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("already exists") {
-                error_response(
-                    StatusCode::CONFLICT,
-                    codes::featureflag::already_exists(),
-                    &msg,
-                )
-            } else {
-                error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    codes::featureflag::create_failed(),
-                    &msg,
-                )
-            }
+        // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
+        Err(CreateFlagError::AlreadyExists(key)) => {
+            error_response(StatusCode::CONFLICT, codes::featureflag::already_exists(), format!("flag already exists: {key}"))
+        }
+        Err(CreateFlagError::Internal(msg)) => {
+            tracing::error!("create_flag internal error: {msg}");
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::create_failed(), "Internal server error")
         }
     }
 }
@@ -142,17 +132,13 @@ pub async fn update_flag(
             let resp = FlagResponse::from(flag);
             (StatusCode::OK, Json(resp)).into_response()
         }
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
-            } else {
-                error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    codes::featureflag::update_failed(),
-                    &msg,
-                )
-            }
+        // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
+        Err(UpdateFlagError::NotFound(key)) => {
+            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
+        }
+        Err(UpdateFlagError::Internal(msg)) => {
+            tracing::error!("update_flag internal error: {msg}");
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::update_failed(), "Internal server error")
         }
     }
 }
@@ -168,23 +154,15 @@ pub async fn delete_flag(
     // STATIC-CRITICAL-001: テナントスコープでフラグを削除する
     let tenant_id = extract_tenant_id(&claims);
 
+    // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
     let flag = match state.get_flag_uc.execute(tenant_id, &key).await {
         Ok(f) => f,
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                return error_response(
-                    StatusCode::NOT_FOUND,
-                    codes::featureflag::not_found(),
-                    &msg,
-                );
-            } else {
-                return error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    codes::featureflag::get_failed(),
-                    &msg,
-                );
-            }
+        Err(GetFlagError::NotFound(k)) => {
+            return error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {k}"));
+        }
+        Err(GetFlagError::Internal(msg)) => {
+            tracing::error!("delete_flag get_flag internal error: {msg}");
+            return error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::get_failed(), "Internal server error");
         }
     };
 
@@ -240,17 +218,13 @@ pub async fn evaluate_flag(
             })),
         )
             .into_response(),
-        Err(e) => {
-            let msg = e.to_string();
-            if msg.contains("not found") {
-                error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), &msg)
-            } else {
-                error_response(
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    codes::featureflag::evaluate_failed(),
-                    &msg,
-                )
-            }
+        // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
+        Err(EvaluateFlagError::FlagNotFound(key)) => {
+            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
+        }
+        Err(EvaluateFlagError::Internal(msg)) => {
+            tracing::error!("evaluate_flag internal error: {msg}");
+            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::evaluate_failed(), "Internal server error")
         }
     }
 }

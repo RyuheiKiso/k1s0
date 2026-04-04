@@ -12,8 +12,10 @@ imagePullSecrets:
 
 replicaCount: 2
 
+# H-004 監査対応: アプリの grpc_port (50051) に合わせて K8s Service/container に gRPC ポートを追加
 container:
   port: 8080
+  grpcPort: 50051
   command: []
   args: []
 
@@ -44,6 +46,7 @@ probes:
 service:
   type: ClusterIP
   port: 80
+  grpcPort: 50051
 
 autoscaling:
   enabled: true

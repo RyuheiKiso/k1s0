@@ -51,7 +51,7 @@ class NavigationGuard {
     // FE-06 対応: NavigationGuard の必須フィールドバリデーション
     // id・type・redirect_to が欠落していると GoRouter が不正な状態になるため明示的に検証する
     if (json['id'] == null || (json['id'] as String).isEmpty) {
-      throw FormatException('NavigationGuard: "id" フィールドが必須です');
+      throw const FormatException('NavigationGuard: "id" フィールドが必須です');
     }
     if (json['type'] == null) {
       throw FormatException('NavigationGuard[${json['id']}]: "type" フィールドが必須です');
@@ -93,7 +93,7 @@ class NavigationRoute {
     // FE-06 対応: NavigationRoute の必須フィールドバリデーション
     // id・path が欠落すると GoRouter がルートを正しく構築できないため検証する
     if (json['id'] == null || (json['id'] as String).isEmpty) {
-      throw FormatException('NavigationRoute: "id" フィールドが必須です');
+      throw const FormatException('NavigationRoute: "id" フィールドが必須です');
     }
     if (json['path'] == null || (json['path'] as String).isEmpty) {
       throw FormatException('NavigationRoute[${json['id']}]: "path" フィールドが必須です');
@@ -129,7 +129,7 @@ class NavigationResponse {
     // FE-06 対応: NavigationResponse のトップレベル必須フィールドバリデーション
     // routes フィールドが欠落している場合は不正なレスポンスとして拒否する
     if (json['routes'] == null) {
-      throw FormatException('NavigationResponse: "routes" フィールドが必須です');
+      throw const FormatException('NavigationResponse: "routes" フィールドが必須です');
     }
     return NavigationResponse(
       routes: (json['routes'] as List<dynamic>)

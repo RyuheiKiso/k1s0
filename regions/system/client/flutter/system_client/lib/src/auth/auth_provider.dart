@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+// M-010 監査対応: PlatformException を使用してユーザーキャンセルを区別するためにインポートする
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'auth_state.dart';
@@ -202,10 +204,22 @@ class AuthNotifier extends Notifier<AuthState> {
         if (!ref.mounted) return;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
+    // M-010 監査対応: エラーを分類してデバッグ情報を保持する
+    on PlatformException catch (e) {
+      // ユーザーキャンセルと認証失敗を区別する
+      if (e.code == 'CANCELED') {
+        debugPrint('User cancelled login');
+        return;
+      }
+      debugPrint('Platform exception during login: ${e.message}');
+      if (!ref.mounted) return;
+      state = const AuthUnauthenticated();
+      rethrow;
     } catch (e) {
-      // ユーザーキャンセル・ネットワークエラー・交換失敗時は未認証状態を維持する
+      // ネットワークエラー・交換失敗時は未認証状態を維持する
       // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
       // state 更新で例外が発生するため ref.mounted チェックを追加する。
+      debugPrint('Login failed: $e');
       if (!ref.mounted) return;
       state = const AuthUnauthenticated();
     }

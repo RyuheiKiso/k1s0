@@ -61,6 +61,10 @@ type Claims struct {
 }
 
 // extractClaims は jwt.Token から Claims 構造体を生成する。
+// L-005 監査対応: Deprecated フィールド（Iss, Aud, Exp, Iat, PreferredUsername）への書き込みを廃止する。
+// これらのフィールドは後方互換のために構造体定義上は残されているが、
+// 新規コードでは上位フィールド（Issuer, Audience, ExpiresAt, IssuedAt, Username）を使用すること。
+// 廃止タイムライン: Phase 3（2026-09-30）で構造体からも削除予定（ADR-0020 参照）。
 func extractClaims(token jwt.Token) (*Claims, error) {
 	claims := &Claims{
 		Sub:       token.Subject(),
@@ -69,15 +73,11 @@ func extractClaims(token jwt.Token) (*Claims, error) {
 		IssuedAt:  token.IssuedAt(),
 		Jti:       token.JwtID(),
 	}
-	claims.Iss = claims.Issuer
-	claims.Exp = claims.ExpiresAt.Unix()
-	claims.Iat = claims.IssuedAt.Unix()
+	// Deprecated フィールドへの書き込みは廃止済み（L-005 監査対応）。
+	// 読み取り側の後方互換コードは 2026-09-30 の Phase 3 完了まで構造体定義として残す。
 
 	// aud
 	claims.Audience = token.Audience()
-	if len(claims.Audience) > 0 {
-		claims.Aud = claims.Audience[0]
-	}
 
 	// typ
 	if v, ok := token.Get("typ"); ok {
@@ -101,10 +101,10 @@ func extractClaims(token jwt.Token) (*Claims, error) {
 	}
 
 	// preferred_username
+	// L-005 監査対応: PreferredUsername（Deprecated）への書き込みを廃止し、Username のみを設定する。
 	if v, ok := token.Get("preferred_username"); ok {
 		if s, ok := v.(string); ok {
 			claims.Username = s
-			claims.PreferredUsername = s
 		}
 	}
 

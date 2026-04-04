@@ -50,6 +50,10 @@ config:
         trace:
           sample_rate: 0.1
 
+# H-006 監査対応: 本番環境では障害通知が必須。alertmanager.required: true を設定する
+alertmanager:
+  required: true
+
 # H-06監査対応: DestinationRule（Circuit Breaker）を有効化する。
 # mTLS・connectionPool・outlierDetection を全サービスに適用し、
 # 障害のカスケードとサービス間の不正通信を防止する。

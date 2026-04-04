@@ -81,14 +81,20 @@ impl WorkflowGrpcClient {
 
     fn instance_from_proto(
         i: proto::k1s0::system::workflow::v1::WorkflowInstance,
-    ) -> WorkflowInstance {
+    ) -> anyhow::Result<WorkflowInstance> {
+        // M-016 監査対応: 非 UTF-8 バイナリが REPLACEMENT CHARACTER に化けることを防ぐ
+        // from_utf8_lossy は不正バイトを U+FFFD に置換してしまうため、
+        // from_utf8 でエラーとして検出し、呼び出し元に伝播させる。
         let context_json = if i.context_json.is_empty() {
             None
         } else {
-            Some(String::from_utf8_lossy(&i.context_json).to_string())
+            Some(
+                String::from_utf8(i.context_json)
+                    .map_err(|e| anyhow::anyhow!("context_json is not valid UTF-8: {e}"))?,
+            )
         };
 
-        WorkflowInstance {
+        Ok(WorkflowInstance {
             id: i.id,
             workflow_id: i.workflow_id,
             workflow_name: i.workflow_name,
@@ -100,7 +106,7 @@ impl WorkflowGrpcClient {
             started_at: timestamp_to_rfc3339(i.started_at),
             completed_at: optional_timestamp_to_rfc3339(i.completed_at),
             created_at: optional_timestamp_to_rfc3339(i.created_at),
-        }
+        })
     }
 
     fn task_from_proto(t: proto::k1s0::system::workflow::v1::WorkflowTask) -> WorkflowTask {
@@ -304,10 +310,14 @@ impl WorkflowGrpcClient {
             .map_err(|e| anyhow::anyhow!("WorkflowService.StartInstance failed: {}", e))?
             .into_inner();
 
+        // M-016 監査対応: 非 UTF-8 バイナリが REPLACEMENT CHARACTER に化けることを防ぐ
         let context_json = if resp.context_json.is_empty() {
             None
         } else {
-            Some(String::from_utf8_lossy(&resp.context_json).to_string())
+            Some(
+                String::from_utf8(resp.context_json)
+                    .map_err(|e| anyhow::anyhow!("context_json is not valid UTF-8: {e}"))?,
+            )
         };
 
         Ok(WorkflowInstance {
@@ -340,7 +350,7 @@ impl WorkflowGrpcClient {
                     Some(i) => i,
                     None => return Ok(None),
                 };
-                Ok(Some(Self::instance_from_proto(i)))
+                Ok(Some(Self::instance_from_proto(i)?))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!("WorkflowService.GetInstance failed: {}", e)),
@@ -375,11 +385,10 @@ impl WorkflowGrpcClient {
             .map_err(|e| anyhow::anyhow!("WorkflowService.ListInstances failed: {}", e))?
             .into_inner();
 
-        Ok(resp
-            .instances
+        resp.instances
             .into_iter()
             .map(Self::instance_from_proto)
-            .collect())
+            .collect::<anyhow::Result<Vec<_>>>()
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -404,7 +413,7 @@ impl WorkflowGrpcClient {
             .instance
             .ok_or_else(|| anyhow::anyhow!("empty instance in cancel response"))?;
 
-        Ok(Self::instance_from_proto(i))
+        Self::instance_from_proto(i)
     }
 
     // ── Workflow Task ──

@@ -17,6 +17,8 @@ pub struct DlqMessage {
     #[prost(bytes="vec", tag="6")]
     pub payload: ::prost::alloc::vec::Vec<u8>,
     /// Deprecated: use status_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="7")]
     pub status: ::prost::alloc::string::String,
     #[prost(message, optional, tag="8")]
@@ -49,6 +51,7 @@ pub struct ListMessagesResponse {
 /// GetMessageRequest はメッセージ取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetMessageRequest {
+    /// メッセージIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -61,6 +64,7 @@ pub struct GetMessageResponse {
 /// RetryMessageRequest はリトライリクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RetryMessageRequest {
+    /// メッセージIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -73,6 +77,7 @@ pub struct RetryMessageResponse {
 /// DeleteMessageRequest は削除リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteMessageRequest {
+    /// メッセージIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }

@@ -38,19 +38,22 @@ impl ListRuleSetsUseCase {
         &self,
         input: &ListRuleSetsInput,
     ) -> Result<ListRuleSetsOutput, ListRuleSetsError> {
+        // M-002 監査対応: DoS 防止のためページサイズを 1〜100 に制限する（config サービスの模範実装に準拠）
+        let page_size = input.page_size.clamp(1, 100);
+
         let (rule_sets, total_count) = self
             .repo
-            .find_all_paginated(input.page, input.page_size, input.domain.clone())
+            .find_all_paginated(input.page, page_size, input.domain.clone())
             .await
             .map_err(|e| ListRuleSetsError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (input.page as u64 * page_size as u64) < total_count;
 
         Ok(ListRuleSetsOutput {
             rule_sets,
             total_count,
             page: input.page,
-            page_size: input.page_size,
+            page_size,
             has_next,
         })
     }

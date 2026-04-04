@@ -220,8 +220,16 @@ pub async fn revoke_session(
 
 pub async fn list_user_sessions(
     State(state): State<AppState>,
+    // H-003 監査対応: 他ユーザーのセッション一覧参照を防ぐ IDOR 対策
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(user_id): Path<String>,
 ) -> impl IntoResponse {
+    // 認証済みの場合は JWT の sub が対象 user_id と一致することを確認する
+    if let Some(Extension(claims)) = claims {
+        if claims.sub != user_id {
+            return forbidden_response("cannot list sessions for another user").into_response();
+        }
+    }
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
         Ok(output) => {
@@ -242,8 +250,16 @@ pub async fn list_user_sessions(
 
 pub async fn revoke_all_sessions(
     State(state): State<AppState>,
+    // H-003 監査対応: 他ユーザーのセッション全件失効を防ぐ IDOR 対策
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(user_id): Path<String>,
 ) -> impl IntoResponse {
+    // 認証済みの場合は JWT の sub が対象 user_id と一致することを確認する
+    if let Some(Extension(claims)) = claims {
+        if claims.sub != user_id {
+            return forbidden_response("cannot revoke sessions for another user").into_response();
+        }
+    }
     let input = RevokeAllSessionsInput { user_id };
     match state.revoke_all_uc.execute(&input).await {
         Ok(output) => (

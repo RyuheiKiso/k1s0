@@ -27,7 +27,7 @@ pub mod notification_service_client {
     }
     impl<T> NotificationServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod notification_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             NotificationServiceClient::new(InterceptedService::new(inner, interceptor))
@@ -105,7 +105,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/SendNotification",
             );
@@ -134,7 +134,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/GetNotification",
             );
@@ -163,7 +163,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/RetryNotification",
             );
@@ -192,7 +192,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/ListNotifications",
             );
@@ -221,7 +221,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/ListChannels",
             );
@@ -250,7 +250,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/CreateChannel",
             );
@@ -279,7 +279,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/GetChannel",
             );
@@ -308,7 +308,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/UpdateChannel",
             );
@@ -337,7 +337,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/DeleteChannel",
             );
@@ -366,7 +366,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/ListTemplates",
             );
@@ -395,7 +395,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/CreateTemplate",
             );
@@ -424,7 +424,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/GetTemplate",
             );
@@ -453,7 +453,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/UpdateTemplate",
             );
@@ -482,7 +482,7 @@ pub mod notification_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.notification.v1.NotificationService/DeleteTemplate",
             );
@@ -675,7 +675,7 @@ pub mod notification_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::BoxBody>;
+        type Response = http::Response<tonic::body::Body>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -720,7 +720,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SendNotificationSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -769,7 +769,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetNotificationSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -818,7 +818,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = RetryNotificationSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -867,7 +867,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListNotificationsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -913,7 +913,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListChannelsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -959,7 +959,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateChannelSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1005,7 +1005,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetChannelSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1051,7 +1051,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateChannelSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1097,7 +1097,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteChannelSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1143,7 +1143,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTemplatesSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1189,7 +1189,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateTemplateSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1235,7 +1235,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetTemplateSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1281,7 +1281,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateTemplateSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1327,7 +1327,7 @@ pub mod notification_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteTemplateSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1345,7 +1345,7 @@ pub mod notification_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::BoxBody::default(),
+                            tonic::body::Body::default(),
                         );
                         let headers = response.headers_mut();
                         headers

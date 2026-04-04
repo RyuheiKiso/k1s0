@@ -47,11 +47,21 @@ pub struct TenantGrpcClient {
 }
 
 impl TenantGrpcClient {
+    /// proto の Tenant メッセージをドメインモデルの Tenant に変換する。
+    /// C-002 監査対応: proto の全フィールド（display_name, plan, owner_id, settings, db_schema, keycloak_realm）をマッピングする。
+    /// 空文字列は Option フィールドに対して None に変換することで、GraphQL スキーマの nullable 型と整合させる。
     fn tenant_from_proto(t: ProtoTenant) -> Tenant {
         Tenant {
             id: t.id,
             name: t.name,
+            display_name: t.display_name,
             status: TenantStatus::from(t.status),
+            plan: t.plan,
+            owner_id: t.owner_id,
+            // 空文字列の場合は None に変換する（proto の optional フィールドと GraphQL nullable の整合）
+            settings: if t.settings.is_empty() { None } else { Some(t.settings) },
+            db_schema: if t.db_schema.is_empty() { None } else { Some(t.db_schema) },
+            keycloak_realm: if t.keycloak_realm.is_empty() { None } else { Some(t.keycloak_realm) },
             created_at: timestamp_to_rfc3339(t.created_at),
             updated_at: timestamp_to_rfc3339(t.updated_at),
         }
@@ -167,13 +177,21 @@ impl TenantGrpcClient {
         Ok(found)
     }
 
+    /// テナント作成 gRPC リクエストを送信する。
+    /// C-003 監査対応: display_name, owner_id, plan を個別引数として受け取り、proto の CreateTenantRequest にマッピングする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn create_tenant(&self, name: &str, owner_user_id: &str) -> anyhow::Result<Tenant> {
+    pub async fn create_tenant(
+        &self,
+        name: &str,
+        display_name: &str,
+        owner_id: &str,
+        plan: &str,
+    ) -> anyhow::Result<Tenant> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::CreateTenantRequest {
             name: name.to_owned(),
-            display_name: name.to_owned(),
-            owner_id: owner_user_id.to_owned(),
-            plan: "standard".to_owned(),
+            display_name: display_name.to_owned(),
+            owner_id: owner_id.to_owned(),
+            plan: plan.to_owned(),
         });
 
         let t = self
