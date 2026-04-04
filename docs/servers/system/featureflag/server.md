@@ -9,11 +9,13 @@
 
 ### RBAC対応表
 
-| ロール名 | リソース/アクション |
-|---------|-----------------|
-| sys_auditor 以上 | flags/read |
-| sys_operator 以上 | flags/write |
-| sys_admin のみ | flags/admin |
+> DOC-CRIT-001 監査対応: [ADR-0011](../../../architecture/adr/0011-rbac-admin-privilege-separation.md) に準拠した `resource/action` 形式で統一。
+
+| リソース/アクション | 対応ロール |
+|-----------------|---------|
+| `flags/read` | sys_auditor 以上 |
+| `flags/write` | sys_operator 以上 |
+| `flags/admin` | sys_admin のみ |
 
 
 system tier のフィーチャーフラグサーバーは以下の機能を提供する。

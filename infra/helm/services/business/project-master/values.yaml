@@ -35,7 +35,8 @@ containerSecurityContext:
 
 vault:
   enabled: true
-  role: "business"
+  # K8S-HIGH-002〜004 監査対応: ADR-0045に従いVaultロールをサービス単位に個別化する
+  role: "project-master-rust"
   secrets:
     - path: "secret/data/k1s0/business/project-master/database"
       key: "password"

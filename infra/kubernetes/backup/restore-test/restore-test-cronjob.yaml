@@ -189,9 +189,9 @@ spec:
                   BACKUP_DIR="/backup/vault"
 
                   # 最新のスナップショットを取得する
-                  LATEST_SNAPSHOT=$(ls -t "${BACKUP_DIR}"/vault-snapshot-*.snap 2>/dev/null | head -1)
+                  LATEST_SNAPSHOT=$(ls -t "${BACKUP_DIR}"/vault-raft-*.snap 2>/dev/null | head -1)
                   if [ -z "${LATEST_SNAPSHOT}" ]; then
-                    echo "ERROR: スナップショットが見つかりません: ${BACKUP_DIR}/vault-snapshot-*.snap"
+                    echo "ERROR: スナップショットが見つかりません: ${BACKUP_DIR}/vault-raft-*.snap"
                     exit 1
                   fi
                   echo "テスト対象スナップショット: ${LATEST_SNAPSHOT} ($(du -h ${LATEST_SNAPSHOT} | cut -f1))"

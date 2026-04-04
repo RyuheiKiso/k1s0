@@ -23,6 +23,10 @@ spec:
   template:
     metadata:
       annotations:
+        {{/* K8S-CRIT-001 対応: Vault Agent Injector がシークレットを Pod に注入するために必要なアノテーションを付与する。
+             vaultAnnotations が istioAnnotations より先に展開されることで、Vault の init コンテナが
+             Istio サイドカーより前に起動し、アプリ起動前にシークレットが確実にマウントされる。 */}}
+        {{- include "k1s0-common.vaultAnnotations" . | nindent 8 }}
         {{- include "k1s0-common.istioAnnotations" . | nindent 8 }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}

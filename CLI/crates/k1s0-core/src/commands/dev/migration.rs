@@ -47,8 +47,12 @@ pub fn run_dev_migrations(service_paths: &[String], ports: &PortAssignments) -> 
 
         // state.json はまだ保存されていないため、LocalDev ではなく
         // ポート情報から直接接続文字列を構築する
+        // CLI-HIGH-001 監査対応: パスワードをハードコードせず環境変数 K1S0_DEV_DB_PASSWORD から取得する。
+        // 未設定時は "password" をデフォルト値として使用する（ローカル開発環境のみ）。
+        let dev_password =
+            std::env::var("K1S0_DEV_DB_PASSWORD").unwrap_or_else(|_| "password".to_string());
         let conn_url = format!(
-            "postgresql://app:password@localhost:{}/{db_name}?sslmode=disable",
+            "postgresql://app:{dev_password}@localhost:{}/{db_name}?sslmode=disable",
             ports.postgres
         );
 

@@ -1,8 +1,8 @@
 // アクティビティ REST ハンドラー。
+// BSL-CRIT-002 監査対応: Claims が存在しない場合は 401 Unauthorized を返す。
+// 旧実装の tenant_id_from_claims は Claims==None 時に "system" を返しており、
+// RLS テナント分離をバイパスするセキュリティ問題があったため削除した。
 // Claims 拡張から認証ユーザー ID および tenant_id を取得してユースケースに渡す。
-// RLS テナント分離のため Claims::tenant_id() メソッドを使用して tenant_id を取得する。
-// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
-// 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::activity::{ActivityFilter, CreateActivity};
 use axum::{
@@ -24,15 +24,6 @@ fn map_err(e: anyhow::Error) -> ServiceError {
     }
 }
 
-/// Claims から tenant_id を取得するヘルパー。
-/// Claims が存在する場合は Claims::tenant_id() を使用し、
-/// Claims が存在しない場合は "system" を返す。
-fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
-    claims
-        .map(|c| c.tenant_id())
-        .unwrap_or("system")
-}
-
 #[derive(Debug, Deserialize)]
 pub struct ListActivitiesQuery {
     pub task_id: Option<Uuid>,
@@ -47,8 +38,12 @@ pub async fn list_activities(
     claims: Option<axum::extract::Extension<Claims>>,
     Query(q): Query<ListActivitiesQuery>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let filter = ActivityFilter {
         task_id: q.task_id,
         actor_id: q.actor_id,
@@ -65,8 +60,12 @@ pub async fn get_activity(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let activity = state
         .get_activity_uc
         .execute(tenant_id, id)
@@ -85,10 +84,14 @@ pub async fn create_activity(
     claims: Option<axum::extract::Extension<Claims>>,
     Json(input): Json<CreateActivity>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // 認証済みユーザーの JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let activity = state
         .create_activity_uc
         .execute(tenant_id, &input, &actor)
@@ -103,10 +106,14 @@ pub async fn submit_activity(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // 認証済みユーザーの JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let activity = state
         .submit_activity_uc
         .execute(tenant_id, id, &actor)
@@ -121,10 +128,14 @@ pub async fn approve_activity(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // 認証済みユーザーの JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let activity = state
         .approve_activity_uc
         .execute(tenant_id, id, &actor)
@@ -139,10 +150,14 @@ pub async fn reject_activity(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
-    // 認証済みの場合は JWT sub/username を使用し、未認証の場合は "anonymous" を使用する
-    let actor = actor_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
+    // 認証済みユーザーの JWT sub/username を actor として使用する
+    let actor = actor_from_claims(Some(&claims_inner.0));
     let activity = state
         .reject_activity_uc
         .execute(tenant_id, id, &actor, "no reason provided")

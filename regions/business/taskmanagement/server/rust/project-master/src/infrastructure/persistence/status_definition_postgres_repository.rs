@@ -45,7 +45,10 @@ impl From<StatusDefinitionRow> for StatusDefinition {
             display_name: row.display_name,
             description: row.description,
             color: row.color,
-            allowed_transitions: row.allowed_transitions,
+            // JSONB カラムから取得した serde_json::Value を Vec<StatusTransition> へ変換する
+            // デシリアライズ失敗時は None（空）として扱い、呼び出し元でエラーを起こさない
+            allowed_transitions: row.allowed_transitions
+                .and_then(|v| serde_json::from_value(v).ok()),
             is_initial: row.is_initial,
             is_terminal: row.is_terminal,
             sort_order: row.sort_order,
@@ -109,6 +112,12 @@ impl StatusDefinitionRepository for StatusDefinitionPostgresRepository {
     async fn create(&self, input: &CreateStatusDefinition, created_by: &str) -> anyhow::Result<StatusDefinition> {
         let now = Utc::now();
         let id = Uuid::new_v4();
+        // Vec<StatusTransition> を JSONB カラムへ bind できる serde_json::Value に変換する
+        let transitions_json: Option<serde_json::Value> = input.allowed_transitions
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| anyhow::anyhow!("allowed_transitions シリアライズ失敗: {}", e))?;
         let row = sqlx::query_as::<_, StatusDefinitionRow>(
             r#"
             INSERT INTO status_definitions
@@ -127,7 +136,7 @@ impl StatusDefinitionRepository for StatusDefinitionPostgresRepository {
         .bind(&input.display_name)
         .bind(&input.description)
         .bind(&input.color)
-        .bind(&input.allowed_transitions)
+        .bind(transitions_json)
         .bind(input.is_initial.unwrap_or(false))
         .bind(input.is_terminal.unwrap_or(false))
         .bind(input.sort_order.unwrap_or(0))
@@ -141,6 +150,12 @@ impl StatusDefinitionRepository for StatusDefinitionPostgresRepository {
 
     async fn update(&self, id: Uuid, input: &UpdateStatusDefinition, _updated_by: &str) -> anyhow::Result<StatusDefinition> {
         let now = Utc::now();
+        // Vec<StatusTransition> を JSONB カラムへ bind できる serde_json::Value に変換する
+        let transitions_json: Option<serde_json::Value> = input.allowed_transitions
+            .as_ref()
+            .map(serde_json::to_value)
+            .transpose()
+            .map_err(|e| anyhow::anyhow!("allowed_transitions シリアライズ失敗: {}", e))?;
         let row = sqlx::query_as::<_, StatusDefinitionRow>(
             r#"
             UPDATE status_definitions SET
@@ -162,7 +177,7 @@ impl StatusDefinitionRepository for StatusDefinitionPostgresRepository {
         .bind(&input.display_name)
         .bind(&input.description)
         .bind(&input.color)
-        .bind(&input.allowed_transitions)
+        .bind(transitions_json)
         .bind(input.is_initial)
         .bind(input.is_terminal)
         .bind(input.sort_order)

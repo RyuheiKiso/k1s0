@@ -134,7 +134,8 @@ func TestUnaryInterceptor_ValidToken_ClaimsInContext(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, capturedClaims)
 	assert.Equal(t, "user-uuid-1234", capturedClaims.Sub)
-	assert.Equal(t, testIssuer, capturedClaims.Iss)
+	// Deprecated フィールド（Iss）ではなく正式フィールド（Issuer）を参照する（ADR-0020）。
+	assert.Equal(t, testIssuer, capturedClaims.Issuer)
 }
 
 // --- StreamServerInterceptor テスト ---

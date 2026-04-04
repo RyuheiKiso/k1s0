@@ -98,11 +98,14 @@ pub async fn run() -> anyhow::Result<()> {
     let list_board_columns_uc = Arc::new(usecase::list_board_columns::ListBoardColumnsUseCase::new(col_repo.clone()));
     let update_wip_limit_uc = Arc::new(usecase::update_wip_limit::UpdateWipLimitUseCase::new(col_repo.clone()));
 
+    // BSL-CRIT-001 監査対応: CancellationToken による graceful shutdown を追加する
+    // shutdown_future 内で cancel() を呼ぶことで SIGTERM 時にポーラーを安全に停止する
+    let poller_token = tokio_util::sync::CancellationToken::new();
     if let Some(ref kafka_cfg) = cfg.kafka {
         if let Ok(producer) = infrastructure::kafka::board_producer::BoardKafkaProducer::new(kafka_cfg) {
             let producer = Arc::new(producer);
             let poller = infrastructure::outbox_poller::OutboxPoller::new(db_pool.clone(), producer);
-            tokio::spawn(poller.run());
+            tokio::spawn(poller.run(poller_token.clone()));
         }
     }
 
@@ -182,8 +185,10 @@ pub async fn run() -> anyhow::Result<()> {
         let _ = rest_shutdown_rx.changed().await;
     });
 
+    // shutdown シグナル受信後に outbox ポーラーを停止し、REST/gRPC サーバーにも停止を通知する
     let shutdown_future = async move {
         shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
+        poller_token.cancel();
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };

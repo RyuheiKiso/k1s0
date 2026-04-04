@@ -61,8 +61,12 @@ pub fn resolve_connection_string(connection: &DbConnection, db_name: &str) -> Re
     match connection {
         DbConnection::LocalDev => {
             let port = read_local_dev_port().unwrap_or(LOCAL_DEV_DEFAULT_PORT);
+            // CLI-HIGH-001 監査対応: パスワードをハードコードせず環境変数 K1S0_DEV_DB_PASSWORD から取得する。
+            // 未設定時は "password" をデフォルト値として使用する（ローカル開発環境のみ）。
+            let dev_password =
+                std::env::var("K1S0_DEV_DB_PASSWORD").unwrap_or_else(|_| "password".to_string());
             Ok(format!(
-                "postgresql://app:password@localhost:{port}/{db_name}?sslmode=disable"
+                "postgresql://app:{dev_password}@localhost:{port}/{db_name}?sslmode=disable"
             ))
         }
         DbConnection::Custom(url) => Ok(url.clone()),

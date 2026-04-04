@@ -14,6 +14,8 @@ path = "src/main.rs"
 [dependencies]
 axum = { workspace = true, features = ["multipart"] }
 tokio = { workspace = true }
+# BSL-CRIT-001 監査対応: CancellationToken による graceful shutdown を追加する
+tokio-util = { workspace = true }
 tower = { workspace = true }
 tower-http = { workspace = true }
 serde = { workspace = true }

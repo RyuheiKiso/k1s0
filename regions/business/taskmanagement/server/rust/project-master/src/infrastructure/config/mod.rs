@@ -1,5 +1,6 @@
 // サーバー設定モジュール。YAML ファイルから設定を読み込む。
 // CRIT-004 監査対応: secrecy クレートを使用してデータベースパスワードを Secret<String> で保持し、Debug 出力への漏洩を防ぐ。
+// BSL-MED-003 監査対応: テレメトリ設定を config から読み込めるよう ObservabilityConfig を拡充する。
 pub mod auth_config;
 
 use secrecy::{ExposeSecret, Secret};
@@ -36,8 +37,57 @@ pub struct AppConfig {
 
 fn default_environment() -> String { "development".to_string() }
 
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct ObservabilityConfig {}
+// BSL-MED-003 監査対応: ログ・トレース設定を外部化するため ObservabilityConfig を拡充する
+// activity/board と同じ構造に統一することで設定管理の一貫性を保つ
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct ObservabilityConfig {
+    #[serde(default)]
+    pub log: LogConfig,
+    #[serde(default)]
+    pub trace: TraceConfig,
+}
+
+// ログ設定（レベルとフォーマットを外部から制御する）
+#[derive(Debug, Clone, Deserialize)]
+pub struct LogConfig {
+    #[serde(default = "default_log_level")]
+    pub level: String,
+    #[serde(default = "default_log_format")]
+    pub format: String,
+}
+
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self { level: default_log_level(), format: default_log_format() }
+    }
+}
+
+// トレース設定（OTLP エンドポイントへの送信を制御する）
+#[derive(Debug, Clone, Deserialize)]
+pub struct TraceConfig {
+    #[serde(default = "default_trace_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_trace_endpoint")]
+    pub endpoint: String,
+    #[serde(default = "default_sample_rate")]
+    pub sample_rate: f64,
+}
+
+impl Default for TraceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_trace_enabled(),
+            endpoint: default_trace_endpoint(),
+            sample_rate: default_sample_rate(),
+        }
+    }
+}
+
+fn default_log_level() -> String { "info".to_string() }
+fn default_log_format() -> String { "json".to_string() }
+fn default_trace_enabled() -> bool { true }
+fn default_trace_endpoint() -> String { k1s0_server_common::DEFAULT_OTEL_ENDPOINT.to_string() }
+fn default_sample_rate() -> f64 { 1.0 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {

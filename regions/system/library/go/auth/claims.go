@@ -37,6 +37,12 @@ type Claims struct {
 	ResourceAccess map[string]RoleSet `json:"resource_access"`
 	TierAccess     []string           `json:"tier_access"`
 
+	// BSL-CRIT-003 監査対応: Go Claims 構造体に TenantID フィールドを追加する。
+	// TenantID は JWT の tenant_id カスタムクレームから取得するテナント ID。
+	// Keycloak の Protocol Mapper（ADR-0028）で設定される。
+	// マルチテナント環境での RLS テナント分離に使用する。
+	TenantID string `json:"tenant_id"`
+
 	// L-15 監査対応: 後方互換フィールド廃止スケジュール
 	// これらのフィールドは旧クライアントとの互換性のために残されているが、
 	// 新規コードでは上記の正式フィールド（Issuer, Audience, ExpiresAt, IssuedAt, Username）を使用すること。
@@ -130,6 +136,14 @@ func extractClaims(token jwt.Token) (*Claims, error) {
 		claims.TierAccess = parseStringSlice(v)
 	}
 
+	// BSL-CRIT-003 監査対応: tenant_id カスタムクレームを取得する（Keycloak Protocol Mapper で設定される）。
+	// 未設定の場合は空文字列のままとし、呼び出し元で "system" へのフォールバックを行う。
+	if v, ok := token.Get("tenant_id"); ok {
+		if s, ok := v.(string); ok {
+			claims.TenantID = s
+		}
+	}
+
 	return claims, nil
 }
 
@@ -210,7 +224,8 @@ func maskEmail(email string) string {
 
 // String は Claims のデバッグ用文字列を返す。
 // email は PII のため maskEmail でマスキングして出力する。
+// BSL-CRIT-003 監査対応: TenantID フィールドをデバッグ出力に追加する。
 func (c *Claims) String() string {
-	return fmt.Sprintf("Claims{sub=%s, iss=%s, aud=%v, username=%s, email=%s}",
-		c.Sub, c.Issuer, c.Audience, c.Username, maskEmail(c.Email))
+	return fmt.Sprintf("Claims{sub=%s, iss=%s, aud=%v, username=%s, email=%s, tenant_id=%s}",
+		c.Sub, c.Issuer, c.Audience, c.Username, maskEmail(c.Email), c.TenantID)
 }

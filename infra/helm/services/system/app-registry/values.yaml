@@ -79,7 +79,8 @@ config:
 
 vault:
   enabled: true
-  role: "system"
+  # K8S-HIGH-002〜004 監査対応: ADR-0045に従いVaultロールをサービス単位に個別化する
+  role: "app-registry"
   secrets:
     - path: "secret/data/k1s0/system/app-registry/database"
       key: "password"

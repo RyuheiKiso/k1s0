@@ -116,18 +116,73 @@ func TestExtractClaims(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, "user-uuid-1234", claims.Sub)
-	assert.Equal(t, testIssuer, claims.Iss)
-	assert.Equal(t, testAudience, claims.Aud)
+	// Deprecated フィールド（Iss, Aud, PreferredUsername）ではなく正式フィールドを参照する（ADR-0020）。
+	assert.Equal(t, testIssuer, claims.Issuer)
+	assert.Contains(t, claims.Audience, testAudience)
 	assert.Equal(t, "Bearer", claims.Typ)
 	assert.Equal(t, "react-spa", claims.Azp)
 	assert.Equal(t, "openid profile email", claims.Scope)
-	assert.Equal(t, "taro.yamada", claims.PreferredUsername)
+	assert.Equal(t, "taro.yamada", claims.Username)
 	assert.Equal(t, "taro.yamada@example.com", claims.Email)
 	assert.Contains(t, claims.RealmAccess.Roles, "user")
 	assert.Contains(t, claims.RealmAccess.Roles, "order_manager")
 	assert.Contains(t, claims.ResourceAccess["task-server"].Roles, "read")
 	assert.Contains(t, claims.ResourceAccess["task-server"].Roles, "write")
 	assert.Equal(t, []string{"system", "business", "service"}, claims.TierAccess)
+	// BSL-CRIT-003 監査対応: デフォルトトークンには tenant_id がないため空文字列となることを確認する。
+	assert.Equal(t, "", claims.TenantID)
+}
+
+// BSL-CRIT-003 監査対応: extractClaims が tenant_id クレームを正しく抽出することを確認する。
+// JWT に tenant_id がある場合は TenantID フィールドに格納され、
+// JWT に tenant_id がない場合は空文字列となることを確認する。
+func TestExtractClaims_TenantID(t *testing.T) {
+	privKey, _ := testKeyPair(t)
+
+	// 正常系: JWT に tenant_id が含まれる場合 → TenantID に格納されること
+	t.Run("JWT に tenant_id がある場合は TenantID に格納される", func(t *testing.T) {
+		tokenStr := generateTestToken(t, privKey, func(token jwt.Token) {
+			// tenant_id カスタムクレームを設定する（Keycloak Protocol Mapper 相当）
+			require.NoError(t, token.Set("tenant_id", "tenant-123"))
+		})
+		token, err := jwt.Parse([]byte(tokenStr), jwt.WithVerify(false), jwt.WithValidate(false))
+		require.NoError(t, err)
+
+		claims, err := extractClaims(token)
+		require.NoError(t, err)
+
+		// TenantID が正しく抽出されていること
+		assert.Equal(t, "tenant-123", claims.TenantID)
+	})
+
+	// 正常系: JWT に tenant_id がない場合 → TenantID は空文字列となること
+	t.Run("JWT に tenant_id がない場合は TenantID は空文字列", func(t *testing.T) {
+		tokenStr := generateTestToken(t, privKey)
+		token, err := jwt.Parse([]byte(tokenStr), jwt.WithVerify(false), jwt.WithValidate(false))
+		require.NoError(t, err)
+
+		claims, err := extractClaims(token)
+		require.NoError(t, err)
+
+		// TenantID は空文字列であること（"system" へのフォールバックは呼び出し元の責務）
+		assert.Equal(t, "", claims.TenantID)
+	})
+}
+
+// BSL-CRIT-003 監査対応: Claims の String メソッドが TenantID を含むことを確認する。
+func TestClaims_String_IncludesTenantID(t *testing.T) {
+	// TenantID が設定されている場合にデバッグ出力へ含まれることを確認する。
+	claims := &Claims{
+		Sub:      "user-1",
+		Issuer:   testIssuer,
+		Audience: []string{testAudience},
+		Username: "taro",
+		Email:    "taro@example.com",
+		TenantID: "acme-corp",
+	}
+	s := claims.String()
+	// tenant_id がデバッグ出力に含まれること
+	assert.Contains(t, s, "acme-corp")
 }
 
 // Claims の IsExpired メソッドが期限切れと有効なトークンを正しく判定することを確認する。
@@ -177,9 +232,10 @@ func TestJWKSVerifier_VerifyToken_Success(t *testing.T) {
 	claims, err := verifier.VerifyToken(context.Background(), tokenStr)
 	require.NoError(t, err)
 	assert.Equal(t, "user-uuid-1234", claims.Sub)
-	assert.Equal(t, testIssuer, claims.Iss)
-	assert.Equal(t, testAudience, claims.Aud)
-	assert.Equal(t, "taro.yamada", claims.PreferredUsername)
+	// Deprecated フィールド（Iss, Aud, PreferredUsername）ではなく正式フィールドを参照する（ADR-0020）。
+	assert.Equal(t, testIssuer, claims.Issuer)
+	assert.Contains(t, claims.Audience, testAudience)
+	assert.Equal(t, "taro.yamada", claims.Username)
 }
 
 // JWKSVerifier が期限切れトークンの検証でエラーを返すことを確認する。

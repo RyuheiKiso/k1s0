@@ -486,6 +486,15 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.0
+          # DOCKER-HIGH-001/K8S-HIGH-005 監査対応: コンテナレベルの SecurityContext を追加する。
+          # Keycloak は /tmp 等への書き込みが必要なため readOnlyRootFilesystem は false にする。
+          securityContext:
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
           args:
             # verify 環境専用: start-dev は TLS 無効・セキュリティ緩和モード（HIGH-SEC-07 監査対応）
             # 本番環境では "start" コマンドを使用し、TLS と適切なセキュリティ設定を有効にすること

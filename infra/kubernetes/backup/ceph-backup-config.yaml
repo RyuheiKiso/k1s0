@@ -26,11 +26,17 @@ spec:
           containers:
             - name: ceph-snapshot
               image: quay.io/ceph/ceph:v18
-              # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
+              # K8S-MED-001 監査対応: PSS restricted 準拠のため SecurityContext を他バックアップCronJobと統一する
+              # 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化する
+              # readOnlyRootFilesystem により侵害時のファイルシステム書き換えを防ぐ
+              # seccompProfile RuntimeDefault により syscall フィルタリングを適用する
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -77,6 +83,9 @@ spec:
                 - name: ceph-config
                   mountPath: /etc/ceph
                   readOnly: true
+                # K8S-MED-001 監査対応: readOnlyRootFilesystem 有効時に rbd コマンドが /tmp に書き込めるよう emptyDir を追加する
+                - name: tmp-dir
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 100m
@@ -88,3 +97,6 @@ spec:
             - name: ceph-config
               secret:
                 secretName: ceph-client-credentials
+            # K8S-MED-001 監査対応: readOnlyRootFilesystem 有効時に rbd コマンドが /tmp に書き込めるよう emptyDir を追加する
+            - name: tmp-dir
+              emptyDir: {}

@@ -70,6 +70,9 @@ fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::E
 /// M-15 監査対応: tonic::Status を直接受け取りステータスコードで分類する。
 /// usecase 層が tonic::Status を直接返す箇所ではこちらを使用すること。
 // H-02 監査対応: classify_domain_error と対になる関数。tonic::Status を直接受け取る usecase で使用予定
+// RUST-MED-004 監査対応: classify_from_grpc_status への移行は次フェーズで実施。
+// 現状では全 usecase が anyhow::Error に変換済みのため、tonic::Status を直接受け取れない。
+// 移行には全 usecase の返り値型を tonic::Status に統一する大規模リファクタリングが必要。
 #[allow(dead_code)]
 fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
     use crate::domain::error::GrpcErrorCategory;
@@ -80,6 +83,8 @@ fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
 /// M-15 監査対応: tonic::Status のエラーコード文字列表現（"status: Unauthenticated, ..."）を
 /// 考慮し、GrpcErrorCategory の型安全な分類を文字列解析の前段として適用する。
 /// usecase 層が anyhow::Error に変換済みの場合に使用する。
+// DEPRECATED: classify_from_grpc_status に移行予定（RUST-MED-004）。
+// 現状では usecase が anyhow::Error を返すため文字列マッチングに依存している。
 fn classify_domain_error(message: &str) -> &'static str {
     let lower = message.to_ascii_lowercase();
     // tonic::Status の to_string() 表現: "status: Unauthenticated, message: ..."

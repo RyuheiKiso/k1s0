@@ -583,5 +583,20 @@
   ],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": true,
-  "defaultRequiredActions": ["UPDATE_PASSWORD"]
+  "defaultRequiredActions": ["UPDATE_PASSWORD"],
+  "users": [
+    {
+      "username": "service-account-auth-rust-admin",
+      "enabled": true,
+      "serviceAccountClientId": "auth-rust-admin",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "query-groups",
+          "view-clients",
+          "view-realm"
+        ]
+      }
+    }
+  ]
 }

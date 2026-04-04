@@ -48,8 +48,22 @@ spec:
 
                   mkdir -p "${BACKUP_DIR}"
 
+                  # K8S-MED-006 監査対応: pg_dump 失敗時に不完全なバックアップファイルを削除する trap を追加する
+                  # 部分的に書き込まれたダンプファイルが残ると、リストア時に破損バックアップを
+                  # 使用してしまうリスクがある。trap でクリーンアップを保証する。
+                  CURRENT_BACKUP_FILE=""
+                  cleanup_on_error() {
+                    if [ -n "${CURRENT_BACKUP_FILE}" ] && [ -f "${CURRENT_BACKUP_FILE}" ]; then
+                      echo "ERROR: pg_dump 失敗。不完全なバックアップファイルを削除します: ${CURRENT_BACKUP_FILE}"
+                      rm -f "${CURRENT_BACKUP_FILE}"
+                    fi
+                    exit 1
+                  }
+                  trap cleanup_on_error ERR
+
                   # Harbor データベースバックアップ
-                  BACKUP_FILE="${BACKUP_DIR}/harbor-db-${TIMESTAMP}.dump"
+                  CURRENT_BACKUP_FILE="${BACKUP_DIR}/harbor-db-${TIMESTAMP}.dump"
+                  BACKUP_FILE="${CURRENT_BACKUP_FILE}"
                   echo "Backing up Harbor database..."
                   pg_dump \
                     -h "${HARBOR_DB_HOST}" \
@@ -58,6 +72,8 @@ spec:
                     -Fc \
                     -f "${BACKUP_FILE}"
                   echo "Database backup completed: ${BACKUP_FILE}"
+                  CURRENT_BACKUP_FILE=""
+                  trap - ERR
 
                   # 90日より古いバックアップを削除
                   find "${BACKUP_DIR}" -name "harbor-db-*.dump" -mtime +90 -delete

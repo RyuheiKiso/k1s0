@@ -34,14 +34,17 @@ containerSecurityContext:
 
 vault:
   enabled: true
-  role: "service"
+  # K8S-HIGH-002〜004 監査対応: ADR-0045に従いVaultロールをサービス単位に個別化する
+  role: "task-rust"
   secrets:
     - path: "secret/data/k1s0/service/task/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
 
 # Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+# K8S-CRIT-002 対応: create: true を設定して専用 ServiceAccount を Helm で管理する
 serviceAccount:
+  create: true
   name: "task-rust"
 
 labels:

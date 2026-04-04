@@ -473,7 +473,7 @@
       "directAccessGrantsEnabled": false,
       "standardFlowEnabled": false,
       "serviceAccountsEnabled": true,
-      "secret": "${KC_AUTH_ADMIN_SECRET:-dev-service-secret}",
+      "secret": "dev-service-secret",
       "defaultClientScopes": [
         "openid",
         "profile",

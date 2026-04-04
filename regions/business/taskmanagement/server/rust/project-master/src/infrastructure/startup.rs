@@ -1,8 +1,11 @@
 // サーバー起動処理。
 // DB 接続・マイグレーション・認証初期化・ユースケース・ルーター構築・サーバー起動を行う。
+// BSL-MED-002 監査対応: RequestBodyLimitLayer を使用して最大リクエストボディサイズを 2MB に制限する。
+// BSL-MED-003 監査対応: テレメトリ設定を設定ファイルから読み込むよう変更する。
 use std::sync::Arc;
 use tracing::info;
 use anyhow::Context;
+use tower_http::limit::RequestBodyLimitLayer;
 
 use crate::adapter::handler::{AppState, router};
 use crate::adapter::middleware::auth::AuthState;
@@ -25,16 +28,22 @@ pub async fn run() -> anyhow::Result<()> {
     let cfg = Config::load(&config_path)?;
     info!(service = "project-master", "starting server");
 
-    // テレメトリ初期化（サービス名・バージョン・tier・環境を明示的に設定する）
+    // BSL-MED-003 監査対応: テレメトリ設定をハードコードではなく設定ファイルから読み込む
+    // version は env!("CARGO_PKG_VERSION") を使用して Cargo.toml の値と同期させる（LOW-3 監査対応）
+    // trace_endpoint は cfg.observability.trace.enabled が true の場合のみ設定する
     let telemetry_cfg = k1s0_telemetry::TelemetryConfig {
         service_name: cfg.app.name.clone(),
-        version: "0.1.0".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
         tier: "business".to_string(),
         environment: cfg.app.environment.clone(),
-        trace_endpoint: None,
-        sample_rate: 1.0,
-        log_level: "info".to_string(),
-        log_format: "json".to_string(),
+        trace_endpoint: cfg
+            .observability
+            .trace
+            .enabled
+            .then(|| cfg.observability.trace.endpoint.clone()),
+        sample_rate: cfg.observability.trace.sample_rate,
+        log_level: cfg.observability.log.level.clone(),
+        log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
         .map_err(|e| anyhow::anyhow!("テレメトリ初期化に失敗: {}", e))?;
@@ -147,6 +156,8 @@ pub async fn run() -> anyhow::Result<()> {
         auth_state,
     };
     let app = router(state);
+    // BSL-MED-002 監査対応: 大きなリクエストボディによるメモリ枯渇攻撃を防ぐため最大2MBに制限する
+    let app = app.layer(RequestBodyLimitLayer::new(2 * 1024 * 1024));
 
     // サーバー起動
     let addr = format!("{}:{}", cfg.server.host, cfg.server.port);

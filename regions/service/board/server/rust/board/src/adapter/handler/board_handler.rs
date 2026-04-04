@@ -1,8 +1,8 @@
 // ボードカラム REST ハンドラー。
+// BSL-CRIT-002 監査対応: Claims が存在しない場合は 401 Unauthorized を返す。
+// 旧実装の tenant_id_from_claims は Claims==None 時に "system" を返しており、
+// RLS テナント分離をバイパスするセキュリティ問題があったため削除した。
 // Claims 拡張から認証ユーザー情報を取得してユースケースに渡す。
-// RLS テナント分離のため Claims::tenant_id() メソッドを使用して tenant_id を取得する。
-// Keycloak の tenant_id Protocol Mapper で設定されたカスタムクレームを優先し、
-// 未設定の場合は "system" をデフォルト値として使用する。
 use crate::adapter::handler::AppState;
 use crate::domain::entity::board_column::{
     BoardColumnFilter, DecrementColumnRequest, IncrementColumnRequest, UpdateWipLimitRequest,
@@ -23,15 +23,6 @@ fn map_err(e: anyhow::Error) -> ServiceError {
         code: k1s0_server_common::ErrorCode::new("SVC_BOARD_ERROR"),
         message: e.to_string(),
     }
-}
-
-/// Claims から tenant_id を取得するヘルパー。
-/// Claims が存在する場合は Claims::tenant_id() を使用し、
-/// Claims が存在しない場合は "system" を返す。
-fn tenant_id_from_claims(claims: Option<&Claims>) -> &str {
-    claims
-        .map(|c| c.tenant_id())
-        .unwrap_or("system")
 }
 
 // MED-07 監査対応: リスト操作のデフォルト上限と最大上限を定数として定義する。
@@ -58,8 +49,12 @@ pub async fn list_board_columns(
         .limit
         .unwrap_or(LIST_DEFAULT_LIMIT)
         .clamp(1, LIST_MAX_LIMIT);
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let filter = BoardColumnFilter {
         project_id: q.project_id,
         status_code: q.status_code,
@@ -75,8 +70,12 @@ pub async fn get_board_column(
     claims: Option<axum::extract::Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let col = state
         .get_board_column_uc
         .execute(tenant_id, id)
@@ -94,8 +93,12 @@ pub async fn increment_column(
     claims: Option<axum::extract::Extension<Claims>>,
     Json(req): Json<IncrementColumnRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let col = state.increment_column_uc.execute(tenant_id, &req).await.map_err(map_err)?;
     Ok((StatusCode::OK, Json(col)))
 }
@@ -105,8 +108,12 @@ pub async fn decrement_column(
     claims: Option<axum::extract::Extension<Claims>>,
     Json(req): Json<DecrementColumnRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     let col = state.decrement_column_uc.execute(tenant_id, &req).await.map_err(map_err)?;
     Ok((StatusCode::OK, Json(col)))
 }
@@ -117,8 +124,12 @@ pub async fn update_wip_limit(
     Path(column_id): Path<Uuid>,
     Json(mut req): Json<UpdateWipLimitRequest>,
 ) -> Result<impl IntoResponse, ServiceError> {
+    // Claims が存在しない場合は未認証として 401 を返す
+    let claims_inner = claims
+        .as_ref()
+        .ok_or_else(|| ServiceError::unauthorized("BOARD", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
-    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|ext| &ext.0));
+    let tenant_id = claims_inner.0.tenant_id();
     req.column_id = column_id;
     let col = state.update_wip_limit_uc.execute(tenant_id, &req).await.map_err(map_err)?;
     Ok(Json(col))

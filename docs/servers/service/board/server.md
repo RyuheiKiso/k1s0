@@ -7,7 +7,14 @@ Rust で実装する。
 
 ### RBAC対応表
 
+> DOC-CRIT-002 監査対応: [ADR-0011](../../../../docs/architecture/adr/0011-rbac-admin-privilege-separation.md) に準拠した `resource/action` 形式でリソース名を明記。
+
 service tier のロールに基づいてアクセス制御する。
+
+| リソース/アクション | 対応ロール |
+|-----------------|---------|
+| `boards/read` | svc_viewer / svc_operator / svc_admin / sys_admin |
+| `boards/write` | svc_operator / svc_admin / sys_admin |
 
 | ロール | read | write |
 |--------|------|-------|
@@ -18,8 +25,8 @@ service tier のロールに基づいてアクセス制御する。
 
 | アクション | 対象エンドポイント |
 |-----------|-----------------|
-| `read` | GET（カラム一覧・単体取得） |
-| `write` | POST / PUT（タスク数増減・WIP制限更新） |
+| `boards/read` | GET（カラム一覧・単体取得） |
+| `boards/write` | POST / PUT（タスク数増減・WIP制限更新） |
 
 実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 

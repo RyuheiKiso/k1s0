@@ -59,6 +59,9 @@ spec:
                   cpu: 200m
                   memory: 128Mi
 ---
+# K8S-MED-002 監査対応: partition-maintenance SA にautomountServiceAccountToken: false を設定する
+# partition-maintenance ジョブは PostgreSQL の psql コマンドのみを実行し Kubernetes API へのアクセスは不要である
+# デフォルトの自動マウントを無効化することでトークン漏洩リスクを低減する
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -66,3 +69,4 @@ metadata:
   namespace: k1s0-system
   labels:
     app: audit-log-maintenance
+automountServiceAccountToken: false

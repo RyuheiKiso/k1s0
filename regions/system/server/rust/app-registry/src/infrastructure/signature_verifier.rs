@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use std::io::Write;
 
 /// CosignVerifier はコンテナイメージやバイナリの Cosign 署名検証を行うトレイト。
 /// STATIC-CRITICAL-002: サプライチェーン攻撃対策として、バージョン登録時に署名を検証する。
@@ -52,8 +53,15 @@ impl SubprocessCosignVerifier {
 #[async_trait]
 impl CosignVerifier for SubprocessCosignVerifier {
     async fn verify(&self, artifact: &str, signature: &str) -> anyhow::Result<bool> {
-        // 一時ファイルに署名を書き込んで cosign verify-blob を呼び出す
-        let sig_file = tempfile_for_signature(signature).await?;
+        // tempfile::NamedTempFile でアトミックに一時ファイルを作成し、署名を書き込む。
+        // NamedTempFile はスコープ終了時に Drop で自動削除されるため、手動 remove_file が不要になる。
+        let sig_file = create_signature_tempfile(signature)?;
+
+        // cosign verify-blob に一時ファイルのパスを渡す
+        let sig_path = sig_file
+            .path()
+            .to_str()
+            .ok_or_else(|| anyhow::anyhow!("一時ファイルのパスが UTF-8 ではありません"))?;
 
         let output = tokio::process::Command::new("cosign")
             .args([
@@ -61,15 +69,14 @@ impl CosignVerifier for SubprocessCosignVerifier {
                 "--key",
                 &self.public_key_path,
                 "--signature",
-                &sig_file,
+                sig_path,
                 artifact,
             ])
             .output()
             .await
             .map_err(|e| anyhow::anyhow!("cosign コマンドの実行に失敗しました: {}", e))?;
 
-        // 一時ファイルを削除する（エラーは無視）
-        let _ = tokio::fs::remove_file(&sig_file).await;
+        // sig_file はここで Drop され、一時ファイルが確実に削除される
 
         if output.status.success() {
             Ok(true)
@@ -85,13 +92,18 @@ impl CosignVerifier for SubprocessCosignVerifier {
     }
 }
 
-/// 署名文字列を一時ファイルに書き込み、パスを返す。
-async fn tempfile_for_signature(signature: &str) -> anyhow::Result<String> {
-    let path = format!("/tmp/cosign-sig-{}.sig", uuid::Uuid::new_v4());
-    tokio::fs::write(&path, signature)
-        .await
+/// 署名文字列を安全な一時ファイルに書き込む。
+/// tempfile::Builder を使用してアトミックにファイルを作成し、TOCTOU 脆弱性を防止する。
+/// NamedTempFile は Drop 時に自動的に削除されるため、手動クリーンアップが不要になる。
+fn create_signature_tempfile(signature: &str) -> anyhow::Result<tempfile::NamedTempFile> {
+    let mut file = tempfile::Builder::new()
+        .prefix("cosign-sig-")
+        .suffix(".sig")
+        .tempfile()
+        .map_err(|e| anyhow::anyhow!("一時ファイルの作成に失敗しました: {}", e))?;
+    file.write_all(signature.as_bytes())
         .map_err(|e| anyhow::anyhow!("署名の一時ファイル書き込みに失敗しました: {}", e))?;
-    Ok(path)
+    Ok(file)
 }
 
 #[cfg(test)]
