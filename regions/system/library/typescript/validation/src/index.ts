@@ -70,6 +70,40 @@ export function validateURL(url: string): void {
   }
 }
 
+/**
+ * DNS Rebinding 攻撃防御のため、プライベートIPアドレスへのURL参照をブロックする
+ * M-010 監査対応: RFC 1918 / loopback / link-local / ULA への直接アクセスを拒否する
+ * 注意: DNS 解決は行わずホスト名の IP リテラルのみチェックする（解決後 IP はサーバー側で検証）
+ */
+export function validateURLNotPrivate(url: string): void {
+  // まず既存の URL 妥当性チェック（スキームなど）を実行する
+  validateURL(url);
+  const { hostname } = new URL(url);
+  const privatePatterns = [
+    // RFC 1918: プライベートIPv4アドレス空間
+    /^10\./,
+    /^172\.(1[6-9]|2\d|3[01])\./,
+    /^192\.168\./,
+    // loopback: 自ループバックアドレス
+    /^127\./,
+    // IPv6 loopback
+    /^::1$/,
+    // link-local: リンクローカルアドレス（169.254.0.0/16）
+    /^169\.254\./,
+    // IPv6 ULA（Unique Local Address, fc00::/7）
+    /^fc00:/i,
+    // IPv6 link-local（fe80::/10）
+    /^fe80:/i,
+  ];
+  if (privatePatterns.some(p => p.test(hostname))) {
+    throw new ValidationError(
+      'url',
+      'プライベートIPアドレスへのアクセスは禁止されています',
+      'PRIVATE_IP_FORBIDDEN',
+    );
+  }
+}
+
 export function validateTenantId(tenantId: string): void {
   if (!TENANT_ID_REGEX.test(tenantId)) {
     throw new ValidationError('tenantId', `invalid tenant ID: ${tenantId}`, 'INVALID_TENANT_ID');

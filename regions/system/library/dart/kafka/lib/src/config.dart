@@ -61,5 +61,19 @@ class KafkaConfig {
     if (maxMessageBytes <= 0) {
       throw KafkaError('max message bytes must be positive');
     }
+    // L-006 監査対応: SASL 設定時に saslUsername/saslPassword が必須であることを検証する。
+    // SASL_PLAINTEXT または SASL_SSL の場合、認証情報が欠落していると接続失敗になるため
+    // 起動時に明示的にエラーを出す。
+    if (securityProtocol == 'SASL_PLAINTEXT' ||
+        securityProtocol == 'SASL_SSL') {
+      if (saslUsername == null || saslUsername!.isEmpty) {
+        throw KafkaError(
+            'saslUsername は SASL 設定時に必須です (securityProtocol: $securityProtocol)');
+      }
+      if (saslPassword == null || saslPassword!.isEmpty) {
+        throw KafkaError(
+            'saslPassword は SASL 設定時に必須です (securityProtocol: $securityProtocol)');
+      }
+    }
   }
 }

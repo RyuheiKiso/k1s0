@@ -574,8 +574,11 @@ services:
   # business Tier (rate-limiting: 1000/min, 40/sec)
   # ============================================================
 
+  # H-004 監査対応: project-master の K8s Service 名を正しいリリース名 project-master-rust に統一する
+  # Helm リリース名が project-master-rust のため Service 名は project-master-rust になる（k1s0-common.fullname 規則）
+  # services/business.yaml と同一ホスト名を使用することで設定の不整合を解消する
   - name: project-master-v1
-    url: http://project-master-server.k1s0-business.svc.cluster.local:80
+    url: http://project-master-rust.k1s0-business.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:

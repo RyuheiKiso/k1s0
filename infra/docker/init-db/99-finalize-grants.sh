@@ -68,6 +68,42 @@ grant_schema "ratelimit_db" "ratelimit" "k1s0_ratelimit_rw"
 # event_monitor スキーマ → k1s0_event_monitor（C-08 / CRIT-001 監査対応）
 grant_schema "k1s0_event_monitor" "event_monitor" "k1s0_event_monitor_rw"
 
+# H-006 監査対応: 11サービス分の GRANT を追加する
+# 各サービスが自身の DB スキーマのみに DML 権限を持つよう最小権限の原則に従い設定する
+
+# featureflag スキーマ → featureflag_db（06-featureflag-schema.sql と対応）
+grant_schema "featureflag_db" "featureflag" "k1s0_featureflag_rw"
+
+# eventstore スキーマ → event_store_db（10-event-store-schema.sql と対応）
+grant_schema "event_store_db" "eventstore" "k1s0_event_store_rw"
+
+# scheduler スキーマ → scheduler_db（19-scheduler-schema.sql と対応）
+grant_schema "scheduler_db" "scheduler" "k1s0_scheduler_rw"
+
+# policy スキーマ → policy_db
+grant_schema "policy_db" "policy" "k1s0_policy_rw"
+
+# quota スキーマ → quota_db
+grant_schema "quota_db" "quota" "k1s0_quota_rw"
+
+# rule_engine スキーマ → rule_engine_db
+grant_schema "rule_engine_db" "rule_engine" "k1s0_rule_engine_rw"
+
+# search スキーマ → search_db
+grant_schema "search_db" "search" "k1s0_search_rw"
+
+# file スキーマ → file_db
+grant_schema "file_db" "file" "k1s0_file_rw"
+
+# service_catalog スキーマ → service_catalog_db（20-service-catalog-schema.sql と対応）
+grant_schema "service_catalog_db" "service_catalog" "k1s0_service_catalog_rw"
+
+# api_registry スキーマ → api_registry_db
+grant_schema "api_registry_db" "api_registry" "k1s0_api_registry_rw"
+
+# app_registry スキーマ → app_registry_db
+grant_schema "app_registry_db" "app_registry" "k1s0_app_registry_rw"
+
 # master_maintenance スキーマ → k1s0_master_maintenance（CRIT-001 監査対応）
 # master-maintenance サービスは k1s0 汎用ユーザーを使用するため、
 # 専用 _rw ロールが未作成の場合は k1s0 に直接付与する

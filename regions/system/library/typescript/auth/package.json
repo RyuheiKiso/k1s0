@@ -9,6 +9,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "dependencies": {
+    "jose": "^5.0.0"
+  },
   "devDependencies": {
     "typescript": "^5.9.3",
     "vite": "^8.0.1",

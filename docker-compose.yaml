@@ -127,7 +127,10 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
     # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
     # exec でシェルを redis-server に置き換え PID 1 として動作させる
-    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
+    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を allkeys-lru に設定する
+    # デフォルト noeviction はメモリ枯渇時に書き込みエラーを引き起こすリスクがある
+    # allkeys-lru は最近最も使われていないキーを優先的に削除し、メモリ枯渇を防止する（開発環境向け設定）
+    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy allkeys-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
@@ -360,7 +363,9 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
     # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
     # exec でシェルを redis-server に置き換え PID 1 として動作させる
-    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
+    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を allkeys-lru に設定する
+    # セッション用 Redis も同様にメモリ上限を設定し、メモリ枯渇によるサービス停止を防止する（開発環境向け設定）
+    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy allkeys-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-4 監査対応）
       - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"

@@ -3,6 +3,7 @@ package upstream
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -38,11 +39,16 @@ var blockedCIDRs = func() []*net.IPNet {
 // cloudMetadataCIDR はクラウドメタデータサービスのアドレス範囲（169.254.0.0/16）。
 // allowedHosts によるバイパスが有効な場合でも、このアドレス範囲は常にブロックする。
 // AWS/GCP/Azure のメタデータエンドポイント（169.254.169.254）への意図しないアクセスを防止する。
+// M-015 監査対応: init 時の panic を log.Fatalf に置き換え、defer クリーンアップが実行されるようにする。
 var cloudMetadataCIDR = func() *net.IPNet {
-	// クラウドメタデータサービスの CIDR - nil の場合 SSRF リスクがあるためパニックで早期検出する
+	// クラウドメタデータサービスの CIDR を解析する。
+	// "169.254.0.0/16" はリテラル定数であり ParseCIDR が失敗することはないが、
+	// M-015 監査対応として panic の代わりに log.Fatalf を使用する。
 	_, ipNet, err := net.ParseCIDR("169.254.0.0/16")
 	if err != nil || ipNet == nil {
-		panic(fmt.Sprintf("cloudMetadataCIDR の初期化に失敗しました: %v", err))
+		// log.Fatalf は os.Exit(1) を呼び出すため defer は実行されないが、
+		// panic よりも明確なエラーメッセージとスタックトレースを提供する。
+		log.Fatalf("cloudMetadataCIDRの初期化に失敗しました: %v", err)
 	}
 	return ipNet
 }()

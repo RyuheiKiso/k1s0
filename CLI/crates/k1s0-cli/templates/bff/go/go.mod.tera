@@ -3,6 +3,8 @@ module {{ go_module }}
 go 1.24
 
 require (
-    github.com/99designs/gqlgen v0.17.45
-    github.com/vektah/gqlparser/v2 v2.5.11
+	// gqlgen v0.17.55: server テンプレートと同一バージョンに統一する（L-003 監査対応）
+	github.com/99designs/gqlgen v0.17.55
+	// gqlparser v2.5.19: gqlgen v0.17.55 対応バージョンに更新する（L-003 監査対応）
+	github.com/vektah/gqlparser/v2 v2.5.19
 )

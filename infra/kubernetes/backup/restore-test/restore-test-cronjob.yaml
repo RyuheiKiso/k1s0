@@ -17,8 +17,12 @@ metadata:
     # H-12対応: 復旧テストを四半期ごとに自動実行し、バックアップの有効性を継続的に検証する
     purpose: "バックアップ復旧テスト - staging 環境専用"
 spec:
-  # 四半期ごと（1月・4月・7月・10月の第1日曜日 AM 2:00 JST = UTC 17:00）
-  schedule: "0 17 1-7 1,4,7,10 0"
+  # H-011 監査対応: cron は day-of-month と day-of-week を OR 評価するため、
+  # "0 17 1-7 1,4,7,10 0"（第1週かつ日曜日）は想定より多く実行される。
+  # day-of-week を * に変更し、スクリプト内で日曜日チェックを行うことで
+  # 「四半期初の第1日曜日のみ実行」という意図を正確に実現する。
+  # 四半期ごと（1月・4月・7月・10月の1〜7日 AM 2:00 JST = UTC 17:00、日曜判定はスクリプト内）
+  schedule: "0 17 1-7 1,4,7,10 *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 5
@@ -49,6 +53,14 @@ spec:
                 - -c
                 - |
                   set -e
+                  # H-011 監査対応: cron は day-of-month と day-of-week を OR 評価するため、
+                  # スクリプト内で日曜日（ISO 7 = 7）チェックを行い、日曜日以外はスキップする
+                  # これにより「四半期初の第1日曜日のみ実行」という意図を正確に実現する
+                  if [ "$(date +%u)" -ne 7 ]; then
+                    echo "INFO: 日曜日ではないためスキップします（$(date '+%Y-%m-%d %A')）"
+                    exit 0
+                  fi
+
                   echo "=== PostgreSQL 復旧テスト開始 ==="
                   echo "実行環境: ${K1S0_ENVIRONMENT:-unknown}"
                   echo "実行日時: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -146,8 +158,10 @@ metadata:
   annotations:
     purpose: "Vault バックアップ復旧テスト - staging 環境専用"
 spec:
-  # 四半期ごと（PostgreSQL テストの翌週 AM 3:00 JST）
-  schedule: "0 18 8-14 1,4,7,10 0"
+  # H-011 監査対応: cron の OR 評価問題を回避するため day-of-week を * に変更する
+  # スクリプト内で日曜日チェックを行い、「四半期初の第2週日曜日のみ実行」を正確に実現する
+  # 四半期ごと（PostgreSQL テストの翌週 AM 3:00 JST = UTC 18:00、日曜判定はスクリプト内）
+  schedule: "0 18 8-14 1,4,7,10 *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 5
@@ -176,6 +190,14 @@ spec:
                 - -c
                 - |
                   set -e
+                  # H-011 監査対応: cron は day-of-month と day-of-week を OR 評価するため、
+                  # スクリプト内で日曜日（ISO 7 = 7）チェックを行い、日曜日以外はスキップする
+                  # これにより「四半期第2週の日曜日のみ実行」という意図を正確に実現する
+                  if [ "$(date +%u)" -ne 7 ]; then
+                    echo "INFO: 日曜日ではないためスキップします（$(date '+%Y-%m-%d %A')）"
+                    exit 0
+                  fi
+
                   echo "=== Vault 復旧テスト開始 ==="
                   echo "実行環境: ${K1S0_ENVIRONMENT:-unknown}"
                   echo "実行日時: $(date -u +%Y-%m-%dT%H:%M:%SZ)"

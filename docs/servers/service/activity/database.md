@@ -216,6 +216,50 @@ migrations/
 |------|-----------|------|
 | 001 | create_activities | `activity_service` スキーマ・`activities` テーブル・UNIQUE 制約（idempotency_key）・インデックス |
 | 002 | create_outbox | `outbox_events` テーブル・未配信イベント用部分インデックス |
+| 003 | add_tenant_id_and_rls | `tenant_id` カラム追加・RLS ポリシー設定 |
+| 004 | add_updated_by | `updated_by` カラム追加 |
+| 005 | add_outbox_rls | `outbox_events` テーブルへの RLS ポリシー設定 |
+| 006 | fix_task_id_type | `task_id` カラムを TEXT → UUID 型に変換（不正値は NULL に変換）— **データロスリスクあり（後述）** |
+
+### migration 006: task_id TEXT → UUID 変換のデータロスリスク（H-015 監査対応）
+
+`006_fix_task_id_type.up.sql` は `activities.task_id` カラムを TEXT から UUID 型に変換するマイグレーションである。変換ロジックは CASE 式で実装されており、正規 UUID 形式（`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`）に合致しない値は `NULL` に変換される。
+
+```sql
+-- 006_fix_task_id_type.up.sql の変換ロジック（抜粋）
+ALTER TABLE activities
+    ALTER COLUMN task_id TYPE UUID USING (
+        CASE
+            WHEN task_id ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            THEN task_id::uuid
+            ELSE NULL  -- 不正値は NULL に変換（データロス発生）
+        END
+    );
+```
+
+#### 設計判断
+
+- **意図的設計**: 不正な TEXT 値（非 UUID 形式）は有効なタスク参照でないと見なし、`NULL` への変換は許容される動作として設計した。
+- **運用上の注意**: 本マイグレーションを実行する前に、不正値の存在件数を必ず確認すること。
+
+#### 実行前確認クエリ
+
+```sql
+-- マイグレーション実行前に不正値が存在しないことを確認する
+SELECT COUNT(*), task_id
+FROM activity_service.activities
+WHERE task_id IS NOT NULL
+  AND task_id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+GROUP BY task_id;
+-- 結果が 0 件であることを確認してからマイグレーションを実行すること
+-- 1 件以上ある場合は NULL 変換によるデータロスが発生するため、個別対処を検討すること
+```
+
+#### 本番環境向けチェックリスト
+
+1. ステージング環境でマイグレーションを実行し、`activities` テーブルの `task_id IS NULL` 件数が増加しないことを確認する
+2. 上記の確認クエリで不正値が 0 件であることを検証する
+3. 必要に応じて `pg_dump` でバックアップを取得してからマイグレーションを適用する
 
 ### 001_create_activities.up.sql
 

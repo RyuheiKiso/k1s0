@@ -1,16 +1,17 @@
 /// トークン保存ストア
 /// メモリストアと SecureStorage ストアの 2 種類を提供する。
-/// flutter_secure_storage は Pure Dart では使えないため、
-/// 抽象インターフェースを通じてオプショナルに対応する。
+/// H-010 監査対応: flutter_secure_storage への直接依存を廃止し、
+/// TokenStorage 抽象インターフェースを通じて依存注入パターンに移行した。
+/// pure Dart 環境では MemoryTokenStore を、Flutter 環境では
+/// FlutterTokenStorage を注入した SecureTokenStore を使用する。
 library;
 
 import 'dart:async';
 import 'dart:convert';
-// fire-and-forget エラーログ出力に使用する（M-30 監査対応）
+// エラーログ出力に使用する（M-30 監査対応）
 import 'dart:developer' as developer;
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'storage/token_storage.dart';
 import 'types.dart';
 
 /// トークンストアのインターフェース
@@ -31,7 +32,9 @@ abstract class TokenStore {
   String? getCodeVerifier();
 
   /// code_verifier を保存する
-  void setCodeVerifier(String verifier);
+  /// H-008 監査対応: Future<void> に変更し、呼び出し元で await 可能にする。
+  /// fire-and-forget を廃止し、書き込み失敗を上位に伝播させる。
+  Future<void> setCodeVerifier(String verifier);
 
   /// code_verifier を削除する
   void clearCodeVerifier();
@@ -49,21 +52,26 @@ abstract class TokenStore {
   void clearAll();
 }
 
-/// S-06 対応: flutter_secure_storage を使ったセキュアなトークンストア。
-/// Flutter アプリ（iOS/Android/macOS/Windows/Linux）での長期トークン保管に使用する。
+/// S-06 対応: TokenStorage 抽象インターフェースを使ったセキュアなトークンストア。
+/// H-010 監査対応: flutter_secure_storage の直接依存を廃止し、TokenStorage を注入パターンに移行。
+/// Flutter アプリでは FlutterTokenStorage を注入して使用する。
+/// pure Dart 環境では MemoryTokenStore を使用することを推奨する。
 ///
 /// 同期インターフェース（TokenStore）に対して内部キャッシュで応答し、
-/// 書き込みは非同期で flutter_secure_storage に永続化する。
+/// 書き込みは非同期で TokenStorage 実装に永続化する。
 /// アプリ起動時に [load] を呼び出してキャッシュをストレージから復元すること。
 ///
-/// 使用例:
+/// 使用例（Flutter 環境）:
 /// ```dart
-/// final store = SecureTokenStore();
+/// import 'src/storage/flutter_token_storage.dart';
+/// final store = SecureTokenStore(storage: FlutterTokenStorage());
 /// await store.load(); // アプリ起動時に一度呼び出す
-/// final client = AuthClient(config: config, store: store);
+/// final client = AuthClient(AuthClientOptions(config: config, tokenStore: store));
 /// ```
 class SecureTokenStore implements TokenStore {
-  final FlutterSecureStorage _storage;
+  /// H-010 監査対応: flutter_secure_storage への直接依存を廃止し、
+  /// TokenStorage 抽象インターフェースを注入パターンで受け取る
+  final TokenStorage _storage;
 
   /// セキュアストレージのキープレフィックス（複数インスタンス共存を可能にする）
   final String _prefix;
@@ -79,9 +87,9 @@ class SecureTokenStore implements TokenStore {
   String? _state;
 
   SecureTokenStore({
-    FlutterSecureStorage? storage,
+    required TokenStorage storage,
     String prefix = 'k1s0_auth_',
-  })  : _storage = storage ?? const FlutterSecureStorage(),
+  })  : _storage = storage,
         _prefix = prefix;
 
   /// ストレージからキャッシュを初期化する。
@@ -146,19 +154,21 @@ class SecureTokenStore implements TokenStore {
   String? getCodeVerifier() => _codeVerifier;
 
   @override
-  void setCodeVerifier(String verifier) {
+  // H-008 監査対応: Future<void> に変更し、セキュアストレージへの書き込みを await 可能にする。
+  // fire-and-forget を廃止し、書き込み失敗を上位に伝播させることで PKCE フローの信頼性を向上する。
+  Future<void> setCodeVerifier(String verifier) async {
     _codeVerifier = verifier;
-    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
-    unawaited(_storage
-        .write(key: '$_prefix$_kCodeVerifier', value: verifier)
-        .catchError((Object e, StackTrace st) {
+    try {
+      await _storage.write(key: '$_prefix$_kCodeVerifier', value: verifier);
+    } catch (e, st) {
       developer.log(
         'SecureTokenStore: code_verifier の書き込みに失敗しました',
         error: e,
         stackTrace: st,
         name: 'SecureTokenStore',
       );
-    }));
+      rethrow;
+    }
   }
 
   @override
@@ -256,7 +266,8 @@ class MemoryTokenStore implements TokenStore {
   String? getCodeVerifier() => _codeVerifier;
 
   @override
-  void setCodeVerifier(String verifier) => _codeVerifier = verifier;
+  // H-008 監査対応: Future<void> に変更（インターフェースに合わせる）。即座に完了する。
+  Future<void> setCodeVerifier(String verifier) async => _codeVerifier = verifier;
 
   @override
   void clearCodeVerifier() => _codeVerifier = null;

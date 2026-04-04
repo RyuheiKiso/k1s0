@@ -25,6 +25,27 @@ class TopicConfig {
     }
   }
 
+  /// トピック設定の全フィールドを検証する。
+  /// L-004 監査対応: name に加えて partitions/replicationFactor/retentionMs の正値チェックを追加する。
+  /// null 値は「未指定」として許容する（ブローカーデフォルトを使用する意図）。
+  void validate() {
+    // トピック名の検証を先に実行する
+    validateName();
+    // パーティション数が指定されている場合は正の整数であることを検証する
+    if (partitions != null && partitions! <= 0) {
+      throw ArgumentError('partitions は正の整数でなければなりません: $partitions');
+    }
+    // レプリケーションファクターが指定されている場合は正の整数であることを検証する
+    if (replicationFactor != null && replicationFactor! <= 0) {
+      throw ArgumentError(
+          'replicationFactor は正の整数でなければなりません: $replicationFactor');
+    }
+    // 保持時間（ms）が指定されている場合は正の整数であることを検証する
+    if (retentionMs != null && retentionMs! <= 0) {
+      throw ArgumentError('retentionMs は正の整数でなければなりません: $retentionMs');
+    }
+  }
+
   String tier() {
     final match = _topicNameRegex.firstMatch(name);
     return match?.group(1) ?? '';

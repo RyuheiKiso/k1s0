@@ -808,3 +808,110 @@ func TestAuthUseCaseError_Unwrap(t *testing.T) {
 		t.Error("errors.Is によって inner error を辿れるべき")
 	}
 }
+
+// ── CheckSession CSRF 再生成テスト（H-003 監査対応）──────────────────
+
+// TestCheckSession_CSRFRefresh_WhenThresholdExceeded は CSRF トークンが csrfRefreshThreshold（25分）を
+// 超えた場合に新しいトークンが生成され、セッションに保存されることを検証する（H-003 監査対応）。
+func TestCheckSession_CSRFRefresh_WhenThresholdExceeded(t *testing.T) {
+	store := newMockSessionStoreForAuth()
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0)
+
+	// 26分前に作成された CSRF トークン（csrfRefreshThreshold=25分 を超えている）
+	oldCSRFToken := "old-csrf-token-abc123"
+	sessionID, err := store.Create(context.Background(), &session.SessionData{
+		AccessToken:        "access-token",
+		CSRFToken:          oldCSRFToken,
+		CSRFTokenCreatedAt: time.Now().Add(-26 * time.Minute).Unix(),
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		Subject:            "user-1",
+	}, 30*time.Minute)
+	if err != nil {
+		t.Fatalf("セッション作成に失敗: %v", err)
+	}
+
+	out, err := uc.CheckSession(context.Background(), SessionCheckInput{SessionID: sessionID})
+	if err != nil {
+		t.Fatalf("CheckSession は nil エラーを期待したが %v が返った", err)
+	}
+
+	// CSRF トークンが再生成されていること
+	if out.CSRFToken == oldCSRFToken {
+		t.Error("CSRF トークンが再生成されていない（古いトークンがそのまま返された）")
+	}
+	if out.CSRFToken == "" {
+		t.Error("CSRF トークンが空")
+	}
+
+	// セッションストアに新しいトークンが保存されていること
+	updatedSess, err := store.Get(context.Background(), sessionID)
+	if err != nil || updatedSess == nil {
+		t.Fatalf("セッション取得に失敗: %v", err)
+	}
+	if updatedSess.CSRFToken != out.CSRFToken {
+		t.Errorf("ストア内の CSRF トークンが返値と異なる: store=%q, out=%q", updatedSess.CSRFToken, out.CSRFToken)
+	}
+	if updatedSess.CSRFTokenCreatedAt == 0 {
+		t.Error("CSRFTokenCreatedAt が更新されていない")
+	}
+}
+
+// TestCheckSession_CSRFRefresh_SkippedWhenFresh は CSRF トークンがしきい値（25分）以内の場合に
+// 再生成されないことを検証する（H-003 監査対応）。
+func TestCheckSession_CSRFRefresh_SkippedWhenFresh(t *testing.T) {
+	store := newMockSessionStoreForAuth()
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0)
+
+	// 5分前に作成された CSRF トークン（しきい値以内）
+	originalCSRFToken := "fresh-csrf-token-xyz456"
+	sessionID, err := store.Create(context.Background(), &session.SessionData{
+		AccessToken:        "access-token",
+		CSRFToken:          originalCSRFToken,
+		CSRFTokenCreatedAt: time.Now().Add(-5 * time.Minute).Unix(),
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		Subject:            "user-2",
+	}, 30*time.Minute)
+	if err != nil {
+		t.Fatalf("セッション作成に失敗: %v", err)
+	}
+
+	out, err := uc.CheckSession(context.Background(), SessionCheckInput{SessionID: sessionID})
+	if err != nil {
+		t.Fatalf("CheckSession は nil エラーを期待したが %v が返った", err)
+	}
+
+	// CSRF トークンが変更されていないこと（新鮮なので再生成不要）
+	if out.CSRFToken != originalCSRFToken {
+		t.Errorf("CSRF トークンが変更されてしまった: want %q, got %q", originalCSRFToken, out.CSRFToken)
+	}
+}
+
+// TestCheckSession_CSRFRefresh_SkippedForLegacySession は CSRFTokenCreatedAt=0 の旧形式セッションで
+// 再生成がスキップされることを検証する（H-003 後方互換性確認）。
+func TestCheckSession_CSRFRefresh_SkippedForLegacySession(t *testing.T) {
+	store := newMockSessionStoreForAuth()
+	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0)
+
+	// CSRFTokenCreatedAt=0 の旧形式セッション（後方互換性のためにスキップ）
+	legacyCSRFToken := "legacy-csrf-token"
+	sessionID, err := store.Create(context.Background(), &session.SessionData{
+		AccessToken:        "access-token",
+		CSRFToken:          legacyCSRFToken,
+		CSRFTokenCreatedAt: 0, // 旧形式: 生成時刻未設定
+		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
+		Subject:            "user-3",
+	}, 30*time.Minute)
+	if err != nil {
+		t.Fatalf("セッション作成に失敗: %v", err)
+	}
+
+	out, err := uc.CheckSession(context.Background(), SessionCheckInput{SessionID: sessionID})
+	if err != nil {
+		t.Fatalf("CheckSession は nil エラーを期待したが %v が返った", err)
+	}
+
+	// CSRFTokenCreatedAt=0 の場合は再生成をスキップし、元のトークンを返す
+	if out.CSRFToken != legacyCSRFToken {
+		t.Errorf("旧形式セッションの CSRF トークンが変更された: want %q, got %q", legacyCSRFToken, out.CSRFToken)
+	}
+}

@@ -3,6 +3,14 @@ import { AuthClient, AuthError } from '../src/auth-client';
 import { MemoryTokenStore } from '../src/token-store';
 import type { AuthConfig, TokenSet, OIDCDiscovery } from '../src/types';
 
+// C-005 監査対応: jose モジュールをモック化してテスト環境での JWKS フェッチをスキップする
+// テストでは署名検証ロジック自体ではなく AuthClient の振る舞いを検証するため、
+// jwtVerify は常に成功する（resolve する）スタブに差し替える
+vi.mock('jose', () => ({
+  createRemoteJWKSet: vi.fn(() => vi.fn()),
+  jwtVerify: vi.fn().mockResolvedValue({ payload: {}, protectedHeader: {} }),
+}));
+
 const TEST_DISCOVERY: OIDCDiscovery = {
   authorization_endpoint: 'https://auth.example.com/authorize',
   token_endpoint: 'https://auth.example.com/token',
@@ -484,6 +492,107 @@ describe('AuthClient', () => {
       expect(error.name).toBe('AuthError');
       expect(error.message).toBe('test error');
       expect(error).toBeInstanceOf(Error);
+    });
+  });
+
+  describe('verifyIdToken (C-005)', () => {
+    it('should call jwtVerify before storing token in handleCallback', async () => {
+      // C-005 監査対応: handleCallback がトークン格納前に jwtVerify を呼ぶことを確認する
+      const { jwtVerify } = await import('jose');
+      const client = createClient();
+      await client.login();
+      await client.handleCallback('auth-code-123', 'mock-state-value');
+
+      expect(jwtVerify).toHaveBeenCalledWith(
+        'mock-id-token',
+        expect.any(Function),
+        expect.objectContaining({
+          issuer: TEST_DISCOVERY.issuer,
+          audience: TEST_CONFIG.clientId,
+        }),
+      );
+    });
+
+    it('should throw AuthError when jwtVerify rejects', async () => {
+      // C-005 監査対応: 署名検証失敗時にエラーが伝播することを確認する
+      const { jwtVerify } = await import('jose');
+      const mockJwtVerify = vi.mocked(jwtVerify);
+      mockJwtVerify.mockRejectedValueOnce(new Error('JWTVerifyFailed: signature verification failed'));
+
+      const client = createClient();
+      await client.login();
+
+      await expect(
+        client.handleCallback('auth-code-123', 'mock-state-value'),
+      ).rejects.toThrow('JWTVerifyFailed: signature verification failed');
+
+      // 署名検証失敗時にトークンが格納されないことを確認
+      expect(tokenStore.getTokenSet()).toBeNull();
+
+      // 次のテストに影響しないようにモックをリセット
+      mockJwtVerify.mockResolvedValue({ payload: {}, protectedHeader: {} } as never);
+    });
+  });
+
+  describe('fetchDiscovery retry (M-016-ts)', () => {
+    it('should retry on network error and succeed on second attempt', async () => {
+      // M-016-ts 監査対応: ネットワークエラー後にリトライして成功することを確認する
+      let callCount = 0;
+      const retryFetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url === TEST_CONFIG.discoveryUrl) {
+          callCount++;
+          if (callCount === 1) {
+            // 1回目はネットワークエラー（TypeError）
+            throw new TypeError('fetch failed: network error');
+          }
+          return new Response(JSON.stringify(TEST_DISCOVERY), { status: 200 });
+        }
+        if (url === TEST_DISCOVERY.token_endpoint) {
+          return new Response(
+            JSON.stringify({
+              access_token: 'mock-access-token',
+              refresh_token: 'mock-refresh-token',
+              id_token: 'mock-id-token',
+              expires_in: 900,
+              token_type: 'Bearer',
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response('Not Found', { status: 404 });
+      });
+
+      // タイムアウト待機をスキップするためにフェイクタイマーで即時実行
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const client = createClient({ fetch: retryFetch });
+      const loginPromise = client.login();
+      // リトライ待機タイマーを進める
+      await vi.runAllTimersAsync();
+      await loginPromise;
+
+      expect(retryFetch).toHaveBeenCalledTimes(2);
+      expect(redirectUrl).not.toBeNull();
+    });
+
+    it('should not retry on 4xx error', async () => {
+      // M-016-ts 監査対応: 4xx エラーはリトライしないことを確認する
+      const noRetryFetch = vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url === TEST_CONFIG.discoveryUrl) {
+          return new Response('Not Found', { status: 404 });
+        }
+        return new Response('Not Found', { status: 404 });
+      });
+
+      const client = createClient({ fetch: noRetryFetch });
+      await expect(client.login()).rejects.toThrow('Discovery fetch failed: 404');
+
+      // 4xx なので1回だけ呼ばれる
+      const discoveryCalls = noRetryFetch.mock.calls.filter(
+        ([url]) => url === TEST_CONFIG.discoveryUrl,
+      );
+      expect(discoveryCalls.length).toBe(1);
     });
   });
 });

@@ -3,6 +3,7 @@
  * Keycloak 対応のクライアント側認証ライブラリ
  */
 
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { generateCodeVerifier, generateCodeChallenge } from './pkce.js';
 import { MemoryTokenStore } from './token-store.js';
 import type {
@@ -118,6 +119,11 @@ export class AuthClient {
     }
 
     const data = (await resp.json()) as TokenResponse;
+
+    // C-005 監査対応: トークン格納前に id_token の RS256 署名を JWKS 公開鍵で検証する
+    // 改ざんされた id_token や中間者攻撃を早期に検知するため、保存前に必ず検証する
+    await this.verifyIdToken(data.id_token, discovery);
+
     const tokenSet: TokenSet = {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
@@ -289,8 +295,22 @@ export class AuthClient {
   }
 
   /**
-   * OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュあり）。
+   * JWKS エンドポイントから公開鍵を取得してJWT id_tokenのRS256署名を検証する
+   * C-005 監査対応: Keycloak から受け取ったトークンの改ざん検知を実装
+   * issuer と audience を検証することで OIDC Core 仕様 §3.1.3.7 に準拠する
+   */
+  private async verifyIdToken(idToken: string, discovery: OIDCDiscovery): Promise<void> {
+    const JWKS = createRemoteJWKSet(new URL(discovery.jwks_uri));
+    await jwtVerify(idToken, JWKS, {
+      issuer: discovery.issuer,
+      audience: this.config.clientId,
+    });
+  }
+
+  /**
+   * OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュ + 指数バックオフリトライあり）。
    * L-20 監査対応: キャッシュが1時間を超えた場合は再取得して最新エンドポイントを使用する
+   * M-016-ts 監査対応: ネットワーク瞬断時に即失敗せず最大3回まで指数バックオフでリトライする
    */
   private async fetchDiscovery(): Promise<OIDCDiscovery> {
     // キャッシュが有効期限内であればそのまま返す
@@ -301,22 +321,59 @@ export class AuthClient {
     ) {
       return this.discoveryCache;
     }
-    const resp = await this.fetchFn(this.config.discoveryUrl);
-    if (!resp.ok) {
-      throw new AuthError(`Discovery fetch failed: ${resp.status}`);
+
+    // M-016-ts 監査対応: 指数バックオフリトライ（最大3回）
+    // リトライ対象: ネットワークエラーまたは 5xx レスポンス（4xx はリトライしない）
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS_MS = [500, 1000];
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      // 2回目以降は前の試行後に待機する
+      if (attempt > 0 && attempt - 1 < RETRY_DELAYS_MS.length) {
+        await new Promise<void>((resolve) =>
+          setTimeout(resolve, RETRY_DELAYS_MS[attempt - 1]),
+        );
+      }
+
+      try {
+        const resp = await this.fetchFn(this.config.discoveryUrl);
+
+        // 4xx はリトライしない（設定ミスやリソース不在は再試行で解決しない）
+        if (resp.status >= 400 && resp.status < 500) {
+          throw new AuthError(`Discovery fetch failed: ${resp.status}`);
+        }
+
+        if (!resp.ok) {
+          // 5xx はリトライ対象として lastError に記録してループを継続
+          lastError = new AuthError(`Discovery fetch failed: ${resp.status}`);
+          continue;
+        }
+
+        // POLY-005 監査対応: JSON パースエラーを try/catch で捕捉し AuthError にラップする。
+        // resp.json() がパース失敗した場合（不正な JSON レスポンス）、SyntaxError が AuthError に変換される。
+        let discovery: OIDCDiscovery;
+        try {
+          discovery = (await resp.json()) as OIDCDiscovery;
+        } catch (e) {
+          throw new AuthError(`Discovery JSON parse failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
+
+        this.discoveryCache = discovery;
+        // キャッシュ取得時刻を記録する
+        this.discoveryCacheTime = Date.now();
+        return this.discoveryCache;
+      } catch (e) {
+        if (e instanceof AuthError) {
+          // 4xx 等の AuthError はリトライせず即時再スロー
+          throw e;
+        }
+        // ネットワークエラー（TypeError 等）はリトライ対象
+        lastError = e instanceof Error ? e : new Error(String(e));
+      }
     }
-    // POLY-005 監査対応: JSON パースエラーを try/catch で捕捉し AuthError にラップする。
-    // resp.json() がパース失敗した場合（不正な JSON レスポンス）、SyntaxError が AuthError に変換される。
-    let discovery: OIDCDiscovery;
-    try {
-      discovery = (await resp.json()) as OIDCDiscovery;
-    } catch (e) {
-      throw new AuthError(`Discovery JSON parse failed: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    this.discoveryCache = discovery;
-    // キャッシュ取得時刻を記録する
-    this.discoveryCacheTime = Date.now();
-    return this.discoveryCache;
+
+    throw new AuthError(`Discovery fetch failed after ${MAX_RETRIES} attempts: ${lastError?.message ?? 'unknown error'}`);
   }
 }
 

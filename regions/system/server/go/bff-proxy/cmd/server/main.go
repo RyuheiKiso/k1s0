@@ -197,10 +197,12 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
 		if allowSkip {
 			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", lastErr.Error()))
-		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", lastErr.Error()), slog.String("environment", env))
-			return nil, fmt.Errorf("Redis接続に失敗しました: %w", lastErr)
+			// H-002 監査対応: broken な redis クライアントを下流に渡すと panic リスクがある。
+			// Redis スキップ時は nil を返し、呼び出し元（initSessionStore）が NoOpStore を使用する。
+			return nil, nil
 		}
+		logger.Error("Redis接続に失敗しました", slog.String("error", lastErr.Error()), slog.String("environment", env))
+		return nil, fmt.Errorf("Redis接続に失敗しました: %w", lastErr)
 	}
 	return redisClient, nil
 }
@@ -209,11 +211,22 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 // SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
 // 非開発環境で SESSION_ENCRYPTION_KEY が未設定の場合は起動を拒否する（M-04 対応）。
 // H-5 監査対応: session.FullStore を返すことで ExchangeCodeStore も単一ストアで提供できる。
+// H-002 監査対応: redisClient が nil の場合（ALLOW_REDIS_SKIP=true かつ Redis 接続失敗時）は
+// NoOpStore を返し、broken な redis クライアントが下流で panic を起こすリスクを排除する。
 func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *slog.Logger) (session.FullStore, time.Duration, error) {
 	prefix := cfg.Session.Prefix
 	if prefix == "" {
 		prefix = "bff:session:"
 	}
+
+	// H-002 監査対応: Redis 接続スキップ時（redisClient == nil）は NoOpStore を使用する。
+	// broken な redis クライアントを下流に渡すと nil dereference による panic が発生するリスクがある。
+	// NoOpStore は全操作を no-op で処理し、セッションデータは保持しない（dev 環境専用）。
+	if redisClient == nil {
+		logger.Warn("Redis クライアントが nil です。NoOpStore を使用します（dev 環境専用）。セッションは保持されません。")
+		return session.NewNoOpStore(), config.ParseDuration(cfg.Session.TTL, 30*time.Minute), nil
+	}
+
 	var sessionStore session.FullStore
 	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
 		encKey, err := hex.DecodeString(encKeyHex)
@@ -433,7 +446,11 @@ func initTracerProvider(
 		opts = append(opts, otlptracegrpc.WithInsecure())
 	}
 
-	exporter, err := otlptracegrpc.New(ctx, opts...)
+	// H-013 監査対応: otlptracegrpc.New にタイムアウトを設定し、OTel Collector 無応答時の
+	// 無限ブロックを防止する。5秒以内に接続できない場合はエラーを返す。
+	exporterCtx, exporterCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer exporterCancel()
+	exporter, err := otlptracegrpc.New(exporterCtx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
 	}

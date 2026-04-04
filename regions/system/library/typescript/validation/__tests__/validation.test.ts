@@ -3,6 +3,7 @@ import {
   validateEmail,
   validateUUID,
   validateURL,
+  validateURLNotPrivate,
   validateTenantId,
   validatePagination,
   validateDateRange,
@@ -59,6 +60,68 @@ describe('validateURL', () => {
       validateURL('bad');
     } catch (e: unknown) {
       expect((e as ValidationError).field).toBe('url');
+    }
+  });
+});
+
+describe('validateURLNotPrivate (M-010)', () => {
+  it('パブリックIPアドレスを受け入れる', () => {
+    // M-010 監査対応: パブリックIPは通過することを確認する
+    expect(() => validateURLNotPrivate('https://example.com')).not.toThrow();
+    expect(() => validateURLNotPrivate('https://8.8.8.8')).not.toThrow();
+    expect(() => validateURLNotPrivate('http://203.0.113.1')).not.toThrow();
+  });
+
+  it('RFC 1918 プライベートIPを拒否する', () => {
+    // M-010 監査対応: 10.x.x.x / 172.16-31.x.x / 192.168.x.x を拒否する
+    expect(() => validateURLNotPrivate('http://10.0.0.1')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('http://10.255.255.255')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('https://172.16.0.1')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('https://172.31.255.255')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('http://192.168.0.1')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('http://192.168.255.255')).toThrow(ValidationError);
+  });
+
+  it('172.15.x.x と 172.32.x.x は拒否しない（RFC 1918 外）', () => {
+    // 172.16-31 のみが RFC 1918 対象であることを確認する
+    expect(() => validateURLNotPrivate('http://172.15.0.1')).not.toThrow();
+    expect(() => validateURLNotPrivate('http://172.32.0.1')).not.toThrow();
+  });
+
+  it('loopback アドレスを拒否する', () => {
+    // M-010 監査対応: 127.x.x.x を拒否する
+    expect(() => validateURLNotPrivate('http://127.0.0.1')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('http://127.255.255.255')).toThrow(ValidationError);
+  });
+
+  it('IPv6 loopback を拒否する', () => {
+    // M-010 監査対応: ::1 を拒否する
+    expect(() => validateURLNotPrivate('http://[::1]')).toThrow(ValidationError);
+  });
+
+  it('link-local アドレスを拒否する', () => {
+    // M-010 監査対応: 169.254.x.x（APIPA）を拒否する
+    expect(() => validateURLNotPrivate('http://169.254.0.1')).toThrow(ValidationError);
+    expect(() => validateURLNotPrivate('http://169.254.169.254')).toThrow(ValidationError);
+  });
+
+  it('エラーコードが PRIVATE_IP_FORBIDDEN であること', () => {
+    // M-010 監査対応: 適切なエラーコードを返すことを確認する
+    try {
+      validateURLNotPrivate('http://10.0.0.1');
+    } catch (e: unknown) {
+      expect((e as ValidationError).code).toBe('PRIVATE_IP_FORBIDDEN');
+      expect((e as ValidationError).field).toBe('url');
+    }
+  });
+
+  it('無効な URL に対しては validateURL のエラーを返す', () => {
+    // 無効な URL の場合は validateURL の INVALID_URL エラーになることを確認する
+    expect(() => validateURLNotPrivate('not-a-url')).toThrow(ValidationError);
+    try {
+      validateURLNotPrivate('not-a-url');
+    } catch (e: unknown) {
+      expect((e as ValidationError).code).toBe('INVALID_URL');
     }
   });
 });

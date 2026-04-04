@@ -159,6 +159,15 @@ type ServiceClaims struct {
 
 **配置先**: `regions/system/library/typescript/serviceauth/`（[定型構成参照](../_common/共通実装パターン.md#定型ディレクトリ構成)）
 
+### getCachedToken の Promise dedup（H-017）
+
+`HttpServiceAuthClient.getCachedToken()` は並行呼び出し時の thundering herd 問題を防ぐため、Promise キャッシュ（dedup）パターンを実装している。
+
+- キャッシュが有効な場合: そのまま返す
+- キャッシュが無効で `getToken()` が実行中でない場合: `getToken()` を起動して `pending` に格納
+- キャッシュが無効で `getToken()` が実行中の場合: 既存の `pending` Promise を返す（HTTP リクエストは1回のみ）
+- エラー時: `pending` をクリアして次回呼び出しで再試行できるようにする
+
 **主要 API**:
 
 ```typescript

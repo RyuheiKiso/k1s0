@@ -18,6 +18,25 @@ container:
 service:
   grpcPort: 50051
 
+# H-005 監査対応: gRPC サービスのヘルスチェックプローブを有効化する
+# workflow は gRPC サービス（grpcPort: 50051）のため HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用する
+# grpcHealthCheck.enabled: true により k1s0-common テンプレートが liveness/readiness/startup に gRPC プローブを生成する
+probes:
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+  grpcHealthCheck:
+    enabled: true
+
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true
