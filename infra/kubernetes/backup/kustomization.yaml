@@ -11,3 +11,4 @@ resources:
   - postgres-backup-cronjob.yaml
   - harbor-backup-cronjob.yaml
   - vault-backup-cronjob.yaml
+  - vault-backup-rbac.yaml

@@ -58,6 +58,15 @@ service SagaService {
 
 // SagaStateProto は Saga の状態情報。
 message SagaStateProto {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 4;
+  // reserved "status";
+
+  // M-014 監査対応: 削除期限 2026-06（saga.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   // Saga UUID
   string id = 1;
   // ワークフロー名

@@ -56,6 +56,15 @@ spec:
           volumeMounts:
             - name: kafka-data
               mountPath: /var/lib/kafka
+          # M-007 監査対応: PSS Restricted 準拠のコンテナ securityContext
+          # readOnlyRootFilesystem は Kafka のデータ書き込みが必要なため false
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            runAsUser: 1000  # Apache Kafka のデフォルトUID
           # HIGH-13 監査対応: verify 環境のリソース制限を追加してスケジューラーへの適切なヒントを提供する
           resources:
             requests:

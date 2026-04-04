@@ -443,7 +443,21 @@
       "defaultClientScopes": [
         "openid",
         "profile",
-        "email"
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm-management-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "realm-management",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
       ]
     },
     {

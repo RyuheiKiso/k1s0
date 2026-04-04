@@ -1,6 +1,7 @@
 pub mod health;
 pub mod quota_handler;
 
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use axum::extract::State;
@@ -32,6 +33,9 @@ pub struct AppState {
     pub auth_state: Option<AuthState>,
     /// DB 接続確認用のコネクションプール（CRITICAL-003 対応: /readyz で SELECT 1 チェックに使用）
     pub db_pool: Option<sqlx::PgPool>,
+    /// H-006 監査対応: cron リセットタスクが正常稼働中かを示すフラグ。
+    /// false になった場合 /readyz が 503 を返してプロセス再起動を促す。
+    pub cron_healthy: Arc<AtomicBool>,
 }
 
 impl AppState {

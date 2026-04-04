@@ -444,6 +444,31 @@ docker compose --profile infra --profile system up -d
 
 > **推奨**: 開発中のサービスに関連するprofileのみ起動してください。
 
+### 開発環境セットアップ
+
+H-001 監査対応: 機密値を含む `.env.dev` はリポジトリに直接コミットせず、テンプレートから生成すること。
+
+1. 設定ファイルを作成:
+   ```bash
+   cp .env.dev.example .env.dev
+   ```
+
+2. セキュリティキーを生成:
+   ```bash
+   # SESSION_ENCRYPTION_KEY, API_KEY_PEPPER, VAULT_MASTER_KEY の値として使用
+   openssl rand -hex 32
+   ```
+
+3. `.env.dev` の各値を適切な値に変更してください。
+   - `<change-me>` と記載された項目は任意の安全なパスワードに変更してください。
+   - `<generate: openssl rand -hex 32 の出力を使用すること>` と記載された項目は上記コマンドの出力値で置き換えてください。
+
+> **M-001 監査対応**: `VAULT_MASTER_KEY` は Vault dev モードでシークレットを永続化するために必要です。
+> 未設定の場合、Vault を再起動するたびにシークレットが消失します。
+> `openssl rand -hex 32` で生成した値を `.env.dev` に設定してください。
+
+---
+
 ### 1. クローン & インフラ起動
 
 ```bash

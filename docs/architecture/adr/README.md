@@ -85,6 +85,19 @@
 | [ADR-0077](./0077-vault-business-service-role-isolation.md) | Vault ビジネス/サービス層ロール分離 | 承認済み |
 | [ADR-0078](./0078-audit-response-2026-04-03.md) | 外部技術監査 2026-04-03 対応記録（v1） | 承認済み |
 | [ADR-0079](./0079-external-audit-remediation-2026-04-03-v2.md) | 外部技術監査 2026-04-03 v2 対応記録 | 承認済み |
+| [ADR-0080](./0080-external-audit-remediation-2026-04-03-v3.md) | 外部技術監査対応 v3（2026-04-03） | 承認済み |
+| [ADR-0081](./0081-external-audit-remediation-2026-04-04-v4.md) | 外部技術監査 v4 対応（2026-04-04） | 承認済み |
+| [ADR-0082](./0082-graphql-pagination-unification.md) | GraphQL ページネーション統一方針 | 承認済み |
+| [ADR-0083](./0083-task-status-transition-enforcement.md) | task ステータス遷移の検証レイヤー方針 | 承認済み |
+| [ADR-0084](./0084-graphql-cursor-pagination-stability.md) | GraphQL カーソルページネーションの安定性 | 承認済み |
+| [ADR-0085](./0085-library-language-parity.md) | ライブラリの言語パリティ方針（TypeScript/Dart の意図的非対称） | 承認済み |
+| [ADR-0086](./0086-ansible-inventory-vault.md) | Ansible inventory の Vault 化ロードマップ | 承認済み（移行中） |
+| [ADR-0087](./0087-cert-manager-external-pki.md) | cert-manager 外部 PKI 統合ロードマップ | 承認済み（移行計画中） |
+| [ADR-0088](./0088-ansible-inventory-separation.md) | Ansible インベントリの環境分離方針 | 承認済み |
+| [ADR-0089](./0089-vault-role-per-service-business-service-tier.md) | Vault ロール個別化の business/service tier 拡張 | 承認済み |
+| [ADR-0090](./0090-aes-gcm-aad-introduction.md) | AES-GCM AAD（Additional Authenticated Data）導入 | 承認済み |
+| [ADR-0091](./0091-jwt-token-introspection-hybrid.md) | JWT Token Introspection ハイブリッド方式 | 承認済み |
+| [ADR-0092](./0092-aes-gcm-siv-migration-consideration.md) | AES-GCM-SIV 移行検討（M-002 監査対応） | 提案中 |
 
 ## ADR の追加方法
 

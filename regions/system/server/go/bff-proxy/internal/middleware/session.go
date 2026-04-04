@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
+	bffmetrics "github.com/k1s0-platform/system-server-go-bff-proxy/internal/metrics"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
@@ -65,6 +66,8 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 			// セッション削除失敗はユーザーの認証には影響しないが、Redisのゴミデータ蓄積を防ぐためログに記録する
 			if err := store.Delete(c.Request.Context(), sessionID); err != nil {
 				slog.Warn("セッション削除に失敗しました", "session_id", util.MaskSessionID(sessionID), "error", err)
+				// L-003 監査対応: 絶対期限切れセッションの削除失敗をメトリクスに記録する
+				bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("session_expired").Inc()
 			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error":      "BFF_SESSION_ABSOLUTE_EXPIRED",

@@ -38,8 +38,9 @@ pub fn run_non_interactive(name: Option<String>) -> Result<()> {
     };
 
     // プロジェクト名のバリデーション: 英小文字・数字・ハイフンのみ許可（パストラバーサル防止）
+    // L-001 監査対応: format string にエラー変数を直接埋め込む（冗長な {} + e を {e} に変更）。
     prompt::validate_name(&project_name)
-        .map_err(|e| anyhow::anyhow!("プロジェクト名が無効です: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("プロジェクト名が無効です: {e}"))?;
 
     // 既にディレクトリが存在する場合は上書きを防ぐためエラーを返す
     if Path::new(&project_name).exists() {

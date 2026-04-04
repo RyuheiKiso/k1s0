@@ -73,6 +73,27 @@ pub struct KeycloakClient {
 }
 
 impl KeycloakClient {
+    /// M-004 監査対応: Keycloak Admin API レスポンスの HTTP ステータスを検査し、
+    /// 403 Forbidden を権限不足エラーとして明示的に処理する。
+    /// error_for_status() では 403 が汎用エラーとして扱われ、サーキットブレーカーが
+    /// 「サービス障害」と誤認してオープン状態に遷移する問題を防止する。
+    /// 403 は設定ミス（realm-management スコープ不足）であり、再試行しても無意味なため
+    /// サーキットブレーカーを開かせるべきではない。
+    fn check_keycloak_response(resp: reqwest::Response, url: &str) -> anyhow::Result<reqwest::Response> {
+        if resp.status() == reqwest::StatusCode::FORBIDDEN {
+            tracing::error!(
+                url = %url,
+                "Keycloak Admin API で 403 Forbidden が返されました。\
+                 auth-rust-admin クライアントの realm-management スコープ設定を確認してください。"
+            );
+            return Err(anyhow::anyhow!(
+                "Keycloak Admin API への権限がありません (403)。\
+                 realm-management audience mapper の設定を確認してください。"
+            ));
+        }
+        Ok(resp)
+    }
+
     /// 新しい KeycloakClient を生成する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakConfig) -> anyhow::Result<Self> {
@@ -216,7 +237,11 @@ impl UserRepository for KeycloakClient {
             );
         }
 
-        let kc_user: KeycloakUser = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let kc_user: KeycloakUser = Self::check_keycloak_response(resp, &url)?
+            .error_for_status()?
+            .json()
+            .await?;
         Ok(kc_user.into())
     }
 
@@ -250,7 +275,11 @@ impl UserRepository for KeycloakClient {
             .await
             .map_err(|e| anyhow::anyhow!("keycloak list users failed: {}", e))?;
 
-        let kc_users: Vec<KeycloakUser> = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let kc_users: Vec<KeycloakUser> = Self::check_keycloak_response(resp, &url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         // MED-04 監査対応: count_url にも search と enabled フィルターを適用する。
         // list_url と同じ条件でカウントしないと has_next 計算が誤った値を返す可能性がある。
@@ -276,7 +305,11 @@ impl UserRepository for KeycloakClient {
             .call(|| async { http.get(&count_url).bearer_auth(&count_token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak user count failed: {}", e))?;
-        let total_count: i64 = count_resp.error_for_status()?.json().await?;
+        // M-004 監査対応: count エンドポイントでも 403 を権限不足エラーとして明示的に処理する
+        let total_count: i64 = Self::check_keycloak_response(count_resp, &count_url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         let users: Vec<User> = kc_users.into_iter().map(|u| u.into()).collect();
         let has_next = (page as i64 * page_size as i64) < total_count;
@@ -315,7 +348,11 @@ impl UserRepository for KeycloakClient {
             );
         }
 
-        let realm_roles: Vec<KeycloakRole> = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let realm_roles: Vec<KeycloakRole> = Self::check_keycloak_response(resp, &realm_url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         Ok(UserRoles {
             user_id: user_id.to_string(),

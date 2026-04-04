@@ -42,9 +42,10 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
             // -c はシード内容をシェルコマンドとして直接実行するため、
             // 改ざんされたシードファイルにより任意 SQL が実行されるリスクがある。
             // -f はファイルパスのみを psql に渡すため、この攻撃面を排除できる。
+            // L-001 監査対応: {:?} (Debug) の代わりに display() を使い {} (Display) フォーマットで出力する。
             let seed_file_path = seed_file
                 .to_str()
-                .ok_or_else(|| anyhow::anyhow!("シードファイルパスに非UTF-8文字が含まれています: {:?}", seed_file))?;
+                .ok_or_else(|| anyhow::anyhow!("シードファイルパスに非UTF-8文字が含まれています: {}", seed_file.display()))?;
 
             // HIGH-011 監査対応: デフォルトパスワードのハードコードを禁止する。
             // K1S0_DEV_PG_PASSWORD が未設定の場合はエラーで終了し、安全でない接続を防ぐ。

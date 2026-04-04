@@ -76,6 +76,7 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | bff-proxy Deploy  | `bff-proxy-deploy.yaml` | main マージ時 (`regions/system/server/go/bff-proxy/**`) | `_service-deploy.yaml` 呼び出し (port-forward) |
 | App Publish       | `publish-app.yaml` | Git タグ push (`v*`) + `regions/**/flutter/**` 変更 | Flutter デスクトップアプリのクロスプラットフォームビルド・署名・PV へのアップロード・App Registry へのメタデータ登録（[アプリ配布基盤設計](../distribution/アプリ配布基盤設計.md) 参照）|
 | coverage-rust     | `coverage-rust.yaml` | PR 時 (`regions/**/rust/**`) | Rust テストカバレッジを cargo-tarpaulin で計測し、JSON + HTML レポートをアーティファクトとしてアップロードする |
+| Proto Deprecation Check | `proto-deprecation-check.yaml` | push (`main`, `work`) + PR (`main`) + 毎月1日 0:00 UTC（schedule） | M-014 監査対応: deprecated proto フィールドの移行期限（2026-06）を自動チェックする。期限超過時は CI を失敗させて強制対応を促す。期限 30 日前からは警告を出力する |
 
 ### ci.yaml 追加ジョブ（セキュリティ監査対応）
 
@@ -85,6 +86,20 @@ Tier アーキテクチャの詳細は [tier-architecture.md](../../architecture
 | `build-gui-windows` | GUI フロントエンド（CLI/crates/k1s0-gui/ui）の Windows 環境でのビルド検証。Rolldown/Vite の Windows 互換性を可視化する。既知の Rolldown panic で失敗する可能性があるため `continue-on-error: true` を設定。失敗時は `::warning::` アノテーションで既知課題である旨を通知する |
 | `iac-validation` | IaC 検証: `infra/terraform/` の `terraform fmt -check` および dev/prod 環境の `terraform validate`（バックエンド初期化なし）を実行し、Terraform 構文・フォーマット不整合を CI で検出する |
 | `validate-k8s-placeholders` | CRIT-5,6 対応: `infra/kubernetes/security/encryption-config.yaml`（etcd 暗号化キー）および `infra/kubernetes/ingress/kong-consumer-grafana.yaml`（Grafana API キー）に `<REPLACE_WITH_...>` プレースホルダーが残存していないことを `scripts/check-placeholder-secrets.sh` で検証する。本番デプロイ前の自動注入が必須。 |
+
+### proto-deprecation-check.yaml（M-014 監査対応）
+
+`proto-deprecation-check.yaml` は deprecated proto フィールドの移行期限を自動監視する独立ワークフローである。
+
+| 項目 | 内容 |
+| --- | --- |
+| トリガー | push (`main`, `work`) / PR (`main`) / 毎月1日 0:00 UTC (schedule) |
+| チェック対象 | `api/proto/k1s0/system/auth/v1/auth.proto` の `deprecated = true` フィールド |
+| 削除期限 | 2026-06 |
+| 期限超過時 | CI を exit 1 で失敗させ、deprecated フィールドの削除と `reserved` 宣言追加を強制する |
+| 事前警告 | 期限 30 日以内の場合は WARNING ログを出力して対応を促す |
+
+**削除対象フィールド（auth.proto）:** `event_type`, `result`（M-013 対応で `deprecated = true` を付与済み）
 
 ### justfile security レシピ変更（H-4 監査対応）
 
@@ -360,6 +375,28 @@ jobs:
 
 ### Deploy ワークフロー（deploy.yaml）
 
+> **H-008 監査対応（2026-04-04）**: REGISTRY を GitHub Secret に移行
+>
+> `env.REGISTRY` に直接記載していた `harbor.internal.example.com` プレースホルダーを廃止し、
+> `${{ secrets.REGISTRY_URL }}` から読み込むよう変更した。
+> リポジトリ設定の Settings → Secrets and variables → Actions → New repository secret で
+> `REGISTRY_URL` を設定すること。
+> また `build-and-push` ジョブの先頭に `Verify registry configuration` ステップを追加し、
+> 未設定または `example.com` を含む値の場合にデプロイを中断する。
+>
+> **H-009 監査対応（2026-04-04）**: Trivy スキャンの確実な CI ゲート化
+>
+> `Run Trivy vulnerability scanner` ステップに `id: trivy` と `continue-on-error: true` を追加し、
+> 直後に `Check Trivy scan results` ステップ（`if: always()`）でスキャン結果を参照して
+> CRITICAL/HIGH 脆弱性検出時に確定的にデプロイをブロックするよう変更した。
+> `continue-on-error` により SARIF レポートが確実に生成された後に CI ゲートが判定される。
+>
+> **L-007 監査対応（2026-04-04）**: バージョン 0.0.0 フォールバックをエラー終了に変更
+>
+> `build-and-push` / `deploy-staging` / `deploy-prod` の `Set version` ステップで
+> `|| echo "0.0.0"` フォールバックを廃止し、git タグ未設定時はエラー終了するよう変更した。
+> `deploy-dev` のみ開発環境での利便性を考慮し `|| echo "0.0.0-dev"` フォールバックを維持する。
+
 ```yaml
 # .github/workflows/deploy.yaml
 name: Deploy
@@ -369,7 +406,8 @@ on:
     branches: [main]
 
 env:
-  REGISTRY: harbor.internal.example.com
+  # H-008 監査対応: REGISTRY は GitHub Secret から読み込む（プレースホルダー禁止）
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
 
 jobs:
   detect-services:
@@ -414,14 +452,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # H-008 監査対応: レジストリ URL がプレースホルダーでないことを確認する
+      - name: Verify registry configuration
+        run: |
+          if [ -z "${{ env.REGISTRY }}" ] || echo "${{ env.REGISTRY }}" | grep -q "example\.com"; then
+            echo "Error: REGISTRY が未設定またはプレースホルダーのままです。GitHub Secret 'REGISTRY_URL' を設定してください。"
+            exit 1
+          fi
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
-          # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -448,20 +493,44 @@ jobs:
         with:
           context: regions/${{ matrix.service }}
           push: true
+          # :latest タグは廃止。バージョン + git SHA で一意に特定可能なタグのみ使用する
           tags: |
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      # H-009 監査対応: id 付与で後続チェックステップが outcome を参照できるようにする
+      - name: Run Trivy vulnerability scanner
+        id: trivy
+        uses: aquasecurity/trivy-action@v0.29.0
+        continue-on-error: true
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+      # H-009 監査対応: Trivy スキャン失敗を確実に CI ゲートとして機能させる
+      - name: Check Trivy scan results
+        if: always()
+        run: |
+          if [ "${{ steps.trivy.outcome }}" = "failure" ]; then
+            echo "CRITICAL/HIGH 脆弱性が検出されました。デプロイをブロックします。"
+            exit 1
+          fi
+      - name: Upload Trivy SARIF report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-sarif-${{ steps.image.outputs.service_name }}
+          path: trivy-results.sarif
+          retention-days: 365
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
       - name: Sign image with Cosign
         run: |
           cosign sign --yes \
             ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
-        env:
-          COSIGN_EXPERIMENTAL: "1"
 
   # NOTE: デプロイジョブはクラスタネットワーク内の self-hosted ランナーで実行する。
   # 各環境のランナーはそれぞれのクラスタ内で動作し、Kubernetes API や
@@ -479,11 +548,12 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: deploy-dev のみタグがない場合は "0.0.0-dev" をフォールバックとして使用
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0-dev")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta
@@ -542,11 +612,12 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta
@@ -607,11 +678,12 @@ jobs:
           fetch-depth: 0
       - name: Set short SHA
         id: sha
-        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta
@@ -1337,16 +1409,29 @@ services:
 
 **H-07監査対応（2026-03-24）**: `exit-code: '1'` を追加し、CRITICAL/HIGH 脆弱性検出時に CI を失敗させる。`_service-deploy.yaml`・`security.yaml`・`_validate.yaml` と同等の挙動に統一した。`Upload Trivy SARIF report` ステップには `if: always()` が設定されているため、CI 失敗後もレポートはアーティファクトとして保存される。
 
+**H-009監査対応（2026-04-04）**: Trivy スキャンを確実な CI ゲートとして機能させる二段構えを導入した。`Run Trivy vulnerability scanner` に `id: trivy` と `continue-on-error: true` を付与し、SARIF ファイルを確実に生成してから `Check Trivy scan results`（`if: always()`）で `steps.trivy.outcome` を参照してデプロイをブロックする。これにより exit-code=1 による早期終了で SARIF が未生成になる問題を解消した。
+
 ```yaml
 # deploy.yaml build-and-push ジョブ内（ビルド・プッシュ後）
+# H-009 監査対応: id と continue-on-error で SARIF 生成と CI ゲートを分離する
 - name: Run Trivy vulnerability scanner
+  id: trivy
   uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+  continue-on-error: true
   with:
     image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
     format: 'sarif'
     output: 'trivy-results.sarif'
     severity: 'CRITICAL,HIGH'
-    exit-code: '1'  # H-07対応: CRITICAL/HIGH 検出時に CI を失敗させる
+    exit-code: '1'
+# H-009 監査対応: Trivy スキャン失敗を確実に CI ゲートとして機能させる
+- name: Check Trivy scan results
+  if: always()
+  run: |
+    if [ "${{ steps.trivy.outcome }}" = "failure" ]; then
+      echo "CRITICAL/HIGH 脆弱性が検出されました。デプロイをブロックします。"
+      exit 1
+    fi
 - name: Upload Trivy SARIF report
   uses: actions/upload-artifact@v4
   if: always()
@@ -1354,6 +1439,7 @@ services:
     name: trivy-sarif-${{ steps.image.outputs.service_name }}
     path: trivy-results.sarif
     if-no-files-found: warn
+    retention-days: 365
 ```
 
 ### SBOM アーティファクト保存（_service-deploy.yaml）
@@ -1981,6 +2067,52 @@ secret-scan:
 | --- | --- |
 | prod backend.tf example.com チェック（K8S-TF-002） | `infra/terraform/environments/prod/backend.tf` の Ceph RGW エンドポイントに `example.com` が残存している場合に CI を失敗させる。本番デプロイ前の設定漏れを防止する |
 | Vault バックアップイメージ整合性チェック（K8S-BACKUP-001） | `docker-compose.yaml` の vault イメージバージョンと `infra/kubernetes/backup/vault-backup-cronjob.yaml` の vault イメージバージョンが一致することを確認する |
+
+---
+
+## 監査対応変更履歴
+
+### L-003: bff-proxy セッション削除失敗 Prometheus カウンタ追加（2026-04-04）
+
+セッション削除失敗がサイレントに処理されてモニタリングできない問題を解消するため、
+`bff_session_delete_errors_total` カウンタを追加した。
+
+**変更ファイル:**
+- `regions/system/server/go/bff-proxy/internal/metrics/metrics.go` — 新規作成。全パッケージ共有の Prometheus カウンタを一元管理する
+- `regions/system/server/go/bff-proxy/internal/middleware/session.go` — 絶対期限切れセッションの削除失敗時にカウンタをインクリメント
+- `regions/system/server/go/bff-proxy/internal/usecase/auth_usecase.go` — コールバック時の既存セッション削除失敗・ログアウト時のセッション削除失敗でカウンタをインクリメント
+- `regions/system/server/go/bff-proxy/internal/usecase/proxy_usecase.go` — トークンリフレッシュ失敗後のセッション削除失敗でカウンタをインクリメント
+
+**カウンタ仕様:**
+
+| メトリクス名 | ラベル | 説明 |
+| --- | --- | --- |
+| `bff_session_delete_errors_total` | `reason="callback"` | コールバック時の既存セッション削除失敗 |
+| `bff_session_delete_errors_total` | `reason="logout"` | ログアウト時のセッション削除失敗 |
+| `bff_session_delete_errors_total` | `reason="token_refresh_fail"` | トークンリフレッシュ失敗後のセッション削除失敗 |
+| `bff_session_delete_errors_total` | `reason="session_expired"` | 絶対有効期限切れセッションの削除失敗 |
+
+**設計判断:** 複数パッケージ（middleware/usecase）から同一メトリクスを参照するため、`internal/metrics` パッケージを新規作成して重複登録エラーを防いでいる。
+
+### L-008: detect-services Helm templates サブディレクトリパターン改善（2026-04-04）
+
+`detect-services` ジョブの case パターンが `infra/helm/services/{tier}/{service}/templates/*.yaml` に
+マッチしないため、Helm テンプレートファイルのみを変更した場合にサービスが検出されない問題を修正した。
+
+**変更ファイル:** `.github/workflows/deploy.yaml`
+
+**修正内容:**
+
+```bash
+# 修正前（templates/ 配下が漏れていた）
+system/*/Chart.yaml|system/*/*.yaml)   echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
+
+# 修正後（templates/ サブディレクトリも網羅）
+system/*/Chart.yaml|system/*/*.yaml|system/*/templates/*.yaml|system/*/templates/**/*.yaml)
+  echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
+```
+
+business / service tier も同様に修正済み。変更は case パターンの拡張のみで、ロジックの変更はない。
 
 ---
 

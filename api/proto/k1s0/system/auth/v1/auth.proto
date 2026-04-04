@@ -246,6 +246,15 @@ enum AuditResult {
 
 // RecordAuditLogRequest は監査ログ記録リクエスト。
 message RecordAuditLogRequest {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 1, 7;
+  // reserved "event_type", "result";
+
+  // M-014 監査対応: 削除期限 2026-06（auth.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
   // Deprecated: event_type_enum を使用すること。
   // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
@@ -286,6 +295,15 @@ message RecordAuditLogResponse {
 
 // SearchAuditLogsRequest は監査ログ検索リクエスト。
 message SearchAuditLogsRequest {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 3, 6;
+  // reserved "event_type", "result";
+
+  // M-014 監査対応: 削除期限 2026-06（auth.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   k1s0.system.common.v1.Pagination pagination = 1;
   string user_id = 2;
   // Deprecated: event_type_enum を使用すること。
@@ -311,6 +329,15 @@ message SearchAuditLogsResponse {
 
 // AuditLog は監査ログエントリ。
 message AuditLog {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 2, 8;
+  // reserved "event_type", "result";
+
+  // M-014 監査対応: 削除期限 2026-06（auth.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   string id = 1;
   // Deprecated: event_type_enum を使用すること。
   // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）

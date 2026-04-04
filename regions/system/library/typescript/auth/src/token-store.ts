@@ -145,6 +145,12 @@ export class DevLocalStorageTokenStore implements TokenStore {
   }
 }
 
+// M-010 監査対応: トークン保存失敗時に呼び出し元（React 等）に通知するコールバックオプション
+export interface SecureTokenStoreOptions {
+  /** トークン保存/削除に失敗した場合に呼び出されるコールバック */
+  onTokenSetFailure?: (err: unknown) => void;
+}
+
 /**
  * H-007 監査対応: 本番環境用の安全なトークンストア
  * BFF（Backend for Frontend）パターンが必須: トークンは httpOnly Cookie に保存されるため
@@ -168,8 +174,10 @@ export class DevLocalStorageTokenStore implements TokenStore {
 export class SecureTokenStore implements TokenStore {
   // BFF エンドポイントのベース URL（デフォルトは同一オリジンの /bff）
   private readonly bffBaseUrl: string;
+  // M-010 監査対応: トークン操作失敗時の通知コールバックを保持するオプション
+  private readonly _options?: SecureTokenStoreOptions;
 
-  constructor(bffBaseUrl = '/bff') {
+  constructor(bffBaseUrl = '/bff', options?: SecureTokenStoreOptions) {
     // BFF が利用できない環境（SSR 等）での誤使用を検知してエラーをスローする。
     // window が存在しない場合は BFF Cookie ベースの認証フローが成立しないため使用不可とする。
     if (typeof window === 'undefined') {
@@ -179,15 +187,18 @@ export class SecureTokenStore implements TokenStore {
       );
     }
     this.bffBaseUrl = bffBaseUrl;
+    this._options = options;
   }
 
-  // BFF エンドポイントへ fetch リクエストを送信する共通ヘルパー。
+  // M-011 監査対応: BFF エンドポイントへ fetch リクエストを送信する共通ヘルパー。
   // credentials: 'include' により httpOnly Cookie が自動送信される。
   // BFF が応答しない場合は意味のあるエラーメッセージをスローする。
+  // validate 引数が指定された場合はレスポンスの実行時型検証を行う（未指定時は型アサーションのみ）。
   private async _request<T>(
     method: string,
     path: string,
-    body?: unknown
+    body?: unknown,
+    validate?: (data: unknown) => T
   ): Promise<T | null> {
     const url = `${this.bffBaseUrl}${path}`;
     const init: RequestInit = {
@@ -215,7 +226,10 @@ export class SecureTokenStore implements TokenStore {
       );
     }
     if (method === 'GET' && res.status !== 204) {
-      return (await res.json()) as T;
+      // M-011 監査対応: バリデータが指定されている場合は実行時型検証を行い、
+      // 未指定の場合は型アサーションのみとする（後方互換性を維持）
+      const data: unknown = await res.json();
+      return validate ? validate(data) : (data as T);
     }
     return null;
   }
@@ -239,6 +253,8 @@ export class SecureTokenStore implements TokenStore {
     // 同期インターフェース制約のため void を返す。本番では setTokenSetAsync() を推奨。
     this._request('POST', '/token', tokenSet).catch((err: unknown) => {
       console.error('[k1s0-auth] SecureTokenStore: トークンの保存に失敗しました。', err);
+      // M-010 監査対応: 呼び出し元に認証リセットを通知する
+      this._options?.onTokenSetFailure?.(err);
     });
   }
 
@@ -246,6 +262,8 @@ export class SecureTokenStore implements TokenStore {
   clearTokenSet(): void {
     this._request('DELETE', '/token').catch((err: unknown) => {
       console.error('[k1s0-auth] SecureTokenStore: トークンの削除に失敗しました。', err);
+      // M-010 監査対応: 呼び出し元に認証リセットを通知する
+      this._options?.onTokenSetFailure?.(err);
     });
   }
 

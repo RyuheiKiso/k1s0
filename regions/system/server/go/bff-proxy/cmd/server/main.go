@@ -110,8 +110,19 @@ func run() error {
 	return startServer(ctx, cfg, router, logger, oidcWg)
 }
 
+// H-011 監査対応: Redis Sentinel フェイルオーバー中のトランジェントエラーに対応するための定数。
+// 指数バックオフでリトライする最大回数と初回待機時間を定義する。
+const (
+	// redisMaxRetries は起動時 Ping の最大リトライ回数（1秒 → 2秒 → 4秒の3回）
+	redisMaxRetries = 3
+	// redisInitialDelay は最初のリトライ待機時間
+	redisInitialDelay = 1 * time.Second
+)
+
 // initRedis は設定から Redis クライアントを生成し、接続確認 Ping を実行する。
 // コネクションプール設定を適用する（M-011）。
+// H-011 監査対応: Sentinel フェイルオーバー中のトランジェントエラーへの対応として
+// 指数バックオフリトライ（最大3回）を適用する。
 // ALLOW_REDIS_SKIP=true かつ dev 環境の場合のみ接続失敗を無視する。
 func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) (redis.Cmdable, error) {
 	redisCfg := cfg.Session.Redis
@@ -156,15 +167,39 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 		})
 	}
 
-	// Redis 接続確認: redis.Cmdable 経由で Ping を呼び出す
-	if err := redisClient.Ping(ctx).Err(); err != nil {
+	// H-011 監査対応: Redis 接続確認を指数バックオフリトライ付きで実行する。
+	// Sentinel フェイルオーバー中はマスター切り替えにより一時的に接続不能となる場合がある。
+	// 最大3回（1秒 → 2秒 → 4秒）リトライし、全試行失敗時のみエラーとして扱う。
+	var lastErr error
+	for i := 0; i < redisMaxRetries; i++ {
+		if err := redisClient.Ping(ctx).Err(); err == nil {
+			// Ping 成功: リトライループを抜ける
+			lastErr = nil
+			break
+		} else {
+			lastErr = err
+			if i < redisMaxRetries-1 {
+				// 次のリトライまでの待機時間: 1s → 2s → 4s（左シフトで指数計算）
+				delay := redisInitialDelay << i
+				logger.WarnContext(ctx, "Redis接続に失敗しました。リトライします",
+					"attempt", i+1,
+					"max_retries", redisMaxRetries,
+					"retry_after", delay,
+					"error", err,
+				)
+				time.Sleep(delay)
+			}
+		}
+	}
+	if lastErr != nil {
+		// 全リトライ失敗: dev環境かつ ALLOW_REDIS_SKIP=true の場合のみ続行する
 		env := cfg.App.Environment
 		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
 		if allowSkip {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", lastErr.Error()))
 		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
-			return nil, fmt.Errorf("Redis接続に失敗しました: %w", err)
+			logger.Error("Redis接続に失敗しました", slog.String("error", lastErr.Error()), slog.String("environment", env))
+			return nil, fmt.Errorf("Redis接続に失敗しました: %w", lastErr)
 		}
 	}
 	return redisClient, nil

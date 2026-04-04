@@ -1,99 +1,108 @@
 #![allow(clippy::unwrap_used)]
 use k1s0_encryption::{
-    aes_decrypt, aes_encrypt, generate_aes_key, generate_rsa_key_pair, hash_password, rsa_decrypt,
-    rsa_encrypt, verify_password, EncryptionError,
+    aes_decrypt, aes_decrypt_with_legacy_fallback, aes_encrypt, generate_aes_key,
+    generate_rsa_key_pair, hash_password, rsa_decrypt, rsa_encrypt, verify_password,
+    EncryptionError,
 };
 
 // ─── AES ────────────────────────────────────────────────────────────────────
 
 // AES-GCM による暗号化・復号のラウンドトリップが正常に動作することを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定して後方互換性を確認する。
 #[test]
 fn aes_encrypt_decrypt_roundtrip() {
     let key = generate_aes_key();
     let plaintext = b"Hello, World!";
 
-    let encrypted = aes_encrypt(&key, plaintext).unwrap();
-    let decrypted = aes_decrypt(&key, &encrypted).unwrap();
+    let encrypted = aes_encrypt(&key, plaintext, b"").unwrap();
+    let decrypted = aes_decrypt(&key, &encrypted, b"").unwrap();
 
     assert_eq!(decrypted, plaintext);
 }
 
 // バイナリデータの AES-GCM 暗号化・復号が正常に動作することを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_encrypt_decrypt_roundtrip_binary_data() {
     let key = generate_aes_key();
     let plaintext: Vec<u8> = (0..=255).collect();
 
-    let encrypted = aes_encrypt(&key, &plaintext).unwrap();
-    let decrypted = aes_decrypt(&key, &encrypted).unwrap();
+    let encrypted = aes_encrypt(&key, &plaintext, b"").unwrap();
+    let decrypted = aes_decrypt(&key, &encrypted, b"").unwrap();
 
     assert_eq!(decrypted, plaintext);
 }
 
 // 異なる AES キーでの復号が失敗することを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_decrypt_with_wrong_key_fails() {
     let key1 = generate_aes_key();
     let key2 = generate_aes_key();
     let plaintext = b"secret data";
 
-    let encrypted = aes_encrypt(&key1, plaintext).unwrap();
-    let result = aes_decrypt(&key2, &encrypted);
+    let encrypted = aes_encrypt(&key1, plaintext, b"").unwrap();
+    let result = aes_decrypt(&key2, &encrypted, b"");
 
     assert!(result.is_err());
 }
 
 // 空データの AES-GCM 暗号化・復号が正常に動作することを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_encrypt_decrypt_empty_data() {
     let key = generate_aes_key();
     let plaintext = b"";
 
-    let encrypted = aes_encrypt(&key, plaintext).unwrap();
-    let decrypted = aes_decrypt(&key, &encrypted).unwrap();
+    let encrypted = aes_encrypt(&key, plaintext, b"").unwrap();
+    let decrypted = aes_decrypt(&key, &encrypted, b"").unwrap();
 
     assert_eq!(decrypted, plaintext.to_vec());
 }
 
 // 同じ平文を暗号化するたびにランダム nonce により異なる暗号文が生成されることを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_encrypt_produces_different_ciphertexts_for_same_input() {
     let key = generate_aes_key();
     let plaintext = b"same input";
 
-    let encrypted1 = aes_encrypt(&key, plaintext).unwrap();
-    let encrypted2 = aes_encrypt(&key, plaintext).unwrap();
+    let encrypted1 = aes_encrypt(&key, plaintext, b"").unwrap();
+    let encrypted2 = aes_encrypt(&key, plaintext, b"").unwrap();
 
     // Due to random nonce, encryptions of the same plaintext differ
     assert_ne!(encrypted1, encrypted2);
 }
 
 // 無効な Base64 文字列の AES 復号がエラーになることを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_decrypt_invalid_base64_returns_error() {
     let key = generate_aes_key();
-    let result = aes_decrypt(&key, "!!!not-base64!!!");
+    let result = aes_decrypt(&key, "!!!not-base64!!!", b"");
     assert!(result.is_err());
 }
 
 // nonce サイズより短い暗号文の復号がエラーになることを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_decrypt_too_short_ciphertext_returns_error() {
     let key = generate_aes_key();
     // base64 of a few bytes (less than 12-byte nonce)
     let short = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, [1, 2, 3]);
-    let result = aes_decrypt(&key, &short);
+    let result = aes_decrypt(&key, &short, b"");
     assert!(result.is_err());
 }
 
 // 大容量データ（1MB）の AES-GCM 暗号化・復号が正常に動作することを確認する。
+// C-001 監査対応: aad 引数に空バイト列を指定する。
 #[test]
 fn aes_large_data_roundtrip() {
     let key = generate_aes_key();
     let plaintext = vec![0xABu8; 1_000_000]; // 1 MB
 
-    let encrypted = aes_encrypt(&key, &plaintext).unwrap();
-    let decrypted = aes_decrypt(&key, &encrypted).unwrap();
+    let encrypted = aes_encrypt(&key, &plaintext, b"").unwrap();
+    let decrypted = aes_decrypt(&key, &encrypted, b"").unwrap();
 
     assert_eq!(decrypted, plaintext);
 }
@@ -104,6 +113,29 @@ fn aes_different_keys_are_unique() {
     let k1 = generate_aes_key();
     let k2 = generate_aes_key();
     assert_ne!(k1, k2);
+}
+
+// C-001 Phase A: 旧形式（AAD なし）で暗号化されたデータが aes_decrypt_with_legacy_fallback で復号できることを確認する。
+#[test]
+fn aes_legacy_fallback_decrypts_old_format() {
+    let key = generate_aes_key();
+    let plaintext = b"legacy encrypted data";
+    // 旧形式: AAD なしで暗号化する
+    let encrypted = aes_encrypt(&key, plaintext, b"").unwrap();
+    // 新形式 AAD を指定してもフォールバックで復号できることを確認する
+    let decrypted = aes_decrypt_with_legacy_fallback(&key, &encrypted, b"some-new-aad").unwrap();
+    assert_eq!(decrypted, plaintext);
+}
+
+// C-001 Phase A: 新形式（AAD あり）で暗号化されたデータが aes_decrypt_with_legacy_fallback で正常に復号できることを確認する。
+#[test]
+fn aes_legacy_fallback_decrypts_new_format_with_correct_aad() {
+    let key = generate_aes_key();
+    let plaintext = b"new encrypted data";
+    let aad = b"system.auth.namespace";
+    let encrypted = aes_encrypt(&key, plaintext, aad).unwrap();
+    let decrypted = aes_decrypt_with_legacy_fallback(&key, &encrypted, aad).unwrap();
+    assert_eq!(decrypted, plaintext);
 }
 
 // ─── RSA ────────────────────────────────────────────────────────────────────

@@ -40,7 +40,8 @@ spec:
   hard:
     requests.cpu: "8"
     requests.memory: 16Gi
-    limits.cpu: "16"
+    # M-006 監査対応: 26サービス × デフォルト1コア = 26コアに引き上げ（旧値 16 は8-16 Pod しかスケジューリングできなかった）
+    limits.cpu: "26"
     limits.memory: 32Gi
     # 26サービス × 1.5レプリカ(平均) = 39 → バッファ20%含め 50 に設定（dev 1x）
     pods: "50"

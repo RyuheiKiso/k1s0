@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	bffmetrics "github.com/k1s0-platform/system-server-go-bff-proxy/internal/metrics"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
@@ -111,6 +112,8 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 						slog.String("session_id", util.MaskSessionID(input.SessionID)),
 					)
 				}
+				// L-003 監査対応: トークンリフレッシュ失敗後のセッション削除失敗をメトリクスに記録する
+				bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("token_refresh_fail").Inc()
 			}
 			return nil, &ProxyUseCaseError{Code: "BFF_PROXY_TOKEN_EXPIRED", Err: err}
 		}

@@ -8,7 +8,8 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
 /// C-005 監査対応: AES-256-GCM 暗号化・復号化関数をインポートする
-use k1s0_encryption::aes::{aes_decrypt, aes_encrypt};
+/// C-001 Phase A: 後方互換フォールバック付き復号関数を追加する（aes_decrypt は直接使用しない）
+use k1s0_encryption::aes::{aes_decrypt_with_legacy_fallback, aes_encrypt};
 
 /// チャンネルの PostgreSQL リポジトリ実装
 /// C-005: channels.config を AES-256-GCM で暗号化して保存する
@@ -43,14 +44,17 @@ impl ChannelPostgresRepository {
         Ok(())
     }
 
-    /// config JSON を AES-256-GCM で暗号化する
+    /// config JSON を AES-256-GCM で暗号化する。
+    /// C-001 監査対応: AAD にチャンネル ID を使用し、異なるチャンネル間での
+    /// ciphertext 流用（swap attack）を防止する。
     /// 暗号化キーが設定されていない場合は None を返す（平文 config カラムを使用）
-    fn encrypt_config(&self, config: &serde_json::Value) -> anyhow::Result<Option<String>> {
+    fn encrypt_config(&self, channel_id: &str, config: &serde_json::Value) -> anyhow::Result<Option<String>> {
         match &self.encryption_key {
             Some(key) => {
                 let plaintext = serde_json::to_vec(config)
                     .map_err(|e| anyhow::anyhow!("設定の JSON シリアライズに失敗: {}", e))?;
-                let encrypted = aes_encrypt(key, &plaintext)
+                // C-001 監査対応: AAD にチャンネル ID を指定して暗号化する
+                let encrypted = aes_encrypt(key, &plaintext, channel_id.as_bytes())
                     .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 暗号化に失敗: {}", e))?;
                 Ok(Some(encrypted))
             }
@@ -58,11 +62,15 @@ impl ChannelPostgresRepository {
         }
     }
 
-    /// 暗号化済み設定を復号化して serde_json::Value に変換する
-    fn decrypt_config(&self, encrypted: &str) -> anyhow::Result<serde_json::Value> {
+    /// 暗号化済み設定を復号化して serde_json::Value に変換する。
+    /// C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
+    /// 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
+    /// Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
+    fn decrypt_config(&self, channel_id: &str, encrypted: &str) -> anyhow::Result<serde_json::Value> {
         match &self.encryption_key {
             Some(key) => {
-                let plaintext = aes_decrypt(key, encrypted)
+                // C-001 Phase A: AAD にチャンネル ID を指定して新形式で復号を試み、失敗時は旧形式にフォールバックする
+                let plaintext = aes_decrypt_with_legacy_fallback(key, encrypted, channel_id.as_bytes())
                     .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 復号化に失敗: {}", e))?;
                 serde_json::from_slice(&plaintext)
                     .map_err(|e| anyhow::anyhow!("復号化済み設定の JSON 解析に失敗: {}", e))
@@ -74,12 +82,13 @@ impl ChannelPostgresRepository {
         }
     }
 
-    /// ChannelRow をドメインエンティティに変換する
-    /// encrypted_config が存在する場合は復号化を優先する（dual-read 移行戦略）
+    /// ChannelRow をドメインエンティティに変換する。
+    /// encrypted_config が存在する場合は復号化を優先する（dual-read 移行戦略）。
+    /// C-001 監査対応: decrypt_config の AAD にチャンネル ID を渡してコンテキスト検証を実施する。
     fn row_to_channel(&self, row: ChannelRow) -> anyhow::Result<NotificationChannel> {
         let config = if let Some(ref encrypted) = row.encrypted_config {
-            // C-005: 暗号化済みデータが存在する場合は復号化して使用する
-            self.decrypt_config(encrypted)?
+            // C-005/C-001: 暗号化済みデータが存在する場合はチャンネル ID を AAD として復号化する
+            self.decrypt_config(&row.id, encrypted)?
         } else {
             // 移行前のデータまたは暗号化キーなしの場合は平文 config を使用する
             row.config
@@ -217,8 +226,8 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
     }
 
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
-        // C-005: 設定を暗号化する（暗号化キーが設定されている場合）
-        let encrypted_config = self.encrypt_config(&channel.config)?;
+        // C-005/C-001: 設定を暗号化する（AAD にチャンネル ID を使用）
+        let encrypted_config = self.encrypt_config(&channel.id, &channel.config)?;
 
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;
@@ -251,8 +260,8 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
     }
 
     async fn update(&self, channel: &NotificationChannel) -> anyhow::Result<()> {
-        // C-005: 設定を暗号化する（暗号化キーが設定されている場合）
-        let encrypted_config = self.encrypt_config(&channel.config)?;
+        // C-005/C-001: 設定を暗号化する（AAD にチャンネル ID を使用）
+        let encrypted_config = self.encrypt_config(&channel.id, &channel.config)?;
 
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;

@@ -249,10 +249,11 @@ fn resolve_scaffold_root() -> Result<PathBuf> {
     // .expect() の代わりに Result を返し、ヘルプフルなエラーメッセージを提供する。
     // 優先順位3: 開発時フォールバック（CARGO_MANIFEST_DIR 基準）
     // 配布バイナリでは動作しないが、cargo test 等の開発時環境では有効
+    // L-001 監査対応: 冗長なクロージャを除去し Path::to_path_buf メソッド参照に変更する。
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(3)
-        .map(|p| p.to_path_buf())
+        .map(Path::to_path_buf)
         .filter(|p| p.is_dir())
         .ok_or_else(|| {
             anyhow::anyhow!(

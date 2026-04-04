@@ -288,8 +288,9 @@ fn find_doctor_script() -> Option<PathBuf> {
     // 優先度1: K1S0_ROOT 環境変数が設定されている場合はそのパスを優先する
     // CLI-MED-001 監査対応: canonicalize でシンボリックリンクと相対パスを解決し、
     // パストラバーサル攻撃を防止する。
+    // L-001 監査対応: `canonicalize().ok()` + `if let Some` を `if let Ok` に変更する。
     if let Ok(root) = std::env::var("K1S0_ROOT") {
-        if let Some(canonical) = std::path::PathBuf::from(&root).canonicalize().ok() {
+        if let Ok(canonical) = std::path::PathBuf::from(&root).canonicalize() {
             let path = canonical.join("scripts").join("doctor.sh");
             if path.exists() {
                 return Some(path);

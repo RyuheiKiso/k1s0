@@ -248,14 +248,21 @@ pub async fn run() -> anyhow::Result<()> {
     // Metrics
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("k1s0-quota-server"));
 
+    // H-006 監査対応: cron タスクの健全性フラグを初期化する（true = 正常稼働中）
+    // readyz ハンドラがこのフラグを参照し、false になったら 503 を返してプロセス再起動を促す
+    let cron_healthy = Arc::new(std::sync::atomic::AtomicBool::new(true));
+
     // Quota usage auto-reset cron
     {
         let daily_cron = cfg.quota.reset_schedule.daily.clone();
         let monthly_cron = cfg.quota.reset_schedule.monthly.clone();
         let cron_reset_uc = reset_usage_uc.clone();
         let cron_list_uc = list_policies_uc.clone();
+        // H-006 監査対応: cron タスクに健全性フラグの参照を渡し、
+        // 最大リトライ到達時に false にセットさせることで readyz に連携する
+        let cron_healthy_flag = Arc::clone(&cron_healthy);
         tokio::spawn(async move {
-            run_reset_cron(daily_cron, monthly_cron, cron_reset_uc, cron_list_uc).await;
+            run_reset_cron(daily_cron, monthly_cron, cron_reset_uc, cron_list_uc, cron_healthy_flag).await;
         });
     }
 
@@ -301,6 +308,8 @@ pub async fn run() -> anyhow::Result<()> {
         auth_state: None,
         // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
         db_pool: db_pool_for_readyz,
+        // H-006 監査対応: cron リセットタスクの健全性フラグを AppState に渡す
+        cron_healthy: Arc::clone(&cron_healthy),
     };
     // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
     let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, quota_grpc_action);
@@ -381,14 +390,29 @@ fn quota_grpc_action(method: &str) -> &'static str {
 
 // --- Cron-based quota usage reset ---
 
+// H-006/M-005 監査対応: cron計算失敗時の最大リトライ回数
+// この回数を超えた場合はエラーログを出力してタスクを終了する
+const CRON_MAX_RETRY: u32 = 10;
+
+// H-006/M-005 監査対応: cron計算失敗時のリトライ待機時間（秒）
+// 一時的な障害（時刻同期ずれ等）を考慮して60秒後に再試行する
+const CRON_RETRY_WAIT_SECS: u64 = 60;
+
+/// H-006 監査対応: quota リセット cron タスク。
+/// cron_healthy フラグを受け取り、最大リトライ到達時に false にセットして
+/// /readyz が 503 を返すようにし、プロセス再起動を促す。
 async fn run_reset_cron(
     daily_expr: String,
     monthly_expr: String,
     reset_uc: Arc<usecase::ResetQuotaUsageUseCase>,
     list_uc: Arc<usecase::ListQuotaPoliciesUseCase>,
+    cron_healthy: Arc<std::sync::atomic::AtomicBool>,
 ) {
     use std::str::FromStr;
+    use std::sync::atomic::Ordering;
 
+    // croner v2 形式（6フィールド: 秒 分 時 日 月 曜日）でスケジュールを登録する
+    // パース失敗したスケジュールはスキップし、有効なものだけ使用する
     let schedules: Vec<(&str, croner::Cron)> = [
         ("daily", daily_expr.as_str()),
         ("monthly", monthly_expr.as_str()),
@@ -415,10 +439,17 @@ async fn run_reset_cron(
     })
     .collect();
 
+    // 有効なスケジュールが1件もない場合はタスクを終了する
+    // H-006 監査対応: スケジュールが空の場合も cron_healthy を false にして readyz に連携する
     if schedules.is_empty() {
         tracing::warn!("no valid cron schedules, reset cron task exiting");
+        cron_healthy.store(false, Ordering::Relaxed);
         return;
     }
+
+    // H-006 監査対応: cron計算失敗の連続カウンタ
+    // find_next_occurrence が連続してNoneを返した場合にリトライ上限でタスクを終了する
+    let mut consecutive_failures: u32 = 0;
 
     loop {
         let now = chrono::Utc::now();
@@ -438,10 +469,35 @@ async fn run_reset_cron(
         }
 
         let (fire_at, label) = match next_fire {
-            Some(v) => v,
+            Some(v) => {
+                // cron計算に成功したので連続失敗カウンタをリセットする
+                consecutive_failures = 0;
+                v
+            }
             None => {
-                tracing::error!("no next cron occurrence found, reset cron task exiting");
-                return;
+                // H-006 監査対応: cron計算失敗時に即座に終了するのではなく、
+                // 60秒待機後にリトライする。最大リトライ回数到達後にフラグを false にして終了する。
+                consecutive_failures += 1;
+                tracing::error!(
+                    retry = consecutive_failures,
+                    max_retry = CRON_MAX_RETRY,
+                    wait_secs = CRON_RETRY_WAIT_SECS,
+                    "cron occurrence の計算に失敗しました。リトライ待機後に再試行します",
+                );
+                if consecutive_failures >= CRON_MAX_RETRY {
+                    // H-006 監査対応: 最大リトライ到達時に cron_healthy を false にセットして
+                    // /readyz が 503 を返すようにし、Kubernetes の readinessProbe によるプロセス再起動を促す
+                    cron_healthy.store(false, Ordering::Relaxed);
+                    tracing::error!(
+                        max_retry = CRON_MAX_RETRY,
+                        "cron occurrence の計算が連続して失敗しました。\
+                        reset cron タスクを終了します（readyz に unhealthy を通知済み）。\
+                        システム管理者は cron 式の設定を確認してください。",
+                    );
+                    return;
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(CRON_RETRY_WAIT_SECS)).await;
+                continue;
             }
         };
 

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"time"
 
+	bffmetrics "github.com/k1s0-platform/system-server-go-bff-proxy/internal/metrics"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
@@ -278,6 +279,8 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 				"session_id", util.MaskSessionID(input.ExistingSessionID),
 				"error", err,
 			)
+			// L-003 監査対応: コールバック時の既存セッション削除失敗をメトリクスに記録する
+			bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("callback").Inc()
 		}
 	}
 
@@ -377,6 +380,8 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 			"session_id", util.MaskSessionID(input.SessionID),
 			"error", err,
 		)
+		// L-003 監査対応: ログアウト時のセッション削除失敗をメトリクスに記録する
+		bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("logout").Inc()
 	}
 
 	// IdP ログアウト URL を構築する（id_token_hint 付き）

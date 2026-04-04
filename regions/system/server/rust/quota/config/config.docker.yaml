@@ -18,3 +18,12 @@ kafka:
   topic_exceeded: "k1s0.system.quota.exceeded.v1"
   topic_threshold: "k1s0.system.quota.threshold.v1"
   security_protocol: "PLAINTEXT"
+
+# クォータリセットスケジュール設定（croner v2形式: 秒 分 時 日 月 曜日）
+# H-006/M-005 監査対応: docker環境での明示的なスケジュール定義
+# croner v2 は6フィールド形式を必須とする。5フィールド形式では find_next_occurrence が
+# None を返し cron タスクが即終了する問題が発生するため、秒フィールドを先頭に記載する。
+quota:
+  reset_schedule:
+    daily: "0 0 0 * * *"    # 毎日深夜0時（UTC）
+    monthly: "0 0 0 1 * *"  # 毎月1日深夜0時（UTC）

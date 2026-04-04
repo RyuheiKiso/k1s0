@@ -72,6 +72,7 @@ impl ConfigPostgresRepository {
     /// value_json を AES-256-GCM で暗号化し、(value_json_to_store, encrypted_value, is_encrypted) を返す。
     /// 機密 namespace の場合: value_json = '{}'（空 JSON）、encrypted_value = 暗号文（base64）、is_encrypted = true
     /// 非機密 namespace の場合: value_json = 元の値、encrypted_value = NULL、is_encrypted = false
+    /// C-001 監査対応: AAD に namespace バイト列を使用し、ciphertext swap attack を防止する。
     fn encrypt_value(
         &self,
         namespace: &str,
@@ -80,7 +81,8 @@ impl ConfigPostgresRepository {
         if self.is_sensitive_namespace(namespace) {
             let key = self.encryption_key.as_ref().unwrap(); // is_sensitive_namespace で Some を確認済み
             let plaintext = value_json.to_string();
-            let ciphertext = k1s0_encryption::aes_encrypt(key, plaintext.as_bytes())
+            // C-001 監査対応: AAD に namespace を指定し、namespace をまたいだ ciphertext の流用を防ぐ
+            let ciphertext = k1s0_encryption::aes_encrypt(key, plaintext.as_bytes(), namespace.as_bytes())
                 .map_err(|e| {
                     ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
                         "設定値の暗号化に失敗: {}",
@@ -223,6 +225,7 @@ impl ConfigPostgresRepository {
 
 /// PostgreSQL の行から ConfigEntry を構築するヘルパー。
 /// STATIC-HIGH-002: is_encrypted = true の場合、encrypted_value を復号して value_json として返す。
+/// C-001 監査対応: 復号時の AAD に namespace を使用し、暗号化時と同一コンテキストを検証する。
 fn row_to_config_entry(
     row: sqlx::postgres::PgRow,
     encryption_key: Option<&[u8; 32]>,
@@ -230,12 +233,17 @@ fn row_to_config_entry(
     let description: Option<String> = row.try_get("description")?;
     let is_encrypted: bool = row.try_get("is_encrypted").unwrap_or(false);
     let encrypted_value: Option<String> = row.try_get("encrypted_value").unwrap_or(None);
+    // C-001 監査対応: AAD 検証のため namespace を先に取得する
+    let namespace: String = row.try_get("namespace")?;
 
     // 暗号化済みエントリの場合は復号して value_json として使用する
     let value_json = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext).map_err(|e| {
+                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
+                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
+                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
+                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
                     anyhow::anyhow!("設定値の復号に失敗: {}", e)
                 })?;
                 serde_json::from_slice(&plaintext).map_err(|e| {
@@ -251,7 +259,7 @@ fn row_to_config_entry(
 
     Ok(ConfigEntry {
         id: row.try_get("id")?,
-        namespace: row.try_get("namespace")?,
+        namespace,
         key: row.try_get("key")?,
         value_json,
         version: row.try_get("version")?,
@@ -265,17 +273,23 @@ fn row_to_config_entry(
 
 /// PostgreSQL の行から ServiceConfigEntry を構築するヘルパー。
 /// STATIC-HIGH-002: is_encrypted = true の場合、encrypted_value を復号して value として返す。
+/// C-001 監査対応: 復号時の AAD に namespace を使用し、暗号化時と同一コンテキストを検証する。
 fn row_to_service_config_entry(
     row: sqlx::postgres::PgRow,
     encryption_key: Option<&[u8; 32]>,
 ) -> Result<ServiceConfigEntry, anyhow::Error> {
     let is_encrypted: bool = row.try_get("is_encrypted").unwrap_or(false);
     let encrypted_value: Option<String> = row.try_get("encrypted_value").unwrap_or(None);
+    // C-001 監査対応: AAD 検証のため namespace を先に取得する
+    let namespace: String = row.try_get("namespace")?;
 
     let value = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext).map_err(|e| {
+                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
+                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
+                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
+                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
                     anyhow::anyhow!("サービス設定値の復号に失敗: {}", e)
                 })?;
                 serde_json::from_slice(&plaintext).map_err(|e| {
@@ -289,7 +303,7 @@ fn row_to_service_config_entry(
     };
 
     Ok(ServiceConfigEntry {
-        namespace: row.try_get("namespace")?,
+        namespace,
         key: row.try_get("key")?,
         value,
         version: row.try_get("version")?,

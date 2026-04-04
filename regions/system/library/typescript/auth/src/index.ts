@@ -15,7 +15,9 @@ export { MemoryTokenStore } from './token-store.js';
 export { DevLocalStorageTokenStore } from './token-store.js';
 // H-007 監査対応: 本番環境用の BFF パターンを使用した安全なトークンストア。
 // httpOnly Cookie 経由でトークンを管理するため、XSS によるトークン窃取を防止する。
+// M-010 監査対応: SecureTokenStoreOptions を公開し、呼び出し元がトークン失敗コールバックを設定できるようにする。
 export { SecureTokenStore } from './token-store.js';
+export type { SecureTokenStoreOptions } from './token-store.js';
 export type {
   AuthConfig,
   TokenResponse,

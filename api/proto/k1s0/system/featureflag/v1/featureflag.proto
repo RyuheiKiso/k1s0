@@ -158,6 +158,15 @@ message WatchFeatureFlagRequest {
 
 // WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
 message WatchFeatureFlagResponse {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 2;
+  // reserved "change_type";
+
+  // M-014 監査対応: 削除期限 2026-06（featureflag.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   string flag_key = 1;
   // Deprecated: use change_type_enum instead.
   // CREATED, UPDATED, DELETED
