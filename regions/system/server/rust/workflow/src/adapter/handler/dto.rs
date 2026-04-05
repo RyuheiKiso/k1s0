@@ -19,7 +19,7 @@ use crate::usecase::{
 // --- アプリケーション状態 ---
 
 /// 全ユースケースとメトリクスを保持するアプリケーション共有状態
-/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
+/// db_pool は /readyz エンドポイントで DB 接続確認に使用する（CRITICAL-003 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -176,10 +176,14 @@ pub struct UpdateWorkflowRequest {
 // --- インスタンス関連 DTO ---
 
 /// ワークフロー実行（インスタンス開始）リクエスト
+/// RUST-LOW-001 対応: initiator_id は JWT Claims の sub から取得するため省略可能とする
+/// Claims が存在する場合は sub を優先し、存在しない場合はリクエストの値にフォールバックする
 #[derive(Debug, Deserialize)]
 pub struct ExecuteWorkflowRequest {
     pub title: String,
-    pub initiator_id: String,
+    /// 省略時は JWT Claims の sub から自動設定される
+    #[serde(default)]
+    pub initiator_id: Option<String>,
     #[serde(default)]
     pub context: serde_json::Value,
 }

@@ -52,13 +52,14 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
 
     let all_backends_ok = redis_ok && db_ok && kafka_ok;
 
-    // in-memory フォールバック時は degraded を返す
+    // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
+    // in-memory フォールバック時は degraded を返す（ADR-0068 仕様上 200 OK を維持）
     let status = if !state.redis_configured {
         "degraded"
     } else if all_backends_ok {
-        "ready"
+        "healthy"
     } else {
-        "not_ready"
+        "unhealthy"
     };
 
     // in-memory 時も 200 を返す（サービス自体は動作可能）。バックエンド障害時は 503。
@@ -75,6 +76,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         "in-memory"
     };
 
+    // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+    let timestamp = chrono::Utc::now().to_rfc3339();
     (
         code,
         Json(serde_json::json!({
@@ -85,7 +88,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "redis": redis_status,
                 "postgresql": db_status,
                 "kafka": kafka_status
-            }
+            },
+            "timestamp": timestamp
         })),
     )
 }

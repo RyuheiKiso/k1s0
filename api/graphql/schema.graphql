@@ -1,9 +1,27 @@
-# GraphQL スキーマ定義
+# =============================================================================
+# MED-014 監査対応: 手動管理参照スキーマ（自動生成ではない）
+#
 # このファイルは api/graphql/schema.graphql が参照用スキーマ。
 # 実装は async-graphql のコードファーストアプローチで graphql_handler.rs に定義されている。
+#
+# 【重要】このファイルは手動管理であり、実装コードから自動生成されない。
+# 実装を変更した場合は必ずこのファイルを手動で同期すること。
+#
+# 更新手順:
+#   1. graphql-gateway の graphql_handler.rs を変更する
+#   2. このファイルを同じ内容に合わせて手動更新する
+#   3. TODO: 将来的に CI で `cargo run --bin schema-gen > api/graphql/schema.graphql`
+#            を実行して差分があれば CI 失敗とする自動化を検討する（MED-014）
+#
+# H-024 監査対応: CI でのスキーマ構文バリデーション
+# `.github/workflows/_validate.yaml` の `validate-graphql-schema` ジョブが
+# graphql パッケージを使用してこのファイルの構文を自動検証する。
+# スキーマを変更した場合は CI が構文エラーを検知するため、必ず CI を通過させること。
+#
 # 最終更新: 2026-03-27（外部監査 C-9 対応: AuditEventType/AuditResult enum 追加・M-3 対応: navigation bearerToken 引数除去）
 # L-15 監査対応: DateTime スカラー型を追加。RFC 3339 形式（例: "2026-03-27T12:00:00Z"）で表現する。
 # createdAt / updatedAt 等の日時フィールドは String! ではなく DateTime! を使用すること。
+# =============================================================================
 
 # L-15 監査対応: DateTime カスタムスカラー定義。
 # ISO 8601 / RFC 3339 形式の日時文字列（例: "2026-03-27T12:34:56Z"）を表す。
@@ -176,10 +194,24 @@ enum TenantStatus {
   DELETED
 }
 
+# C-001 監査対応: Relay カーソルスタイルに変更。Rust 実装の TenantEdge/TenantConnection/PageInfo に合わせる。
+type TenantEdge {
+  node: Tenant!
+  cursor: String!
+}
+
 type TenantConnection {
-  nodes: [Tenant!]!
+  edges: [TenantEdge!]!
+  pageInfo: PageInfo!
   totalCount: Int!
-  hasNext: Boolean!
+}
+
+# C-001 監査対応: Relay 仕様に準拠したページネーション情報型。
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 # ===========================================================================
@@ -187,11 +219,37 @@ type TenantConnection {
 # ===========================================================================
 
 type FeatureFlag {
-  key: String!
-  name: String!
+  # CRIT-007 監査対応: proto FeatureFlag と完全整合させる
+  # proto に存在しない rolloutPercentage/targetEnvironments/name を削除し、
+  # proto の variants/rules/createdAt/updatedAt を追加する
+  id: ID!
+  # proto flag_key フィールド（featureflag.feature_flags.flag_key カラム）
+  flagKey: String!
+  # proto FeatureFlag.description フィールド
+  description: String
   enabled: Boolean!
-  rolloutPercentage: Int!
-  targetEnvironments: [String!]!
+  # proto FeatureFlag.variants（バリアント一覧）
+  variants: [FlagVariant!]!
+  # proto FeatureFlag.rules（評価ルール一覧）
+  rules: [FlagRule!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# proto FlagVariant と整合するバリアント型
+type FlagVariant {
+  name: String!
+  value: String!
+  weight: Int!
+}
+
+# proto FlagRule と整合するルール型
+type FlagRule {
+  attribute: String!
+  # 比較演算子: EQ / NE / CONTAINS / GT / LT
+  operator: String!
+  value: String!
+  variant: String!
 }
 
 # ===========================================================================
@@ -330,11 +388,18 @@ type PermissionCheck {
 
 """
 監査ログのイベント種別（C-9 監査対応: 文字列フィールドを型安全な enum に移行）。
+C-004 監査対応: proto の AuditEventType と双方向整合させる。
+  - proto に存在するが GraphQL に欠落していた TOKEN_REFRESH, PERMISSION_CHECK を追加。
+  - GraphQL に存在するが proto に欠落していた値は proto 側に追加済み（auth.proto 参照）。
 新規クライアントは eventType（文字列）の代わりにこの enum を使用すること。
 """
 enum AuditEventType {
   LOGIN
   LOGOUT
+  # C-004 監査対応: proto AUDIT_EVENT_TYPE_TOKEN_REFRESH に対応
+  TOKEN_REFRESH
+  # C-004 監査対応: proto AUDIT_EVENT_TYPE_PERMISSION_CHECK に対応
+  PERMISSION_CHECK
   CREATE
   UPDATE
   DELETE
@@ -545,10 +610,11 @@ type WorkflowInstance {
   contextJson: String
   # L-20 監査対応: 日時フィールドを適切な型に変更する。
   # startedAt / completedAt は日時フィールドのため DateTime 型を使用する。
-  # createdAt は NULL 不可フィールドのため DateTime! に修正する（常に存在する値のため）。
+  # M-021 監査対応: createdAt は proto の optional Timestamp に対応するため nullable に変更する。
+  # start_instance レスポンスでは created_at が返却されないケースがあるため DateTime（nullable）を使用する。
   startedAt: DateTime!
   completedAt: DateTime
-  createdAt: DateTime!
+  createdAt: DateTime
 }
 
 type WorkflowTask {
@@ -589,8 +655,10 @@ input CreateTenantInput {
 }
 
 input UpdateTenantInput {
-  name: String
-  status: TenantStatus
+  # CRIT-007 対応: proto UpdateTenantRequest に合わせて displayName と plan に変更
+  # status 変更は suspendTenant/activateTenant 専用ミューテーションを使用すること
+  displayName: String
+  plan: String
 }
 
 type CreateTenantPayload {
@@ -608,9 +676,26 @@ type UpdateTenantPayload {
 # ===========================================================================
 
 input SetFeatureFlagInput {
+  # CRIT-007 監査対応: proto UpdateFlagRequest と整合させ、
+  # rolloutPercentage/targetEnvironments を廃止して variants/rules を直接受け付ける
   enabled: Boolean!
-  rolloutPercentage: Int
-  targetEnvironments: [String!]
+  variants: [FlagVariantInput!]
+  rules: [FlagRuleInput!]
+}
+
+# FlagVariant 入力型（proto FlagVariant と整合）
+input FlagVariantInput {
+  name: String!
+  value: String!
+  weight: Int!
+}
+
+# FlagRule 入力型（proto FlagRule と整合）
+input FlagRuleInput {
+  attribute: String!
+  operator: String!
+  value: String!
+  variant: String!
 }
 
 type SetFeatureFlagPayload {
@@ -663,11 +748,13 @@ type DeleteServicePayload {
 
 # 監査ログ記録用入力型 - セキュリティ上クライアントから提供すべきでないフィールドは除去済み
 # userId: JWT claims から取得、ipAddress/userAgent: リクエストヘッダから取得する
+# MED-026 監査対応: eventType と result を String から AuditEventType/AuditResult enum に変更。
+# 型安全性を向上させ、不正な値の混入を防止する。
 input RecordAuditLogInput {
-  eventType: String!
+  eventType: AuditEventType!
   resource: String!
   action: String!
-  result: String!
+  result: AuditResult!
   resourceId: String
   traceId: String
 }

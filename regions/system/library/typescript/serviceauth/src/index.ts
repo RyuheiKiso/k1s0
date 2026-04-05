@@ -92,6 +92,12 @@ export interface ServiceAuthClient {
 export class HttpServiceAuthClient implements ServiceAuthClient {
   private readonly config: ServiceAuthConfig;
   private cached: ServiceToken | null = null;
+  /**
+   * 並行呼び出し時の重複リクエストを防ぐPromiseキャッシュ（インフライトトークン）
+   * H-017 監査対応: thundering herd 問題の解消
+   * 同時に複数の呼び出しが来た場合、最初の1件のみ getToken() を実行し残りは同一 Promise を待機する
+   */
+  private pending: Promise<string> | null = null;
 
   constructor(config: ServiceAuthConfig) {
     this.config = config;
@@ -130,14 +136,30 @@ export class HttpServiceAuthClient implements ServiceAuthClient {
     };
   }
 
+  /**
+   * 並行呼び出し時の重複リクエストを防ぐPromiseキャッシュパターン
+   * H-017 監査対応: thundering herd 問題の解消
+   * キャッシュが有効な場合はキャッシュを返し、無効な場合は進行中の Promise を再利用する
+   * これにより並行リクエストが多数来ても getToken() は1回しか実行されない
+   */
   async getCachedToken(): Promise<string> {
     if (this.cached && !shouldRefresh(this.cached)) {
       return bearerHeader(this.cached);
     }
-
-    const token = await this.getToken();
-    this.cached = token;
-    return bearerHeader(token);
+    if (!this.pending) {
+      this.pending = this.getToken()
+        .then(token => {
+          this.cached = token;
+          this.pending = null;
+          return bearerHeader(token);
+        })
+        .catch(err => {
+          // エラー時は pending をクリアして次回の呼び出しで再試行できるようにする
+          this.pending = null;
+          throw err;
+        });
+    }
+    return this.pending;
   }
 
   validateSpiffeId(uri: string, expectedNamespace: string): SpiffeId {

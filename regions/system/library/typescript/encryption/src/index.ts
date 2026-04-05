@@ -46,9 +46,12 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return argon2.verify(hash, password);
 }
 
+// MED-014 監査対応: RSA 鍵長を 2048 → 3072 ビットに引き上げ。
+// NIST SP 800-131A Rev 2 では 2048 ビットは 2031 年まで使用可能だが、
+// 3072 ビットは 128-bit セキュリティ相当で長期利用に推奨されている。
 export function generateRsaKeyPair(): { publicKey: string; privateKey: string } {
   const { publicKey, privateKey } = generateKeyPairSync('rsa', {
-    modulusLength: 2048,
+    modulusLength: 3072,
     publicKeyEncoding: { type: 'spki', format: 'pem' },
     privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
   });

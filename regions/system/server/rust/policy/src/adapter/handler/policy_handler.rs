@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -7,17 +7,32 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use k1s0_auth::Claims;
+
 use super::AppState;
 use crate::usecase::create_policy::CreatePolicyInput;
 use crate::usecase::evaluate_policy::EvaluatePolicyInput;
 use crate::usecase::list_policies::ListPoliciesInput;
 use crate::usecase::update_policy::UpdatePolicyInput;
 
+/// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
+/// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
+fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+    claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 /// GET /api/v1/policies
 pub async fn list_policies(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(params): Query<ListPoliciesParams>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let enabled_only = params.enabled_only.unwrap_or(false);
@@ -45,6 +60,7 @@ pub async fn list_policies(
         page_size,
         bundle_id,
         enabled_only,
+        tenant_id,
     };
 
     match state.list_policies_uc.execute(&input).await {
@@ -69,15 +85,24 @@ pub async fn list_policies(
                 .into_response()
         }
         Err(crate::usecase::list_policies::ListPoliciesError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
 
 /// GET /api/v1/policies/:id
-pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
-    match state.get_policy_uc.execute(&id).await {
+pub async fn get_policy(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    match state.get_policy_uc.execute(&id, &tenant_id).await {
         Ok(Some(policy)) => {
             let resp = PolicyResponse::from(policy);
             (StatusCode::OK, Json(resp)).into_response()
@@ -88,7 +113,9 @@ pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -97,8 +124,12 @@ pub async fn get_policy(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
 /// POST /api/v1/policies
 pub async fn create_policy(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreatePolicyRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let CreatePolicyRequest {
         name,
         description,
@@ -131,6 +162,7 @@ pub async fn create_policy(
         rego_content,
         package_path,
         bundle_id,
+        tenant_id,
     };
 
     match state.create_policy_uc.execute(&input).await {
@@ -150,7 +182,9 @@ pub async fn create_policy(
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(crate::usecase::create_policy::CreatePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -159,14 +193,19 @@ pub async fn create_policy(
 /// PUT /api/v1/policies/:id
 pub async fn update_policy(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdatePolicyRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = UpdatePolicyInput {
         id,
         description: req.description,
         rego_content: req.rego_content,
         enabled: req.enabled,
+        tenant_id,
     };
 
     match state.update_policy_uc.execute(&input).await {
@@ -175,12 +214,15 @@ pub async fn update_policy(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(e) => {
+            // M-005 TODO: 型付きエラー enum への移行が望ましい（現状は文字列マッチングで代替）
             let msg = e.to_string();
             if msg.contains("not found") {
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+                // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+                tracing::error!("policy_handler update internal error: {msg}");
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -190,11 +232,15 @@ pub async fn update_policy(
 /// DELETE /api/v1/policies/:id
 pub async fn delete_policy(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_policy::DeletePolicyError;
 
-    match state.delete_policy_uc.execute(&id).await {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    match state.delete_policy_uc.execute(&id, &tenant_id).await {
         Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -209,7 +255,9 @@ pub async fn delete_policy(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeletePolicyError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -218,13 +266,18 @@ pub async fn delete_policy(
 /// POST /api/v1/policies/:id/evaluate
 pub async fn evaluate_policy(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<Uuid>,
     Json(req): Json<EvaluatePolicyRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = EvaluatePolicyInput {
         policy_id: Some(id),
         package_path: String::new(),
         input: req.input,
+        tenant_id,
     };
 
     match state.evaluate_policy_uc.execute(&input).await {
@@ -244,7 +297,9 @@ pub async fn evaluate_policy(
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             } else {
-                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+                // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+                tracing::error!("policy_handler evaluate internal error: {msg}");
+                let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
             }
         }
@@ -252,8 +307,14 @@ pub async fn evaluate_policy(
 }
 
 /// GET /api/v1/bundles
-pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_bundles_uc.execute().await {
+pub async fn list_bundles(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    match state.list_bundles_uc.execute(&tenant_id).await {
         Ok(bundles) => {
             let items: Vec<BundleResponse> =
                 bundles.into_iter().map(BundleResponse::from).collect();
@@ -264,15 +325,24 @@ pub async fn list_bundles(State(state): State<AppState>) -> impl IntoResponse {
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
 
 /// GET /api/v1/bundles/:id
-pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> impl IntoResponse {
-    match state.get_bundle_uc.execute(&id).await {
+pub async fn get_bundle(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    match state.get_bundle_uc.execute(&id, &tenant_id).await {
         Ok(bundle) => {
             let resp = BundleResponse::from(bundle);
             (StatusCode::OK, Json(resp)).into_response()
@@ -283,7 +353,9 @@ pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(crate::usecase::get_bundle::GetBundleError::Internal(msg)) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &msg);
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない（ログには記録する）
+            tracing::error!("policy_handler internal error: {msg}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -292,9 +364,13 @@ pub async fn get_bundle(State(state): State<AppState>, Path(id): Path<Uuid>) -> 
 /// POST /api/v1/bundles
 pub async fn create_bundle(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreateBundleRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::create_bundle::CreateBundleInput;
+
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
 
     let policy_ids: Result<Vec<Uuid>, _> =
         req.policy_ids.iter().map(|s| Uuid::parse_str(s)).collect();
@@ -312,6 +388,7 @@ pub async fn create_bundle(
         description: req.description,
         enabled: req.enabled,
         policy_ids,
+        tenant_id,
     };
 
     match state.create_bundle_uc.execute(&input).await {
@@ -320,7 +397,9 @@ pub async fn create_bundle(
             (StatusCode::CREATED, Json(resp)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細をレスポンスに含めない
+            tracing::error!("policy_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_POLICY_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

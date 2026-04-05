@@ -9,6 +9,8 @@ import type { WatchTenantRequest } from "./tenant";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
 import type { GetProvisioningStatusResponse } from "./tenant";
 import type { GetProvisioningStatusRequest } from "./tenant";
+import type { UpdateMemberRoleResponse } from "./tenant";
+import type { UpdateMemberRoleRequest } from "./tenant";
 import type { RemoveMemberResponse } from "./tenant";
 import type { RemoveMemberRequest } from "./tenant";
 import type { ListMembersResponse } from "./tenant";
@@ -99,6 +101,12 @@ export interface ITenantServiceClient {
      * @generated from protobuf rpc: RemoveMember
      */
     removeMember(input: RemoveMemberRequest, options?: RpcOptions): UnaryCall<RemoveMemberRequest, RemoveMemberResponse>;
+    /**
+     * UpdateMemberRole はテナントメンバーのロールを更新する。
+     *
+     * @generated from protobuf rpc: UpdateMemberRole
+     */
+    updateMemberRole(input: UpdateMemberRoleRequest, options?: RpcOptions): UnaryCall<UpdateMemberRoleRequest, UpdateMemberRoleResponse>;
     /**
      * GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
      *
@@ -215,12 +223,21 @@ export class TenantServiceClient implements ITenantServiceClient, ServiceInfo {
         return stackIntercept<RemoveMemberRequest, RemoveMemberResponse>("unary", this._transport, method, opt, input);
     }
     /**
+     * UpdateMemberRole はテナントメンバーのロールを更新する。
+     *
+     * @generated from protobuf rpc: UpdateMemberRole
+     */
+    updateMemberRole(input: UpdateMemberRoleRequest, options?: RpcOptions): UnaryCall<UpdateMemberRoleRequest, UpdateMemberRoleResponse> {
+        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        return stackIntercept<UpdateMemberRoleRequest, UpdateMemberRoleResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * GetProvisioningStatus はテナントプロビジョニングジョブのステータスを返す。
      *
      * @generated from protobuf rpc: GetProvisioningStatus
      */
     getProvisioningStatus(input: GetProvisioningStatusRequest, options?: RpcOptions): UnaryCall<GetProvisioningStatusRequest, GetProvisioningStatusResponse> {
-        const method = this.methods[10], opt = this._transport.mergeOptions(options);
+        const method = this.methods[11], opt = this._transport.mergeOptions(options);
         return stackIntercept<GetProvisioningStatusRequest, GetProvisioningStatusResponse>("unary", this._transport, method, opt, input);
     }
     /**
@@ -229,7 +246,7 @@ export class TenantServiceClient implements ITenantServiceClient, ServiceInfo {
      * @generated from protobuf rpc: WatchTenant
      */
     watchTenant(input: WatchTenantRequest, options?: RpcOptions): ServerStreamingCall<WatchTenantRequest, WatchTenantResponse> {
-        const method = this.methods[11], opt = this._transport.mergeOptions(options);
+        const method = this.methods[12], opt = this._transport.mergeOptions(options);
         return stackIntercept<WatchTenantRequest, WatchTenantResponse>("serverStreaming", this._transport, method, opt, input);
     }
 }

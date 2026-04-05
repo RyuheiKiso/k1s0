@@ -1,5 +1,7 @@
 module github.com/k1s0-platform/system-server-go-bff-proxy
 
+// H-020 監査対応: Dockerfile のベースイメージ（golang@sha256:2389...）は go1.26.1 であるため
+// go.mod のバージョン宣言を実際のビルドツールバージョンと一致させる
 go 1.26.1
 
 require (
@@ -62,7 +64,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/arch v0.24.0 // indirect
-	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect; indirect // POLY-010 監査対応: 定期的に `go get -u golang.org/x/crypto` で最新版に更新すること
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect

@@ -4,7 +4,7 @@ export 'src/auth/auth_provider.dart'
         // テスト時のモック差し替えを可能にするために公開する
         sessionCookieInterceptorProvider;
 export 'src/http/api_client.dart'
-    show ApiClient, CsrfTokenInterceptor, CsrfTokenProvider, SessionCookieInterceptor;
+    show ApiClient, CsrfTokenInterceptor, CsrfTokenProvider, SessionCookieInterceptor, SessionExpiredCallback;
 export 'src/routing/auth_guard.dart';
 export 'src/widgets/app_button.dart';
 export 'src/widgets/app_scaffold.dart';

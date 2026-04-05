@@ -247,7 +247,7 @@ dependencies = [
  "handlebars",
  "http",
  "indexmap 2.13.0",
- "lru",
+ "lru 0.16.3",
  "mime",
  "multer",
  "num-traits",
@@ -802,6 +802,17 @@ checksum = "7a0dd1ca384932ff3641c8718a02769f1698e7563dc6974ffd03346116310423"
 dependencies = [
  "find-msvc-tools",
  "shlex",
+]
+
+[[package]]
+name = "cfb"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d38f2da7a0a2c4ccf0065be06397cc26a81f4e528be095826eee9d4adbb8c60f"
+dependencies = [
+ "byteorder",
+ "fnv",
+ "uuid",
 ]
 
 [[package]]
@@ -2422,6 +2433,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "infer"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc150e5ce2330295b8616ce0e3f53250e53af31759a9dbedad1621ba29151847"
+dependencies = [
+ "cfb",
+]
+
+[[package]]
 name = "inout"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2655,6 +2675,7 @@ dependencies = [
  "serde_yaml",
  "sha2",
  "sqlx",
+ "tempfile",
  "testcontainers",
  "testcontainers-modules",
  "thiserror 2.0.18",
@@ -2738,6 +2759,7 @@ dependencies = [
  "moka",
  "prost",
  "prost-types",
+ "rand 0.8.5",
  "rdkafka",
  "reqwest",
  "secrecy",
@@ -2755,6 +2777,7 @@ dependencies = [
  "tokio-util",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -2938,9 +2961,11 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.8.8",
+ "base64 0.22.1",
  "chrono",
  "k1s0-auth",
  "k1s0-correlation",
+ "k1s0-encryption",
  "k1s0-server-common",
  "k1s0-telemetry",
  "mockall",
@@ -2960,6 +2985,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -3210,6 +3236,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -3242,6 +3269,7 @@ dependencies = [
  "axum 0.8.8",
  "axum-test",
  "chrono",
+ "infer",
  "k1s0-auth",
  "k1s0-correlation",
  "k1s0-server-common",
@@ -3310,6 +3338,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -3457,6 +3486,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum 0.8.8",
+ "chrono",
  "k1s0-auth",
  "k1s0-correlation",
  "k1s0-server-common",
@@ -3472,6 +3502,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tracing",
  "tracing-subscriber",
@@ -3522,6 +3553,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -3752,6 +3784,7 @@ dependencies = [
  "k1s0-correlation",
  "k1s0-server-common",
  "k1s0-telemetry",
+ "lru 0.12.5",
  "mockall",
  "moka",
  "prost",
@@ -3884,6 +3917,7 @@ dependencies = [
  "tokio-util",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -4076,6 +4110,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -4159,6 +4194,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -4250,6 +4286,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tower-http",
  "tracing",
@@ -4322,6 +4359,7 @@ dependencies = [
  "tokio-test",
  "tonic",
  "tonic-build",
+ "tonic-health",
  "tower 0.5.3",
  "tracing",
  "tracing-subscriber",
@@ -4445,6 +4483,15 @@ name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+
+[[package]]
+name = "lru"
+version = "0.12.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
+dependencies = [
+ "hashbrown 0.15.5",
+]
 
 [[package]]
 name = "lru"
@@ -7389,6 +7436,19 @@ dependencies = [
  "prost-types",
  "quote",
  "syn 2.0.117",
+]
+
+[[package]]
+name = "tonic-health"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1eaf34ddb812120f5c601162d5429933c9b527d901ab0e7f930d3147e33a09b2"
+dependencies = [
+ "async-stream",
+ "prost",
+ "tokio",
+ "tokio-stream",
+ "tonic",
 ]
 
 [[package]]

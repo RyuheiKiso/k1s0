@@ -19,7 +19,8 @@ database:
 
 auth:
   jwt:
-    issuer: "http://localhost:8180/realms/k1s0"
+    # HIGH-003: Docker環境ではコンテナ名を使用する
+    issuer: "http://keycloak:8080/realms/k1s0"
     audience: "k1s0-api"
 
 health_collector:

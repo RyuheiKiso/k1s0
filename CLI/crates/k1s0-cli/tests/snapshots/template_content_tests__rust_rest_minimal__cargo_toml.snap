@@ -1,6 +1,6 @@
 ---
 source: crates/k1s0-cli/tests/template_content_tests.rs
-assertion_line: 101
+assertion_line: 117
 expression: content
 ---
 [package]
@@ -9,7 +9,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7"
+# axum 0.8: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -28,7 +29,8 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 thiserror = "2"
 
 utoipa = { version = "5", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+# utoipa-swagger-ui 9: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
 
 
 
@@ -37,5 +39,6 @@ utoipa-swagger-ui = { version = "8", features = ["axum"] }
 
 
 [dev-dependencies]
-mockall = "0.13"
+# mockall 0.14: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+mockall = "0.14"
 tokio = { version = "1", features = ["test-util", "macros"] }

@@ -29,13 +29,14 @@ impl GetRuleUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, rule_id: &str) -> Result<RateLimitRule, GetRuleError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを取得する。
+    pub async fn execute(&self, rule_id: &str, tenant_id: &str) -> Result<RateLimitRule, GetRuleError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetRuleError::InvalidRuleId(rule_id.to_string()))?;
 
         let rule = self
             .repo
-            .find_by_id(&id)
+            .find_by_id(&id, tenant_id)
             .await
             .map_err(|e| GetRuleError::NotFound(e.to_string()))?;
 
@@ -64,10 +65,10 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+            .returning(move |_, _| Ok(return_rule.clone()));
 
         let uc = GetRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute(&rule_id.to_string()).await;
+        let result = uc.execute(&rule_id.to_string(), "tenant-a").await;
 
         assert!(result.is_ok());
         let found = result.unwrap();
@@ -79,10 +80,10 @@ mod tests {
     async fn test_get_rule_not_found() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("not found")));
 
         let uc = GetRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a").await;
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GetRuleError::NotFound(_)));
@@ -92,7 +93,7 @@ mod tests {
     async fn test_get_rule_invalid_uuid() {
         let repo = MockRateLimitRepository::new();
         let uc = GetRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("invalid-uuid").await;
+        let result = uc.execute("invalid-uuid", "tenant-a").await;
 
         assert!(result.is_err());
         assert!(matches!(

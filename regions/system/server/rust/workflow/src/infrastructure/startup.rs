@@ -315,6 +315,14 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_addr = resolve_bind_addr(&cfg.server.host, cfg.server.grpc_port).await?;
     info!("gRPC server starting on {}", grpc_addr);
 
+    // gRPC Health Check Protocol サービスを登録する。
+    // readyz エンドポイントや Kubernetes の livenessProbe/readinessProbe が
+    // Bearer token なしでヘルスチェックできるようにするため。
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<WorkflowServiceServer<crate::adapter::grpc::WorkflowServiceTonic>>()
+        .await;
+
     let grpc_metrics = metrics;
     let grpc_auth_layer =
         crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
@@ -323,6 +331,7 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(health_service)
             .add_service(WorkflowServiceServer::new(workflow_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;

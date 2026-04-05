@@ -34,6 +34,8 @@ anyhow = {workspace = true}
 thiserror = {workspace = true}
 async-trait = {workspace = true}
 sha2 = {workspace = true}
+# RUST-CRIT-001 対応: アトミックな一時ファイル作成と Drop 時の自動削除で TOCTOU 脆弱性を防止する
+tempfile = {workspace = true}
 
 # パスワードなどの機密情報を Debug トレイト経由の漏洩から保護する（H-1 監査対応）
 secrecy = {workspace = true}

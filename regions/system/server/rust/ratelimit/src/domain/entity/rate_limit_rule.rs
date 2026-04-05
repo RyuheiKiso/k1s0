@@ -51,6 +51,8 @@ pub struct RateLimitRule {
     pub window_seconds: u32,
     pub algorithm: Algorithm,
     pub enabled: bool,
+    /// CRIT-005 対応: RLS テナント分離用テナント ID。
+    pub tenant_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -74,6 +76,8 @@ impl RateLimitRule {
             window_seconds,
             algorithm,
             enabled: true,
+            // デフォルトテナント ID: RLS セッション変数が未設定の場合のフォールバック。
+            tenant_id: "system".to_string(),
             created_at: now,
             updated_at: now,
         }

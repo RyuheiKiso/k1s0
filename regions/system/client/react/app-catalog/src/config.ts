@@ -5,6 +5,8 @@ declare const __APP_CONFIG__: AppConfig;
 interface AppConfig {
   app: { name: string; version: string; env: string };
   api: { base_url: string; timeout: number; retry: { max_attempts: number; backoff_ms: number } };
+  // BFF設定: ブラウザから見た BFF のベースパス（FE-004 監査対応）
+  bff: { base_url: string };
   features: Record<string, boolean>;
 }
 

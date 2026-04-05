@@ -17,6 +17,96 @@ pub trait EventProducer: Send + Sync {
 /// NoOpEventProducer はテスト・スタブ用の何もしないプロデューサー実装。
 pub struct NoOpEventProducer;
 
+/// InMemoryEventProducer はテスト用のインメモリプロデューサー実装。
+///
+/// LOW-013 監査対応: 各サービスのテストモジュールで重複していた InMemoryProducer を
+/// 共通ライブラリに集約する。EventProducer トレイトを使用するサービスはこの実装を
+/// `use k1s0_messaging::producer::InMemoryEventProducer;` で参照できる。
+///
+/// # 使用例
+/// ```no_run
+/// use k1s0_messaging::producer::{EventProducer, InMemoryEventProducer};
+/// use k1s0_messaging::event::EventEnvelope;
+///
+/// let producer = InMemoryEventProducer::new();
+/// // publish 後にメッセージを検証する
+/// let messages = producer.messages();
+/// assert_eq!(messages.len(), 1);
+/// ```
+#[cfg(any(test, feature = "testing"))]
+pub struct InMemoryEventProducer {
+    /// 送信されたメッセージのインメモリストア（テスト検証用）
+    messages: std::sync::Arc<std::sync::Mutex<Vec<EventEnvelope>>>,
+    /// true の場合 publish 呼び出しをエラーとして扱う（エラーハンドリングテスト用）
+    should_fail: bool,
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl InMemoryEventProducer {
+    /// 正常系テスト用のインスタンスを生成する。
+    pub fn new() -> Self {
+        Self {
+            messages: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            should_fail: false,
+        }
+    }
+
+    /// エラー系テスト用のインスタンスを生成する。publish 呼び出しが常にエラーを返す。
+    pub fn with_error() -> Self {
+        Self {
+            messages: std::sync::Arc::new(std::sync::Mutex::new(Vec::new())),
+            should_fail: true,
+        }
+    }
+
+    /// 送信済みメッセージのスナップショットを返す（テスト検証用）。
+    pub fn messages(&self) -> Vec<EventEnvelope> {
+        self.messages.lock().unwrap().clone()
+    }
+
+    /// 送信済みメッセージ数を返す（テスト検証用）。
+    pub fn message_count(&self) -> usize {
+        self.messages.lock().unwrap().len()
+    }
+
+    /// 送信済みメッセージを全て削除する（テスト間の状態リセット用）。
+    pub fn clear(&self) {
+        self.messages.lock().unwrap().clear();
+    }
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl Default for InMemoryEventProducer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(any(test, feature = "testing"))]
+#[async_trait::async_trait]
+impl EventProducer for InMemoryEventProducer {
+    async fn publish(&self, envelope: EventEnvelope) -> Result<(), MessagingError> {
+        if self.should_fail {
+            return Err(MessagingError::ProducerError(
+                "InMemoryEventProducer: simulate producer failure".to_string(),
+            ));
+        }
+        self.messages.lock().unwrap().push(envelope);
+        Ok(())
+    }
+
+    async fn publish_batch(&self, envelopes: Vec<EventEnvelope>) -> Result<(), MessagingError> {
+        if self.should_fail {
+            return Err(MessagingError::ProducerError(
+                "InMemoryEventProducer: simulate producer failure".to_string(),
+            ));
+        }
+        let mut store = self.messages.lock().unwrap();
+        store.extend(envelopes);
+        Ok(())
+    }
+}
+
 #[async_trait]
 impl EventProducer for NoOpEventProducer {
     async fn publish(&self, _envelope: EventEnvelope) -> Result<(), MessagingError> {

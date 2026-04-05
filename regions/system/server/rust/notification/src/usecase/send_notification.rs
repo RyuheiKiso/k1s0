@@ -15,6 +15,10 @@ use crate::infrastructure::kafka_producer::{
     NoopNotificationEventPublisher, NotificationEventPublisher,
 };
 
+// 通知送信ユースケースの入力パラメータを定義する構造体
+// RUST-MED-003: template_variables は現状 HashMap<String, String>（文字列のみ対応）。
+// 将来的には serde_json::Value への移行で JSON オブジェクト・数値・配列を扱えるようにする予定。
+// 移行は proto v2 での破壊的変更として実施する（proto の map<string, string> → google.protobuf.Struct への変更が必要）。
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
     pub channel_id: String,
@@ -22,6 +26,8 @@ pub struct SendNotificationInput {
     pub recipient: String,
     pub subject: Option<String>,
     pub body: String,
+    // RUST-MED-003: serde_json::Value への移行は proto v2 で対応。
+    // 現状は文字列値のみサポート。複合型変数が必要な場合は JSON 文字列としてシリアライズすること。
     pub template_variables: Option<HashMap<String, String>>,
 }
 
@@ -138,7 +144,10 @@ impl SendNotificationUseCase {
         variables: &HashMap<String, String>,
     ) -> Result<String, SendNotificationError> {
         let mut hbs = Handlebars::new();
-        hbs.set_strict_mode(false);
+        // RUST-CRIT-002 監査対応: 厳密モードを有効にしてテンプレート未定義変数を
+        // サイレントに空文字列で置換するのではなくエラーとして扱う。
+        // 通知内容の欠損を早期検出する。
+        hbs.set_strict_mode(true);
         hbs.register_template_string("t", template)
             .map_err(|e| SendNotificationError::TemplateError(e.to_string()))?;
         hbs.render("t", variables)

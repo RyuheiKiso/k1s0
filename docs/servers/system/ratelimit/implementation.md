@@ -95,9 +95,24 @@ regions/system/server/rust/ratelimit/
 | `GetUsageUseCase` | 現在の使用量・残余リクエスト数・リセット時刻の取得 |
 | `ResetRateLimitUseCase` | 緊急時のカウンターリセット |
 
+#### テナント分離（STATIC-CRITICAL-001）
+
+レートリミット状態（Redis キー）をテナントスコープで分離する。
+
+| 対象 | 実装 |
+|------|------|
+| Redis キー | `ratelimit:{tenant_id}:{scope}:{identifier}` 形式（テナント間の状態共有を防ぐ） |
+| CheckRateLimitUseCase | `execute(tenant_id, scope, identifier, window_secs)` |
+| ResetRateLimitInput | `tenant_id: String` フィールドを含む |
+| GetUsageUseCase | `execute(tenant_id, rule_id)` |
+| ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出 |
+
+- システムテナント UUID: `00000000-0000-0000-0000-000000000001`（JWT クレームが存在しない場合のフォールバック）
+- ルール定義（PostgreSQL）はシステムレベルでテナント横断。Redis の状態のみテナントスコープで分離する
+
 #### Redis 連携
 
-- **Redis Store** (`infrastructure/redis_store.rs`): Lua スクリプトによるアトミックなトークンバケット実装。キー形式: `ratelimit:{scope}:{identifier}:{window}`
+- **Redis Store** (`infrastructure/redis_store.rs`): Lua スクリプトによるアトミックなトークンバケット実装。キー形式: `ratelimit:{tenant_id}:{scope}:{identifier}`
 - Redis 障害時はフェイルオープン（リミットを通過させる）。設定で変更可能
 
 #### Kong 連携

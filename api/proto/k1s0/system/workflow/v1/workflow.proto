@@ -18,6 +18,39 @@ import "k1s0/system/common/v1/types.proto";
 // M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
 import "buf/validate/validate.proto";
 
+// MED-025 監査対応: WorkflowInstanceStatus / WorkflowTaskStatus enum を追加。
+// 後方互換性のため deprecated string フィールドは削除しない。
+
+// WorkflowInstanceStatus はワークフローインスタンスのステータス。
+enum WorkflowInstanceStatus {
+  // WORKFLOW_INSTANCE_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+  WORKFLOW_INSTANCE_STATUS_UNSPECIFIED = 0;
+  // WORKFLOW_INSTANCE_STATUS_PENDING は開始待機中。
+  WORKFLOW_INSTANCE_STATUS_PENDING = 1;
+  // WORKFLOW_INSTANCE_STATUS_RUNNING は実行中。
+  WORKFLOW_INSTANCE_STATUS_RUNNING = 2;
+  // WORKFLOW_INSTANCE_STATUS_COMPLETED は完了。
+  WORKFLOW_INSTANCE_STATUS_COMPLETED = 3;
+  // WORKFLOW_INSTANCE_STATUS_CANCELLED はキャンセル済み。
+  WORKFLOW_INSTANCE_STATUS_CANCELLED = 4;
+  // WORKFLOW_INSTANCE_STATUS_FAILED は失敗。
+  WORKFLOW_INSTANCE_STATUS_FAILED = 5;
+}
+
+// WorkflowTaskStatus はワークフロータスクのステータス。
+enum WorkflowTaskStatus {
+  // WORKFLOW_TASK_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+  WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;
+  // WORKFLOW_TASK_STATUS_PENDING は承認待機中。
+  WORKFLOW_TASK_STATUS_PENDING = 1;
+  // WORKFLOW_TASK_STATUS_APPROVED は承認済み。
+  WORKFLOW_TASK_STATUS_APPROVED = 2;
+  // WORKFLOW_TASK_STATUS_REJECTED は却下済み。
+  WORKFLOW_TASK_STATUS_REJECTED = 3;
+  // WORKFLOW_TASK_STATUS_CANCELLED はキャンセル済み。
+  WORKFLOW_TASK_STATUS_CANCELLED = 4;
+}
+
 // WorkflowStepType はワークフローステップの種別。
 enum WorkflowStepType {
   // WORKFLOW_STEP_TYPE_UNSPECIFIED は未指定（デフォルト値）。
@@ -47,6 +80,15 @@ service WorkflowService {
 }
 
 message WorkflowStep {
+  // M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+  // 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+  // TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+  // reserved 3;
+  // reserved "step_type";
+
+  // M-014 監査対応: 削除期限 2026-06（workflow.proto 内の全 deprecated フィールド共通）
+  // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
   string step_id = 1;
   string name = 2;
   // Deprecated: use step_type_enum instead.
@@ -190,13 +232,16 @@ message WorkflowTask {
   string step_id = 3;
   string step_name = 4;
   optional string assignee_id = 5;
-  string status = 6;
+  // Deprecated: use status_enum instead. 後方互換性のため削除しない。
+  string status = 6 [deprecated = true];
   optional k1s0.system.common.v1.Timestamp due_at = 7;
   optional string comment = 8;
   optional string actor_id = 9;
   optional k1s0.system.common.v1.Timestamp decided_at = 10;
   k1s0.system.common.v1.Timestamp created_at = 11;
   k1s0.system.common.v1.Timestamp updated_at = 12;
+  // MED-025 監査対応: タスクステータスの enum 版。
+  WorkflowTaskStatus status_enum = 13;
 }
 
 message ListTasksRequest {
@@ -234,13 +279,16 @@ message WorkflowInstance {
   string title = 4;
   string initiator_id = 5;
   optional string current_step_id = 6;
+  // Deprecated: use status_enum instead. 後方互換性のため削除しない。
   // インスタンス状態（pending / running / completed / cancelled / failed）
-  string status = 7;
+  string status = 7 [deprecated = true];
   // ワークフロー実行コンテキスト（JSON バイト列）
   bytes context_json = 8;
   k1s0.system.common.v1.Timestamp started_at = 9;
   optional k1s0.system.common.v1.Timestamp completed_at = 10;
   optional k1s0.system.common.v1.Timestamp created_at = 11;
+  // MED-025 監査対応: インスタンスステータスの enum 版。
+  WorkflowInstanceStatus status_enum = 12;
 }
 
 message ApproveTaskRequest {

@@ -10,14 +10,41 @@ image:
 imagePullSecrets:
   - name: harbor-pull-secret
 
+# H-004 監査対応: アプリの grpc_port (50051) に合わせて K8s Service/container に gRPC ポートを追加
 container:
   port: 8080
+  grpcPort: 50051
+
+service:
+  grpcPort: 50051
+
+# H-005 監査対応: gRPC サービスのヘルスチェックプローブを有効化する
+# workflow は gRPC サービス（grpcPort: 50051）のため HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用する
+# grpcHealthCheck.enabled: true により k1s0-common テンプレートが liveness/readiness/startup に gRPC プローブを生成する
+probes:
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 3
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+  startup:
+    initialDelaySeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+  grpcHealthCheck:
+    enabled: true
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: K8S-CRIT-001 対応
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
@@ -45,3 +72,44 @@ kafka:
 
 redis:
   enabled: false
+
+# ConfigMap に注入する設定値（regions/system/server/rust/workflow/config/config.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
+# auth.jwks.url は本番環境の Keycloak エンドポイントに合わせること。
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      app:
+        name: k1s0-workflow-server
+        version: "0.1.0"
+        environment: production
+
+      server:
+        host: "0.0.0.0"
+        port: 8100
+        grpc_port: 50051
+
+      observability:
+        log:
+          level: "info"
+          format: "json"
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: "/metrics"
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-system.svc.cluster.local"
+        port: 5432
+        name: "workflow_db"
+        user: "app"
+        password: ""
+        ssl_mode: "require"
+        max_open_conns: 25
+        max_idle_conns: 5
+        conn_max_lifetime: "5m"

@@ -1,5 +1,5 @@
 // タスクリポジトリの PostgreSQL 実装。
-// RLS テナント分離のため、各 DB 操作の先頭で SET LOCAL app.current_tenant_id を発行する。
+// RLS テナント分離のため、各 DB 操作の先頭で set_config('app.current_tenant_id', $1, true) を発行する。
 // outbox テーブルへの書き込みを同一トランザクションで行う Transactional Outbox パターン。
 // 戻り値型は TaskError（クリーンアーキテクチャ準拠。anyhow::Error は TaskError::Infrastructure に変換する）。
 use crate::domain::entity::task::{
@@ -109,7 +109,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> Result<Option<Task>, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -130,7 +130,7 @@ impl TaskRepository for TaskPostgresRepository {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         // 動的フィルター: project_id / assignee_id / status を条件に追加する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -154,7 +154,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn count(&self, tenant_id: &str, filter: &TaskFilter) -> Result<i64, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから COUNT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -175,7 +175,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn create(&self, tenant_id: &str, input: &CreateTask, created_by: &str) -> Result<Task, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -222,7 +222,7 @@ impl TaskRepository for TaskPostgresRepository {
             .map_err(|e| TaskError::Infrastructure(e.into()))?;
         }
 
-        // Outbox にイベントを書き込む
+        // HIGH-005 監査対応: Outbox にイベントを書き込む。tenant_id を含めてテナント分離を保証する
         let payload = serde_json::json!({
             "task_id": task_id,
             "project_id": input.project_id,
@@ -231,11 +231,12 @@ impl TaskRepository for TaskPostgresRepository {
             "assignee_id": input.assignee_id,
         });
         sqlx::query(
-            "INSERT INTO task_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'task', 'TaskCreated', $3)",
+            "INSERT INTO task_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'task', 'TaskCreated', $3, $4)",
         )
         .bind(Uuid::new_v4())
         .bind(task_id)
         .bind(payload)
+        .bind(tenant_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| TaskError::Infrastructure(e.into()))?;
@@ -248,7 +249,7 @@ impl TaskRepository for TaskPostgresRepository {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         // task_checklist_items テーブルは updated_at カラムを持たないため SELECT から除外する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -267,7 +268,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn update(&self, tenant_id: &str, id: Uuid, input: &UpdateTask, updated_by: &str) -> Result<Task, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -310,7 +311,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn add_checklist_item(&self, tenant_id: &str, task_id: Uuid, input: &AddChecklistItem) -> Result<TaskChecklistItem, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -333,7 +334,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn update_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid, input: &UpdateChecklistItem) -> Result<TaskChecklistItem, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -363,7 +364,7 @@ impl TaskRepository for TaskPostgresRepository {
     async fn delete_checklist_item(&self, tenant_id: &str, task_id: Uuid, item_id: Uuid) -> Result<(), TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから DELETE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -393,7 +394,7 @@ impl TaskRepository for TaskPostgresRepository {
     ) -> Result<Task, TaskError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| TaskError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -414,7 +415,7 @@ impl TaskRepository for TaskPostgresRepository {
         .map_err(|e| TaskError::Infrastructure(e.into()))?
         .ok_or_else(|| TaskError::NotFound(format!("Task '{}' not found or version conflict", id)))?;
 
-        // Outbox にイベントを書き込む
+        // HIGH-005 監査対応: Outbox にイベントを書き込む。tenant_id を含めてテナント分離を保証する
         let event_type = if input.status == crate::domain::entity::task::TaskStatus::Cancelled {
             "TaskCancelled"
         } else {
@@ -426,12 +427,13 @@ impl TaskRepository for TaskPostgresRepository {
             "updated_by": updated_by,
         });
         sqlx::query(
-            "INSERT INTO task_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'task', $3, $4)",
+            "INSERT INTO task_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'task', $3, $4, $5)",
         )
         .bind(Uuid::new_v4())
         .bind(id)
         .bind(event_type)
         .bind(payload)
+        .bind(tenant_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| TaskError::Infrastructure(e.into()))?;

@@ -102,11 +102,14 @@ pub async fn run() -> anyhow::Result<()> {
     let delete_checklist_item_uc = Arc::new(usecase::delete_checklist_item::DeleteChecklistItemUseCase::new(task_repo.clone()));
 
     // Outbox ポーラー（Kafka 設定がある場合のみ起動）
+    // M-011 監査対応: CancellationToken でシャットダウン時にポーラーを安全に停止する
+    let poller_token = tokio_util::sync::CancellationToken::new();
     if let Some(ref kafka_cfg) = cfg.kafka {
         if let Ok(producer) = infrastructure::kafka::task_producer::TaskKafkaProducer::new(kafka_cfg) {
             let producer = Arc::new(producer);
             let poller = infrastructure::outbox_poller::OutboxPoller::new(db_pool.clone(), producer);
-            tokio::spawn(poller.run());
+            // poller_token のクローンを渡してシャットダウン通知を受け取れるようにする
+            tokio::spawn(poller.run(poller_token.clone()));
         }
     }
 
@@ -193,6 +196,8 @@ pub async fn run() -> anyhow::Result<()> {
 
     let shutdown_future = async move {
         shutdown_signal().await.map_err(|e| anyhow::anyhow!("{}", e))?;
+        // M-011 監査対応: シャットダウン時に outbox ポーラーへキャンセル通知を送る
+        poller_token.cancel();
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };

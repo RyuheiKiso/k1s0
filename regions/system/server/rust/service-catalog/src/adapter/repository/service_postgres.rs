@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+// HIGH-003 監査対応: ILIKE 検索前に %_\ をエスケープして意図しない全件マッチを防止する
+use k1s0_server_common::escape_like_pattern;
 use crate::domain::entity::service::{Service, ServiceLifecycle, ServiceTier};
 use crate::domain::repository::service_repository::{ServiceListFilters, ServiceRepository};
 
@@ -254,8 +256,9 @@ impl ServiceRepository for ServicePostgresRepository {
         let mut param_idx = 1u32;
 
         if query.is_some() {
+            // HIGH-003 監査対応: ILIKE のワイルドカード特殊文字をエスケープし、ESCAPE '\' を指定する
             sql.push_str(&format!(
-                " AND (name ILIKE '%' || ${idx} || '%' OR description ILIKE '%' || ${idx} || '%')",
+                " AND (name ILIKE '%' || ${idx} || '%' ESCAPE '\\' OR description ILIKE '%' || ${idx} || '%' ESCAPE '\\')",
                 idx = param_idx
             ));
             param_idx += 1;
@@ -274,7 +277,9 @@ impl ServiceRepository for ServicePostgresRepository {
         let mut q = sqlx::query_as::<_, ServiceRow>(&sql);
 
         if let Some(ref query_str) = query {
-            q = q.bind(query_str);
+            // HIGH-003 監査対応: バインド前に escape_like_pattern でエスケープ済みの値を渡す
+            let escaped = escape_like_pattern(query_str);
+            q = q.bind(escaped);
         }
         if let Some(ref tag_list) = tags {
             let tags_json = serde_json::to_value(tag_list)?;

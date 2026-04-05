@@ -21,10 +21,11 @@ impl ResumeJobUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, job_id: &str) -> Result<SchedulerJob, ResumeJobError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを再開する。
+    pub async fn execute(&self, job_id: &str, tenant_id: &str) -> Result<SchedulerJob, ResumeJobError> {
         let mut job = self
             .repo
-            .find_by_id(job_id)
+            .find_by_id(job_id, tenant_id)
             .await
             .map_err(|e| ResumeJobError::Internal(e.to_string()))?
             .ok_or_else(|| ResumeJobError::NotFound(job_id.to_string()))?;
@@ -62,12 +63,12 @@ mod tests {
         let expected_id = job_id.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == expected_id.as_str())
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .withf(move |id, _tenant_id| id == expected_id.as_str())
+            .returning(move |_, _| Ok(Some(return_job.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = ResumeJobUseCase::new(Arc::new(mock));
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "tenant-a").await;
         assert!(result.is_ok());
 
         let resumed = result.unwrap();
@@ -78,10 +79,10 @@ mod tests {
     async fn not_found() {
         let mut mock = MockSchedulerJobRepository::new();
         let missing_id = "job_missing".to_string();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ResumeJobUseCase::new(Arc::new(mock));
-        let result = uc.execute(&missing_id).await;
+        let result = uc.execute(&missing_id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

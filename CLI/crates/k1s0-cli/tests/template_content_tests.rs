@@ -10,7 +10,7 @@
 ///
 /// # カバレッジ
 /// - Rust REST サーバー（最小): Cargo.toml / src/main.rs / src/adapter/handler/rest.rs
-/// - Go REST サーバー（最小）: go.mod / cmd/main.go / internal/adapter/handler/rest_handler.go
+/// - Go REST サーバー（最小）: go.mod / cmd/main.go / `internal/adapter/handler/rest_handler.go`
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
@@ -27,18 +27,32 @@ fn template_dir() -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("templates")
 }
 
+/// `render_and_collect` に渡すテンプレートレンダリングオプション。
+///
+/// 引数が多くなるのを防ぐために関連するパラメータをまとめた構造体。
+struct RenderOptions<'a> {
+    /// 生成対象言語（例: "rust", "go"）
+    lang: &'a str,
+    /// コンポーネント種別（例: "server", "library"）
+    kind: &'a str,
+    /// API スタイル（例: "rest", "grpc"）
+    api_style: &'a str,
+    /// データベースを有効化するかどうか
+    has_database: bool,
+    /// データベース種別（例: "postgresql"）
+    database_type: &'a str,
+    /// Kafka を有効化するかどうか
+    has_kafka: bool,
+    /// Redis を有効化するかどうか
+    has_redis: bool,
+}
+
 /// テンプレートをレンダリングし、`target_files` に指定したファイルの内容を返す。
 ///
 /// 返すマップのキーはリポジトリルート相対パス（スラッシュ区切り）。
 /// ファイルが生成されなかった場合はマップに含まれない。
 fn render_and_collect(
-    lang: &str,
-    kind: &str,
-    api_style: &str,
-    has_database: bool,
-    database_type: &str,
-    has_kafka: bool,
-    has_redis: bool,
+    opts: &RenderOptions<'_>,
     target_files: &[&str],
 ) -> (TempDir, BTreeMap<String, String>) {
     let tpl_dir = template_dir();
@@ -46,16 +60,16 @@ fn render_and_collect(
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let mut builder =
-        TemplateContextBuilder::new("task-api", "service", lang, kind).api_style(api_style);
+    let mut builder = TemplateContextBuilder::new("task-api", "service", opts.lang, opts.kind)
+        .api_style(opts.api_style);
 
-    if has_database {
-        builder = builder.with_database(database_type);
+    if opts.has_database {
+        builder = builder.with_database(opts.database_type);
     }
-    if has_kafka {
+    if opts.has_kafka {
         builder = builder.with_kafka();
     }
-    if has_redis {
+    if opts.has_redis {
         builder = builder.with_redis();
     }
 
@@ -87,16 +101,16 @@ fn render_and_collect(
 /// 依存関係の追加・削除・バージョン変更はここで検知される。
 #[test]
 fn test_content_rust_rest_minimal_cargo_toml() {
-    let (_tmp, contents) = render_and_collect(
-        "rust",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["Cargo.toml"],
-    );
+    let opts = RenderOptions {
+        lang: "rust",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["Cargo.toml"]);
     let content = contents
         .get("Cargo.toml")
         .expect("Cargo.toml not generated");
@@ -108,16 +122,16 @@ fn test_content_rust_rest_minimal_cargo_toml() {
 /// エントリーポイントのブートストラップパターン変更はここで検知される。
 #[test]
 fn test_content_rust_rest_minimal_main_rs() {
-    let (_tmp, contents) = render_and_collect(
-        "rust",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["src/main.rs"],
-    );
+    let opts = RenderOptions {
+        lang: "rust",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["src/main.rs"]);
     let content = contents
         .get("src/main.rs")
         .expect("src/main.rs not generated");
@@ -129,16 +143,16 @@ fn test_content_rust_rest_minimal_main_rs() {
 /// REST ハンドラーのコードパターン変更はここで検知される。
 #[test]
 fn test_content_rust_rest_minimal_handler_rs() {
-    let (_tmp, contents) = render_and_collect(
-        "rust",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["src/adapter/handler/rest.rs"],
-    );
+    let opts = RenderOptions {
+        lang: "rust",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["src/adapter/handler/rest.rs"]);
     let content = contents
         .get("src/adapter/handler/rest.rs")
         .expect("src/adapter/handler/rest.rs not generated");
@@ -150,16 +164,16 @@ fn test_content_rust_rest_minimal_handler_rs() {
 /// DB/Kafka 有効時の依存関係が正しく含まれることを検証する。
 #[test]
 fn test_content_rust_rest_db_kafka_cargo_toml() {
-    let (_tmp, contents) = render_and_collect(
-        "rust",
-        "server",
-        "rest",
-        true,
-        "postgresql",
-        true,
-        false,
-        &["Cargo.toml"],
-    );
+    let opts = RenderOptions {
+        lang: "rust",
+        kind: "server",
+        api_style: "rest",
+        has_database: true,
+        database_type: "postgresql",
+        has_kafka: true,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["Cargo.toml"]);
     let content = contents
         .get("Cargo.toml")
         .expect("Cargo.toml not generated");
@@ -175,8 +189,16 @@ fn test_content_rust_rest_db_kafka_cargo_toml() {
 /// Go モジュール依存関係の変更はここで検知される。
 #[test]
 fn test_content_go_rest_minimal_go_mod() {
-    let (_tmp, contents) =
-        render_and_collect("go", "server", "rest", false, "", false, false, &["go.mod"]);
+    let opts = RenderOptions {
+        lang: "go",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["go.mod"]);
     let content = contents.get("go.mod").expect("go.mod not generated");
     insta::assert_snapshot!("go_rest_minimal__go_mod", content);
 }
@@ -186,37 +208,37 @@ fn test_content_go_rest_minimal_go_mod() {
 /// Go エントリーポイントのブートストラップパターン変更はここで検知される。
 #[test]
 fn test_content_go_rest_minimal_main_go() {
-    let (_tmp, contents) = render_and_collect(
-        "go",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["cmd/main.go"],
-    );
+    let opts = RenderOptions {
+        lang: "go",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["cmd/main.go"]);
     let content = contents
         .get("cmd/main.go")
         .expect("cmd/main.go not generated");
     insta::assert_snapshot!("go_rest_minimal__main_go", content);
 }
 
-/// Go REST サーバー（最小）— internal/adapter/handler/rest_handler.go の内容を検証する。
+/// Go REST サーバー（最小）— `internal/adapter/handler/rest_handler.go` の内容を検証する。
 ///
 /// REST ハンドラーのコードパターン変更はここで検知される。
 #[test]
 fn test_content_go_rest_minimal_handler_go() {
-    let (_tmp, contents) = render_and_collect(
-        "go",
-        "server",
-        "rest",
-        false,
-        "",
-        false,
-        false,
-        &["internal/adapter/handler/rest_handler.go"],
-    );
+    let opts = RenderOptions {
+        lang: "go",
+        kind: "server",
+        api_style: "rest",
+        has_database: false,
+        database_type: "",
+        has_kafka: false,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["internal/adapter/handler/rest_handler.go"]);
     let content = contents
         .get("internal/adapter/handler/rest_handler.go")
         .expect("internal/adapter/handler/rest_handler.go not generated");
@@ -228,16 +250,16 @@ fn test_content_go_rest_minimal_handler_go() {
 /// DB/Kafka 有効時の設定構造体が正しく含まれることを検証する。
 #[test]
 fn test_content_go_rest_db_kafka_config_go() {
-    let (_tmp, contents) = render_and_collect(
-        "go",
-        "server",
-        "rest",
-        true,
-        "postgresql",
-        true,
-        false,
-        &["internal/infra/config/config.go"],
-    );
+    let opts = RenderOptions {
+        lang: "go",
+        kind: "server",
+        api_style: "rest",
+        has_database: true,
+        database_type: "postgresql",
+        has_kafka: true,
+        has_redis: false,
+    };
+    let (_tmp, contents) = render_and_collect(&opts, &["internal/infra/config/config.go"]);
     let content = contents
         .get("internal/infra/config/config.go")
         .expect("internal/infra/config/config.go not generated");

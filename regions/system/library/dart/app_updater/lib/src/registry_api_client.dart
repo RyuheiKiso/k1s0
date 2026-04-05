@@ -211,19 +211,21 @@ class RegistryVersionInfo {
   /// JSONマップから [RegistryVersionInfo] を生成する。
   /// APIレスポンスのJSONフィールドをDartの型に変換する。
   factory RegistryVersionInfo.fromJson(Map<String, dynamic> json) {
+    // M-012 監査対応: API レスポンスの破損や型不一致によるクラッシュを防ぐため null チェックを追加
     return RegistryVersionInfo(
       appId: json['app_id'] as String? ?? '',
-      version: json['version'] as String,
-      platform: json['platform'] as String,
-      arch: json['arch'] as String,
+      // 必須フィールドは null の場合に空文字列をデフォルトとして使用
+      version: json['version'] as String? ?? '',
+      platform: json['platform'] as String? ?? '',
+      arch: json['arch'] as String? ?? '',
       sizeBytes: json['size_bytes'] as int?,
-      checksumSha256: json['checksum_sha256'] as String,
+      checksumSha256: json['checksum_sha256'] as String? ?? '',
       releaseNotes: json['release_notes'] as String?,
       mandatory: json['mandatory'] as bool? ?? false,
-      // published_at が null の場合は null を格納する。
+      // DateTime.tryParse でパース失敗時は null にフォールバック
       publishedAt: json['published_at'] == null
           ? null
-          : DateTime.parse(json['published_at'] as String),
+          : DateTime.tryParse(json['published_at'] as String),
       downloadUrl: json['download_url'] as String?,
     );
   }

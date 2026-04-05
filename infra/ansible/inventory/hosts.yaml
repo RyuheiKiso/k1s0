@@ -1,4 +1,21 @@
 ---
+# M-019 監査対応: 内部ホスト IP を Ansible lookup('env', ...) で環境変数から取得する。
+# リポジトリに内部ネットワーク構成（IP アドレス）を平文コミットしないことで、
+# リポジトリアクセス権を持つ攻撃者へのネットワーク構成露出リスクを排除する。
+#
+# セットアップ方法（開発者向け）:
+#   1. 下記の .env.ansible.example をコピーして .env.ansible を作成する
+#   2. .env.ansible に各ノードの実 IP を記載する
+#   3. ansible-playbook 実行前に `export $(cat .env.ansible | xargs)` を実行するか、
+#      direnv / python-dotenv を使用して環境変数を読み込む
+#
+# CI/CD 向け:
+#   GitHub Actions Secrets / GitLab CI Variables / Vault に各 IP を登録し、
+#   ワークフロー内で環境変数として注入すること。
+#
+# 参照: infra/ansible/inventory/.env.ansible.example
+#       docs/architecture/adr/0086-ansible-inventory-vault.md
+
 all:
   children:
     # ============================================================
@@ -9,17 +26,18 @@ all:
         dev_masters:
           hosts:
             dev-master-01:
-              ansible_host: 10.10.1.11
+              # M-019 監査対応: IP は環境変数から取得する（リポジトリへの平文コミット禁止）
+              ansible_host: "{{ lookup('env', 'ANSIBLE_DEV_MASTER_01_IP') | mandatory('ANSIBLE_DEV_MASTER_01_IP is required. See infra/ansible/inventory/.env.ansible.example') }}"
         dev_workers:
           hosts:
             dev-worker-01:
-              ansible_host: 10.10.1.21
+              ansible_host: "{{ lookup('env', 'ANSIBLE_DEV_WORKER_01_IP') | mandatory('ANSIBLE_DEV_WORKER_01_IP is required') }}"
             dev-worker-02:
-              ansible_host: 10.10.1.22
+              ansible_host: "{{ lookup('env', 'ANSIBLE_DEV_WORKER_02_IP') | mandatory('ANSIBLE_DEV_WORKER_02_IP is required') }}"
         dev_storage:
           hosts:
             dev-ceph-01:
-              ansible_host: 10.10.1.31
+              ansible_host: "{{ lookup('env', 'ANSIBLE_DEV_CEPH_01_IP') | mandatory('ANSIBLE_DEV_CEPH_01_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
       vars:
@@ -36,33 +54,33 @@ all:
         staging_masters:
           hosts:
             staging-master-01:
-              ansible_host: 10.20.1.11
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_MASTER_01_IP') | mandatory('ANSIBLE_STAGING_MASTER_01_IP is required') }}"
             staging-master-02:
-              ansible_host: 10.20.1.12
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_MASTER_02_IP') | mandatory('ANSIBLE_STAGING_MASTER_02_IP is required') }}"
             staging-master-03:
-              ansible_host: 10.20.1.13
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_MASTER_03_IP') | mandatory('ANSIBLE_STAGING_MASTER_03_IP is required') }}"
         staging_workers:
           hosts:
             staging-worker-01:
-              ansible_host: 10.20.1.21
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_WORKER_01_IP') | mandatory('ANSIBLE_STAGING_WORKER_01_IP is required') }}"
             staging-worker-02:
-              ansible_host: 10.20.1.22
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_WORKER_02_IP') | mandatory('ANSIBLE_STAGING_WORKER_02_IP is required') }}"
             staging-worker-03:
-              ansible_host: 10.20.1.23
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_WORKER_03_IP') | mandatory('ANSIBLE_STAGING_WORKER_03_IP is required') }}"
         staging_storage:
           hosts:
             staging-ceph-01:
-              ansible_host: 10.20.1.31
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_CEPH_01_IP') | mandatory('ANSIBLE_STAGING_CEPH_01_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc
             staging-ceph-02:
-              ansible_host: 10.20.1.32
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_CEPH_02_IP') | mandatory('ANSIBLE_STAGING_CEPH_02_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc
             staging-ceph-03:
-              ansible_host: 10.20.1.33
+              ansible_host: "{{ lookup('env', 'ANSIBLE_STAGING_CEPH_03_IP') | mandatory('ANSIBLE_STAGING_CEPH_03_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc
@@ -80,39 +98,39 @@ all:
         prod_masters:
           hosts:
             prod-master-01:
-              ansible_host: 10.30.1.11
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_MASTER_01_IP') | mandatory('ANSIBLE_PROD_MASTER_01_IP is required') }}"
             prod-master-02:
-              ansible_host: 10.30.1.12
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_MASTER_02_IP') | mandatory('ANSIBLE_PROD_MASTER_02_IP is required') }}"
             prod-master-03:
-              ansible_host: 10.30.1.13
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_MASTER_03_IP') | mandatory('ANSIBLE_PROD_MASTER_03_IP is required') }}"
         prod_workers:
           hosts:
             prod-worker-01:
-              ansible_host: 10.30.1.21
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_WORKER_01_IP') | mandatory('ANSIBLE_PROD_WORKER_01_IP is required') }}"
             prod-worker-02:
-              ansible_host: 10.30.1.22
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_WORKER_02_IP') | mandatory('ANSIBLE_PROD_WORKER_02_IP is required') }}"
             prod-worker-03:
-              ansible_host: 10.30.1.23
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_WORKER_03_IP') | mandatory('ANSIBLE_PROD_WORKER_03_IP is required') }}"
             prod-worker-04:
-              ansible_host: 10.30.1.24
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_WORKER_04_IP') | mandatory('ANSIBLE_PROD_WORKER_04_IP is required') }}"
             prod-worker-05:
-              ansible_host: 10.30.1.25
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_WORKER_05_IP') | mandatory('ANSIBLE_PROD_WORKER_05_IP is required') }}"
         prod_storage:
           hosts:
             prod-ceph-01:
-              ansible_host: 10.30.1.31
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_CEPH_01_IP') | mandatory('ANSIBLE_PROD_CEPH_01_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc
                 - /dev/sdd
             prod-ceph-02:
-              ansible_host: 10.30.1.32
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_CEPH_02_IP') | mandatory('ANSIBLE_PROD_CEPH_02_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc
                 - /dev/sdd
             prod-ceph-03:
-              ansible_host: 10.30.1.33
+              ansible_host: "{{ lookup('env', 'ANSIBLE_PROD_CEPH_03_IP') | mandatory('ANSIBLE_PROD_CEPH_03_IP is required') }}"
               ceph_osd_devices:
                 - /dev/sdb
                 - /dev/sdc

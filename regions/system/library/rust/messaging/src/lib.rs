@@ -24,6 +24,12 @@ pub use producer::{EventProducer, NoOpEventProducer};
 #[cfg(feature = "mock")]
 pub use producer::MockEventProducer;
 
+// LOW-013 監査対応: テスト用インメモリプロデューサーを共通ライブラリからエクスポートする。
+// サービス側のテストで重複定義していた InMemoryProducer の代替として使用可能。
+// 使用条件: テスト時（#[cfg(test)]）または "testing" フィーチャー有効時のみ。
+#[cfg(any(test, feature = "testing"))]
+pub use producer::InMemoryEventProducer;
+
 #[cfg(feature = "kafka")]
 pub use kafka_consumer::KafkaEventConsumer;
 #[cfg(feature = "kafka")]

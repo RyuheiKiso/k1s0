@@ -8,6 +8,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::dlq::v1::{
     dlq_service_server::DlqService, DeleteMessageRequest as ProtoDeleteMessageRequest,
@@ -64,6 +66,16 @@ fn domain_to_proto(msg: crate::domain::entity::DlqMessage) -> ProtoDlqMessage {
     }
 }
 
+/// CRIT-005 対応: tonic Request の Extensions から Claims を取り出しテナント ID を返すヘルパー。
+/// Claims が存在しない場合（認証不要環境等）はデフォルト値 "system" を返す。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 // --- DlqServiceTonic ラッパー ---
 
 pub struct DlqServiceTonic {
@@ -82,6 +94,8 @@ impl DlqService for DlqServiceTonic {
         &self,
         request: Request<ProtoListMessagesRequest>,
     ) -> Result<Response<ProtoListMessagesResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
@@ -97,7 +111,7 @@ impl DlqService for DlqServiceTonic {
         };
         let (messages, total) = self
             .inner
-            .list_messages(&inner.topic, page, page_size)
+            .list_messages(&inner.topic, page, page_size, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         let has_next = (page as i64 * page_size as i64) < total;
@@ -117,10 +131,12 @@ impl DlqService for DlqServiceTonic {
         &self,
         request: Request<ProtoGetMessageRequest>,
     ) -> Result<Response<ProtoGetMessageResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let msg = self
             .inner
-            .get_message(&inner.id)
+            .get_message(&inner.id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -133,10 +149,12 @@ impl DlqService for DlqServiceTonic {
         &self,
         request: Request<ProtoRetryMessageRequest>,
     ) -> Result<Response<ProtoRetryMessageResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let msg = self
             .inner
-            .retry_message(&inner.id)
+            .retry_message(&inner.id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -149,10 +167,12 @@ impl DlqService for DlqServiceTonic {
         &self,
         request: Request<ProtoDeleteMessageRequest>,
     ) -> Result<Response<ProtoDeleteMessageResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let id = inner.id.clone();
         self.inner
-            .delete_message(&inner.id)
+            .delete_message(&inner.id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -163,10 +183,12 @@ impl DlqService for DlqServiceTonic {
         &self,
         request: Request<ProtoRetryAllRequest>,
     ) -> Result<Response<ProtoRetryAllResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let retried_count = self
             .inner
-            .retry_all(&inner.topic)
+            .retry_all(&inner.topic, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 

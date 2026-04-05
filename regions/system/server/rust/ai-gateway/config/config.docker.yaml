@@ -5,7 +5,8 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
-  grpc_port: 50061
+  # H-005 監査対応: 非標準ポート (50061) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+  grpc_port: 50051
 
 observability:
   log:

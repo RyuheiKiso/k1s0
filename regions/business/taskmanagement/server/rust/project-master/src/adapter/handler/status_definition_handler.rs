@@ -10,7 +10,8 @@ use uuid::Uuid;
 
 use super::{error::map_domain_error, AppState};
 use crate::domain::entity::status_definition::{
-    CreateStatusDefinition, StatusDefinition, StatusDefinitionFilter, UpdateStatusDefinition,
+    CreateStatusDefinition, StatusDefinition, StatusDefinitionFilter, StatusTransition,
+    UpdateStatusDefinition,
 };
 
 #[derive(Debug, Deserialize)]
@@ -19,7 +20,8 @@ pub struct CreateStatusDefinitionRequest {
     pub display_name: String,
     pub description: Option<String>,
     pub color: Option<String>,
-    pub allowed_transitions: Option<serde_json::Value>,
+    // serde が JSON 配列を Vec<StatusTransition> へ直接デシリアライズする
+    pub allowed_transitions: Option<Vec<StatusTransition>>,
     pub is_initial: Option<bool>,
     pub is_terminal: Option<bool>,
     pub sort_order: Option<i32>,
@@ -121,7 +123,10 @@ pub async fn update_status_definition(
         display_name: body.get("display_name").and_then(|v| v.as_str()).map(String::from),
         description: body.get("description").and_then(|v| v.as_str()).map(String::from),
         color: body.get("color").and_then(|v| v.as_str()).map(String::from),
-        allowed_transitions: body.get("allowed_transitions").cloned(),
+        // JSON ボディの allowed_transitions を Vec<StatusTransition> へデシリアライズする
+        // 解析失敗時は None として扱い、既存値を保持する
+        allowed_transitions: body.get("allowed_transitions")
+            .and_then(|v| serde_json::from_value(v.clone()).ok()),
         is_initial: body.get("is_initial").and_then(|v| v.as_bool()),
         is_terminal: body.get("is_terminal").and_then(|v| v.as_bool()),
         sort_order: body.get("sort_order").and_then(|v| v.as_i64()).map(|v| v as i32),

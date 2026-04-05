@@ -1,0 +1,238 @@
+# .github/workflows/fresh-deploy-smoke.yaml
+# フレッシュデプロイ スモークテスト（報告書 7.3 監査対応）
+#
+# 目的:
+#   CRIT-001（kafka-init トピック作成失敗）, CRIT-002/003（DB migration SET search_path バグ）の
+#   リグレッション防止。フレッシュな環境で docker compose up → migrate-all → kafka トピック数検証を行う。
+#
+# 背景:
+#   外部技術監査 2026-04-03 報告書 7.3 節の推奨事項:
+#   「全サービスを実際に起動するエンドツーエンドの統合テストが CI に欠落していること」を受け作成。
+#   静的解析・単体テストでは発見できない実行時バグを CI で継続的に検出する。
+#
+# トリガー:
+#   - 毎週日曜 1:00 UTC（定期検証）
+#   - 手動実行（workflow_dispatch）
+#   - kafka 設定、DB migration、docker-compose 定義の変更時
+#
+# 注意事項:
+#   - このワークフローは .env.dev の開発用認証情報を使用する（エフェメラルランナー上のみ）
+#   - ubuntu-latest（7GB RAM）で動作確認済み。RAM 不足が発生する場合は larger runner への変更を検討
+name: Fresh Deploy Smoke Test
+
+on:
+  schedule:
+    # 毎週日曜 1:00 UTC に定期実行（リグレッション早期発見）
+    - cron: '0 1 * * 0'
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'デバッグモード（docker ログを詳細出力）'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      # CRIT-001: kafka-init トピック作成スクリプト
+      - 'infra/messaging/kafka/create-topics.sh'
+      - 'infra/messaging/kafka/topics.yaml'
+      # CRIT-002/003: DB migration ファイル
+      - 'regions/**/database/**/migrations/**'
+      # インフラ定義の変更
+      - 'docker-compose.yaml'
+      - 'docker-compose.dev.yaml'
+      - 'infra/docker/init-db/**'
+      # justfile の migrate-all レシピ変更
+      - 'justfile'
+
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
+# 同一 ref に対して並列実行しない（リソース節約）
+concurrency:
+  group: fresh-deploy-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    name: フレッシュデプロイ スモークテスト
+    runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
+
+    steps:
+      # ============================================================
+      # セットアップ
+      # ============================================================
+
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      # just コマンドのインストール（migrate-all レシピ実行に必要）
+      - name: Install just
+        run: |
+          curl -sSfL \
+            https://github.com/casey/just/releases/download/1.40.0/just-1.40.0-x86_64-unknown-linux-musl.tar.gz \
+            | tar xz -C /usr/local/bin just
+          just --version
+
+      # sqlx-cli のインストール（just migrate-all 実行に必要）
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # stable
+        with:
+          toolchain: stable
+
+      # sqlx-cli のビルドキャッシュ（実行時間削減）
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          # sqlx-cli のインストールキャッシュキー
+          cache-targets: false
+          cache-on-failure: true
+          key: sqlx-cli-smoke
+
+      - name: Install sqlx-cli
+        run: |
+          # postgres feature のみビルド（軽量化）
+          # プロジェクトの sqlx 0.8 と同系統のバージョンを使用する
+          cargo install sqlx-cli \
+            --no-default-features \
+            --features postgres \
+            --version "^0.8"
+          sqlx --version
+
+      # ============================================================
+      # インフラ起動（報告書 7.3 推奨手順）
+      # ============================================================
+
+      - name: Start infra services
+        run: |
+          # 報告書 7.3: --profile infra でインフラサービスを起動
+          # docker-compose.dev.yaml は Keycloak start-dev モード等の開発用オーバーライドを含む
+          docker compose \
+            --env-file .env.dev \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            --profile infra \
+            up -d
+        env:
+          # COMPOSE_PARALLEL_LIMIT は docker compose up の並列コンテナ起動数を制限する
+          # ビルドには効果がないが、起動時の負荷を軽減する
+          COMPOSE_PARALLEL_LIMIT: 4
+
+      # ============================================================
+      # CRIT-002/003 検証: DB マイグレーション（フレッシュ DB への適用）
+      # ============================================================
+
+      - name: Wait for PostgreSQL to be healthy
+        run: |
+          echo "PostgreSQL の起動完了を待機します..."
+          for i in $(seq 1 30); do
+            if docker exec postgres pg_isready -U dev -q 2>/dev/null; then
+              echo "PostgreSQL が起動しました（${i}回目）"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "ERROR: PostgreSQL の起動がタイムアウトしました"
+              docker compose --env-file .env.dev logs postgres --tail 50
+              exit 1
+            fi
+            echo "待機中... ($i/30)"
+            sleep 5
+          done
+
+      - name: Run all DB migrations (CRIT-002/003 regression check)
+        # フレッシュ DB に全マイグレーションを適用し、CRIT-002/003 修正（SET LOCAL search_path）が
+        # 正常に機能することを確認する。エラーが発生した場合はリグレッションとして検出される。
+        run: just migrate-all
+        env:
+          PG_HOST: localhost
+          PG_PORT: "5432"
+          PG_USER: dev
+          PG_PASS: dev
+          K1S0_DB_PASSWORD: dev-k1s0-local
+
+      # ============================================================
+      # CRIT-001 検証: Kafka トピック数確認
+      # ============================================================
+
+      - name: Wait for kafka-init to complete
+        run: |
+          echo "kafka-init の完了を待機します..."
+          for i in $(seq 1 60); do
+            STATUS=$(docker inspect kafka-init --format '{{.State.Status}}' 2>/dev/null || echo "not_found")
+            if [ "$STATUS" = "exited" ]; then
+              EXIT_CODE=$(docker inspect kafka-init --format '{{.State.ExitCode}}' 2>/dev/null || echo "1")
+              if [ "$EXIT_CODE" = "0" ]; then
+                echo "kafka-init が正常完了しました"
+                break
+              else
+                echo "ERROR: kafka-init が失敗しました（exit code: ${EXIT_CODE}）"
+                docker logs kafka-init --tail 100
+                exit 1
+              fi
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "ERROR: kafka-init の完了がタイムアウトしました（状態: ${STATUS}）"
+              docker logs kafka-init --tail 100
+              exit 1
+            fi
+            echo "待機中... ($i/60) [状態: ${STATUS}]"
+            sleep 5
+          done
+
+      - name: Verify Kafka topic count (CRIT-001 regression check)
+        # kafka-init が 57 トピックを全て作成したことを確認する（CRIT-001 リグレッション防止）
+        # exit 1 で終了していれば上の wait ステップで既に検出済みのため、ここでは件数のみ確認する
+        run: |
+          # MED-005 監査対応: topics.yaml の実際のトピック数（58件）に合わせる
+          EXPECTED=58
+          COUNT=$(docker exec kafka \
+            kafka-topics.sh \
+            --bootstrap-server localhost:9092 \
+            --list 2>/dev/null \
+            | grep -v '^__' \
+            | wc -l \
+            | tr -d ' ')
+          echo "Kafka トピック数: ${COUNT} / ${EXPECTED}"
+          if [ "${COUNT}" -lt "${EXPECTED}" ]; then
+            echo "ERROR: トピック数不足（${COUNT}/${EXPECTED}）"
+            echo "--- 作成済みトピック一覧 ---"
+            docker exec kafka kafka-topics.sh --bootstrap-server localhost:9092 --list 2>/dev/null | grep -v '^__' | sort
+            echo "--- kafka-init ログ ---"
+            docker logs kafka-init --tail 100
+            exit 1
+          fi
+          echo "OK: ${COUNT} トピックが正常に作成されました"
+
+      # ============================================================
+      # デバッグ情報（failure 時 / debug モード時に出力）
+      # ============================================================
+
+      - name: Collect debug logs on failure
+        if: failure() || inputs.debug == 'true'
+        run: |
+          echo "=== docker compose ps ==="
+          docker compose --env-file .env.dev ps
+          echo "=== kafka-init logs ==="
+          docker logs kafka-init --tail 200 2>/dev/null || true
+          echo "=== kafka logs (tail 50) ==="
+          docker logs kafka --tail 50 2>/dev/null || true
+          echo "=== postgres logs (tail 50) ==="
+          docker logs postgres --tail 50 2>/dev/null || true
+
+      # ============================================================
+      # クリーンアップ
+      # ============================================================
+
+      - name: Stop and clean up containers
+        if: always()
+        run: |
+          docker compose \
+            --env-file .env.dev \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            --profile infra \
+            down -v --remove-orphans 2>/dev/null || true

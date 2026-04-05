@@ -19,7 +19,8 @@
 #     host: redis.k1s0-system.svc.cluster.local
 #     database: 1          （デフォルト 0 から変更）
 #     password: ${KONG_REDIS_PASSWORD}
-#   fault_tolerant: false      （デフォルト true から変更: Redis 障害時は全リクエストを 500 エラーで拒否し、レート制限バイパスを防止する、HIGH-SEC-03 監査対応）
+#   fault_tolerant: true      （HIGH-003 監査対応: Redis が一時的に不安定になっても全 API が停止しないようフォールト許容に変更）
+#                              （旧設定 false はレート制限バイパス防止のため意図的だったが、Redis HA 構成前提でサービス継続性を優先する）
 _format_version: "3.0"
 
 services:
@@ -38,7 +39,10 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          # HIGH-003 監査対応: fault_tolerant: true に変更し、Redis 一時障害時も API が継続応答できるようにする
+          # Redis HA（Sentinel/Cluster）が前提だが、障害時のサービス継続性を優先する設計に変更する
+          # レート制限がバイパスされるリスクはあるが、全 API 停止よりも可用性を重視する
+          fault_tolerant: true
     routes:
       - name: auth-v1-route
         paths:
@@ -57,7 +61,7 @@ services:
                 host: redis.k1s0-system.svc.cluster.local
                 database: 1
                 password: ${KONG_REDIS_PASSWORD}
-              fault_tolerant: false
+              fault_tolerant: true
       # CRIT-09: dev の auth-rust が処理する /users, /audit を prod にも追加
       - name: auth-v1-users
         paths:
@@ -80,7 +84,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: config-v1-route
         paths:
@@ -99,7 +103,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: master-v1-route
         paths:
@@ -129,7 +133,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
       # H-01 監査対応: サービス間認証専用の JWT プラグイン設定
       # グローバル JWT（key_claim_name: iss）との混在を回避するため、
       # Consumer "service-to-service" にスコープを限定する。
@@ -162,7 +166,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
       # H-01 監査対応: サービス間認証専用の JWT プラグイン設定
       # グローバル JWT（key_claim_name: iss）との混在を回避するため、
       # Consumer "service-to-service" にスコープを限定する。
@@ -194,7 +198,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: featureflag-v1-route
         # HIGH-2 監査対応: 実装の実際のパス /api/v1/flags に合わせて修正する
@@ -215,7 +219,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: tenant-v1-route
         paths:
@@ -234,7 +238,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: ratelimit-v1-route
         paths:
@@ -253,7 +257,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: vault-svc-v1-route
         paths:
@@ -272,7 +276,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: api-registry-v1-route
         paths:
@@ -291,7 +295,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: app-registry-v1-route
         paths:
@@ -310,7 +314,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: event-monitor-v1-route
         paths:
@@ -329,7 +333,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: event-store-v1-route
         paths:
@@ -348,7 +352,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: file-v1-route
         paths:
@@ -367,7 +371,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: navigation-v1-route
         paths:
@@ -386,7 +390,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: notification-v1-route
         paths:
@@ -405,7 +409,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: policy-v1-route
         paths:
@@ -424,7 +428,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: quota-v1-route
         paths:
@@ -443,7 +447,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: rule-engine-v1-route
         paths:
@@ -462,7 +466,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: scheduler-v1-route
         paths:
@@ -481,7 +485,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: search-v1-route
         paths:
@@ -500,7 +504,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: service-catalog-v1-route
         paths:
@@ -519,7 +523,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: session-v1-route
         paths:
@@ -538,7 +542,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: workflow-v1-route
         # /api/v1/workflows は saga-v1 で使用済みのため /api/v1/workflow-engine を使用
@@ -559,7 +563,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: graphql-gateway-v1-route
         paths:
@@ -570,8 +574,11 @@ services:
   # business Tier (rate-limiting: 1000/min, 40/sec)
   # ============================================================
 
+  # H-004 監査対応: project-master の K8s Service 名を正しいリリース名 project-master-rust に統一する
+  # Helm リリース名が project-master-rust のため Service 名は project-master-rust になる（k1s0-common.fullname 規則）
+  # services/business.yaml と同一ホスト名を使用することで設定の不整合を解消する
   - name: project-master-v1
-    url: http://project-master-server.k1s0-business.svc.cluster.local:80
+    url: http://project-master-rust.k1s0-business.svc.cluster.local:80
     plugins:
       - name: rate-limiting
         config:
@@ -582,7 +589,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: project-master-v1-route
         paths:
@@ -605,7 +612,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: task-v1-route
         paths:
@@ -624,7 +631,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: board-v1-route
         paths:
@@ -643,7 +650,7 @@ services:
             host: redis.k1s0-system.svc.cluster.local
             database: 1
             password: ${KONG_REDIS_PASSWORD}
-          fault_tolerant: false
+          fault_tolerant: true
     routes:
       - name: activity-v1-route
         paths:
@@ -669,8 +676,8 @@ plugins:
         host: redis.k1s0-system.svc.cluster.local
         database: 1
         password: ${KONG_REDIS_PASSWORD}
-      # fault_tolerant: false: Redis 障害時は全リクエストを 500 エラーで拒否し、レート制限バイパスを防止する（HIGH-SEC-03 監査対応）
-      fault_tolerant: false
+      # HIGH-003 監査対応: fault_tolerant: true に変更し、Redis 一時障害時も API が継続応答できるようにする
+      fault_tolerant: true
       hide_client_headers: false            # X-RateLimit-* ヘッダーを返却
 
   # JWT - Keycloak JWKS 連携
@@ -678,6 +685,13 @@ plugins:
   # key_claim_name: iss により jwt.claims.iss と consumer.jwt_secrets[].key（Keycloak レルム URL）を照合する。
   # iss が一致しないトークン（他システム発行）は 401 で拒否される。
   # aud 検証は post-function access フェーズで実施する（下記参照）。
+  #
+  # INFRA-CRIT-001 対応: Kong のグローバル JWT プラグインはルートレベルの `enabled: false` では上書きされない。
+  # ヘルスチェックエンドポイント（/healthz, /readyz）を Kong 経由で認証なしにアクセスさせることはできない。
+  # 内部監視システム（Prometheus / Kubernetes liveness/readiness probe）からは
+  # Kong を経由せず直接サービスの ClusterIP にアクセスすること。
+  # 本番環境では Kong にヘルスチェックルートを定義せず、K8s NetworkPolicy で
+  # Prometheus / kube-system Pod からの直接アクセスのみを許可する設計とすること。
   - name: jwt
     config:
       uri_param_names: []
@@ -787,14 +801,18 @@ plugins:
   # Istio PeerAuthentication で実装する。以下は Proxy 経由で管理系エンドポイントを
   # 公開する場合のテンプレート。環境別の許可 IP は Helm values で管理する。
   # INFRA-005: Admin API への不正アクセスを防止するため、内部ネットワークからのみアクセスを許可する
+  # HIGH-008 監査対応確認: allow リストは ${KONG_ADMIN_ALLOWED_IPS:-127.0.0.1} で環境変数化済み。
+  # デフォルトは 127.0.0.1 のみ。本番では KONG_ADMIN_ALLOWED_IPS に適切な CIDR を設定すること。
+  # envsubst（CI/CD パイプライン）により実行時に展開されるため、設定ファイルへのハードコードは不要。
   - name: ip-restriction
     config:
-      # Kong Admin API へのアクセスを Kubernetes Pod CIDR に限定する（H-03 対応）
-      # デフォルト: 10.244.0.0/16（Kubernetes Pod CIDR）
-      # 旧デフォルト 10.0.0.0/8 はクラス A 全体を許可する広すぎる範囲であり、盗聴・不正アクセスリスクがある
-      # 本番環境では KONG_ADMIN_ALLOWED_IPS 環境変数で実際のクラスタ Pod CIDR を設定すること
+      # HIGH-005 監査対応: Kong Admin API へのアクセスを localhost のみに制限する。
+      # 10.244.0.0/16（Kubernetes Pod CIDR 全体）はクラスタ内の全 Pod からのアクセスを許可するため過剰であった。
+      # デフォルトを 127.0.0.1 に変更し、同一ホスト（Pod 内）からのアクセスのみを許可する。
+      # 本番環境では KONG_ADMIN_ALLOWED_IPS 環境変数で NetworkPolicy と組み合わせた適切な CIDR を設定すること。
+      # NetworkPolicy による保護も infra/kubernetes/network-policies/system.yaml に追加済み（HIGH-005）。
       allow:
-        - ${KONG_ADMIN_ALLOWED_IPS:-10.244.0.0/16}
+        - ${KONG_ADMIN_ALLOWED_IPS:-127.0.0.1}
 
 # ============================================================
 # Consumers - Keycloak JWKS 連携 + サービス間認証

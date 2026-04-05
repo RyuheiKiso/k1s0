@@ -40,14 +40,28 @@ use proto::k1s0::system::tenant::v1::Tenant as ProtoTenant;
 
 pub struct TenantGrpcClient {
     client: TenantServiceClient<Channel>,
+    /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
+    address: String,
+    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    timeout_ms: u64,
 }
 
 impl TenantGrpcClient {
+    /// proto の Tenant メッセージをドメインモデルの Tenant に変換する。
+    /// C-002 監査対応: proto の全フィールド（display_name, plan, owner_id, settings, db_schema, keycloak_realm）をマッピングする。
+    /// 空文字列は Option フィールドに対して None に変換することで、GraphQL スキーマの nullable 型と整合させる。
     fn tenant_from_proto(t: ProtoTenant) -> Tenant {
         Tenant {
             id: t.id,
             name: t.name,
+            display_name: t.display_name,
             status: TenantStatus::from(t.status),
+            plan: t.plan,
+            owner_id: t.owner_id,
+            // 空文字列の場合は None に変換する（proto の optional フィールドと GraphQL nullable の整合）
+            settings: if t.settings.is_empty() { None } else { Some(t.settings) },
+            db_schema: if t.db_schema.is_empty() { None } else { Some(t.db_schema) },
+            keycloak_realm: if t.keycloak_realm.is_empty() { None } else { Some(t.keycloak_realm) },
             created_at: timestamp_to_rfc3339(t.created_at),
             updated_at: timestamp_to_rfc3339(t.updated_at),
         }
@@ -61,7 +75,28 @@ impl TenantGrpcClient {
             .connect_lazy();
         Ok(Self {
             client: TenantServiceClient::new(channel),
+            address: cfg.address.clone(),
+            timeout_ms: cfg.timeout_ms,
         })
+    }
+
+    /// gRPC Health Check Protocol を使ってサービスの疎通確認を行う。
+    /// Bearer token なしで接続できるため readyz ヘルスチェックに適している。
+    /// tonic-health サービスが登録されているサーバーに対して Check RPC を送信する。
+    #[instrument(skip(self), fields(service = "graphql-gateway"))]
+    pub async fn health_check(&self) -> anyhow::Result<()> {
+        let channel = Channel::from_shared(self.address.clone())?
+            .timeout(Duration::from_millis(self.timeout_ms))
+            .connect_lazy();
+        let mut health_client = tonic_health::pb::health_client::HealthClient::new(channel);
+        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+            service: "k1s0.system.tenant.v1.TenantService".to_string(),
+        });
+        health_client
+            .check(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("tenant gRPC Health Check 失敗: {}", e))?;
+        Ok(())
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -142,13 +177,21 @@ impl TenantGrpcClient {
         Ok(found)
     }
 
+    /// テナント作成 gRPC リクエストを送信する。
+    /// C-003 監査対応: display_name, owner_id, plan を個別引数として受け取り、proto の CreateTenantRequest にマッピングする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn create_tenant(&self, name: &str, owner_user_id: &str) -> anyhow::Result<Tenant> {
+    pub async fn create_tenant(
+        &self,
+        name: &str,
+        display_name: &str,
+        owner_id: &str,
+        plan: &str,
+    ) -> anyhow::Result<Tenant> {
         let request = tonic::Request::new(proto::k1s0::system::tenant::v1::CreateTenantRequest {
             name: name.to_owned(),
-            display_name: name.to_owned(),
-            owner_id: owner_user_id.to_owned(),
-            plan: "standard".to_owned(),
+            display_name: display_name.to_owned(),
+            owner_id: owner_id.to_owned(),
+            plan: plan.to_owned(),
         });
 
         let t = self
@@ -164,13 +207,35 @@ impl TenantGrpcClient {
         Ok(Self::tenant_from_proto(t))
     }
 
+    /// CRIT-007 対応: display_name と plan を proto UpdateTenantRequest に直接渡す
+    /// status 変更は suspend_tenant/activate_tenant/delete_tenant で対応する
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,
         id: &str,
-        name: Option<&str>,
-        status: Option<&str>,
+        display_name: Option<&str>,
+        plan: Option<&str>,
     ) -> anyhow::Result<Tenant> {
+        // 少なくとも一方が指定されている場合のみ UpdateTenant RPC を呼び出す
+        if display_name.is_none() && plan.is_none() {
+            // 変更なし: 現在のテナント情報をそのまま返す
+            let current = self
+                .client
+                .clone()
+                .get_tenant(tonic::Request::new(
+                    proto::k1s0::system::tenant::v1::GetTenantRequest {
+                        tenant_id: id.to_owned(),
+                    },
+                ))
+                .await
+                .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {}", e))?
+                .into_inner()
+                .tenant
+                .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
+            return Ok(Self::tenant_from_proto(current));
+        }
+
+        // display_name または plan の片方だけ指定された場合は現在値を読んでから更新する
         let current = self
             .client
             .clone()
@@ -185,80 +250,24 @@ impl TenantGrpcClient {
             .tenant
             .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
 
-        let mut latest = current;
+        let updated = self
+            .client
+            .clone()
+            .update_tenant(tonic::Request::new(
+                proto::k1s0::system::tenant::v1::UpdateTenantRequest {
+                    tenant_id: id.to_owned(),
+                    // 指定されていなければ現在値を維持する
+                    display_name: display_name.unwrap_or(&current.display_name).to_owned(),
+                    plan: plan.unwrap_or(&current.plan).to_owned(),
+                },
+            ))
+            .await
+            .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
+            .into_inner()
+            .tenant
+            .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
 
-        if let Some(display_name) = name {
-            let updated = self
-                .client
-                .clone()
-                .update_tenant(tonic::Request::new(
-                    proto::k1s0::system::tenant::v1::UpdateTenantRequest {
-                        tenant_id: id.to_owned(),
-                        display_name: display_name.to_owned(),
-                        plan: latest.plan.clone(),
-                    },
-                ))
-                .await
-                .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
-                .into_inner()
-                .tenant
-                .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
-            latest = updated;
-        }
-
-        if let Some(status) = status {
-            let status = status.to_ascii_uppercase();
-            let transitioned = match status.as_str() {
-                "ACTIVE" => Some(
-                    self.client
-                        .clone()
-                        .activate_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::ActivateTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.ActivateTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in activate response"))?,
-                ),
-                "SUSPENDED" => Some(
-                    self.client
-                        .clone()
-                        .suspend_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::SuspendTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.SuspendTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in suspend response"))?,
-                ),
-                "DELETED" => Some(
-                    self.client
-                        .clone()
-                        .delete_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::DeleteTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.DeleteTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in delete response"))?,
-                ),
-                _ => None,
-            };
-            if let Some(next) = transitioned {
-                latest = next;
-            }
-        }
-
-        Ok(Self::tenant_from_proto(latest))
+        Ok(Self::tenant_from_proto(updated))
     }
 
     /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。

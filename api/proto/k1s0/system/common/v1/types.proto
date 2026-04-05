@@ -47,7 +47,8 @@ message Timestamp {
   int32 nanos = 2;
 }
 
-// ChangeType は設定・フラグ変更操作の種別。
+// ChangeType は設定・フラグ・テナント等の変更操作の種別。
+// HIGH-019 監査対応: テナントの SUSPENDED/ACTIVATED 状態変更に対応するため値を追加する
 enum ChangeType {
   // CHANGE_TYPE_UNSPECIFIED は未指定（デフォルト値）。
   CHANGE_TYPE_UNSPECIFIED = 0;
@@ -57,4 +58,8 @@ enum ChangeType {
   CHANGE_TYPE_UPDATED = 2;
   // CHANGE_TYPE_DELETED は削除。
   CHANGE_TYPE_DELETED = 3;
+  // CHANGE_TYPE_SUSPENDED は停止（テナント一時停止等）。
+  CHANGE_TYPE_SUSPENDED = 4;
+  // CHANGE_TYPE_ACTIVATED は有効化（テナント再有効化等）。
+  CHANGE_TYPE_ACTIVATED = 5;
 }

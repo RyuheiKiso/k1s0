@@ -52,6 +52,14 @@ func extractAndVerifyGRPCToken(ctx context.Context, verifier *JWKSVerifier) (*Cl
 		return nil, status.Error(codes.Unauthenticated, "認証が必要です")
 	}
 
+	// LOW-018 監査対応: 複数の authorization ヘッダーはヘッダーインジェクション攻撃等の
+	// 不正アクセスの兆候であるため明示的に拒否する。
+	// RFC 7235 では Authorization ヘッダーは1つのみ送信することが規定されている。
+	// gRPC メタデータは同一キーに複数値を持てるが、それを許可するとヘッダースマグリング等の
+	// リスクが生じるためエラーとして扱う。
+	if len(values) > 1 {
+		return nil, status.Error(codes.Unauthenticated, "Authorization ヘッダーは1つのみ許可されます")
+	}
 	raw := values[0]
 	// "Bearer " プレフィックスを大文字小文字を区別せずに確認する（RFC 7235 準拠）
 	const bearerPrefix = "bearer "

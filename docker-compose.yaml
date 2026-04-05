@@ -38,7 +38,10 @@ x-app-service: &app-service-defaults
     - /tmp
 
 x-rust-healthcheck: &rust-healthcheck
-  test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+  # CRITICAL-003 監査対応: /readyz はサービスが実際に稼働可能かを確認する（DB・依存サービス確認込み）。
+  # /healthz は liveness probe（プロセス死活確認）として常に ok を返すため Docker Compose 向きでない。
+  # /readyz を使うことで DB 未起動・マイグレーション未実行の状態を確実に検出できる。
+  test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
   interval: 10s
   timeout: 5s
   retries: 5
@@ -124,7 +127,10 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
     # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
     # exec でシェルを redis-server に置き換え PID 1 として動作させる
-    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
+    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を allkeys-lru に設定する
+    # デフォルト noeviction はメモリ枯渇時に書き込みエラーを引き起こすリスクがある
+    # allkeys-lru は最近最も使われていないキーを優先的に削除し、メモリ枯渇を防止する（開発環境向け設定）
+    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy allkeys-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
@@ -176,7 +182,8 @@ services:
       # 開発環境では固定値を使用（コンテナ再起動後もトピック/オフセットを引き継ぐため一定値が必要）。
       # 本番 K8s 環境は Strimzi Operator が自動生成するため、この値は開発専用。
       # チームで共通の CLUSTER_ID を使うことでローカル環境間のデータ互換性を維持する。
-      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.6.1 /opt/kafka/bin/kafka-storage.sh random-uuid
+      # INFRA-LOW-002 対応: バージョン参照を実際のイメージバージョン 3.8.0 に合わせる
+      # 新しい CLUSTER_ID が必要な場合: docker run --rm apache/kafka:3.8.0 /opt/kafka/bin/kafka-storage.sh random-uuid
       CLUSTER_ID: "5L6g3nShT-eMCtK--X86sw"
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -185,16 +192,61 @@ services:
       # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      # LOW-002 監査対応: JMX を有効化し Prometheus JMX Exporter からメトリクスを収集する。
+      # KAFKA_JMX_HOSTNAME には Docker ネットワーク内のサービス名を指定する（外部ホストではなく）。
+      # 認証・SSL なし設定はローカル開発環境専用。本番環境では TLS + 認証を必ず有効化すること。
+      KAFKA_JMX_HOSTNAME: kafka
+      KAFKA_JMX_PORT: "9999"
+      KAFKA_JMX_OPTS: >-
+        -Djava.rmi.server.hostname=kafka
+        -Dcom.sun.management.jmxremote=true
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-5 監査対応）
       - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
     healthcheck:
+      # DOCKER-003 監査対応: タイムアウトを 5s → 15s に延長し、起動待機期間を追加する。
+      # Kafka ブローカーはリーダー選出に時間がかかるため、起動直後のヘルスチェックが
+      # タイムアウトして不要な再起動が発生していた。start_period で起動猶予を確保する。
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
       interval: 10s
-      timeout: 5s
+      timeout: 15s
       retries: 5
+      start_period: 60s
+
+  # LOW-002 監査対応: Kafka JMX メトリクスを Prometheus 形式で公開するエクスポーター。
+  # Kafka の JMX ポート 9999 に接続し、ブローカーメトリクス・リクエストレイテンシ等を収集する。
+  # Prometheus は http://kafka-jmx-exporter:9101/metrics をスクレイプする。
+  kafka-jmx-exporter:
+    image: ghcr.io/prometheus/jmx-exporter:1.0.1
+    profiles: [infra]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["9101", "/etc/jmx-exporter/kafka-jmx.yml"]
+    volumes:
+      - ./infra/local/prometheus/kafka-jmx.yml:/etc/jmx-exporter/kafka-jmx.yml:ro
+    ports:
+      # JMX Exporter のメトリクスポートはホストのループバックにのみバインドする
+      - "127.0.0.1:9101:9101"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9101/metrics > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka-ui:
     # バージョン固定: latest タグを避け再現性を確保する
@@ -230,7 +282,8 @@ services:
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: Schema Registry は中程度のリソースを使用
-    mem_limit: 512m
+    # MED-005 監査対応: schema-registry が 87% 到達（512MiB）のためスキーマ数増加に備えて 1g に引き上げ
+    mem_limit: 1g
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Schema Registry運用に必要な最小限のみ付与
     security_opt:
@@ -257,7 +310,8 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
+      # INFRA-LOW-003 対応: ヘルスチェックを wget に統一する（他サービスと同じ方法で curl 依存を排除）
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -350,7 +404,11 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
     # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
     # exec でシェルを redis-server に置き換え PID 1 として動作させる
-    command: ["sh", "-c", "printf 'requirepass %s\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
+    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を設定する
+    # HIGH-010 監査対応: allkeys-lru から volatile-lru に変更する
+    # volatile-lru は TTL 付きキーのみを削除対象とするため、TTL なしのアクティブセッションが
+    # メモリ逼迫時に意図せず消去されることを防ぐ（アクティブセッションの消失防止）
+    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy volatile-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-4 監査対応）
       - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"
@@ -369,8 +427,8 @@ services:
   vault:
     # H-20 監査対応: Vault バージョンを 1.19 に統一する
     # 旧バージョン 1.17.6 は既知のセキュリティ脆弱性が修正された 1.19 系に更新する
-    # パッチバージョン固定: 意図しない自動アップグレードを防止する（L-07）
-    image: hashicorp/vault:1.19
+    # INFRA-MED-006 対応: パッチバージョンを固定して意図しない自動アップグレードを防止
+    image: hashicorp/vault:1.19.5
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -415,8 +473,8 @@ services:
     profiles: [infra]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
-    # リソース制限: API Gateway のメモリ使用量（外部監査で98%到達を確認、1536mへ増加）
-    mem_limit: 1536m
+    # HIGH-001 監査対応: Kong worker プロセスが 1.5GiB で99%に到達しOOMリスクがあるため 2g に引き上げる
+    mem_limit: 2g
     cpus: 0.5
     # セキュリティ強化: 全権限を削除し、Kong運用に必要な最小限のみ付与
     security_opt:
@@ -442,6 +500,14 @@ services:
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_LOG_LEVEL: info
+      # MED-002: worker event broker タイムアウト対策
+      # worker_state_update_frequency を延ばすことで "failed to receive the header bytes: timeout" の多発を抑制する
+      # Kong 3.x でサポートされる環境変数（デフォルト: 5秒）
+      KONG_WORKER_STATE_UPDATE_FREQUENCY: "10"
+      # post-function プラグインでの JWT claims デコードに cjson.safe が必要なため許可リストに追加する
+      # Kong のデフォルト sandbox モードでは require が制限されているが、
+      # ngx.decode_base64 + cjson.safe による JWT payload デコードは安全な操作であるため許可する
+      KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: "cjson.safe"
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
@@ -481,9 +547,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/auth/config:/app/config
     healthcheck: *rust-healthcheck
@@ -507,9 +573,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/config/config:/app/config
     healthcheck: *rust-healthcheck
@@ -533,11 +599,14 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/saga/config:/app/config
+      # MED-01 監査対応: ワークフロー定義ファイルをコンテナに提供する
+      # config.docker.yaml の saga.workflow_dir: "workflows" に対応するマウント
+      - ./regions/system/server/rust/saga/workflows:/app/workflows:ro
     healthcheck: *rust-healthcheck
 
   dlq-manager:
@@ -556,9 +625,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/dlq-manager/config:/app/config
     healthcheck: *rust-healthcheck
@@ -570,7 +639,8 @@ services:
     profiles: [system]
     <<: *app-service-defaults
     ports:
-      - "127.0.0.1:${FEATUREFLAG_REST_HOST_PORT:-8087}:8080"
+      # HIGH-008 監査対応: Docker Desktop の NAT レイヤーと 8087 が競合するためデフォルトを 8187 に変更する
+      - "127.0.0.1:${FEATUREFLAG_REST_HOST_PORT:-8187}:8080"
       - "127.0.0.1:${FEATUREFLAG_GRPC_HOST_PORT:-50056}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
@@ -578,9 +648,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
-      jaeger:
+      # H-014 監査対応: featureflag は k1s0.system.featureflag.changed.v1 トピックを使用するため kafka 依存を追加
+      kafka:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
+      jaeger:
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/featureflag/config:/app/config
     healthcheck: *rust-healthcheck
@@ -602,9 +675,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ratelimit/config:/app/config
     healthcheck: *rust-healthcheck
@@ -626,9 +699,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/tenant/config:/app/config
     healthcheck: *rust-healthcheck
@@ -651,9 +724,9 @@ services:
       # Vault の準備完了を確認してから起動する（service_started ではヘルスチェック未通過で接続失敗の可能性がある）
       vault:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/vault/config:/app/config
     healthcheck: *rust-healthcheck
@@ -672,9 +745,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/api-registry/config:/app/config
     healthcheck: *rust-healthcheck
@@ -695,9 +768,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
-      jaeger:
+      # M-032 監査対応: config.docker.yaml で keycloak JWKS URL を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
+      jaeger:
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/app-registry/config:/app/config
     healthcheck: *rust-healthcheck
@@ -720,9 +796,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/event-monitor/config:/app/config
     healthcheck: *rust-healthcheck
@@ -741,9 +817,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/event-store/config:/app/config
     healthcheck: *rust-healthcheck
@@ -762,9 +838,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/file/config:/app/config
     healthcheck: *rust-healthcheck
@@ -785,9 +861,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
-      jaeger:
+      # M-032 監査対応: config.docker.yaml で keycloak issuer/JWKS URL を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
+      jaeger:
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/master-maintenance/config:/app/config
     healthcheck: *rust-healthcheck
@@ -808,9 +887,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/navigation/config:/app/config
     healthcheck: *rust-healthcheck
@@ -832,9 +911,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/notification/config:/app/config
     healthcheck: *rust-healthcheck
@@ -855,9 +934,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/policy/config:/app/config
     healthcheck: *rust-healthcheck
@@ -878,9 +957,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/quota/config:/app/config
     healthcheck: *rust-healthcheck
@@ -901,9 +980,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
-      jaeger:
+      # H-014 監査対応: rule-engine は Kafka でイベントを発行するため kafka 依存を追加
+      kafka:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
+      jaeger:
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/rule-engine/config:/app/config
     healthcheck: *rust-healthcheck
@@ -924,9 +1006,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/scheduler/config:/app/config
     healthcheck: *rust-healthcheck
@@ -945,9 +1027,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/search/config:/app/config
     healthcheck: *rust-healthcheck
@@ -966,9 +1048,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
-      jaeger:
+      # M-032 監査対応: config.docker.yaml で keycloak issuer URL を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
+      jaeger:
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/service-catalog/config:/app/config
     healthcheck: *rust-healthcheck
@@ -989,11 +1074,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      # H-019 監査対応: セッションデータは redis-session（専用インスタンス）に保存する。
+      # bff-proxy も redis-session を使用しており、session-rust も同じインスタンスに統一する
+      redis-session:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/session/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1018,9 +1105,9 @@ services:
       # scheduler-rust が未起動の場合は DNS エラーでクラッシュするため依存を明示する（CRIT-2 監査対応）。
       scheduler-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/workflow/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1041,9 +1128,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ai-gateway/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1066,9 +1153,9 @@ services:
         condition: service_healthy
       ai-gateway-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/ai-agent/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1107,6 +1194,9 @@ services:
       notification-rust:
         condition: service_healthy
       workflow-rust:
+        # LOW-001 監査対応: workflow-rust には healthcheck が定義されているため service_healthy に昇格する。
+        # MEDIUM-005 の緩和措置（service_started）は scheduler-rust への依存が解消された現在不要。
+        # workflow-rust が完全に起動した後に graphql-gateway が接続することで接続エラーを防止する。
         condition: service_healthy
       # MED-20 監査対応: GraphQL スキーマが参照する全バックエンドサービスへの depends_on を追加する。
       # 起動順序依存を宣言しないと graphql-gateway が起動直後に依存サービスへ接続失敗するリスクがある。
@@ -1122,9 +1212,9 @@ services:
         condition: service_healthy
       event-monitor-rust:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/rust/graphql-gateway/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1145,14 +1235,14 @@ services:
         condition: service_healthy
       redis-session:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/system/server/go/bff-proxy/config:/app/config
-    # ヘルスチェック: busybox の wget で /healthz エンドポイントを確認
+    # CRITICAL-003 監査対応: /readyz は OIDC discovery + Redis 接続を確認する readiness probe
     healthcheck:
-      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      test: ["CMD", "/busybox", "wget", "-qO-", "http://127.0.0.1:8080/readyz"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1185,9 +1275,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/business/taskmanagement/server/rust/project-master/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1210,9 +1300,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/task/server/rust/task/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1235,9 +1325,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/board/server/rust/board/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1260,9 +1350,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      # H-03+M-07+H-05 監査対応: jaeger の healthcheck 完了後にサービスを起動する（service_healthy）
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./regions/service/activity/server/rust/activity/config:/app/config
     healthcheck: *rust-healthcheck
@@ -1301,17 +1391,22 @@ services:
   kafka-init:
     image: apache/kafka:3.8.0
     profiles: [infra]
-    # リソース制限: 初期化タスクは軽量（一時的に実行されるだけ）
-    mem_limit: 256m
-    cpus: 0.25
+    # リソース制限: kafka-topics.sh を並列実行するため JVM プロセスが複数起動する。
+    # DOCKER-001 監査対応: 256m では OOM Kill が発生し 44 トピック中 37 件が未作成になるため 1g に引き上げ。
+    # DOCKER-MED-002 対応: 並列 JVM プロセスによる OOM Kill を防ぐためメモリを 1g → 1.5g に増加
+    mem_limit: 1.5g
+    # CRIT-004 監査対応: 57トピックを並列JVMプロセスで作成する際、cpus: 0.25 ではJVMがSIGKILLされトピック作成が断続的に失敗するため 1.0 に引き上げ。
+    cpus: 1.0
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除。読み取り専用ファイルシステムで実行
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     read_only: true
+    # MED-012 監査対応: :exec → :noexec に変更。kafka-topics.sh はシェルスクリプトであり、
+    # /tmp 内でバイナリを実行する必要はない。noexec でセキュリティを強化する。
     tmpfs:
-      - /tmp:exec
+      - /tmp:noexec
     depends_on:
       kafka:
         condition: service_healthy
@@ -1319,13 +1414,22 @@ services:
       KAFKA_BOOTSTRAP_SERVER: kafka:9092
       KAFKA_REPLICATION_FACTOR: "1"
       PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      # DOCKER-MED-002 対応: JVM ヒープを明示的に制限し、コンテナのメモリ上限内に収める
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
     volumes:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
     # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
-    # HIGH-10 監査対応: Kafka ブローカー起動遅延で3回失敗するとトピック未作成のまま終了するため
-    # 最大10回に増加してブローカー起動完了を十分に待機できるようにする
-    restart: "on-failure:10"
+    # HIGH-004 監査対応: --if-not-exists 使用で冪等なため3回で十分（以前の10回は過剰だった）
+    restart: "on-failure:3"
+    # MED-008 監査対応: kafka-init は一度完了するとコンテナが終了するため、
+    # ヘルスチェックは常に exit 0 を返してコンテナの存在確認のみ行う。
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ============================================================
   # 可観測性
@@ -1336,13 +1440,16 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     # H-01 監査対応: system プロファイルでも jaeger が起動するよう profiles に system を追加する
-    # system サービス群が depends_on: jaeger (service_healthy) を持つため、
+    # system サービス群が depends_on: jaeger (service_started) を持つため、
     # --profile system 単独起動時に jaeger が見つからず依存解決に失敗する問題を修正する
+    # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop ヘルスチェックタイムアウト問題を避けるため
+    # jaeger 依存条件を service_healthy → service_started に変更済み
     profiles: [system, observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
     # リソース制限: トレーシングサービスは中程度のリソースを使用
-    mem_limit: 512m
+    # MED-005 監査対応: Jaeger が 78% 到達（512MiB）のためトレース蓄積に備えて 768m に引き上げ
+    mem_limit: 768m
     cpus: 0.5
     # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除
     security_opt:
@@ -1376,10 +1483,20 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # LOW-003 監査対応: --web.config.file フラグで Basic 認証設定を読み込む。
+    # web.yml には bcrypt ハッシュ化されたパスワードが含まれる（平文保存なし）。
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.config.file=/etc/prometheus/web.yml"
     volumes:
       - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
       - ./infra/docker/prometheus/recording_rules.yaml:/etc/prometheus/recording_rules.yaml:ro
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml:ro
+      # LOW-003 監査対応: Basic 認証設定（bcrypt ハッシュ済みパスワード）をマウント
+      - ./infra/docker/prometheus/web.yml:/etc/prometheus/web.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
@@ -1419,7 +1536,8 @@ services:
       start_period: 30s
 
   promtail:
-    image: grafana/promtail:2.9.0
+    # INFRA-HIGH-004 対応: 2.9.0 (2023年, 非推奨) → 3.3.2 に更新
+    image: grafana/promtail:3.3.2
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped
@@ -1443,8 +1561,13 @@ services:
     # H-02監査対応: grafana/promtail:2.9.0 イメージに wget も nc も含まれていないため、
     # bash の /dev/tcp 組み込み機能でヘルスチェックを実装する。
     # /ready エンドポイントが 200 を返せばヘルシー判定する。
-    # ※ Windows Docker Desktop 環境では docker.sock 経由のログパスが異なるため
-    #    /ready が 500 を返す場合があるが、これはホスト OS 依存の既知制限。
+    # M-027 監査対応: Windows Docker Desktop 既知問題と回避策
+    # ※ Windows Docker Desktop 環境では /var/lib/docker/containers のパスが
+    #    Linux VM 内パスと異なるため /ready が 500 を返す場合がある。
+    # 回避策: promtail-config.yaml の __path__ を Windows VM のパスに合わせて変更するか、
+    #         `docker compose --profile observability up --no-deps loki grafana` で
+    #         promtail をスキップして起動すること（ログ収集なしでも監視 UI は使用可能）。
+    # 詳細: docs/architecture/adr/0036-promtail-log-collection-strategy.md
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9080 && printf \"GET /ready HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && head -1 <&3 | grep -q 200'"]
       interval: 30s
@@ -1473,7 +1596,7 @@ services:
     environment:
       # 本番環境では必ず強力なパスワードを設定すること。ローカル開発は docker-compose.dev.yaml で値を提供する。
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set. For local dev use docker-compose.dev.yaml}
-      # 本番 DB 移行方針（M-11 対応）: ローカル開発は SQLite（デフォルト）を使用する。
+      # M-024 監査対応 / M-11 対応: ローカル開発は SQLite（デフォルト）を使用する。
       # 本番環境では以下の環境変数を設定して PostgreSQL に移行すること:
       #   GF_DATABASE_TYPE: postgres
       #   GF_DATABASE_HOST: <postgres-host>:5432
@@ -1481,6 +1604,7 @@ services:
       #   GF_DATABASE_USER: grafana
       #   GF_DATABASE_PASSWORD: <secret>
       #   GF_DATABASE_SSL_MODE: require
+      # Helm values での設定先: infra/helm/services/system/grafana/values-prod.yaml（または values.yaml）
       # 移行手順: https://grafana.com/docs/grafana/latest/setup-grafana/set-up-grafana-monitoring/
     ports:
       - "127.0.0.1:${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
@@ -1502,8 +1626,9 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
+      # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
-        condition: service_healthy
+        condition: service_started
 
 volumes:
   postgres-data:
@@ -1514,5 +1639,14 @@ volumes:
   grafana-data:
 
 networks:
+  # LOW-011 ネットワーク設計注記:
+  # 現在は全サービスを k1s0-network（単一ネットワーク）に統一している。
+  # ローカル開発環境では単一ネットワークの方がサービス間通信の設定が簡単なため現状維持とする。
+  # 将来課題: 本番相当の環境ではインフラ層（postgres/kafka/redis/keycloak）と
+  # アプリ層（system サービス群）をネットワーク分離することでセキュリティを向上できる。
+  # 分離案:
+  #   k1s0-infra-network: postgres, kafka, redis, keycloak（DB・メッセージング層）
+  #   k1s0-app-network:   system サービス群（アプリ層）
+  #   各アプリサービスは必要なインフラネットワークに接続する形で networks: を明示する。
   default:
     name: ${COMPOSE_NETWORK_NAME:-k1s0-network}

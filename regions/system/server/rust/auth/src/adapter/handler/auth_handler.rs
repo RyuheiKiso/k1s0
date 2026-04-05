@@ -70,9 +70,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut kc_status = "skipped";
     let mut overall_ok = true;
 
-    // DB check
+    // DB check: テーブル存在確認まで行い、スキーマ未初期化でも "ready" を返す誤検知を防ぐ（MED-006 監査対応）
+    // `SELECT 1` だけでは DB 接続の疎通確認のみでスキーマ未初期化を見逃すため、実テーブルを参照する
     if let Some(ref pool) = state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool).await {
+        match sqlx::query("SELECT 1 FROM auth.users LIMIT 0").execute(pool).await {
             Ok(_) => db_status = "ok",
             Err(_) => {
                 db_status = "error";
@@ -100,7 +101,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     (
         status_code,
         Json(serde_json::json!({
-            "status": if overall_ok { "ready" } else { "not ready" },
+            // ADR-0068 準拠: status は healthy / unhealthy の2値を使用する（MED-006 監査対応）
+            // "ready"/"not_ready" は非標準のため "healthy"/"unhealthy" に統一する
+            "status": if overall_ok { "healthy" } else { "unhealthy" },
             "checks": {
                 "database": db_status,
                 "keycloak": kc_status
@@ -253,9 +256,11 @@ pub async fn list_users(
         Err(e) => {
             // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
             // e.to_string() はデータベースエラーの詳細・接続文字列・スタックトレースを含む可能性がある
+            // RUST-006 監査対応: 内部エラーには BAD_REQUEST(400) でなく INTERNAL_SERVER_ERROR(500) を返す。
+            // クライアントのバグではなくサーバー側の問題であるため、正しい HTTP セマンティクスを使用する。
             tracing::error!(error = %e, "内部エラーが発生しました");
             let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
-            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }
@@ -440,7 +445,8 @@ mod tests {
             .expect("レスポンスボディの読み取りに失敗");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
-        assert_eq!(json["status"], "ready");
+        // ADR-0068 準拠: "healthy" が正しい値（MED-006 監査対応）
+        assert_eq!(json["status"], "healthy");
     }
 
     #[tokio::test]

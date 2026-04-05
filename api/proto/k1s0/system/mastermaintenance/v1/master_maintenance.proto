@@ -163,7 +163,8 @@ message TableRelationship {
   string display_name = 5;
   string id = 6;
   bool is_cascade_delete = 7;
-  string created_at = 8;
+  // HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+  k1s0.system.common.v1.Timestamp created_at = 8;
 }
 
 // テーブル定義一覧リクエスト
@@ -476,8 +477,10 @@ message ImportJob {
   int32 error_rows = 7;
   string error_details_json = 8;
   string started_by = 9;
-  string started_at = 10;
-  optional string completed_at = 11;
+  // HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+  k1s0.system.common.v1.Timestamp started_at = 10;
+  // HIGH-017: optional string → optional Timestamp に変更（未完了ジョブは null を許容）
+  optional k1s0.system.common.v1.Timestamp completed_at = 11;
 }
 
 message ListDisplayConfigsRequest {
@@ -532,8 +535,10 @@ message DisplayConfig {
   string config_json = 4;
   bool is_default = 5;
   string created_by = 6;
-  string created_at = 7;
-  string updated_at = 8;
+  // HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+  k1s0.system.common.v1.Timestamp created_at = 7;
+  // HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+  k1s0.system.common.v1.Timestamp updated_at = 8;
 }
 
 message ListTableAuditLogsRequest {
@@ -570,7 +575,8 @@ message AuditLogEntry {
   string changed_by = 8;
   string change_reason = 9;
   string trace_id = 10;
-  string created_at = 11;
+  // HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+  k1s0.system.common.v1.Timestamp created_at = 11;
   string domain_scope = 12;
 }
 

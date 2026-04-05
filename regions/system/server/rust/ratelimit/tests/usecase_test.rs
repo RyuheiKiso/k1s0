@@ -52,8 +52,8 @@ impl RateLimitRepository for StubRateLimitRepository {
         Ok(rule.clone())
     }
 
-    /// IDでルールを検索する。
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<RateLimitRule> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
+    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<RateLimitRule> {
         let rules = self.rules.read().await;
         rules
             .iter()
@@ -62,30 +62,39 @@ impl RateLimitRepository for StubRateLimitRepository {
             .ok_or_else(|| anyhow::anyhow!("rule not found: {}", id))
     }
 
-    /// 名前でルールを検索する。
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
+    async fn find_by_name(
+        &self,
+        name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.iter().find(|r| r.name == name).cloned())
     }
 
-    /// スコープでルールを検索する。
-    async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
+    async fn find_by_scope(
+        &self,
+        scope: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Vec<RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.iter().filter(|r| r.scope == scope).cloned().collect())
     }
 
-    /// 全ルールを取得する。
-    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<RateLimitRule>> {
         Ok(self.rules.read().await.clone())
     }
 
-    /// ページネーション付きでルールを取得する。
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
     async fn find_page(
         &self,
         page: u32,
         page_size: u32,
         scope: Option<String>,
         enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         let rules = self.rules.read().await;
         let filtered: Vec<_> = rules
@@ -121,8 +130,8 @@ impl RateLimitRepository for StubRateLimitRepository {
         }
     }
 
-    /// ルールを削除する。
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では全ルールを対象とする。
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut rules = self.rules.write().await;
         let len_before = rules.len();
         rules.retain(|r| r.id != *id);
@@ -302,7 +311,8 @@ async fn check_rate_limit_with_stub_single_rule_allowed() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -321,8 +331,9 @@ async fn check_rate_limit_exact_match_takes_priority_over_wildcard() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // user-vip は FixedWindow のルールにマッチするはず
-    let decision = uc.execute("api", "user-vip", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "user-vip", 60).await.unwrap();
 
     assert!(decision.allowed);
     // FixedWindowのcheck_fixed_windowが呼ばれることを間接的に検証
@@ -341,8 +352,9 @@ async fn check_rate_limit_falls_back_to_wildcard_when_no_exact_match() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 通常ユーザーはワイルドカードルールにフォールバック
-    let decision = uc.execute("api", "normal-user", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "normal-user", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -357,8 +369,9 @@ async fn check_rate_limit_disabled_rule_skipped() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 無効ルールはスキップされ、デフォルトが使用される
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     // rule_id はマッチしないルールなので空文字列
@@ -372,7 +385,8 @@ async fn check_rate_limit_empty_identifier_error() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let result = uc.execute("api", "", 60).await;
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let result = uc.execute("test-tenant", "api", "", 60).await;
 
     assert!(result.is_err());
 }
@@ -385,7 +399,8 @@ async fn check_rate_limit_fail_open_with_matched_rule() {
     let state = Arc::new(StubRateLimitStateStore::with_error());
 
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 100, 60);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
     assert!(decision.reason.contains("fail-open"));
@@ -398,7 +413,8 @@ async fn check_rate_limit_fail_closed_returns_error() {
     let state = Arc::new(StubRateLimitStateStore::with_error());
 
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, false, 100, 60);
-    let result = uc.execute("api", "user-1", 60).await;
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let result = uc.execute("test-tenant", "api", "user-1", 60).await;
 
     assert!(result.is_err());
 }
@@ -411,7 +427,8 @@ async fn check_rate_limit_leaky_bucket_algorithm() {
     let state = Arc::new(StubRateLimitStateStore::new());
 
     let uc = CheckRateLimitUseCase::new(repo, state);
-    let decision = uc.execute("api", "user-1", 30).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 30).await.unwrap();
 
     assert!(decision.allowed);
 }
@@ -424,7 +441,8 @@ async fn check_rate_limit_fallback_policy_zero_limit_clamped_to_one() {
 
     // limit=0, window=0 は内部で max(1) に矯正される
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 0, 0);
-    let decision = uc.execute("api", "user-1", 60).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
+    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
 
     assert!(decision.allowed);
 }
@@ -446,6 +464,7 @@ async fn create_rule_with_stub_success() {
         window_seconds: 120,
         algorithm: Some("sliding_window".to_string()),
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await.unwrap();
@@ -455,7 +474,7 @@ async fn create_rule_with_stub_success() {
     assert_eq!(result.algorithm, Algorithm::SlidingWindow);
 
     // リポジトリに保存されていることを確認
-    let all = repo.find_all().await.unwrap();
+    let all = repo.find_all("tenant-a").await.unwrap();
     assert_eq!(all.len(), 1);
 }
 
@@ -473,6 +492,7 @@ async fn create_rule_with_stub_duplicate_rejected() {
         window_seconds: 60,
         algorithm: None,
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -492,6 +512,7 @@ async fn create_rule_invalid_algorithm_name() {
         window_seconds: 60,
         algorithm: Some("nonexistent_algo".to_string()),
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -511,6 +532,7 @@ async fn create_rule_with_disabled_state() {
         window_seconds: 3600,
         algorithm: Some("fixed_window".to_string()),
         enabled: false,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await.unwrap();
@@ -531,6 +553,7 @@ async fn create_rule_empty_identifier_pattern_validation_error() {
         window_seconds: 60,
         algorithm: None,
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -557,6 +580,7 @@ async fn update_rule_with_stub_success() {
         window_seconds: 120,
         algorithm: Some("leaky_bucket".to_string()),
         enabled: false,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let updated = uc.execute(&input).await.unwrap();
@@ -566,7 +590,7 @@ async fn update_rule_with_stub_success() {
     assert!(!updated.enabled);
 
     // リポジトリ内のデータも更新されていることを確認
-    let stored = repo.find_by_id(&rule_id).await.unwrap();
+    let stored = repo.find_by_id(&rule_id, "tenant-a").await.unwrap();
     assert_eq!(stored.limit, 200);
 }
 
@@ -584,6 +608,7 @@ async fn update_rule_invalid_uuid_returns_error() {
         window_seconds: 60,
         algorithm: None,
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -606,6 +631,7 @@ async fn update_rule_without_algorithm_keeps_original() {
         window_seconds: 120,
         algorithm: None, // アルゴリズムは変更しない
         enabled: true,
+        tenant_id: "tenant-a".to_string(),
     };
 
     let updated = uc.execute(&input).await.unwrap();
@@ -624,10 +650,10 @@ async fn delete_rule_with_stub_success() {
     let repo = Arc::new(StubRateLimitRepository::with_rules(vec![rule]));
     let uc = DeleteRuleUseCase::new(repo.clone());
 
-    uc.execute(&rule_id.to_string()).await.unwrap();
+    uc.execute(&rule_id.to_string(), "tenant-a").await.unwrap();
 
     // 削除後は空になる
-    let all = repo.find_all().await.unwrap();
+    let all = repo.find_all("tenant-a").await.unwrap();
     assert!(all.is_empty());
 }
 
@@ -637,7 +663,9 @@ async fn delete_rule_with_stub_not_found() {
     let repo = Arc::new(StubRateLimitRepository::new());
     let uc = DeleteRuleUseCase::new(repo);
 
-    let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+    let result = uc
+        .execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a")
+        .await;
     assert!(result.is_err());
 }
 
@@ -653,7 +681,10 @@ async fn get_rule_with_stub_success() {
     let repo = Arc::new(StubRateLimitRepository::with_rules(vec![rule]));
     let uc = GetRuleUseCase::new(repo);
 
-    let found = uc.execute(&rule_id.to_string()).await.unwrap();
+    let found = uc
+        .execute(&rule_id.to_string(), "tenant-a")
+        .await
+        .unwrap();
     assert_eq!(found.id, rule_id);
     assert_eq!(found.scope, "api");
 }
@@ -664,7 +695,9 @@ async fn get_rule_with_stub_not_found() {
     let repo = Arc::new(StubRateLimitRepository::new());
     let uc = GetRuleUseCase::new(repo);
 
-    let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+    let result = uc
+        .execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a")
+        .await;
     assert!(result.is_err());
 }
 
@@ -687,6 +720,7 @@ async fn list_rules_with_stub_pagination_has_next() {
             page_size: 3,
             scope: None,
             enabled_only: false,
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -711,6 +745,7 @@ async fn list_rules_with_stub_last_page_no_next() {
             page_size: 10,
             scope: None,
             enabled_only: false,
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -736,6 +771,7 @@ async fn list_rules_with_stub_scope_filter() {
             page_size: 20,
             scope: Some("api".to_string()),
             enabled_only: false,
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -762,6 +798,7 @@ async fn list_rules_with_stub_enabled_only_filter() {
             page_size: 20,
             scope: None,
             enabled_only: true,
+            tenant_id: "tenant-a".to_string(),
         })
         .await
         .unwrap();
@@ -783,7 +820,8 @@ async fn get_usage_with_state_store_returns_snapshot() {
     let state = Arc::new(StubRateLimitStateStore::with_counter(25));
 
     let uc = GetUsageUseCase::with_state_store(repo, state);
-    let info = uc.execute(&rule_id.to_string()).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
+    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
 
     assert_eq!(info.limit, 100);
     assert_eq!(info.used, Some(25));
@@ -799,7 +837,8 @@ async fn get_usage_without_state_store_returns_none_values() {
     let repo = Arc::new(StubRateLimitRepository::with_rules(vec![rule]));
 
     let uc = GetUsageUseCase::new(repo);
-    let info = uc.execute(&rule_id.to_string()).await.unwrap();
+    // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
+    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
 
     assert_eq!(info.limit, 100);
     assert!(info.used.is_none());
@@ -818,6 +857,8 @@ async fn reset_rate_limit_with_stub_success() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "user-1".to_string(),
         })
@@ -834,6 +875,8 @@ async fn reset_rate_limit_empty_identifier_error() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "".to_string(),
         })
@@ -850,6 +893,8 @@ async fn reset_rate_limit_state_store_error() {
 
     let result = uc
         .execute(&ResetRateLimitInput {
+            // STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
+            tenant_id: "test-tenant".to_string(),
             scope: "api".to_string(),
             identifier: "user-1".to_string(),
         })

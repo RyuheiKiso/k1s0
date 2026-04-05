@@ -54,18 +54,22 @@ pub async fn run() -> anyhow::Result<()> {
         "starting ai-agent server"
     );
 
+    // CRITICAL-003 対応: readyz ハンドラに渡す db_pool を事前確保する
+    let mut db_pool_for_readyz: Option<sqlx::PgPool> = None;
+
     // --- Repository ---
     let (agent_repo, execution_repo): (Arc<dyn AgentRepository>, Arc<dyn ExecutionRepository>) =
         if let Some(ref db_cfg) = cfg.database {
-            let pool = Arc::new(
-                super::database::create_pool(
-                    &db_cfg.connection_url(),
-                    db_cfg.max_open_conns,
-                    db_cfg.max_idle_conns,
-                    &db_cfg.conn_max_lifetime,
-                )
-                .await?,
-            );
+            let raw_pool = super::database::create_pool(
+                &db_cfg.connection_url(),
+                db_cfg.max_open_conns,
+                db_cfg.max_idle_conns,
+                &db_cfg.conn_max_lifetime,
+            )
+            .await?;
+            // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+            db_pool_for_readyz = Some(raw_pool.clone());
+            let pool = Arc::new(raw_pool);
             info!("connected to PostgreSQL database");
 
             (
@@ -175,6 +179,8 @@ pub async fn run() -> anyhow::Result<()> {
         review_step_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
+        db_pool: db_pool_for_readyz,
     };
     if let Some(auth_st) = auth_state {
         handler_state = handler_state.with_auth(auth_st);

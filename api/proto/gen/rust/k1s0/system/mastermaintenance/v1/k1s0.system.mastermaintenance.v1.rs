@@ -12,6 +12,7 @@ pub struct CreateTableDefinitionResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableDefinitionRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -26,6 +27,7 @@ pub struct UpdateTableDefinitionResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteTableDefinitionRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -39,6 +41,7 @@ pub struct DeleteTableDefinitionResponse {
 /// テーブル定義取得リクエスト
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetTableDefinitionRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -177,8 +180,10 @@ pub struct ListTableDefinitionsResponse {
 /// レコード取得リクエスト
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetRecordRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
+    /// レコードIDは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub record_id: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
@@ -209,6 +214,7 @@ pub struct UpdateRecordResponse {
 /// レコード一覧リクエスト
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListRecordsRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -233,6 +239,7 @@ pub struct ListRecordsResponse {
 /// レコード作成リクエスト
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateRecordRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -243,8 +250,10 @@ pub struct CreateRecordRequest {
 /// レコード更新リクエスト
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRecordRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
+    /// レコードIDは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub record_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="3")]
@@ -255,8 +264,10 @@ pub struct UpdateRecordRequest {
 /// レコード削除リクエスト
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteRecordRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
+    /// レコードIDは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub record_id: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
@@ -302,6 +313,7 @@ pub struct CreateRuleResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
 }
@@ -312,6 +324,7 @@ pub struct GetRuleResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -324,6 +337,7 @@ pub struct UpdateRuleResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
 }
@@ -352,6 +366,7 @@ pub struct ListRulesResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ExecuteRuleRequest {
+    /// ルールIDは1文字以上であること
     #[prost(string, tag="1")]
     pub rule_id: ::prost::alloc::string::String,
 }
@@ -424,6 +439,7 @@ pub struct ValidationWarning {
 /// テーブルスキーマ取得リクエスト
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetTableSchemaRequest {
+    /// テーブル名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub table_name: ::prost::alloc::string::String,
 }
@@ -545,6 +561,7 @@ pub struct ExportRecordsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetImportJobRequest {
+    /// インポートジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub import_job_id: ::prost::alloc::string::String,
 }

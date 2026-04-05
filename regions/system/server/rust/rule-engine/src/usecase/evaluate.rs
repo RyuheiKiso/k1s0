@@ -48,6 +48,8 @@ pub struct EvaluateUseCase {
     rule_set_repo: Arc<dyn RuleSetRepository>,
     rule_repo: Arc<dyn RuleRepository>,
     eval_log_repo: Arc<dyn EvaluationLogRepository>,
+    /// 正規表現コンパイル結果キャッシュ付き評価器（RUST-HIGH-003 対応）
+    condition_evaluator: ConditionEvaluator,
 }
 
 impl EvaluateUseCase {
@@ -60,6 +62,8 @@ impl EvaluateUseCase {
             rule_set_repo,
             rule_repo,
             eval_log_repo,
+            // ConditionEvaluator は regex LruCache を内部で持つため、ユースケース生成時に一度だけ初期化する
+            condition_evaluator: ConditionEvaluator::new(),
         }
     }
 
@@ -88,12 +92,13 @@ impl EvaluateUseCase {
         let now = chrono::Utc::now();
         let evaluation_id = Uuid::new_v4();
 
-        let (matched_rules, result, default_applied) = Self::evaluate_rules(
+        // L-002 監査対応: evaluate_rules が async になったため .await が必要
+        let (matched_rules, result, default_applied) = self.evaluate_rules(
             &rules,
             &rule_set.evaluation_mode,
             &input.input,
             &rule_set.default_result,
-        )?;
+        ).await?;
 
         // Log evaluation (unless dry_run)
         if !input.dry_run {
@@ -136,7 +141,10 @@ impl EvaluateUseCase {
         Ok((parts[0].to_string(), parts[1].to_string()))
     }
 
-    fn evaluate_rules(
+    /// ルール評価ループ。ConditionEvaluator のキャッシュを再利用するためインスタンスメソッドとする
+    /// L-002 監査対応: ConditionEvaluator::evaluate が async になったため async fn にする
+    async fn evaluate_rules(
+        &self,
         rules: &[Rule],
         mode: &EvaluationMode,
         input: &serde_json::Value,
@@ -148,7 +156,11 @@ impl EvaluateUseCase {
             let condition = ConditionParser::parse(&rule.when_condition)
                 .map_err(EvaluateError::EvaluationError)?;
 
-            let is_match = ConditionEvaluator::evaluate(&condition, input)
+            // L-002 監査対応: tokio::sync::Mutex の .lock().await が内部で呼ばれるため .await が必要
+            let is_match = self
+                .condition_evaluator
+                .evaluate(&condition, input)
+                .await
                 .map_err(EvaluateError::EvaluationError)?;
 
             if is_match {
@@ -171,7 +183,7 @@ impl EvaluateUseCase {
             let result = matched[0].result.clone();
             Ok((matched, result, false))
         } else {
-            // AllMatch: merge results into array
+            // AllMatch: 全マッチ結果を配列にマージして返す
             let results: Vec<serde_json::Value> =
                 matched.iter().map(|m| m.result.clone()).collect();
             Ok((matched, serde_json::Value::Array(results), false))

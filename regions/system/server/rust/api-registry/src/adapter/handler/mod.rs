@@ -24,6 +24,8 @@ pub struct AppState {
     pub get_diff_uc: Arc<GetDiffUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（CRITICAL-003 対応: /readyz で SELECT 1 チェックに使用）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {

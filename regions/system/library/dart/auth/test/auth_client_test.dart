@@ -214,7 +214,7 @@ void main() {
 
     group('getAccessToken', () {
       test('有効なアクセストークンを返すこと', () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'valid-token',
           refreshToken: 'refresh-token',
           idToken: 'id-token',
@@ -240,7 +240,7 @@ void main() {
 
       test('トークンの有効期限が 60 秒以内の場合に自動リフレッシュすること',
           () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'expiring-token',
           refreshToken: 'refresh-token',
           idToken: 'id-token',
@@ -263,7 +263,7 @@ void main() {
 
     group('refreshToken', () {
       test('リフレッシュトークンを新しいトークンと交換すること', () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'old-access',
           refreshToken: 'old-refresh',
           idToken: 'old-id',
@@ -288,7 +288,7 @@ void main() {
 
       test('リフレッシュ失敗時にトークンをクリアしてリスナーに通知すること',
           () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'access',
           refreshToken: 'expired-refresh',
           idToken: 'id',
@@ -322,8 +322,8 @@ void main() {
         expect(client.isAuthenticated, isFalse);
       });
 
-      test('トークンが有効な場合に true を返すこと', () {
-        tokenStore.setTokenSet(TokenSet(
+      test('トークンが有効な場合に true を返すこと', () async {
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
           idToken: 'id',
@@ -333,8 +333,8 @@ void main() {
         expect(client.isAuthenticated, isTrue);
       });
 
-      test('トークンが期限切れの場合に false を返すこと', () {
-        tokenStore.setTokenSet(TokenSet(
+      test('トークンが期限切れの場合に false を返すこと', () async {
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
           idToken: 'id',
@@ -347,7 +347,7 @@ void main() {
 
     group('logout', () {
       test('トークンをクリアすること', () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
           idToken: 'id',
@@ -360,7 +360,7 @@ void main() {
       });
 
       test('リスナーに通知すること', () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
           idToken: 'id',
@@ -377,7 +377,7 @@ void main() {
       test(
           'id_token_hint 付きで end_session_endpoint にリダイレクトすること',
           () async {
-        tokenStore.setTokenSet(TokenSet(
+        await tokenStore.setTokenSet(TokenSet(
           accessToken: 'token',
           refreshToken: 'refresh',
           idToken: 'my-id-token',
@@ -458,14 +458,14 @@ void main() {
         expect(client.getTokenSet(), isNull);
       });
 
-      test('保存されたトークンセットを返すこと', () {
+      test('保存されたトークンセットを返すこと', () async {
         final ts = TokenSet(
           accessToken: 'a',
           refreshToken: 'r',
           idToken: 'i',
           expiresAt: DateTime.now().add(const Duration(minutes: 5)),
         );
-        tokenStore.setTokenSet(ts);
+        await tokenStore.setTokenSet(ts);
         final client = createClient();
         final result = client.getTokenSet();
         expect(result, isNotNull);
@@ -500,6 +500,86 @@ void main() {
             .where((url) => url == _testConfig.discoveryUrl)
             .length;
         expect(discoveryCalls, equals(1));
+      });
+    });
+
+    // M-016-dart 監査対応: OIDC Discovery フェッチのリトライテスト
+    group('fetchDiscovery retry', () {
+      test('5xx エラー時にリトライして成功すること', () async {
+        var callCount = 0;
+        // 1回目は503、2回目は200を返す
+        Future<http.Response> retryableGet(Uri url,
+            {Map<String, String>? headers}) async {
+          httpGetUrls.add(url.toString());
+          if (url.toString() == _testConfig.discoveryUrl) {
+            callCount++;
+            if (callCount == 1) {
+              return http.Response('Service Unavailable', 503);
+            }
+            return http.Response(jsonEncode(_testDiscovery), 200);
+          }
+          return http.Response('Not Found', 404);
+        }
+
+        final client = createClient(httpGet: retryableGet);
+        // リトライが発生するため fetchDiscovery を直接呼ぶ
+        final discovery = await client.fetchDiscovery();
+        expect(discovery.authorizationEndpoint,
+            equals(_testDiscovery['authorization_endpoint']));
+        // 2回試行されたことを確認する
+        final discoveryCalls = httpGetUrls
+            .where((url) => url == _testConfig.discoveryUrl)
+            .length;
+        expect(discoveryCalls, equals(2));
+      });
+
+      test('4xx エラー時はリトライせずに例外をスローすること', () async {
+        Future<http.Response> failGet(Uri url,
+            {Map<String, String>? headers}) async {
+          httpGetUrls.add(url.toString());
+          if (url.toString() == _testConfig.discoveryUrl) {
+            return http.Response('Not Found', 404);
+          }
+          return http.Response('Not Found', 404);
+        }
+
+        final client = createClient(httpGet: failGet);
+        await expectLater(
+          client.fetchDiscovery,
+          throwsA(isA<AuthError>().having(
+            (e) => e.message,
+            'message',
+            contains('Discovery fetch failed: 404'),
+          )),
+        );
+        // リトライなし（1回のみ試行）
+        final discoveryCalls = httpGetUrls
+            .where((url) => url == _testConfig.discoveryUrl)
+            .length;
+        expect(discoveryCalls, equals(1));
+      });
+
+      test('3回すべて5xxの場合に例外をスローすること', () async {
+        Future<http.Response> alwaysFailGet(Uri url,
+            {Map<String, String>? headers}) async {
+          httpGetUrls.add(url.toString());
+          return http.Response('Internal Server Error', 500);
+        }
+
+        final client = createClient(httpGet: alwaysFailGet);
+        await expectLater(
+          client.fetchDiscovery,
+          throwsA(isA<AuthError>().having(
+            (e) => e.message,
+            'message',
+            contains('3 attempts'),
+          )),
+        );
+        // 3回試行されたことを確認する
+        final discoveryCalls = httpGetUrls
+            .where((url) => url == _testConfig.discoveryUrl)
+            .length;
+        expect(discoveryCalls, equals(3));
       });
     });
 
@@ -570,7 +650,7 @@ void main() {
   });
 
   group('MemoryTokenStore', () {
-    test('トークンセットを保存・取得できること', () {
+    test('トークンセットを保存・取得できること', () async {
       final store = MemoryTokenStore();
       final ts = TokenSet(
         accessToken: 'a',
@@ -578,13 +658,13 @@ void main() {
         idToken: 'i',
         expiresAt: DateTime.now().add(const Duration(minutes: 5)),
       );
-      store.setTokenSet(ts);
+      await store.setTokenSet(ts);
       expect(store.getTokenSet()?.accessToken, equals('a'));
     });
 
-    test('トークンセットをクリアできること', () {
+    test('トークンセットをクリアできること', () async {
       final store = MemoryTokenStore();
-      store.setTokenSet(TokenSet(
+      await store.setTokenSet(TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
         idToken: 'i',
@@ -594,9 +674,10 @@ void main() {
       expect(store.getTokenSet(), isNull);
     });
 
-    test('code verifier を保存・取得できること', () {
+    test('code verifier を保存・取得できること', () async {
+      // H-008 監査対応: setCodeVerifier が非同期化されたため await で呼び出す
       final store = MemoryTokenStore();
-      store.setCodeVerifier('test-verifier');
+      await store.setCodeVerifier('test-verifier');
       expect(store.getCodeVerifier(), equals('test-verifier'));
     });
 
@@ -606,15 +687,16 @@ void main() {
       expect(store.getState(), equals('test-state'));
     });
 
-    test('clearAll で全データをクリアすること', () {
+    test('clearAll で全データをクリアすること', () async {
+      // H-008 監査対応: setCodeVerifier が非同期化されたため await で呼び出す
       final store = MemoryTokenStore();
-      store.setTokenSet(TokenSet(
+      await store.setTokenSet(TokenSet(
         accessToken: 'a',
         refreshToken: 'r',
         idToken: 'i',
         expiresAt: DateTime.now(),
       ));
-      store.setCodeVerifier('verifier');
+      await store.setCodeVerifier('verifier');
       store.setState('state');
       store.clearAll();
       expect(store.getTokenSet(), isNull);

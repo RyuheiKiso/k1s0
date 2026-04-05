@@ -9,7 +9,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::infrastructure::auth::JwksVerifier;
+use crate::infrastructure::auth::{JwksVerifier, JwtVerifyError};
 
 /// raw JWT トークン文字列。
 /// クエリ引数経由でトークンを渡すとアクセスログに記録されるリスクがあるため、
@@ -41,12 +41,26 @@ pub struct RealmAccess {
     pub roles: Vec<String>,
 }
 
+/// Authorization ヘッダーから Bearer トークンを抽出する。
+/// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    headers
+    let auth_str = headers
         .get("Authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .map(|t| t.to_owned())
+        .and_then(|v| v.to_str().ok())?;
+    // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+    const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    if auth_str.len() < BEARER_PREFIX_LEN {
+        return None;
+    }
+    if !auth_str[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ") {
+        return None;
+    }
+    let token = &auth_str[BEARER_PREFIX_LEN..];
+    if token.is_empty() {
+        None
+    } else {
+        Some(token.to_owned())
+    }
 }
 
 /// AuthMiddlewareLayer は JwksVerifier を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
@@ -121,16 +135,51 @@ where
                 }
             };
 
+            // LOW-014 監査対応: JWT 検証エラーを種別ごとに区別し、クライアントに
+            // 適切なエラーコードを返す。TokenExpired と InvalidSignature は
+            // セキュリティ上の意味が異なるため、ログレベルも分けて記録する。
             let claims = match verifier.verify_token(&token).await {
                 Ok(c) => c,
-                Err(_) => {
+                Err(e) => {
                     let request_id = uuid::Uuid::new_v4().to_string();
+                    let (code, message) = match &e {
+                        // トークン期限切れ: 正常なセッション切れであることが多い
+                        JwtVerifyError::TokenExpired => (
+                            "SYS_AUTH_TOKEN_EXPIRED",
+                            "JWTトークンの有効期限が切れています。再ログインしてください。",
+                        ),
+                        // 署名不正: 改ざん・偽造の可能性がある（セキュリティアラート対象）
+                        JwtVerifyError::InvalidSignature => (
+                            "SYS_AUTH_TOKEN_INVALID_SIGNATURE",
+                            "JWT署名が無効です。",
+                        ),
+                        // issuer 不一致: 設定ミスまたは別環境のトークン
+                        JwtVerifyError::InvalidIssuer => (
+                            "SYS_AUTH_TOKEN_INVALID_ISSUER",
+                            "JWTのissuerが無効です。",
+                        ),
+                        // audience 不一致: 別サービス向けのトークンを使用している可能性
+                        JwtVerifyError::InvalidAudience => (
+                            "SYS_AUTH_TOKEN_INVALID_AUDIENCE",
+                            "JWTのaudienceが無効です。",
+                        ),
+                        // JWKS 取得失敗: 認証サービスの一時障害（再試行可能）
+                        JwtVerifyError::JwksFetchFailed(_) => (
+                            "SYS_AUTH_JWKS_UNAVAILABLE",
+                            "認証サービスに一時的に接続できません。しばらく後に再試行してください。",
+                        ),
+                        // その他の不正フォーマット
+                        JwtVerifyError::MalformedToken(_) => (
+                            "SYS_AUTH_TOKEN_MALFORMED",
+                            "JWTトークンの形式が不正です。",
+                        ),
+                    };
                     return Ok((
                         StatusCode::UNAUTHORIZED,
                         Json(serde_json::json!({
                             "error": {
-                                "code": "SYS_AUTH_TOKEN_INVALID",
-                                "message": "invalid or expired JWT token",
+                                "code": code,
+                                "message": message,
                                 "request_id": request_id
                             }
                         })),

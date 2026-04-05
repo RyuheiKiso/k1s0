@@ -52,14 +52,18 @@ pub struct QuotaUsage {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CreateQuotaPolicyRequest {
+    /// ポリシー名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
+    /// サブジェクト種別は1文字以上64文字以下であること（例: tenant, user）
     #[prost(string, tag="2")]
     pub subject_type: ::prost::alloc::string::String,
+    /// サブジェクトIDは1文字以上256文字以下であること
     #[prost(string, tag="3")]
     pub subject_id: ::prost::alloc::string::String,
     #[prost(uint64, tag="4")]
     pub limit: u64,
+    /// 期間は1文字以上64文字以下であること（例: daily, monthly）
     #[prost(string, tag="5")]
     pub period: ::prost::alloc::string::String,
     #[prost(bool, tag="6")]
@@ -74,6 +78,7 @@ pub struct CreateQuotaPolicyResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetQuotaPolicyRequest {
+    /// ポリシーIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -103,6 +108,7 @@ pub struct ListQuotaPoliciesResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateQuotaPolicyRequest {
+    /// ポリシーIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(bool, optional, tag="2")]
@@ -127,6 +133,7 @@ pub struct UpdateQuotaPolicyResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteQuotaPolicyRequest {
+    /// ポリシーIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -139,6 +146,7 @@ pub struct DeleteQuotaPolicyResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetQuotaUsageRequest {
+    /// クォータIDは1文字以上であること
     #[prost(string, tag="1")]
     pub quota_id: ::prost::alloc::string::String,
 }
@@ -149,6 +157,7 @@ pub struct GetQuotaUsageResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckQuotaRequest {
+    /// クォータIDは1文字以上であること
     #[prost(string, tag="1")]
     pub quota_id: ::prost::alloc::string::String,
 }
@@ -159,6 +168,7 @@ pub struct CheckQuotaResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct IncrementQuotaUsageRequest {
+    /// クォータIDは1文字以上であること
     #[prost(string, tag="1")]
     pub quota_id: ::prost::alloc::string::String,
     #[prost(uint64, tag="2")]
@@ -183,6 +193,7 @@ pub struct IncrementQuotaUsageResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResetQuotaUsageRequest {
+    /// クォータIDは1文字以上であること
     #[prost(string, tag="1")]
     pub quota_id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]

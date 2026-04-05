@@ -96,8 +96,8 @@ resources:
 - [Kubernetes 公式ドキュメント: Encrypt Secret Data at Rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)
 - [CIS Kubernetes Benchmark v1.8 - 1.2.31 Ensure that encryption providers are appropriately configured](https://www.cisecurity.org/benchmark/kubernetes)
 - [NIST SP 800-111: Guide to Storage Encryption Technologies](https://csrc.nist.gov/publications/detail/sp/800-111/final)
-- [ADR-0020: Kubernetes シークレット管理方針](./0020-kubernetes-secret-management.md)
-- [外部監査対応 2026-03-22](../../memory/project_audit_response_2026_03_22.md)
+- [ADR-0019: Vault ポリシーのドメイン単位シークレット分離](./0019-vault-domain-secret-isolation.md)
+- 外部監査対応 2026-03-22
 
 ## 更新履歴
 

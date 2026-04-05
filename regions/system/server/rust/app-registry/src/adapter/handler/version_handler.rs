@@ -62,6 +62,9 @@ pub struct CreateVersionRequest {
     pub release_notes: Option<String>,
     #[serde(default)]
     pub mandatory: bool,
+    /// STATIC-CRITICAL-002: Cosign 署名（base64 エンコード）。
+    /// cosign が有効な場合、検証に使用する。省略可（開発環境のみ）。
+    pub cosign_signature: Option<String>,
 }
 
 #[utoipa::path(
@@ -72,6 +75,7 @@ pub struct CreateVersionRequest {
     responses(
         (status = 201, description = "Version created", body = CreateVersionResponse),
         (status = 400, description = "Bad request"),
+        (status = 422, description = "Signature verification failed"),
     ),
     security(("bearer_auth" = []))
 )]
@@ -80,6 +84,48 @@ pub async fn create_version(
     Path(id): Path<String>,
     Json(req): Json<CreateVersionRequest>,
 ) -> impl IntoResponse {
+    // STATIC-CRITICAL-002: 署名が提供された場合は Cosign で検証する
+    if let Some(ref signature) = req.cosign_signature {
+        match state
+            .cosign_verifier
+            .verify(&req.checksum_sha256, signature)
+            .await
+        {
+            Ok(true) => {
+                tracing::info!(
+                    app_id = %id,
+                    version = %req.version,
+                    "Cosign 署名検証成功"
+                );
+            }
+            Ok(false) => {
+                tracing::warn!(
+                    app_id = %id,
+                    version = %req.version,
+                    "Cosign 署名検証失敗: 無効な署名"
+                );
+                let err = ErrorResponse::new(
+                    "SYS_APPS_SIGNATURE_INVALID",
+                    "Cosign 署名の検証に失敗しました。署名が正しいか確認してください。",
+                );
+                return (StatusCode::UNPROCESSABLE_ENTITY, Json(err)).into_response();
+            }
+            Err(e) => {
+                tracing::error!(
+                    app_id = %id,
+                    version = %req.version,
+                    error = %e,
+                    "Cosign 署名検証中にエラーが発生しました"
+                );
+                let err = ErrorResponse::new(
+                    "SYS_APPS_SIGNATURE_VERIFY_ERROR",
+                    format!("署名検証中にエラーが発生しました: {}", e),
+                );
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response();
+            }
+        }
+    }
+
     let version = AppVersion {
         id: uuid::Uuid::new_v4(),
         app_id: id,
@@ -91,6 +137,7 @@ pub async fn create_version(
         storage_key: req.storage_key,
         release_notes: req.release_notes,
         mandatory: req.mandatory,
+        cosign_signature: req.cosign_signature,
         published_at: chrono::Utc::now(),
         created_at: chrono::Utc::now(),
     };

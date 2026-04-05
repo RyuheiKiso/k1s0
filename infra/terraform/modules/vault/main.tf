@@ -28,6 +28,20 @@ resource "vault_mount" "kv" {
 # Audit Configuration
 # ============================================================
 
+# M-031 監査対応: 監査ログを PVC に永続化する（Pod 再起動でログが消失しないよう）
+# コンプライアンス要件: 監査ログは永続化が必要
+#
+# 実装済みリソース:
+#   - PVC:       infra/kubernetes/system/vault-audit-pvc.yaml（kubectl kustomize 経由で適用）
+#   - Helm 設定: infra/terraform/modules/vault/values/vault-helm-overrides.yaml
+#   - PVC サイズ変数: var.vault_audit_storage_size（デフォルト 10Gi）
+#
+# デプロイ手順:
+#   1. kubectl kustomize infra/kubernetes/system/ | kubectl apply -f -
+#   2. helm upgrade vault hashicorp/vault \
+#        -f infra/terraform/modules/vault/values/vault-helm-overrides.yaml \
+#        -n k1s0-system
+#
 # Audit log - records all authentication attempts, secret reads,
 # policy changes, and configuration changes.
 # Secret values are masked (log_raw = false).

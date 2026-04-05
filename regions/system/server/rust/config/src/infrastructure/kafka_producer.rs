@@ -126,6 +126,13 @@ impl KafkaProducer {
         self
     }
 
+    /// シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）。
+    pub async fn close(&self) -> anyhow::Result<()> {
+        use rdkafka::producer::Producer;
+        self.producer.flush(std::time::Duration::from_secs(10))?;
+        Ok(())
+    }
+
     /// 配信先トピック名を返す。
     /// 設定値変更イベントを Kafka へ発行する。
     /// 内部的には ConfigChangeLog を構築して既存の publish メソッドに委譲する。

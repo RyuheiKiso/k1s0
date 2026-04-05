@@ -64,7 +64,9 @@ impl SagaRepository for InMemorySagaRepository {
         saga_id: uuid::Uuid,
         status: &SagaStatus,
         error_message: Option<String>,
+        _tenant_id: &str,
     ) -> anyhow::Result<()> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let mut states = self.states.write().await;
         if let Some(s) = states.iter_mut().find(|s| s.saga_id == saga_id) {
             s.status = status.clone();
@@ -74,12 +76,14 @@ impl SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, saga_id: uuid::Uuid) -> anyhow::Result<Option<SagaState>> {
+    async fn find_by_id(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Option<SagaState>> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let states = self.states.read().await;
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
-    async fn find_step_logs(&self, saga_id: uuid::Uuid) -> anyhow::Result<Vec<SagaStepLog>> {
+    async fn find_step_logs(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let logs = self.step_logs.read().await;
         Ok(logs
             .iter()
@@ -88,8 +92,13 @@ impl SagaRepository for InMemorySagaRepository {
             .collect())
     }
 
+    /// Saga 一覧を取得する。
+    /// cursor が指定された場合は keyset ページネーション（インメモリ実装）、
+    /// 指定されない場合は OFFSET ベースのページネーション（後方互換）を使用する。
     async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)> {
         let states = self.states.read().await;
+
+        // フィルタ条件でSagaを絞り込む
         let filtered: Vec<_> = states
             .iter()
             .filter(|s| {
@@ -114,11 +123,50 @@ impl SagaRepository for InMemorySagaRepository {
             .collect();
 
         let total = filtered.len() as i32;
-        let page = params.page.max(1);
         let page_size = params.page_size.max(1);
+
+        // cursor が指定された場合は keyset ページネーションを使用する
+        // cursor 形式: "{created_at_unix_ms}_{id}"
+        if let Some(ref cursor) = params.cursor {
+            // カーソルを unix_ms とIDに分解する
+            let paged = if let Some((ts_str, id_str)) = cursor.split_once('_') {
+                if let (Ok(ts_ms), Ok(cursor_id)) =
+                    (ts_str.parse::<i64>(), uuid::Uuid::parse_str(id_str))
+                {
+                    // cursor の created_at を復元する
+                    let cursor_ts =
+                        chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ts_ms);
+                    if let Some(cursor_ts) = cursor_ts {
+                        // (created_at, id) が cursor より小さいレコードを取得する（DESC 順）
+                        let mut after_cursor: Vec<_> = filtered
+                            .into_iter()
+                            .filter(|s| {
+                                (s.created_at, s.saga_id) < (cursor_ts, cursor_id)
+                            })
+                            .collect();
+                        // created_at DESC, id DESC でソートする
+                        after_cursor.sort_by(|a, b| {
+                            b.created_at
+                                .cmp(&a.created_at)
+                                .then(b.saga_id.cmp(&a.saga_id))
+                        });
+                        after_cursor.into_iter().take(page_size as usize).collect()
+                    } else {
+                        vec![]
+                    }
+                } else {
+                    vec![]
+                }
+            } else {
+                vec![]
+            };
+            return Ok((paged, total));
+        }
+
+        // OFFSET ページネーション（後方互換）
+        let page = params.page.max(1);
         let offset = ((page - 1) * page_size) as usize;
-        let limit = page_size as usize;
-        let paged: Vec<_> = filtered.into_iter().skip(offset).take(limit).collect();
+        let paged: Vec<_> = filtered.into_iter().skip(offset).take(page_size as usize).collect();
 
         Ok((paged, total))
     }

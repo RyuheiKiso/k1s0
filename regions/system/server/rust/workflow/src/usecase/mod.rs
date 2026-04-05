@@ -8,7 +8,6 @@ pub mod get_workflow;
 pub mod list_instances;
 pub mod list_tasks;
 pub mod list_workflows;
-mod postgres_support;
 pub mod reassign_task;
 pub mod reject_task;
 pub mod start_instance;

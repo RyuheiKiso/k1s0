@@ -96,6 +96,8 @@ export interface ListRulesResponse {
  */
 export interface GetRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -114,6 +116,8 @@ export interface GetRuleResponse {
  */
 export interface CreateRuleRequest {
     /**
+     * ルール名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -148,6 +152,8 @@ export interface CreateRuleResponse {
  */
 export interface UpdateRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -186,6 +192,8 @@ export interface UpdateRuleResponse {
  */
 export interface DeleteRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -285,6 +293,8 @@ export interface ListRuleSetsResponse {
  */
 export interface GetRuleSetRequest {
     /**
+     * ルールセットIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -303,6 +313,8 @@ export interface GetRuleSetResponse {
  */
 export interface CreateRuleSetRequest {
     /**
+     * ルールセット名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -311,10 +323,14 @@ export interface CreateRuleSetRequest {
      */
     description: string;
     /**
+     * ドメインは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string domain = 3
      */
     domain: string;
     /**
+     * 評価モードは1文字以上64文字以下であること（例: first_match, all_match）
+     *
      * @generated from protobuf field: string evaluation_mode = 4
      */
     evaluationMode: string;
@@ -341,6 +357,8 @@ export interface CreateRuleSetResponse {
  */
 export interface UpdateRuleSetRequest {
     /**
+     * ルールセットIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -379,6 +397,8 @@ export interface UpdateRuleSetResponse {
  */
 export interface DeleteRuleSetRequest {
     /**
+     * ルールセットIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -401,6 +421,8 @@ export interface DeleteRuleSetResponse {
  */
 export interface PublishRuleSetRequest {
     /**
+     * ルールセットIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -431,6 +453,8 @@ export interface PublishRuleSetResponse {
  */
 export interface RollbackRuleSetRequest {
     /**
+     * ルールセットIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -463,6 +487,8 @@ export interface RollbackRuleSetResponse {
  */
 export interface EvaluateRequest {
     /**
+     * ルールセット識別子は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string rule_set = 1
      */
     ruleSet: string;
@@ -540,7 +566,7 @@ export interface EvaluateResponse {
  */
 export interface EvaluateDryRunRequest {
     /**
-     * 評価対象のルールセット識別子
+     * 評価対象のルールセット識別子（1文字以上128文字以下）
      *
      * @generated from protobuf field: string rule_set = 1
      */
@@ -848,7 +874,7 @@ export const ListRulesResponse = new ListRulesResponse$Type();
 class GetRuleRequest$Type extends MessageType<GetRuleRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.GetRuleRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetRuleRequest>): GetRuleRequest {
@@ -941,7 +967,7 @@ export const GetRuleResponse = new GetRuleResponse$Type();
 class CreateRuleRequest$Type extends MessageType<CreateRuleRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.CreateRuleRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "priority", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "when_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
@@ -1066,7 +1092,7 @@ export const CreateRuleResponse = new CreateRuleResponse$Type();
 class UpdateRuleRequest$Type extends MessageType<UpdateRuleRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.UpdateRuleRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "priority", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
             { no: 4, name: "when_json", kind: "scalar", opt: true, T: 12 /*ScalarType.BYTES*/ },
@@ -1194,7 +1220,7 @@ export const UpdateRuleResponse = new UpdateRuleResponse$Type();
 class DeleteRuleRequest$Type extends MessageType<DeleteRuleRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.DeleteRuleRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteRuleRequest>): DeleteRuleRequest {
@@ -1528,7 +1554,7 @@ export const ListRuleSetsResponse = new ListRuleSetsResponse$Type();
 class GetRuleSetRequest$Type extends MessageType<GetRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.GetRuleSetRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetRuleSetRequest>): GetRuleSetRequest {
@@ -1621,10 +1647,10 @@ export const GetRuleSetResponse = new GetRuleSetResponse$Type();
 class CreateRuleSetRequest$Type extends MessageType<CreateRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.CreateRuleSetRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "evaluation_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 4, name: "evaluation_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
             { no: 5, name: "default_result_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 6, name: "rule_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1754,7 +1780,7 @@ export const CreateRuleSetResponse = new CreateRuleSetResponse$Type();
 class UpdateRuleSetRequest$Type extends MessageType<UpdateRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.UpdateRuleSetRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "evaluation_mode", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "default_result_json", kind: "scalar", opt: true, T: 12 /*ScalarType.BYTES*/ },
@@ -1883,7 +1909,7 @@ export const UpdateRuleSetResponse = new UpdateRuleSetResponse$Type();
 class DeleteRuleSetRequest$Type extends MessageType<DeleteRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.DeleteRuleSetRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteRuleSetRequest>): DeleteRuleSetRequest {
@@ -1985,7 +2011,7 @@ export const DeleteRuleSetResponse = new DeleteRuleSetResponse$Type();
 class PublishRuleSetRequest$Type extends MessageType<PublishRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.PublishRuleSetRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<PublishRuleSetRequest>): PublishRuleSetRequest {
@@ -2102,7 +2128,7 @@ export const PublishRuleSetResponse = new PublishRuleSetResponse$Type();
 class RollbackRuleSetRequest$Type extends MessageType<RollbackRuleSetRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.RollbackRuleSetRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RollbackRuleSetRequest>): RollbackRuleSetRequest {
@@ -2219,7 +2245,7 @@ export const RollbackRuleSetResponse = new RollbackRuleSetResponse$Type();
 class EvaluateRequest$Type extends MessageType<EvaluateRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.EvaluateRequest", [
-            { no: 1, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "input_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 3, name: "context_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
@@ -2455,7 +2481,7 @@ export const EvaluateResponse = new EvaluateResponse$Type();
 class EvaluateDryRunRequest$Type extends MessageType<EvaluateDryRunRequest> {
     constructor() {
         super("k1s0.system.ruleengine.v1.EvaluateDryRunRequest", [
-            { no: 1, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "rule_set", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "input_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 3, name: "context_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);

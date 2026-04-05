@@ -15,9 +15,18 @@ import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
+ * M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+ * 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+ * TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+ * reserved 3;
+ * reserved "step_type";
+ *
  * @generated from protobuf message k1s0.system.workflow.v1.WorkflowStep
  */
 export interface WorkflowStep {
+    // M-014 監査対応: 削除期限 2026-06（workflow.proto 内の全 deprecated フィールド共通）
+    // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
     /**
      * @generated from protobuf field: string step_id = 1
      */
@@ -28,8 +37,10 @@ export interface WorkflowStep {
     name: string;
     /**
      * Deprecated: use step_type_enum instead.
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string step_type = 3
+     * @deprecated
+     * @generated from protobuf field: string step_type = 3 [deprecated = true]
      */
     stepType: string;
     /**
@@ -123,6 +134,8 @@ export interface ListWorkflowsResponse {
  */
 export interface CreateWorkflowRequest {
     /**
+     * ワークフロー名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -153,6 +166,8 @@ export interface CreateWorkflowResponse {
  */
 export interface GetWorkflowRequest {
     /**
+     * ワークフローIDは1文字以上であること
+     *
      * @generated from protobuf field: string workflow_id = 1
      */
     workflowId: string;
@@ -180,6 +195,8 @@ export interface WorkflowSteps {
  */
 export interface UpdateWorkflowRequest {
     /**
+     * ワークフローIDは1文字以上であること
+     *
      * @generated from protobuf field: string workflow_id = 1
      */
     workflowId: string;
@@ -214,6 +231,8 @@ export interface UpdateWorkflowResponse {
  */
 export interface DeleteWorkflowRequest {
     /**
+     * ワークフローIDは1文字以上であること
+     *
      * @generated from protobuf field: string workflow_id = 1
      */
     workflowId: string;
@@ -236,14 +255,20 @@ export interface DeleteWorkflowResponse {
  */
 export interface StartInstanceRequest {
     /**
+     * ワークフローIDは1文字以上であること
+     *
      * @generated from protobuf field: string workflow_id = 1
      */
     workflowId: string;
     /**
+     * タイトルは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string title = 2
      */
     title: string;
     /**
+     * 開始者IDは1文字以上であること
+     *
      * @generated from protobuf field: string initiator_id = 3
      */
     initiatorId: string;
@@ -302,6 +327,8 @@ export interface StartInstanceResponse {
  */
 export interface GetInstanceRequest {
     /**
+     * インスタンスIDは1文字以上であること
+     *
      * @generated from protobuf field: string instance_id = 1
      */
     instanceId: string;
@@ -354,6 +381,8 @@ export interface ListInstancesResponse {
  */
 export interface CancelInstanceRequest {
     /**
+     * インスタンスIDは1文字以上であること
+     *
      * @generated from protobuf field: string instance_id = 1
      */
     instanceId: string;
@@ -396,7 +425,10 @@ export interface WorkflowTask {
      */
     assigneeId?: string;
     /**
-     * @generated from protobuf field: string status = 6
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
+     *
+     * @deprecated
+     * @generated from protobuf field: string status = 6 [deprecated = true]
      */
     status: string;
     /**
@@ -423,6 +455,12 @@ export interface WorkflowTask {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 12
      */
     updatedAt?: Timestamp;
+    /**
+     * MED-025 監査対応: タスクステータスの enum 版。
+     *
+     * @generated from protobuf field: k1s0.system.workflow.v1.WorkflowTaskStatus status_enum = 13
+     */
+    statusEnum: WorkflowTaskStatus;
 }
 /**
  * @generated from protobuf message k1s0.system.workflow.v1.ListTasksRequest
@@ -467,10 +505,14 @@ export interface ListTasksResponse {
  */
 export interface ReassignTaskRequest {
     /**
+     * タスクIDは1文字以上であること
+     *
      * @generated from protobuf field: string task_id = 1
      */
     taskId: string;
     /**
+     * 新しい担当者IDは1文字以上であること
+     *
      * @generated from protobuf field: string new_assignee_id = 2
      */
     newAssigneeId: string;
@@ -479,6 +521,8 @@ export interface ReassignTaskRequest {
      */
     reason?: string;
     /**
+     * 操作者IDは1文字以上であること
+     *
      * @generated from protobuf field: string actor_id = 4
      */
     actorId: string;
@@ -525,9 +569,11 @@ export interface WorkflowInstance {
      */
     currentStepId?: string;
     /**
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
      * インスタンス状態（pending / running / completed / cancelled / failed）
      *
-     * @generated from protobuf field: string status = 7
+     * @deprecated
+     * @generated from protobuf field: string status = 7 [deprecated = true]
      */
     status: string;
     /**
@@ -548,16 +594,26 @@ export interface WorkflowInstance {
      * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp created_at = 11
      */
     createdAt?: Timestamp;
+    /**
+     * MED-025 監査対応: インスタンスステータスの enum 版。
+     *
+     * @generated from protobuf field: k1s0.system.workflow.v1.WorkflowInstanceStatus status_enum = 12
+     */
+    statusEnum: WorkflowInstanceStatus;
 }
 /**
  * @generated from protobuf message k1s0.system.workflow.v1.ApproveTaskRequest
  */
 export interface ApproveTaskRequest {
     /**
+     * タスクIDは1文字以上であること
+     *
      * @generated from protobuf field: string task_id = 1
      */
     taskId: string;
     /**
+     * 操作者IDは1文字以上であること
+     *
      * @generated from protobuf field: string actor_id = 2
      */
     actorId: string;
@@ -596,10 +652,14 @@ export interface ApproveTaskResponse {
  */
 export interface RejectTaskRequest {
     /**
+     * タスクIDは1文字以上であること
+     *
      * @generated from protobuf field: string task_id = 1
      */
     taskId: string;
     /**
+     * 操作者IDは1文字以上であること
+     *
      * @generated from protobuf field: string actor_id = 2
      */
     actorId: string;
@@ -632,6 +692,89 @@ export interface RejectTaskResponse {
      * @generated from protobuf field: string instance_status = 4
      */
     instanceStatus: string;
+}
+// MED-025 監査対応: WorkflowInstanceStatus / WorkflowTaskStatus enum を追加。
+// 後方互換性のため deprecated string フィールドは削除しない。
+
+/**
+ * WorkflowInstanceStatus はワークフローインスタンスのステータス。
+ *
+ * @generated from protobuf enum k1s0.system.workflow.v1.WorkflowInstanceStatus
+ */
+export enum WorkflowInstanceStatus {
+    /**
+     * WORKFLOW_INSTANCE_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * WORKFLOW_INSTANCE_STATUS_PENDING は開始待機中。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * WORKFLOW_INSTANCE_STATUS_RUNNING は実行中。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_RUNNING = 2;
+     */
+    RUNNING = 2,
+    /**
+     * WORKFLOW_INSTANCE_STATUS_COMPLETED は完了。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_COMPLETED = 3;
+     */
+    COMPLETED = 3,
+    /**
+     * WORKFLOW_INSTANCE_STATUS_CANCELLED はキャンセル済み。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_CANCELLED = 4;
+     */
+    CANCELLED = 4,
+    /**
+     * WORKFLOW_INSTANCE_STATUS_FAILED は失敗。
+     *
+     * @generated from protobuf enum value: WORKFLOW_INSTANCE_STATUS_FAILED = 5;
+     */
+    FAILED = 5
+}
+/**
+ * WorkflowTaskStatus はワークフロータスクのステータス。
+ *
+ * @generated from protobuf enum k1s0.system.workflow.v1.WorkflowTaskStatus
+ */
+export enum WorkflowTaskStatus {
+    /**
+     * WORKFLOW_TASK_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: WORKFLOW_TASK_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * WORKFLOW_TASK_STATUS_PENDING は承認待機中。
+     *
+     * @generated from protobuf enum value: WORKFLOW_TASK_STATUS_PENDING = 1;
+     */
+    PENDING = 1,
+    /**
+     * WORKFLOW_TASK_STATUS_APPROVED は承認済み。
+     *
+     * @generated from protobuf enum value: WORKFLOW_TASK_STATUS_APPROVED = 2;
+     */
+    APPROVED = 2,
+    /**
+     * WORKFLOW_TASK_STATUS_REJECTED は却下済み。
+     *
+     * @generated from protobuf enum value: WORKFLOW_TASK_STATUS_REJECTED = 3;
+     */
+    REJECTED = 3,
+    /**
+     * WORKFLOW_TASK_STATUS_CANCELLED はキャンセル済み。
+     *
+     * @generated from protobuf enum value: WORKFLOW_TASK_STATUS_CANCELLED = 4;
+     */
+    CANCELLED = 4
 }
 /**
  * WorkflowStepType はワークフローステップの種別。
@@ -699,7 +842,7 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
                 case /* string name */ 2:
                     message.name = reader.string();
                     break;
-                case /* string step_type */ 3:
+                case /* string step_type = 3 [deprecated = true] */ 3:
                     message.stepType = reader.string();
                     break;
                 case /* optional string assignee_role */ 4:
@@ -735,7 +878,7 @@ class WorkflowStep$Type extends MessageType<WorkflowStep> {
         /* string name = 2; */
         if (message.name !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.name);
-        /* string step_type = 3; */
+        /* string step_type = 3 [deprecated = true]; */
         if (message.stepType !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.stepType);
         /* optional string assignee_role = 4; */
@@ -976,7 +1119,7 @@ export const ListWorkflowsResponse = new ListWorkflowsResponse$Type();
 class CreateWorkflowRequest$Type extends MessageType<CreateWorkflowRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.CreateWorkflowRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "steps", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => WorkflowStep }
@@ -1093,7 +1236,7 @@ export const CreateWorkflowResponse = new CreateWorkflowResponse$Type();
 class GetWorkflowRequest$Type extends MessageType<GetWorkflowRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.GetWorkflowRequest", [
-            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetWorkflowRequest>): GetWorkflowRequest {
@@ -1233,7 +1376,7 @@ export const WorkflowSteps = new WorkflowSteps$Type();
 class UpdateWorkflowRequest$Type extends MessageType<UpdateWorkflowRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.UpdateWorkflowRequest", [
-            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
@@ -1354,7 +1497,7 @@ export const UpdateWorkflowResponse = new UpdateWorkflowResponse$Type();
 class DeleteWorkflowRequest$Type extends MessageType<DeleteWorkflowRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.DeleteWorkflowRequest", [
-            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteWorkflowRequest>): DeleteWorkflowRequest {
@@ -1456,9 +1599,9 @@ export const DeleteWorkflowResponse = new DeleteWorkflowResponse$Type();
 class StartInstanceRequest$Type extends MessageType<StartInstanceRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.StartInstanceRequest", [
-            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "initiator_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "workflow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 2, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
+            { no: 3, name: "initiator_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 4, name: "context_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
     }
@@ -1636,7 +1779,7 @@ export const StartInstanceResponse = new StartInstanceResponse$Type();
 class GetInstanceRequest$Type extends MessageType<GetInstanceRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.GetInstanceRequest", [
-            { no: 1, name: "instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetInstanceRequest>): GetInstanceRequest {
@@ -1853,7 +1996,7 @@ export const ListInstancesResponse = new ListInstancesResponse$Type();
 class CancelInstanceRequest$Type extends MessageType<CancelInstanceRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.CancelInstanceRequest", [
-            { no: 1, name: "instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "instance_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1964,7 +2107,8 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
             { no: 9, name: "actor_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "decided_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "status_enum", kind: "enum", T: () => ["k1s0.system.workflow.v1.WorkflowTaskStatus", WorkflowTaskStatus, "WORKFLOW_TASK_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<WorkflowTask>): WorkflowTask {
@@ -1974,6 +2118,7 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
         message.stepId = "";
         message.stepName = "";
         message.status = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WorkflowTask>(this, message, value);
         return message;
@@ -1998,7 +2143,7 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
                 case /* optional string assignee_id */ 5:
                     message.assigneeId = reader.string();
                     break;
-                case /* string status */ 6:
+                case /* string status = 6 [deprecated = true] */ 6:
                     message.status = reader.string();
                     break;
                 case /* optional k1s0.system.common.v1.Timestamp due_at */ 7:
@@ -2018,6 +2163,9 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 12:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* k1s0.system.workflow.v1.WorkflowTaskStatus status_enum */ 13:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2046,7 +2194,7 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
         /* optional string assignee_id = 5; */
         if (message.assigneeId !== undefined)
             writer.tag(5, WireType.LengthDelimited).string(message.assigneeId);
-        /* string status = 6; */
+        /* string status = 6 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.status);
         /* optional k1s0.system.common.v1.Timestamp due_at = 7; */
@@ -2067,6 +2215,9 @@ class WorkflowTask$Type extends MessageType<WorkflowTask> {
         /* k1s0.system.common.v1.Timestamp updated_at = 12; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.workflow.v1.WorkflowTaskStatus status_enum = 13; */
+        if (message.statusEnum !== 0)
+            writer.tag(13, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2213,10 +2364,10 @@ export const ListTasksResponse = new ListTasksResponse$Type();
 class ReassignTaskRequest$Type extends MessageType<ReassignTaskRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.ReassignTaskRequest", [
-            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "new_assignee_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 2, name: "new_assignee_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 3, name: "reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<ReassignTaskRequest>): ReassignTaskRequest {
@@ -2346,7 +2497,8 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
             { no: 8, name: "context_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 9, name: "started_at", kind: "message", T: () => Timestamp },
             { no: 10, name: "completed_at", kind: "message", T: () => Timestamp },
-            { no: 11, name: "created_at", kind: "message", T: () => Timestamp }
+            { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 12, name: "status_enum", kind: "enum", T: () => ["k1s0.system.workflow.v1.WorkflowInstanceStatus", WorkflowInstanceStatus, "WORKFLOW_INSTANCE_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<WorkflowInstance>): WorkflowInstance {
@@ -2358,6 +2510,7 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
         message.initiatorId = "";
         message.status = "";
         message.contextJson = new Uint8Array(0);
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WorkflowInstance>(this, message, value);
         return message;
@@ -2385,7 +2538,7 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
                 case /* optional string current_step_id */ 6:
                     message.currentStepId = reader.string();
                     break;
-                case /* string status */ 7:
+                case /* string status = 7 [deprecated = true] */ 7:
                     message.status = reader.string();
                     break;
                 case /* bytes context_json */ 8:
@@ -2399,6 +2552,9 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
                     break;
                 case /* optional k1s0.system.common.v1.Timestamp created_at */ 11:
                     message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
+                    break;
+                case /* k1s0.system.workflow.v1.WorkflowInstanceStatus status_enum */ 12:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2430,7 +2586,7 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
         /* optional string current_step_id = 6; */
         if (message.currentStepId !== undefined)
             writer.tag(6, WireType.LengthDelimited).string(message.currentStepId);
-        /* string status = 7; */
+        /* string status = 7 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.status);
         /* bytes context_json = 8; */
@@ -2445,6 +2601,9 @@ class WorkflowInstance$Type extends MessageType<WorkflowInstance> {
         /* optional k1s0.system.common.v1.Timestamp created_at = 11; */
         if (message.createdAt)
             Timestamp.internalBinaryWrite(message.createdAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.workflow.v1.WorkflowInstanceStatus status_enum = 12; */
+        if (message.statusEnum !== 0)
+            writer.tag(12, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2459,8 +2618,8 @@ export const WorkflowInstance = new WorkflowInstance$Type();
 class ApproveTaskRequest$Type extends MessageType<ApproveTaskRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.ApproveTaskRequest", [
-            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 2, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 3, name: "comment", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -2591,8 +2750,8 @@ export const ApproveTaskResponse = new ApproveTaskResponse$Type();
 class RejectTaskRequest$Type extends MessageType<RejectTaskRequest> {
     constructor() {
         super("k1s0.system.workflow.v1.RejectTaskRequest", [
-            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "task_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 2, name: "actor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 3, name: "comment", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }

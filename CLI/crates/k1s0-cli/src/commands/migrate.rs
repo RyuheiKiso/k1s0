@@ -388,7 +388,9 @@ fn step_select_range() -> Result<Option<MigrateRange>> {
                         .map_err(|_| "正の整数を入力してください".to_string())
                 },
             )?;
-            let version: u32 = version_str.parse().unwrap_or(1);
+            // CLI-MED-004 監査対応: input_with_validation で事前検証済みのため
+            // parse() は必ず成功する。unwrap_or による誤ったデフォルト値を防ぐ。
+            let version: u32 = version_str.parse().expect("input_with_validation で検証済み");
             Ok(Some(MigrateRange::UpTo(version)))
         }
         _ => unreachable!(),
@@ -431,7 +433,9 @@ fn step_select_repair_operation() -> Result<Option<RepairOperation>> {
                         .map_err(|_| "正の整数を入力してください".to_string())
                 },
             )?;
-            let version: u32 = version_str.parse().unwrap_or(0);
+            // CLI-MED-004 監査対応: input_with_validation で事前検証済みのため
+            // parse() は必ず成功する。unwrap_or による誤ったデフォルト値を防ぐ。
+            let version: u32 = version_str.parse().expect("input_with_validation で検証済み");
             Ok(Some(RepairOperation::ForceVersion(version)))
         }
         _ => unreachable!(),

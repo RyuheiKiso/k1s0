@@ -157,7 +157,14 @@ pub fn push_config_schema(
     }
 
     let (_, url, _, _) = build_push_request(schema, server_url, token)?;
-    ureq::put(&url)
+    // M-008 監査対応: スキーマレジストリが応答しない場合の無限ハングを防ぐため、
+    // 30秒のタイムアウトを設定した Agent を使用する
+    let agent = ureq::Agent::config_builder()
+        .timeout_global(Some(std::time::Duration::from_secs(30)))
+        .build()
+        .new_agent();
+    agent
+        .put(&url)
         .header("Authorization", &format!("Bearer {token}"))
         .header("Content-Type", "application/json")
         .send_json(PushConfigSchemaRequest {

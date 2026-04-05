@@ -392,6 +392,22 @@ spec:
 - バックアップデータは PVC `backup-pvc` にマウントして保存（Ceph バックアップを除く）
 - **オフサイト保存**: PVC ローカル保存のみ。外部オブジェクトストレージ（S3/Ceph RGW）は使用しない
 
+#### etcd-backup コンテナのセキュリティ設定（HIGH-2 / HIGH-SEC-01 監査対応）
+
+`infra/kubernetes/backup/etcd-backup-cronjob.yaml` では以下のセキュリティ強化が実装済み。
+
+| 設定 | 値 | 効果 |
+|------|----|----|
+| `seccompProfile.type` | `RuntimeDefault` | システムコールを制限し、攻撃面を縮小する |
+| `readOnlyRootFilesystem` | `true` | ルートファイルシステムへの書き込みを禁止する |
+| `allowPrivilegeEscalation` | `false` | 権限昇格を禁止する |
+| `capabilities.drop` | `["ALL"]` | 不要な Linux ケーパビリティを全て削除する |
+| `runAsNonRoot` | `true` | 非 root ユーザー（UID 1000）で実行する |
+| `hostNetwork` | `false` | ホストネットワークへのアクセスを禁止する |
+| `/tmp` マウント | `emptyDir` | `readOnlyRootFilesystem` 有効時の一時書き込み先として emptyDir を提供する |
+
+etcd 証明書の hostPath マウント（`/etc/kubernetes/pki/etcd`）は etcd バックアップに必須だが、`readOnly: true` で書き込み不可とし、上記セキュリティ設定で緩和している。
+
 ### リストア手順・定期テスト
 
 障害発生時のリストア手順および定期リストアテスト（四半期に1回以上）の手順は以下を参照すること。
@@ -801,6 +817,11 @@ head -c 32 /dev/urandom | base64
 
 ### L-02: 監査ポリシー適用（L-02 監査対応）
 
+> **⚠️ CRIT-005 対応（2026-04-01）**: `audit-policy.yaml` および `encryption-config.yaml` は
+> Kubernetes API オブジェクトではないため `infra/kubernetes/security/kustomization.yaml` の
+> resources リストから除外した。`kubectl kustomize infra/kubernetes/overlays/prod` はこれらのファイルを
+> デプロイしない。以下の手順で手動または CI/CD 経由で Master ノードに配置すること。
+
 `infra/kubernetes/security/audit-policy.yaml` を kube-apiserver に適用すること。
 
 ```bash
@@ -823,6 +844,60 @@ tail -f /var/log/kubernetes/audit.log | head -20
 ```
 
 > **マネージド Kubernetes（EKS / GKE / AKS）の場合**: 各プロバイダーの監査ログ機能（CloudWatch Logs / Cloud Audit Logs / Azure Monitor）を使用すること。`audit-policy.yaml` の直接適用は不要。
+
+---
+
+## Kubernetes 監査ポリシー（K8S-MED-003 対応）
+
+### audit-policy.yaml の適用手順
+
+`infra/kubernetes/security/audit-policy.yaml` は Kustomize の管理対象から除外されており、
+**デプロイ時に自動適用されない**。kube-apiserver の起動オプションに手動で指定する必要がある。
+
+#### セルフホスト Kubernetes への適用手順
+
+```bash
+# 1. 全 Master ノードにポリシーファイルをコピーする
+sudo cp infra/kubernetes/security/audit-policy.yaml /etc/kubernetes/audit-policy.yaml
+
+# 2. /etc/kubernetes/manifests/kube-apiserver.yaml に以下の起動オプションを追加する
+#    --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+#    --audit-log-path=/var/log/kubernetes/audit.log
+#    --audit-log-maxage=30
+#    --audit-log-maxbackup=10
+#    --audit-log-maxsize=100
+
+# 3. kube-apiserver の自動再起動を確認する（静的 Pod は変更後自動で再起動される）
+kubectl get pod -n kube-system kube-apiserver-<node-name>
+
+# 4. 監査ログが出力されているか確認する
+tail -f /var/log/kubernetes/audit.log
+```
+
+#### マネージド Kubernetes（EKS / GKE / AKS）の場合
+
+各プロバイダーの監査ログ機能を使用すること（このファイルの直接適用は不要）。
+
+| プロバイダー | 有効化方法 |
+|------------|-----------|
+| EKS | CloudWatch Logs で Kubernetes 監査ログを有効化 |
+| GKE | Cloud Audit Logs（Data Access 監査ログ）を有効化 |
+| AKS | Azure Monitor の診断設定でクラスタ監査ログを有効化 |
+
+> **注意**: `audit-policy.yaml` は Kustomize リソースから意図的に除外されている。
+> 詳細は `infra/kubernetes/security/kustomization.yaml` と
+> `infra/kubernetes/security/audit-policy.yaml` 先頭コメントを参照。
+
+---
+
+## Helm と Kustomize の役割分担
+
+| 管理ツール | 対象リソース |
+|----------|------------|
+| Helm | Deployment, Service, ConfigMap, HPA（アプリケーション固有リソース） |
+| Kustomize | Namespace, NetworkPolicy, RBAC, ResourceQuota（クラスター基盤リソース） |
+
+> `kubectl kustomize overlays/prod` の出力に Deployment が含まれないのは設計上の意図です（LOW-004 監査確認済み）。
 
 ---
 

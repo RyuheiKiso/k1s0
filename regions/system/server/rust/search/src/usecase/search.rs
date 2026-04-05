@@ -13,6 +13,8 @@ pub struct SearchInput {
     pub size: u32,
     pub filters: HashMap<String, String>,
     pub facets: Vec<String>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -33,10 +35,11 @@ impl SearchUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから検索を実行する。
     pub async fn execute(&self, input: &SearchInput) -> Result<SearchResult, SearchError> {
         let index = self
             .repo
-            .find_index(&input.index_name)
+            .find_index(&input.index_name, &input.tenant_id)
             .await
             .map_err(|e| SearchError::Internal(e.to_string()))?;
 
@@ -54,7 +57,7 @@ impl SearchUseCase {
         );
 
         self.repo
-            .search(&query)
+            .search(&query, &input.tenant_id)
             .await
             .map_err(|e| SearchError::Internal(e.to_string()))
     }
@@ -76,10 +79,10 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
 
-        mock.expect_search().returning(|_| {
+        mock.expect_search().returning(|_, _| {
             let total = 1u64;
             let page_size = 10u32;
             let page = 1u32;
@@ -110,6 +113,7 @@ mod tests {
             size: 10,
             filters: HashMap::new(),
             facets: vec![],
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -123,7 +127,7 @@ mod tests {
     #[tokio::test]
     async fn index_not_found() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_find_index().returning(|_| Ok(None));
+        mock.expect_find_index().returning(|_, _| Ok(None));
 
         let uc = SearchUseCase::new(Arc::new(mock));
         let input = SearchInput {
@@ -133,6 +137,7 @@ mod tests {
             size: 10,
             filters: HashMap::new(),
             facets: vec![],
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

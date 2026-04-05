@@ -14,10 +14,14 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { ChangeType } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 /**
+ * EvaluateFlagRequest はフラグ評価リクエスト。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.EvaluateFlagRequest
  */
 export interface EvaluateFlagRequest {
     /**
+     * フラグキー（1〜128 文字）
+     *
      * @generated from protobuf field: string flag_key = 1
      */
     flagKey: string;
@@ -67,10 +71,14 @@ export interface EvaluationContext {
     };
 }
 /**
+ * GetFlagRequest はフラグ取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.GetFlagRequest
  */
 export interface GetFlagRequest {
     /**
+     * フラグキー（1〜128 文字）
+     *
      * @generated from protobuf field: string flag_key = 1
      */
     flagKey: string;
@@ -85,9 +93,24 @@ export interface GetFlagResponse {
     flag?: FeatureFlag;
 }
 /**
+ * ListFlagsRequest はフラグ一覧取得リクエスト。
+ * ページネーションにより大量のフラグを効率的に取得できる。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.ListFlagsRequest
  */
 export interface ListFlagsRequest {
+    /**
+     * 1ページあたりの取得件数（0 の場合はサーバーデフォルト値を使用）
+     *
+     * @generated from protobuf field: int32 page_size = 1
+     */
+    pageSize: number;
+    /**
+     * ページトークン（前回レスポンスの next_page_token を指定）
+     *
+     * @generated from protobuf field: string page_token = 2
+     */
+    pageToken: string;
 }
 /**
  * @generated from protobuf message k1s0.system.featureflag.v1.ListFlagsResponse
@@ -99,14 +122,20 @@ export interface ListFlagsResponse {
     flags: FeatureFlag[];
 }
 /**
+ * CreateFlagRequest はフラグ作成リクエスト。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.CreateFlagRequest
  */
 export interface CreateFlagRequest {
     /**
+     * フラグキー（1〜128 文字）
+     *
      * @generated from protobuf field: string flag_key = 1
      */
     flagKey: string;
     /**
+     * フラグ説明（0〜512 文字）
+     *
      * @generated from protobuf field: string description = 2
      */
     description: string;
@@ -129,10 +158,14 @@ export interface CreateFlagResponse {
     flag?: FeatureFlag;
 }
 /**
+ * UpdateFlagRequest はフラグ更新リクエスト。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.UpdateFlagRequest
  */
 export interface UpdateFlagRequest {
     /**
+     * フラグキー（1〜128 文字）
+     *
      * @generated from protobuf field: string flag_key = 1
      */
     flagKey: string;
@@ -163,10 +196,14 @@ export interface UpdateFlagResponse {
     flag?: FeatureFlag;
 }
 /**
+ * DeleteFlagRequest はフラグ削除リクエスト。
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.DeleteFlagRequest
  */
 export interface DeleteFlagRequest {
     /**
+     * フラグキー（1〜128 文字）
+     *
      * @generated from protobuf field: string flag_key = 1
      */
     flagKey: string;
@@ -247,9 +284,11 @@ export interface FlagRule {
      */
     attribute: string;
     /**
-     * @generated from protobuf field: string operator = 2
+     * 比較演算子（OPERATOR_EQ / OPERATOR_NE / OPERATOR_CONTAINS / OPERATOR_GT / OPERATOR_LT）
+     *
+     * @generated from protobuf field: k1s0.system.featureflag.v1.Operator operator = 2
      */
-    operator: string;
+    operator: Operator;
     /**
      * @generated from protobuf field: string value = 3
      */
@@ -279,9 +318,18 @@ export interface WatchFeatureFlagRequest {
 /**
  * WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
  *
+ * M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+ * 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+ * TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+ * reserved 2;
+ * reserved "change_type";
+ *
  * @generated from protobuf message k1s0.system.featureflag.v1.WatchFeatureFlagResponse
  */
 export interface WatchFeatureFlagResponse {
+    // M-014 監査対応: 削除期限 2026-06（featureflag.proto 内の全 deprecated フィールド共通）
+    // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
     /**
      * @generated from protobuf field: string flag_key = 1
      */
@@ -289,8 +337,10 @@ export interface WatchFeatureFlagResponse {
     /**
      * Deprecated: use change_type_enum instead.
      * CREATED, UPDATED, DELETED
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string change_type = 2
+     * @deprecated
+     * @generated from protobuf field: string change_type = 2 [deprecated = true]
      */
     changeType: string;
     /**
@@ -308,11 +358,43 @@ export interface WatchFeatureFlagResponse {
      */
     changeTypeEnum: ChangeType;
 }
+/**
+ * Operator はフラグルールの比較演算子を表す enum。
+ * string 型の代わりに使用することで型安全性と一貫性を確保する。
+ *
+ * @generated from protobuf enum k1s0.system.featureflag.v1.Operator
+ */
+export enum Operator {
+    /**
+     * @generated from protobuf enum value: OPERATOR_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: OPERATOR_EQ = 1;
+     */
+    EQ = 1,
+    /**
+     * @generated from protobuf enum value: OPERATOR_NE = 2;
+     */
+    NE = 2,
+    /**
+     * @generated from protobuf enum value: OPERATOR_CONTAINS = 3;
+     */
+    CONTAINS = 3,
+    /**
+     * @generated from protobuf enum value: OPERATOR_GT = 4;
+     */
+    GT = 4,
+    /**
+     * @generated from protobuf enum value: OPERATOR_LT = 5;
+     */
+    LT = 5
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class EvaluateFlagRequest$Type extends MessageType<EvaluateFlagRequest> {
     constructor() {
         super("k1s0.system.featureflag.v1.EvaluateFlagRequest", [
-            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "context", kind: "message", T: () => EvaluationContext }
         ]);
     }
@@ -513,7 +595,7 @@ export const EvaluationContext = new EvaluationContext$Type();
 class GetFlagRequest$Type extends MessageType<GetFlagRequest> {
     constructor() {
         super("k1s0.system.featureflag.v1.GetFlagRequest", [
-            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<GetFlagRequest>): GetFlagRequest {
@@ -605,10 +687,15 @@ export const GetFlagResponse = new GetFlagResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListFlagsRequest$Type extends MessageType<ListFlagsRequest> {
     constructor() {
-        super("k1s0.system.featureflag.v1.ListFlagsRequest", []);
+        super("k1s0.system.featureflag.v1.ListFlagsRequest", [
+            { no: 1, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 2, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
     create(value?: PartialMessage<ListFlagsRequest>): ListFlagsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.pageSize = 0;
+        message.pageToken = "";
         if (value !== undefined)
             reflectionMergePartial<ListFlagsRequest>(this, message, value);
         return message;
@@ -618,6 +705,12 @@ class ListFlagsRequest$Type extends MessageType<ListFlagsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
+                case /* int32 page_size */ 1:
+                    message.pageSize = reader.int32();
+                    break;
+                case /* string page_token */ 2:
+                    message.pageToken = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -630,6 +723,12 @@ class ListFlagsRequest$Type extends MessageType<ListFlagsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListFlagsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* int32 page_size = 1; */
+        if (message.pageSize !== 0)
+            writer.tag(1, WireType.Varint).int32(message.pageSize);
+        /* string page_token = 2; */
+        if (message.pageToken !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.pageToken);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -691,8 +790,8 @@ export const ListFlagsResponse = new ListFlagsResponse$Type();
 class CreateFlagRequest$Type extends MessageType<CreateFlagRequest> {
     constructor() {
         super("k1s0.system.featureflag.v1.CreateFlagRequest", [
-            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "0", maxLen: "512" } } } },
             { no: 3, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "variants", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FlagVariant }
         ]);
@@ -808,7 +907,7 @@ export const CreateFlagResponse = new CreateFlagResponse$Type();
 class UpdateFlagRequest$Type extends MessageType<UpdateFlagRequest> {
     constructor() {
         super("k1s0.system.featureflag.v1.UpdateFlagRequest", [
-            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "variants", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FlagVariant },
@@ -931,7 +1030,7 @@ export const UpdateFlagResponse = new UpdateFlagResponse$Type();
 class DeleteFlagRequest$Type extends MessageType<DeleteFlagRequest> {
     constructor() {
         super("k1s0.system.featureflag.v1.DeleteFlagRequest", [
-            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "flag_key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteFlagRequest>): DeleteFlagRequest {
@@ -1198,7 +1297,7 @@ class FlagRule$Type extends MessageType<FlagRule> {
     constructor() {
         super("k1s0.system.featureflag.v1.FlagRule", [
             { no: 1, name: "attribute", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "operator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "operator", kind: "enum", T: () => ["k1s0.system.featureflag.v1.Operator", Operator, "OPERATOR_"] },
             { no: 3, name: "value", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "variant", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1206,7 +1305,7 @@ class FlagRule$Type extends MessageType<FlagRule> {
     create(value?: PartialMessage<FlagRule>): FlagRule {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.attribute = "";
-        message.operator = "";
+        message.operator = 0;
         message.value = "";
         message.variant = "";
         if (value !== undefined)
@@ -1221,8 +1320,8 @@ class FlagRule$Type extends MessageType<FlagRule> {
                 case /* string attribute */ 1:
                     message.attribute = reader.string();
                     break;
-                case /* string operator */ 2:
-                    message.operator = reader.string();
+                case /* k1s0.system.featureflag.v1.Operator operator */ 2:
+                    message.operator = reader.int32();
                     break;
                 case /* string value */ 3:
                     message.value = reader.string();
@@ -1245,9 +1344,9 @@ class FlagRule$Type extends MessageType<FlagRule> {
         /* string attribute = 1; */
         if (message.attribute !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.attribute);
-        /* string operator = 2; */
-        if (message.operator !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.operator);
+        /* k1s0.system.featureflag.v1.Operator operator = 2; */
+        if (message.operator !== 0)
+            writer.tag(2, WireType.Varint).int32(message.operator);
         /* string value = 3; */
         if (message.value !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.value);
@@ -1339,7 +1438,7 @@ class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse
                 case /* string flag_key */ 1:
                     message.flagKey = reader.string();
                     break;
-                case /* string change_type */ 2:
+                case /* string change_type = 2 [deprecated = true] */ 2:
                     message.changeType = reader.string();
                     break;
                 case /* k1s0.system.featureflag.v1.FeatureFlag flag */ 3:
@@ -1366,7 +1465,7 @@ class WatchFeatureFlagResponse$Type extends MessageType<WatchFeatureFlagResponse
         /* string flag_key = 1; */
         if (message.flagKey !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.flagKey);
-        /* string change_type = 2; */
+        /* string change_type = 2 [deprecated = true]; */
         if (message.changeType !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.changeType);
         /* k1s0.system.featureflag.v1.FeatureFlag flag = 3; */

@@ -15,26 +15,26 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 /// gRPC メタデータから x-tenant-id を取得する。
-/// 存在しない場合は "system" にフォールバックし、
-/// 認証ミドルウェアの設定漏れを検知するために警告ログを出力する。
-fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> String {
-    let tenant_id = metadata
+/// HIGH-012 監査対応: x-tenant-id が存在しない場合は "system" へのフォールバックを行わず
+/// UNAUTHENTICATED エラーを返すことで、tenant_id 改ざんリスクと認証バイパスを防止する。
+/// x-tenant-id は内部サービス間通信においてのみ信頼する設計とし、
+/// 認証ミドルウェア（auth-rust）が Kong の JWT 検証後にセットすることを前提とする。
+/// 参照: ADR-0045（Vault per-service ロール）, ADR-0057（Kong JWT / Istio authz 分離）
+fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<String, tonic::Status> {
+    // x-tenant-id が空または不正バイト列の場合は即座にエラーを返す
+    metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
-
-    match tenant_id {
-        Some(id) => id,
-        None => {
-            // x-tenant-id が設定されていない場合は認証ミドルウェアの設定漏れを示す
-            tracing::warn!(
-                "x-tenant-id metadata missing, falling back to 'system'. \
-                This should be set by the auth middleware."
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            // x-tenant-id が設定されていない場合は認証ミドルウェアの設定漏れまたは不正アクセスを示す
+            tracing::error!(
+                "x-tenant-id metadata missing or empty. \
+                This must be set by the auth middleware before forwarding to task service."
             );
-            "system".to_string()
-        }
-    }
+            tonic::Status::unauthenticated("x-tenant-id header is required")
+        })
 }
 
 // ドメイン Task をproto Task に変換するヘルパー
@@ -133,7 +133,8 @@ impl TaskService for TaskGrpcService {
         request: Request<CreateTaskRequest>,
     ) -> Result<Response<CreateTaskResponse>, Status> {
         // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返す
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let req = request.into_inner();
 
         // project_id を UUID に変換する
@@ -174,7 +175,8 @@ impl TaskService for TaskGrpcService {
         request: Request<GetTaskRequest>,
     ) -> Result<Response<GetTaskResponse>, Status> {
         // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返す
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let req = request.into_inner();
         let id = Uuid::parse_str(&req.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -195,7 +197,8 @@ impl TaskService for TaskGrpcService {
         request: Request<ListTasksRequest>,
     ) -> Result<Response<ListTasksResponse>, Status> {
         // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返す
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let req = request.into_inner();
 
         // project_id が指定された場合は UUID に変換する
@@ -254,7 +257,8 @@ impl TaskService for TaskGrpcService {
         request: Request<UpdateTaskStatusRequest>,
     ) -> Result<Response<UpdateTaskStatusResponse>, Status> {
         // gRPC メタデータからテナント ID を取得する（into_inner() 後はアクセス不可のため先に取得）
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返す
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let req = request.into_inner();
         let id = Uuid::parse_str(&req.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;

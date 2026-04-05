@@ -24,7 +24,8 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
-        .build();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -350,8 +351,9 @@ fn test_rust_bff_cargo_toml_has_reqwest() {
         content.contains("anyhow"),
         "Rust BFF Cargo.toml should have anyhow dependency"
     );
+    // H-012 監査対応: actix-web から axum 0.8 へ移行済みのため async-graphql-axum を確認する
     assert!(
-        content.contains("async-graphql-actix-web"),
-        "Rust BFF Cargo.toml should have async-graphql-actix-web"
+        content.contains("async-graphql-axum"),
+        "Rust BFF Cargo.toml should have async-graphql-axum dependency"
     );
 }

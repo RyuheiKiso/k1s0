@@ -1,0 +1,12 @@
+# C-008 監査対応: Terraform prod backend 部分設定ファイルの例
+# このファイルはリポジトリにコミットされる例示ファイルです。
+# 実際の設定は backend.conf（gitignore 対象）または環境変数で提供してください。
+#
+# 使用方法:
+#   terraform init -backend-config=infra/terraform/environments/prod/backend.conf
+#
+# 環境変数での提供:
+#   export TF_CLI_ARGS_init="-backend-config=endpoint=https://rgw.YOUR_INTERNAL_HOST/s3"
+
+# 本番 Ceph RGW エンドポイント URL（実際の値に変更すること）
+endpoint = "https://rgw.YOUR_INTERNAL_HOST/s3"

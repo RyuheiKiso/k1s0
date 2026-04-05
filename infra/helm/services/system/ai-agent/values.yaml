@@ -14,7 +14,8 @@ replicaCount: 2
 
 container:
   port: 8121
-  grpcPort: 50062
+  # H-005 監査対応: 非標準ポート (50062) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+  grpcPort: 50051
   command: []
   args: []
 
@@ -45,14 +46,14 @@ probes:
 service:
   type: ClusterIP
   port: 80
-  grpcPort: 50062
+  # H-005 監査対応: container.grpcPort と同値に統一する
+  grpcPort: 50051
 
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
 
 pdb:
   enabled: true
@@ -67,6 +68,9 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: K8S-CRIT-001 対応
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
@@ -79,7 +83,8 @@ config:
 
 vault:
   enabled: true
-  role: "system"
+  # MED-005 監査対応: "system" 共有ロールから "ai-agent" 個別ロールに変更する
+  role: "ai-agent"
   secrets:
     - path: "secret/data/k1s0/system/ai-agent/database"
       key: "password"
@@ -90,7 +95,7 @@ tolerations: []
 affinity: {}
 
 # Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
-# NOTE: ai-agent は現時点で auth.tf の bound_service_account_names に未登録
+# MED-005 監査対応: auth.tf に vault_kubernetes_auth_backend_role.ai_agent を追加済み
 serviceAccount:
   create: true
   name: "ai-agent"

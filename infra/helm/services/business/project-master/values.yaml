@@ -12,16 +12,21 @@ imagePullSecrets:
 
 container:
   port: 8210
-  grpcPort: 9210
+  # H-005 監査対応: 非標準ポート (9210) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+  grpcPort: 50051
 
 service:
-  grpcPort: 9210
+  # H-005 監査対応: container.grpcPort と同値に統一する
+  grpcPort: 50051
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: K8S-CRIT-001 対応
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
@@ -30,7 +35,8 @@ containerSecurityContext:
 
 vault:
   enabled: true
-  role: "business"
+  # K8S-HIGH-002〜004 監査対応: ADR-0045に従いVaultロールをサービス単位に個別化する
+  role: "project-master-rust"
   secrets:
     - path: "secret/data/k1s0/business/project-master/database"
       key: "password"

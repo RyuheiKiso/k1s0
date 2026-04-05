@@ -5,6 +5,7 @@
 
 terraform {
   backend "consul" {
+    # TODO: デプロイ前に実際のホスト名に変更すること（L-013 監査対応: example.com はプレースホルダー）
     address = "consul.internal.example.com:8500"
     scheme  = "https"
     path    = "terraform/k1s0/{{ environment }}"

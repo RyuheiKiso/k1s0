@@ -1,4 +1,4 @@
-﻿ALTER TABLE notification.notification_logs
+ALTER TABLE notification.notification_logs
     DROP CONSTRAINT IF EXISTS notification_logs_channel_id_fkey;
 
 ALTER TABLE notification.notification_logs

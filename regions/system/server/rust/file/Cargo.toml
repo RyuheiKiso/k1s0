@@ -41,6 +41,9 @@ prost-types = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 sqlx = {workspace = true}
 
+# STATIC-HIGH-003 監査対応: マジックバイトによる MIME タイプ検出
+infer = "0.16"
+
 [build-dependencies]
 tonic-build = {workspace = true}
 

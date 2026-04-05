@@ -176,6 +176,19 @@ mod tests {
     use crate::domain::entity::audit_log::{AuditLog, CreateAuditLogRequest};
     use std::sync::Mutex;
 
+    // MED-023 監査対応: std::sync::Mutex を async テスト内で使用しているが、
+    // このテストでは Mutex のロックを await ポイントをまたいで保持していないため問題ない。
+    // lock() → push() → drop という同期操作のみであり、tokio::Mutex への変更は不要。
+    // 参考: https://tokio.rs/tokio/tutorial/shared-state#on-using-stdsyncmutex
+    //
+    // LOW-013 設計注記（InMemoryProducer 共通化の検討）:
+    // 11サービスで類似した InMemoryProducer が重複実装されているが、各サービスは
+    // 独自の AuditEventPublisher トレイトを定義しているため server-common への移動には
+    // トレイト定義の共通化も必要となり影響範囲が大きい。
+    // 将来課題: k1s0-server-common に testing フィーチャーを追加し、
+    // AuditEventPublisher トレイトと InMemoryProducer を共通モジュールに集約することで
+    // `use k1s0_server_common::testing::InMemoryProducer;` で参照できるようにする。
+
     /// テスト用のインメモリプロデューサー。
     struct InMemoryProducer {
         messages: Mutex<Vec<(String, Vec<u8>)>>,

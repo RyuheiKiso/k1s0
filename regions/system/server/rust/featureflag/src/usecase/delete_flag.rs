@@ -12,6 +12,7 @@ pub enum DeleteFlagError {
     #[error("flag not found: {0}")]
     NotFound(Uuid),
 
+    /// HIGH-005 対応: delete メソッドは &str 型の tenant_id を受け取る。
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -45,10 +46,12 @@ impl DeleteFlagUseCase {
         self
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<(), DeleteFlagError> {
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを削除する。
+    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub async fn execute(&self, tenant_id: &str, id: &Uuid) -> Result<(), DeleteFlagError> {
         let flags = self
             .repo
-            .find_all()
+            .find_all(tenant_id)
             .await
             .map_err(|e| DeleteFlagError::Internal(e.to_string()))?;
         let target = flags
@@ -65,7 +68,7 @@ impl DeleteFlagUseCase {
 
         let deleted = self
             .repo
-            .delete(id)
+            .delete(tenant_id, id)
             .await
             .map_err(|e| DeleteFlagError::Internal(e.to_string()))?;
 
@@ -75,6 +78,7 @@ impl DeleteFlagUseCase {
 
         self.audit_repo
             .create(&FlagAuditLog::new(
+                tenant_id.to_string(),
                 target.id,
                 target.flag_key.clone(),
                 "DELETED".to_string(),
@@ -120,21 +124,35 @@ mod tests {
     use crate::domain::repository::flag_audit_log_repository::MockFlagAuditLogRepository;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
+    use chrono::Utc;
+
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> &'static str {
+        "00000000-0000-0000-0000-000000000001"
+    }
+
+    fn make_flag(id: Uuid) -> FeatureFlag {
+        FeatureFlag {
+            id,
+            tenant_id: system_tenant().to_string(),
+            flag_key: "feature.delete".to_string(),
+            description: "delete target".to_string(),
+            enabled: true,
+            variants: vec![],
+            rules: vec![],
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
 
     #[tokio::test]
     async fn success() {
         let target_id = Uuid::new_v4();
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_find_all().returning(move || {
-            let mut f = FeatureFlag::new(
-                "feature.delete".to_string(),
-                "delete target".to_string(),
-                true,
-            );
-            f.id = target_id;
-            Ok(vec![f])
-        });
-        mock.expect_delete().returning(|_| Ok(true));
+        // STATIC-CRITICAL-001: tenant_id を含む1引数シグネチャ
+        mock.expect_find_all()
+            .returning(move |_| Ok(vec![make_flag(target_id)]));
+        mock.expect_delete().returning(|_, _| Ok(true));
         let mut mock_publisher = MockFlagEventPublisher::new();
         mock_publisher
             .expect_publish_flag_changed()
@@ -147,15 +165,14 @@ mod tests {
             Arc::new(mock_publisher),
             Arc::new(mock_audit_repo),
         );
-        let id = target_id;
-        let result = uc.execute(&id).await;
+        let result = uc.execute(system_tenant(), &target_id).await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockFeatureFlagRepository::new();
-        mock.expect_find_all().returning(|| Ok(vec![]));
+        mock.expect_find_all().returning(|_| Ok(vec![]));
         let mock_publisher = MockFlagEventPublisher::new();
         let mock_audit_repo = MockFlagAuditLogRepository::new();
         let uc = DeleteFlagUseCase::new(
@@ -164,7 +181,7 @@ mod tests {
             Arc::new(mock_audit_repo),
         );
         let id = Uuid::new_v4();
-        let result = uc.execute(&id).await;
+        let result = uc.execute(system_tenant(), &id).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -175,19 +192,12 @@ mod tests {
 
     #[tokio::test]
     async fn internal_error() {
-        let mut mock = MockFeatureFlagRepository::new();
         let target_id = Uuid::new_v4();
-        mock.expect_find_all().returning(move || {
-            let mut f = FeatureFlag::new(
-                "feature.delete".to_string(),
-                "delete target".to_string(),
-                true,
-            );
-            f.id = target_id;
-            Ok(vec![f])
-        });
+        let mut mock = MockFeatureFlagRepository::new();
+        mock.expect_find_all()
+            .returning(move |_| Ok(vec![make_flag(target_id)]));
         mock.expect_delete()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
         let mock_publisher = MockFlagEventPublisher::new();
         let mock_audit_repo = MockFlagAuditLogRepository::new();
 
@@ -196,7 +206,7 @@ mod tests {
             Arc::new(mock_publisher),
             Arc::new(mock_audit_repo),
         );
-        let result = uc.execute(&target_id).await;
+        let result = uc.execute(system_tenant(), &target_id).await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

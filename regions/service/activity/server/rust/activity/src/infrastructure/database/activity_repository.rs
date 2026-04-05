@@ -1,5 +1,5 @@
 // アクティビティリポジトリの PostgreSQL 実装。
-// RLS テナント分離のため、各 DB 操作の先頭で SET LOCAL app.current_tenant_id を発行する。
+// RLS テナント分離のため、各 DB 操作の先頭で set_config('app.current_tenant_id', $1, true) を発行する。
 // 冪等性キーによる重複チェック付き。Transactional Outbox パターンで outbox テーブルへ書き込む。
 // 戻り値型は ActivityError（クリーンアーキテクチャ準拠。anyhow::Error は ActivityError::Infrastructure に変換する）。
 use crate::domain::entity::activity::{Activity, ActivityFilter, CreateActivity};
@@ -59,7 +59,7 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> Result<Option<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -78,7 +78,7 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn find_by_idempotency_key(&self, tenant_id: &str, key: &str) -> Result<Option<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -97,15 +97,16 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn find_all(&self, tenant_id: &str, filter: &ActivityFilter) -> Result<Vec<Activity>, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let rows = sqlx::query_as::<_, ActivityRow>(
-            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY created_at DESC LIMIT $4 OFFSET $5",
+            // task_id カラムは DB 上 text 型のため $1::text でキャストして比較する
+            "SELECT id, task_id, actor_id, activity_type, content, duration_minutes, status, idempotency_key, version, created_at, updated_at FROM activity_service.activities WHERE ($1::text IS NULL OR task_id = $1::text) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3) ORDER BY created_at DESC LIMIT $4 OFFSET $5",
         )
-        .bind(filter.task_id)
+        .bind(filter.task_id.map(|id| id.to_string()))
         .bind(&filter.actor_id)
         .bind(filter.status.as_ref().map(|s| s.as_str()))
         .bind(filter.limit.unwrap_or(50))
@@ -120,15 +121,16 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn count(&self, tenant_id: &str, filter: &ActivityFilter) -> Result<i64, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから COUNT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM activity_service.activities WHERE ($1::uuid IS NULL OR task_id = $1) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3)",
+            // task_id カラムは DB 上 text 型のため $1::text でキャストして比較する
+            "SELECT COUNT(*) FROM activity_service.activities WHERE ($1::text IS NULL OR task_id = $1::text) AND ($2::text IS NULL OR actor_id = $2) AND ($3::text IS NULL OR status = $3)",
         )
-        .bind(filter.task_id)
+        .bind(filter.task_id.map(|id| id.to_string()))
         .bind(&filter.actor_id)
         .bind(filter.status.as_ref().map(|s| s.as_str()))
         .fetch_one(&mut *tx)
@@ -141,7 +143,7 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn create(&self, tenant_id: &str, input: &CreateActivity, actor_id: &str) -> Result<Activity, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから INSERT を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -164,13 +166,14 @@ impl ActivityRepository for ActivityPostgresRepository {
         .await
         .map_err(|e| ActivityError::Infrastructure(e.into()))?;
 
-        // Outbox イベント
+        // HIGH-005 監査対応: Outbox イベントに tenant_id を含めてテナント分離を保証する
         sqlx::query(
-            "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityCreated', $3)",
+            "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'activity', 'ActivityCreated', $3, $4)",
         )
         .bind(Uuid::new_v4())
         .bind(activity_id)
         .bind(serde_json::json!({ "activity_id": activity_id, "task_id": input.task_id, "actor_id": actor_id, "activity_type": input.activity_type.as_str() }))
+        .bind(tenant_id)
         .execute(&mut *tx)
         .await
         .map_err(|e| ActivityError::Infrastructure(e.into()))?;
@@ -183,7 +186,7 @@ impl ActivityRepository for ActivityPostgresRepository {
     async fn update_status(&self, tenant_id: &str, id: Uuid, status: &str, updated_by: Option<String>) -> Result<Activity, ActivityError> {
         // テナント分離のため SET LOCAL でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await.map_err(|e| ActivityError::Infrastructure(e.into()))?;
-        sqlx::query("SET LOCAL app.current_tenant_id = $1")
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
             .execute(&mut *tx)
             .await
@@ -203,25 +206,28 @@ impl ActivityRepository for ActivityPostgresRepository {
         .map_err(|e| ActivityError::Infrastructure(e.into()))?
         .ok_or_else(|| ActivityError::NotFound(format!("Activity '{}'", id)))?;
 
-        // Approved・Rejected の両方で outbox イベントを発行する（イベント駆動の整合性確保）
+        // HIGH-005 監査対応: Approved・Rejected の両方で outbox イベントを発行する。
+        // tenant_id を含めてテナント分離を保証する（イベント駆動の整合性確保）
         if status == "approved" {
             sqlx::query(
-                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityApproved', $3)",
+                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'activity', 'ActivityApproved', $3, $4)",
             )
             .bind(Uuid::new_v4())
             .bind(id)
             .bind(serde_json::json!({ "activity_id": id, "updated_by": updated_by }))
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;
         } else if status == "rejected" {
             // Rejected 時も outbox イベントを発行してダウンストリームサービスに通知する
             sqlx::query(
-                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload) VALUES ($1, $2, 'activity', 'ActivityRejected', $3)",
+                "INSERT INTO activity_service.outbox_events (id, aggregate_id, aggregate_type, event_type, payload, tenant_id) VALUES ($1, $2, 'activity', 'ActivityRejected', $3, $4)",
             )
             .bind(Uuid::new_v4())
             .bind(id)
             .bind(serde_json::json!({ "activity_id": id, "updated_by": updated_by }))
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await
             .map_err(|e| ActivityError::Infrastructure(e.into()))?;

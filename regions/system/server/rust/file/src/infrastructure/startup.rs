@@ -47,6 +47,9 @@ pub async fn run() -> anyhow::Result<()> {
         "starting file server"
     );
 
+    // CRITICAL-003 対応: readyz ハンドラに渡す db_pool を事前確保する
+    let mut db_pool_for_readyz: Option<sqlx::PgPool> = None;
+
     // Metadata repository (PostgreSQL or InMemory)
     let metadata_repo: Arc<dyn FileMetadataRepository> = if let Some(ref db_cfg) = cfg.database {
         let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| db_cfg.url.clone());
@@ -62,6 +65,8 @@ pub async fn run() -> anyhow::Result<()> {
             .acquire_timeout(Duration::from_secs(db_cfg.connect_timeout_seconds))
             .connect(&database_url)
             .await?;
+        // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+        db_pool_for_readyz = Some(pool.clone());
         Arc::new(
             super::file_metadata_postgres::FileMetadataPostgresRepository::new(
                 pool,
@@ -76,6 +81,8 @@ pub async fn run() -> anyhow::Result<()> {
             .acquire_timeout(Duration::from_secs(10))
             .connect(&database_url)
             .await?;
+        // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+        db_pool_for_readyz = Some(pool.clone());
         // C-01 監査対応: スキーマ名を DB 定義と一致させる（file → file_storage）
         Arc::new(
             super::file_metadata_postgres::FileMetadataPostgresRepository::new(
@@ -95,6 +102,10 @@ pub async fn run() -> anyhow::Result<()> {
         Arc::new(InMemoryFileMetadataRepository::new())
     };
 
+    // STATIC-HIGH-003 監査対応: /internal/storage/ ハンドラーがファイル提供に使用するルートパス。
+    // ローカルFS バックエンド使用時のみ設定し、S3 使用時は None とする。
+    let mut storage_root_path: Option<std::path::PathBuf> = None;
+
     // Storage backend（ローカルFS または インメモリ）
     let storage_repo: Arc<dyn FileStorageRepository> = if let Some(ref storage_cfg) = cfg.storage {
         if storage_cfg.backend == "local" {
@@ -107,10 +118,10 @@ pub async fn run() -> anyhow::Result<()> {
                 .clone()
                 .unwrap_or_else(|| format!("http://{}:{}", cfg.server.host, cfg.server.port));
             info!(root_path = %root_path, "initializing local filesystem storage backend");
-            Arc::new(LocalFsStorageRepository::new(
-                std::path::PathBuf::from(root_path),
-                base_url,
-            ))
+            let root_path_buf = std::path::PathBuf::from(root_path);
+            // /internal/storage/ ハンドラー用にルートパスを保持する
+            storage_root_path = Some(root_path_buf.clone());
+            Arc::new(LocalFsStorageRepository::new(root_path_buf, base_url))
         } else {
             info!("using in-memory storage backend");
             Arc::new(InMemoryFileStorageRepository::new())
@@ -231,6 +242,10 @@ pub async fn run() -> anyhow::Result<()> {
         update_file_tags_uc: update_file_tags_uc.clone(),
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
+        db_pool: db_pool_for_readyz,
+        // STATIC-HIGH-003 対応: /internal/storage/ ハンドラー用ストレージルートパス
+        storage_root_path,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

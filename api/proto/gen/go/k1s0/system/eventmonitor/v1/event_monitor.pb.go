@@ -7,6 +7,7 @@
 package eventmonitorv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -283,8 +284,9 @@ func (x *ListEventsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type TraceByCorrelationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CorrelationId string                 `protobuf:"bytes,1,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 相関IDは1文字以上256文字以下であること
+	CorrelationId string `protobuf:"bytes,1,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -979,8 +981,9 @@ func (x *ListFlowsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type GetFlowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フローIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1067,12 +1070,14 @@ func (x *GetFlowResponse) GetFlow() *FlowDefinition {
 }
 
 type CreateFlowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Domain        string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
-	Steps         []*FlowStep            `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
-	Slo           *FlowSlo               `protobuf:"bytes,5,opt,name=slo,proto3" json:"slo,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フロー名は1文字以上128文字以下であること
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// ドメインは1文字以上128文字以下であること
+	Domain        string      `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	Steps         []*FlowStep `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
+	Slo           *FlowSlo    `protobuf:"bytes,5,opt,name=slo,proto3" json:"slo,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1187,12 +1192,13 @@ func (x *CreateFlowResponse) GetFlow() *FlowDefinition {
 }
 
 type UpdateFlowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Description   *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Steps         []*FlowStep            `protobuf:"bytes,3,rep,name=steps,proto3" json:"steps,omitempty"`
-	Slo           *FlowSlo               `protobuf:"bytes,4,opt,name=slo,proto3,oneof" json:"slo,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,5,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フローIDは1文字以上であること
+	Id            string      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description   *string     `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Steps         []*FlowStep `protobuf:"bytes,3,rep,name=steps,proto3" json:"steps,omitempty"`
+	Slo           *FlowSlo    `protobuf:"bytes,4,opt,name=slo,proto3,oneof" json:"slo,omitempty"`
+	Enabled       *bool       `protobuf:"varint,5,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1307,8 +1313,9 @@ func (x *UpdateFlowResponse) GetFlow() *FlowDefinition {
 }
 
 type DeleteFlowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フローIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1671,9 +1678,10 @@ func (x *FlowKpi) GetBottleneckStep() *BottleneckStep {
 }
 
 type GetFlowKpiRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FlowId        string                 `protobuf:"bytes,1,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
-	Period        *string                `protobuf:"bytes,2,opt,name=period,proto3,oneof" json:"period,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フローIDは1文字以上であること
+	FlowId        string  `protobuf:"bytes,1,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
+	Period        *string `protobuf:"bytes,2,opt,name=period,proto3,oneof" json:"period,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2227,8 +2235,9 @@ func (x *BurnRateWindow) GetErrorBudgetRemaining() float64 {
 }
 
 type GetSloBurnRateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FlowId        string                 `protobuf:"bytes,1,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// フローIDは1文字以上であること
+	FlowId        string `protobuf:"bytes,1,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2698,7 +2707,7 @@ var File_k1s0_system_eventmonitor_v1_event_monitor_proto protoreflect.FileDescri
 
 const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\n" +
-	"/k1s0/system/eventmonitor/v1/event_monitor.proto\x12\x1bk1s0.system.eventmonitor.v1\x1a!k1s0/system/common/v1/types.proto\"\xf1\x02\n" +
+	"/k1s0/system/eventmonitor/v1/event_monitor.proto\x12\x1bk1s0.system.eventmonitor.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xf1\x02\n" +
 	"\vEventRecord\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
 	"\x0ecorrelation_id\x18\x02 \x01(\tR\rcorrelationId\x12\x1d\n" +
@@ -2736,9 +2745,10 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x06events\x18\x01 \x03(\v2(.k1s0.system.eventmonitor.v1.EventRecordR\x06events\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"B\n" +
-	"\x19TraceByCorrelationRequest\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\"\x85\x02\n" +
+	"pagination\"N\n" +
+	"\x19TraceByCorrelationRequest\x121\n" +
+	"\x0ecorrelation_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\rcorrelationId\"\x85\x02\n" +
 	"\n" +
 	"TraceEvent\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
@@ -2802,21 +2812,23 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x05flows\x18\x01 \x03(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x05flows\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\" \n" +
-	"\x0eGetFlowRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
+	"pagination\")\n" +
+	"\x0eGetFlowRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"R\n" +
 	"\x0fGetFlowResponse\x12?\n" +
-	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\xd6\x01\n" +
-	"\x11CreateFlowRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06domain\x18\x03 \x01(\tR\x06domain\x12;\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\xee\x01\n" +
+	"\x11CreateFlowRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\"\n" +
+	"\x06domain\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x06domain\x12;\n" +
 	"\x05steps\x18\x04 \x03(\v2%.k1s0.system.eventmonitor.v1.FlowStepR\x05steps\x126\n" +
 	"\x03slo\x18\x05 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowSloR\x03slo\"U\n" +
 	"\x12CreateFlowResponse\x12?\n" +
-	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\x87\x02\n" +
-	"\x11UpdateFlowRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"\x90\x02\n" +
+	"\x11UpdateFlowRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12;\n" +
 	"\x05steps\x18\x03 \x03(\v2%.k1s0.system.eventmonitor.v1.FlowStepR\x05steps\x12;\n" +
 	"\x03slo\x18\x04 \x01(\v2$.k1s0.system.eventmonitor.v1.FlowSloH\x01R\x03slo\x88\x01\x01\x12\x1d\n" +
@@ -2826,9 +2838,9 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\n" +
 	"\b_enabled\"U\n" +
 	"\x12UpdateFlowResponse\x12?\n" +
-	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\"#\n" +
-	"\x11DeleteFlowRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
+	"\x04flow\x18\x01 \x01(\v2+.k1s0.system.eventmonitor.v1.FlowDefinitionR\x04flow\",\n" +
+	"\x11DeleteFlowRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"H\n" +
 	"\x12DeleteFlowResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\xa3\x01\n" +
@@ -2858,9 +2870,9 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x14p95_duration_seconds\x18\b \x01(\x01R\x12p95DurationSeconds\x120\n" +
 	"\x14p99_duration_seconds\x18\t \x01(\x01R\x12p99DurationSeconds\x12T\n" +
 	"\x0fbottleneck_step\x18\n" +
-	" \x01(\v2+.k1s0.system.eventmonitor.v1.BottleneckStepR\x0ebottleneckStep\"T\n" +
-	"\x11GetFlowKpiRequest\x12\x17\n" +
-	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
+	" \x01(\v2+.k1s0.system.eventmonitor.v1.BottleneckStepR\x0ebottleneckStep\"]\n" +
+	"\x11GetFlowKpiRequest\x12 \n" +
+	"\aflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06flowId\x12\x1b\n" +
 	"\x06period\x18\x02 \x01(\tH\x00R\x06period\x88\x01\x01B\t\n" +
 	"\a_period\"\xe1\x01\n" +
 	"\x12GetFlowKpiResponse\x12\x17\n" +
@@ -2901,9 +2913,9 @@ const file_k1s0_system_eventmonitor_v1_event_monitor_proto_rawDesc = "" +
 	"\x0eBurnRateWindow\x12\x16\n" +
 	"\x06window\x18\x01 \x01(\tR\x06window\x12\x1b\n" +
 	"\tburn_rate\x18\x02 \x01(\x01R\bburnRate\x124\n" +
-	"\x16error_budget_remaining\x18\x03 \x01(\x01R\x14errorBudgetRemaining\"0\n" +
-	"\x15GetSloBurnRateRequest\x12\x17\n" +
-	"\aflow_id\x18\x01 \x01(\tR\x06flowId\"\x98\x02\n" +
+	"\x16error_budget_remaining\x18\x03 \x01(\x01R\x14errorBudgetRemaining\"9\n" +
+	"\x15GetSloBurnRateRequest\x12 \n" +
+	"\aflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06flowId\"\x98\x02\n" +
 	"\x16GetSloBurnRateResponse\x12\x17\n" +
 	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12\x1b\n" +
 	"\tflow_name\x18\x02 \x01(\tR\bflowName\x12E\n" +

@@ -225,11 +225,15 @@ impl PhysicalSchemaManager {
         validate_identifier(&relationship.target_column)?;
         let target_table_name = qualified_table_name(target_table)?;
         let constraint_name = relationship_constraint_name(relationship.id);
-        let on_delete = if relationship.is_cascade_delete {
-            "CASCADE"
-        } else {
-            "RESTRICT"
-        };
+        // RUST-002 監査対応: on_delete を enum 型で定義し、将来の変更でバリデーション漏れが
+        // 発生しないよう型安全性を確保する。文字列リテラルをそのまま使わない。
+        enum OnDeleteAction { Cascade, Restrict }
+        impl OnDeleteAction {
+            fn as_sql(&self) -> &'static str {
+                match self { Self::Cascade => "CASCADE", Self::Restrict => "RESTRICT" }
+            }
+        }
+        let on_delete = if relationship.is_cascade_delete { OnDeleteAction::Cascade } else { OnDeleteAction::Restrict };
         let sql = format!(
             "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({}) ON DELETE {}",
             source_table_name,
@@ -237,7 +241,7 @@ impl PhysicalSchemaManager {
             quote_identifier(&relationship.source_column),
             target_table_name,
             quote_identifier(&relationship.target_column),
-            on_delete
+            on_delete.as_sql()
         );
         sqlx::query(&sql).execute(&self.pool).await?;
         Ok(())

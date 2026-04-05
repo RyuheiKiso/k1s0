@@ -31,10 +31,11 @@ impl DeleteJobUseCase {
         }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<(), DeleteJobError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを削除する。
+    pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteJobError> {
         let _job = self
             .repo
-            .find_by_id(id)
+            .find_by_id(id, tenant_id)
             .await
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?
             .ok_or_else(|| DeleteJobError::NotFound(id.to_string()))?;
@@ -50,7 +51,7 @@ impl DeleteJobUseCase {
 
         let deleted = self
             .repo
-            .delete(id)
+            .delete(id, tenant_id)
             .await
             .map_err(|e| DeleteJobError::Internal(e.to_string()))?;
 
@@ -70,6 +71,25 @@ mod tests {
     use crate::domain::repository::scheduler_execution_repository::MockSchedulerExecutionRepository;
     use crate::domain::repository::scheduler_job_repository::MockSchedulerJobRepository;
 
+    fn make_test_job(id: &str) -> crate::domain::entity::scheduler_job::SchedulerJob {
+        crate::domain::entity::scheduler_job::SchedulerJob {
+            id: id.to_string(),
+            name: "job".to_string(),
+            description: None,
+            cron_expression: "* * * * *".to_string(),
+            timezone: "UTC".to_string(),
+            target_type: "kafka".to_string(),
+            target: None,
+            payload: serde_json::json!({}),
+            status: "active".to_string(),
+            next_run_at: None,
+            last_run_at: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
+        }
+    }
+
     #[tokio::test]
     async fn success() {
         let mut mock = MockSchedulerJobRepository::new();
@@ -77,29 +97,13 @@ mod tests {
         let id = "job_test".to_string();
         let expected_id = id.clone();
         mock.expect_find_by_id()
-            .withf(move |job_id| job_id == expected_id.as_str())
-            .returning(|job_id| {
-                Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
-                    id: job_id.to_string(),
-                    name: "job".to_string(),
-                    description: None,
-                    cron_expression: "* * * * *".to_string(),
-                    timezone: "UTC".to_string(),
-                    target_type: "kafka".to_string(),
-                    target: None,
-                    payload: serde_json::json!({}),
-                    status: "active".to_string(),
-                    next_run_at: None,
-                    last_run_at: None,
-                    created_at: chrono::Utc::now(),
-                    updated_at: chrono::Utc::now(),
-                }))
-            });
+            .withf(move |job_id, _tenant_id| job_id == expected_id.as_str())
+            .returning(|job_id, _| Ok(Some(make_test_job(job_id))));
         mock_exec.expect_find_by_job_id().returning(|_| Ok(vec![]));
-        mock.expect_delete().returning(|_| Ok(true));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_ok());
     }
 
@@ -107,11 +111,11 @@ mod tests {
     async fn not_found() {
         let mut mock = MockSchedulerJobRepository::new();
         let mock_exec = MockSchedulerExecutionRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
         let id = "job_missing".to_string();
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -125,11 +129,11 @@ mod tests {
         let mut mock = MockSchedulerJobRepository::new();
         let mock_exec = MockSchedulerExecutionRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
         let id = "job_internal".to_string();
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -144,22 +148,8 @@ mod tests {
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = "job_running".to_string();
         let running_id = id.clone();
-        mock.expect_find_by_id().returning(|job_id| {
-            Ok(Some(crate::domain::entity::scheduler_job::SchedulerJob {
-                id: job_id.to_string(),
-                name: "job".to_string(),
-                description: None,
-                cron_expression: "* * * * *".to_string(),
-                timezone: "UTC".to_string(),
-                target_type: "kafka".to_string(),
-                target: None,
-                payload: serde_json::json!({}),
-                status: "active".to_string(),
-                next_run_at: None,
-                last_run_at: None,
-                created_at: chrono::Utc::now(),
-                updated_at: chrono::Utc::now(),
-            }))
+        mock.expect_find_by_id().returning(|job_id, _| {
+            Ok(Some(make_test_job(job_id)))
         });
         mock_exec.expect_find_by_job_id().returning(move |_| {
             Ok(vec![SchedulerExecution {
@@ -174,7 +164,7 @@ mod tests {
         });
 
         let uc = DeleteJobUseCase::new(Arc::new(mock), Arc::new(mock_exec));
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(matches!(result, Err(DeleteJobError::JobRunning(found)) if found == id));
     }
 }

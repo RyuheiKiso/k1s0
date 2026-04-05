@@ -38,6 +38,8 @@ export interface CreateTableDefinitionResponse {
  */
 export interface UpdateTableDefinitionRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -64,6 +66,8 @@ export interface UpdateTableDefinitionResponse {
  */
 export interface DeleteTableDefinitionRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -88,6 +92,8 @@ export interface DeleteTableDefinitionResponse {
  */
 export interface GetTableDefinitionRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -309,9 +315,11 @@ export interface TableRelationship {
      */
     isCascadeDelete: boolean;
     /**
-     * @generated from protobuf field: string created_at = 8
+     * HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 8
      */
-    createdAt: string;
+    createdAt?: Timestamp;
 }
 /**
  * テーブル定義一覧リクエスト
@@ -358,10 +366,14 @@ export interface ListTableDefinitionsResponse {
  */
 export interface GetRecordRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
     /**
+     * レコードIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string record_id = 2
      */
     recordId: string;
@@ -418,6 +430,8 @@ export interface UpdateRecordResponse {
  */
 export interface ListRecordsRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -464,6 +478,8 @@ export interface ListRecordsResponse {
  */
 export interface CreateRecordRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -483,10 +499,14 @@ export interface CreateRecordRequest {
  */
 export interface UpdateRecordRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
     /**
+     * レコードIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string record_id = 2
      */
     recordId: string;
@@ -506,10 +526,14 @@ export interface UpdateRecordRequest {
  */
 export interface DeleteRecordRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
     /**
+     * レコードIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string record_id = 2
      */
     recordId: string;
@@ -594,6 +618,8 @@ export interface CreateRuleResponse {
  */
 export interface GetRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -612,6 +638,8 @@ export interface GetRuleResponse {
  */
 export interface UpdateRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -634,6 +662,8 @@ export interface UpdateRuleResponse {
  */
 export interface DeleteRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -686,6 +716,8 @@ export interface ListRulesResponse {
  */
 export interface ExecuteRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -825,6 +857,8 @@ export interface ValidationWarning {
  */
 export interface GetTableSchemaRequest {
     /**
+     * テーブル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string table_name = 1
      */
     tableName: string;
@@ -1045,6 +1079,8 @@ export interface ExportRecordsResponse {
  */
 export interface GetImportJobRequest {
     /**
+     * インポートジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string import_job_id = 1
      */
     importJobId: string;
@@ -1099,13 +1135,17 @@ export interface ImportJob {
      */
     startedBy: string;
     /**
-     * @generated from protobuf field: string started_at = 10
+     * HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp started_at = 10
      */
-    startedAt: string;
+    startedAt?: Timestamp;
     /**
-     * @generated from protobuf field: optional string completed_at = 11
+     * HIGH-017: optional string → optional Timestamp に変更（未完了ジョブは null を許容）
+     *
+     * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp completed_at = 11
      */
-    completedAt?: string;
+    completedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListDisplayConfigsRequest
@@ -1246,13 +1286,17 @@ export interface DisplayConfig {
      */
     createdBy: string;
     /**
-     * @generated from protobuf field: string created_at = 7
+     * HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 7
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: string updated_at = 8
+     * HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 8
      */
-    updatedAt: string;
+    updatedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message k1s0.system.mastermaintenance.v1.ListTableAuditLogsRequest
@@ -1363,9 +1407,11 @@ export interface AuditLogEntry {
      */
     traceId: string;
     /**
-     * @generated from protobuf field: string created_at = 11
+     * HIGH-017: string → Timestamp に変更（型安全性・タイムゾーン明示のため）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 11
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
      * @generated from protobuf field: string domain_scope = 12
      */
@@ -1500,7 +1546,7 @@ export const CreateTableDefinitionResponse = new CreateTableDefinitionResponse$T
 class UpdateTableDefinitionRequest$Type extends MessageType<UpdateTableDefinitionRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.UpdateTableDefinitionRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "data", kind: "message", T: () => Struct },
             { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1608,7 +1654,7 @@ export const UpdateTableDefinitionResponse = new UpdateTableDefinitionResponse$T
 class DeleteTableDefinitionRequest$Type extends MessageType<DeleteTableDefinitionRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.DeleteTableDefinitionRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1710,7 +1756,7 @@ export const DeleteTableDefinitionResponse = new DeleteTableDefinitionResponse$T
 class GetTableDefinitionRequest$Type extends MessageType<GetTableDefinitionRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetTableDefinitionRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -2173,7 +2219,7 @@ class TableRelationship$Type extends MessageType<TableRelationship> {
             { no: 5, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "is_cascade_delete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 8, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "created_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<TableRelationship>): TableRelationship {
@@ -2185,7 +2231,6 @@ class TableRelationship$Type extends MessageType<TableRelationship> {
         message.displayName = "";
         message.id = "";
         message.isCascadeDelete = false;
-        message.createdAt = "";
         if (value !== undefined)
             reflectionMergePartial<TableRelationship>(this, message, value);
         return message;
@@ -2216,8 +2261,8 @@ class TableRelationship$Type extends MessageType<TableRelationship> {
                 case /* bool is_cascade_delete */ 7:
                     message.isCascadeDelete = reader.bool();
                     break;
-                case /* string created_at */ 8:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 8:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2252,9 +2297,9 @@ class TableRelationship$Type extends MessageType<TableRelationship> {
         /* bool is_cascade_delete = 7; */
         if (message.isCascadeDelete !== false)
             writer.tag(7, WireType.Varint).bool(message.isCascadeDelete);
-        /* string created_at = 8; */
-        if (message.createdAt !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 8; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2393,8 +2438,8 @@ export const ListTableDefinitionsResponse = new ListTableDefinitionsResponse$Typ
 class GetRecordRequest$Type extends MessageType<GetRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetRecordRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -2618,7 +2663,7 @@ export const UpdateRecordResponse = new UpdateRecordResponse$Type();
 class ListRecordsRequest$Type extends MessageType<ListRecordsRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.ListRecordsRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 3, name: "sort", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -2758,7 +2803,7 @@ export const ListRecordsResponse = new ListRecordsResponse$Type();
 class CreateRecordRequest$Type extends MessageType<CreateRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.CreateRecordRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "data", kind: "message", T: () => Struct },
             { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -2820,8 +2865,8 @@ export const CreateRecordRequest = new CreateRecordRequest$Type();
 class UpdateRecordRequest$Type extends MessageType<UpdateRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.UpdateRecordRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "data", kind: "message", T: () => Struct },
             { no: 4, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -2890,8 +2935,8 @@ export const UpdateRecordRequest = new UpdateRecordRequest$Type();
 class DeleteRecordRequest$Type extends MessageType<DeleteRecordRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.DeleteRecordRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "record_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -3226,7 +3271,7 @@ export const CreateRuleResponse = new CreateRuleResponse$Type();
 class GetRuleRequest$Type extends MessageType<GetRuleRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetRuleRequest>): GetRuleRequest {
@@ -3319,7 +3364,7 @@ export const GetRuleResponse = new GetRuleResponse$Type();
 class UpdateRuleRequest$Type extends MessageType<UpdateRuleRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.UpdateRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "data", kind: "message", T: () => Struct }
         ]);
     }
@@ -3419,7 +3464,7 @@ export const UpdateRuleResponse = new UpdateRuleResponse$Type();
 class DeleteRuleRequest$Type extends MessageType<DeleteRuleRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.DeleteRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteRuleRequest>): DeleteRuleRequest {
@@ -3637,7 +3682,7 @@ export const ListRulesResponse = new ListRulesResponse$Type();
 class ExecuteRuleRequest$Type extends MessageType<ExecuteRuleRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.ExecuteRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<ExecuteRuleRequest>): ExecuteRuleRequest {
@@ -4046,7 +4091,7 @@ export const ValidationWarning = new ValidationWarning$Type();
 class GetTableSchemaRequest$Type extends MessageType<GetTableSchemaRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetTableSchemaRequest", [
-            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "table_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<GetTableSchemaRequest>): GetTableSchemaRequest {
@@ -5110,7 +5155,7 @@ export const ExportRecordsResponse = new ExportRecordsResponse$Type();
 class GetImportJobRequest$Type extends MessageType<GetImportJobRequest> {
     constructor() {
         super("k1s0.system.mastermaintenance.v1.GetImportJobRequest", [
-            { no: 1, name: "import_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "import_job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetImportJobRequest>): GetImportJobRequest {
@@ -5212,8 +5257,8 @@ class ImportJob$Type extends MessageType<ImportJob> {
             { no: 7, name: "error_rows", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 8, name: "error_details_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "started_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "started_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "completed_at", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "started_at", kind: "message", T: () => Timestamp },
+            { no: 11, name: "completed_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<ImportJob>): ImportJob {
@@ -5227,7 +5272,6 @@ class ImportJob$Type extends MessageType<ImportJob> {
         message.errorRows = 0;
         message.errorDetailsJson = "";
         message.startedBy = "";
-        message.startedAt = "";
         if (value !== undefined)
             reflectionMergePartial<ImportJob>(this, message, value);
         return message;
@@ -5264,11 +5308,11 @@ class ImportJob$Type extends MessageType<ImportJob> {
                 case /* string started_by */ 9:
                     message.startedBy = reader.string();
                     break;
-                case /* string started_at */ 10:
-                    message.startedAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp started_at */ 10:
+                    message.startedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startedAt);
                     break;
-                case /* optional string completed_at */ 11:
-                    message.completedAt = reader.string();
+                case /* optional k1s0.system.common.v1.Timestamp completed_at */ 11:
+                    message.completedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.completedAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5309,12 +5353,12 @@ class ImportJob$Type extends MessageType<ImportJob> {
         /* string started_by = 9; */
         if (message.startedBy !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.startedBy);
-        /* string started_at = 10; */
-        if (message.startedAt !== "")
-            writer.tag(10, WireType.LengthDelimited).string(message.startedAt);
-        /* optional string completed_at = 11; */
-        if (message.completedAt !== undefined)
-            writer.tag(11, WireType.LengthDelimited).string(message.completedAt);
+        /* k1s0.system.common.v1.Timestamp started_at = 10; */
+        if (message.startedAt)
+            Timestamp.internalBinaryWrite(message.startedAt, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* optional k1s0.system.common.v1.Timestamp completed_at = 11; */
+        if (message.completedAt)
+            Timestamp.internalBinaryWrite(message.completedAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -5840,8 +5884,8 @@ class DisplayConfig$Type extends MessageType<DisplayConfig> {
             { no: 4, name: "config_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "is_default", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 6, name: "created_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 8, name: "updated_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<DisplayConfig>): DisplayConfig {
@@ -5852,8 +5896,6 @@ class DisplayConfig$Type extends MessageType<DisplayConfig> {
         message.configJson = "";
         message.isDefault = false;
         message.createdBy = "";
-        message.createdAt = "";
-        message.updatedAt = "";
         if (value !== undefined)
             reflectionMergePartial<DisplayConfig>(this, message, value);
         return message;
@@ -5881,11 +5923,11 @@ class DisplayConfig$Type extends MessageType<DisplayConfig> {
                 case /* string created_by */ 6:
                     message.createdBy = reader.string();
                     break;
-                case /* string created_at */ 7:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 7:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* string updated_at */ 8:
-                    message.updatedAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 8:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5917,12 +5959,12 @@ class DisplayConfig$Type extends MessageType<DisplayConfig> {
         /* string created_by = 6; */
         if (message.createdBy !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.createdBy);
-        /* string created_at = 7; */
-        if (message.createdAt !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.createdAt);
-        /* string updated_at = 8; */
-        if (message.updatedAt !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.updatedAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 7; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp updated_at = 8; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6187,7 +6229,7 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
             { no: 8, name: "changed_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "change_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "domain_scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -6203,7 +6245,6 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
         message.changedBy = "";
         message.changeReason = "";
         message.traceId = "";
-        message.createdAt = "";
         message.domainScope = "";
         if (value !== undefined)
             reflectionMergePartial<AuditLogEntry>(this, message, value);
@@ -6244,8 +6285,8 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
                 case /* string trace_id */ 10:
                     message.traceId = reader.string();
                     break;
-                case /* string created_at */ 11:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 11:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
                 case /* string domain_scope */ 12:
                     message.domainScope = reader.string();
@@ -6292,9 +6333,9 @@ class AuditLogEntry$Type extends MessageType<AuditLogEntry> {
         /* string trace_id = 10; */
         if (message.traceId !== "")
             writer.tag(10, WireType.LengthDelimited).string(message.traceId);
-        /* string created_at = 11; */
-        if (message.createdAt !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.createdAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 11; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         /* string domain_scope = 12; */
         if (message.domainScope !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.domainScope);

@@ -28,7 +28,9 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
         public_routes = public_routes.route(metrics_path, get(metrics_handler));
     }
 
-    // 期限超過タスクチェック用の内部エンドポイント
+    // H-002 監査対応: 内部エンドポイントは認証が有効な場合はその保護下に置く
+    // 認証が有効な場合は auth_middleware が適用され、スケジューラも JWT を提示する必要がある
+    // 認証が無効（dev/test）の場合はパブリックルートとしてそのままマージする
     let internal_routes = Router::new().route(
         "/internal/tasks/check-overdue",
         post(task_handler::check_overdue_tasks),
@@ -98,10 +100,13 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 "admin",
             )));
 
+        // H-002 監査対応: internal_routes も auth_middleware の保護下に置く
+        // /internal/tasks/check-overdue を認証なしで外部からトリガーできる脆弱性を修正
         Router::new()
             .merge(read_routes)
             .merge(write_routes)
             .merge(admin_routes)
+            .merge(internal_routes)
             .layer(axum::middleware::from_fn_with_state(
                 auth_state.clone(),
                 auth_middleware,
@@ -146,10 +151,11 @@ pub fn router(state: AppState, metrics_enabled: bool, metrics_path: &str) -> Rou
                 "/api/v1/tasks/{id}/reassign",
                 post(task_handler::reassign_task),
             )
+            // H-002 監査対応: dev/test モードでは internal_routes は保護なし（意図的）
+            .merge(internal_routes)
     };
 
     public_routes
-        .merge(internal_routes)
         .merge(api_routes)
         .with_state(state)
 }

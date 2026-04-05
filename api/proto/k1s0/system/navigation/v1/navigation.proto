@@ -7,10 +7,6 @@ package k1s0.system.navigation.v1;
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/navigation/v1;navigationv1";
 option java_package = "io.k1s0.system.navigation.v1";
 
-// M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
-// import は option の後に記述（proto3 では許容）
-import "buf/validate/validate.proto";
-
 // NavigationService はクライアントアプリのルーティング設定を提供する。
 service NavigationService {
   // ナビゲーション設定取得

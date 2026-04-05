@@ -1224,7 +1224,7 @@ auth:
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "k1s0_system"
+  name: "k1s0_saga"            # ADR-0060 対応済み: k1s0_system から k1s0_saga へ分離
   user: "app"
   password: ""
   ssl_mode: "require"          # 開発環境では "disable"

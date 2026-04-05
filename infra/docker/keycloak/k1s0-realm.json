@@ -8,6 +8,7 @@
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
+  "verifyEmail": true,
   "bruteForceProtected": true,
   "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and digits(1) and specialChars(1) and notUsername() and passwordHistory(5)",
   "permanentLockout": false,
@@ -18,7 +19,6 @@
   "maxDeltaTimeSeconds": 43200,
   "failureFactor": 5,
   "accessTokenLifespan": 300,
-  "accessTokenLifespanForImplicitFlow": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 86400,
   "revokeRefreshToken": true,
@@ -146,7 +146,8 @@
         "http://localhost:5173/callback"
       ],
       "webOrigins": [
-        "https://*.k1s0.internal.example.com",
+        "https://app.k1s0.internal.example.com",
+        "https://admin.k1s0.internal.example.com",
         "http://localhost:3000",
         "http://localhost:5173"
       ],
@@ -350,8 +351,10 @@
         "http://localhost:3000/callback"
       ],
       "webOrigins": [
-        "https://*.k1s0.internal.example.com",
-        "http://localhost:3000"
+        "https://app.k1s0.internal.example.com",
+        "https://admin.k1s0.internal.example.com",
+        "http://localhost:3000",
+        "http://localhost:5173"
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -461,6 +464,24 @@
       ],
       "serviceAccountsEnabled": true,
       "defaultRoles": ["svc_internal"]
+    },
+    {
+      "clientId": "auth-rust-admin",
+      "name": "AuthRustAdmin",
+      "description": "auth-rust サービスが Keycloak Admin API を呼び出すための Client Credentials フロー専用クライアント（CRIT-002 監査対応）",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "dev-service-secret",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email"
+      ]
     },
     {
       "clientId": "auth-server",
@@ -623,5 +644,55 @@
     "RESET_PASSWORD"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+  "users": [
+    {
+      "username": "dev-admin",
+      "email": "dev-admin@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevAdmin@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["sys_admin", "user"]
+    },
+    {
+      "username": "dev-user",
+      "email": "dev-user@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevUser@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["user"]
+    },
+    {
+      "username": "dev-task-mgr",
+      "email": "dev-task-mgr@k1s0.dev",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Dev",
+      "lastName": "TaskMgr",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "DevTask@2024!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["biz_taskmanagement_manager", "svc_task_user", "user"]
+    }
+  ]
 }

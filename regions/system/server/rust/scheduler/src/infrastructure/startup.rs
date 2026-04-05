@@ -70,6 +70,30 @@ pub async fn run() -> anyhow::Result<()> {
             .await
             .map_err(|e| anyhow::anyhow!("scheduler-db migration failed: {}", e))?;
         tracing::info!("scheduler-db migrations applied successfully");
+
+        // RUNTIME-001 監査対応: マイグレーション後の整合性確認
+        // スタレイメージ（古い Docker イメージ）では新しいマイグレーションが埋め込まれておらず、
+        // scheduler_jobs テーブルが作成されないまま起動することがある。
+        // ここで主要テーブルの存在を確認し、不完全な状態での起動を早期に検出・停止する。
+        let table_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(\
+               SELECT 1 FROM information_schema.tables \
+               WHERE table_schema = 'scheduler' AND table_name = 'scheduler_jobs'\
+             )",
+        )
+        .fetch_one(pool.as_ref())
+        .await
+        .map_err(|e| anyhow::anyhow!("scheduler-db 整合性確認クエリ失敗: {}", e))?;
+        if !table_exists {
+            return Err(anyhow::anyhow!(
+                "scheduler_jobs テーブルが存在しません。\
+                 Docker イメージが古い可能性があります（スタレイメージ問題）。\
+                 'docker compose build --no-cache' でイメージを再ビルドしてください。\
+                 また 'just migrate-all-docker' を先に実行した場合はトリガー競合が発生します。\
+                 'docker compose down -v && just local-up-dev' で環境をリセットしてください。"
+            ));
+        }
+        tracing::info!("scheduler-db integrity check passed: scheduler_jobs table exists");
         let pg_lock = k1s0_distributed_lock::PostgresDistributedLock::new(pool.as_ref().clone())
             .with_prefix("scheduler");
         (
@@ -237,12 +261,22 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_metrics = metrics;
     let grpc_auth_layer =
         crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+
+    // gRPC Health Check Protocol サービスを登録する。
+    // readyz エンドポイントや Kubernetes の livenessProbe/readinessProbe が
+    // Bearer token なしでヘルスチェックできるようにするため。
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<SchedulerServiceServer<crate::adapter::grpc::SchedulerServiceTonic>>()
+        .await;
+
     // gRPCサーバーのグレースフルシャットダウン用シグナル
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(health_service)
             .add_service(SchedulerServiceServer::new(scheduler_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;
@@ -356,12 +390,14 @@ impl InMemorySchedulerJobRepository {
 
 #[async_trait::async_trait]
 impl SchedulerJobRepository for InMemorySchedulerJobRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerJob>> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<SchedulerJob>> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.values().cloned().collect())
     }
@@ -378,7 +414,8 @@ impl SchedulerJobRepository for InMemorySchedulerJobRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut jobs = self.jobs.write().await;
         Ok(jobs.remove(id).is_some())
     }

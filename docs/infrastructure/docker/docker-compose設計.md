@@ -62,6 +62,30 @@ docker compose --profile infra --profile system up -d
 docker compose --profile infra --profile observability --profile system --profile business --profile service up -d
 ```
 
+## 推奨 Docker Desktop リソース要件
+
+全プロファイル（infra + system + business + service + observability）を同時起動する場合:
+
+| リソース | 最低要件 | 推奨 |
+|---------|---------|------|
+| CPU | 4コア | 8コア以上 |
+| メモリ | 8GB | 16GB以上 |
+| ディスク空き | 50GB | 100GB以上 |
+
+> **注意**: リソースが不足すると、起動後 30〜60 分で healthcheck timeout が多発し、
+> コンテナが段階的に unhealthy になります（HIGH-009 監査指摘）。
+> Docker Desktop の **Settings → Resources** で CPU とメモリを増加してください。
+
+### プロファイル別の目安
+
+| プロファイル | コンテナ数 | 追加メモリ目安 |
+|------------|----------|-------------|
+| infra | 8 | 3GB |
+| system | 25 | 6GB |
+| business + service | 4 | 1GB |
+| observability | 5 | 2GB |
+| **合計** | **42** | **12GB** |
+
 ## docker-compose.yaml
 
 ```yaml
@@ -596,7 +620,7 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `SAGA_REST_HOST_PORT` | 8085 | saga-rust | Saga Server（REST） |
 | `SAGA_GRPC_HOST_PORT` | 50055 | saga-rust | Saga Server（gRPC） |
 | `DLQ_REST_HOST_PORT` | 8086 | dlq-manager | DLQ Manager（REST） |
-| `FEATUREFLAG_REST_HOST_PORT` | 8087 | featureflag-rust | Feature Flag（REST） |
+| `FEATUREFLAG_REST_HOST_PORT` | 8187 | featureflag-rust | Feature Flag（REST）（8087 は Docker Desktop NAT 競合のため 8187 に変更済み） |
 | `FEATUREFLAG_GRPC_HOST_PORT` | 50056 | featureflag-rust | Feature Flag（gRPC） |
 | `RATELIMIT_REST_HOST_PORT` | 8088 | ratelimit-rust | Rate Limit（REST） |
 | `RATELIMIT_GRPC_HOST_PORT` | 50057 | ratelimit-rust | Rate Limit（gRPC） |

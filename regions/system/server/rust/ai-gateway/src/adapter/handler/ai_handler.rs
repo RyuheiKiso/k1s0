@@ -32,6 +32,8 @@ pub struct AppState {
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     /// 認証状態（オプション）
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（CRITICAL-003 対応: /readyz で SELECT 1 チェックに使用）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {

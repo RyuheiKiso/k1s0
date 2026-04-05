@@ -10,6 +10,8 @@ pub struct ListPoliciesInput {
     pub page_size: u32,
     pub bundle_id: Option<Uuid>,
     pub enabled_only: bool,
+    /// テナント ID: CRIT-005 対応。テナントでフィルタリングする。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -40,24 +42,29 @@ impl ListPoliciesUseCase {
         &self,
         input: &ListPoliciesInput,
     ) -> Result<ListPoliciesOutput, ListPoliciesError> {
+        // M-004 監査対応: DoS 防止のためページサイズを 1〜100 に制限する（config サービスの模範実装に準拠）
+        let page_size = input.page_size.clamp(1, 100);
+
+        // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
         let (policies, total_count) = self
             .repo
             .find_all_paginated(
                 input.page,
-                input.page_size,
+                page_size,
                 input.bundle_id,
                 input.enabled_only,
+                &input.tenant_id,
             )
             .await
             .map_err(|e| ListPoliciesError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64) * (input.page_size as u64) < total_count;
+        let has_next = (input.page as u64) * (page_size as u64) < total_count;
 
         Ok(ListPoliciesOutput {
             policies,
             total_count,
             page: input.page,
-            page_size: input.page_size,
+            page_size,
             has_next,
         })
     }

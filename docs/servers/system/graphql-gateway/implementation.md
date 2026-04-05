@@ -1439,7 +1439,7 @@ mod tests {
 
 **影響範囲**
 
-- `src/infrastructure/grpc/` 配下の全クライアントファイル（11ファイル）
+- `src/infrastructure/grpc/` 配下の全クライアントファイル（10ファイル。service-catalog は grpc ではなく `src/infrastructure/http/service_catalog_client.rs` に reqwest REST クライアントとして実装）
 - `src/infrastructure/startup.rs`（クライアント初期化箇所）
 
 **設計上の注意**

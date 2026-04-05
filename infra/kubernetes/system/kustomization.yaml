@@ -5,3 +5,6 @@ kind: Kustomization
 
 resources:
   - partition-cronjob.yaml
+  # M-031 監査対応: Vault 監査ログ永続化用 PVC（emptyDir の代替）
+  # kubectl kustomize infra/kubernetes/system/ | kubectl apply -f - で適用する
+  - vault-audit-pvc.yaml

@@ -15,12 +15,16 @@ graphql:
   query_timeout_seconds: 30
 
 auth:
-  jwks_url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
-  # JWT issuer 検証（M-01 監査対応: auth-rust の issuer と統一する）
-  # 本番環境の Keycloak realm URL に合わせる
-  issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
-  # JWT audience 検証（M-01 監査対応: auth-rust の audience と統一する）
-  audience: "k1s0-api"
+  # ADR-0053: AuthConfig ネスト形式（本番環境用ベース設定）
+  jwt:
+    # JWT issuer 検証（M-01 監査対応: auth-rust の issuer と統一する）
+    # 本番環境の Keycloak realm URL に合わせる
+    issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+    # JWT audience 検証（M-01 監査対応: auth-rust の audience と統一する）
+    audience: "k1s0-api"
+  jwks:
+    url: "http://auth-server.k1s0-system.svc.cluster.local/jwks"
+    cache_ttl_secs: 300
 
 backends:
   # 認証クリティカルパス: タイムアウトを短めに設定してレイテンシ悪化を素早く検出する

@@ -52,7 +52,9 @@ func (s *EncryptedStore) redisKey(id string) string {
 // encrypt は plaintext を AES-GCM で暗号化し、base64 URL エンコード文字列を返す。
 // 形式: base64url(nonce || ciphertext || auth_tag)
 // nonce はリクエストごとに乱数生成する（GCM NonceSize = 12 バイト）。
-func (s *EncryptedStore) encrypt(plaintext []byte) (string, error) {
+// POLY-002 監査対応: aad（追加認証データ）を受け取り、暗号文をコンテキスト（セッションID等）に紐づける。
+// aad を指定することで、Redis 内の暗号文を別セッションに当て込む改ざんを GCM 認証タグで検出できる。
+func (s *EncryptedStore) encrypt(plaintext []byte, aad []byte) (string, error) {
 	block, err := aes.NewCipher(s.key)
 	if err != nil {
 		return "", fmt.Errorf("AES cipher 初期化に失敗: %w", err)
@@ -69,13 +71,16 @@ func (s *EncryptedStore) encrypt(plaintext []byte) (string, error) {
 	}
 
 	// nonce をプレフィックスとして ciphertext に付加する（復号時に先頭から取り出す）
-	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+	// aad は暗号化に含まれないが認証タグの計算に使用されるため、復号時も同じ aad を渡す必要がある
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, aad)
 	return base64.RawURLEncoding.EncodeToString(ciphertext), nil
 }
 
 // decrypt は base64 URL エンコードされた暗号文を復号して plaintext を返す。
 // nonce が先頭 gcm.NonceSize() バイトに格納されていることを前提とする。
-func (s *EncryptedStore) decrypt(encoded string) ([]byte, error) {
+// POLY-002 監査対応: aad（追加認証データ）を受け取り、encrypt 時と同じ値を渡す必要がある。
+// aad が一致しない場合は GCM 認証タグ検証が失敗し復号エラーが返る（改ざん検出）。
+func (s *EncryptedStore) decrypt(encoded string, aad []byte) ([]byte, error) {
 	data, err := base64.RawURLEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("base64 デコードに失敗: %w", err)
@@ -97,7 +102,7 @@ func (s *EncryptedStore) decrypt(encoded string) ([]byte, error) {
 
 	// 先頭の nonce と残りの ciphertext+auth_tag を分離して復号する
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, aad)
 	if err != nil {
 		return nil, fmt.Errorf("GCM 復号に失敗（鍵不一致または改ざん）: %w", err)
 	}
@@ -114,7 +119,8 @@ func (s *EncryptedStore) Create(ctx context.Context, data *SessionData, ttl time
 		return "", fmt.Errorf("セッションのシリアライズに失敗: %w", err)
 	}
 
-	encrypted, err := s.encrypt(b)
+	// セッションIDを AAD に使用して暗号文をセッションに紐づける（POLY-002 監査対応）
+	encrypted, err := s.encrypt(b, []byte(id))
 	if err != nil {
 		return "", fmt.Errorf("セッションの暗号化に失敗: %w", err)
 	}
@@ -135,7 +141,8 @@ func (s *EncryptedStore) Get(ctx context.Context, id string) (*SessionData, erro
 		return nil, fmt.Errorf("セッションの取得に失敗: %w", err)
 	}
 
-	plaintext, err := s.decrypt(val)
+	// セッションIDを AAD に使用して暗号文の真正性を検証する（POLY-002 監査対応）
+	plaintext, err := s.decrypt(val, []byte(id))
 	if err != nil {
 		return nil, fmt.Errorf("セッションの復号に失敗: %w", err)
 	}
@@ -154,7 +161,8 @@ func (s *EncryptedStore) Update(ctx context.Context, id string, data *SessionDat
 		return fmt.Errorf("セッションのシリアライズに失敗: %w", err)
 	}
 
-	encrypted, err := s.encrypt(b)
+	// セッションIDを AAD に使用して暗号文をセッションに紐づける（POLY-002 監査対応）
+	encrypted, err := s.encrypt(b, []byte(id))
 	if err != nil {
 		return fmt.Errorf("セッションの暗号化に失敗: %w", err)
 	}
@@ -197,8 +205,8 @@ func (s *EncryptedStore) CreateExchangeCode(ctx context.Context, data *ExchangeC
 		return "", fmt.Errorf("交換コードデータのシリアライズに失敗: %w", err)
 	}
 
-	// 交換コードデータもセッションデータと同様に暗号化して保存する
-	encrypted, err := s.encrypt(b)
+	// 交換コードを AAD に使用して暗号文を交換コードに紐づける（POLY-002 監査対応）
+	encrypted, err := s.encrypt(b, []byte(code))
 	if err != nil {
 		return "", fmt.Errorf("交換コードデータの暗号化に失敗: %w", err)
 	}
@@ -220,7 +228,8 @@ func (s *EncryptedStore) GetExchangeCode(ctx context.Context, code string) (*Exc
 		return nil, fmt.Errorf("交換コードの取得に失敗: %w", err)
 	}
 
-	plaintext, err := s.decrypt(val)
+	// 交換コードを AAD に使用して暗号文の真正性を検証する（POLY-002 監査対応）
+	plaintext, err := s.decrypt(val, []byte(code))
 	if err != nil {
 		return nil, fmt.Errorf("交換コードデータの復号に失敗: %w", err)
 	}

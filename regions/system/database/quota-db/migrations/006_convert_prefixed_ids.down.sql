@@ -1,4 +1,4 @@
-﻿ALTER TABLE quota.quota_usage
+ALTER TABLE quota.quota_usage
     DROP CONSTRAINT IF EXISTS quota_usage_policy_id_fkey;
 
 ALTER TABLE quota.quota_usage

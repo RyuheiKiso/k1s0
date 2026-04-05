@@ -52,7 +52,10 @@ export interface Job {
      */
     payload?: Struct;
     /**
-     * @generated from protobuf field: string status = 9
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
+     *
+     * @deprecated
+     * @generated from protobuf field: string status = 9 [deprecated = true]
      */
     status: string;
     /**
@@ -71,12 +74,20 @@ export interface Job {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 13
      */
     updatedAt?: Timestamp;
+    /**
+     * MED-025 監査対応: ジョブステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.scheduler.v1.JobStatus status_enum = 14
+     */
+    statusEnum: JobStatus;
 }
 /**
  * @generated from protobuf message k1s0.system.scheduler.v1.CreateJobRequest
  */
 export interface CreateJobRequest {
     /**
+     * ジョブ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -85,18 +96,26 @@ export interface CreateJobRequest {
      */
     description: string;
     /**
+     * cron 式は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string cron_expression = 3
      */
     cronExpression: string;
     /**
+     * タイムゾーンは1文字以上64文字以下であること（例: Asia/Tokyo）
+     *
      * @generated from protobuf field: string timezone = 4
      */
     timezone: string;
     /**
+     * ターゲット種別は1文字以上64文字以下であること（例: http, kafka）
+     *
      * @generated from protobuf field: string target_type = 5
      */
     targetType: string;
     /**
+     * ターゲットは1文字以上512文字以下であること（URL 等）
+     *
      * @generated from protobuf field: string target = 6
      */
     target: string;
@@ -119,6 +138,8 @@ export interface CreateJobResponse {
  */
 export interface GetJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -137,13 +158,22 @@ export interface GetJobResponse {
  */
 export interface ListJobsRequest {
     /**
-     * @generated from protobuf field: string status = 1
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
+     *
+     * @deprecated
+     * @generated from protobuf field: string status = 1 [deprecated = true]
      */
     status: string;
     /**
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 2
      */
     pagination?: Pagination;
+    /**
+     * MED-025 監査対応: enum 型フィルター（status の型付き版）。
+     *
+     * @generated from protobuf field: optional k1s0.system.scheduler.v1.JobStatus status_enum = 3
+     */
+    statusEnum?: JobStatus;
 }
 /**
  * @generated from protobuf message k1s0.system.scheduler.v1.ListJobsResponse
@@ -163,6 +193,8 @@ export interface ListJobsResponse {
  */
 export interface UpdateJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -209,6 +241,8 @@ export interface UpdateJobResponse {
  */
 export interface DeleteJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -231,6 +265,8 @@ export interface DeleteJobResponse {
  */
 export interface PauseJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -249,6 +285,8 @@ export interface PauseJobResponse {
  */
 export interface ResumeJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -267,6 +305,8 @@ export interface ResumeJobResponse {
  */
 export interface TriggerJobRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -299,6 +339,8 @@ export interface TriggerJobResponse {
  */
 export interface GetJobExecutionRequest {
     /**
+     * 実行IDは1文字以上であること
+     *
      * @generated from protobuf field: string execution_id = 1
      */
     executionId: string;
@@ -317,6 +359,8 @@ export interface GetJobExecutionResponse {
  */
 export interface ListExecutionsRequest {
     /**
+     * ジョブIDは1文字以上であること
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -363,9 +407,11 @@ export interface JobExecution {
      */
     jobId: string;
     /**
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
      * 実行状態（running / succeeded / failed）
      *
-     * @generated from protobuf field: string status = 3
+     * @deprecated
+     * @generated from protobuf field: string status = 3 [deprecated = true]
      */
     status: string;
     /**
@@ -392,6 +438,80 @@ export interface JobExecution {
      * @generated from protobuf field: optional string error_message = 8
      */
     errorMessage?: string;
+    /**
+     * MED-025 監査対応: 実行ステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.scheduler.v1.JobExecutionStatus status_enum = 9
+     */
+    statusEnum: JobExecutionStatus;
+}
+// ==========================================================================
+// MED-025 監査対応: string status → enum 型フィールドへの移行
+// 後方互換性のため deprecated string フィールドは削除せず enum フィールドを追加する。
+// 全コンシューマーが enum フィールドに移行完了後に string フィールドを削除する。
+// ==========================================================================
+
+/**
+ * JobStatus はジョブのステータス。
+ *
+ * @generated from protobuf enum k1s0.system.scheduler.v1.JobStatus
+ */
+export enum JobStatus {
+    /**
+     * JOB_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: JOB_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * JOB_STATUS_ACTIVE はジョブが有効で次回実行を待機中。
+     *
+     * @generated from protobuf enum value: JOB_STATUS_ACTIVE = 1;
+     */
+    ACTIVE = 1,
+    /**
+     * JOB_STATUS_PAUSED はジョブが一時停止中。
+     *
+     * @generated from protobuf enum value: JOB_STATUS_PAUSED = 2;
+     */
+    PAUSED = 2,
+    /**
+     * JOB_STATUS_DISABLED はジョブが無効化されている。
+     *
+     * @generated from protobuf enum value: JOB_STATUS_DISABLED = 3;
+     */
+    DISABLED = 3
+}
+/**
+ * JobExecutionStatus はジョブ実行のステータス。
+ *
+ * @generated from protobuf enum k1s0.system.scheduler.v1.JobExecutionStatus
+ */
+export enum JobExecutionStatus {
+    /**
+     * JOB_EXECUTION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: JOB_EXECUTION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * JOB_EXECUTION_STATUS_RUNNING は実行中。
+     *
+     * @generated from protobuf enum value: JOB_EXECUTION_STATUS_RUNNING = 1;
+     */
+    RUNNING = 1,
+    /**
+     * JOB_EXECUTION_STATUS_SUCCEEDED は成功完了。
+     *
+     * @generated from protobuf enum value: JOB_EXECUTION_STATUS_SUCCEEDED = 2;
+     */
+    SUCCEEDED = 2,
+    /**
+     * JOB_EXECUTION_STATUS_FAILED は失敗。
+     *
+     * @generated from protobuf enum value: JOB_EXECUTION_STATUS_FAILED = 3;
+     */
+    FAILED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Job$Type extends MessageType<Job> {
@@ -409,7 +529,8 @@ class Job$Type extends MessageType<Job> {
             { no: 10, name: "next_run_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "last_run_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "created_at", kind: "message", T: () => Timestamp },
-            { no: 13, name: "updated_at", kind: "message", T: () => Timestamp }
+            { no: 13, name: "updated_at", kind: "message", T: () => Timestamp },
+            { no: 14, name: "status_enum", kind: "enum", T: () => ["k1s0.system.scheduler.v1.JobStatus", JobStatus, "JOB_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<Job>): Job {
@@ -422,6 +543,7 @@ class Job$Type extends MessageType<Job> {
         message.targetType = "";
         message.target = "";
         message.status = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<Job>(this, message, value);
         return message;
@@ -455,7 +577,7 @@ class Job$Type extends MessageType<Job> {
                 case /* google.protobuf.Struct payload */ 8:
                     message.payload = Struct.internalBinaryRead(reader, reader.uint32(), options, message.payload);
                     break;
-                case /* string status */ 9:
+                case /* string status = 9 [deprecated = true] */ 9:
                     message.status = reader.string();
                     break;
                 case /* optional k1s0.system.common.v1.Timestamp next_run_at */ 10:
@@ -469,6 +591,9 @@ class Job$Type extends MessageType<Job> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp updated_at */ 13:
                     message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
+                    break;
+                case /* k1s0.system.scheduler.v1.JobStatus status_enum */ 14:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -506,7 +631,7 @@ class Job$Type extends MessageType<Job> {
         /* google.protobuf.Struct payload = 8; */
         if (message.payload)
             Struct.internalBinaryWrite(message.payload, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* string status = 9; */
+        /* string status = 9 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.status);
         /* optional k1s0.system.common.v1.Timestamp next_run_at = 10; */
@@ -521,6 +646,9 @@ class Job$Type extends MessageType<Job> {
         /* k1s0.system.common.v1.Timestamp updated_at = 13; */
         if (message.updatedAt)
             Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.scheduler.v1.JobStatus status_enum = 14; */
+        if (message.statusEnum !== 0)
+            writer.tag(14, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -535,12 +663,12 @@ export const Job = new Job$Type();
 class CreateJobRequest$Type extends MessageType<CreateJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.CreateJobRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "cron_expression", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "target_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "cron_expression", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 4, name: "timezone", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 5, name: "target_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 6, name: "target", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 7, name: "payload", kind: "message", T: () => Struct }
         ]);
     }
@@ -675,7 +803,7 @@ export const CreateJobResponse = new CreateJobResponse$Type();
 class GetJobRequest$Type extends MessageType<GetJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.GetJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetJobRequest>): GetJobRequest {
@@ -769,7 +897,8 @@ class ListJobsRequest$Type extends MessageType<ListJobsRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.ListJobsRequest", [
             { no: 1, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 2, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 3, name: "status_enum", kind: "enum", opt: true, T: () => ["k1s0.system.scheduler.v1.JobStatus", JobStatus, "JOB_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<ListJobsRequest>): ListJobsRequest {
@@ -784,11 +913,14 @@ class ListJobsRequest$Type extends MessageType<ListJobsRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string status */ 1:
+                case /* string status = 1 [deprecated = true] */ 1:
                     message.status = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Pagination pagination */ 2:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* optional k1s0.system.scheduler.v1.JobStatus status_enum */ 3:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -802,12 +934,15 @@ class ListJobsRequest$Type extends MessageType<ListJobsRequest> {
         return message;
     }
     internalBinaryWrite(message: ListJobsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string status = 1; */
+        /* string status = 1 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.status);
         /* k1s0.system.common.v1.Pagination pagination = 2; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* optional k1s0.system.scheduler.v1.JobStatus status_enum = 3; */
+        if (message.statusEnum !== undefined)
+            writer.tag(3, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -876,7 +1011,7 @@ export const ListJobsResponse = new ListJobsResponse$Type();
 class UpdateJobRequest$Type extends MessageType<UpdateJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.UpdateJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "cron_expression", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -1024,7 +1159,7 @@ export const UpdateJobResponse = new UpdateJobResponse$Type();
 class DeleteJobRequest$Type extends MessageType<DeleteJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.DeleteJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteJobRequest>): DeleteJobRequest {
@@ -1126,7 +1261,7 @@ export const DeleteJobResponse = new DeleteJobResponse$Type();
 class PauseJobRequest$Type extends MessageType<PauseJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.PauseJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<PauseJobRequest>): PauseJobRequest {
@@ -1219,7 +1354,7 @@ export const PauseJobResponse = new PauseJobResponse$Type();
 class ResumeJobRequest$Type extends MessageType<ResumeJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.ResumeJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<ResumeJobRequest>): ResumeJobRequest {
@@ -1312,7 +1447,7 @@ export const ResumeJobResponse = new ResumeJobResponse$Type();
 class TriggerJobRequest$Type extends MessageType<TriggerJobRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.TriggerJobRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<TriggerJobRequest>): TriggerJobRequest {
@@ -1429,7 +1564,7 @@ export const TriggerJobResponse = new TriggerJobResponse$Type();
 class GetJobExecutionRequest$Type extends MessageType<GetJobExecutionRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.GetJobExecutionRequest", [
-            { no: 1, name: "execution_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "execution_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetJobExecutionRequest>): GetJobExecutionRequest {
@@ -1522,7 +1657,7 @@ export const GetJobExecutionResponse = new GetJobExecutionResponse$Type();
 class ListExecutionsRequest$Type extends MessageType<ListExecutionsRequest> {
     constructor() {
         super("k1s0.system.scheduler.v1.ListExecutionsRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 3, name: "status", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "from", kind: "message", T: () => Timestamp },
@@ -1658,7 +1793,8 @@ class JobExecution$Type extends MessageType<JobExecution> {
             { no: 5, name: "started_at", kind: "message", T: () => Timestamp },
             { no: 6, name: "finished_at", kind: "message", T: () => Timestamp },
             { no: 7, name: "duration_ms", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
-            { no: 8, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "status_enum", kind: "enum", T: () => ["k1s0.system.scheduler.v1.JobExecutionStatus", JobExecutionStatus, "JOB_EXECUTION_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<JobExecution>): JobExecution {
@@ -1667,6 +1803,7 @@ class JobExecution$Type extends MessageType<JobExecution> {
         message.jobId = "";
         message.status = "";
         message.triggeredBy = "";
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<JobExecution>(this, message, value);
         return message;
@@ -1682,7 +1819,7 @@ class JobExecution$Type extends MessageType<JobExecution> {
                 case /* string job_id */ 2:
                     message.jobId = reader.string();
                     break;
-                case /* string status */ 3:
+                case /* string status = 3 [deprecated = true] */ 3:
                     message.status = reader.string();
                     break;
                 case /* string triggered_by */ 4:
@@ -1699,6 +1836,9 @@ class JobExecution$Type extends MessageType<JobExecution> {
                     break;
                 case /* optional string error_message */ 8:
                     message.errorMessage = reader.string();
+                    break;
+                case /* k1s0.system.scheduler.v1.JobExecutionStatus status_enum */ 9:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1718,7 +1858,7 @@ class JobExecution$Type extends MessageType<JobExecution> {
         /* string job_id = 2; */
         if (message.jobId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.jobId);
-        /* string status = 3; */
+        /* string status = 3 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.status);
         /* string triggered_by = 4; */
@@ -1736,6 +1876,9 @@ class JobExecution$Type extends MessageType<JobExecution> {
         /* optional string error_message = 8; */
         if (message.errorMessage !== undefined)
             writer.tag(8, WireType.LengthDelimited).string(message.errorMessage);
+        /* k1s0.system.scheduler.v1.JobExecutionStatus status_enum = 9; */
+        if (message.statusEnum !== 0)
+            writer.tag(9, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

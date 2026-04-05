@@ -12,7 +12,11 @@ enum StreamKind {
 }
 
 /// CLI から実行を許可するコマンドのホワイトリスト（H-013 監査対応）
-/// これ以外のコマンドは実行を拒否してコマンドインジェクションを防止する
+/// これ以外のコマンドは実行を拒否してコマンドインジェクションを防止する。
+///
+/// CLI-HIGH-002 監査対応で以下を除去:
+///   - sh / bash / cmd: シェルインタプリタ経由のコマンドインジェクションリスクがあるため除去
+///   - cosign / trivy: CLI 内に使用箇所が存在しないデッドコードのため除去
 const ALLOWED_COMMANDS: &[&str] = &[
     "docker",
     "docker-compose",
@@ -28,11 +32,6 @@ const ALLOWED_COMMANDS: &[&str] = &[
     "buf",
     "just",
     "git",
-    "sh",
-    "bash",
-    "cmd",
-    "cosign",
-    "trivy",
 ];
 
 pub(crate) fn run_streaming_command(
@@ -132,60 +131,37 @@ mod tests {
 
     #[test]
     fn test_run_streaming_command_captures_stdout_and_stderr() {
+        // CLI-HIGH-002 監査対応: sh/cmd はホワイトリストから除去されたため、
+        // git --version を使ってストリーミング出力のキャプチャを検証する。
         let tmp = TempDir::new().unwrap();
-        let (cmd, args) = echo_commands();
         let mut logs = Vec::new();
 
-        run_streaming_command(&cmd, &args, tmp.path(), |message| logs.push(message)).unwrap();
+        run_streaming_command(
+            "git",
+            &["--version".to_string()],
+            tmp.path(),
+            |message| logs.push(message),
+        )
+        .unwrap();
 
-        assert!(logs.iter().any(|message| message.contains("stdout-line")));
-        assert!(logs
-            .iter()
-            .any(|message| message.contains("stderr | stderr-line")));
+        assert!(logs.iter().any(|message| message.contains("git")));
     }
 
     #[test]
     fn test_run_streaming_command_returns_exit_code_error() {
+        // CLI-HIGH-002 監査対応: sh/cmd はホワイトリストから除去されたため、
+        // git に不正な引数を渡して非ゼロ終了コードを発生させて検証する。
         let tmp = TempDir::new().unwrap();
-        let (cmd, args) = failing_command();
 
-        let error = run_streaming_command(&cmd, &args, tmp.path(), |_| {}).unwrap_err();
+        let error = run_streaming_command(
+            "git",
+            &["invalid-subcommand-that-does-not-exist-xyz".to_string()],
+            tmp.path(),
+            |_| {},
+        )
+        .unwrap_err();
 
         assert!(error.to_string().contains("exited with"));
-    }
-
-    fn echo_commands() -> (String, Vec<String>) {
-        if cfg!(windows) {
-            (
-                "cmd".to_string(),
-                vec![
-                    "/C".to_string(),
-                    "(echo stdout-line) & (echo stderr-line 1>&2)".to_string(),
-                ],
-            )
-        } else {
-            (
-                "sh".to_string(),
-                vec![
-                    "-lc".to_string(),
-                    "printf 'stdout-line\\n'; printf 'stderr-line\\n' >&2".to_string(),
-                ],
-            )
-        }
-    }
-
-    fn failing_command() -> (String, Vec<String>) {
-        if cfg!(windows) {
-            (
-                "cmd".to_string(),
-                vec!["/C".to_string(), "exit /B 7".to_string()],
-            )
-        } else {
-            (
-                "sh".to_string(),
-                vec!["-lc".to_string(), "exit 7".to_string()],
-            )
-        }
     }
 
     /// ホワイトリスト外のコマンドが拒否されることを検証する（H-013 監査対応テスト）

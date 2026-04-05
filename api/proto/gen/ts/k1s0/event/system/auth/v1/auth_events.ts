@@ -44,11 +44,11 @@ export interface LoginEvent {
      */
     userAgent: string;
     /**
-     * SUCCESS / FAILURE
+     * ログイン結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
      *
-     * @generated from protobuf field: string result = 7
+     * @generated from protobuf field: k1s0.event.system.auth.v1.AuditResult result = 7
      */
-    result: string;
+    result: AuditResult;
     /**
      * 失敗時のみ
      *
@@ -161,9 +161,31 @@ export interface AuditLogRecordedEvent {
      */
     action: string;
     /**
-     * @generated from protobuf field: string result = 8
+     * 監査結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+     *
+     * @generated from protobuf field: k1s0.event.system.auth.v1.AuditResult result = 8
      */
-    result: string;
+    result: AuditResult;
+}
+/**
+ * AuditResult は認証・監査イベントの結果を表す enum。
+ * string 型の代わりに使用することで型安全性と一貫性を確保する。
+ *
+ * @generated from protobuf enum k1s0.event.system.auth.v1.AuditResult
+ */
+export enum AuditResult {
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_SUCCESS = 1;
+     */
+    SUCCESS = 1,
+    /**
+     * @generated from protobuf enum value: AUDIT_RESULT_FAILURE = 2;
+     */
+    FAILURE = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class LoginEvent$Type extends MessageType<LoginEvent> {
@@ -175,7 +197,7 @@ class LoginEvent$Type extends MessageType<LoginEvent> {
             { no: 4, name: "client_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "ip_address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "user_agent", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "result", kind: "enum", T: () => ["k1s0.event.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] },
             { no: 8, name: "failure_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -186,7 +208,7 @@ class LoginEvent$Type extends MessageType<LoginEvent> {
         message.clientId = "";
         message.ipAddress = "";
         message.userAgent = "";
-        message.result = "";
+        message.result = 0;
         message.failureReason = "";
         if (value !== undefined)
             reflectionMergePartial<LoginEvent>(this, message, value);
@@ -215,8 +237,8 @@ class LoginEvent$Type extends MessageType<LoginEvent> {
                 case /* string user_agent */ 6:
                     message.userAgent = reader.string();
                     break;
-                case /* string result */ 7:
-                    message.result = reader.string();
+                case /* k1s0.event.system.auth.v1.AuditResult result */ 7:
+                    message.result = reader.int32();
                     break;
                 case /* string failure_reason */ 8:
                     message.failureReason = reader.string();
@@ -251,9 +273,9 @@ class LoginEvent$Type extends MessageType<LoginEvent> {
         /* string user_agent = 6; */
         if (message.userAgent !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.userAgent);
-        /* string result = 7; */
-        if (message.result !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.result);
+        /* k1s0.event.system.auth.v1.AuditResult result = 7; */
+        if (message.result !== 0)
+            writer.tag(7, WireType.Varint).int32(message.result);
         /* string failure_reason = 8; */
         if (message.failureReason !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.failureReason);
@@ -450,7 +472,7 @@ class AuditLogRecordedEvent$Type extends MessageType<AuditLogRecordedEvent> {
             { no: 5, name: "ip_address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "resource", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "result", kind: "enum", T: () => ["k1s0.event.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] }
         ]);
     }
     create(value?: PartialMessage<AuditLogRecordedEvent>): AuditLogRecordedEvent {
@@ -461,7 +483,7 @@ class AuditLogRecordedEvent$Type extends MessageType<AuditLogRecordedEvent> {
         message.ipAddress = "";
         message.resource = "";
         message.action = "";
-        message.result = "";
+        message.result = 0;
         if (value !== undefined)
             reflectionMergePartial<AuditLogRecordedEvent>(this, message, value);
         return message;
@@ -492,8 +514,8 @@ class AuditLogRecordedEvent$Type extends MessageType<AuditLogRecordedEvent> {
                 case /* string action */ 7:
                     message.action = reader.string();
                     break;
-                case /* string result */ 8:
-                    message.result = reader.string();
+                case /* k1s0.event.system.auth.v1.AuditResult result */ 8:
+                    message.result = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -528,9 +550,9 @@ class AuditLogRecordedEvent$Type extends MessageType<AuditLogRecordedEvent> {
         /* string action = 7; */
         if (message.action !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.action);
-        /* string result = 8; */
-        if (message.result !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.result);
+        /* k1s0.event.system.auth.v1.AuditResult result = 8; */
+        if (message.result !== 0)
+            writer.tag(8, WireType.Varint).int32(message.result);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

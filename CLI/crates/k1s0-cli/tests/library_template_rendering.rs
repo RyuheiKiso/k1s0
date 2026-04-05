@@ -25,7 +25,9 @@ fn render_library(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("shared-utils", "system", lang, "library").build();
+    let ctx = TemplateContextBuilder::new("shared-utils", "system", lang, "library")
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

@@ -14,11 +14,20 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 }
 
 /// Authorization ヘッダーから Bearer トークンを取り出すヘルパー。
+/// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 /// 成功した場合はトークン文字列を返す。ヘッダーがない・形式が違う場合は None を返す。
 pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     let auth_header = req.headers().get(axum::http::header::AUTHORIZATION)?;
     let auth_str = auth_header.to_str().ok()?;
-    let token = auth_str.strip_prefix("Bearer ")?;
+    // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+    const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    if auth_str.len() < BEARER_PREFIX_LEN {
+        return None;
+    }
+    if !auth_str[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ") {
+        return None;
+    }
+    let token = &auth_str[BEARER_PREFIX_LEN..];
     if token.is_empty() {
         None
     } else {

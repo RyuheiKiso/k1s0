@@ -60,6 +60,7 @@ npm run report
 | `specs/health-check.spec.ts` | 各サービスのヘルスチェック検証 |
 | `specs/auth-flow.spec.ts` | BFF 認証フロー検証（未認証 401・ログインリダイレクト・CSRF 保護） |
 | `specs/api-crud.spec.ts` | API CRUD エンドポイントルーティング確認（Order/Inventory/Payment） |
+| `specs/task-crud.spec.ts` | タスク CRUD 操作の E2E 検証（作成・更新・削除・一覧取得） |
 
 ## 環境変数
 
@@ -79,3 +80,18 @@ npm run report
 | `VAULT_PORT` | `8091` | vault サービスのポート |
 | `BFF_PROXY_PORT` | `8082` | bff-proxy サービスのポート |
 | `CI` | - | CI 環境フラグ（リトライ・ワーカー数の制御） |
+
+## CI 実行タイミング（MED-009 監査対応）
+
+E2E テストは以下のタイミングで CI 上で実行されます（`.github/workflows/e2e.yaml` を参照）:
+
+| トリガー | スケジュール | 備考 |
+|----------|-------------|------|
+| `schedule` | 毎日 UTC 17:00（JST 02:00） | 定期実行 |
+| `workflow_dispatch` | 手動実行 | GitHub Actions の "Run workflow" ボタン |
+
+**PR 時の自動実行は行いません**（インフラ起動コストのため）。  
+E2E テストを手動で実行する場合は、GitHub Actions → `E2E Tests` → `Run workflow` を選択してください。
+
+ローカルで実行する場合は、事前に `just local-up-profile infra` + `just local-up-profile system` で  
+インフラを起動してから `npm run test:e2e` を実行してください。

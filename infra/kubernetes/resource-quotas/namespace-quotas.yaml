@@ -12,7 +12,9 @@
 #   または kustomize overlays/{dev,staging,prod} で環境別に適用すること。
 #
 # 現在適用中の設定: dev 相当（1x）
-# staging/prod への適用は infra/kubernetes/overlays/{staging,prod}/ を参照すること。
+# LOW-010 整合性確認済み: infra/kubernetes/overlays/ ディレクトリが存在し dev/staging/prod の
+# 各サブディレクトリが作成されている。staging/prod への適用は overlays/{staging,prod}/ を参照すること。
+# staging/prod 用の ResourceQuota は下部にコメントアウトされており、overlays 適用時に有効化する。
 #
 # L-03 対応: ResourceQuota Pod 数の設計根拠
 # Pod 数の算出方法: 想定サービス数 × 最大レプリカ数 + バッファ(20%)
@@ -40,11 +42,15 @@ spec:
   hard:
     requests.cpu: "8"
     requests.memory: 16Gi
-    limits.cpu: "16"
+    # M-006 監査対応: 26サービス × デフォルト1コア = 26コアに引き上げ（旧値 16 は8-16 Pod しかスケジューリングできなかった）
+    limits.cpu: "26"
     limits.memory: 32Gi
     # 26サービス × 1.5レプリカ(平均) = 39 → バッファ20%含め 50 に設定（dev 1x）
     pods: "50"
     persistentvolumeclaims: "20"
+    # MED-009 監査対応: Secret の過剰作成を防ぎ、クラスター全体のリソース枯渇を防止する。
+    # 算出根拠: 26サービス × Vault SPC + DB認証情報 + TLS証明書 = 約78 → 100に設定
+    count/secrets: "100"
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -64,6 +70,8 @@ spec:
     # ※ staging/prod への適用は overlays/{staging,prod}/ で scale_factor に合わせて調整すること。
     pods: "10"
     persistentvolumeclaims: "40"
+    # MED-009 監査対応: business 名前空間の Secret 上限（4サービス × 各種Secret）
+    count/secrets: "50"
 ---
 apiVersion: v1
 kind: ResourceQuota
@@ -80,6 +88,8 @@ spec:
     # 3サービス(task/board/activity) × 3レプリカ + バッファ20% = 50（dev 1x）
     pods: "50"
     persistentvolumeclaims: "20"
+    # MED-009 監査対応: service 名前空間の Secret 上限（3サービス × 各種Secret）
+    count/secrets: "50"
 
 # ============================================================
 # staging 環境 (2x) - infra/kubernetes/overlays/staging/ で適用

@@ -7,6 +7,7 @@
 package apiregistryv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -23,8 +24,9 @@ const (
 )
 
 type GetSchemaRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,12 +173,16 @@ func (x *ListSchemasResponse) GetPagination() *v1.PaginationResult {
 }
 
 type RegisterSchemaRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	SchemaType    string                 `protobuf:"bytes,3,opt,name=schema_type,json=schemaType,proto3" json:"schema_type,omitempty"`
-	Content       string                 `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	RegisteredBy  string                 `protobuf:"bytes,5,opt,name=registered_by,json=registeredBy,proto3" json:"registered_by,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// スキーマ種別は1文字以上64文字以下であること（例: openapi, proto, json）
+	SchemaType string `protobuf:"bytes,3,opt,name=schema_type,json=schemaType,proto3" json:"schema_type,omitempty"`
+	// スキーマコンテンツは1文字以上であること
+	Content string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	// 登録者IDは1文字以上であること
+	RegisteredBy  string `protobuf:"bytes,5,opt,name=registered_by,json=registeredBy,proto3" json:"registered_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -343,9 +349,10 @@ func (x *GetSchemaResponse) GetLatestContent() string {
 }
 
 type ListVersionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Pagination    *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name          string         `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -455,10 +462,13 @@ func (x *ListVersionsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type RegisterVersionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	RegisteredBy  string                 `protobuf:"bytes,3,opt,name=registered_by,json=registeredBy,proto3" json:"registered_by,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// スキーマコンテンツは1文字以上であること
+	Content string `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	// 登録者IDは1文字以上であること
+	RegisteredBy  string `protobuf:"bytes,3,opt,name=registered_by,json=registeredBy,proto3" json:"registered_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -559,9 +569,10 @@ func (x *RegisterVersionResponse) GetVersion() *ApiSchemaVersionProto {
 }
 
 type GetSchemaVersionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Version       uint32                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -655,9 +666,10 @@ func (x *GetSchemaVersionResponse) GetVersion() *ApiSchemaVersionProto {
 }
 
 type DeleteVersionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Version       uint32                 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       uint32 `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -759,10 +771,12 @@ func (x *DeleteVersionResponse) GetMessage() string {
 }
 
 type CheckCompatibilityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	BaseVersion   *uint32                `protobuf:"varint,3,opt,name=base_version,json=baseVersion,proto3,oneof" json:"base_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// スキーマコンテンツは1文字以上であること
+	Content       string  `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	BaseVersion   *uint32 `protobuf:"varint,3,opt,name=base_version,json=baseVersion,proto3,oneof" json:"base_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -879,10 +893,11 @@ func (x *CheckCompatibilityResponse) GetResult() *CompatibilityResultProto {
 }
 
 type GetDiffRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	FromVersion   *uint32                `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3,oneof" json:"from_version,omitempty"`
-	ToVersion     *uint32                `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スキーマ名は1文字以上128文字以下であること
+	Name          string  `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	FromVersion   *uint32 `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3,oneof" json:"from_version,omitempty"`
+	ToVersion     *uint32 `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1518,9 +1533,10 @@ var File_k1s0_system_apiregistry_v1_api_registry_proto protoreflect.FileDescript
 
 const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\n" +
-	"-k1s0/system/apiregistry/v1/api_registry.proto\x12\x1ak1s0.system.apiregistry.v1\x1a!k1s0/system/common/v1/types.proto\"&\n" +
-	"\x10GetSchemaRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"x\n" +
+	"-k1s0/system/apiregistry/v1/api_registry.proto\x12\x1ak1s0.system.apiregistry.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"2\n" +
+	"\x10GetSchemaRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\"x\n" +
 	"\x12ListSchemasRequest\x12\x1f\n" +
 	"\vschema_type\x18\x01 \x01(\tR\n" +
 	"schemaType\x12A\n" +
@@ -1531,21 +1547,23 @@ const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\aschemas\x18\x01 \x03(\v2*.k1s0.system.apiregistry.v1.ApiSchemaProtoR\aschemas\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xad\x01\n" +
-	"\x15RegisterSchemaRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1f\n" +
-	"\vschema_type\x18\x03 \x01(\tR\n" +
-	"schemaType\x12\x18\n" +
-	"\acontent\x18\x04 \x01(\tR\acontent\x12#\n" +
-	"\rregistered_by\x18\x05 \x01(\tR\fregisteredBy\"e\n" +
+	"pagination\"\xd6\x01\n" +
+	"\x15RegisterSchemaRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
+	"\vschema_type\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\n" +
+	"schemaType\x12!\n" +
+	"\acontent\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\acontent\x12,\n" +
+	"\rregistered_by\x18\x05 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fregisteredBy\"e\n" +
 	"\x16RegisterSchemaResponse\x12K\n" +
 	"\aversion\x18\x01 \x01(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\aversion\"~\n" +
 	"\x11GetSchemaResponse\x12B\n" +
 	"\x06schema\x18\x01 \x01(\v2*.k1s0.system.apiregistry.v1.ApiSchemaProtoR\x06schema\x12%\n" +
-	"\x0elatest_content\x18\x02 \x01(\tR\rlatestContent\"l\n" +
-	"\x13ListVersionsRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12A\n" +
+	"\x0elatest_content\x18\x02 \x01(\tR\rlatestContent\"x\n" +
+	"\x13ListVersionsRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\"\xc2\x01\n" +
@@ -1554,35 +1572,40 @@ const file_k1s0_system_apiregistry_v1_api_registry_proto_rawDesc = "" +
 	"\bversions\x18\x02 \x03(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\bversions\x12G\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"k\n" +
-	"\x16RegisterVersionRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
-	"\rregistered_by\x18\x03 \x01(\tR\fregisteredBy\"f\n" +
+	"pagination\"\x89\x01\n" +
+	"\x16RegisterVersionRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12!\n" +
+	"\acontent\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\acontent\x12,\n" +
+	"\rregistered_by\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fregisteredBy\"f\n" +
 	"\x17RegisterVersionResponse\x12K\n" +
-	"\aversion\x18\x01 \x01(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\aversion\"G\n" +
-	"\x17GetSchemaVersionRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\aversion\"S\n" +
+	"\x17GetSchemaVersionRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\rR\aversion\"g\n" +
 	"\x18GetSchemaVersionResponse\x12K\n" +
-	"\aversion\x18\x01 \x01(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\aversion\"D\n" +
-	"\x14DeleteVersionRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x01 \x01(\v21.k1s0.system.apiregistry.v1.ApiSchemaVersionProtoR\aversion\"P\n" +
+	"\x14DeleteVersionRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\rR\aversion\"K\n" +
 	"\x15DeleteVersionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x82\x01\n" +
-	"\x19CheckCompatibilityRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\x12&\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x97\x01\n" +
+	"\x19CheckCompatibilityRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12!\n" +
+	"\acontent\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\acontent\x12&\n" +
 	"\fbase_version\x18\x03 \x01(\rH\x00R\vbaseVersion\x88\x01\x01B\x0f\n" +
 	"\r_base_version\"\xa1\x01\n" +
 	"\x1aCheckCompatibilityResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fbase_version\x18\x02 \x01(\rR\vbaseVersion\x12L\n" +
-	"\x06result\x18\x03 \x01(\v24.k1s0.system.apiregistry.v1.CompatibilityResultProtoR\x06result\"\x90\x01\n" +
-	"\x0eGetDiffRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12&\n" +
+	"\x06result\x18\x03 \x01(\v24.k1s0.system.apiregistry.v1.CompatibilityResultProtoR\x06result\"\x9c\x01\n" +
+	"\x0eGetDiffRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12&\n" +
 	"\ffrom_version\x18\x02 \x01(\rH\x00R\vfromVersion\x88\x01\x01\x12\"\n" +
 	"\n" +
 	"to_version\x18\x03 \x01(\rH\x01R\ttoVersion\x88\x01\x01B\x0f\n" +

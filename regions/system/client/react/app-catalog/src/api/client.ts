@@ -10,10 +10,16 @@ import type {
   VersionListResponse,
 } from './types';
 
+// 未認証時のナビゲーション関数（テスト時にモック差し替え可能）
+// window.location.href を直接参照しないことでテスト環境での副作用を防ぐ
+let navigateToLogin = () => { window.location.href = '/auth/login'; };
+export const setNavigateToLogin = (fn: () => void) => { navigateToLogin = fn; };
+
 // BFF プロキシ経由でリクエストを送信する（L-11 監査対応: ハードコードを廃止し appConfig から取得する）
 const api = createApiClient({
   baseURL: appConfig.api.base_url,
-  onUnauthorized: () => { window.location.href = '/auth/login'; },
+  // 未認証時は navigateToLogin を経由することでテスト時のモック差し替えを可能にする
+  onUnauthorized: () => navigateToLogin(),
 });
 
 export async function fetchApps(params?: AppListParams): Promise<App[]> {
@@ -22,12 +28,14 @@ export async function fetchApps(params?: AppListParams): Promise<App[]> {
 }
 
 export async function fetchApp(appId: string): Promise<App> {
-  const { data } = await api.get<App>(`/apps/${appId}`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<App>(`/apps/${encodeURIComponent(appId)}`);
   return data;
 }
 
 export async function fetchAppVersions(appId: string): Promise<AppVersion[]> {
-  const { data } = await api.get<VersionListResponse>(`/apps/${appId}/versions`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<VersionListResponse>(`/apps/${encodeURIComponent(appId)}/versions`);
   return data.versions;
 }
 
@@ -55,7 +63,8 @@ export async function fetchDownloadUrl(
 }
 
 export async function fetchDownloadStats(appId: string): Promise<DownloadStats> {
-  const { data } = await api.get<DownloadStats>(`/apps/${appId}/stats`);
+  // FE-MED-003 対応: URL パスパラメータを適切にエスケープする
+  const { data } = await api.get<DownloadStats>(`/apps/${encodeURIComponent(appId)}/stats`);
   return data;
 }
 

@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use axum::extract::{Path, State};
+use axum::extract::{Extension, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use k1s0_auth::Claims;
 
 use crate::usecase::delete_document::{DeleteDocumentError, DeleteDocumentInput};
 use crate::usecase::index_document::{IndexDocumentError, IndexDocumentInput};
@@ -26,6 +28,8 @@ pub struct AppState {
     pub list_indices_uc: Arc<ListIndicesUseCase>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
+    /// DB 接続確認用のコネクションプール（CRITICAL-003 対応: /readyz で SELECT 1 チェックに使用）
+    pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {
@@ -33,6 +37,15 @@ impl AppState {
         self.auth_state = Some(auth_state);
         self
     }
+}
+
+/// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
+/// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
+fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+    claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -103,8 +116,12 @@ pub struct IndexDocumentResponse {
 /// POST /api/v1/search - Execute a search query
 pub async fn search(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<SearchRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     if req.index_name.trim().is_empty() {
         return error_response_with_details(
             StatusCode::BAD_REQUEST,
@@ -140,6 +157,7 @@ pub async fn search(
         size: req.size,
         filters: req.filters,
         facets: req.facets,
+        tenant_id,
     };
 
     match state.search_uc.execute(&input).await {
@@ -189,8 +207,12 @@ pub async fn search(
 /// POST /api/v1/search/index - Index a document
 pub async fn index_document(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<IndexDocumentRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     if req.id.trim().is_empty() || req.index_name.trim().is_empty() {
         let mut details = Vec::new();
         if req.id.trim().is_empty() {
@@ -212,6 +234,7 @@ pub async fn index_document(
         id: req.id,
         index_name: req.index_name,
         content: req.content,
+        tenant_id,
     };
 
     match state.index_document_uc.execute(&input).await {
@@ -248,9 +271,13 @@ pub async fn index_document(
 /// POST /api/v1/search/indices - Create a search index
 pub async fn create_index(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreateIndexRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::create_index::CreateIndexInput;
+
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
 
     if req.name.trim().is_empty() {
         return error_response_with_details(
@@ -265,6 +292,7 @@ pub async fn create_index(
     let input = CreateIndexInput {
         name: req.name,
         mapping: req.mapping,
+        tenant_id,
     };
 
     match state.create_index_uc.execute(&input).await {
@@ -301,8 +329,14 @@ pub async fn create_index(
 }
 
 /// GET /api/v1/search/indices - List all search indices
-pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_indices_uc.execute().await {
+pub async fn list_indices(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    match state.list_indices_uc.execute(&tenant_id).await {
         Ok(indices) => {
             let items: Vec<serde_json::Value> = indices
                 .into_iter()
@@ -337,9 +371,17 @@ pub async fn list_indices(State(state): State<AppState>) -> impl IntoResponse {
 /// DELETE /api/v1/search/index/:index_name/:doc_id - Delete a document from an index
 pub async fn delete_document_from_index(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path((index_name, doc_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let input = DeleteDocumentInput { index_name, doc_id };
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
+    let input = DeleteDocumentInput {
+        index_name,
+        doc_id,
+        tenant_id,
+    };
 
     match state.delete_document_uc.execute(&input).await {
         Ok(_) => StatusCode::NO_CONTENT.into_response(),

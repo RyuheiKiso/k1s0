@@ -1,0 +1,18 @@
+# Prometheus Web 設定ファイル（ローカル開発環境用）
+#
+# LOW-003 監査対応: Prometheus UI へのアクセスを Basic 認証で保護する。
+# パスワードは bcrypt でハッシュ化し、平文をリポジトリに保存しない。
+#
+# デフォルト認証情報（開発環境専用）:
+#   ユーザー名: prometheus_admin
+#   パスワード: prometheus_admin
+#
+# 本番環境では必ず安全なパスワードに変更し、bcrypt ハッシュを再生成すること:
+#   コマンド例: htpasswd -nBC 12 prometheus_admin
+#
+# 参照: https://prometheus.io/docs/guides/basic-auth/
+
+basic_auth_users:
+  # パスワード: prometheus_admin（開発環境専用 - 本番環境では必ず変更すること）
+  # bcrypt ハッシュ（コスト12）の再生成コマンド: htpasswd -nBC 12 "" | tr -d ':\n'
+  prometheus_admin: $2a$12$meeFLrvnXx5Kru7L0vn3xecZPbe0o1KIOUrZmmiTFCJ9/egAijR.K

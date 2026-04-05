@@ -28,6 +28,8 @@ pub struct CreateRuleInput {
     pub window_seconds: u32,
     pub algorithm: Option<String>,
     pub enabled: bool,
+    /// CRIT-005 対応: RLS テナント分離用テナント ID。
+    pub tenant_id: String,
 }
 
 /// CreateRuleUseCase はルール作成ユースケース。
@@ -40,6 +42,7 @@ impl CreateRuleUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを作成する。
     pub async fn execute(&self, input: &CreateRuleInput) -> Result<RateLimitRule, CreateRuleError> {
         // バリデーション
         RateLimitDomainService::validate_rule_input(
@@ -50,10 +53,10 @@ impl CreateRuleUseCase {
         )
         .map_err(CreateRuleError::Validation)?;
 
-        // 重複チェック（scope+identifier_patternで確認）
+        // CRIT-005 対応: テナント分離しながら重複チェック（scope+identifier_patternで確認）
         let existing = self
             .repo
-            .find_by_scope(&input.scope)
+            .find_by_scope(&input.scope, &input.tenant_id)
             .await
             .map_err(|e| CreateRuleError::Internal(e.to_string()))?;
         if existing
@@ -77,6 +80,8 @@ impl CreateRuleUseCase {
             algorithm,
         );
         rule.enabled = input.enabled;
+        // CRIT-005 対応: テナント ID をルールエンティティにセットして RLS で分離する。
+        rule.tenant_id = input.tenant_id.clone();
 
         let created = self
             .repo
@@ -97,7 +102,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_success() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope()
+            .returning(|_, _| Ok(vec![]));
         repo.expect_create().returning(|rule| Ok(rule.clone()));
 
         let uc = CreateRuleUseCase::new(Arc::new(repo));
@@ -109,6 +115,7 @@ mod tests {
                 window_seconds: 60,
                 algorithm: None,
                 enabled: true,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 
@@ -125,7 +132,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_duplicate_scope_and_identifier() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| {
+        repo.expect_find_by_scope().returning(|_, _| {
             Ok(vec![RateLimitRule::new(
                 "service".to_string(),
                 "global".to_string(),
@@ -144,6 +151,7 @@ mod tests {
                 window_seconds: 60,
                 algorithm: None,
                 enabled: true,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 
@@ -166,6 +174,7 @@ mod tests {
                 window_seconds: 60,
                 algorithm: None,
                 enabled: true,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 
@@ -188,6 +197,7 @@ mod tests {
                 window_seconds: 60,
                 algorithm: None,
                 enabled: true,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 
@@ -210,6 +220,7 @@ mod tests {
                 window_seconds: 0,
                 algorithm: None,
                 enabled: true,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 

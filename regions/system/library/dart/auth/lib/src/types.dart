@@ -35,13 +35,16 @@ class AuthConfig {
 /// 保存用のトークンセット
 class TokenSet {
   final String accessToken;
-  final String refreshToken;
+  // POLY-006 監査対応: refresh_token は一部の IdP では発行されないため String? (nullable) に変更。
+  // 以前は null を空文字に変換していたが、null のまま保持することで「リフレッシュトークンなし」を
+  // 明示的に表現できる。refreshToken が null の場合はリフレッシュ不可能であることを意味する。
+  final String? refreshToken;
   final String idToken;
   final DateTime expiresAt;
 
   TokenSet({
     required this.accessToken,
-    required this.refreshToken,
+    this.refreshToken,
     required this.idToken,
     required this.expiresAt,
   });
@@ -63,17 +66,22 @@ class TokenSet {
 
   factory TokenSet.fromJson(Map<String, dynamic> json) => TokenSet(
         accessToken: json['accessToken'] as String,
-        refreshToken: json['refreshToken'] as String,
+        // POLY-006 監査対応: refreshToken は null を許容する（json に key がない場合も null）
+        refreshToken: json['refreshToken'] as String?,
         idToken: json['idToken'] as String,
         expiresAt: DateTime.parse(json['expiresAt'] as String),
       );
 }
 
 /// JWT Claims 構造（認証認可設計.md 準拠）
+/// CRIT-006 対応: JWT spec に従い aud を List<String> に変更。
+/// Keycloak は aud を配列として返すが、単一文字列として返す IdP も存在するため
+/// fromJson では両方のフォーマットを受け付ける。
 class Claims {
   final String sub;
   final String iss;
-  final String aud;
+  /// JWT spec に従い audience は配列型（RFC 7519 Section 4.1.3）
+  final List<String> aud;
   final int exp;
   final int iat;
   final String jti;
@@ -106,7 +114,12 @@ class Claims {
   factory Claims.fromJson(Map<String, dynamic> json) => Claims(
         sub: json['sub'] as String,
         iss: json['iss'] as String,
-        aud: json['aud'] as String,
+        // JWT spec: aud は string または string[] のどちらもあり得る（RFC 7519 Section 4.1.3）
+        aud: switch (json['aud']) {
+          final List<dynamic> list => list.cast<String>(),
+          final String s => [s],
+          _ => const [],
+        },
         exp: json['exp'] as int,
         iat: json['iat'] as int,
         jti: json['jti'] as String,

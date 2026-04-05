@@ -58,6 +58,13 @@ where
         let path = req.uri().path().to_string();
 
         Box::pin(async move {
+            // gRPC Health Check Protocol のパスは認証をバイパスする。
+            // readyz エンドポイントや外部ヘルスチェックが Bearer token なしで接続できるようにするため。
+            // 参考: https://github.com/grpc/grpc/blob/master/doc/health-checking.md
+            if path == "/grpc.health.v1.Health/Check" || path == "/grpc.health.v1.Health/Watch" {
+                return inner.call(req).await;
+            }
+
             if let Some(auth_state) = auth_state {
                 let token = match extract_bearer_token(&req) {
                     Some(token) => token,
@@ -108,7 +115,16 @@ where
 fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
     let auth_str = auth_header.to_str().ok()?;
-    let token = auth_str.strip_prefix("Bearer ")?;
+    // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+    // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+    const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    if auth_str.len() < BEARER_PREFIX_LEN {
+        return None;
+    }
+    if !auth_str[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ") {
+        return None;
+    }
+    let token = &auth_str[BEARER_PREFIX_LEN..];
     if token.is_empty() {
         None
     } else {

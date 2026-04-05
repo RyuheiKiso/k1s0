@@ -80,7 +80,8 @@ spec:
       serviceAccountName: prometheus
       containers:
         - name: promtail
-          image: grafana/promtail:2.9.0
+          # INFRA-HIGH-004 対応: 2.9.0 (2023年, 非推奨) → 3.3.2 に更新
+          image: grafana/promtail:3.3.2
           args: ["-config.file=/etc/promtail/promtail.yaml"]
           env:
             - name: HOSTNAME

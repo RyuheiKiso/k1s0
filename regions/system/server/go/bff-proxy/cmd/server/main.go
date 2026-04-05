@@ -110,8 +110,19 @@ func run() error {
 	return startServer(ctx, cfg, router, logger, oidcWg)
 }
 
+// H-011 監査対応: Redis Sentinel フェイルオーバー中のトランジェントエラーに対応するための定数。
+// 指数バックオフでリトライする最大回数と初回待機時間を定義する。
+const (
+	// redisMaxRetries は起動時 Ping の最大リトライ回数（1秒 → 2秒 → 4秒の3回）
+	redisMaxRetries = 3
+	// redisInitialDelay は最初のリトライ待機時間
+	redisInitialDelay = 1 * time.Second
+)
+
 // initRedis は設定から Redis クライアントを生成し、接続確認 Ping を実行する。
 // コネクションプール設定を適用する（M-011）。
+// H-011 監査対応: Sentinel フェイルオーバー中のトランジェントエラーへの対応として
+// 指数バックオフリトライ（最大3回）を適用する。
 // ALLOW_REDIS_SKIP=true かつ dev 環境の場合のみ接続失敗を無視する。
 func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) (redis.Cmdable, error) {
 	redisCfg := cfg.Session.Redis
@@ -156,16 +167,42 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 		})
 	}
 
-	// Redis 接続確認: redis.Cmdable 経由で Ping を呼び出す
-	if err := redisClient.Ping(ctx).Err(); err != nil {
+	// H-011 監査対応: Redis 接続確認を指数バックオフリトライ付きで実行する。
+	// Sentinel フェイルオーバー中はマスター切り替えにより一時的に接続不能となる場合がある。
+	// 最大3回（1秒 → 2秒 → 4秒）リトライし、全試行失敗時のみエラーとして扱う。
+	var lastErr error
+	for i := 0; i < redisMaxRetries; i++ {
+		if err := redisClient.Ping(ctx).Err(); err == nil {
+			// Ping 成功: リトライループを抜ける
+			lastErr = nil
+			break
+		} else {
+			lastErr = err
+			if i < redisMaxRetries-1 {
+				// 次のリトライまでの待機時間: 1s → 2s → 4s（左シフトで指数計算）
+				delay := redisInitialDelay << i
+				logger.WarnContext(ctx, "Redis接続に失敗しました。リトライします",
+					"attempt", i+1,
+					"max_retries", redisMaxRetries,
+					"retry_after", delay,
+					"error", err,
+				)
+				time.Sleep(delay)
+			}
+		}
+	}
+	if lastErr != nil {
+		// 全リトライ失敗: dev環境かつ ALLOW_REDIS_SKIP=true の場合のみ続行する
 		env := cfg.App.Environment
 		allowSkip := os.Getenv("ALLOW_REDIS_SKIP") == "true" && config.IsDevEnvironment(env)
 		if allowSkip {
-			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", err.Error()))
-		} else {
-			logger.Error("Redis接続に失敗しました", slog.String("error", err.Error()), slog.String("environment", env))
-			return nil, fmt.Errorf("Redis接続に失敗しました: %w", err)
+			logger.Warn("Redis接続に失敗しました。ALLOW_REDIS_SKIP=trueのためスキップします（dev/development/local環境のみ）", slog.String("error", lastErr.Error()))
+			// H-002 監査対応: broken な redis クライアントを下流に渡すと panic リスクがある。
+			// Redis スキップ時は nil を返し、呼び出し元（initSessionStore）が NoOpStore を使用する。
+			return nil, nil
 		}
+		logger.Error("Redis接続に失敗しました", slog.String("error", lastErr.Error()), slog.String("environment", env))
+		return nil, fmt.Errorf("Redis接続に失敗しました: %w", lastErr)
 	}
 	return redisClient, nil
 }
@@ -174,11 +211,22 @@ func initRedis(ctx context.Context, cfg *config.BFFConfig, logger *slog.Logger) 
 // SESSION_ENCRYPTION_KEY が設定されている場合は AES-GCM 暗号化セッションストアを使用する（S-04 対応）。
 // 非開発環境で SESSION_ENCRYPTION_KEY が未設定の場合は起動を拒否する（M-04 対応）。
 // H-5 監査対応: session.FullStore を返すことで ExchangeCodeStore も単一ストアで提供できる。
+// H-002 監査対応: redisClient が nil の場合（ALLOW_REDIS_SKIP=true かつ Redis 接続失敗時）は
+// NoOpStore を返し、broken な redis クライアントが下流で panic を起こすリスクを排除する。
 func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *slog.Logger) (session.FullStore, time.Duration, error) {
 	prefix := cfg.Session.Prefix
 	if prefix == "" {
 		prefix = "bff:session:"
 	}
+
+	// H-002 監査対応: Redis 接続スキップ時（redisClient == nil）は NoOpStore を使用する。
+	// broken な redis クライアントを下流に渡すと nil dereference による panic が発生するリスクがある。
+	// NoOpStore は全操作を no-op で処理し、セッションデータは保持しない（dev 環境専用）。
+	if redisClient == nil {
+		logger.Warn("Redis クライアントが nil です。NoOpStore を使用します（dev 環境専用）。セッションは保持されません。")
+		return session.NewNoOpStore(), config.ParseDuration(cfg.Session.TTL, 30*time.Minute), nil
+	}
+
 	var sessionStore session.FullStore
 	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
 		encKey, err := hex.DecodeString(encKeyHex)
@@ -251,13 +299,18 @@ func initRouter(
 	secureCookie := !config.IsDevEnvironment(cfg.App.Environment)
 	// M-17 監査対応: セッションの絶対最大有効期間を設定から取得する（デフォルト 24 時間）
 	absoluteMaxTTL := config.ParseDuration(cfg.Session.AbsoluteMaxTTL, 24*time.Hour)
+	// POLY-003 監査対応: ワンタイム交換コード TTL を設定から取得する（デフォルト 60 秒）
+	exchangeCodeTTL := config.ParseDuration(cfg.Session.ExchangeCodeTTL, 60*time.Second)
 	// H-07 対応: oidcReady を HealthHandler に渡し、/readyz で discovery 状態を反映する
 	healthHandler := handler.NewHealthHandler(redisClient, oauthClient, oidcReady)
 	// H-5 監査対応: ExchangeCodeStore を渡すことで SessionData.AccessToken への意味論的誤用を解消する
 	// sessionStore は session.ExchangeCodeStore インターフェースも実装している
-	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
+	authHandler := handler.NewAuthHandler(oauthClient, sessionStore, sessionStore, sessionTTL, absoluteMaxTTL, exchangeCodeTTL, cfg.Auth.PostLogout, secureCookie, cfg.Cookie.Domain, logger)
 	upstreamTimeout := config.ParseDuration(cfg.Upstream.Timeout, 30*time.Second)
-	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger)
+	// 設定ファイル由来の静的アップストリームホストを許可リストとして抽出する。
+	// allowedHosts に含まれるホストは SSRF チェックをバイパスし、Docker/K8s 内部通信を可能にする。
+	allowedHosts := cfg.AllowedUpstreamHosts()
+	proxyHandler, err := handler.NewProxyHandler(cfg.Upstream.BaseURL, sessionStore, oauthClient, sessionTTL, upstreamTimeout, logger, allowedHosts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create proxy handler: %w", err)
 	}
@@ -393,7 +446,11 @@ func initTracerProvider(
 		opts = append(opts, otlptracegrpc.WithInsecure())
 	}
 
-	exporter, err := otlptracegrpc.New(ctx, opts...)
+	// H-013 監査対応: otlptracegrpc.New にタイムアウトを設定し、OTel Collector 無応答時の
+	// 無限ブロックを防止する。5秒以内に接続できない場合はエラーを返す。
+	exporterCtx, exporterCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer exporterCancel()
+	exporter, err := otlptracegrpc.New(exporterCtx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OTLP exporter: %w", err)
 	}

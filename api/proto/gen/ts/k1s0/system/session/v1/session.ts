@@ -13,14 +13,20 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { Timestamp } from "../../common/v1/types";
 /**
+ * CreateSessionRequest はセッション作成リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.CreateSessionRequest
  */
 export interface CreateSessionRequest {
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 1
      */
     userId: string;
     /**
+     * デバイス識別子（1〜256 文字）
+     *
      * @generated from protobuf field: string device_id = 2
      */
     deviceId: string;
@@ -106,15 +112,21 @@ export interface CreateSessionResponse {
      */
     ipAddress?: string;
     /**
-     * @generated from protobuf field: string status = 12
+     * セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+     *
+     * @generated from protobuf field: k1s0.system.session.v1.SessionStatus status = 12
      */
-    status: string;
+    status: SessionStatus;
 }
 /**
+ * GetSessionRequest はセッション取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.GetSessionRequest
  */
 export interface GetSessionRequest {
     /**
+     * セッション UUID（必須）
+     *
      * @generated from protobuf field: string session_id = 1
      */
     sessionId: string;
@@ -129,10 +141,14 @@ export interface GetSessionResponse {
     session?: Session;
 }
 /**
+ * RefreshSessionRequest はセッション更新リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.RefreshSessionRequest
  */
 export interface RefreshSessionRequest {
     /**
+     * セッション UUID（必須）
+     *
      * @generated from protobuf field: string session_id = 1
      */
     sessionId: string;
@@ -196,17 +212,21 @@ export interface RefreshSessionResponse {
      */
     lastAccessedAt?: Timestamp;
     /**
-     * valid values: "active", "revoked"
+     * セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
      *
-     * @generated from protobuf field: string status = 13
+     * @generated from protobuf field: k1s0.system.session.v1.SessionStatus status = 13
      */
-    status: string;
+    status: SessionStatus;
 }
 /**
+ * RevokeSessionRequest はセッション無効化リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.RevokeSessionRequest
  */
 export interface RevokeSessionRequest {
     /**
+     * セッション UUID（必須）
+     *
      * @generated from protobuf field: string session_id = 1
      */
     sessionId: string;
@@ -221,10 +241,14 @@ export interface RevokeSessionResponse {
     success: boolean;
 }
 /**
+ * RevokeAllSessionsRequest はユーザーの全セッション無効化リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.RevokeAllSessionsRequest
  */
 export interface RevokeAllSessionsRequest {
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 1
      */
     userId: string;
@@ -239,10 +263,14 @@ export interface RevokeAllSessionsResponse {
     revokedCount: number;
 }
 /**
+ * ListUserSessionsRequest はユーザーのセッション一覧取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.session.v1.ListUserSessionsRequest
  */
 export interface ListUserSessionsRequest {
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 1
      */
     userId: string;
@@ -293,11 +321,11 @@ export interface Session {
      */
     ipAddress?: string;
     /**
-     * valid values: "active", "revoked"
+     * セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
      *
-     * @generated from protobuf field: string status = 8
+     * @generated from protobuf field: k1s0.system.session.v1.SessionStatus status = 8
      */
-    status: string;
+    status: SessionStatus;
     /**
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp expires_at = 9
      */
@@ -315,12 +343,32 @@ export interface Session {
      */
     token: string;
 }
+/**
+ * SessionStatus はセッションの状態を表す enum。
+ * string 型の代わりに使用することで型安全性を確保する。
+ *
+ * @generated from protobuf enum k1s0.system.session.v1.SessionStatus
+ */
+export enum SessionStatus {
+    /**
+     * @generated from protobuf enum value: SESSION_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: SESSION_STATUS_ACTIVE = 1;
+     */
+    ACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: SESSION_STATUS_REVOKED = 2;
+     */
+    REVOKED = 2
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateSessionRequest$Type extends MessageType<CreateSessionRequest> {
     constructor() {
         super("k1s0.system.session.v1.CreateSessionRequest", [
-            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "device_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "device_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "device_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "user_agent", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
@@ -451,7 +499,7 @@ class CreateSessionResponse$Type extends MessageType<CreateSessionResponse> {
             { no: 9, name: "device_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "user_agent", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "ip_address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "status", kind: "enum", T: () => ["k1s0.system.session.v1.SessionStatus", SessionStatus, "SESSION_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<CreateSessionResponse>): CreateSessionResponse {
@@ -461,7 +509,7 @@ class CreateSessionResponse$Type extends MessageType<CreateSessionResponse> {
         message.deviceId = "";
         message.token = "";
         message.metadata = {};
-        message.status = "";
+        message.status = 0;
         if (value !== undefined)
             reflectionMergePartial<CreateSessionResponse>(this, message, value);
         return message;
@@ -504,8 +552,8 @@ class CreateSessionResponse$Type extends MessageType<CreateSessionResponse> {
                 case /* optional string ip_address */ 11:
                     message.ipAddress = reader.string();
                     break;
-                case /* string status */ 12:
-                    message.status = reader.string();
+                case /* k1s0.system.session.v1.SessionStatus status */ 12:
+                    message.status = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -568,9 +616,9 @@ class CreateSessionResponse$Type extends MessageType<CreateSessionResponse> {
         /* optional string ip_address = 11; */
         if (message.ipAddress !== undefined)
             writer.tag(11, WireType.LengthDelimited).string(message.ipAddress);
-        /* string status = 12; */
-        if (message.status !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.status);
+        /* k1s0.system.session.v1.SessionStatus status = 12; */
+        if (message.status !== 0)
+            writer.tag(12, WireType.Varint).int32(message.status);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -585,7 +633,7 @@ export const CreateSessionResponse = new CreateSessionResponse$Type();
 class GetSessionRequest$Type extends MessageType<GetSessionRequest> {
     constructor() {
         super("k1s0.system.session.v1.GetSessionRequest", [
-            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<GetSessionRequest>): GetSessionRequest {
@@ -678,7 +726,7 @@ export const GetSessionResponse = new GetSessionResponse$Type();
 class RefreshSessionRequest$Type extends MessageType<RefreshSessionRequest> {
     constructor() {
         super("k1s0.system.session.v1.RefreshSessionRequest", [
-            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
             { no: 2, name: "ttl_seconds", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
@@ -744,7 +792,7 @@ class RefreshSessionResponse$Type extends MessageType<RefreshSessionResponse> {
             { no: 10, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "last_accessed_at", kind: "message", T: () => Timestamp },
-            { no: 13, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 13, name: "status", kind: "enum", T: () => ["k1s0.system.session.v1.SessionStatus", SessionStatus, "SESSION_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<RefreshSessionResponse>): RefreshSessionResponse {
@@ -754,7 +802,7 @@ class RefreshSessionResponse$Type extends MessageType<RefreshSessionResponse> {
         message.token = "";
         message.deviceId = "";
         message.metadata = {};
-        message.status = "";
+        message.status = 0;
         if (value !== undefined)
             reflectionMergePartial<RefreshSessionResponse>(this, message, value);
         return message;
@@ -800,8 +848,8 @@ class RefreshSessionResponse$Type extends MessageType<RefreshSessionResponse> {
                 case /* optional k1s0.system.common.v1.Timestamp last_accessed_at */ 12:
                     message.lastAccessedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.lastAccessedAt);
                     break;
-                case /* string status */ 13:
-                    message.status = reader.string();
+                case /* k1s0.system.session.v1.SessionStatus status */ 13:
+                    message.status = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -867,9 +915,9 @@ class RefreshSessionResponse$Type extends MessageType<RefreshSessionResponse> {
         /* optional k1s0.system.common.v1.Timestamp last_accessed_at = 12; */
         if (message.lastAccessedAt)
             Timestamp.internalBinaryWrite(message.lastAccessedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        /* string status = 13; */
-        if (message.status !== "")
-            writer.tag(13, WireType.LengthDelimited).string(message.status);
+        /* k1s0.system.session.v1.SessionStatus status = 13; */
+        if (message.status !== 0)
+            writer.tag(13, WireType.Varint).int32(message.status);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -884,7 +932,7 @@ export const RefreshSessionResponse = new RefreshSessionResponse$Type();
 class RevokeSessionRequest$Type extends MessageType<RevokeSessionRequest> {
     constructor() {
         super("k1s0.system.session.v1.RevokeSessionRequest", [
-            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<RevokeSessionRequest>): RevokeSessionRequest {
@@ -978,7 +1026,7 @@ export const RevokeSessionResponse = new RevokeSessionResponse$Type();
 class RevokeAllSessionsRequest$Type extends MessageType<RevokeAllSessionsRequest> {
     constructor() {
         super("k1s0.system.session.v1.RevokeAllSessionsRequest", [
-            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<RevokeAllSessionsRequest>): RevokeAllSessionsRequest {
@@ -1072,7 +1120,7 @@ export const RevokeAllSessionsResponse = new RevokeAllSessionsResponse$Type();
 class ListUserSessionsRequest$Type extends MessageType<ListUserSessionsRequest> {
     constructor() {
         super("k1s0.system.session.v1.ListUserSessionsRequest", [
-            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<ListUserSessionsRequest>): ListUserSessionsRequest {
@@ -1181,7 +1229,7 @@ class Session$Type extends MessageType<Session> {
             { no: 5, name: "device_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "user_agent", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "ip_address", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "status", kind: "enum", T: () => ["k1s0.system.session.v1.SessionStatus", SessionStatus, "SESSION_STATUS_"] },
             { no: 9, name: "expires_at", kind: "message", T: () => Timestamp },
             { no: 10, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "last_accessed_at", kind: "message", T: () => Timestamp },
@@ -1193,7 +1241,7 @@ class Session$Type extends MessageType<Session> {
         message.sessionId = "";
         message.userId = "";
         message.deviceId = "";
-        message.status = "";
+        message.status = 0;
         message.token = "";
         if (value !== undefined)
             reflectionMergePartial<Session>(this, message, value);
@@ -1225,8 +1273,8 @@ class Session$Type extends MessageType<Session> {
                 case /* optional string ip_address */ 7:
                     message.ipAddress = reader.string();
                     break;
-                case /* string status */ 8:
-                    message.status = reader.string();
+                case /* k1s0.system.session.v1.SessionStatus status */ 8:
+                    message.status = reader.int32();
                     break;
                 case /* k1s0.system.common.v1.Timestamp expires_at */ 9:
                     message.expiresAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.expiresAt);
@@ -1273,9 +1321,9 @@ class Session$Type extends MessageType<Session> {
         /* optional string ip_address = 7; */
         if (message.ipAddress !== undefined)
             writer.tag(7, WireType.LengthDelimited).string(message.ipAddress);
-        /* string status = 8; */
-        if (message.status !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.status);
+        /* k1s0.system.session.v1.SessionStatus status = 8; */
+        if (message.status !== 0)
+            writer.tag(8, WireType.Varint).int32(message.status);
         /* k1s0.system.common.v1.Timestamp expires_at = 9; */
         if (message.expiresAt)
             Timestamp.internalBinaryWrite(message.expiresAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();

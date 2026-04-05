@@ -519,7 +519,7 @@ COMMIT;
 
 ### docker-compose（ローカル開発）
 
-[docker-compose設計](../../infrastructure/docker/docker-compose設計.md) の共通 PostgreSQL インスタンスに `k1s0_system` データベースを使用する。saga-db と auth-db は同一の `k1s0_system` データベース内の異なるスキーマ（`saga` / `auth`）として共存する。
+[docker-compose設計](../../infrastructure/docker/docker-compose設計.md) の共通 PostgreSQL インスタンスに `k1s0_saga` データベースを使用する（ADR-0060 対応済み: k1s0_system から k1s0_saga へ分離）。saga-db は専用の `k1s0_saga` データベースとして独立し、auth-db とは別 DB に分離されている。
 
 ### 接続設定例
 
@@ -536,7 +536,7 @@ app:
 database:
   host: "postgres.k1s0-system.svc.cluster.local"
   port: 5432
-  name: "k1s0_system"
+  name: "k1s0_saga"              # ADR-0060 対応済み: k1s0_system から k1s0_saga へ分離
   user: "app"
   password: ""                   # Vault パス: secret/data/k1s0/system/saga/database キー: password
   ssl_mode: "disable"            # dev 環境。staging: require、prod: verify-full
@@ -567,9 +567,9 @@ database:
 # フルバックアップ（pg_basebackup）
 pg_basebackup -h postgres.k1s0-system.svc.cluster.local -U replication -D /backup/base -Ft -z -P
 
-# 論理バックアップ（スキーマ単位）
-pg_dump -h postgres.k1s0-system.svc.cluster.local -U app -d k1s0_system \
-    -n saga -Fc -f /backup/k1s0_system_saga.dump
+# 論理バックアップ（スキーマ単位）— ADR-0060 対応済み: k1s0_saga DB を対象
+pg_dump -h postgres.k1s0-system.svc.cluster.local -U app -d k1s0_saga \
+    -n saga -Fc -f /backup/k1s0_saga_saga.dump
 ```
 
 ---

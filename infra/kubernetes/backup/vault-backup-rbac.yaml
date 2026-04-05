@@ -1,0 +1,29 @@
+# H-010 監査対応: vault-backup-sa に対する Kubernetes RBAC ロール定義
+# Vault バックアップは Vault API (vault operator raft snapshot save) を使用するため
+# Kubernetes API への直接アクセスは不要だが、防御的措置として最小権限の Role を追加する
+# vault-backup-sa の automountServiceAccountToken: false 設定と組み合わせることで
+# Kubernetes API アクセスを完全に制限している
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-backup-role
+  namespace: k1s0-system
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+    resourceNames: ["vault-backup-credentials"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-backup-binding
+  namespace: k1s0-system
+subjects:
+  - kind: ServiceAccount
+    name: vault-backup-sa
+    namespace: k1s0-system
+roleRef:
+  kind: Role
+  name: vault-backup-role
+  apiGroup: rbac.authorization.k8s.io

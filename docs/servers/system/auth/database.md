@@ -336,6 +336,29 @@ ALTER TABLE auth.api_keys
 | `017_add_api_keys_tenant_prefix_unique.down.sql` | 複合 UNIQUE 制約削除 |
 | `018_add_api_keys_rls.up.sql` | api_keys テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
 | `018_add_api_keys_rls.down.sql` | RLS ポリシー・設定削除 |
+| `019_extend_prefix_varchar.up.sql` | api_keys.prefix を VARCHAR(10) → VARCHAR(32) に拡張（B-MEDIUM-06 監査対応） |
+| `019_extend_prefix_varchar.down.sql` | prefix カラム型を VARCHAR(10) に復元 |
+| `020_fix_api_keys_rls_cast.up.sql` | api_keys の RLS ポリシーに `::TEXT` キャストを追加して型不一致を解消 |
+| `020_fix_api_keys_rls_cast.down.sql` | RLS ポリシーをキャストなしバージョンに復元 |
+
+### 019_extend_prefix_varchar.up.sql
+**目的**: API キープレフィックスのブルートフォース耐性向上のためのカラム長拡張
+
+| 変更内容 | 詳細 |
+|---------|------|
+| カラム型変更 | `ALTER TABLE auth.api_keys ALTER COLUMN prefix TYPE VARCHAR(32);` |
+
+**B-MEDIUM-06 監査対応**: プレフィックスを 13〜21 文字に延長するため、カラム型を VARCHAR(10) から VARCHAR(32) に拡張する。VARCHAR(10) では実質格納不可だったプレフィックス長を許容し、ブルートフォース耐性を向上させる。
+
+### 020_fix_api_keys_rls_cast.up.sql
+**目的**: api_keys テーブルの RLS ポリシーにおける型不一致の修正
+
+| 変更内容 | 詳細 |
+|---------|------|
+| RLS ポリシー再作成 | `DROP POLICY IF EXISTS tenant_isolation ON auth.api_keys;` |
+| キャスト追加 | `CREATE POLICY tenant_isolation ON auth.api_keys USING (tenant_id::TEXT = current_setting('app.current_tenant_id', true)::TEXT);` |
+
+**背景**: migration 019 で prefix 長が拡張されたため 020 として適用。`tenant_id`（TEXT 型）と `current_setting()` の戻り値（TEXT 型）を `::TEXT` キャストで明示的に統一し、RLS ポリシーの型不一致エラーを解消する。トランザクション内で実行（BEGIN/COMMIT）。
 
 ---
 

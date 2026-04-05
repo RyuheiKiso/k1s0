@@ -135,6 +135,49 @@ void main() {
         expect(() => config.validate(), returnsNormally);
       });
 
+      // L-006 監査対応: SASL 設定時に saslUsername/saslPassword が必須であることを検証する
+      test('SASL_PLAINTEXTでsaslUsernameがnullの場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          securityProtocol: 'SASL_PLAINTEXT',
+          saslMechanism: 'PLAIN',
+          saslPassword: 'password',
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('saslUsername'))),
+        );
+      });
+
+      test('SASL_PLAINTEXTでsaslPasswordがnullの場合にエラーを投げること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          securityProtocol: 'SASL_PLAINTEXT',
+          saslMechanism: 'PLAIN',
+          saslUsername: 'user',
+        );
+        expect(
+          () => config.validate(),
+          throwsA(isA<KafkaError>().having(
+              (e) => e.message, 'message', contains('saslPassword'))),
+        );
+      });
+
+      test('SASL_SSLでsaslUsername/saslPasswordが設定されていればバリデーションが通ること', () {
+        final config = KafkaConfig(
+          bootstrapServers: ['broker:9092'],
+          consumerGroup: 'test-group',
+          securityProtocol: 'SASL_SSL',
+          saslMechanism: 'SCRAM-SHA-256',
+          saslUsername: 'user',
+          saslPassword: 'password',
+        );
+        expect(() => config.validate(), returnsNormally);
+      });
+
       test('consumerGroupが空の場合にエラーを投げること', () {
         final config = KafkaConfig(
           bootstrapServers: ['broker:9092'],
@@ -348,6 +391,76 @@ void main() {
 
       test('不明なティアで3を返すこと', () {
         expect(TopicConfig.partitionsForTier('other'), equals(3));
+      });
+    });
+
+    // L-004 監査対応: TopicConfig.validate() のテスト
+    group('validate', () {
+      test('有効な設定でバリデーションが通ること', () {
+        final topic = TopicConfig(
+          name: 'k1s0.system.user.created.v1',
+          partitions: 3,
+          replicationFactor: 2,
+          retentionMs: 86400000,
+        );
+        expect(() => topic.validate(), returnsNormally);
+      });
+
+      test('nullフィールドはバリデーションをスキップすること', () {
+        final topic = TopicConfig(name: 'k1s0.system.user.created.v1');
+        expect(() => topic.validate(), returnsNormally);
+      });
+
+      test('partitionsが0以下の場合にエラーを投げること', () {
+        final topic = TopicConfig(
+          name: 'k1s0.system.user.created.v1',
+          partitions: 0,
+        );
+        expect(
+          () => topic.validate(),
+          throwsA(isA<ArgumentError>().having(
+              (e) => e.message.toString(), 'message', contains('partitions'))),
+        );
+      });
+
+      test('partitionsが負の場合にエラーを投げること', () {
+        final topic = TopicConfig(
+          name: 'k1s0.system.user.created.v1',
+          partitions: -1,
+        );
+        expect(() => topic.validate(), throwsA(isA<ArgumentError>()));
+      });
+
+      test('replicationFactorが0以下の場合にエラーを投げること', () {
+        final topic = TopicConfig(
+          name: 'k1s0.system.user.created.v1',
+          replicationFactor: 0,
+        );
+        expect(
+          () => topic.validate(),
+          throwsA(isA<ArgumentError>().having((e) => e.message.toString(),
+              'message', contains('replicationFactor'))),
+        );
+      });
+
+      test('retentionMsが0以下の場合にエラーを投げること', () {
+        final topic = TopicConfig(
+          name: 'k1s0.system.user.created.v1',
+          retentionMs: -100,
+        );
+        expect(
+          () => topic.validate(),
+          throwsA(isA<ArgumentError>().having(
+              (e) => e.message.toString(), 'message', contains('retentionMs'))),
+        );
+      });
+
+      test('トピック名が不正な場合にKafkaErrorを投げること', () {
+        final topic = TopicConfig(
+          name: 'invalid-name',
+          partitions: 3,
+        );
+        expect(() => topic.validate(), throwsA(isA<KafkaError>()));
       });
     });
 

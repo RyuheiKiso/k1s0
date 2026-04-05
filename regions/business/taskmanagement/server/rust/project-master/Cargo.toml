@@ -22,6 +22,8 @@ tower-http = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+# データベースパスワード等の機密情報をメモリ上で保護するクレート（CRIT-004 監査対応）
+secrecy = { workspace = true }
 
 # データベース接続（migrate はワークスペース定義外の追加機能）
 sqlx = { workspace = true, features = ["migrate"] }

@@ -89,3 +89,14 @@ CREATE INDEX IF NOT EXISTS idx_user_sessions_user_tenant ON session.user_session
 | `003_add_tenant_id_to_user_sessions.down.sql` | tenant_id カラム削除 |
 | `004_add_user_sessions_rls.up.sql` | user_sessions テーブルに RLS（行レベルセキュリティ）追加（H-010 監査対応） |
 | `004_add_user_sessions_rls.down.sql` | RLS ポリシー・設定削除 |
+| `005_fix_user_sessions_rls_cast.up.sql` | RLS ポリシーに `::TEXT` キャストを追加し、tenant_id と `current_setting()` の型を明示的に統一（M-004 監査対応） |
+| `005_fix_user_sessions_rls_cast.down.sql` | RLS ポリシーを `::TEXT` キャストなしに戻す |
+
+### 005_fix_user_sessions_rls_cast.up.sql
+**目的**: user_sessions の RLS ポリシーで `tenant_id::TEXT` キャストを明示的に追加し、`current_setting('app.current_tenant_id', true)` の `TEXT` 戻り値との型整合性を保証する（M-004 監査対応）
+
+| 変更内容 | 詳細 |
+|---------|------|
+| RLS ポリシー再作成 | `DROP POLICY IF EXISTS tenant_isolation` → `CREATE POLICY tenant_isolation USING (tenant_id::TEXT = current_setting('app.current_tenant_id', true)::TEXT)` |
+
+**M-004 監査対応**: `tenant_id` は `TEXT` 型（003 マイグレーションで追加）だが、比較式に `::TEXT` キャストを明示することで、PostgreSQL の型解決における潜在的な曖昧さを排除し、マルチテナント境界を確実に機能させる。

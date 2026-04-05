@@ -123,13 +123,33 @@ where
         let mut inner = self.inner.clone();
 
         Box::pin(async move {
-            // リクエストからクライアント識別子を抽出
+            // リクエストからクライアント識別子を抽出（body 分離前に実行）
             let identifier = extract_identifier(&req);
             // スコープと識別子を組み合わせてレート制限キーを生成
             let rate_limit_key = format!("{}:{}", scope, identifier);
 
-            // ratelimit サービスにチェックリクエストを送信（コスト=1）
-            match client.check(&rate_limit_key, 1).await {
+            // STATIC-MEDIUM-001 監査対応: ボディを読み取って GraphQL クエリ複雑度をコストとして推定する。
+            // Alias DoS（大量エイリアスによる単一リクエストへの負荷集中）を防止する。
+            // RequestBodyLimitLayer（2MB）が外側に適用されているため、ここでも 2MB を上限とする。
+            const MAX_BODY_SIZE: usize = 2 * 1024 * 1024;
+            let (parts, body) = req.into_parts();
+            let body_bytes = match axum::body::to_bytes(body, MAX_BODY_SIZE).await {
+                Ok(bytes) => bytes,
+                Err(_) => {
+                    // ボディ読み取り失敗時はコスト1でフォールバックし、後続サービスに転送する
+                    let req = Request::from_parts(parts, Body::empty());
+                    return inner.call(req).await;
+                }
+            };
+
+            // GraphQL クエリのフィールド選択数をコストとして推定する
+            let cost = estimate_query_cost(&body_bytes);
+
+            // ボディを再組み立てして後続サービスが読み取れるようにする
+            let req = Request::from_parts(parts, Body::from(body_bytes));
+
+            // ratelimit サービスにチェックリクエストを送信（推定複雑度をコストとして使用）
+            match client.check(&rate_limit_key, cost).await {
                 Ok(status) => {
                     if !status.allowed {
                         // レート制限超過: HTTP 429 Too Many Requests を返す
@@ -172,6 +192,51 @@ where
             inner.call(req).await
         })
     }
+}
+
+/// STATIC-MEDIUM-001 監査対応: GraphQL リクエストボディからクエリ複雑度を推定してコストを返す。
+/// JSON ボディの "query" フィールドを取得し、フィールド選択行数を複雑度の近似値とする。
+/// エイリアスを多用した Alias DoS 攻撃（例: 同一フィールドを1000個のエイリアスで呼び出す）を
+/// フィールド数に比例したコストで抑制する。
+/// GraphQL クエリでないリクエスト（ヘルスチェック等）はコスト1を返す。
+fn estimate_query_cost(body: &[u8]) -> u32 {
+    // JSON ボディから "query" フィールドを抽出する
+    let query_str = match serde_json::from_slice::<serde_json::Value>(body) {
+        Ok(json) => json
+            .get("query")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        Err(_) => None,
+    };
+
+    let Some(query) = query_str else {
+        // GraphQL クエリでないリクエストはコスト1
+        return 1;
+    };
+
+    // フィールド選択行数を数えることで複雑度を推定する。
+    // 空行・コメント（#）・波括弧・演算子定義・フラグメント・スプレッド（...）を除いた行数が
+    // フィールド選択数の近似値となる（エイリアス `alias: field` も1行1コスト）。
+    let field_count = query
+        .lines()
+        .map(|line| line.trim())
+        .filter(|line| {
+            !line.is_empty()
+                && !line.starts_with('#')
+                && !line.starts_with('{')
+                && !line.starts_with('}')
+                && !line.starts_with("query")
+                && !line.starts_with("mutation")
+                && !line.starts_with("subscription")
+                && !line.starts_with("fragment")
+                && !line.starts_with("...")
+                && !line.starts_with('(')
+                && !line.starts_with(')')
+        })
+        .count() as u32;
+
+    // コスト下限は1（最低1リクエスト消費）、上限は100（極端な巨大クエリの上限）
+    field_count.max(1).min(100)
 }
 
 /// HTTP 429 Too Many Requests レスポンスを生成する。
@@ -237,5 +302,53 @@ mod tests {
     async fn test_rate_limit_exceeded_response_status() {
         let response = rate_limit_exceeded_response(30);
         assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    }
+
+    // --- STATIC-MEDIUM-001 監査対応: estimate_query_cost のユニットテスト ---
+
+    /// 単純なクエリ（フィールド1つ）はコスト1を返す
+    #[test]
+    fn test_estimate_cost_simple_query() {
+        let body = br#"{"query": "query { user { id } }"}"#;
+        let cost = estimate_query_cost(body);
+        assert!(cost >= 1, "単純クエリのコストは最低1");
+    }
+
+    /// エイリアスを多用したクエリは高いコストを返す（Alias DoS 対策）
+    #[test]
+    fn test_estimate_cost_alias_dos_query() {
+        // 多数のエイリアスを含む悪意あるクエリ
+        let query = r#"{
+  a: expensiveField { id name }
+  b: expensiveField { id name }
+  c: expensiveField { id name }
+  d: expensiveField { id name }
+  e: expensiveField { id name }
+}"#;
+        let body = format!(r#"{{"query": {:?}}}"#, query);
+        let cost = estimate_query_cost(body.as_bytes());
+        assert!(cost > 1, "エイリアス多用クエリはコスト1より大きいべき: {}", cost);
+    }
+
+    /// GraphQL でないリクエスト（ヘルスチェック等）はコスト1を返す
+    #[test]
+    fn test_estimate_cost_non_graphql() {
+        let body = b"";
+        let cost = estimate_query_cost(body);
+        assert_eq!(cost, 1, "非GraphQLリクエストはコスト1");
+    }
+
+    /// コストの上限は100であることを確認する
+    #[test]
+    fn test_estimate_cost_capped_at_100() {
+        // 200フィールドを持つクエリ
+        let mut query = String::from("{\n");
+        for i in 0..200 {
+            query.push_str(&format!("  field{}: someField\n", i));
+        }
+        query.push('}');
+        let body = format!(r#"{{"query": {:?}}}"#, query);
+        let cost = estimate_query_cost(body.as_bytes());
+        assert_eq!(cost, 100, "コストは100を超えないべき");
     }
 }

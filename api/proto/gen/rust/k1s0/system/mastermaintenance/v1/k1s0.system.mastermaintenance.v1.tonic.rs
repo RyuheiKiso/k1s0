@@ -27,7 +27,7 @@ pub mod master_maintenance_service_client {
     }
     impl<T> MasterMaintenanceServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::Body>,
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod master_maintenance_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
+                http::Request<tonic::body::BoxBody>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
+                http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             MasterMaintenanceServiceClient::new(
@@ -107,7 +107,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateTableDefinition",
             );
@@ -136,7 +136,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateTableDefinition",
             );
@@ -165,7 +165,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteTableDefinition",
             );
@@ -194,7 +194,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetTableDefinition",
             );
@@ -223,7 +223,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListTableDefinitions",
             );
@@ -252,7 +252,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListColumns",
             );
@@ -281,7 +281,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateColumns",
             );
@@ -310,7 +310,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateColumn",
             );
@@ -339,7 +339,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteColumn",
             );
@@ -368,7 +368,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetRecord",
             );
@@ -397,7 +397,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRecords",
             );
@@ -426,7 +426,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateRecord",
             );
@@ -455,7 +455,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateRecord",
             );
@@ -484,7 +484,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteRecord",
             );
@@ -513,7 +513,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CheckConsistency",
             );
@@ -542,7 +542,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateRule",
             );
@@ -571,7 +571,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetRule",
             );
@@ -600,7 +600,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateRule",
             );
@@ -629,7 +629,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteRule",
             );
@@ -658,7 +658,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRules",
             );
@@ -687,7 +687,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ExecuteRule",
             );
@@ -716,7 +716,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetTableSchema",
             );
@@ -745,7 +745,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRelationships",
             );
@@ -774,7 +774,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateRelationship",
             );
@@ -803,7 +803,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateRelationship",
             );
@@ -832,7 +832,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteRelationship",
             );
@@ -861,7 +861,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ImportRecords",
             );
@@ -890,7 +890,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ExportRecords",
             );
@@ -919,7 +919,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetImportJob",
             );
@@ -948,7 +948,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListDisplayConfigs",
             );
@@ -977,7 +977,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/GetDisplayConfig",
             );
@@ -1006,7 +1006,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/CreateDisplayConfig",
             );
@@ -1035,7 +1035,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/UpdateDisplayConfig",
             );
@@ -1064,7 +1064,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/DeleteDisplayConfig",
             );
@@ -1093,7 +1093,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListTableAuditLogs",
             );
@@ -1122,7 +1122,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListRecordAuditLogs",
             );
@@ -1151,7 +1151,7 @@ pub mod master_maintenance_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.mastermaintenance.v1.MasterMaintenanceService/ListDomains",
             );
@@ -1503,7 +1503,7 @@ pub mod master_maintenance_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::Body>;
+        type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -1550,7 +1550,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateTableDefinitionSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1601,7 +1601,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateTableDefinitionSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1652,7 +1652,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteTableDefinitionSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1703,7 +1703,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetTableDefinitionSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1754,7 +1754,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTableDefinitionsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1803,7 +1803,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListColumnsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1852,7 +1852,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateColumnsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1901,7 +1901,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateColumnSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1950,7 +1950,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteColumnSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -1996,7 +1996,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetRecordSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2045,7 +2045,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListRecordsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2094,7 +2094,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateRecordSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2143,7 +2143,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateRecordSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2192,7 +2192,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteRecordSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2241,7 +2241,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CheckConsistencySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2290,7 +2290,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateRuleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2336,7 +2336,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetRuleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2385,7 +2385,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateRuleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2434,7 +2434,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteRuleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2480,7 +2480,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListRulesSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2529,7 +2529,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ExecuteRuleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2578,7 +2578,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetTableSchemaSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2627,7 +2627,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListRelationshipsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2678,7 +2678,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateRelationshipSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2729,7 +2729,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateRelationshipSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2780,7 +2780,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteRelationshipSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2829,7 +2829,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ImportRecordsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2878,7 +2878,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ExportRecordsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2927,7 +2927,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetImportJobSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -2978,7 +2978,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListDisplayConfigsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3027,7 +3027,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetDisplayConfigSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3078,7 +3078,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateDisplayConfigSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3129,7 +3129,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateDisplayConfigSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3180,7 +3180,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeleteDisplayConfigSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3231,7 +3231,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListTableAuditLogsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3282,7 +3282,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListRecordAuditLogsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3331,7 +3331,7 @@ pub mod master_maintenance_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListDomainsSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -3349,7 +3349,7 @@ pub mod master_maintenance_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::Body::default(),
+                            tonic::body::BoxBody::default(),
                         );
                         let headers = response.headers_mut();
                         headers

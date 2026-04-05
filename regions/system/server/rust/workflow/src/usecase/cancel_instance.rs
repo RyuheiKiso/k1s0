@@ -3,8 +3,10 @@ use std::sync::Arc;
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::repository::WorkflowInstanceRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct CancelInstanceInput {
+    pub tenant_id: String,
     pub id: String,
     /// キャンセル理由（将来のログ・監査用に保持）
     #[allow(dead_code)]
@@ -36,9 +38,10 @@ impl CancelInstanceUseCase {
         &self,
         input: &CancelInstanceInput,
     ) -> Result<WorkflowInstance, CancelInstanceError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let mut instance = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.tenant_id, &input.id)
             .await
             .map_err(|e| CancelInstanceError::Internal(e.to_string()))?
             .ok_or_else(|| CancelInstanceError::NotFound(input.id.clone()))?;
@@ -53,7 +56,7 @@ impl CancelInstanceUseCase {
         instance.cancel();
 
         self.repo
-            .update(&instance)
+            .update(&input.tenant_id, &instance)
             .await
             .map_err(|e| CancelInstanceError::Internal(e.to_string()))?;
 
@@ -83,11 +86,12 @@ mod tests {
     async fn success() {
         let mut mock = MockWorkflowInstanceRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Ok(Some(running_instance())));
-        mock.expect_update().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(running_instance())));
+        mock.expect_update().returning(|_, _| Ok(()));
 
         let uc = CancelInstanceUseCase::new(Arc::new(mock));
         let input = CancelInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: Some("cancelled by user".to_string()),
         };
@@ -99,10 +103,11 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockWorkflowInstanceRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = CancelInstanceUseCase::new(Arc::new(mock));
         let input = CancelInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             id: "inst_missing".to_string(),
             reason: None,
         };
@@ -119,10 +124,11 @@ mod tests {
         let mut inst = running_instance();
         inst.complete();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(inst.clone())));
+            .returning(move |_, _| Ok(Some(inst.clone())));
 
         let uc = CancelInstanceUseCase::new(Arc::new(mock));
         let input = CancelInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: None,
         };
@@ -137,10 +143,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowInstanceRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = CancelInstanceUseCase::new(Arc::new(mock));
         let input = CancelInstanceInput {
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: None,
         };

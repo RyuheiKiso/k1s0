@@ -28,8 +28,15 @@ pub fn run() -> Result<()> {
                 .with_prompt("config-schema.yaml のパス")
                 .default("config-schema.yaml".to_string())
                 .interact_text()?;
+            // CLI-MED-002 監査対応: canonicalize でパストラバーサル攻撃を防止する。
+            let canonical = std::path::Path::new(&path)
+                .canonicalize()
+                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {}: {}", path, e))?;
+            let canonical_str = canonical
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {:?}", canonical))?;
             let errors =
-                k1s0_core::commands::validate::config_schema::validate_config_schema(&path)
+                k1s0_core::commands::validate::config_schema::validate_config_schema(canonical_str)
                     .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {
                 println!("\nバリデーション完了: エラーなし");
@@ -42,7 +49,14 @@ pub fn run() -> Result<()> {
                 .with_prompt("navigation.yaml のパス")
                 .default("navigation.yaml".to_string())
                 .interact_text()?;
-            let errors = k1s0_core::commands::validate::navigation::validate_navigation(&path)
+            // CLI-MED-002 監査対応: canonicalize でパストラバーサル攻撃を防止する。
+            let canonical = std::path::Path::new(&path)
+                .canonicalize()
+                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {}: {}", path, e))?;
+            let canonical_str = canonical
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {:?}", canonical))?;
+            let errors = k1s0_core::commands::validate::navigation::validate_navigation(canonical_str)
                 .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {
                 println!("\nバリデーション完了: エラーなし");

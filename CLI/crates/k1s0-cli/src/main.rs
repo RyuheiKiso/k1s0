@@ -35,7 +35,11 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// プロジェクトを初期化する
-    Init,
+    Init {
+        /// プロジェクト名（--non-interactive 時は必須）
+        #[arg(long, value_name = "NAME")]
+        name: Option<String>,
+    },
     /// ひな形を生成する
     Generate,
     /// ビルドを実行する
@@ -142,7 +146,14 @@ fn main() {
 
         // 各サブコマンドを対話モードと同じ run() 関数に委譲する
         let result = match command {
-            Commands::Init => commands::init::run(),
+            // LOW-001 対応: --name が指定された場合は非インタラクティブモードで直接実行する
+            Commands::Init { name } => {
+                if non_interactive {
+                    commands::init::run_non_interactive(name)
+                } else {
+                    commands::init::run()
+                }
+            }
             Commands::Generate => commands::generate::run(),
             Commands::Build => commands::build::run(),
             Commands::Test => commands::test_cmd::run(),
@@ -275,10 +286,15 @@ fn ctrlc_handler() {
 /// 3. 現在のワーキングディレクトリから `scripts/doctor.sh` を探す（フォールバック）
 fn find_doctor_script() -> Option<PathBuf> {
     // 優先度1: K1S0_ROOT 環境変数が設定されている場合はそのパスを優先する
+    // CLI-MED-001 監査対応: canonicalize でシンボリックリンクと相対パスを解決し、
+    // パストラバーサル攻撃を防止する。
+    // L-001 監査対応: `canonicalize().ok()` + `if let Some` を `if let Ok` に変更する。
     if let Ok(root) = std::env::var("K1S0_ROOT") {
-        let path = PathBuf::from(root).join("scripts").join("doctor.sh");
-        if path.exists() {
-            return Some(path);
+        if let Ok(canonical) = std::path::PathBuf::from(&root).canonicalize() {
+            let path = canonical.join("scripts").join("doctor.sh");
+            if path.exists() {
+                return Some(path);
+            }
         }
     }
 

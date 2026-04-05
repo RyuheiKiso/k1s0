@@ -139,6 +139,9 @@ fn make_test_app() -> axum::Router {
         update_file_tags_uc: Arc::new(UpdateFileTagsUseCase::new(metadata_repo.clone())),
         metrics,
         auth_state: None,
+        // テスト環境ではローカルストレージを使用しない
+        db_pool: None,
+        storage_root_path: None,
     };
 
     router(state)
@@ -214,6 +217,9 @@ async fn test_unauthorized_without_token() {
         update_file_tags_uc: Arc::new(UpdateFileTagsUseCase::new(metadata_repo.clone())),
         metrics,
         auth_state: Some(auth_state),
+        // テスト環境ではローカルストレージを使用しない
+        db_pool: None,
+        storage_root_path: None,
     };
 
     let app = router(state);

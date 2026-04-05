@@ -1,10 +1,12 @@
 // ワークフローCRUDハンドラ
 // ワークフロー定義の作成・取得・一覧・更新・削除操作を提供する
+// RUST-CRIT-001 対応: Claims から tenant_id を取得してテナント境界を適用する
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use k1s0_auth::Claims;
 
 use crate::usecase::create_workflow::{CreateWorkflowError, CreateWorkflowInput};
 use crate::usecase::delete_workflow::{DeleteWorkflowError, DeleteWorkflowInput};
@@ -17,14 +19,24 @@ use super::dto::{
     ListWorkflowsResponse, PaginationResponse, UpdateWorkflowRequest, WorkflowResponse,
 };
 
+/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
+    claims
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 /// POST /api/v1/workflows
 /// 新しいワークフロー定義を作成する
 pub async fn create_workflow(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreateWorkflowRequest>,
 ) -> impl IntoResponse {
     use crate::domain::entity::workflow_step::WorkflowStep;
 
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     // リクエストのステップ情報をドメインエンティティに変換
     let steps: Vec<WorkflowStep> = req
         .steps
@@ -44,6 +56,7 @@ pub async fn create_workflow(
 
     // ユースケース入力を組み立てる
     let input = CreateWorkflowInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         enabled: req.enabled,
@@ -96,9 +109,12 @@ pub async fn create_workflow(
 /// 指定されたワークフロー定義を取得する
 pub async fn get_workflow(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let input = GetWorkflowInput { id: id.clone() };
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
+    let input = GetWorkflowInput { tenant_id, id: id.clone() };
 
     match state.get_workflow_uc.execute(&input).await {
         Ok(def) => {
@@ -140,10 +156,14 @@ pub async fn get_workflow(
 /// フィルタ条件に基づいてワークフロー一覧を取得する
 pub async fn list_workflows(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListWorkflowsQuery>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     // クエリパラメータからユースケース入力を組み立てる
     let input = ListWorkflowsInput {
+        tenant_id,
         enabled_only: query.enabled_only,
         page: query.page,
         page_size: query.page_size,
@@ -194,11 +214,14 @@ pub async fn list_workflows(
 /// 既存のワークフロー定義を更新する
 pub async fn update_workflow(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateWorkflowRequest>,
 ) -> impl IntoResponse {
     use crate::domain::entity::workflow_step::WorkflowStep;
 
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     // ステップ情報がある場合のみドメインエンティティに変換
     let steps = req.steps.map(|steps| {
         steps
@@ -219,6 +242,7 @@ pub async fn update_workflow(
 
     // ユースケース入力を組み立てる
     let input = UpdateWorkflowInput {
+        tenant_id,
         id: id.clone(),
         name: req.name,
         description: req.description,
@@ -266,9 +290,12 @@ pub async fn update_workflow(
 /// 指定されたワークフロー定義を削除する
 pub async fn delete_workflow(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let input = DeleteWorkflowInput { id: id.clone() };
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
+    let input = DeleteWorkflowInput { tenant_id, id: id.clone() };
 
     match state.delete_workflow_uc.execute(&input).await {
         // 成功時はコンテンツなしで204を返す

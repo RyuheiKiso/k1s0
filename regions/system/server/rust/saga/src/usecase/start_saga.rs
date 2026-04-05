@@ -39,12 +39,14 @@ impl StartSagaUseCase {
     }
 
     /// Sagaを開始する。ワークフロー存在確認 → SagaState作成 → バックグラウンド実行。
+    /// CRIT-005 対応: tenant_id を引数で受け取り、SagaState に設定してRLS分離を実現する。
     pub async fn execute(
         &self,
         workflow_name: String,
         payload: serde_json::Value,
         correlation_id: Option<String>,
         initiated_by: Option<String>,
+        tenant_id: String,
     ) -> Result<Uuid, SagaError> {
         // ワークフロー存在確認: 見つからない場合は型安全な NotFound エラーを返す
         let workflow = self
@@ -54,8 +56,8 @@ impl StartSagaUseCase {
             .map_err(|e| SagaError::Internal(e.to_string()))?
             .ok_or_else(|| SagaError::NotFound(format!("workflow: {}", workflow_name)))?;
 
-        // SagaState を生成する
-        let state = SagaState::new(workflow_name.clone(), payload, correlation_id, initiated_by);
+        // SagaState を生成する（tenant_id を含む）
+        let state = SagaState::new(workflow_name.clone(), payload, correlation_id, initiated_by, tenant_id);
         let saga_id = state.saga_id;
 
         // SagaState を永続化する: リポジトリエラーは Internal として伝播する
@@ -72,9 +74,11 @@ impl StartSagaUseCase {
 
         // SagaTaskTracker 経由でバックグラウンド実行を起動する。
         // spawn ではなく tracker.spawn を使うことでシャットダウン時の完了待機が可能になる。
+        // CRIT-005 対応: tenant_id を run に渡して RLS 分離を維持する
         let execute_uc = self.execute_saga_uc.clone();
+        let tenant_id_for_run = state.tenant_id.clone();
         self.task_tracker.spawn(async move {
-            if let Err(e) = execute_uc.run(saga_id, &workflow).await {
+            if let Err(e) = execute_uc.run(saga_id, &workflow, &tenant_id_for_run).await {
                 tracing::error!(
                     saga_id = %saga_id,
                     error = %e,
@@ -118,7 +122,7 @@ mod tests {
         );
 
         let result = uc
-            .execute("nonexistent".to_string(), serde_json::json!({}), None, None)
+            .execute("nonexistent".to_string(), serde_json::json!({}), None, None, "system".to_string())
             .await;
         // anyhow::Error ではなく SagaError::NotFound の具体型でアサートする
         assert!(matches!(result, Err(SagaError::NotFound(_))));
@@ -168,6 +172,7 @@ steps:
                 serde_json::json!({"order_id": "123"}),
                 Some("corr-001".to_string()),
                 Some("user-1".to_string()),
+                "test-tenant".to_string(),
             )
             .await;
         assert!(result.is_ok());

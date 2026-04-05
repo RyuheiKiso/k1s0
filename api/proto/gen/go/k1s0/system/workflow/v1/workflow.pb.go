@@ -11,6 +11,7 @@
 package workflowv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,6 +26,132 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// WorkflowInstanceStatus はワークフローインスタンスのステータス。
+type WorkflowInstanceStatus int32
+
+const (
+	// WORKFLOW_INSTANCE_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_UNSPECIFIED WorkflowInstanceStatus = 0
+	// WORKFLOW_INSTANCE_STATUS_PENDING は開始待機中。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_PENDING WorkflowInstanceStatus = 1
+	// WORKFLOW_INSTANCE_STATUS_RUNNING は実行中。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_RUNNING WorkflowInstanceStatus = 2
+	// WORKFLOW_INSTANCE_STATUS_COMPLETED は完了。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_COMPLETED WorkflowInstanceStatus = 3
+	// WORKFLOW_INSTANCE_STATUS_CANCELLED はキャンセル済み。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_CANCELLED WorkflowInstanceStatus = 4
+	// WORKFLOW_INSTANCE_STATUS_FAILED は失敗。
+	WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_FAILED WorkflowInstanceStatus = 5
+)
+
+// Enum value maps for WorkflowInstanceStatus.
+var (
+	WorkflowInstanceStatus_name = map[int32]string{
+		0: "WORKFLOW_INSTANCE_STATUS_UNSPECIFIED",
+		1: "WORKFLOW_INSTANCE_STATUS_PENDING",
+		2: "WORKFLOW_INSTANCE_STATUS_RUNNING",
+		3: "WORKFLOW_INSTANCE_STATUS_COMPLETED",
+		4: "WORKFLOW_INSTANCE_STATUS_CANCELLED",
+		5: "WORKFLOW_INSTANCE_STATUS_FAILED",
+	}
+	WorkflowInstanceStatus_value = map[string]int32{
+		"WORKFLOW_INSTANCE_STATUS_UNSPECIFIED": 0,
+		"WORKFLOW_INSTANCE_STATUS_PENDING":     1,
+		"WORKFLOW_INSTANCE_STATUS_RUNNING":     2,
+		"WORKFLOW_INSTANCE_STATUS_COMPLETED":   3,
+		"WORKFLOW_INSTANCE_STATUS_CANCELLED":   4,
+		"WORKFLOW_INSTANCE_STATUS_FAILED":      5,
+	}
+)
+
+func (x WorkflowInstanceStatus) Enum() *WorkflowInstanceStatus {
+	p := new(WorkflowInstanceStatus)
+	*p = x
+	return p
+}
+
+func (x WorkflowInstanceStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowInstanceStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0].Descriptor()
+}
+
+func (WorkflowInstanceStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0]
+}
+
+func (x WorkflowInstanceStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowInstanceStatus.Descriptor instead.
+func (WorkflowInstanceStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP(), []int{0}
+}
+
+// WorkflowTaskStatus はワークフロータスクのステータス。
+type WorkflowTaskStatus int32
+
+const (
+	// WORKFLOW_TASK_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_UNSPECIFIED WorkflowTaskStatus = 0
+	// WORKFLOW_TASK_STATUS_PENDING は承認待機中。
+	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_PENDING WorkflowTaskStatus = 1
+	// WORKFLOW_TASK_STATUS_APPROVED は承認済み。
+	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_APPROVED WorkflowTaskStatus = 2
+	// WORKFLOW_TASK_STATUS_REJECTED は却下済み。
+	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_REJECTED WorkflowTaskStatus = 3
+	// WORKFLOW_TASK_STATUS_CANCELLED はキャンセル済み。
+	WorkflowTaskStatus_WORKFLOW_TASK_STATUS_CANCELLED WorkflowTaskStatus = 4
+)
+
+// Enum value maps for WorkflowTaskStatus.
+var (
+	WorkflowTaskStatus_name = map[int32]string{
+		0: "WORKFLOW_TASK_STATUS_UNSPECIFIED",
+		1: "WORKFLOW_TASK_STATUS_PENDING",
+		2: "WORKFLOW_TASK_STATUS_APPROVED",
+		3: "WORKFLOW_TASK_STATUS_REJECTED",
+		4: "WORKFLOW_TASK_STATUS_CANCELLED",
+	}
+	WorkflowTaskStatus_value = map[string]int32{
+		"WORKFLOW_TASK_STATUS_UNSPECIFIED": 0,
+		"WORKFLOW_TASK_STATUS_PENDING":     1,
+		"WORKFLOW_TASK_STATUS_APPROVED":    2,
+		"WORKFLOW_TASK_STATUS_REJECTED":    3,
+		"WORKFLOW_TASK_STATUS_CANCELLED":   4,
+	}
+)
+
+func (x WorkflowTaskStatus) Enum() *WorkflowTaskStatus {
+	p := new(WorkflowTaskStatus)
+	*p = x
+	return p
+}
+
+func (x WorkflowTaskStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowTaskStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_workflow_v1_workflow_proto_enumTypes[1].Descriptor()
+}
+
+func (WorkflowTaskStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_workflow_v1_workflow_proto_enumTypes[1]
+}
+
+func (x WorkflowTaskStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowTaskStatus.Descriptor instead.
+func (WorkflowTaskStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP(), []int{1}
+}
 
 // WorkflowStepType はワークフローステップの種別。
 type WorkflowStepType int32
@@ -67,11 +194,11 @@ func (x WorkflowStepType) String() string {
 }
 
 func (WorkflowStepType) Descriptor() protoreflect.EnumDescriptor {
-	return file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0].Descriptor()
+	return file_k1s0_system_workflow_v1_workflow_proto_enumTypes[2].Descriptor()
 }
 
 func (WorkflowStepType) Type() protoreflect.EnumType {
-	return &file_k1s0_system_workflow_v1_workflow_proto_enumTypes[0]
+	return &file_k1s0_system_workflow_v1_workflow_proto_enumTypes[2]
 }
 
 func (x WorkflowStepType) Number() protoreflect.EnumNumber {
@@ -80,7 +207,7 @@ func (x WorkflowStepType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WorkflowStepType.Descriptor instead.
 func (WorkflowStepType) EnumDescriptor() ([]byte, []int) {
-	return file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP(), []int{0}
+	return file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP(), []int{2}
 }
 
 type WorkflowStep struct {
@@ -394,11 +521,12 @@ func (x *ListWorkflowsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type CreateWorkflowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Steps         []*WorkflowStep        `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ワークフロー名は1文字以上128文字以下であること
+	Name          string          `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string          `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Enabled       bool            `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Steps         []*WorkflowStep `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -506,8 +634,9 @@ func (x *CreateWorkflowResponse) GetWorkflow() *WorkflowDefinition {
 }
 
 type GetWorkflowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ワークフローIDは1文字以上であること
+	WorkflowId    string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -638,12 +767,13 @@ func (x *WorkflowSteps) GetItems() []*WorkflowStep {
 }
 
 type UpdateWorkflowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Description   *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
-	Steps         *WorkflowSteps         `protobuf:"bytes,5,opt,name=steps,proto3,oneof" json:"steps,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ワークフローIDは1文字以上であること
+	WorkflowId    string         `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	Name          *string        `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Description   *string        `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Enabled       *bool          `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	Steps         *WorkflowSteps `protobuf:"bytes,5,opt,name=steps,proto3,oneof" json:"steps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -758,8 +888,9 @@ func (x *UpdateWorkflowResponse) GetWorkflow() *WorkflowDefinition {
 }
 
 type DeleteWorkflowRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ワークフローIDは1文字以上であること
+	WorkflowId    string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -854,10 +985,13 @@ func (x *DeleteWorkflowResponse) GetMessage() string {
 }
 
 type StartInstanceRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	WorkflowId  string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	Title       string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	InitiatorId string                 `protobuf:"bytes,3,opt,name=initiator_id,json=initiatorId,proto3" json:"initiator_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ワークフローIDは1文字以上であること
+	WorkflowId string `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	// タイトルは1文字以上256文字以下であること
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// 開始者IDは1文字以上であること
+	InitiatorId string `protobuf:"bytes,3,opt,name=initiator_id,json=initiatorId,proto3" json:"initiator_id,omitempty"`
 	// ワークフロー実行コンテキスト（JSON バイト列）
 	ContextJson   []byte `protobuf:"bytes,4,opt,name=context_json,json=contextJson,proto3" json:"context_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1032,8 +1166,9 @@ func (x *StartInstanceResponse) GetContextJson() []byte {
 }
 
 type GetInstanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インスタンスIDは1文字以上であること
+	InstanceId    string `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1240,9 +1375,10 @@ func (x *ListInstancesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type CancelInstanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
-	Reason        *string                `protobuf:"bytes,2,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インスタンスIDは1文字以上であること
+	InstanceId    string  `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Reason        *string `protobuf:"bytes,2,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1336,19 +1472,24 @@ func (x *CancelInstanceResponse) GetInstance() *WorkflowInstance {
 }
 
 type WorkflowTask struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	InstanceId    string                 `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
-	StepId        string                 `protobuf:"bytes,3,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
-	StepName      string                 `protobuf:"bytes,4,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
-	Status        string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
-	DueAt         *v1.Timestamp          `protobuf:"bytes,7,opt,name=due_at,json=dueAt,proto3,oneof" json:"due_at,omitempty"`
-	Comment       *string                `protobuf:"bytes,8,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
-	ActorId       *string                `protobuf:"bytes,9,opt,name=actor_id,json=actorId,proto3,oneof" json:"actor_id,omitempty"`
-	DecidedAt     *v1.Timestamp          `protobuf:"bytes,10,opt,name=decided_at,json=decidedAt,proto3,oneof" json:"decided_at,omitempty"`
-	CreatedAt     *v1.Timestamp          `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *v1.Timestamp          `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	InstanceId string                 `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	StepId     string                 `protobuf:"bytes,3,opt,name=step_id,json=stepId,proto3" json:"step_id,omitempty"`
+	StepName   string                 `protobuf:"bytes,4,opt,name=step_name,json=stepName,proto3" json:"step_name,omitempty"`
+	AssigneeId *string                `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	// Deprecated: use status_enum instead. 後方互換性のため削除しない。
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
+	Status    string        `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	DueAt     *v1.Timestamp `protobuf:"bytes,7,opt,name=due_at,json=dueAt,proto3,oneof" json:"due_at,omitempty"`
+	Comment   *string       `protobuf:"bytes,8,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
+	ActorId   *string       `protobuf:"bytes,9,opt,name=actor_id,json=actorId,proto3,oneof" json:"actor_id,omitempty"`
+	DecidedAt *v1.Timestamp `protobuf:"bytes,10,opt,name=decided_at,json=decidedAt,proto3,oneof" json:"decided_at,omitempty"`
+	CreatedAt *v1.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *v1.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// MED-025 監査対応: タスクステータスの enum 版。
+	StatusEnum    WorkflowTaskStatus `protobuf:"varint,13,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.workflow.v1.WorkflowTaskStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1418,6 +1559,7 @@ func (x *WorkflowTask) GetAssigneeId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
 func (x *WorkflowTask) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -1465,6 +1607,13 @@ func (x *WorkflowTask) GetUpdatedAt() *v1.Timestamp {
 		return x.UpdatedAt
 	}
 	return nil
+}
+
+func (x *WorkflowTask) GetStatusEnum() WorkflowTaskStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return WorkflowTaskStatus_WORKFLOW_TASK_STATUS_UNSPECIFIED
 }
 
 type ListTasksRequest struct {
@@ -1596,11 +1745,14 @@ func (x *ListTasksResponse) GetPagination() *v1.PaginationResult {
 }
 
 type ReassignTaskRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	NewAssigneeId string                 `protobuf:"bytes,2,opt,name=new_assignee_id,json=newAssigneeId,proto3" json:"new_assignee_id,omitempty"`
-	Reason        *string                `protobuf:"bytes,3,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
-	ActorId       string                 `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 新しい担当者IDは1文字以上であること
+	NewAssigneeId string  `protobuf:"bytes,2,opt,name=new_assignee_id,json=newAssigneeId,proto3" json:"new_assignee_id,omitempty"`
+	Reason        *string `protobuf:"bytes,3,opt,name=reason,proto3,oneof" json:"reason,omitempty"`
+	// 操作者IDは1文字以上であること
+	ActorId       string `protobuf:"bytes,4,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1723,13 +1875,18 @@ type WorkflowInstance struct {
 	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
 	InitiatorId   string                 `protobuf:"bytes,5,opt,name=initiator_id,json=initiatorId,proto3" json:"initiator_id,omitempty"`
 	CurrentStepId *string                `protobuf:"bytes,6,opt,name=current_step_id,json=currentStepId,proto3,oneof" json:"current_step_id,omitempty"`
+	// Deprecated: use status_enum instead. 後方互換性のため削除しない。
 	// インスタンス状態（pending / running / completed / cancelled / failed）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
 	Status string `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
 	// ワークフロー実行コンテキスト（JSON バイト列）
-	ContextJson   []byte        `protobuf:"bytes,8,opt,name=context_json,json=contextJson,proto3" json:"context_json,omitempty"`
-	StartedAt     *v1.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
-	CompletedAt   *v1.Timestamp `protobuf:"bytes,10,opt,name=completed_at,json=completedAt,proto3,oneof" json:"completed_at,omitempty"`
-	CreatedAt     *v1.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3,oneof" json:"created_at,omitempty"`
+	ContextJson []byte        `protobuf:"bytes,8,opt,name=context_json,json=contextJson,proto3" json:"context_json,omitempty"`
+	StartedAt   *v1.Timestamp `protobuf:"bytes,9,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	CompletedAt *v1.Timestamp `protobuf:"bytes,10,opt,name=completed_at,json=completedAt,proto3,oneof" json:"completed_at,omitempty"`
+	CreatedAt   *v1.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3,oneof" json:"created_at,omitempty"`
+	// MED-025 監査対応: インスタンスステータスの enum 版。
+	StatusEnum    WorkflowInstanceStatus `protobuf:"varint,12,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.workflow.v1.WorkflowInstanceStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1806,6 +1963,7 @@ func (x *WorkflowInstance) GetCurrentStepId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/workflow/v1/workflow.proto.
 func (x *WorkflowInstance) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -1841,11 +1999,20 @@ func (x *WorkflowInstance) GetCreatedAt() *v1.Timestamp {
 	return nil
 }
 
+func (x *WorkflowInstance) GetStatusEnum() WorkflowInstanceStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return WorkflowInstanceStatus_WORKFLOW_INSTANCE_STATUS_UNSPECIFIED
+}
+
 type ApproveTaskRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ActorId       string                 `protobuf:"bytes,2,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
-	Comment       *string                `protobuf:"bytes,3,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 操作者IDは1文字以上であること
+	ActorId       string  `protobuf:"bytes,2,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Comment       *string `protobuf:"bytes,3,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1972,10 +2139,12 @@ func (x *ApproveTaskResponse) GetInstanceStatus() string {
 }
 
 type RejectTaskRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ActorId       string                 `protobuf:"bytes,2,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
-	Comment       *string                `protobuf:"bytes,3,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 操作者IDは1文字以上であること
+	ActorId       string  `protobuf:"bytes,2,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	Comment       *string `protobuf:"bytes,3,opt,name=comment,proto3,oneof" json:"comment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2105,7 +2274,7 @@ var File_k1s0_system_workflow_v1_workflow_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\n" +
-	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\"\x88\x03\n" +
+	"&k1s0/system/workflow/v1/workflow.proto\x12\x17k1s0.system.workflow.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\x88\x03\n" +
 	"\fWorkflowStep\x12\x17\n" +
 	"\astep_id\x18\x01 \x01(\tR\x06stepId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -2141,23 +2310,24 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\tworkflows\x18\x01 \x03(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\tworkflows\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xa4\x01\n" +
-	"\x15CreateWorkflowRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"pagination\"\xb0\x01\n" +
+	"\x15CreateWorkflowRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x18\n" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12;\n" +
 	"\x05steps\x18\x04 \x03(\v2%.k1s0.system.workflow.v1.WorkflowStepR\x05steps\"a\n" +
 	"\x16CreateWorkflowResponse\x12G\n" +
-	"\bworkflow\x18\x01 \x01(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\bworkflow\"5\n" +
-	"\x12GetWorkflowRequest\x12\x1f\n" +
-	"\vworkflow_id\x18\x01 \x01(\tR\n" +
+	"\bworkflow\x18\x01 \x01(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\bworkflow\">\n" +
+	"\x12GetWorkflowRequest\x12(\n" +
+	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\"^\n" +
 	"\x13GetWorkflowResponse\x12G\n" +
 	"\bworkflow\x18\x01 \x01(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\bworkflow\"L\n" +
 	"\rWorkflowSteps\x12;\n" +
-	"\x05items\x18\x01 \x03(\v2%.k1s0.system.workflow.v1.WorkflowStepR\x05items\"\x89\x02\n" +
-	"\x15UpdateWorkflowRequest\x12\x1f\n" +
-	"\vworkflow_id\x18\x01 \x01(\tR\n" +
+	"\x05items\x18\x01 \x03(\v2%.k1s0.system.workflow.v1.WorkflowStepR\x05items\"\x92\x02\n" +
+	"\x15UpdateWorkflowRequest\x12(\n" +
+	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12%\n" +
 	"\vdescription\x18\x03 \x01(\tH\x01R\vdescription\x88\x01\x01\x12\x1d\n" +
@@ -2169,18 +2339,19 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\b_enabledB\b\n" +
 	"\x06_steps\"a\n" +
 	"\x16UpdateWorkflowResponse\x12G\n" +
-	"\bworkflow\x18\x01 \x01(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\bworkflow\"8\n" +
-	"\x15DeleteWorkflowRequest\x12\x1f\n" +
-	"\vworkflow_id\x18\x01 \x01(\tR\n" +
+	"\bworkflow\x18\x01 \x01(\v2+.k1s0.system.workflow.v1.WorkflowDefinitionR\bworkflow\"A\n" +
+	"\x15DeleteWorkflowRequest\x12(\n" +
+	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\"L\n" +
 	"\x16DeleteWorkflowResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\x93\x01\n" +
-	"\x14StartInstanceRequest\x12\x1f\n" +
-	"\vworkflow_id\x18\x01 \x01(\tR\n" +
-	"workflowId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12!\n" +
-	"\finitiator_id\x18\x03 \x01(\tR\vinitiatorId\x12!\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xb1\x01\n" +
+	"\x14StartInstanceRequest\x12(\n" +
+	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
+	"workflowId\x12 \n" +
+	"\x05title\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x05title\x12*\n" +
+	"\finitiator_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vinitiatorId\x12!\n" +
 	"\fcontext_json\x18\x04 \x01(\fR\vcontextJson\"\xf4\x02\n" +
 	"\x15StartInstanceResponse\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
@@ -2195,9 +2366,9 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\x05title\x18\a \x01(\tR\x05title\x12!\n" +
 	"\finitiator_id\x18\b \x01(\tR\vinitiatorId\x12!\n" +
 	"\fcontext_json\x18\t \x01(\fR\vcontextJsonB\x12\n" +
-	"\x10_current_step_id\"5\n" +
-	"\x12GetInstanceRequest\x12\x1f\n" +
-	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"\x10_current_step_id\">\n" +
+	"\x12GetInstanceRequest\x12(\n" +
+	"\vinstance_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"instanceId\"\\\n" +
 	"\x13GetInstanceResponse\x12E\n" +
 	"\binstance\x18\x01 \x01(\v2).k1s0.system.workflow.v1.WorkflowInstanceR\binstance\"\xb5\x01\n" +
@@ -2213,14 +2384,14 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\tinstances\x18\x01 \x03(\v2).k1s0.system.workflow.v1.WorkflowInstanceR\tinstances\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"`\n" +
-	"\x15CancelInstanceRequest\x12\x1f\n" +
-	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"pagination\"i\n" +
+	"\x15CancelInstanceRequest\x12(\n" +
+	"\vinstance_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"instanceId\x12\x1b\n" +
 	"\x06reason\x18\x02 \x01(\tH\x00R\x06reason\x88\x01\x01B\t\n" +
 	"\a_reason\"_\n" +
 	"\x16CancelInstanceResponse\x12E\n" +
-	"\binstance\x18\x01 \x01(\v2).k1s0.system.workflow.v1.WorkflowInstanceR\binstance\"\xbb\x04\n" +
+	"\binstance\x18\x01 \x01(\v2).k1s0.system.workflow.v1.WorkflowInstanceR\binstance\"\x8d\x05\n" +
 	"\fWorkflowTask\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vinstance_id\x18\x02 \x01(\tR\n" +
@@ -2228,8 +2399,8 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\astep_id\x18\x03 \x01(\tR\x06stepId\x12\x1b\n" +
 	"\tstep_name\x18\x04 \x01(\tR\bstepName\x12$\n" +
 	"\vassignee_id\x18\x05 \x01(\tH\x00R\n" +
-	"assigneeId\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\x06 \x01(\tR\x06status\x12<\n" +
+	"assigneeId\x88\x01\x01\x12\x1a\n" +
+	"\x06status\x18\x06 \x01(\tB\x02\x18\x01R\x06status\x12<\n" +
 	"\x06due_at\x18\a \x01(\v2 .k1s0.system.common.v1.TimestampH\x01R\x05dueAt\x88\x01\x01\x12\x1d\n" +
 	"\acomment\x18\b \x01(\tH\x02R\acomment\x88\x01\x01\x12\x1e\n" +
 	"\bactor_id\x18\t \x01(\tH\x03R\aactorId\x88\x01\x01\x12D\n" +
@@ -2239,7 +2410,9 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x0e\n" +
+	"updated_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12L\n" +
+	"\vstatus_enum\x18\r \x01(\x0e2+.k1s0.system.workflow.v1.WorkflowTaskStatusR\n" +
+	"statusEnumB\x0e\n" +
 	"\f_assignee_idB\t\n" +
 	"\a_due_atB\n" +
 	"\n" +
@@ -2260,17 +2433,17 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\x05tasks\x18\x01 \x03(\v2%.k1s0.system.workflow.v1.WorkflowTaskR\x05tasks\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x99\x01\n" +
-	"\x13ReassignTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12&\n" +
-	"\x0fnew_assignee_id\x18\x02 \x01(\tR\rnewAssigneeId\x12\x1b\n" +
-	"\x06reason\x18\x03 \x01(\tH\x00R\x06reason\x88\x01\x01\x12\x19\n" +
-	"\bactor_id\x18\x04 \x01(\tR\aactorIdB\t\n" +
+	"pagination\"\xb4\x01\n" +
+	"\x13ReassignTaskRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12/\n" +
+	"\x0fnew_assignee_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\rnewAssigneeId\x12\x1b\n" +
+	"\x06reason\x18\x03 \x01(\tH\x00R\x06reason\x88\x01\x01\x12\"\n" +
+	"\bactor_id\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aactorIdB\t\n" +
 	"\a_reason\"\xa1\x01\n" +
 	"\x14ReassignTaskResponse\x129\n" +
 	"\x04task\x18\x01 \x01(\v2%.k1s0.system.workflow.v1.WorkflowTaskR\x04task\x125\n" +
 	"\x14previous_assignee_id\x18\x02 \x01(\tH\x00R\x12previousAssigneeId\x88\x01\x01B\x17\n" +
-	"\x15_previous_assignee_id\"\x8e\x04\n" +
+	"\x15_previous_assignee_id\"\xe4\x04\n" +
 	"\x10WorkflowInstance\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vworkflow_id\x18\x02 \x01(\tR\n" +
@@ -2278,21 +2451,23 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\rworkflow_name\x18\x03 \x01(\tR\fworkflowName\x12\x14\n" +
 	"\x05title\x18\x04 \x01(\tR\x05title\x12!\n" +
 	"\finitiator_id\x18\x05 \x01(\tR\vinitiatorId\x12+\n" +
-	"\x0fcurrent_step_id\x18\x06 \x01(\tH\x00R\rcurrentStepId\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\a \x01(\tR\x06status\x12!\n" +
+	"\x0fcurrent_step_id\x18\x06 \x01(\tH\x00R\rcurrentStepId\x88\x01\x01\x12\x1a\n" +
+	"\x06status\x18\a \x01(\tB\x02\x18\x01R\x06status\x12!\n" +
 	"\fcontext_json\x18\b \x01(\fR\vcontextJson\x12?\n" +
 	"\n" +
 	"started_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt\x12H\n" +
 	"\fcompleted_at\x18\n" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampH\x01R\vcompletedAt\x88\x01\x01\x12D\n" +
 	"\n" +
-	"created_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampH\x02R\tcreatedAt\x88\x01\x01B\x12\n" +
+	"created_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampH\x02R\tcreatedAt\x88\x01\x01\x12P\n" +
+	"\vstatus_enum\x18\f \x01(\x0e2/.k1s0.system.workflow.v1.WorkflowInstanceStatusR\n" +
+	"statusEnumB\x12\n" +
 	"\x10_current_step_idB\x0f\n" +
 	"\r_completed_atB\r\n" +
-	"\v_created_at\"s\n" +
-	"\x12ApproveTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x19\n" +
-	"\bactor_id\x18\x02 \x01(\tR\aactorId\x12\x1d\n" +
+	"\v_created_at\"\x85\x01\n" +
+	"\x12ApproveTaskRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12\"\n" +
+	"\bactor_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aactorId\x12\x1d\n" +
 	"\acomment\x18\x03 \x01(\tH\x00R\acomment\x88\x01\x01B\n" +
 	"\n" +
 	"\b_comment\"\xa7\x01\n" +
@@ -2302,10 +2477,10 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\fnext_task_id\x18\x03 \x01(\tH\x00R\n" +
 	"nextTaskId\x88\x01\x01\x12'\n" +
 	"\x0finstance_status\x18\x04 \x01(\tR\x0einstanceStatusB\x0f\n" +
-	"\r_next_task_id\"r\n" +
-	"\x11RejectTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x19\n" +
-	"\bactor_id\x18\x02 \x01(\tR\aactorId\x12\x1d\n" +
+	"\r_next_task_id\"\x84\x01\n" +
+	"\x11RejectTaskRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12\"\n" +
+	"\bactor_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aactorId\x12\x1d\n" +
 	"\acomment\x18\x03 \x01(\tH\x00R\acomment\x88\x01\x01B\n" +
 	"\n" +
 	"\b_comment\"\xa6\x01\n" +
@@ -2315,7 +2490,20 @@ const file_k1s0_system_workflow_v1_workflow_proto_rawDesc = "" +
 	"\fnext_task_id\x18\x03 \x01(\tH\x00R\n" +
 	"nextTaskId\x88\x01\x01\x12'\n" +
 	"\x0finstance_status\x18\x04 \x01(\tR\x0einstanceStatusB\x0f\n" +
-	"\r_next_task_id*\x9e\x01\n" +
+	"\r_next_task_id*\x83\x02\n" +
+	"\x16WorkflowInstanceStatus\x12(\n" +
+	"$WORKFLOW_INSTANCE_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
+	" WORKFLOW_INSTANCE_STATUS_PENDING\x10\x01\x12$\n" +
+	" WORKFLOW_INSTANCE_STATUS_RUNNING\x10\x02\x12&\n" +
+	"\"WORKFLOW_INSTANCE_STATUS_COMPLETED\x10\x03\x12&\n" +
+	"\"WORKFLOW_INSTANCE_STATUS_CANCELLED\x10\x04\x12#\n" +
+	"\x1fWORKFLOW_INSTANCE_STATUS_FAILED\x10\x05*\xc6\x01\n" +
+	"\x12WorkflowTaskStatus\x12$\n" +
+	" WORKFLOW_TASK_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cWORKFLOW_TASK_STATUS_PENDING\x10\x01\x12!\n" +
+	"\x1dWORKFLOW_TASK_STATUS_APPROVED\x10\x02\x12!\n" +
+	"\x1dWORKFLOW_TASK_STATUS_REJECTED\x10\x03\x12\"\n" +
+	"\x1eWORKFLOW_TASK_STATUS_CANCELLED\x10\x04*\x9e\x01\n" +
 	"\x10WorkflowStepType\x12\"\n" +
 	"\x1eWORKFLOW_STEP_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bWORKFLOW_STEP_TYPE_APPROVAL\x10\x01\x12 \n" +
@@ -2349,107 +2537,111 @@ func file_k1s0_system_workflow_v1_workflow_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_workflow_v1_workflow_proto_rawDescData
 }
 
-var file_k1s0_system_workflow_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_k1s0_system_workflow_v1_workflow_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_k1s0_system_workflow_v1_workflow_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_k1s0_system_workflow_v1_workflow_proto_goTypes = []any{
-	(WorkflowStepType)(0),          // 0: k1s0.system.workflow.v1.WorkflowStepType
-	(*WorkflowStep)(nil),           // 1: k1s0.system.workflow.v1.WorkflowStep
-	(*WorkflowDefinition)(nil),     // 2: k1s0.system.workflow.v1.WorkflowDefinition
-	(*ListWorkflowsRequest)(nil),   // 3: k1s0.system.workflow.v1.ListWorkflowsRequest
-	(*ListWorkflowsResponse)(nil),  // 4: k1s0.system.workflow.v1.ListWorkflowsResponse
-	(*CreateWorkflowRequest)(nil),  // 5: k1s0.system.workflow.v1.CreateWorkflowRequest
-	(*CreateWorkflowResponse)(nil), // 6: k1s0.system.workflow.v1.CreateWorkflowResponse
-	(*GetWorkflowRequest)(nil),     // 7: k1s0.system.workflow.v1.GetWorkflowRequest
-	(*GetWorkflowResponse)(nil),    // 8: k1s0.system.workflow.v1.GetWorkflowResponse
-	(*WorkflowSteps)(nil),          // 9: k1s0.system.workflow.v1.WorkflowSteps
-	(*UpdateWorkflowRequest)(nil),  // 10: k1s0.system.workflow.v1.UpdateWorkflowRequest
-	(*UpdateWorkflowResponse)(nil), // 11: k1s0.system.workflow.v1.UpdateWorkflowResponse
-	(*DeleteWorkflowRequest)(nil),  // 12: k1s0.system.workflow.v1.DeleteWorkflowRequest
-	(*DeleteWorkflowResponse)(nil), // 13: k1s0.system.workflow.v1.DeleteWorkflowResponse
-	(*StartInstanceRequest)(nil),   // 14: k1s0.system.workflow.v1.StartInstanceRequest
-	(*StartInstanceResponse)(nil),  // 15: k1s0.system.workflow.v1.StartInstanceResponse
-	(*GetInstanceRequest)(nil),     // 16: k1s0.system.workflow.v1.GetInstanceRequest
-	(*GetInstanceResponse)(nil),    // 17: k1s0.system.workflow.v1.GetInstanceResponse
-	(*ListInstancesRequest)(nil),   // 18: k1s0.system.workflow.v1.ListInstancesRequest
-	(*ListInstancesResponse)(nil),  // 19: k1s0.system.workflow.v1.ListInstancesResponse
-	(*CancelInstanceRequest)(nil),  // 20: k1s0.system.workflow.v1.CancelInstanceRequest
-	(*CancelInstanceResponse)(nil), // 21: k1s0.system.workflow.v1.CancelInstanceResponse
-	(*WorkflowTask)(nil),           // 22: k1s0.system.workflow.v1.WorkflowTask
-	(*ListTasksRequest)(nil),       // 23: k1s0.system.workflow.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),      // 24: k1s0.system.workflow.v1.ListTasksResponse
-	(*ReassignTaskRequest)(nil),    // 25: k1s0.system.workflow.v1.ReassignTaskRequest
-	(*ReassignTaskResponse)(nil),   // 26: k1s0.system.workflow.v1.ReassignTaskResponse
-	(*WorkflowInstance)(nil),       // 27: k1s0.system.workflow.v1.WorkflowInstance
-	(*ApproveTaskRequest)(nil),     // 28: k1s0.system.workflow.v1.ApproveTaskRequest
-	(*ApproveTaskResponse)(nil),    // 29: k1s0.system.workflow.v1.ApproveTaskResponse
-	(*RejectTaskRequest)(nil),      // 30: k1s0.system.workflow.v1.RejectTaskRequest
-	(*RejectTaskResponse)(nil),     // 31: k1s0.system.workflow.v1.RejectTaskResponse
-	(*v1.Timestamp)(nil),           // 32: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),          // 33: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),    // 34: k1s0.system.common.v1.PaginationResult
+	(WorkflowInstanceStatus)(0),    // 0: k1s0.system.workflow.v1.WorkflowInstanceStatus
+	(WorkflowTaskStatus)(0),        // 1: k1s0.system.workflow.v1.WorkflowTaskStatus
+	(WorkflowStepType)(0),          // 2: k1s0.system.workflow.v1.WorkflowStepType
+	(*WorkflowStep)(nil),           // 3: k1s0.system.workflow.v1.WorkflowStep
+	(*WorkflowDefinition)(nil),     // 4: k1s0.system.workflow.v1.WorkflowDefinition
+	(*ListWorkflowsRequest)(nil),   // 5: k1s0.system.workflow.v1.ListWorkflowsRequest
+	(*ListWorkflowsResponse)(nil),  // 6: k1s0.system.workflow.v1.ListWorkflowsResponse
+	(*CreateWorkflowRequest)(nil),  // 7: k1s0.system.workflow.v1.CreateWorkflowRequest
+	(*CreateWorkflowResponse)(nil), // 8: k1s0.system.workflow.v1.CreateWorkflowResponse
+	(*GetWorkflowRequest)(nil),     // 9: k1s0.system.workflow.v1.GetWorkflowRequest
+	(*GetWorkflowResponse)(nil),    // 10: k1s0.system.workflow.v1.GetWorkflowResponse
+	(*WorkflowSteps)(nil),          // 11: k1s0.system.workflow.v1.WorkflowSteps
+	(*UpdateWorkflowRequest)(nil),  // 12: k1s0.system.workflow.v1.UpdateWorkflowRequest
+	(*UpdateWorkflowResponse)(nil), // 13: k1s0.system.workflow.v1.UpdateWorkflowResponse
+	(*DeleteWorkflowRequest)(nil),  // 14: k1s0.system.workflow.v1.DeleteWorkflowRequest
+	(*DeleteWorkflowResponse)(nil), // 15: k1s0.system.workflow.v1.DeleteWorkflowResponse
+	(*StartInstanceRequest)(nil),   // 16: k1s0.system.workflow.v1.StartInstanceRequest
+	(*StartInstanceResponse)(nil),  // 17: k1s0.system.workflow.v1.StartInstanceResponse
+	(*GetInstanceRequest)(nil),     // 18: k1s0.system.workflow.v1.GetInstanceRequest
+	(*GetInstanceResponse)(nil),    // 19: k1s0.system.workflow.v1.GetInstanceResponse
+	(*ListInstancesRequest)(nil),   // 20: k1s0.system.workflow.v1.ListInstancesRequest
+	(*ListInstancesResponse)(nil),  // 21: k1s0.system.workflow.v1.ListInstancesResponse
+	(*CancelInstanceRequest)(nil),  // 22: k1s0.system.workflow.v1.CancelInstanceRequest
+	(*CancelInstanceResponse)(nil), // 23: k1s0.system.workflow.v1.CancelInstanceResponse
+	(*WorkflowTask)(nil),           // 24: k1s0.system.workflow.v1.WorkflowTask
+	(*ListTasksRequest)(nil),       // 25: k1s0.system.workflow.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),      // 26: k1s0.system.workflow.v1.ListTasksResponse
+	(*ReassignTaskRequest)(nil),    // 27: k1s0.system.workflow.v1.ReassignTaskRequest
+	(*ReassignTaskResponse)(nil),   // 28: k1s0.system.workflow.v1.ReassignTaskResponse
+	(*WorkflowInstance)(nil),       // 29: k1s0.system.workflow.v1.WorkflowInstance
+	(*ApproveTaskRequest)(nil),     // 30: k1s0.system.workflow.v1.ApproveTaskRequest
+	(*ApproveTaskResponse)(nil),    // 31: k1s0.system.workflow.v1.ApproveTaskResponse
+	(*RejectTaskRequest)(nil),      // 32: k1s0.system.workflow.v1.RejectTaskRequest
+	(*RejectTaskResponse)(nil),     // 33: k1s0.system.workflow.v1.RejectTaskResponse
+	(*v1.Timestamp)(nil),           // 34: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),          // 35: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),    // 36: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_workflow_v1_workflow_proto_depIdxs = []int32{
-	0,  // 0: k1s0.system.workflow.v1.WorkflowStep.step_type_enum:type_name -> k1s0.system.workflow.v1.WorkflowStepType
-	1,  // 1: k1s0.system.workflow.v1.WorkflowDefinition.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	32, // 2: k1s0.system.workflow.v1.WorkflowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 3: k1s0.system.workflow.v1.WorkflowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	33, // 4: k1s0.system.workflow.v1.ListWorkflowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	2,  // 5: k1s0.system.workflow.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	34, // 6: k1s0.system.workflow.v1.ListWorkflowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	1,  // 7: k1s0.system.workflow.v1.CreateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	2,  // 8: k1s0.system.workflow.v1.CreateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	2,  // 9: k1s0.system.workflow.v1.GetWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	1,  // 10: k1s0.system.workflow.v1.WorkflowSteps.items:type_name -> k1s0.system.workflow.v1.WorkflowStep
-	9,  // 11: k1s0.system.workflow.v1.UpdateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowSteps
-	2,  // 12: k1s0.system.workflow.v1.UpdateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
-	32, // 13: k1s0.system.workflow.v1.StartInstanceResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	27, // 14: k1s0.system.workflow.v1.GetInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	33, // 15: k1s0.system.workflow.v1.ListInstancesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	27, // 16: k1s0.system.workflow.v1.ListInstancesResponse.instances:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	34, // 17: k1s0.system.workflow.v1.ListInstancesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	27, // 18: k1s0.system.workflow.v1.CancelInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
-	32, // 19: k1s0.system.workflow.v1.WorkflowTask.due_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 20: k1s0.system.workflow.v1.WorkflowTask.decided_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 21: k1s0.system.workflow.v1.WorkflowTask.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 22: k1s0.system.workflow.v1.WorkflowTask.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	33, // 23: k1s0.system.workflow.v1.ListTasksRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	22, // 24: k1s0.system.workflow.v1.ListTasksResponse.tasks:type_name -> k1s0.system.workflow.v1.WorkflowTask
-	34, // 25: k1s0.system.workflow.v1.ListTasksResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	22, // 26: k1s0.system.workflow.v1.ReassignTaskResponse.task:type_name -> k1s0.system.workflow.v1.WorkflowTask
-	32, // 27: k1s0.system.workflow.v1.WorkflowInstance.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 28: k1s0.system.workflow.v1.WorkflowInstance.completed_at:type_name -> k1s0.system.common.v1.Timestamp
-	32, // 29: k1s0.system.workflow.v1.WorkflowInstance.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	3,  // 30: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:input_type -> k1s0.system.workflow.v1.ListWorkflowsRequest
-	5,  // 31: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:input_type -> k1s0.system.workflow.v1.CreateWorkflowRequest
-	7,  // 32: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:input_type -> k1s0.system.workflow.v1.GetWorkflowRequest
-	10, // 33: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:input_type -> k1s0.system.workflow.v1.UpdateWorkflowRequest
-	12, // 34: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:input_type -> k1s0.system.workflow.v1.DeleteWorkflowRequest
-	14, // 35: k1s0.system.workflow.v1.WorkflowService.StartInstance:input_type -> k1s0.system.workflow.v1.StartInstanceRequest
-	16, // 36: k1s0.system.workflow.v1.WorkflowService.GetInstance:input_type -> k1s0.system.workflow.v1.GetInstanceRequest
-	18, // 37: k1s0.system.workflow.v1.WorkflowService.ListInstances:input_type -> k1s0.system.workflow.v1.ListInstancesRequest
-	20, // 38: k1s0.system.workflow.v1.WorkflowService.CancelInstance:input_type -> k1s0.system.workflow.v1.CancelInstanceRequest
-	23, // 39: k1s0.system.workflow.v1.WorkflowService.ListTasks:input_type -> k1s0.system.workflow.v1.ListTasksRequest
-	25, // 40: k1s0.system.workflow.v1.WorkflowService.ReassignTask:input_type -> k1s0.system.workflow.v1.ReassignTaskRequest
-	28, // 41: k1s0.system.workflow.v1.WorkflowService.ApproveTask:input_type -> k1s0.system.workflow.v1.ApproveTaskRequest
-	30, // 42: k1s0.system.workflow.v1.WorkflowService.RejectTask:input_type -> k1s0.system.workflow.v1.RejectTaskRequest
-	4,  // 43: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:output_type -> k1s0.system.workflow.v1.ListWorkflowsResponse
-	6,  // 44: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:output_type -> k1s0.system.workflow.v1.CreateWorkflowResponse
-	8,  // 45: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:output_type -> k1s0.system.workflow.v1.GetWorkflowResponse
-	11, // 46: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:output_type -> k1s0.system.workflow.v1.UpdateWorkflowResponse
-	13, // 47: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:output_type -> k1s0.system.workflow.v1.DeleteWorkflowResponse
-	15, // 48: k1s0.system.workflow.v1.WorkflowService.StartInstance:output_type -> k1s0.system.workflow.v1.StartInstanceResponse
-	17, // 49: k1s0.system.workflow.v1.WorkflowService.GetInstance:output_type -> k1s0.system.workflow.v1.GetInstanceResponse
-	19, // 50: k1s0.system.workflow.v1.WorkflowService.ListInstances:output_type -> k1s0.system.workflow.v1.ListInstancesResponse
-	21, // 51: k1s0.system.workflow.v1.WorkflowService.CancelInstance:output_type -> k1s0.system.workflow.v1.CancelInstanceResponse
-	24, // 52: k1s0.system.workflow.v1.WorkflowService.ListTasks:output_type -> k1s0.system.workflow.v1.ListTasksResponse
-	26, // 53: k1s0.system.workflow.v1.WorkflowService.ReassignTask:output_type -> k1s0.system.workflow.v1.ReassignTaskResponse
-	29, // 54: k1s0.system.workflow.v1.WorkflowService.ApproveTask:output_type -> k1s0.system.workflow.v1.ApproveTaskResponse
-	31, // 55: k1s0.system.workflow.v1.WorkflowService.RejectTask:output_type -> k1s0.system.workflow.v1.RejectTaskResponse
-	43, // [43:56] is the sub-list for method output_type
-	30, // [30:43] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	2,  // 0: k1s0.system.workflow.v1.WorkflowStep.step_type_enum:type_name -> k1s0.system.workflow.v1.WorkflowStepType
+	3,  // 1: k1s0.system.workflow.v1.WorkflowDefinition.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	34, // 2: k1s0.system.workflow.v1.WorkflowDefinition.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 3: k1s0.system.workflow.v1.WorkflowDefinition.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	35, // 4: k1s0.system.workflow.v1.ListWorkflowsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	4,  // 5: k1s0.system.workflow.v1.ListWorkflowsResponse.workflows:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	36, // 6: k1s0.system.workflow.v1.ListWorkflowsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	3,  // 7: k1s0.system.workflow.v1.CreateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	4,  // 8: k1s0.system.workflow.v1.CreateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	4,  // 9: k1s0.system.workflow.v1.GetWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	3,  // 10: k1s0.system.workflow.v1.WorkflowSteps.items:type_name -> k1s0.system.workflow.v1.WorkflowStep
+	11, // 11: k1s0.system.workflow.v1.UpdateWorkflowRequest.steps:type_name -> k1s0.system.workflow.v1.WorkflowSteps
+	4,  // 12: k1s0.system.workflow.v1.UpdateWorkflowResponse.workflow:type_name -> k1s0.system.workflow.v1.WorkflowDefinition
+	34, // 13: k1s0.system.workflow.v1.StartInstanceResponse.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	29, // 14: k1s0.system.workflow.v1.GetInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	35, // 15: k1s0.system.workflow.v1.ListInstancesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	29, // 16: k1s0.system.workflow.v1.ListInstancesResponse.instances:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	36, // 17: k1s0.system.workflow.v1.ListInstancesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	29, // 18: k1s0.system.workflow.v1.CancelInstanceResponse.instance:type_name -> k1s0.system.workflow.v1.WorkflowInstance
+	34, // 19: k1s0.system.workflow.v1.WorkflowTask.due_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 20: k1s0.system.workflow.v1.WorkflowTask.decided_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 21: k1s0.system.workflow.v1.WorkflowTask.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 22: k1s0.system.workflow.v1.WorkflowTask.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	1,  // 23: k1s0.system.workflow.v1.WorkflowTask.status_enum:type_name -> k1s0.system.workflow.v1.WorkflowTaskStatus
+	35, // 24: k1s0.system.workflow.v1.ListTasksRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	24, // 25: k1s0.system.workflow.v1.ListTasksResponse.tasks:type_name -> k1s0.system.workflow.v1.WorkflowTask
+	36, // 26: k1s0.system.workflow.v1.ListTasksResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	24, // 27: k1s0.system.workflow.v1.ReassignTaskResponse.task:type_name -> k1s0.system.workflow.v1.WorkflowTask
+	34, // 28: k1s0.system.workflow.v1.WorkflowInstance.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 29: k1s0.system.workflow.v1.WorkflowInstance.completed_at:type_name -> k1s0.system.common.v1.Timestamp
+	34, // 30: k1s0.system.workflow.v1.WorkflowInstance.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 31: k1s0.system.workflow.v1.WorkflowInstance.status_enum:type_name -> k1s0.system.workflow.v1.WorkflowInstanceStatus
+	5,  // 32: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:input_type -> k1s0.system.workflow.v1.ListWorkflowsRequest
+	7,  // 33: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:input_type -> k1s0.system.workflow.v1.CreateWorkflowRequest
+	9,  // 34: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:input_type -> k1s0.system.workflow.v1.GetWorkflowRequest
+	12, // 35: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:input_type -> k1s0.system.workflow.v1.UpdateWorkflowRequest
+	14, // 36: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:input_type -> k1s0.system.workflow.v1.DeleteWorkflowRequest
+	16, // 37: k1s0.system.workflow.v1.WorkflowService.StartInstance:input_type -> k1s0.system.workflow.v1.StartInstanceRequest
+	18, // 38: k1s0.system.workflow.v1.WorkflowService.GetInstance:input_type -> k1s0.system.workflow.v1.GetInstanceRequest
+	20, // 39: k1s0.system.workflow.v1.WorkflowService.ListInstances:input_type -> k1s0.system.workflow.v1.ListInstancesRequest
+	22, // 40: k1s0.system.workflow.v1.WorkflowService.CancelInstance:input_type -> k1s0.system.workflow.v1.CancelInstanceRequest
+	25, // 41: k1s0.system.workflow.v1.WorkflowService.ListTasks:input_type -> k1s0.system.workflow.v1.ListTasksRequest
+	27, // 42: k1s0.system.workflow.v1.WorkflowService.ReassignTask:input_type -> k1s0.system.workflow.v1.ReassignTaskRequest
+	30, // 43: k1s0.system.workflow.v1.WorkflowService.ApproveTask:input_type -> k1s0.system.workflow.v1.ApproveTaskRequest
+	32, // 44: k1s0.system.workflow.v1.WorkflowService.RejectTask:input_type -> k1s0.system.workflow.v1.RejectTaskRequest
+	6,  // 45: k1s0.system.workflow.v1.WorkflowService.ListWorkflows:output_type -> k1s0.system.workflow.v1.ListWorkflowsResponse
+	8,  // 46: k1s0.system.workflow.v1.WorkflowService.CreateWorkflow:output_type -> k1s0.system.workflow.v1.CreateWorkflowResponse
+	10, // 47: k1s0.system.workflow.v1.WorkflowService.GetWorkflow:output_type -> k1s0.system.workflow.v1.GetWorkflowResponse
+	13, // 48: k1s0.system.workflow.v1.WorkflowService.UpdateWorkflow:output_type -> k1s0.system.workflow.v1.UpdateWorkflowResponse
+	15, // 49: k1s0.system.workflow.v1.WorkflowService.DeleteWorkflow:output_type -> k1s0.system.workflow.v1.DeleteWorkflowResponse
+	17, // 50: k1s0.system.workflow.v1.WorkflowService.StartInstance:output_type -> k1s0.system.workflow.v1.StartInstanceResponse
+	19, // 51: k1s0.system.workflow.v1.WorkflowService.GetInstance:output_type -> k1s0.system.workflow.v1.GetInstanceResponse
+	21, // 52: k1s0.system.workflow.v1.WorkflowService.ListInstances:output_type -> k1s0.system.workflow.v1.ListInstancesResponse
+	23, // 53: k1s0.system.workflow.v1.WorkflowService.CancelInstance:output_type -> k1s0.system.workflow.v1.CancelInstanceResponse
+	26, // 54: k1s0.system.workflow.v1.WorkflowService.ListTasks:output_type -> k1s0.system.workflow.v1.ListTasksResponse
+	28, // 55: k1s0.system.workflow.v1.WorkflowService.ReassignTask:output_type -> k1s0.system.workflow.v1.ReassignTaskResponse
+	31, // 56: k1s0.system.workflow.v1.WorkflowService.ApproveTask:output_type -> k1s0.system.workflow.v1.ApproveTaskResponse
+	33, // 57: k1s0.system.workflow.v1.WorkflowService.RejectTask:output_type -> k1s0.system.workflow.v1.RejectTaskResponse
+	45, // [45:58] is the sub-list for method output_type
+	32, // [32:45] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_workflow_v1_workflow_proto_init() }
@@ -2474,7 +2666,7 @@ func file_k1s0_system_workflow_v1_workflow_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_workflow_v1_workflow_proto_rawDesc), len(file_k1s0_system_workflow_v1_workflow_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      3,
 			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,

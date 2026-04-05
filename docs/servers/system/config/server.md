@@ -7,11 +7,19 @@ Rust で実装する。
 
 ### RBAC対応表
 
-| ロール名 | リソース/アクション |
-|---------|-----------------|
-| sys_auditor 以上 | configs/read |
-| sys_operator 以上 | configs/write |
-| sys_admin のみ | configs/admin |
+<!-- DOCS-HIGH-002 対応: 実装の認可方式を正確に反映するよう更新（2026-04-03） -->
+<!-- 現在の実装では Kong JWT プラグインによる Bearer トークン検証を行い、-->
+<!-- JWT Claims の tenant_id を必須とする。Keycloak ロール（sys_auditor 等）の -->
+<!-- サーバーサイド検証は現時点では未実装であり、Kong レベルのルート認証で代替している。 -->
+
+| ロール名 | リソース/アクション | 実装ステータス |
+|---------|-----------------|--------------|
+| Bearer token required | configs/read（GET 系） | 実装済み（JWT tenant_id 必須） |
+| Bearer token required | configs/write（PUT 系） | 実装済み（JWT tenant_id 必須） |
+| Bearer token required | configs/admin（DELETE 系） | 実装済み（JWT tenant_id 必須） |
+| sys_auditor 以上 | configs/read（将来計画） | 未実装（Kong ルートレベルで代替） |
+| sys_operator 以上 | configs/write（将来計画） | 未実装（Kong ルートレベルで代替） |
+| sys_admin のみ | configs/admin（将来計画） | 未実装（Kong ルートレベルで代替） |
 
 
 system tier の設定管理サーバーは以下の機能を提供する。
@@ -44,16 +52,17 @@ system tier の設定管理サーバーは以下の機能を提供する。
 
 全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SYS_CONFIG_` とする。
 
-| Method | Path | Description | 認可 |
+<!-- DOCS-HIGH-002 対応: 認可列を実装の実態（JWT tenant_id 必須）に合わせて修正（2026-04-03） -->
+| Method | Path | Description | 認可（現行実装） |
 | --- | --- | --- | --- |
-| GET | `/api/v1/config/{namespace}/{key}` | 設定値取得 | `sys_auditor` 以上 |
-| GET | `/api/v1/config/{namespace}` | namespace 内の設定値一覧 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config/{namespace}/{key}` | 設定値更新 | `sys_operator` 以上 |
-| DELETE | `/api/v1/config/{namespace}/{key}` | 設定値削除 | `sys_admin` |
-| GET | `/api/v1/config/services/{service_name}` | サービス向け設定一括取得 | Bearer token required |
-| GET | `/api/v1/config-schema` | 設定スキーマ一覧 | `sys_auditor` 以上 |
-| GET | `/api/v1/config-schema/{service_name}` | 設定スキーマ取得 | `sys_auditor` 以上 |
-| PUT | `/api/v1/config-schema/{service_name}` | 設定スキーマ作成・更新（Upsert） | `sys_admin` |
+| GET | `/api/v1/config/{namespace}/{key}` | 設定値取得 | Bearer token required（JWT tenant_id 必須） |
+| GET | `/api/v1/config/{namespace}` | namespace 内の設定値一覧 | Bearer token required（JWT tenant_id 必須） |
+| PUT | `/api/v1/config/{namespace}/{key}` | 設定値更新 | Bearer token required（JWT tenant_id 必須） |
+| DELETE | `/api/v1/config/{namespace}/{key}` | 設定値削除 | Bearer token required（JWT tenant_id 必須） |
+| GET | `/api/v1/config/services/{service_name}` | サービス向け設定一括取得 | Bearer token required（JWT tenant_id 必須） |
+| GET | `/api/v1/config-schema` | 設定スキーマ一覧 | Bearer token required（JWT tenant_id 必須） |
+| GET | `/api/v1/config-schema/{service_name}` | 設定スキーマ取得 | Bearer token required（JWT tenant_id 必須） |
+| PUT | `/api/v1/config-schema/{service_name}` | 設定スキーマ作成・更新（Upsert） | Bearer token required（JWT tenant_id 必須） |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -780,6 +789,40 @@ config_server:
 
 - [system-config-server-implementation.md](implementation.md) -- Rust 実装詳細（Cargo.toml・ドメイン・リポジトリ・ユースケース・ハンドラー・config.yaml）
 - [system-config-server-deploy.md](deploy.md) -- キャッシュ戦略・DB マイグレーション・テスト・Dockerfile・Helm values
+
+---
+
+---
+
+## 本番環境セキュリティ要件（MED-001 監査対応）
+
+### 設定値暗号化の本番環境必須化
+
+`config_server.encryption.enabled = false` の場合、本番環境（`app.environment` が `dev` / `development` / `local` / `test` 以外）では起動を拒否する（`startup.rs` にて）。
+
+設定値にはデータベースパスワード・APIキー等の機密情報が含まれる可能性があるため、本番での平文保存はセキュリティリスクとなる。
+
+**本番環境の必須設定:**
+
+```yaml
+# config/config.prod.yaml
+app:
+  environment: "production"
+
+config_server:
+  encryption:
+    enabled: true                       # 必須: false にすると起動エラー
+    sensitive_namespaces:
+      - "database"
+      - "secrets"
+      - "credentials"
+```
+
+```bash
+# 暗号化キーは環境変数で渡す（Kubernetes では SecretProviderClass 経由）
+# 32 バイト（AES-256）のランダムキーを base64 エンコードして設定する
+export CONFIG_ENCRYPTION_KEY=$(openssl rand -base64 32)
+```
 
 ---
 

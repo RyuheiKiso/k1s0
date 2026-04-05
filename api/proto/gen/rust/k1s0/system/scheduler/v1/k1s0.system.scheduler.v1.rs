@@ -31,16 +31,21 @@ pub struct Job {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateJobRequest {
+    /// ジョブ名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub description: ::prost::alloc::string::String,
+    /// cron 式は1文字以上128文字以下であること
     #[prost(string, tag="3")]
     pub cron_expression: ::prost::alloc::string::String,
+    /// タイムゾーンは1文字以上64文字以下であること（例: Asia/Tokyo）
     #[prost(string, tag="4")]
     pub timezone: ::prost::alloc::string::String,
+    /// ターゲット種別は1文字以上64文字以下であること（例: http, kafka）
     #[prost(string, tag="5")]
     pub target_type: ::prost::alloc::string::String,
+    /// ターゲットは1文字以上512文字以下であること（URL 等）
     #[prost(string, tag="6")]
     pub target: ::prost::alloc::string::String,
     #[prost(message, optional, tag="7")]
@@ -53,6 +58,7 @@ pub struct CreateJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -77,6 +83,7 @@ pub struct ListJobsResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -101,6 +108,7 @@ pub struct UpdateJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -113,6 +121,7 @@ pub struct DeleteJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PauseJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -123,6 +132,7 @@ pub struct PauseJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ResumeJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -133,6 +143,7 @@ pub struct ResumeJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct TriggerJobRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
 }
@@ -150,6 +161,7 @@ pub struct TriggerJobResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetJobExecutionRequest {
+    /// 実行IDは1文字以上であること
     #[prost(string, tag="1")]
     pub execution_id: ::prost::alloc::string::String,
 }
@@ -160,6 +172,7 @@ pub struct GetJobExecutionResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListExecutionsRequest {
+    /// ジョブIDは1文字以上であること
     #[prost(string, tag="1")]
     pub job_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]

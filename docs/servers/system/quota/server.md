@@ -745,9 +745,11 @@ auth:
   jwks_url: "http://auth-server.k1s0-system.svc.cluster.local:8080/.well-known/jwks.json"
 
 quota:
+  # H-006/M-005 監査対応: croner v2 は秒フィールドを含む6フィールド形式（秒 分 時 日 月 曜日）を使用する
+  # 5フィールド形式では find_next_occurrence が None を返し cron タスクが無音終了する問題が発生する
   reset_schedule:
-    daily: "0 0 * * *"
-    monthly: "0 0 1 * *"
+    daily: "0 0 0 * * *"    # 毎日深夜0時（UTC）
+    monthly: "0 0 0 1 * *"  # 毎月1日深夜0時（UTC）
 ```
 
 ### Helm values

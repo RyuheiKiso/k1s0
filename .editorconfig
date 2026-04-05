@@ -68,3 +68,8 @@ indent_size = 2
 [Dockerfile*]
 indent_style = space
 indent_size = 2
+
+# SQLファイル: UTF-8（BOMなし）を明示（CRIT-003 BOM混入防止対策）
+# [*] セクションに charset = utf-8 があるが、SQL専用セクションで明示的に保証する
+[*.sql]
+charset = utf-8

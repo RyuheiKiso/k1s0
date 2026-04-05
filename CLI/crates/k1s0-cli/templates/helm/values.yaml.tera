@@ -88,6 +88,10 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: H-017 監査対応
+  # RuntimeDefault seccompProfile を設定してシステムコールを制限する
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false

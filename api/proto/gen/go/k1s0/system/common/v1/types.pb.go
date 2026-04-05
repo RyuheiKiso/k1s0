@@ -24,7 +24,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ChangeType は設定・フラグ変更操作の種別。
+// ChangeType は設定・フラグ・テナント等の変更操作の種別。
+// HIGH-019 監査対応: テナントの SUSPENDED/ACTIVATED 状態変更に対応するため値を追加する
 type ChangeType int32
 
 const (
@@ -36,6 +37,10 @@ const (
 	ChangeType_CHANGE_TYPE_UPDATED ChangeType = 2
 	// CHANGE_TYPE_DELETED は削除。
 	ChangeType_CHANGE_TYPE_DELETED ChangeType = 3
+	// CHANGE_TYPE_SUSPENDED は停止（テナント一時停止等）。
+	ChangeType_CHANGE_TYPE_SUSPENDED ChangeType = 4
+	// CHANGE_TYPE_ACTIVATED は有効化（テナント再有効化等）。
+	ChangeType_CHANGE_TYPE_ACTIVATED ChangeType = 5
 )
 
 // Enum value maps for ChangeType.
@@ -45,12 +50,16 @@ var (
 		1: "CHANGE_TYPE_CREATED",
 		2: "CHANGE_TYPE_UPDATED",
 		3: "CHANGE_TYPE_DELETED",
+		4: "CHANGE_TYPE_SUSPENDED",
+		5: "CHANGE_TYPE_ACTIVATED",
 	}
 	ChangeType_value = map[string]int32{
 		"CHANGE_TYPE_UNSPECIFIED": 0,
 		"CHANGE_TYPE_CREATED":     1,
 		"CHANGE_TYPE_UPDATED":     2,
 		"CHANGE_TYPE_DELETED":     3,
+		"CHANGE_TYPE_SUSPENDED":   4,
+		"CHANGE_TYPE_ACTIVATED":   5,
 	}
 )
 
@@ -295,13 +304,15 @@ const file_k1s0_system_common_v1_types_proto_rawDesc = "" +
 	"\bhas_next\x18\x04 \x01(\bR\ahasNext\";\n" +
 	"\tTimestamp\x12\x18\n" +
 	"\aseconds\x18\x01 \x01(\x03R\aseconds\x12\x14\n" +
-	"\x05nanos\x18\x02 \x01(\x05R\x05nanos*t\n" +
+	"\x05nanos\x18\x02 \x01(\x05R\x05nanos*\xaa\x01\n" +
 	"\n" +
 	"ChangeType\x12\x1b\n" +
 	"\x17CHANGE_TYPE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13CHANGE_TYPE_CREATED\x10\x01\x12\x17\n" +
 	"\x13CHANGE_TYPE_UPDATED\x10\x02\x12\x17\n" +
-	"\x13CHANGE_TYPE_DELETED\x10\x03BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
+	"\x13CHANGE_TYPE_DELETED\x10\x03\x12\x19\n" +
+	"\x15CHANGE_TYPE_SUSPENDED\x10\x04\x12\x19\n" +
+	"\x15CHANGE_TYPE_ACTIVATED\x10\x05BDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
 
 var (
 	file_k1s0_system_common_v1_types_proto_rawDescOnce sync.Once

@@ -378,7 +378,34 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 
 ### Docker Compose 構成
 
-> **リソース要件**: インフラサービス（infra + system プロファイル）を全起動すると約9個のコンテナが起動し、**5GB以上のメモリ**を消費します。**メモリ8GB以上**、CPU 4コア以上の環境を推奨します。Docker Desktop をお使いの場合は Settings → Resources で割り当てを増やしてください。
+> **リソース要件**: 構成によって必要なリソースが異なります。
+> | 起動構成 | 必要メモリ | 推奨CPU |
+> |---------|----------|---------|
+> | インフラのみ (infra profile) | 4GB 以上 | 4コア以上 |
+> | infra + system ビルド済み起動 | **8GB 以上** | 4コア以上 |
+> | 全サービス新規ビルド（`--build`）| **16GB 以上** | 8コア以上 |
+>
+> ⚠️ **CRIT-004**: 20 以上の Rust サービスを `--build` で同時ビルドすると Docker Desktop の Linux VM が OOM クラッシュします。
+> 全サービスをビルドする場合は必ず `just docker-build-safe`（`--parallel 2`）を使用してください。
+>
+> ```bash
+> # 安全なビルド方法（OOM 防止）
+> just docker-build-safe   # --parallel 2 で並列数を制限
+>
+> # 危険: 直接 docker compose up --build は20以上の Rust ビルドで VM クラッシュの恐れ
+> # docker compose --profile infra --profile system up -d --build  # ← 使用しないこと
+> ```
+>
+> **WSL2 / Docker Desktop の推奨設定**: `C:\Users\<user>\.wslconfig` に以下を追加することを推奨:
+> ```ini
+> [wsl2]
+> memory=16GB
+> processors=8
+> swap=8GB
+> ```
+>
+> **注意**: `.env.dev` の `COMPOSE_PARALLEL_LIMIT=4` は `docker compose up` の依存解決並列数のみに有効です。
+> `docker compose build` の並列数は制限されません。ビルド並列数の制限は `just docker-build-safe` を使用してください。
 
 > ⚠️ **ローカル開発では必ず `docker-compose.dev.yaml` を併用してください（MED-6 監査対応）。**
 > `docker-compose.yaml` のみでは DATABASE_URL 等の環境変数が未解決になりサービスがクラッシュします。
@@ -416,6 +443,31 @@ docker compose --profile infra --profile system up -d
 | 全サービス | `docker compose --profile infra --profile system --profile business up -d` | ~5GB+ |
 
 > **推奨**: 開発中のサービスに関連するprofileのみ起動してください。
+
+### 開発環境セットアップ
+
+H-001 監査対応: 機密値を含む `.env.dev` はリポジトリに直接コミットせず、テンプレートから生成すること。
+
+1. 設定ファイルを作成:
+   ```bash
+   cp .env.dev.example .env.dev
+   ```
+
+2. セキュリティキーを生成:
+   ```bash
+   # SESSION_ENCRYPTION_KEY, API_KEY_PEPPER, VAULT_MASTER_KEY の値として使用
+   openssl rand -hex 32
+   ```
+
+3. `.env.dev` の各値を適切な値に変更してください。
+   - `<change-me>` と記載された項目は任意の安全なパスワードに変更してください。
+   - `<generate: openssl rand -hex 32 の出力を使用すること>` と記載された項目は上記コマンドの出力値で置き換えてください。
+
+> **M-001 監査対応**: `VAULT_MASTER_KEY` は Vault dev モードでシークレットを永続化するために必要です。
+> 未設定の場合、Vault を再起動するたびにシークレットが消失します。
+> `openssl rand -hex 32` で生成した値を `.env.dev` に設定してください。
+
+---
 
 ### 1. クローン & インフラ起動
 
@@ -458,8 +510,11 @@ just migrate regions/system/database/auth-db
 ### 2. System サーバー起動
 
 ```bash
-# system プロファイルのサービスを一括起動（初回はビルドに数分かかります）
-# メモリ不足でビルドがOOMクラッシュする場合は `just docker-build-safe` を先に実行してください
+# system プロファイルのサービスを一括起動（初回はビルドが必要）
+# CRIT-004: 20+ Rust サービスの同時ビルドはVM OOM クラッシュの原因となるため、
+#   先に just docker-build-safe でビルドしてから up すること
+just docker-build-safe   # 初回または Dockerfile 変更時
+
 docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
   --profile infra --profile system up -d
 

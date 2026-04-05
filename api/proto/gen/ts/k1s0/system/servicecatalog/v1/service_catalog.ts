@@ -29,7 +29,7 @@ export interface ServiceInfo {
      */
     id: string;
     /**
-     * サービス名（例: auth, tenant, order）
+     * サービス名（例: auth, tenant, task）
      *
      * @generated from protobuf field: string name = 2
      */
@@ -112,10 +112,14 @@ export interface ServiceInfo {
  */
 export interface RegisterServiceRequest {
     /**
+     * サービス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * 表示名は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string display_name = 2
      */
     displayName: string;
@@ -124,14 +128,20 @@ export interface RegisterServiceRequest {
      */
     description: string;
     /**
+     * Tier は1文字以上64文字以下であること（例: system, business, service）
+     *
      * @generated from protobuf field: string tier = 4
      */
     tier: string;
     /**
+     * バージョンは1文字以上64文字以下であること
+     *
      * @generated from protobuf field: string version = 5
      */
     version: string;
     /**
+     * ベース URL は1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string base_url = 6
      */
     baseUrl: string;
@@ -140,6 +150,8 @@ export interface RegisterServiceRequest {
      */
     grpcEndpoint?: string;
     /**
+     * ヘルスチェック URL は1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string health_url = 8
      */
     healthUrl: string;
@@ -170,7 +182,7 @@ export interface RegisterServiceResponse {
  */
 export interface GetServiceRequest {
     /**
-     * サービス UUID または名前
+     * サービス UUID または名前（1文字以上であること）
      *
      * @generated from protobuf field: string service_id = 1
      */
@@ -242,6 +254,8 @@ export interface ListServicesResponse {
  */
 export interface UpdateServiceRequest {
     /**
+     * サービス IDは1文字以上であること
+     *
      * @generated from protobuf field: string service_id = 1
      */
     serviceId: string;
@@ -296,6 +310,8 @@ export interface UpdateServiceResponse {
  */
 export interface DeleteServiceRequest {
     /**
+     * サービス IDは1文字以上であること
+     *
      * @generated from protobuf field: string service_id = 1
      */
     serviceId: string;
@@ -538,14 +554,14 @@ export const ServiceInfo = new ServiceInfo$Type();
 class RegisterServiceRequest$Type extends MessageType<RegisterServiceRequest> {
     constructor() {
         super("k1s0.system.servicecatalog.v1.RegisterServiceRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "tier", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "base_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "tier", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 5, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 6, name: "base_url", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 7, name: "grpc_endpoint", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "health_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "health_url", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 9, name: "metadata", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -710,7 +726,7 @@ export const RegisterServiceResponse = new RegisterServiceResponse$Type();
 class GetServiceRequest$Type extends MessageType<GetServiceRequest> {
     constructor() {
         super("k1s0.system.servicecatalog.v1.GetServiceRequest", [
-            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetServiceRequest>): GetServiceRequest {
@@ -924,7 +940,7 @@ export const ListServicesResponse = new ListServicesResponse$Type();
 class UpdateServiceRequest$Type extends MessageType<UpdateServiceRequest> {
     constructor() {
         super("k1s0.system.servicecatalog.v1.UpdateServiceRequest", [
-            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "version", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
@@ -1083,7 +1099,7 @@ export const UpdateServiceResponse = new UpdateServiceResponse$Type();
 class DeleteServiceRequest$Type extends MessageType<DeleteServiceRequest> {
     constructor() {
         super("k1s0.system.servicecatalog.v1.DeleteServiceRequest", [
-            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "service_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteServiceRequest>): DeleteServiceRequest {

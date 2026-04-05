@@ -1,0 +1,51 @@
+# M-031 監査対応: HashiCorp Vault Helm chart の追加設定（PVC マウント）
+# 目的: 監査ログをコンテナ再起動後も永続化するため、vault-audit-log-pvc をマウントする
+#
+# 使用方法:
+#   helm upgrade vault hashicorp/vault \
+#     -f infra/terraform/modules/vault/values/vault-helm-overrides.yaml \
+#     -n k1s0-system
+#
+# または Terraform の helm_release リソースで values として指定する:
+#   resource "helm_release" "vault" {
+#     values = [file("${path.module}/values/vault-helm-overrides.yaml")]
+#   }
+#
+# 前提: infra/kubernetes/system/vault-audit-pvc.yaml を先に適用すること
+#   kubectl apply -f infra/kubernetes/system/vault-audit-pvc.yaml
+
+server:
+  # 監査ログ用 PVC をコンテナにマウントする（M-031 監査対応）
+  # vault_audit リソース（infra/terraform/modules/vault/main.tf）は
+  # file_path = "/vault/logs/audit.log" に書き込むためこのマウントが必要
+  volumes:
+    - name: audit-log
+      persistentVolumeClaim:
+        # infra/kubernetes/system/vault-audit-pvc.yaml で定義された PVC を参照する
+        claimName: vault-audit-log-pvc
+
+  volumeMounts:
+    - name: audit-log
+      # Terraform vault_audit リソースの file_path と一致させること
+      mountPath: /vault/logs
+
+  # 監査ログのファイルローテーション設定（オプション）
+  # Vault はデフォルトでローテーションしないため、外部ローテーション（logrotate等）が必要
+  # あるいは audit sink の type を syslog に変更して外部ログ収集に委ねることを検討する
+
+  # Kubernetes probe の設定（audit log マウント後も正常に動作するよう確認済み）
+  # LOW-005 監査対応（本番環境セキュリティ注意）:
+  # `-tls-skip-verify` はローカル/開発環境の自己署名証明書向け設定である。
+  # 本番環境では -tls-skip-verify を除去し、正規の CA 証明書を以下のいずれかで設定すること:
+  #   1. VAULT_CACERT 環境変数: CA 証明書ファイルのパスを指定する
+  #   2. VAULT_CAPATH 環境変数: CA 証明書ディレクトリのパスを指定する
+  #   3. cert-manager で発行した証明書を ConfigMap/Secret 経由でマウントする
+  # 参照: https://developer.hashicorp.com/vault/docs/configuration/listener/tcp#tls_cert_file
+  readinessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - vault status -tls-skip-verify | grep -E "^Initialized|^Sealed"
+    initialDelaySeconds: 10
+    periodSeconds: 10

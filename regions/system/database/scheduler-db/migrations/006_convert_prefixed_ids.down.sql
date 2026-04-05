@@ -1,4 +1,4 @@
-﻿ALTER TABLE scheduler.job_executions
+ALTER TABLE scheduler.job_executions
     DROP CONSTRAINT IF EXISTS job_executions_job_id_fkey;
 
 ALTER TABLE scheduler.job_executions

@@ -25,24 +25,26 @@ use k1s0_featureflag_server::usecase::*;
 // ---------------------------------------------------------------------------
 struct StubFlagRepo;
 
+/// STATIC-CRITICAL-001 監査対応: StubFlagRepo の全メソッドで tenant_id を受け取る。
+/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 #[async_trait]
 impl FeatureFlagRepository for StubFlagRepo {
-    async fn find_by_key(&self, _flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, _tenant_id: &str, _flag_key: &str) -> anyhow::Result<FeatureFlag> {
         Err(anyhow::anyhow!("not found"))
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         Ok(vec![])
     }
-    async fn create(&self, _flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, _flag: &FeatureFlag) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update(&self, _flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, _flag: &FeatureFlag) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, _id: &Uuid) -> anyhow::Result<bool> {
         Ok(false)
     }
-    async fn exists_by_key(&self, _flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, _tenant_id: &str, _flag_key: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }

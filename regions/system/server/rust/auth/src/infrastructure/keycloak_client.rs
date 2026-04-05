@@ -11,6 +11,8 @@ use crate::domain::error::AuthError;
 use crate::domain::repository::UserRepository;
 
 /// KeycloakConfig は Keycloak 接続の設定を表す。
+/// STATIC-MEDIUM-003 監査対応 (ADR-0061): ROPC（admin_username / admin_password）を廃止し、
+/// Client Credentials Grant（client_id + client_secret）のみを使用する形に統一した。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct KeycloakConfig {
     pub base_url: String,
@@ -19,73 +21,34 @@ pub struct KeycloakConfig {
     // client_secret は Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
     // クライアントシークレットは必須項目のため serde(default) を設定しない（Secret<String> は Default 未実装）
     pub client_secret: Secret<String>,
-    #[serde(default = "default_admin_realm")]
-    pub admin_realm: String,
-    #[serde(default = "default_admin_client_id")]
-    pub admin_client_id: String,
-    #[serde(default)]
-    pub admin_username: String,
-    // admin_password は Secret<String> で保持し、Debug トレイトでは [REDACTED] と表示される
-    pub admin_password: Secret<String>,
-}
-
-fn default_admin_realm() -> String {
-    "master".to_string()
-}
-
-fn default_admin_client_id() -> String {
-    "admin-cli".to_string()
 }
 
 impl KeycloakConfig {
-    /// admin_password が設定されている場合は Resource Owner Password Grant を使用する。
-    fn uses_admin_password_grant(&self) -> bool {
-        !self.admin_username.is_empty() && !self.admin_password.expose_secret().is_empty()
-    }
-
+    /// Keycloak Admin API トークン取得エンドポイント URL を返す。
+    /// STATIC-MEDIUM-003 監査対応 (ADR-0061): Client Credentials Grant 専用として
+    /// サービスアカウントの realm（self.realm）を常に使用する。ROPC の master realm 分岐は削除済み。
     pub(crate) fn admin_token_url(&self) -> String {
-        let realm = if self.uses_admin_password_grant() {
-            self.admin_realm.as_str()
-        } else {
-            self.realm.as_str()
-        };
         format!(
             "{}/realms/{}/protocol/openid-connect/token",
-            self.base_url, realm
+            self.base_url, self.realm
         )
     }
 
     /// Keycloak Admin API トークン取得用のフォームデータを生成する。
-    ///
-    /// MED-15 監査対応: admin_username が設定されている場合は Resource Owner Password Credentials
-    /// (ROPC) Grant を使用するが、ROPC は OAuth 2.1 (draft) で廃止予定のフローである。
-    /// 将来的に Client Credentials Grant（client_id + client_secret のみ）への移行を検討すること。
-    /// 移行計画は ADR-0050 で文書化予定。
-    ///
-    /// 参考: https://oauth.net/2/grant-types/password/
+    /// STATIC-MEDIUM-003 監査対応 (ADR-0061): Client Credentials Grant（client_id + client_secret）のみ使用。
+    /// ROPC（admin_username + admin_password）は OAuth 2.1 で廃止予定のため削除済み。
+    /// Keycloak 側で auth-rust 専用 Service Account を作成し、必要な realm-management ロールを付与すること。
     pub(crate) fn admin_token_form(&self) -> Vec<(&'static str, String)> {
-        if self.uses_admin_password_grant() {
-            // TODO(ADR-0050): ROPC (password grant) は OAuth 2.1 で廃止予定。
-            // Keycloak の Service Account を使った Client Credentials Grant に移行すること。
-            vec![
-                ("grant_type", "password".to_string()),
-                ("client_id", self.admin_client_id.clone()),
-                ("username", self.admin_username.clone()),
-                // expose_secret() でパスワードを取り出してフォームに設定する
-                ("password", self.admin_password.expose_secret().to_string()),
-            ]
-        } else {
-            // Client Credentials Grant: OAuth 2.1 推奨フロー（ADR-0050 で採用予定）
-            vec![
-                ("grant_type", "client_credentials".to_string()),
-                ("client_id", self.client_id.clone()),
-                // expose_secret() でクライアントシークレットを取り出してフォームに設定する
-                (
-                    "client_secret",
-                    self.client_secret.expose_secret().to_string(),
-                ),
-            ]
-        }
+        // Client Credentials Grant: サービス間通信（M2M）の標準フロー（ADR-0061 で採用決定）
+        vec![
+            ("grant_type", "client_credentials".to_string()),
+            ("client_id", self.client_id.clone()),
+            // expose_secret() でクライアントシークレットを取り出してフォームに設定する
+            (
+                "client_secret",
+                self.client_secret.expose_secret().to_string(),
+            ),
+        ]
     }
 }
 
@@ -110,6 +73,27 @@ pub struct KeycloakClient {
 }
 
 impl KeycloakClient {
+    /// M-004 監査対応: Keycloak Admin API レスポンスの HTTP ステータスを検査し、
+    /// 403 Forbidden を権限不足エラーとして明示的に処理する。
+    /// error_for_status() では 403 が汎用エラーとして扱われ、サーキットブレーカーが
+    /// 「サービス障害」と誤認してオープン状態に遷移する問題を防止する。
+    /// 403 は設定ミス（realm-management スコープ不足）であり、再試行しても無意味なため
+    /// サーキットブレーカーを開かせるべきではない。
+    fn check_keycloak_response(resp: reqwest::Response, url: &str) -> anyhow::Result<reqwest::Response> {
+        if resp.status() == reqwest::StatusCode::FORBIDDEN {
+            tracing::error!(
+                url = %url,
+                "Keycloak Admin API で 403 Forbidden が返されました。\
+                 auth-rust-admin クライアントの realm-management スコープ設定を確認してください。"
+            );
+            return Err(anyhow::anyhow!(
+                "Keycloak Admin API への権限がありません (403)。\
+                 realm-management audience mapper の設定を確認してください。"
+            ));
+        }
+        Ok(resp)
+    }
+
     /// 新しい KeycloakClient を生成する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakConfig) -> anyhow::Result<Self> {
@@ -253,7 +237,11 @@ impl UserRepository for KeycloakClient {
             );
         }
 
-        let kc_user: KeycloakUser = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let kc_user: KeycloakUser = Self::check_keycloak_response(resp, &url)?
+            .error_for_status()?
+            .json()
+            .await?;
         Ok(kc_user.into())
     }
 
@@ -287,7 +275,11 @@ impl UserRepository for KeycloakClient {
             .await
             .map_err(|e| anyhow::anyhow!("keycloak list users failed: {}", e))?;
 
-        let kc_users: Vec<KeycloakUser> = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let kc_users: Vec<KeycloakUser> = Self::check_keycloak_response(resp, &url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         // MED-04 監査対応: count_url にも search と enabled フィルターを適用する。
         // list_url と同じ条件でカウントしないと has_next 計算が誤った値を返す可能性がある。
@@ -313,7 +305,11 @@ impl UserRepository for KeycloakClient {
             .call(|| async { http.get(&count_url).bearer_auth(&count_token).send().await })
             .await
             .map_err(|e| anyhow::anyhow!("keycloak user count failed: {}", e))?;
-        let total_count: i64 = count_resp.error_for_status()?.json().await?;
+        // M-004 監査対応: count エンドポイントでも 403 を権限不足エラーとして明示的に処理する
+        let total_count: i64 = Self::check_keycloak_response(count_resp, &count_url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         let users: Vec<User> = kc_users.into_iter().map(|u| u.into()).collect();
         let has_next = (page as i64 * page_size as i64) < total_count;
@@ -352,7 +348,11 @@ impl UserRepository for KeycloakClient {
             );
         }
 
-        let realm_roles: Vec<KeycloakRole> = resp.error_for_status()?.json().await?;
+        // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
+        let realm_roles: Vec<KeycloakRole> = Self::check_keycloak_response(resp, &realm_url)?
+            .error_for_status()?
+            .json()
+            .await?;
 
         Ok(UserRoles {
             user_id: user_id.to_string(),
@@ -489,18 +489,39 @@ mod tests {
         assert_eq!(role.name, "sys_admin");
     }
 
+    /// STATIC-MEDIUM-003 監査対応 (ADR-0061): admin_username / admin_password を設定から除いた
+    /// Client Credentials Grant 専用の設定が正しくデシリアライズされることを確認する。
     #[test]
     fn test_keycloak_config_deserialization() {
         let yaml = r#"
 base_url: "https://auth.k1s0.internal.example.com"
 realm: "k1s0"
-client_id: "auth-server"
-client_secret: "secret"
-admin_password: ""
+client_id: "auth-rust-admin"
+client_secret: "service-account-secret"
 "#;
         let config: KeycloakConfig =
             serde_yaml::from_str(yaml).expect("YAML deserialization should succeed");
         assert_eq!(config.base_url, "https://auth.k1s0.internal.example.com");
         assert_eq!(config.realm, "k1s0");
+        assert_eq!(config.client_id, "auth-rust-admin");
+    }
+
+    /// STATIC-MEDIUM-003 監査対応: Client Credentials Grant のフォームが正しく生成されることを確認する。
+    #[test]
+    fn test_admin_token_form_uses_client_credentials() {
+        use secrecy::Secret;
+        let config = KeycloakConfig {
+            base_url: "https://auth.example.com".to_string(),
+            realm: "k1s0".to_string(),
+            client_id: "auth-rust-admin".to_string(),
+            client_secret: Secret::new("test-secret".to_string()),
+        };
+
+        let form = config.admin_token_form();
+        let grant_type = form.iter().find(|(k, _)| *k == "grant_type").map(|(_, v)| v.as_str());
+        assert_eq!(grant_type, Some("client_credentials"), "Client Credentials Grant を使用するべき");
+        // ROPC フィールドが含まれていないことを確認する
+        assert!(!form.iter().any(|(k, _)| *k == "username"), "username フィールドは含まれないべき");
+        assert!(!form.iter().any(|(k, _)| *k == "password"), "password フィールドは含まれないべき");
     }
 }

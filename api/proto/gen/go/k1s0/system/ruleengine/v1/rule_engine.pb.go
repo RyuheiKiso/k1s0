@@ -7,6 +7,7 @@
 package ruleenginev1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -251,8 +252,9 @@ func (x *ListRulesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type GetRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,12 +341,13 @@ func (x *GetRuleResponse) GetRule() *Rule {
 }
 
 type CreateRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Priority      int32                  `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
-	WhenJson      []byte                 `protobuf:"bytes,4,opt,name=when_json,json=whenJson,proto3" json:"when_json,omitempty"`
-	ThenJson      []byte                 `protobuf:"bytes,5,opt,name=then_json,json=thenJson,proto3" json:"then_json,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルール名は1文字以上128文字以下であること
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Priority      int32  `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
+	WhenJson      []byte `protobuf:"bytes,4,opt,name=when_json,json=whenJson,proto3" json:"when_json,omitempty"`
+	ThenJson      []byte `protobuf:"bytes,5,opt,name=then_json,json=thenJson,proto3" json:"then_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -459,13 +462,14 @@ func (x *CreateRuleResponse) GetRule() *Rule {
 }
 
 type UpdateRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Description   *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Priority      *int32                 `protobuf:"varint,3,opt,name=priority,proto3,oneof" json:"priority,omitempty"`
-	WhenJson      []byte                 `protobuf:"bytes,4,opt,name=when_json,json=whenJson,proto3,oneof" json:"when_json,omitempty"`
-	ThenJson      []byte                 `protobuf:"bytes,5,opt,name=then_json,json=thenJson,proto3,oneof" json:"then_json,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,6,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	Id            string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description   *string `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Priority      *int32  `protobuf:"varint,3,opt,name=priority,proto3,oneof" json:"priority,omitempty"`
+	WhenJson      []byte  `protobuf:"bytes,4,opt,name=when_json,json=whenJson,proto3,oneof" json:"when_json,omitempty"`
+	ThenJson      []byte  `protobuf:"bytes,5,opt,name=then_json,json=thenJson,proto3,oneof" json:"then_json,omitempty"`
+	Enabled       *bool   `protobuf:"varint,6,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -587,8 +591,9 @@ func (x *UpdateRuleResponse) GetRule() *Rule {
 }
 
 type DeleteRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -911,8 +916,9 @@ func (x *ListRuleSetsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type GetRuleSetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセットIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -999,13 +1005,16 @@ func (x *GetRuleSetResponse) GetRuleSet() *RuleSet {
 }
 
 type CreateRuleSetRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Name              string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description       string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Domain            string                 `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
-	EvaluationMode    string                 `protobuf:"bytes,4,opt,name=evaluation_mode,json=evaluationMode,proto3" json:"evaluation_mode,omitempty"`
-	DefaultResultJson []byte                 `protobuf:"bytes,5,opt,name=default_result_json,json=defaultResultJson,proto3" json:"default_result_json,omitempty"`
-	RuleIds           []string               `protobuf:"bytes,6,rep,name=rule_ids,json=ruleIds,proto3" json:"rule_ids,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセット名は1文字以上128文字以下であること
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// ドメインは1文字以上128文字以下であること
+	Domain string `protobuf:"bytes,3,opt,name=domain,proto3" json:"domain,omitempty"`
+	// 評価モードは1文字以上64文字以下であること（例: first_match, all_match）
+	EvaluationMode    string   `protobuf:"bytes,4,opt,name=evaluation_mode,json=evaluationMode,proto3" json:"evaluation_mode,omitempty"`
+	DefaultResultJson []byte   `protobuf:"bytes,5,opt,name=default_result_json,json=defaultResultJson,proto3" json:"default_result_json,omitempty"`
+	RuleIds           []string `protobuf:"bytes,6,rep,name=rule_ids,json=ruleIds,proto3" json:"rule_ids,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1127,13 +1136,14 @@ func (x *CreateRuleSetResponse) GetRuleSet() *RuleSet {
 }
 
 type UpdateRuleSetRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Description       *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	EvaluationMode    *string                `protobuf:"bytes,3,opt,name=evaluation_mode,json=evaluationMode,proto3,oneof" json:"evaluation_mode,omitempty"`
-	DefaultResultJson []byte                 `protobuf:"bytes,4,opt,name=default_result_json,json=defaultResultJson,proto3,oneof" json:"default_result_json,omitempty"`
-	RuleIds           []string               `protobuf:"bytes,5,rep,name=rule_ids,json=ruleIds,proto3" json:"rule_ids,omitempty"`
-	Enabled           *bool                  `protobuf:"varint,6,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセットIDは1文字以上であること
+	Id                string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description       *string  `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	EvaluationMode    *string  `protobuf:"bytes,3,opt,name=evaluation_mode,json=evaluationMode,proto3,oneof" json:"evaluation_mode,omitempty"`
+	DefaultResultJson []byte   `protobuf:"bytes,4,opt,name=default_result_json,json=defaultResultJson,proto3,oneof" json:"default_result_json,omitempty"`
+	RuleIds           []string `protobuf:"bytes,5,rep,name=rule_ids,json=ruleIds,proto3" json:"rule_ids,omitempty"`
+	Enabled           *bool    `protobuf:"varint,6,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1255,8 +1265,9 @@ func (x *UpdateRuleSetResponse) GetRuleSet() *RuleSet {
 }
 
 type DeleteRuleSetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセットIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1351,8 +1362,9 @@ func (x *DeleteRuleSetResponse) GetMessage() string {
 }
 
 type PublishRuleSetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセットIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1463,8 +1475,9 @@ func (x *PublishRuleSetResponse) GetPublishedAt() *v1.Timestamp {
 }
 
 type RollbackRuleSetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセットIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1575,10 +1588,11 @@ func (x *RollbackRuleSetResponse) GetRolledBackAt() *v1.Timestamp {
 }
 
 type EvaluateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuleSet       string                 `protobuf:"bytes,1,opt,name=rule_set,json=ruleSet,proto3" json:"rule_set,omitempty"`
-	InputJson     []byte                 `protobuf:"bytes,2,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
-	ContextJson   []byte                 `protobuf:"bytes,3,opt,name=context_json,json=contextJson,proto3" json:"context_json,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールセット識別子は1文字以上128文字以下であること
+	RuleSet       string `protobuf:"bytes,1,opt,name=rule_set,json=ruleSet,proto3" json:"rule_set,omitempty"`
+	InputJson     []byte `protobuf:"bytes,2,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
+	ContextJson   []byte `protobuf:"bytes,3,opt,name=context_json,json=contextJson,proto3" json:"context_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1805,7 +1819,7 @@ func (x *EvaluateResponse) GetEvaluatedAt() *v1.Timestamp {
 // ドライラン評価リクエスト: EvaluateDryRun RPC 専用のリクエストメッセージ
 type EvaluateDryRunRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 評価対象のルールセット識別子
+	// 評価対象のルールセット識別子（1文字以上128文字以下）
 	RuleSet string `protobuf:"bytes,1,opt,name=rule_set,json=ruleSet,proto3" json:"rule_set,omitempty"`
 	// 評価入力データ（JSON 形式）
 	InputJson []byte `protobuf:"bytes,2,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
@@ -1979,7 +1993,7 @@ var File_k1s0_system_ruleengine_v1_rule_engine_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\n" +
-	"+k1s0/system/ruleengine/v1/rule_engine.proto\x12\x19k1s0.system.ruleengine.v1\x1a!k1s0/system/common/v1/types.proto\"\xd8\x02\n" +
+	"+k1s0/system/ruleengine/v1/rule_engine.proto\x12\x19k1s0.system.ruleengine.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xd8\x02\n" +
 	"\x04Rule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -2006,21 +2020,22 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\x05rules\x18\x01 \x03(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x05rules\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\" \n" +
-	"\x0eGetRuleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"F\n" +
+	"pagination\")\n" +
+	"\x0eGetRuleRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"F\n" +
 	"\x0fGetRuleResponse\x123\n" +
-	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\x9f\x01\n" +
-	"\x11CreateRuleRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\xab\x01\n" +
+	"\x11CreateRuleRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
 	"\bpriority\x18\x03 \x01(\x05R\bpriority\x12\x1b\n" +
 	"\twhen_json\x18\x04 \x01(\fR\bwhenJson\x12\x1b\n" +
 	"\tthen_json\x18\x05 \x01(\fR\bthenJson\"I\n" +
 	"\x12CreateRuleResponse\x123\n" +
-	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\x93\x02\n" +
-	"\x11UpdateRuleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"\x9c\x02\n" +
+	"\x11UpdateRuleRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1f\n" +
 	"\bpriority\x18\x03 \x01(\x05H\x01R\bpriority\x88\x01\x01\x12 \n" +
 	"\twhen_json\x18\x04 \x01(\fH\x02R\bwhenJson\x88\x01\x01\x12 \n" +
@@ -2035,9 +2050,9 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\n" +
 	"\b_enabled\"I\n" +
 	"\x12UpdateRuleResponse\x123\n" +
-	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\"#\n" +
-	"\x11DeleteRuleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
+	"\x04rule\x18\x01 \x01(\v2\x1f.k1s0.system.ruleengine.v1.RuleR\x04rule\",\n" +
+	"\x11DeleteRuleRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"H\n" +
 	"\x12DeleteRuleResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\xa0\x03\n" +
@@ -2066,22 +2081,24 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\trule_sets\x18\x01 \x03(\v2\".k1s0.system.ruleengine.v1.RuleSetR\bruleSets\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"#\n" +
-	"\x11GetRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
+	"pagination\",\n" +
+	"\x11GetRuleSetRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"S\n" +
 	"\x12GetRuleSetResponse\x12=\n" +
-	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xd8\x01\n" +
-	"\x14CreateRuleSetRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
-	"\x06domain\x18\x03 \x01(\tR\x06domain\x12'\n" +
-	"\x0fevaluation_mode\x18\x04 \x01(\tR\x0eevaluationMode\x12.\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xfb\x01\n" +
+	"\x14CreateRuleSetRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\"\n" +
+	"\x06domain\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x06domain\x122\n" +
+	"\x0fevaluation_mode\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x0eevaluationMode\x12.\n" +
 	"\x13default_result_json\x18\x05 \x01(\fR\x11defaultResultJson\x12\x19\n" +
 	"\brule_ids\x18\x06 \x03(\tR\aruleIds\"V\n" +
 	"\x15CreateRuleSetResponse\x12=\n" +
-	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xb2\x02\n" +
-	"\x14UpdateRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"\xbb\x02\n" +
+	"\x14UpdateRuleSetRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12,\n" +
 	"\x0fevaluation_mode\x18\x03 \x01(\tH\x01R\x0eevaluationMode\x88\x01\x01\x123\n" +
 	"\x13default_result_json\x18\x04 \x01(\fH\x02R\x11defaultResultJson\x88\x01\x01\x12\x19\n" +
@@ -2093,28 +2110,29 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"\n" +
 	"\b_enabled\"V\n" +
 	"\x15UpdateRuleSetResponse\x12=\n" +
-	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"&\n" +
-	"\x14DeleteRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
+	"\brule_set\x18\x01 \x01(\v2\".k1s0.system.ruleengine.v1.RuleSetR\aruleSet\"/\n" +
+	"\x14DeleteRuleSetRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"K\n" +
 	"\x15DeleteRuleSetResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"'\n" +
-	"\x15PublishRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xc5\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"0\n" +
+	"\x15PublishRuleSetRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\xc5\x01\n" +
 	"\x16PublishRuleSetResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12+\n" +
 	"\x11published_version\x18\x02 \x01(\rR\x10publishedVersion\x12)\n" +
 	"\x10previous_version\x18\x03 \x01(\rR\x0fpreviousVersion\x12C\n" +
-	"\fpublished_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vpublishedAt\"(\n" +
-	"\x16RollbackRuleSetRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xd1\x01\n" +
+	"\fpublished_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vpublishedAt\"1\n" +
+	"\x16RollbackRuleSetRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\xd1\x01\n" +
 	"\x17RollbackRuleSetResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x123\n" +
 	"\x16rolled_back_to_version\x18\x02 \x01(\rR\x13rolledBackToVersion\x12)\n" +
 	"\x10previous_version\x18\x03 \x01(\rR\x0fpreviousVersion\x12F\n" +
-	"\x0erolled_back_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\frolledBackAt\"n\n" +
-	"\x0fEvaluateRequest\x12\x19\n" +
-	"\brule_set\x18\x01 \x01(\tR\aruleSet\x12\x1d\n" +
+	"\x0erolled_back_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\frolledBackAt\"z\n" +
+	"\x0fEvaluateRequest\x12%\n" +
+	"\brule_set\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aruleSet\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x02 \x01(\fR\tinputJson\x12!\n" +
 	"\fcontext_json\x18\x03 \x01(\fR\vcontextJson\"n\n" +
@@ -2133,9 +2151,10 @@ const file_k1s0_system_ruleengine_v1_rule_engine_proto_rawDesc = "" +
 	"resultJson\x12'\n" +
 	"\x0fdefault_applied\x18\x06 \x01(\bR\x0edefaultApplied\x12\x16\n" +
 	"\x06cached\x18\a \x01(\bR\x06cached\x12C\n" +
-	"\fevaluated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vevaluatedAt\"t\n" +
-	"\x15EvaluateDryRunRequest\x12\x19\n" +
-	"\brule_set\x18\x01 \x01(\tR\aruleSet\x12\x1d\n" +
+	"\fevaluated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\vevaluatedAt\"\x80\x01\n" +
+	"\x15EvaluateDryRunRequest\x12%\n" +
+	"\brule_set\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\aruleSet\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x02 \x01(\fR\tinputJson\x12!\n" +
 	"\fcontext_json\x18\x03 \x01(\fR\vcontextJson\"\xf6\x02\n" +

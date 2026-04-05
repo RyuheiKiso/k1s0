@@ -15,14 +15,25 @@ import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 import { Struct } from "../../../../google/protobuf/struct";
-// ============================================================// Saga State// ============================================================
+// ============================================================
+// Saga State
+// ============================================================
 
 /**
  * SagaStateProto は Saga の状態情報。
  *
+ * M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+ * 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+ * TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+ * reserved 4;
+ * reserved "status";
+ *
  * @generated from protobuf message k1s0.system.saga.v1.SagaStateProto
  */
 export interface SagaStateProto {
+    // M-014 監査対応: 削除期限 2026-06（saga.proto 内の全 deprecated フィールド共通）
+    // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
     /**
      * Saga UUID
      *
@@ -44,8 +55,10 @@ export interface SagaStateProto {
     /**
      * Deprecated: use status_enum instead.
      * ステータス: STARTED, RUNNING, COMPLETED, COMPENSATING, FAILED, CANCELLED
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string status = 4
+     * @deprecated
+     * @generated from protobuf field: string status = 4 [deprecated = true]
      */
     status: string;
     /**
@@ -118,15 +131,19 @@ export interface SagaStepLogProto {
      */
     stepName: string;
     /**
+     * Deprecated: use action_enum instead. 後方互換性のため削除しない。
      * アクション種別: EXECUTE, COMPENSATE
      *
-     * @generated from protobuf field: string action = 5
+     * @deprecated
+     * @generated from protobuf field: string action = 5 [deprecated = true]
      */
     action: string;
     /**
+     * Deprecated: use status_enum instead. 後方互換性のため削除しない。
      * 実行結果: SUCCESS, FAILED, TIMEOUT, SKIPPED
      *
-     * @generated from protobuf field: string status = 6
+     * @deprecated
+     * @generated from protobuf field: string status = 6 [deprecated = true]
      */
     status: string;
     /**
@@ -155,6 +172,18 @@ export interface SagaStepLogProto {
      * @generated from protobuf field: optional k1s0.system.common.v1.Timestamp completed_at = 11
      */
     completedAt?: Timestamp;
+    /**
+     * MED-025 監査対応: アクション種別の enum 版（action の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.saga.v1.SagaStepAction action_enum = 12
+     */
+    actionEnum: SagaStepAction;
+    /**
+     * MED-025 監査対応: 実行結果ステータスの enum 版（status の型付き版）。
+     *
+     * @generated from protobuf field: k1s0.system.saga.v1.SagaStepStatus status_enum = 13
+     */
+    statusEnum: SagaStepStatus;
 }
 /**
  * WorkflowSummary はワークフローの概要情報。
@@ -181,7 +210,9 @@ export interface WorkflowSummary {
      */
     stepNames: string[];
 }
-// ============================================================// StartSaga// ============================================================
+// ============================================================
+// StartSaga
+// ============================================================
 
 /**
  * StartSagaRequest は Saga 開始リクエスト。
@@ -190,7 +221,7 @@ export interface WorkflowSummary {
  */
 export interface StartSagaRequest {
     /**
-     * 実行するワークフロー名
+     * 実行するワークフロー名（1文字以上128文字以下）
      *
      * @generated from protobuf field: string workflow_name = 1
      */
@@ -233,7 +264,9 @@ export interface StartSagaResponse {
      */
     status: string;
 }
-// ============================================================// GetSaga// ============================================================
+// ============================================================
+// GetSaga
+// ============================================================
 
 /**
  * GetSagaRequest は Saga 詳細取得リクエスト。
@@ -242,6 +275,8 @@ export interface StartSagaResponse {
  */
 export interface GetSagaRequest {
     /**
+     * Saga IDは1文字以上であること
+     *
      * @generated from protobuf field: string saga_id = 1
      */
     sagaId: string;
@@ -261,7 +296,9 @@ export interface GetSagaResponse {
      */
     stepLogs: SagaStepLogProto[];
 }
-// ============================================================// ListSagas// ============================================================
+// ============================================================
+// ListSagas
+// ============================================================
 
 /**
  * ListSagasRequest は Saga 一覧取得リクエスト。
@@ -307,7 +344,9 @@ export interface ListSagasResponse {
      */
     pagination?: PaginationResult;
 }
-// ============================================================// CancelSaga// ============================================================
+// ============================================================
+// CancelSaga
+// ============================================================
 
 /**
  * CancelSagaRequest は Saga キャンセルリクエスト。
@@ -316,6 +355,8 @@ export interface ListSagasResponse {
  */
 export interface CancelSagaRequest {
     /**
+     * Saga IDは1文字以上であること
+     *
      * @generated from protobuf field: string saga_id = 1
      */
     sagaId: string;
@@ -342,6 +383,8 @@ export interface CancelSagaResponse {
  */
 export interface CompensateSagaRequest {
     /**
+     * Saga IDは1文字以上であること
+     *
      * @generated from protobuf field: string saga_id = 1
      */
     sagaId: string;
@@ -369,7 +412,9 @@ export interface CompensateSagaResponse {
      */
     sagaId: string;
 }
-// ============================================================// RegisterWorkflow// ============================================================
+// ============================================================
+// RegisterWorkflow
+// ============================================================
 
 /**
  * RegisterWorkflowRequest はワークフロー登録リクエスト。
@@ -378,7 +423,7 @@ export interface CompensateSagaResponse {
  */
 export interface RegisterWorkflowRequest {
     /**
-     * YAML 形式のワークフロー定義文字列
+     * YAML 形式のワークフロー定義文字列（1文字以上）
      *
      * @generated from protobuf field: string workflow_yaml = 1
      */
@@ -403,7 +448,9 @@ export interface RegisterWorkflowResponse {
      */
     stepCount: number;
 }
-// ============================================================// ListWorkflows// ============================================================
+// ============================================================
+// ListWorkflows
+// ============================================================
 
 /**
  * ListWorkflowsRequest はワークフロー一覧取得リクエスト（フィールドなし）。
@@ -422,6 +469,71 @@ export interface ListWorkflowsResponse {
      * @generated from protobuf field: repeated k1s0.system.saga.v1.WorkflowSummary workflows = 1
      */
     workflows: WorkflowSummary[];
+}
+// MED-025 監査対応: SagaStepAction / SagaStepStatus enum を追加。
+// SagaStepLogProto の string action/status を型安全な enum フィールドに移行する。
+
+/**
+ * SagaStepAction はステップアクションの種別。
+ *
+ * @generated from protobuf enum k1s0.system.saga.v1.SagaStepAction
+ */
+export enum SagaStepAction {
+    /**
+     * SAGA_STEP_ACTION_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_ACTION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * SAGA_STEP_ACTION_EXECUTE は通常実行。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_ACTION_EXECUTE = 1;
+     */
+    EXECUTE = 1,
+    /**
+     * SAGA_STEP_ACTION_COMPENSATE は補償実行（ロールバック）。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_ACTION_COMPENSATE = 2;
+     */
+    COMPENSATE = 2
+}
+/**
+ * SagaStepStatus はステップ実行結果のステータス。
+ *
+ * @generated from protobuf enum k1s0.system.saga.v1.SagaStepStatus
+ */
+export enum SagaStepStatus {
+    /**
+     * SAGA_STEP_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_STATUS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * SAGA_STEP_STATUS_SUCCESS は成功。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_STATUS_SUCCESS = 1;
+     */
+    SUCCESS = 1,
+    /**
+     * SAGA_STEP_STATUS_FAILED は失敗。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_STATUS_FAILED = 2;
+     */
+    FAILED = 2,
+    /**
+     * SAGA_STEP_STATUS_TIMEOUT はタイムアウト。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_STATUS_TIMEOUT = 3;
+     */
+    TIMEOUT = 3,
+    /**
+     * SAGA_STEP_STATUS_SKIPPED はスキップ。
+     *
+     * @generated from protobuf enum value: SAGA_STEP_STATUS_SKIPPED = 4;
+     */
+    SKIPPED = 4
 }
 /**
  * SagaStatus は Saga の実行ステータス。
@@ -496,7 +608,7 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
                 case /* int32 current_step */ 3:
                     message.currentStep = reader.int32();
                     break;
-                case /* string status */ 4:
+                case /* string status = 4 [deprecated = true] */ 4:
                     message.status = reader.string();
                     break;
                 case /* google.protobuf.Struct payload */ 5:
@@ -541,7 +653,7 @@ class SagaStateProto$Type extends MessageType<SagaStateProto> {
         /* int32 current_step = 3; */
         if (message.currentStep !== 0)
             writer.tag(3, WireType.Varint).int32(message.currentStep);
-        /* string status = 4; */
+        /* string status = 4 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.status);
         /* google.protobuf.Struct payload = 5; */
@@ -589,7 +701,9 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
             { no: 8, name: "response_payload", kind: "message", T: () => Struct },
             { no: 9, name: "error_message", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "started_at", kind: "message", T: () => Timestamp },
-            { no: 11, name: "completed_at", kind: "message", T: () => Timestamp }
+            { no: 11, name: "completed_at", kind: "message", T: () => Timestamp },
+            { no: 12, name: "action_enum", kind: "enum", T: () => ["k1s0.system.saga.v1.SagaStepAction", SagaStepAction, "SAGA_STEP_ACTION_"] },
+            { no: 13, name: "status_enum", kind: "enum", T: () => ["k1s0.system.saga.v1.SagaStepStatus", SagaStepStatus, "SAGA_STEP_STATUS_"] }
         ]);
     }
     create(value?: PartialMessage<SagaStepLogProto>): SagaStepLogProto {
@@ -600,6 +714,8 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
         message.stepName = "";
         message.action = "";
         message.status = "";
+        message.actionEnum = 0;
+        message.statusEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<SagaStepLogProto>(this, message, value);
         return message;
@@ -621,10 +737,10 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
                 case /* string step_name */ 4:
                     message.stepName = reader.string();
                     break;
-                case /* string action */ 5:
+                case /* string action = 5 [deprecated = true] */ 5:
                     message.action = reader.string();
                     break;
-                case /* string status */ 6:
+                case /* string status = 6 [deprecated = true] */ 6:
                     message.status = reader.string();
                     break;
                 case /* google.protobuf.Struct request_payload */ 7:
@@ -641,6 +757,12 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
                     break;
                 case /* optional k1s0.system.common.v1.Timestamp completed_at */ 11:
                     message.completedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.completedAt);
+                    break;
+                case /* k1s0.system.saga.v1.SagaStepAction action_enum */ 12:
+                    message.actionEnum = reader.int32();
+                    break;
+                case /* k1s0.system.saga.v1.SagaStepStatus status_enum */ 13:
+                    message.statusEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -666,10 +788,10 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
         /* string step_name = 4; */
         if (message.stepName !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.stepName);
-        /* string action = 5; */
+        /* string action = 5 [deprecated = true]; */
         if (message.action !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.action);
-        /* string status = 6; */
+        /* string status = 6 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.status);
         /* google.protobuf.Struct request_payload = 7; */
@@ -687,6 +809,12 @@ class SagaStepLogProto$Type extends MessageType<SagaStepLogProto> {
         /* optional k1s0.system.common.v1.Timestamp completed_at = 11; */
         if (message.completedAt)
             Timestamp.internalBinaryWrite(message.completedAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.saga.v1.SagaStepAction action_enum = 12; */
+        if (message.actionEnum !== 0)
+            writer.tag(12, WireType.Varint).int32(message.actionEnum);
+        /* k1s0.system.saga.v1.SagaStepStatus status_enum = 13; */
+        if (message.statusEnum !== 0)
+            writer.tag(13, WireType.Varint).int32(message.statusEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -764,7 +892,7 @@ export const WorkflowSummary = new WorkflowSummary$Type();
 class StartSagaRequest$Type extends MessageType<StartSagaRequest> {
     constructor() {
         super("k1s0.system.saga.v1.StartSagaRequest", [
-            { no: 1, name: "workflow_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "workflow_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "payload", kind: "message", T: () => Struct },
             { no: 3, name: "correlation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "initiated_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -889,7 +1017,7 @@ export const StartSagaResponse = new StartSagaResponse$Type();
 class GetSagaRequest$Type extends MessageType<GetSagaRequest> {
     constructor() {
         super("k1s0.system.saga.v1.GetSagaRequest", [
-            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetSagaRequest>): GetSagaRequest {
@@ -1111,7 +1239,7 @@ export const ListSagasResponse = new ListSagasResponse$Type();
 class CancelSagaRequest$Type extends MessageType<CancelSagaRequest> {
     constructor() {
         super("k1s0.system.saga.v1.CancelSagaRequest", [
-            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<CancelSagaRequest>): CancelSagaRequest {
@@ -1213,7 +1341,7 @@ export const CancelSagaResponse = new CancelSagaResponse$Type();
 class CompensateSagaRequest$Type extends MessageType<CompensateSagaRequest> {
     constructor() {
         super("k1s0.system.saga.v1.CompensateSagaRequest", [
-            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "saga_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<CompensateSagaRequest>): CompensateSagaRequest {
@@ -1331,7 +1459,7 @@ export const CompensateSagaResponse = new CompensateSagaResponse$Type();
 class RegisterWorkflowRequest$Type extends MessageType<RegisterWorkflowRequest> {
     constructor() {
         super("k1s0.system.saga.v1.RegisterWorkflowRequest", [
-            { no: 1, name: "workflow_yaml", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "workflow_yaml", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RegisterWorkflowRequest>): RegisterWorkflowRequest {

@@ -30,6 +30,10 @@ use proto::k1s0::system::vault::v1::vault_service_client::VaultServiceClient;
 
 pub struct VaultGrpcClient {
     client: VaultServiceClient<Channel>,
+    /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
+    address: String,
+    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    timeout_ms: u64,
 }
 
 impl VaultGrpcClient {
@@ -41,6 +45,8 @@ impl VaultGrpcClient {
             .connect_lazy();
         Ok(Self {
             client: VaultServiceClient::new(channel),
+            address: cfg.address.clone(),
+            timeout_ms: cfg.timeout_ms,
         })
     }
 
@@ -101,6 +107,8 @@ impl VaultGrpcClient {
                 page: offset.unwrap_or(0) + 1,
                 page_size: limit.unwrap_or(50),
             }),
+            // keyset ページネーション用カーソル（空文字列 = 先頭ページ）
+            after_cursor: String::new(),
         });
 
         let resp = self
@@ -195,9 +203,22 @@ impl VaultGrpcClient {
         Ok(resp.success)
     }
 
+    /// gRPC Health Check Protocol を使ってサービスの疎通確認を行う。
+    /// Bearer token なしで接続できるため readyz ヘルスチェックに適している。
+    /// tonic-health サービスが登録されているサーバーに対して Check RPC を送信する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn health_check(&self) -> anyhow::Result<()> {
-        self.list_secrets(Some("")).await?;
+        let channel = Channel::from_shared(self.address.clone())?
+            .timeout(Duration::from_millis(self.timeout_ms))
+            .connect_lazy();
+        let mut health_client = tonic_health::pb::health_client::HealthClient::new(channel);
+        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+            service: "k1s0.system.vault.v1.VaultService".to_string(),
+        });
+        health_client
+            .check(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("vault gRPC Health Check 失敗: {}", e))?;
         Ok(())
     }
 }

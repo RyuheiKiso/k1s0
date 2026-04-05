@@ -76,11 +76,77 @@ func NewJWKSVerifierWithFetcher(
 |------|-----------|------|
 | new AuthClient | `(options: AuthClientOptions) -> AuthClient` | OAuth2 PKCE クライアント生成（`AuthClientOptions` は `config`, `tokenStore?`, `fetch?` 等を含む） |
 | login | `() -> void` | 認証フロー開始（認可サーバーへリダイレクト） |
-| handleCallback | `(code, state) -> TokenSet` | 認可コードを受け取りトークンを取得 |
+| handleCallback | `(code, state) -> TokenSet` | 認可コードを受け取りトークンを取得。**取得直後に `id_token` の RS256 署名を JWKS で検証**（C-005） |
 | logout | `() -> void` | ログアウト（`logoutUrl` 優先、未設定時は Discovery の `end_session_endpoint` を使用） |
 | getAccessToken | `() -> string` | アクセストークン取得（自動リフレッシュ） |
 | isAuthenticated | `() -> bool` | 認証状態確認 |
 | DeviceCodeResponse.VerificationURIComplete | `string?` | Go のみ: ユーザーが直接アクセスできる完全な認証 URL |
+
+### TypeScript JWT id_token 署名検証（C-005）
+
+TypeScript の `AuthClient.handleCallback()` はトークン格納前に `jose` ライブラリ（v5）を使って `id_token` の署名を検証する。
+
+- JWKS エンドポイント（`OIDCDiscovery.jwks_uri`）から公開鍵を動的取得する
+- RS256 署名・issuer・audience（`clientId`）を検証する
+- 検証失敗時は `AuthError` がスローされ、`TokenStore` にトークンは保存されない
+
+**依存ライブラリ**: `jose ^5.0.0`（`package.json` の `dependencies` に追加済み）
+
+```typescript
+// handleCallback 内部での検証呼び出しフロー
+const data = await resp.json(); // トークンエンドポイントからレスポンス取得
+await this.verifyIdToken(data.id_token, discovery); // 署名検証（失敗時はここでスロー）
+this.tokenStore.setTokenSet(tokenSet);              // 検証成功後にのみ格納
+```
+
+### TypeScript OIDC Discovery リトライ（M-016-ts）
+
+`fetchDiscovery()` はキャッシュミス時に最大3回の指数バックオフリトライを行う。
+
+| 試行 | 待機時間 | リトライ対象 |
+|------|---------|-------------|
+| 1回目失敗後 | 500ms | ネットワークエラー / 5xx |
+| 2回目失敗後 | 1000ms | ネットワークエラー / 5xx |
+| 3回目失敗後 | — | 最終エラーをスロー |
+
+> 4xx（設定ミス・リソース不在）はリトライせず即座にエラーをスローする。
+
+### Dart OIDC Discovery リトライ（M-016-dart）
+
+`fetchDiscovery()` はキャッシュミス時に最大3回の指数バックオフリトライを行う（TypeScript と同仕様）。
+
+| 試行 | 待機時間 | リトライ対象 |
+|------|---------|-------------|
+| 1回目失敗後 | 500ms | ネットワークエラー / 5xx |
+| 2回目失敗後 | 1000ms | ネットワークエラー / 5xx |
+| 3回目失敗後 | — | 最終エラーをスロー |
+
+> 4xx（設定ミス・リソース不在）はリトライせず即座にエラーをスローする。
+
+### Dart TokenStorage 抽象化（H-010）
+
+`SecureTokenStore` は `TokenStorage` 抽象インターフェース経由でストレージを使用する。Flutter 環境では `FlutterTokenStorage` を注入し、pure Dart 環境では `MemoryTokenStore` を使用する。
+
+```dart
+// Flutter アプリでの使用例
+import 'package:k1s0_auth/auth.dart';
+import 'package:k1s0_auth/src/storage/flutter_token_storage.dart';
+
+final store = SecureTokenStore(storage: FlutterTokenStorage());
+await store.load();
+final client = AuthClient(AuthClientOptions(config: config, tokenStore: store));
+```
+
+> Flutter アプリ側の `pubspec.yaml` に `flutter_secure_storage: ^9.2.0` を追加すること。
+> 詳細は [ADR-0096](../../architecture/adr/0096-dart-auth-flutter-dependency-abstraction.md) を参照。
+
+### Dart setCodeVerifier 非同期化（H-008）
+
+`TokenStore.setCodeVerifier()` は `Future<void>` シグネチャに変更された。`login()` および `getAuthorizationUrl()` での呼び出しは `await` 付きになっており、書き込み失敗時はエラーを上位に伝播する。
+
+### Dart setTokenSet await 追加（H-007）
+
+`refreshToken()` 内の `_tokenStore.setTokenSet(newTokenSet)` に `await` を追加し、トークン永続化の完了を保証するよう修正した。
 
 ### Dart AuthConfig フィールド
 
@@ -869,7 +935,7 @@ PKCE フローと TokenStore の実装詳細。
 |---------|------|
 | TokenStore | トークン永続化インターフェース（`getTokenSet`, `setTokenSet`, `clearTokenSet`, `getState`, `setState` 等） |
 | MemoryTokenStore | メモリ内 TokenStore 実装（テスト・SPA 向け） |
-| DevLocalStorageTokenStore | localStorage ベースの TokenStore 実装（TypeScript、開発・テスト環境専用）。旧称 `LocalStorageTokenStore`（2026-03-24 にリネーム）。本番環境での使用は非推奨（XSS リスク）。セキュリティ方針は [token-storage-security.md](../../architecture/auth/token-storage-security.md) を参照 |
+| DevLocalStorageTokenStore | localStorage ベースの TokenStore 実装（TypeScript、**開発・テスト環境専用**）。旧称 `LocalStorageTokenStore`（2026-03-24 にリネーム）。**POLY-004 監査対応**: 本番環境（`NODE_ENV !== 'development'` 等）で使用するとコンストラクタで `throw new Error` が発生する。本番環境では `SecureTokenStore` を使用すること。セキュリティ方針は [token-storage-security.md](../../architecture/auth/token-storage-security.md) を参照 |
 | generateCodeVerifier | PKCE コードベリファイア生成 |
 | generateCodeChallenge | PKCE コードチャレンジ生成（SHA-256 ハッシュ） |
 

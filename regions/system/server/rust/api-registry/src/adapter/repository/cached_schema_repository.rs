@@ -8,7 +8,9 @@ use crate::infrastructure::cache::SchemaCache;
 
 /// CachedSchemaRepository は ApiSchemaRepository をキャッシュでラップする。
 /// find_by_name でキャッシュヒット時はDBアクセスをスキップする。
-/// update / create 時はキャッシュを invalidate して整合性を保つ。
+/// DB操作を先行させてからキャッシュを invalidate することで整合性を保つ。
+/// キャッシュ invalidation は DB 操作成功後にのみ行い、
+/// 「DB 更新成功 → キャッシュ破棄 → 次回アクセス時に最新値をDB取得」の順序を保証する。
 pub struct CachedSchemaRepository {
     inner: Arc<dyn ApiSchemaRepository>,
     cache: Arc<SchemaCache>,
@@ -77,17 +79,36 @@ impl ApiSchemaRepository for CachedSchemaRepository {
         self.inner.find_all(schema_type, page, page_size).await
     }
 
-    /// create は inner に委譲する（新規作成のためキャッシュ操作不要）。
+    /// create は inner に委譲し、成功時にキャッシュを invalidate する。
+    /// 新規作成後もキャッシュに古いエントリが残っている可能性があるため
+    /// （例: 削除→再作成フローや TTL 期限切れ前のエントリ）、
+    /// DB 書き込み成功後にキャッシュを破棄して整合性を保つ。
     async fn create(&self, schema: &ApiSchema) -> anyhow::Result<()> {
-        self.inner.create(schema).await
+        // DB 操作を先行させる（DB 失敗時はキャッシュ操作を行わない）
+        self.inner.create(schema).await?;
+
+        // DB 作成成功後にキャッシュを invalidate して古いエントリを除去する
+        self.cache.invalidate(&schema.name).await;
+        tracing::debug!(
+            schema_name = %schema.name,
+            "create 後にキャッシュを invalidate した"
+        );
+
+        Ok(())
     }
 
     /// update は inner に委譲し、成功時にキャッシュを invalidate する。
+    /// DB 操作を先行させることで「DB 更新失敗→キャッシュのみ空」の不整合を防ぐ。
     async fn update(&self, schema: &ApiSchema) -> anyhow::Result<()> {
+        // DB 操作を先行させる（DB 失敗時はキャッシュ操作を行わない）
         self.inner.update(schema).await?;
 
-        // 更新成功時はキャッシュを invalidate して古い値を除去
+        // DB 更新成功後にキャッシュを invalidate して古い値を除去する
         self.cache.invalidate(&schema.name).await;
+        tracing::debug!(
+            schema_name = %schema.name,
+            "update 後にキャッシュを invalidate した"
+        );
 
         Ok(())
     }
@@ -162,6 +183,62 @@ mod tests {
         assert!(cached.is_some());
     }
 
+    /// create 後にキャッシュが invalidate される（再作成フローでの整合性確認）。
+    #[tokio::test]
+    async fn test_create_invalidates_cache() {
+        let schema = make_schema("k1s0-new-api");
+        let schema_stale = make_schema("k1s0-new-api");
+
+        let mut mock = MockApiSchemaRepository::new();
+        mock.expect_create().once().returning(|_| Ok(()));
+
+        let cache = make_cache();
+        // 事前にキャッシュに古い（ステール）エントリを挿入（再作成シナリオを模倣）
+        cache.insert(Arc::new(schema_stale)).await;
+        assert!(cache.get("k1s0-new-api").await.is_some(), "前提: キャッシュに古いエントリが存在する");
+
+        let repo = CachedSchemaRepository::new(Arc::new(mock), cache.clone());
+
+        // create 実行
+        repo.create(&schema).await.unwrap();
+
+        // create 後はキャッシュから古いエントリが invalidate されていることを確認
+        let cached = cache.get("k1s0-new-api").await;
+        assert!(
+            cached.is_none(),
+            "create 後はキャッシュが invalidate されるべき"
+        );
+    }
+
+    /// create が DB エラーの場合はキャッシュを invalidate しない。
+    #[tokio::test]
+    async fn test_create_db_error_does_not_invalidate_cache() {
+        let schema = make_schema("k1s0-new-api");
+        let schema_stale = make_schema("k1s0-new-api");
+
+        let mut mock = MockApiSchemaRepository::new();
+        mock.expect_create()
+            .once()
+            .returning(|_| Err(anyhow::anyhow!("DB error")));
+
+        let cache = make_cache();
+        // 事前にキャッシュにエントリを挿入
+        cache.insert(Arc::new(schema_stale)).await;
+
+        let repo = CachedSchemaRepository::new(Arc::new(mock), cache.clone());
+
+        // create 実行（DB エラー）
+        let result = repo.create(&schema).await;
+        assert!(result.is_err(), "DB エラー時は Err を返すべき");
+
+        // DB エラー時はキャッシュが invalidate されないことを確認
+        let cached = cache.get("k1s0-new-api").await;
+        assert!(
+            cached.is_some(),
+            "DB エラー時はキャッシュが保持されるべき"
+        );
+    }
+
     /// update 後にキャッシュが invalidate される。
     #[tokio::test]
     async fn test_update_invalidates_cache() {
@@ -189,6 +266,40 @@ mod tests {
         assert!(
             cached.is_none(),
             "update 後はキャッシュが invalidate されるべき"
+        );
+    }
+
+    /// update が DB エラーの場合はキャッシュを invalidate しない。
+    /// DB 操作先行原則により、DB 失敗時はキャッシュを保持して整合性を維持する。
+    #[tokio::test]
+    async fn test_update_db_error_does_not_invalidate_cache() {
+        let schema_v1 = make_schema("k1s0-tenant-api");
+        let schema_v2 = ApiSchema {
+            latest_version: 2,
+            version_count: 2,
+            ..make_schema("k1s0-tenant-api")
+        };
+
+        let mut mock = MockApiSchemaRepository::new();
+        mock.expect_update()
+            .once()
+            .returning(|_| Err(anyhow::anyhow!("DB error")));
+
+        let cache = make_cache();
+        // 事前にキャッシュにエントリを挿入
+        cache.insert(Arc::new(schema_v1)).await;
+
+        let repo = CachedSchemaRepository::new(Arc::new(mock), cache.clone());
+
+        // update 実行（DB エラー）
+        let result = repo.update(&schema_v2).await;
+        assert!(result.is_err(), "DB エラー時は Err を返すべき");
+
+        // DB エラー時はキャッシュが invalidate されないことを確認
+        let cached = cache.get("k1s0-tenant-api").await;
+        assert!(
+            cached.is_some(),
+            "DB エラー時はキャッシュが保持されるべき（DB 操作先行原則）"
         );
     }
 }

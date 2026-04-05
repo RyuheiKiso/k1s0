@@ -77,10 +77,12 @@ CREATE TABLE IF NOT EXISTS app_registry.app_versions (
     size_bytes      BIGINT       NOT NULL,
     checksum_sha256 VARCHAR(64)  NOT NULL,
     storage_key     TEXT         NOT NULL,
-    release_notes   TEXT,
-    mandatory       BOOLEAN      NOT NULL DEFAULT false,
-    published_at    TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    release_notes    TEXT,
+    mandatory        BOOLEAN      NOT NULL DEFAULT false,
+    -- STATIC-CRITICAL-002: Cosign 署名（base64）。NULL は未署名（開発環境）または署名なし。
+    cosign_signature TEXT,
+    published_at     TIMESTAMPTZ,
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
     CONSTRAINT uq_app_versions_app_version_platform_arch
         UNIQUE (app_id, version, platform, arch),
@@ -106,6 +108,7 @@ CREATE INDEX IF NOT EXISTS idx_app_versions_published_at ON app_registry.app_ver
 | storage_key | TEXT | NOT NULL | サーバー上のファイル保存パス（例: `app-id/1.0.0/windows-x64/app.exe`） |
 | release_notes | TEXT | | リリースノート |
 | mandatory | BOOLEAN | NOT NULL, DEFAULT false | 強制アップデートフラグ |
+| cosign_signature | TEXT | NULL 許可 | Cosign 署名（base64）。STATIC-CRITICAL-002 対応。 |
 | published_at | TIMESTAMPTZ | | 公開日時 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
 
@@ -160,6 +163,8 @@ CREATE INDEX IF NOT EXISTS idx_download_stats_user_id ON app_registry.download_s
 | `005_seed_initial_data.down.sql` | 初期データ削除 |
 | `006_rename_s3_key_to_storage_key.up.sql` | `s3_key` → `storage_key` カラムリネーム |
 | `006_rename_s3_key_to_storage_key.down.sql` | `storage_key` → `s3_key` ロールバック |
+| `007_add_cosign_signature.up.sql` | `app_versions` に `cosign_signature TEXT` カラム追加（STATIC-CRITICAL-002） |
+| `007_add_cosign_signature.down.sql` | `cosign_signature` カラム削除 |
 
 ---
 

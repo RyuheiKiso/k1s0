@@ -74,23 +74,24 @@ jobs:
         run: pnpm exec playwright install chromium --with-deps
 
       # infra プロファイルのサービスを起動する（Keycloak, PostgreSQL, Redis, Kafka, Kong）
-      # .env.example から .env を生成して必要な環境変数を設定する
+      # MED-002 監査対応: シークレットをディスクの .env ファイルに平文書き込みせず、
+      # GitHub Actions の env: ブロックで環境変数として渡し、docker compose に直接注入する。
       - name: Start infrastructure services
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.E2E_POSTGRES_PASSWORD }}
+          REDIS_PASSWORD: ${{ secrets.E2E_REDIS_PASSWORD }}
+          REDIS_SESSION_PASSWORD: ${{ secrets.E2E_REDIS_SESSION_PASSWORD }}
+          KC_BFF_CLIENT_SECRET: ${{ secrets.E2E_KC_BFF_CLIENT_SECRET }}
+          KC_SERVICE_CLIENT_SECRET: ${{ secrets.E2E_KC_SERVICE_CLIENT_SECRET }}
+          KC_TEST_ADMIN_PASSWORD: ${{ secrets.E2E_KC_TEST_ADMIN_PASSWORD }}
+          KC_TEST_USER_PASSWORD: ${{ secrets.E2E_KC_TEST_USER_PASSWORD }}
+          KC_TEST_TASK_MGR_PASSWORD: ${{ secrets.E2E_KC_TEST_TASK_MGR_PASSWORD }}
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.E2E_GF_SECURITY_ADMIN_PASSWORD }}
+          VAULT_DEV_ROOT_TOKEN_ID: ${{ secrets.E2E_VAULT_DEV_ROOT_TOKEN_ID }}
         run: |
-          # E2E テスト用の環境変数を GitHub Secrets から設定する（SH-1 監査対応）
-          # 認証情報をワークフローファイルにハードコードせず、Secrets で安全に管理する
-          cat > .env << EOF
-          POSTGRES_PASSWORD=${{ secrets.E2E_POSTGRES_PASSWORD }}
-          REDIS_PASSWORD=${{ secrets.E2E_REDIS_PASSWORD }}
-          REDIS_SESSION_PASSWORD=${{ secrets.E2E_REDIS_SESSION_PASSWORD }}
-          KC_BFF_CLIENT_SECRET=${{ secrets.E2E_KC_BFF_CLIENT_SECRET }}
-          KC_SERVICE_CLIENT_SECRET=${{ secrets.E2E_KC_SERVICE_CLIENT_SECRET }}
-          KC_TEST_ADMIN_PASSWORD=${{ secrets.E2E_KC_TEST_ADMIN_PASSWORD }}
-          KC_TEST_USER_PASSWORD=${{ secrets.E2E_KC_TEST_USER_PASSWORD }}
-          KC_TEST_TASK_MGR_PASSWORD=${{ secrets.E2E_KC_TEST_TASK_MGR_PASSWORD }}
-          GF_SECURITY_ADMIN_PASSWORD=${{ secrets.E2E_GF_SECURITY_ADMIN_PASSWORD }}
-          VAULT_DEV_ROOT_TOKEN_ID=${{ secrets.E2E_VAULT_DEV_ROOT_TOKEN_ID }}
-          EOF
+          # docker compose は実行プロセスの環境変数を ${VAR} として展開するため、
+          # env: ブロックで渡した値が docker-compose.yaml 内の変数に直接注入される。
+          # ディスクへの平文書き込みが発生しないためセキュリティリスクを排除できる。
           docker compose --profile infra up -d
 
       # Keycloak の起動完了を待機する（最大 120 秒）
@@ -98,7 +99,9 @@ jobs:
         run: |
           echo "Keycloak の起動完了を待機します..."
           for i in $(seq 1 24); do
-            if curl -sf http://localhost:8180/health/ready > /dev/null 2>&1; then
+            # LOW-002 監査対応: Keycloak 26.x のプライマリエンドポイントは /health
+            # docker-compose.yaml の L-04 対応（/health/ready → /health）と統一
+            if curl -sf http://localhost:8180/health > /dev/null 2>&1; then
               echo "Keycloak が起動しました"
               break
             fi

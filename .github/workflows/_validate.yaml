@@ -35,6 +35,53 @@ jobs:
             fi
           done
 
+  # INFRA-003 監査対応: k1s0-common（Library Chart）変更時に全コンシューマーチャートの
+  # helm template 出力を検証し、テンプレートエラーや必須フィールド欠落を早期検知する
+  # k1s0-common はサービスチャート全体に影響するため、単体リントだけでは不十分な場合がある
+  helm-common-template-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: "3.16"
+      - name: k1s0-common 依存チャートの helm template 出力を全サービス分検証する（INFRA-003）
+        shell: bash
+        run: |
+          # k1s0-common を使用しているコンシューマーチャートを全て検出して helm template を実行する
+          # テンプレートエラーや必須フィールド欠落を早期に検知することが目的であり、
+          # 出力内容の正確性ではなくテンプレートエンジンのエラー有無のみを検証する
+          failed=0
+          checked=0
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ ! -f "$chart/Chart.yaml" ]; then
+              continue
+            fi
+            # k1s0-common への依存を持つチャートのみを対象とする
+            if ! grep -q 'k1s0-common' "$chart/Chart.yaml" 2>/dev/null; then
+              continue
+            fi
+            # helm dependency update で Library Chart を取得してから template を実行する
+            if ! helm dependency update "$chart" > /dev/null 2>&1; then
+              echo "::warning::$chart: helm dependency update が失敗しました（OCI レジストリ未接続の可能性）"
+              continue
+            fi
+            if helm template test-release "$chart" > /dev/null 2>&1; then
+              echo "OK: $chart"
+              checked=$((checked + 1))
+            else
+              echo "::error::$chart: helm template が失敗しました"
+              helm template test-release "$chart" 2>&1 | head -20
+              failed=$((failed + 1))
+            fi
+          done
+          echo "helm template 検証完了: ${checked} チャート成功、${failed} チャート失敗"
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
   # modules.yaml とディスク上のマニフェストの整合性検証
   validate-modules:
     runs-on: ubuntu-latest
@@ -210,6 +257,53 @@ jobs:
         shell: bash
         run: bash scripts/check-placeholder-secrets.sh
 
+  # CRIT-003 監査対応: SQLファイルへの UTF-8 BOM 混入を検出する
+  # 過去に BOM 混入による sqlx マイグレーションエラーが発生したため、CI で継続的に検出する
+  # python3 のバイナリ読み取りで BOM バイト列（0xEF 0xBB 0xBF）を確実に検出する
+  validate-sql-bom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: BOM混入チェック（UTF-8 BOMを含むSQLファイルを検出する）
+        run: |
+          BOM_FILES=$(python3 -c "
+          import sys, glob
+          bom = b'\xef\xbb\xbf'
+          found = []
+          for f in glob.glob('regions/system/database/**/*.sql', recursive=True):
+              with open(f, 'rb') as fh:
+                  if fh.read(3) == bom:
+                      found.append(f)
+          print('\n'.join(found))
+          ")
+          if [ -n "$BOM_FILES" ]; then
+              echo "ERROR: BOMが検出されました:"
+              echo "$BOM_FILES"
+              exit 1
+          fi
+          echo "BOMチェック: OK"
+
+  # MED-005 監査対応: encryption-config プレースホルダー残存の警告チェック
+  # ローカル開発環境では常にプレースホルダーのため warning のみ出力し exit 1 はしない
+  # 本番デプロイパイプライン（deploy.yaml）では validate-k8s-placeholders がブロッカーとなる
+  validate-encryption-config-placeholder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: encryption-configプレースホルダーチェック（本番鍵の未設定を検出する）
+        run: |
+          if grep -r '<REPLACE_WITH_BASE64_32BYTE_KEY>' infra/kubernetes/security/ 2>/dev/null; then
+              echo "WARNING: encryption-config.yaml にプレースホルダーが残存しています"
+              echo "本番デプロイ前に実際の暗号化キーを設定してください"
+              # CI では warning のみ（deploy pipeline ではブロッカーとする）
+          else
+              echo "encryption-configチェック: OK"
+          fi
+
   # セキュリティスキャン（Trivy）
   security-scan:
     runs-on: ubuntu-latest
@@ -231,6 +325,8 @@ jobs:
   # M-008 監査対応: kustomize build による k8s マニフェスト構文検証を CI に組み込む
   # Docker Desktop k8s がない環境でも、kustomize build でマニフェストの構文・参照整合性を確認する
   # H-003 対応: 実クラスターなしでのマニフェスト品質保証を自動化する
+  # CRIT-005 対応: prod overlay の kustomize build を CI に追加し、audit-policy.yaml 等の
+  #   非 K8s リソースが resources に混入して kustomize build が失敗する事態を防止する
   kustomize-validate:
     runs-on: ubuntu-latest
     permissions:
@@ -246,6 +342,86 @@ jobs:
         run: |
           kustomize build infra/kubernetes/ > /dev/null
           echo "kustomize build: 成功（infra/kubernetes/）"
+      - name: prod overlay の kustomize build を検証する（CRIT-005 再発防止）
+        shell: bash
+        run: |
+          # CRIT-005: audit-policy.yaml / encryption-config.yaml は kube-apiserver 設定ファイルであり
+          # Kubernetes API オブジェクトではないため、overlays/prod/kustomization.yaml の resources に含めない
+          kustomize build infra/kubernetes/overlays/prod > /dev/null
+          echo "kustomize build: 成功（infra/kubernetes/overlays/prod）"
+
+  # INFRA-002 監査対応: Vault YAML と Terraform ロール定義の乖離を検出する
+  # infra/vault/auth/*.yaml（ConfigMap形式）と infra/terraform/modules/vault/auth.tf の
+  # ロール名・SA名・ポリシーの整合性を機械的に検証し、二重管理による設定ドリフトを早期検知する
+  validate-vault-tf-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Vault YAML と Terraform ロール定義の整合性を検証する（INFRA-002）
+        shell: bash
+        run: |
+          # Terraform auth.tf から定義済みロール名を抽出する
+          # role_name = "xxx" の形式でロール名を取得する
+          tf_roles=$(grep -oP 'role_name\s*=\s*"\K[^"]+' infra/terraform/modules/vault/auth.tf | sort -u)
+
+          # Vault YAML ファイル（infra/vault/auth/）から role_name フィールドを抽出する
+          # ConfigMap の vault-auth-config.json 内の role_name キーを対象とする
+          yaml_roles=$(grep -rh '"role_name"' infra/vault/auth/ | grep -oP '"role_name"\s*:\s*"\K[^"]+' | sort -u)
+
+          echo "=== Terraform で定義されているロール ==="
+          echo "$tf_roles"
+          echo ""
+          echo "=== Vault YAML で参照されているロール ==="
+          echo "$yaml_roles"
+          echo ""
+
+          # Vault YAML に存在するが Terraform に存在しないロールを検出する
+          # （YAML が Terraform の権威情報に対して未定義のロールを参照していないか確認する）
+          drift_yaml_only=$(comm -23 <(echo "$yaml_roles") <(echo "$tf_roles"))
+          if [ -n "$drift_yaml_only" ]; then
+            echo "::warning::以下のロールが Vault YAML に存在しますが Terraform に定義されていません:"
+            echo "$drift_yaml_only" | while read -r r; do echo "::warning::  - $r"; done
+            echo "ADR-0073 に基づき Terraform が権威情報です。YAML を更新するか Terraform にロールを追加してください。"
+            # YAML は ConfigMap であり将来計画も含むため warning のみとし exit 1 はしない
+          else
+            echo "Vault YAML のロールは全て Terraform に定義されています: OK"
+          fi
+
+          echo "Vault-Terraform 同期検証: 完了"
+
+  # H-024 監査対応: GraphQL スキーマの構文バリデーションを CI に追加する
+  # api/graphql/schema.graphql は手動管理のため、構文エラーを早期検知することが目的である。
+  # schema-gen バイナリが実装された際は、このジョブを実装との差分検出に切り替えること（MED-014 参照）。
+  validate-graphql-schema:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Node.js セットアップ（graphql パッケージによるスキーマ構文検証）
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: "20"
+      - name: GraphQL スキーマ構文バリデーション（H-024 監査対応）
+        shell: bash
+        run: |
+          # graphql パッケージを一時インストールしてスキーマの構文を検証する
+          # スキーマが手動管理のため、構文エラーを CI で早期検知することが目的である
+          npm install --no-save graphql 2>/dev/null
+          node --input-type=module << 'EOF'
+          import { buildSchema } from 'graphql';
+          import { readFileSync } from 'fs';
+          try {
+            const schema = readFileSync('api/graphql/schema.graphql', 'utf8');
+            buildSchema(schema);
+            console.log('GraphQL schema syntax validation: OK');
+          } catch (e) {
+            console.error('GraphQL schema syntax error:', e.message);
+            process.exit(1);
+          }
+          EOF
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:

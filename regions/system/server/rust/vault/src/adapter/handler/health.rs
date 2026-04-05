@@ -18,32 +18,43 @@ pub async fn healthz() -> impl IntoResponse {
 /// レディネスチェックエンドポイント: バックエンド種別と疎通確認結果を返す。
 /// DB/Vault 未構成（in-memory フォールバック）時は degraded ステータスを返して
 /// 永続化バックエンド未構成であることを運用チームに明示する。
+/// ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
+    // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
+    let timestamp = chrono::Utc::now().to_rfc3339();
     if let Some(ref pool) = state.db_pool {
         // PostgreSQL または Vault KV v2 バックエンドが構成されている場合
         match sqlx::query("SELECT 1").execute(pool).await {
             Ok(_) => (
                 StatusCode::OK,
+                // ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一する
                 Json(serde_json::json!({
-                    "status": "ready",
+                    "status": "healthy",
                     "service": "vault",
                     "backend": "postgres",
                     "checks": {
                         "database": "ok",
-                    }
+                    },
+                    "timestamp": timestamp
                 })),
             ),
-            Err(e) => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    "status": "not_ready",
-                    "service": "vault",
-                    "backend": "postgres",
-                    "checks": {
-                        "database": e.to_string(),
-                    }
-                })),
-            ),
+            Err(e) => {
+                // DBエラーの詳細はログにのみ記録し、クライアントには汎用メッセージを返す
+                // エラー詳細をクライアントに公開すると内部実装・DB構造が漏洩する恐れがある
+                tracing::error!("readyz データベースチェック失敗: {}", e);
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({
+                        "status": "unhealthy",
+                        "service": "vault",
+                        "backend": "postgres",
+                        "checks": {
+                            "database": "database check failed",  // 詳細エラーをクライアントに漏洩しない
+                        },
+                        "timestamp": timestamp
+                    })),
+                )
+            }
         }
     } else {
         // DB 未構成時は in-memory で動作中のため degraded を返す
@@ -53,7 +64,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "status": "degraded",
                 "service": "vault",
                 "backend": "in-memory",
-                "reason": "永続化バックエンド未構成のため in-memory で動作中"
+                "reason": "永続化バックエンド未構成のため in-memory で動作中",
+                "timestamp": timestamp
             })),
         )
     }

@@ -556,6 +556,33 @@ fn detect_version(target_path: &Path) -> Result<String> {
         return Ok(version);
     }
 
+    // HIGH-CLI-001 対応: Go プロジェクトのバージョンは環境変数または git describe で取得する
+    // go.mod はバージョンを含まないため固定値 0.1.0 になる問題を解消する
+    if target_path.join("go.mod").exists() {
+        // 環境変数が設定されている場合は優先して使用する
+        if let Ok(v) = std::env::var("K1S0_SERVICE_VERSION") {
+            let trimmed = v.trim().to_string();
+            if !trimmed.is_empty() {
+                return Ok(trimmed);
+            }
+        }
+        // git describe --tags --always でリポジトリのタグ情報からバージョンを取得する
+        if let Ok(output) = Command::new("git")
+            .args(["describe", "--tags", "--always"])
+            .current_dir(target_path)
+            .output()
+        {
+            if output.status.success() {
+                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if !version.is_empty() {
+                    return Ok(version);
+                }
+            }
+        }
+        // git describe が失敗した場合はデフォルトバージョンを返す
+        return Ok("0.1.0".to_string());
+    }
+
     bail!("failed to detect target version")
 }
 

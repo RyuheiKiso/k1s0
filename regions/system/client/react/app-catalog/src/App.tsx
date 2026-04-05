@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // system-client の ErrorBoundary は本番環境でエラー詳細を隠蔽する import.meta.env.DEV 分岐済み
 // AccessDenied を追加: 権限不足時のフォールバック表示に使用（M-27 監査対応）
 import { AuthProvider, ProtectedRoute, AccessDenied, ErrorBoundary } from './lib/systemClient';
+// FE-004 監査対応: BFF ベース URL をハードコードせず YAML 設定ファイルから取得する
+import { appConfig } from './config';
 
 // ページコンポーネントの遅延読み込み（コード分割）
 const AppListPage = lazy(() => import('./pages/AppListPage').then((m) => ({ default: m.AppListPage })));
@@ -26,7 +28,8 @@ export function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider apiBaseURL="/bff">
+        {/* FE-004 監査対応: BFF ベース URL は config.yaml の bff.base_url から取得する */}
+        <AuthProvider apiBaseURL={appConfig.bff.base_url}>
           <BrowserRouter>
             <header className="app-header">
               <nav className="app-header__nav" aria-label="メインナビゲーション">

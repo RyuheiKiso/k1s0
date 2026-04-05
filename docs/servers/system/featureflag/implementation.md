@@ -100,9 +100,29 @@ regions/system/server/rust/featureflag/
 | `EvaluateFlagUseCase` | ユーザー・テナント・属性に基づくフラグ評価 |
 | `WatchFeatureFlagUseCase` | gRPC Server Stream によるフラグ変更のリアルタイム通知 |
 
+#### テナント分離（STATIC-CRITICAL-001）
+
+全データアクセスはテナントスコープで分離される。
+
+> **ADR-0093 対応**: `tenant_id` は `006_alter_tenant_id_to_text.up.sql` により `UUID` → `TEXT` に変更済み。
+> RLS ポリシーは `WITH CHECK` 句付きで再作成され、INSERT/UPDATE 時のテナント検証も DB レベルで強制される（CRIT-002/MEDIUM-007 対応）。
+
+| レイヤー | 実装 |
+|---------|------|
+| DB | 全テーブルに `tenant_id TEXT NOT NULL`、全クエリに `WHERE tenant_id = $X`。RLS `WITH CHECK` により INSERT/UPDATE も保護（ADR-0093） |
+| リポジトリトレイト | 全メソッドの第1引数が `tenant_id: &str`（TEXT 統一後） |
+| ユースケース入力 | `CreateFlagInput` / `UpdateFlagInput` / `EvaluateFlagInput` に `tenant_id: String` |
+| gRPC adapter | ADR-0028 Phase 1: `x-tenant-id` gRPC メタデータから取得し、未設定時はシステムテナント `'system'` にフォールバック。`tenant_id_from_metadata()` ヘルパーを使用 |
+| REST ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出、未認証時はシステムテナント `'system'` をフォールバックに使用 |
+| キャッシュキー | `{tenant_id}:{flag_key}` 形式（テナント間のキャッシュ汚染を防ぐ） |
+| Kafka キャッシュ無効化 | イベントペイロードに `tenant_id` フィールドを含め、対象テナントのキャッシュのみ無効化 |
+
+- システムテナントデフォルト値: `'system'`（006 マイグレーション以降。旧: UUID `00000000-0000-0000-0000-000000000001`）
+- ADR-0028 Phase 2 完了後: gRPC メタデータの `x-tenant-id` を必須化し、フォールバックを廃止する
+
 #### キャッシュ戦略
 
-- moka で評価結果を TTL 60 秒キャッシュする
+- moka で評価結果を TTL 60 秒キャッシュする（キャッシュキー: `{tenant_id}:{flag_key}`）
 - Kafka `k1s0.system.featureflag.changed.v1` 通知受信時にキャッシュを即座に無効化する
 
 ### エラーハンドリング方針

@@ -169,7 +169,7 @@ class TokenClaims extends $pb.GeneratedMessage {
   factory TokenClaims({
     $core.String? sub,
     $core.String? iss,
-    $core.String? aud,
+    $core.Iterable<$core.String>? aud,
     $fixnum.Int64? exp,
     $fixnum.Int64? iat,
     $core.String? jti,
@@ -185,7 +185,7 @@ class TokenClaims extends $pb.GeneratedMessage {
     final result = create();
     if (sub != null) result.sub = sub;
     if (iss != null) result.iss = iss;
-    if (aud != null) result.aud = aud;
+    if (aud != null) result.aud.addAll(aud);
     if (exp != null) result.exp = exp;
     if (iat != null) result.iat = iat;
     if (jti != null) result.jti = jti;
@@ -217,7 +217,7 @@ class TokenClaims extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sub')
     ..aOS(2, _omitFieldNames ? '' : 'iss')
-    ..aOS(3, _omitFieldNames ? '' : 'aud')
+    ..pPS(3, _omitFieldNames ? '' : 'aud')
     ..aInt64(4, _omitFieldNames ? '' : 'exp')
     ..aInt64(5, _omitFieldNames ? '' : 'iat')
     ..aOS(6, _omitFieldNames ? '' : 'jti')
@@ -277,15 +277,9 @@ class TokenClaims extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   void clearIss() => $_clearField(2);
 
-  /// Audience
+  /// Audience（JWT spec では配列型。複数 audience に対応するため repeated を使用する）
   @$pb.TagNumber(3)
-  $core.String get aud => $_getSZ(2);
-  @$pb.TagNumber(3)
-  set aud($core.String value) => $_setString(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasAud() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearAud() => $_clearField(3);
+  $core.List<$core.String> get aud => $_getList(2);
 
   /// 有効期限（Unix epoch）
   @$pb.TagNumber(4)

@@ -30,11 +30,13 @@ spec:
             matchLabels:
               tier: service
       # I-1 対応: ポート制限を追加し、business Tier アプリケーションの許可ポートを明示的に制限
+      # H-005 確認: service Tier の gRPC ポートは H-004 で 50051 に統一済み。
+      #             project-master (9210→50051) も 50051 に統一済み。このポリシーの変更は不要。
       ports:
         - protocol: TCP
           port: 8080    # HTTP REST API ポート
         - protocol: TCP
-          port: 50051   # gRPC ポート
+          port: 50051   # gRPC ポート（project-master を含む全 business Tier サービスは 50051 を使用）
         - protocol: TCP
           port: 9090    # Prometheus メトリクスポート
 ---

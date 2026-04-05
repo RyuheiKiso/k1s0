@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7"
+# axum 0.8: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -12,9 +13,12 @@ serde_yaml = "0.9"
 tracing = "0.1"
 {% if tier == "system" %}
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-opentelemetry = "0.24"
-opentelemetry-otlp = "0.17"
-opentelemetry_sdk = "0.24"
+# opentelemetry 0.27: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+opentelemetry = "0.27"
+# opentelemetry-otlp 0.27: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+opentelemetry-otlp = "0.27"
+# opentelemetry_sdk 0.27: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+opentelemetry_sdk = "0.27"
 {% else %}
 # system library (tier1 共通基盤)
 k1s0-config = { path = "{{ system_library_rust_path }}/config" }
@@ -28,7 +32,8 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 thiserror = "2"
 {% if api_styles is containing("rest") %}
 utoipa = { version = "5", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "8", features = ["axum"] }
+# utoipa-swagger-ui 9: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+utoipa-swagger-ui = { version = "9", features = ["axum"] }
 {% endif %}
 {% if api_styles is containing("grpc") %}
 tonic = "0.12"
@@ -55,7 +60,8 @@ redis = { version = "0.27", features = ["tokio-comp"] }
 {% endif %}
 
 [dev-dependencies]
-mockall = "0.13"
+# mockall 0.14: ワークスペースと同一バージョンを使用する（C-006 監査対応）
+mockall = "0.14"
 tokio = { version = "1", features = ["test-util", "macros"] }
 
 {% if api_styles is containing("grpc") %}

@@ -63,7 +63,9 @@ pub async fn list_rules(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細（DB接続文字列等）をレスポンスに含めない
+            tracing::error!("rule_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -80,7 +82,9 @@ pub async fn get_rule(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細（DB接続文字列等）をレスポンスに含めない
+            tracing::error!("rule_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -218,7 +222,9 @@ pub async fn list_rule_sets(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細（DB接続文字列等）をレスポンスに含めない
+            tracing::error!("rule_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -241,7 +247,9 @@ pub async fn get_rule_set(
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細（DB接続文字列等）をレスポンスに含めない
+            tracing::error!("rule_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
@@ -528,16 +536,29 @@ pub async fn list_evaluation_logs(
     State(state): State<AppState>,
     Query(params): Query<ListEvaluationLogsParams>,
 ) -> impl IntoResponse {
-    let from = params
-        .from
-        .as_deref()
-        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-        .map(|dt| dt.with_timezone(&chrono::Utc));
-    let to = params
-        .to
-        .as_deref()
-        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-        .map(|dt| dt.with_timezone(&chrono::Utc));
+    // M-003 監査対応: 不正な日付形式は 400 Bad Request で返す（サイレント無視を修正）
+    let from = if let Some(ref s) = params.from {
+        match chrono::DateTime::parse_from_rfc3339(s) {
+            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
+            Err(_) => {
+                let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'from' date format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
+    } else {
+        None
+    };
+    let to = if let Some(ref s) = params.to {
+        match chrono::DateTime::parse_from_rfc3339(s) {
+            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
+            Err(_) => {
+                let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'to' date format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
+    } else {
+        None
+    };
 
     let input = ListEvaluationLogsInput {
         page: params.page.unwrap_or(1),
@@ -582,7 +603,9 @@ pub async fn list_evaluation_logs(
                 .into_response()
         }
         Err(e) => {
-            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", &e.to_string());
+            // H-022 監査対応: 内部エラー詳細（DB接続文字列等）をレスポンスに含めない
+            tracing::error!("rule_handler internal error: {e:?}");
+            let err = ErrorResponse::new("SYS_RULE_INTERNAL_ERROR", "Internal server error");
             (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }

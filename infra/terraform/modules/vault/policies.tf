@@ -46,6 +46,115 @@ resource "vault_policy" "service_activity" {
   policy = file("${path.module}/policies/service-activity.hcl")
 }
 
+# ============================================================
+# H-010 監査対応: system ティア サービス個別ポリシー
+# 最小権限原則に従い、各サービスが自サービスのシークレットにのみアクセスできるよう
+# 個別の HCL ポリシーを定義する。
+# "system" 共通ポリシーへの依存を排除し、爆発半径を最小化する。
+# ============================================================
+
+# auth サービス専用ポリシー（JWT 署名、Transit、auth DB のみ）
+resource "vault_policy" "auth" {
+  name   = "auth"
+  policy = file("${path.module}/policies/auth.hcl")
+}
+
+# session サービス専用ポリシー（session DB、Redis のみ）
+resource "vault_policy" "session" {
+  name   = "session"
+  policy = file("${path.module}/policies/session.hcl")
+}
+
+# tenant サービス専用ポリシー（tenant DB、Kafka のみ）
+resource "vault_policy" "tenant" {
+  name   = "tenant"
+  policy = file("${path.module}/policies/tenant.hcl")
+}
+
+# featureflag サービス専用ポリシー（featureflag DB のみ）
+resource "vault_policy" "featureflag" {
+  name   = "featureflag"
+  policy = file("${path.module}/policies/featureflag.hcl")
+}
+
+# ratelimit サービス専用ポリシー（ratelimit DB、Redis のみ）
+resource "vault_policy" "ratelimit" {
+  name   = "ratelimit"
+  policy = file("${path.module}/policies/ratelimit.hcl")
+}
+
+# rule-engine サービス専用ポリシー（rule-engine DB、Kafka のみ）
+resource "vault_policy" "rule_engine" {
+  name   = "rule-engine"
+  policy = file("${path.module}/policies/rule-engine.hcl")
+}
+
+# policy サービス専用ポリシー（policy DB のみ）
+resource "vault_policy" "policy_svc" {
+  name   = "policy"
+  policy = file("${path.module}/policies/policy.hcl")
+}
+
+# workflow サービス専用ポリシー（workflow DB、Kafka のみ）
+resource "vault_policy" "workflow" {
+  name   = "workflow"
+  policy = file("${path.module}/policies/workflow.hcl")
+}
+
+# scheduler サービス専用ポリシー（scheduler DB、Kafka のみ）
+resource "vault_policy" "scheduler" {
+  name   = "scheduler"
+  policy = file("${path.module}/policies/scheduler.hcl")
+}
+
+# quota サービス専用ポリシー（quota DB、Redis のみ）
+resource "vault_policy" "quota" {
+  name   = "quota"
+  policy = file("${path.module}/policies/quota.hcl")
+}
+
+# notification サービス専用ポリシー（notification DB、Kafka、SMTP/FCM シークレットのみ）
+resource "vault_policy" "notification" {
+  name   = "notification"
+  policy = file("${path.module}/policies/notification.hcl")
+}
+
+# file サービス専用ポリシー（file DB、S3 クレデンシャルのみ）
+resource "vault_policy" "file_svc" {
+  name   = "file"
+  policy = file("${path.module}/policies/file.hcl")
+}
+
+# service-catalog サービス専用ポリシー（service-catalog DB のみ）
+resource "vault_policy" "service_catalog" {
+  name   = "service-catalog"
+  policy = file("${path.module}/policies/service-catalog.hcl")
+}
+
+# event-monitor サービス専用ポリシー（event-monitor DB、Kafka のみ）
+resource "vault_policy" "event_monitor" {
+  name   = "event-monitor"
+  policy = file("${path.module}/policies/event-monitor.hcl")
+}
+
+# api-registry サービス専用ポリシー（api-registry DB のみ）
+resource "vault_policy" "api_registry" {
+  name   = "api-registry"
+  policy = file("${path.module}/policies/api-registry.hcl")
+}
+
+# app-registry サービス専用ポリシー（app-registry DB のみ）
+resource "vault_policy" "app_registry" {
+  name   = "app-registry"
+  policy = file("${path.module}/policies/app-registry.hcl")
+}
+
+# graphql-gateway サービス専用ポリシー（ゲートウェイ設定、PKI のみ）
+resource "vault_policy" "graphql_gateway" {
+  name   = "graphql-gateway"
+  policy = file("${path.module}/policies/graphql-gateway.hcl")
+}
+
 # CI/CD pipeline policy - limited access for AppRole auth
 # セキュリティ: CI/CDパイプラインはデプロイに必要な cicd 配下のシークレットのみアクセス可能
 resource "vault_policy" "cicd" {

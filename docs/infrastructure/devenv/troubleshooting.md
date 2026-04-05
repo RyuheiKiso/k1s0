@@ -533,6 +533,328 @@ export SESSION_GRPC_HOST_PORT=50205
 
 ---
 
+## 12. Docker Desktop on Windows: ヘルスチェックタイムアウト問題
+
+### 症状
+
+`just local-up-dev` 実行後、以下のようなエラーが発生してサービスが起動しない:
+
+```
+Container k1s0-jaeger-1 Error dependency jaeger failed to start
+Container k1s0-kafka-1 Error dependency kafka failed to start
+dependency failed to start: container k1s0-jaeger-1 is unhealthy
+```
+
+`docker inspect` でコンテナのヘルス状態を確認すると `unhealthy` になっている:
+
+```bash
+docker inspect k1s0-jaeger-1 --format '{{json .State.Health}}' | jq
+```
+
+### 原因
+
+Docker Desktop on Windows では、`CMD-SHELL` 形式のヘルスチェックが特定の条件下でタイムアウトになる問題がある。
+PostgreSQL・Redis・Vault・Kafka・Jaeger が `unhealthy` 状態になり、これらに `service_healthy` 条件で依存するサービスが起動を待ち続ける。
+
+### 対策 1: ヘルスチェックタイムアウトを延長する（推奨）
+
+`docker-compose.override.yaml` を作成してタイムアウト値を延長する:
+
+```yaml
+# docker-compose.override.yaml（.gitignore 対象、ローカル専用）
+services:
+  postgres:
+    healthcheck:
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+  kafka:
+    healthcheck:
+      timeout: 30s
+      retries: 10
+      start_period: 120s
+  jaeger:
+    healthcheck:
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+  vault:
+    healthcheck:
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+```
+
+### 対策 2: WSL2 バックエンドを使用する（推奨）
+
+Docker Desktop の設定で「Use the WSL 2 based engine」を有効にすると、Linux ネイティブのヘルスチェックが使われてタイムアウト問題が解消されることが多い。
+
+### 対策 3: 手動で健全性を確認してから起動する
+
+インフラサービスを先に起動し、状態を手動確認してからアプリを起動する:
+
+```bash
+# Step 1: インフラ起動
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile infra up -d
+
+# Step 2: PostgreSQL が接続できるまで待機
+until docker exec k1s0-postgres-1 pg_isready -U k1s0 2>/dev/null; do
+  echo "Waiting for postgres..."; sleep 3
+done
+
+# Step 3: その後アプリ起動
+docker compose --env-file .env.dev -f docker-compose.yaml -f docker-compose.dev.yaml \
+  --profile system up -d
+```
+
+### 参考
+
+- [ADR-0040](../../../architecture/adr/0040-grpc-port-range-hyper-v-avoidance.md): Hyper-V ポート予約回避
+- Docker Desktop 公式: WSL 2 バックエンドの利用推奨
+
+---
+
+## 13. K8s desktop-worker ノードが NotReady 状態（LOW-012 監査対応）
+
+### 症状
+
+```bash
+kubectl get nodes
+# NAME              STATUS     ROLES           AGE
+# docker-desktop    Ready      control-plane   ...
+# desktop-worker    NotReady   <none>          ...
+```
+
+または `kubectl describe node desktop-worker` で以下のメッセージが確認される:
+
+```
+Kubelet stopped posting node status.
+```
+
+### 原因
+
+Docker Desktop の Kubernetes 機能を使用している場合、`desktop-worker` はワーカーノードとして自動作成される仮想ノードである。以下の状況で `NotReady` になる:
+
+- Docker Desktop の再起動後に kubelet が自動復旧しなかった
+- Docker Desktop のリソース不足（メモリ・CPU）でノードエージェントが停止した
+- Kubernetes クラスターの内部状態の破損
+
+### 対処
+
+**方法 1: Docker Desktop ごと再起動する（最も簡単）**
+
+```
+Docker Desktop タスクバーアイコン → Restart
+```
+
+再起動後、`kubectl get nodes` で `desktop-worker` が `Ready` になることを確認する。
+
+**方法 2: Kubernetes クラスターをリセットする**
+
+```
+Docker Desktop → Settings → Kubernetes → Reset Kubernetes Cluster
+```
+
+> **注意**: クラスターのリセットは全デプロイ・ConfigMap・Secret を削除する。ローカルで適用した K8s リソースは再適用が必要。
+
+**方法 3: ノードを強制削除して再参加させる**
+
+```bash
+# ノードを削除する（kubelet 再起動後に自動再参加する）
+kubectl delete node desktop-worker
+
+# Docker Desktop の Kubernetes を再起動する
+# （Restart ではなく Reset Kubernetes Cluster）
+```
+
+### CI/CD への影響
+
+この問題はローカル Docker Desktop 固有であり、CI/CD 環境には影響しない。
+
+CI/CD の K8s 統合テストには独立した環境（GitHub Actions の K8s サービスコンテナ、または専用クラスター）を使用すること。ローカルの `desktop-worker` 状態に依存したテストは書かないこと。
+
+### 参考
+
+- [kubernetes 設計](../kubernetes/kubernetes設計.md) — K8s 全体設計
+- [デプロイ手順書](../kubernetes/デプロイ手順書.md) — K8s デプロイ手順
+
+---
+
+---
+
+## Docker Compose 環境変数変更後のコンテナ再起動（HIGH-001 対応）
+
+### 症状
+
+- `docker-compose.dev.yaml` や `.env.dev` に環境変数を追加・変更したが、稼働中サービスに反映されない
+- サービスの readyz が `degraded` を返す（例: rule-engine の Kafka 未接続）
+
+### 原因
+
+Docker Compose はコンテナ起動時に環境変数を読み込むため、設定変更後も **既存コンテナには反映されない**。特に `docker compose up -d` は変更を検知しても依存するコンテナが既に起動中の場合は再起動しない。
+
+### 対処
+
+**特定サービスのみ強制再起動する**:
+
+```bash
+# rule-engine を再起動する例（Kafka 接続設定変更後など）
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate rule-engine-rust
+
+# featureflag を再起動する例
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate featureflag-rust
+```
+
+**全サービスをリビルドして再起動する**:
+
+```bash
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  build && \
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate
+```
+
+### 確認
+
+```bash
+# readyz で全サービスの状態確認
+for port in 8083 8084 8085 8086 8087 8088 8089 8091 8092 8093 8094 \
+            8095 8096 8097 8098 8099 8101 8102 8103 8104 8105 8106 \
+            8107 8108 8082 8122 8211 8311 8321 8331; do
+  echo -n "port $port: "
+  curl -sf http://127.0.0.1:${port}/readyz | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('status','?'))" 2>/dev/null || echo "unreachable"
+done
+```
+
+---
+
+## stale Docker イメージ問題（HIGH-002 / HIGH-003 / HIGH-006 対応）
+
+### 症状
+
+- ソースコードを変更したのに稼働中コンテナに反映されない
+- readyz が 404 を返す（例: featureflag の `/readyz` エンドポイント）
+- healthz が旧バージョンのレスポンスを返す
+
+### 原因
+
+稼働中の Docker コンテナが古いイメージを使用している。`docker ps` で `CREATED` 列を確認し、数時間〜数日前になっていれば stale image の可能性が高い。
+
+### 対処
+
+```bash
+# 対象サービスを特定してリビルド・再起動する
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  build featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust && \
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust
+```
+
+### stale image の検出
+
+```bash
+# 長時間起動しているコンテナを確認する（24 時間以上が目安）
+docker ps --format "table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}" | sort
+```
+
+---
+
+## Windows Hyper-V ポートフォワーディング問題（HIGH-005 / LOW-003 対応）
+
+### 症状
+
+- `curl http://127.0.0.1:8084/healthz` がホスト（Windows）から応答しない（`Empty reply from server` / exit 52）
+- Docker 内部ネットワーク（`curl http://config-rust:8080/healthz`）では正常応答する
+- Docker の healthcheck（コンテナ内から実行）は成功し、コンテナは `healthy` 表示になる
+
+### 原因
+
+Windows の Hyper-V / Docker Desktop における動的ポート除外範囲（Ephemeral Port Range）に特定ポートが含まれており、ポートフォワーディングが機能しない。
+
+**除外範囲の確認コマンド（PowerShell）**:
+
+```powershell
+netsh interface ipv4 show excludedportrange protocol=tcp
+```
+
+出力に当該ポート（例: 8084）が含まれている場合、そのポートは使用できない。
+
+### 対処
+
+**環境変数でポートを変更する**（推奨）:
+
+`.env.dev` または環境変数に以下を追加し、コンテナを再起動する:
+
+```bash
+# 例: config サービスを 8184 に変更する
+CONFIG_REST_HOST_PORT=8184
+```
+
+**Docker 内部ネットワーク経由でアクセスする**:
+
+```bash
+# Docker ネットワーク経由でコンテナに curl する
+docker run --rm --network k1s0-network curlimages/curl \
+  curl http://config-rust:8080/healthz
+```
+
+**別ポートでの代替確認**:
+
+```bash
+# Wireshark / Process Monitor で除外されていないポートを特定して使用する
+# 一般的に 8200〜8299 や 9000〜9099 帯は除外されないことが多い
+```
+
+---
+
+## Git 設定推奨値（LOW-001 対応）
+
+`k1s0 doctor` コマンドで以下の警告が表示される場合の対処:
+
+```
+[WARN] Git: core.autocrlf が未設定です
+[WARN] Git: core.longpaths が未設定または false です
+```
+
+### 対処（PowerShell または Git Bash）
+
+```bash
+# Windows 環境での推奨設定
+git config --global core.autocrlf input   # LF を維持（CRLF 変換防止）
+git config --global core.longpaths true   # 260 文字超のパスを許可
+```
+
+---
+
+## k1s0 CLI が PATH 未登録（LOW-002 対応）
+
+`k1s0 doctor` コマンドで以下の警告が表示される場合の対処:
+
+```
+[WARN] k1s0 CLI: k1s0 が見つかりません
+```
+
+### 対処
+
+```bash
+# CLI を cargo でインストールする
+cargo install --path CLI/crates/k1s0-cli
+
+# インストール確認
+k1s0 --version
+```
+
+---
+
 ## 関連ドキュメント
 
 - [Windows クイックスタート](./windows-quickstart.md) — 3 つのセットアップ方法と手順

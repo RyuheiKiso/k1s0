@@ -106,8 +106,10 @@ class AuthClient {
     final codeChallenge = generateCodeChallenge(codeVerifier);
     final state = _generateState();
 
-    _tokenStore.setCodeVerifier(codeVerifier);
-    _tokenStore.setState(state);
+    // H-008 監査対応: await を追加して code_verifier の永続化完了を保証する
+    await _tokenStore.setCodeVerifier(codeVerifier);
+    // MED-016 監査対応: setState も await して永続化完了を保証する
+    await _tokenStore.setState(state);
 
     final discovery = await fetchDiscovery();
     final params = {
@@ -131,8 +133,10 @@ class AuthClient {
     final codeChallenge = generateCodeChallenge(codeVerifier);
     final state = _generateState();
 
-    _tokenStore.setCodeVerifier(codeVerifier);
-    _tokenStore.setState(state);
+    // H-008 監査対応: await を追加して code_verifier の永続化完了を保証する
+    await _tokenStore.setCodeVerifier(codeVerifier);
+    // MED-016 監査対応: setState も await して永続化完了を保証する
+    await _tokenStore.setState(state);
 
     final discovery = await fetchDiscovery();
     final params = {
@@ -181,19 +185,23 @@ class AuthClient {
     }
 
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
-    // FE-09 監査対応: refresh_token は一部 IdP では省略される場合があるため nullable として扱う。
-    // null の場合は空文字で初期化し、リフレッシュ時のエラーハンドリングで対処する。
-    final rawRefreshToken = data['refresh_token'];
-    final refreshToken = rawRefreshToken != null ? rawRefreshToken as String : '';
+    // POLY-006 監査対応: refresh_token は一部 IdP では省略されるため null のまま保持する。
+    // 空文字への変換を廃止し、TokenSet.refreshToken が String? (nullable) になったことで
+    // 「リフレッシュトークンなし」を明示的に表現できるようになった。
     final tokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: refreshToken,
+      refreshToken: data['refresh_token'] as String?,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
     );
 
-    _tokenStore.setTokenSet(tokenSet);
+    // MED-015 監査対応: id_token の JWKS 署名検証が未実装。
+    // TODO: JWKS エンドポイント（discoveryUrl の jwks_uri）を使った RSA 署名検証を実装する必要がある。
+    // 具体的には: 1) discovery.jwksUri から公開鍵を取得、2) dart_jsonwebtoken 等のライブラリで検証、
+    // 3) iss/aud/exp クレームを検証してなりすましを防止する。
+    // 参考: ADR-0100、https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+    await _tokenStore.setTokenSet(tokenSet); // POLY-007 監査対応: await で永続化完了を保証
     _tokenStore.clearCodeVerifier();
     _tokenStore.clearState();
     _notifyListeners(true);
@@ -205,7 +213,13 @@ class AuthClient {
   Future<void> refreshToken() async {
     final tokenSet = _tokenStore.getTokenSet();
     if (tokenSet == null) {
-      throw AuthError('No refresh token');
+      throw AuthError('No token set');
+    }
+    // POLY-006 監査対応: refreshToken が null の場合はリフレッシュ不可能なため明示的にエラーをスローする。
+    // 以前は空文字が渡されていたが、IdP が空文字の refresh_token を拒否するまでエラーが検出されなかった。
+    final currentRefreshToken = tokenSet.refreshToken;
+    if (currentRefreshToken == null || currentRefreshToken.isEmpty) {
+      throw AuthError('No refresh token available');
     }
 
     final discovery = await fetchDiscovery();
@@ -215,7 +229,7 @@ class AuthClient {
       body: {
         'grant_type': 'refresh_token',
         'client_id': _config.clientId,
-        'refresh_token': tokenSet.refreshToken,
+        'refresh_token': currentRefreshToken,
       },
     );
 
@@ -228,13 +242,16 @@ class AuthClient {
     final data = jsonDecode(resp.body) as Map<String, dynamic>;
     final newTokenSet = TokenSet(
       accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
+      refreshToken: data['refresh_token'] as String?,
       idToken: data['id_token'] as String,
       expiresAt:
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
     );
 
-    _tokenStore.setTokenSet(newTokenSet);
+    // H-007 監査対応: await を追加してトークン永続化の完了を保証する。
+    // await なしだと fire-and-forget となり、アプリ終了時にトークンが保存されないリスクがある。
+    await _tokenStore.setTokenSet(newTokenSet);
+    _notifyListeners(true);
   }
 
   /// 有効なアクセストークンを返す。
@@ -313,8 +330,11 @@ class AuthClient {
     }
   }
 
-  /// OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュあり）。
+  /// OIDC Discovery ドキュメントを取得する（TTL 付きキャッシュ + 指数バックオフリトライあり）。
   /// L-20 監査対応: キャッシュが1時間を超えた場合は再取得して最新エンドポイントを使用する
+  /// M-016-dart 監査対応: ネットワークエラーおよび 5xx レスポンス時に指数バックオフで最大3回リトライする
+  ///   - 1回目リトライ: 500ms 待機後
+  ///   - 2回目リトライ: 1000ms 待機後
   Future<OIDCDiscovery> fetchDiscovery() async {
     // キャッシュが有効期限内であればそのまま返す
     if (_discoveryCache != null &&
@@ -323,16 +343,52 @@ class AuthClient {
       return _discoveryCache!;
     }
 
-    final resp = await _httpGet(Uri.parse(_config.discoveryUrl));
-    if (resp.statusCode != 200) {
-      throw AuthError('Discovery fetch failed: ${resp.statusCode}');
+    // 指数バックオフリトライ待機時間（ミリ秒）
+    // 1回目: 500ms、2回目: 1000ms
+    const retryDelays = [500, 1000];
+    // 最大試行回数（初回 + リトライ2回 = 計3回）
+    const maxAttempts = 3;
+
+    http.Response? lastResponse;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        // リトライ前に指数バックオフで待機する
+        await Future<void>.delayed(
+          Duration(milliseconds: retryDelays[attempt - 1]),
+        );
+      }
+
+      try {
+        final resp = await _httpGet(Uri.parse(_config.discoveryUrl));
+        // 成功または 4xx（クライアントエラー）はリトライしない
+        if (resp.statusCode == 200) {
+          _discoveryCache = OIDCDiscovery.fromJson(
+            jsonDecode(resp.body) as Map<String, dynamic>,
+          );
+          // キャッシュ取得時刻を記録する
+          _discoveryCacheTime = DateTime.now();
+          return _discoveryCache!;
+        }
+        // 5xx（サーバーエラー）はリトライ対象
+        if (resp.statusCode >= 500) {
+          lastResponse = resp;
+          continue;
+        }
+        // 4xx はリトライしない
+        throw AuthError('Discovery fetch failed: ${resp.statusCode}');
+      } on AuthError {
+        rethrow;
+      } catch (e) {
+        // ネットワークエラーはリトライ対象。最後の試行であれば上位に伝播する
+        if (attempt == maxAttempts - 1) {
+          rethrow;
+        }
+      }
     }
 
-    _discoveryCache = OIDCDiscovery.fromJson(
-      jsonDecode(resp.body) as Map<String, dynamic>,
+    // すべてのリトライが 5xx で失敗した場合
+    throw AuthError(
+      'Discovery fetch failed after $maxAttempts attempts: ${lastResponse?.statusCode}',
     );
-    // キャッシュ取得時刻を記録する
-    _discoveryCacheTime = DateTime.now();
-    return _discoveryCache!;
   }
 }

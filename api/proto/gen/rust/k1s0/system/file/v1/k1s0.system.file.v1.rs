@@ -29,6 +29,7 @@ pub struct FileMetadata {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetFileMetadataRequest {
+    /// ファイルIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -39,6 +40,7 @@ pub struct GetFileMetadataResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListFilesRequest {
+    /// テナントIDはUUID形式であること
     #[prost(string, tag="1")]
     pub tenant_id: ::prost::alloc::string::String,
     /// ページネーションパラメータを共通型に統一
@@ -60,12 +62,16 @@ pub struct ListFilesResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateUploadUrlRequest {
+    /// ファイル名は1文字以上512文字以下であること
     #[prost(string, tag="1")]
     pub filename: ::prost::alloc::string::String,
+    /// コンテンツタイプは1文字以上128文字以下であること
     #[prost(string, tag="2")]
     pub content_type: ::prost::alloc::string::String,
+    /// テナントIDはUUID形式であること
     #[prost(string, tag="3")]
     pub tenant_id: ::prost::alloc::string::String,
+    /// アップロード者IDは1文字以上であること
     #[prost(string, tag="4")]
     pub uploaded_by: ::prost::alloc::string::String,
     #[prost(map="string, string", tag="5")]
@@ -86,6 +92,7 @@ pub struct GenerateUploadUrlResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CompleteUploadRequest {
+    /// ファイルIDは1文字以上であること
     #[prost(string, tag="1")]
     pub file_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="3")]
@@ -98,6 +105,7 @@ pub struct CompleteUploadResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GenerateDownloadUrlRequest {
+    /// ファイルIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }
@@ -110,6 +118,7 @@ pub struct GenerateDownloadUrlResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFileTagsRequest {
+    /// ファイルIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(map="string, string", tag="2")]
@@ -122,6 +131,7 @@ pub struct UpdateFileTagsResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteFileRequest {
+    /// ファイルIDは1文字以上であること
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
 }

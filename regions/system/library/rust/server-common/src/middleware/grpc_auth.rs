@@ -77,6 +77,13 @@ where
         let path = req.uri().path().to_string();
 
         Box::pin(async move {
+            // gRPC Health Check Protocol のパスは認証をバイパスする。
+            // readyz エンドポイントや外部ヘルスチェックが Bearer token なしで接続できるようにするため。
+            // 参考: https://github.com/grpc/grpc/blob/master/doc/health-checking.md
+            if path == "/grpc.health.v1.Health/Check" || path == "/grpc.health.v1.Health/Watch" {
+                return inner.call(req).await;
+            }
+
             if let Some(auth_state) = auth_state {
                 let token = match extract_bearer_token(&req) {
                     Some(token) => token,
@@ -114,7 +121,16 @@ where
 fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
     let auth_str = auth_header.to_str().ok()?;
-    let token = auth_str.strip_prefix("Bearer ")?;
+    // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（lessons.md HIGH-007 対応）
+    // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+    const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    if auth_str.len() < BEARER_PREFIX_LEN {
+        return None;
+    }
+    if !auth_str[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ") {
+        return None;
+    }
+    let token = &auth_str[BEARER_PREFIX_LEN..];
     if token.is_empty() {
         None
     } else {
@@ -158,4 +174,61 @@ fn permission_denied_response(message: &str) -> Response<BoxBody> {
             .unwrap_or_else(|_| http::HeaderValue::from_static("Permission denied")),
     );
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use http::Request;
+
+    fn make_request_with_auth(value: &str) -> Request<()> {
+        Request::builder()
+            .header(http::header::AUTHORIZATION, value)
+            .body(())
+            .unwrap()
+    }
+
+    #[test]
+    fn test_extract_bearer_token_uppercase() {
+        // 大文字 Bearer が正常に動作することを確認（RFC 7235 準拠）
+        let req = make_request_with_auth("Bearer test-token");
+        assert_eq!(
+            extract_bearer_token(&req),
+            Some("test-token".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_bearer_token_lowercase() {
+        // 小文字 bearer が受け入れられることを確認（RFC 7235: スキーム名は大文字小文字不区別）
+        let req = make_request_with_auth("bearer test-token");
+        assert_eq!(
+            extract_bearer_token(&req),
+            Some("test-token".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_bearer_token_mixed_case() {
+        // 混在ケース BEARER が受け入れられることを確認
+        let req = make_request_with_auth("BEARER test-token");
+        assert_eq!(
+            extract_bearer_token(&req),
+            Some("test-token".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_bearer_token_empty() {
+        // トークンが空の場合は None を返す
+        let req = make_request_with_auth("Bearer ");
+        assert_eq!(extract_bearer_token(&req), None);
+    }
+
+    #[test]
+    fn test_extract_bearer_token_missing_header() {
+        // Authorization ヘッダーがない場合は None を返す
+        let req = Request::builder().body(()).unwrap();
+        assert_eq!(extract_bearer_token(&req), None);
+    }
 }

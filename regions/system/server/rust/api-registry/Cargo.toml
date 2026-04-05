@@ -37,7 +37,8 @@ thiserror = {workspace = true}
 async-trait = {workspace = true}
 sha2 = {workspace = true}
 hex = {workspace = true}
-regex = "1"
+# 正規表現エンジン（バージョン一元管理: RUST-MED-003 対応）
+regex = {workspace = true}
 tempfile = "3"
 
 # Logging / Tracing

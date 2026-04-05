@@ -10,6 +10,7 @@
 package servicecatalogv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -181,16 +182,22 @@ func (x *ServiceInfo) GetUpdatedAt() *v1.Timestamp {
 
 // RegisterServiceRequest はサービス登録リクエスト。
 type RegisterServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Tier          string                 `protobuf:"bytes,4,opt,name=tier,proto3" json:"tier,omitempty"`
-	Version       string                 `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
-	BaseUrl       string                 `protobuf:"bytes,6,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
-	GrpcEndpoint  *string                `protobuf:"bytes,7,opt,name=grpc_endpoint,json=grpcEndpoint,proto3,oneof" json:"grpc_endpoint,omitempty"`
-	HealthUrl     string                 `protobuf:"bytes,8,opt,name=health_url,json=healthUrl,proto3" json:"health_url,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// サービス名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// 表示名は1文字以上256文字以下であること
+	DisplayName string `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Tier は1文字以上64文字以下であること（例: system, business, service）
+	Tier string `protobuf:"bytes,4,opt,name=tier,proto3" json:"tier,omitempty"`
+	// バージョンは1文字以上64文字以下であること
+	Version string `protobuf:"bytes,5,opt,name=version,proto3" json:"version,omitempty"`
+	// ベース URL は1文字以上512文字以下であること
+	BaseUrl      string  `protobuf:"bytes,6,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	GrpcEndpoint *string `protobuf:"bytes,7,opt,name=grpc_endpoint,json=grpcEndpoint,proto3,oneof" json:"grpc_endpoint,omitempty"`
+	// ヘルスチェック URL は1文字以上512文字以下であること
+	HealthUrl     string            `protobuf:"bytes,8,opt,name=health_url,json=healthUrl,proto3" json:"health_url,omitempty"`
+	Metadata      map[string]string `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -336,7 +343,7 @@ func (x *RegisterServiceResponse) GetService() *ServiceInfo {
 // GetServiceRequest はサービス取得リクエスト。
 type GetServiceRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// サービス UUID または名前
+	// サービス UUID または名前（1文字以上であること）
 	ServiceId     string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -551,15 +558,16 @@ func (x *ListServicesResponse) GetPagination() *v1.PaginationResult {
 
 // UpdateServiceRequest はサービス更新リクエスト。
 type UpdateServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceId     string                 `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
-	DisplayName   *string                `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
-	Description   *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Version       *string                `protobuf:"bytes,4,opt,name=version,proto3,oneof" json:"version,omitempty"`
-	BaseUrl       *string                `protobuf:"bytes,5,opt,name=base_url,json=baseUrl,proto3,oneof" json:"base_url,omitempty"`
-	GrpcEndpoint  *string                `protobuf:"bytes,6,opt,name=grpc_endpoint,json=grpcEndpoint,proto3,oneof" json:"grpc_endpoint,omitempty"`
-	HealthUrl     *string                `protobuf:"bytes,7,opt,name=health_url,json=healthUrl,proto3,oneof" json:"health_url,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// サービス IDは1文字以上であること
+	ServiceId     string            `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
+	DisplayName   *string           `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
+	Description   *string           `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Version       *string           `protobuf:"bytes,4,opt,name=version,proto3,oneof" json:"version,omitempty"`
+	BaseUrl       *string           `protobuf:"bytes,5,opt,name=base_url,json=baseUrl,proto3,oneof" json:"base_url,omitempty"`
+	GrpcEndpoint  *string           `protobuf:"bytes,6,opt,name=grpc_endpoint,json=grpcEndpoint,proto3,oneof" json:"grpc_endpoint,omitempty"`
+	HealthUrl     *string           `protobuf:"bytes,7,opt,name=health_url,json=healthUrl,proto3,oneof" json:"health_url,omitempty"`
+	Metadata      map[string]string `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -697,8 +705,9 @@ func (x *UpdateServiceResponse) GetService() *ServiceInfo {
 
 // DeleteServiceRequest はサービス削除リクエスト。
 type DeleteServiceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceId     string                 `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// サービス IDは1文字以上であること
+	ServiceId     string `protobuf:"bytes,1,opt,name=service_id,json=serviceId,proto3" json:"service_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -970,7 +979,7 @@ var File_k1s0_system_servicecatalog_v1_service_catalog_proto protoreflect.FileDe
 
 const file_k1s0_system_servicecatalog_v1_service_catalog_proto_rawDesc = "" +
 	"\n" +
-	"3k1s0/system/servicecatalog/v1/service_catalog.proto\x12\x1dk1s0.system.servicecatalog.v1\x1a!k1s0/system/common/v1/types.proto\"\xc7\x04\n" +
+	"3k1s0/system/servicecatalog/v1/service_catalog.proto\x12\x1dk1s0.system.servicecatalog.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xc7\x04\n" +
 	"\vServiceInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -992,27 +1001,31 @@ const file_k1s0_system_servicecatalog_v1_service_catalog_proto_rawDesc = "" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x10\n" +
-	"\x0e_grpc_endpoint\"\xb3\x03\n" +
-	"\x16RegisterServiceRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
-	"\x04tier\x18\x04 \x01(\tR\x04tier\x12\x18\n" +
-	"\aversion\x18\x05 \x01(\tR\aversion\x12\x19\n" +
-	"\bbase_url\x18\x06 \x01(\tR\abaseUrl\x12(\n" +
-	"\rgrpc_endpoint\x18\a \x01(\tH\x00R\fgrpcEndpoint\x88\x01\x01\x12\x1d\n" +
+	"\x0e_grpc_endpoint\"\xf9\x03\n" +
+	"\x16RegisterServiceRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12-\n" +
+	"\fdisplay_name\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\vdisplayName\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1d\n" +
+	"\x04tier\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x04tier\x12#\n" +
+	"\aversion\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\aversion\x12%\n" +
+	"\bbase_url\x18\x06 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\abaseUrl\x12(\n" +
+	"\rgrpc_endpoint\x18\a \x01(\tH\x00R\fgrpcEndpoint\x88\x01\x01\x12)\n" +
 	"\n" +
-	"health_url\x18\b \x01(\tR\thealthUrl\x12_\n" +
+	"health_url\x18\b \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\thealthUrl\x12_\n" +
 	"\bmetadata\x18\t \x03(\v2C.k1s0.system.servicecatalog.v1.RegisterServiceRequest.MetadataEntryR\bmetadata\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x10\n" +
 	"\x0e_grpc_endpoint\"_\n" +
 	"\x17RegisterServiceResponse\x12D\n" +
-	"\aservice\x18\x01 \x01(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\aservice\"2\n" +
-	"\x11GetServiceRequest\x12\x1d\n" +
+	"\aservice\x18\x01 \x01(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\aservice\";\n" +
+	"\x11GetServiceRequest\x12&\n" +
 	"\n" +
-	"service_id\x18\x01 \x01(\tR\tserviceId\"Z\n" +
+	"service_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tserviceId\"Z\n" +
 	"\x12GetServiceResponse\x12D\n" +
 	"\aservice\x18\x01 \x01(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\aservice\"\xca\x01\n" +
 	"\x13ListServicesRequest\x12A\n" +
@@ -1029,10 +1042,10 @@ const file_k1s0_system_servicecatalog_v1_service_catalog_proto_rawDesc = "" +
 	"\bservices\x18\x01 \x03(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\bservices\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x88\x04\n" +
-	"\x14UpdateServiceRequest\x12\x1d\n" +
+	"pagination\"\x91\x04\n" +
+	"\x14UpdateServiceRequest\x12&\n" +
 	"\n" +
-	"service_id\x18\x01 \x01(\tR\tserviceId\x12&\n" +
+	"service_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tserviceId\x12&\n" +
 	"\fdisplay_name\x18\x02 \x01(\tH\x00R\vdisplayName\x88\x01\x01\x12%\n" +
 	"\vdescription\x18\x03 \x01(\tH\x01R\vdescription\x88\x01\x01\x12\x1d\n" +
 	"\aversion\x18\x04 \x01(\tH\x02R\aversion\x88\x01\x01\x12\x1e\n" +
@@ -1052,10 +1065,10 @@ const file_k1s0_system_servicecatalog_v1_service_catalog_proto_rawDesc = "" +
 	"\x0e_grpc_endpointB\r\n" +
 	"\v_health_url\"]\n" +
 	"\x15UpdateServiceResponse\x12D\n" +
-	"\aservice\x18\x01 \x01(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\aservice\"5\n" +
-	"\x14DeleteServiceRequest\x12\x1d\n" +
+	"\aservice\x18\x01 \x01(\v2*.k1s0.system.servicecatalog.v1.ServiceInfoR\aservice\">\n" +
+	"\x14DeleteServiceRequest\x12&\n" +
 	"\n" +
-	"service_id\x18\x01 \x01(\tR\tserviceId\"1\n" +
+	"service_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tserviceId\"1\n" +
 	"\x15DeleteServiceResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"G\n" +
 	"\x12HealthCheckRequest\x12\"\n" +

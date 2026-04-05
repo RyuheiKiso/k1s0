@@ -15,6 +15,8 @@ test = false
 [dependencies]
 # gRPC / Protobuf
 tonic = {workspace = true}
+# gRPC Health Check Protocol サービスの実装に使用する
+tonic-health = {workspace = true}
 prost = {workspace = true}
 prost-types = {workspace = true}
 
@@ -71,6 +73,10 @@ reqwest = {workspace = true, features = ["rustls-tls"]}
 
 # URL エンコード（CRIT-07: Keycloak クエリパラメータのインジェクション防止）
 urlencoding = "2"
+
+# LOW-012 監査対応: OsRng による直接乱数生成のために rand を追加する。
+# UUID v4 バイトの流用（version/variant bits の制約あり）ではなく真の 192bit ランダムキーを生成する。
+rand = { version = "0.8", features = ["getrandom"] }
 
 # Auth library (JWKS verifier)
 k1s0-auth = { path = "../../../library/rust/auth" }

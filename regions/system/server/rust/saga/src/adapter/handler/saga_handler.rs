@@ -1,7 +1,9 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use chrono::Utc;
+use k1s0_auth::Claims;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -28,6 +30,9 @@ pub struct StartSagaResponse {
     pub status: String,
 }
 
+/// Saga 一覧取得のクエリパラメータ。
+/// cursor が指定された場合は keyset ページネーションを優先する。
+/// 後方互換のため page / page_size も維持する。
 #[derive(Debug, Deserialize)]
 pub struct ListSagasQuery {
     pub workflow_name: Option<String>,
@@ -37,6 +42,9 @@ pub struct ListSagasQuery {
     pub page: i32,
     #[serde(default = "default_page_size")]
     pub page_size: i32,
+    /// keyset ページネーション用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// 指定された場合は OFFSET より優先される。
+    pub cursor: Option<String>,
 }
 
 fn default_page() -> i32 {
@@ -88,12 +96,18 @@ pub struct ListSagasResponse {
     pub pagination: PaginationResponse,
 }
 
+/// ページネーション情報レスポンス。
+/// keyset ページネーション使用時は next_cursor に次ページのカーソル値が入る。
+/// cursor が None の場合はリストの末尾に達したことを示す。
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
     pub total_count: i64,
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
+    /// 次ページ取得用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// keyset ページネーション使用時のみ設定される。
+    pub next_cursor: Option<String>,
 }
 
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
@@ -135,32 +149,46 @@ pub struct CompensateSagaResponse {
 
 // --- Handlers ---
 
-/// ヘルスチェックエンドポイント: DB 接続確認込みで稼働状態を応答する（C-02 対応）
-/// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す
-#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK"), (status = 503, description = "Service unavailable")))]
-pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
+/// liveness probe: プロセスが起動していれば常に ok を返す。
+/// CRITICAL-003 監査対応: DB 確認は readyz に移動し、healthz は liveness のみとする。
+#[utoipa::path(get, path = "/healthz", responses((status = 200, description = "Health check OK")))]
+pub async fn healthz() -> impl IntoResponse {
+    Json(serde_json::json!({"status": "ok"}))
+}
+
+/// readiness probe: DB 接続確認を行い、サービスがリクエスト受付可能かを返す。
+/// CRITICAL-003 監査対応: Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
+/// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す。
+#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready"), (status = 503, description = "Not ready")))]
+pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => {
-                Json(serde_json::json!({"status": "ok", "database": "connected"})).into_response()
-            }
-            Err(e) => (
+            // ADR-0068 準拠: "healthy"/"unhealthy" + checks + timestamp
+            Ok(_) => Json(serde_json::json!({
+                "status": "healthy",
+                "checks": { "database": "ok" },
+                "timestamp": Utc::now().to_rfc3339()
+            }))
+            .into_response(),
+            Err(_) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 Json(serde_json::json!({
                     "status": "unhealthy",
-                    "database": e.to_string()
+                    "checks": { "database": "error" },
+                    "timestamp": Utc::now().to_rfc3339()
                 })),
             )
                 .into_response(),
         }
     } else {
-        Json(serde_json::json!({"status": "ok", "database": "not_configured"})).into_response()
+        // DB 未構成でも起動完了とみなす（ADR-0068 準拠）
+        Json(serde_json::json!({
+            "status": "healthy",
+            "checks": { "database": "not_configured" },
+            "timestamp": Utc::now().to_rfc3339()
+        }))
+        .into_response()
     }
-}
-
-#[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
-pub async fn readyz() -> &'static str {
-    "ok"
 }
 
 #[utoipa::path(get, path = "/metrics", responses((status = 200, description = "Prometheus metrics")))]
@@ -180,6 +208,8 @@ pub async fn metrics(State(state): State<AppState>) -> String {
 )]
 pub async fn start_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する（auth middleware が挿入）
+    claims: Option<Extension<Claims>>,
     Json(req): Json<StartSagaRequest>,
 ) -> Result<(StatusCode, Json<StartSagaResponse>), SagaError> {
     if req.workflow_name.is_empty() {
@@ -187,6 +217,12 @@ pub async fn start_saga(
             "workflow_name is required".to_string(),
         ));
     }
+
+    // テナント ID を Claims から取得する。Claims がない場合は "system" を使用する
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
 
     // ドメインエラー（SagaError）をアダプタ層のハンドラーエラー型に型安全に変換する
     let saga_id = state
@@ -196,6 +232,7 @@ pub async fn start_saga(
             req.payload,
             req.correlation_id,
             req.initiated_by,
+            tenant_id,
         )
         .await
         .map_err(|e| {
@@ -216,36 +253,52 @@ pub async fn start_saga(
     ))
 }
 
+/// Saga 一覧を取得する。
+/// cursor が指定された場合は keyset ページネーションを使用し、
+/// 指定されない場合は OFFSET ベースのページネーション（後方互換）を使用する。
 #[utoipa::path(
     get,
     path = "/api/v1/sagas",
     params(
-        ("workflow_name" = Option<String>, Query, description = "Filter by workflow"),
-        ("status" = Option<String>, Query, description = "Filter by status"),
-        ("page" = Option<i32>, Query, description = "Page number"),
-        ("page_size" = Option<i32>, Query, description = "Page size"),
+        ("workflow_name" = Option<String>, Query, description = "ワークフロー名でフィルタ"),
+        ("status" = Option<String>, Query, description = "ステータスでフィルタ"),
+        ("page" = Option<i32>, Query, description = "ページ番号（cursor 未指定時に有効）"),
+        ("page_size" = Option<i32>, Query, description = "1ページあたりの件数"),
+        ("cursor" = Option<String>, Query, description = "keysetページネーション用カーソル。形式: {created_at_unix_ms}_{id}"),
     ),
     responses(
-        (status = 200, description = "Saga list", body = ListSagasResponse),
+        (status = 200, description = "Saga 一覧", body = ListSagasResponse),
     ),
     security(("bearer_auth" = []))
 )]
 pub async fn list_sagas(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListSagasQuery>,
 ) -> Result<Json<ListSagasResponse>, SagaError> {
+    // ステータス文字列をドメイン型に変換する
     let status = if let Some(ref s) = query.status {
         Some(SagaStatus::from_str_value(s).map_err(|e| SagaError::Validation(e.to_string()))?)
     } else {
         None
     };
 
+    // テナント ID を Claims から取得する
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
+    // cursor が指定された場合は keyset ページネーション、未指定の場合は OFFSET を使用する
     let params = SagaListParams {
-        workflow_name: query.workflow_name,
+        workflow_name: query.workflow_name.clone(),
         status,
-        correlation_id: query.correlation_id,
+        correlation_id: query.correlation_id.clone(),
         page: query.page,
         page_size: query.page_size,
+        cursor: query.cursor.clone(),
+        tenant_id,
     };
 
     let (sagas, total) = state
@@ -253,6 +306,25 @@ pub async fn list_sagas(
         .execute(params)
         .await
         .map_err(|e| SagaError::Internal(e.to_string()))?;
+
+    // 最後のレコードから次ページのカーソル値を生成する
+    // 形式: "{created_at_unix_ms}_{id}"
+    let next_cursor = sagas.last().map(|s| {
+        let ts_ms = s.created_at.timestamp_millis();
+        format!("{}_{}", ts_ms, s.saga_id)
+    });
+
+    // cursor 使用時は next_cursor の有無で has_next を判定する
+    // OFFSET 使用時は従来通り total_count で判定する
+    let total_i64 = i64::from(total);
+    let page_size_i32 = query.page_size;
+    let has_next = if query.cursor.is_some() {
+        // keyset ページネーション: 取得件数が page_size と同じなら次ページあり
+        sagas.len() as i32 == page_size_i32 && next_cursor.is_some()
+    } else {
+        // OFFSET ページネーション: 従来通りの計算
+        (query.page as i64 * query.page_size as i64) < total_i64
+    };
 
     let saga_responses: Vec<SagaResponse> = sagas
         .into_iter()
@@ -270,9 +342,6 @@ pub async fn list_sagas(
         })
         .collect();
 
-    let total_i64 = i64::from(total);
-    let has_next = (query.page as i64 * query.page_size as i64) < total_i64;
-
     Ok(Json(ListSagasResponse {
         sagas: saga_responses,
         pagination: PaginationResponse {
@@ -280,6 +349,12 @@ pub async fn list_sagas(
             page: query.page,
             page_size: query.page_size,
             has_next,
+            // keyset ページネーション使用時のみ next_cursor を返す
+            next_cursor: if query.cursor.is_some() || has_next {
+                next_cursor
+            } else {
+                None
+            },
         },
     }))
 }
@@ -296,14 +371,21 @@ pub async fn list_sagas(
 )]
 pub async fn get_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<SagaDetailResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let (saga, step_logs) = state
         .get_saga_uc
-        .execute(id)
+        .execute(id, &tenant_id)
         .await
         .map_err(|e| SagaError::Internal(e.to_string()))?
         .ok_or_else(|| SagaError::NotFound(format!("saga not found: {}", saga_id)))?;
@@ -355,14 +437,21 @@ pub async fn get_saga(
 )]
 pub async fn cancel_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<CancelSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     state
         .cancel_saga_uc
-        .execute(id)
+        .execute(id, &tenant_id)
         .await
         .map_err(|e| match e {
             CancelSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),
@@ -389,14 +478,21 @@ pub async fn cancel_saga(
 )]
 pub async fn compensate_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<CompensateSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let updated = state
         .execute_saga_uc
-        .trigger_compensate(id)
+        .trigger_compensate(id, &tenant_id)
         .await
         .map_err(|e| match e {
             CompensateSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),

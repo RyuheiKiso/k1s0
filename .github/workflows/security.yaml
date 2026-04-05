@@ -184,10 +184,8 @@ jobs:
             service: event-monitor
           - tier: system
             service: api-registry
-          - tier: system
-            service: ai-gateway
-          - tier: system
-            service: ai-agent
+          # ai-gateway, ai-agent は試験中サービスのため image-scan 対象から除外（HIGH-010 監査対応）
+          # renovate.json の excludePackagePatterns と統一する
           - tier: system
             service: service-catalog
           # --- business ティア ---
@@ -380,42 +378,232 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc2580ac56f311897a37c4fc24a
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_COMMENTS: false
+          # MED-006 監査対応: PR コメントを有効化してシークレット検出を開発者に可視化する
+          GITLEAKS_ENABLE_COMMENTS: true
+
+  # K8S-TF-002 / K8S-BACKUP-001 監査対応: 設定値の整合性チェックジョブ
+  # - prod/backend.tf に example.com が残っている場合に失敗（未置換プレースホルダー検出）
+  # - vault バックアップイメージバージョンが docker-compose.yaml と一致することを確認
+  config-validation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      # K8S-TF-002 監査対応: 本番 Terraform backend に example.com プレースホルダーが
+      # 残っている場合は未設定のまま apply されるリスクがあるため CI で検出して失敗させる。
+      - name: Terraform prod backend example.com チェック
+        run: |
+          if grep -q "rgw\.internal\.example\.com" infra/terraform/environments/prod/backend.tf; then
+            echo "::error::infra/terraform/environments/prod/backend.tf に example.com エンドポイントが残っています。"
+            echo "::error::本番デプロイ前に実際の Ceph RGW エンドポイント URL に変更してください。"
+            exit 1
+          fi
+          echo "OK: prod backend.tf に example.com プレースホルダーは検出されませんでした"
+
+      # K8S-BACKUP-001 監査対応: vault バックアップ CronJob のイメージバージョンが
+      # docker-compose.yaml の vault イメージバージョンと一致することを確認する。
+      # バージョン不一致は復旧手順の差異を引き起こし、障害時のリストアに失敗するリスクがある。
+      - name: Vault バックアップイメージバージョン整合性チェック
+        run: |
+          COMPOSE_VERSION=$(grep 'image: hashicorp/vault:' docker-compose.yaml | head -1 | sed 's/.*hashicorp\/vault://' | tr -d ' ')
+          BACKUP_VERSION=$(grep 'image: hashicorp/vault:' infra/kubernetes/backup/vault-backup-cronjob.yaml | head -1 | sed 's/.*hashicorp\/vault://' | tr -d ' ')
+          echo "docker-compose.yaml vault version: ${COMPOSE_VERSION}"
+          echo "vault-backup-cronjob.yaml vault version: ${BACKUP_VERSION}"
+          if [ "${COMPOSE_VERSION}" != "${BACKUP_VERSION}" ]; then
+            echo "::error::Vault イメージバージョンが不一致です: docker-compose=${COMPOSE_VERSION}, backup-cronjob=${BACKUP_VERSION}"
+            echo "::error::infra/kubernetes/backup/vault-backup-cronjob.yaml のバージョンを ${COMPOSE_VERSION} に更新してください。"
+            exit 1
+          fi
+          echo "OK: Vault バックアップイメージバージョンが一致しています: ${COMPOSE_VERSION}"
+
+      # SEC-INFRA-001 監査対応: etcd 暗号化キーおよびインフラ機密値のプレースホルダー残存チェック
+      # <REPLACE_WITH_BASE64_32BYTE_KEY> や <REPLACE_WITH_GRAFANA_API_KEY> のまま
+      # kubectl apply されると etcd の Secrets が平文保存されるリスクがある。
+      # scripts/check-placeholder-secrets.sh を使って以下のファイルを検査する:
+      #   - infra/kubernetes/security/encryption-config.yaml   : etcd 暗号化キー
+      #   - infra/kubernetes/ingress/kong-consumer-grafana.yaml : Grafana API キー（テンプレートファイル）
+      #   - infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml : Webhook URL
+      # 注意: これらのファイルはテンプレートとしてリポジトリ管理されており、
+      #       本番デプロイ時には CI/CD パイプライン（cluster-etcd-encryption.yaml 等）が
+      #       Vault から実値を注入してから apply する。
+      #       本チェックはソースファイルにプレースホルダーが残存することが「意図的」であることを
+      #       確認するためではなく、誤って実値がコミットされていないことを確認するためのものである。
+      #       そのため、プレースホルダーが検出された場合は "OK"（期待どおり）として扱う。
+      #       逆に、これらのファイルからプレースホルダーが消えていた場合は、
+      #       実値がコミットされた可能性があるため gitleaks の secret-scan で検出される。
+      - name: etcd・インフラ機密値のプレースホルダー残存チェック（SEC-INFRA-001）
+        run: |
+          # 検査対象: リポジトリ内のテンプレートファイルにプレースホルダーが正しく残存しているか確認する
+          # プレースホルダーが「存在すること」が正常状態（実値がコミットされていないことの証明）
+          ALL_OK=0
+          for TARGET_FILE in \
+            "infra/kubernetes/security/encryption-config.yaml" \
+            "infra/kubernetes/ingress/kong-consumer-grafana.yaml" \
+            "infra/observability/alertmanager/prometheus-msteams-webhook-secret.yaml"; do
+            if [ ! -f "$TARGET_FILE" ]; then
+              echo "INFO: $TARGET_FILE が見つかりません（テンプレートのみの環境では問題なし）"
+              continue
+            fi
+            if grep -q '<REPLACE_' "$TARGET_FILE"; then
+              echo "OK: $TARGET_FILE にプレースホルダーが正しく残存しています（実値はコミットされていません）"
+            else
+              echo "::error::$TARGET_FILE からプレースホルダーが消えています。"
+              echo "::error::実値が誤ってコミットされた可能性があります。git diff HEAD で確認してください。"
+              ALL_OK=1
+            fi
+          done
+          exit $ALL_OK
+
+      # LOW-005 監査対応: Helm values.yaml の example.com プレースホルダー残存チェック
+      # harbor.internal.example.com 等は本番デプロイ時に実レジストリ URL に置換が必要
+      # 現時点では INFO レベル（exit 0）で検出のみ行い、本番デプロイパイプラインで exit 1 に昇格予定
+      - name: Helm values example.com プレースホルダー検出
+        run: |
+          echo "=== Helm values.yaml の example.com プレースホルダー確認 ==="
+          FOUND=$(grep -rl "example\.com" infra/helm/ --include="*.yaml" 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "INFO: 以下のファイルに example.com プレースホルダーが残存しています"
+            echo "INFO: 本番デプロイ前に実際のドメインに置換してください"
+            echo "${FOUND}"
+            COUNT=$(echo "${FOUND}" | wc -l)
+            echo "::notice::${COUNT} ファイルに example.com プレースホルダーが残存しています（本番デプロイ前に要置換）"
+          else
+            echo "OK: infra/helm/ に example.com プレースホルダーは検出されませんでした"
+          fi
+              # INFO レベルのため exit 0（本番デプロイパイプラインでは exit 1 に昇格）
+
+      # M-019 監査対応: Ansible inventory ファイルに内部 IP が平文コミットされていないか検証する
+      # hosts.yaml は lookup('env', ...) で環境変数から IP を取得する形式でなければならない
+      - name: Ansible inventory 平文 IP 漏洩チェック
+        run: |
+          echo "=== Ansible hosts.yaml に平文 IP アドレスが含まれていないか確認 ==="
+          # ansible_host に直接 IP アドレス（数字.数字.数字.数字 形式）が記載されていないか検証する
+          # lookup('env', ...) 形式でのみ記載が許可される
+          FOUND=$(grep -E "ansible_host:\s+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" \
+            infra/ansible/inventory/hosts.yaml 2>/dev/null || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Ansible inventory に平文 IP アドレスが検出されました。"
+            echo "::error::IP は lookup('env', 'ANSIBLE_..._IP') 形式で環境変数から取得してください。"
+            echo "${FOUND}"
+            exit 1
+          fi
+          echo "OK: Ansible hosts.yaml に平文 IP アドレスは検出されませんでした"
+
+      # HIGH-005 監査対応: advisory-ignore-list.txt と deny.toml の整合性チェック
+      # advisory-ignore-list.txt が SINGLE SOURCE OF TRUTH となるため、
+      # deny.toml との差異がある場合は CI でブロックする（二重管理の乖離防止）
+      - name: advisory-ignore-list.txt と deny.toml の整合性チェック
+        run: |
+          echo "=== advisory-ignore-list.txt ↔ deny.toml 整合性チェック ==="
+          IGNORE_LIST="scripts/security/advisory-ignore-list.txt"
+          failed=0
+
+          # 方向1: advisory-ignore-list.txt → deny.toml（リストの全エントリが deny.toml に存在するか）
+          while IFS= read -r line; do
+            [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
+            advisory=$(echo "$line" | awk '{print $1}')
+            [[ -z "$advisory" ]] && continue
+            if ! grep -q "\"${advisory}\"" deny.toml; then
+              echo "::error::${advisory} は advisory-ignore-list.txt にあるが deny.toml の ignore リストにありません"
+              failed=1
+            fi
+          done < "${IGNORE_LIST}"
+
+          # 方向2: deny.toml → advisory-ignore-list.txt（deny.toml の全エントリがリストに存在するか）
+          while IFS= read -r line; do
+            if [[ "$line" =~ \"(RUSTSEC-[0-9]{4}-[0-9]+)\" ]]; then
+              advisory="${BASH_REMATCH[1]}"
+              if ! grep -q "^${advisory}" "${IGNORE_LIST}"; then
+                echo "::error::${advisory} は deny.toml にあるが advisory-ignore-list.txt にありません"
+                failed=1
+              fi
+            fi
+          done < deny.toml
+
+          if [ "$failed" -eq 0 ]; then
+            echo "OK: advisory-ignore-list.txt と deny.toml は同期されています"
+          fi
+          exit $failed
 
   # 全セキュリティジョブの集約ゲート
   # ブランチ保護ルールでこのジョブのみを必須化することで、全スキャンの合否を一元管理できる
-  # image-scan は schedule/push 時のみ実行されるため、result ではなく skipped も成功扱いにする
+  # MED-008 監査対応: image-scan を needs に追加し、失敗時にゲートをブロックする
+  # image-scan は PR 時 skipped（イメージ未存在）、schedule/push 時に実行される
+  # skipped および success は許容、failure のみゲートをブロックする
   security-gate:
     runs-on: ubuntu-latest
     # 全セキュリティジョブが完了（成功・失敗問わず）してから実行する
     needs:
       - trivy-scan
       - dependency-check
+      - image-scan
       - iac-scan
       - license-scan
       - sast
       # M-06 監査対応: secret-scan ジョブをゲートに追加
       - secret-scan
+      # K8S-TF-002 / K8S-BACKUP-001 監査対応: 設定値整合性チェックをゲートに追加
+      - config-validation
     # always() を使って前段ジョブが失敗しても本ジョブは必ず実行する
     if: always()
     permissions: {}
     steps:
       # 全ジョブの結果を検査し、failure があればゲートを閉じる
+      # MED-008: image-scan は skipped（PR 時）または success/failure のいずれかになる
+      #          skipped は許容するが failure はブロックする
       - name: セキュリティスキャン全体の合否判定
         run: |
-          echo "trivy-scan:       ${{ needs.trivy-scan.result }}"
-          echo "dependency-check: ${{ needs.dependency-check.result }}"
-          echo "iac-scan:         ${{ needs.iac-scan.result }}"
-          echo "license-scan:     ${{ needs.license-scan.result }}"
-          echo "sast:             ${{ needs.sast.result }}"
-          echo "secret-scan:      ${{ needs.secret-scan.result }}"
-          if [ "${{ needs.trivy-scan.result }}"       = "failure" ] || \
-             [ "${{ needs.dependency-check.result }}" = "failure" ] || \
-             [ "${{ needs.iac-scan.result }}"         = "failure" ] || \
-             [ "${{ needs.license-scan.result }}"     = "failure" ] || \
-             [ "${{ needs.sast.result }}"             = "failure" ] || \
-             [ "${{ needs.secret-scan.result }}"      = "failure" ]; then
+          echo "trivy-scan:        ${{ needs.trivy-scan.result }}"
+          echo "dependency-check:  ${{ needs.dependency-check.result }}"
+          echo "image-scan:        ${{ needs.image-scan.result }}"
+          echo "iac-scan:          ${{ needs.iac-scan.result }}"
+          echo "license-scan:      ${{ needs.license-scan.result }}"
+          echo "sast:              ${{ needs.sast.result }}"
+          echo "secret-scan:       ${{ needs.secret-scan.result }}"
+          echo "config-validation: ${{ needs.config-validation.result }}"
+          if [ "${{ needs.trivy-scan.result }}"        = "failure" ] || \
+             [ "${{ needs.dependency-check.result }}"  = "failure" ] || \
+             [ "${{ needs.image-scan.result }}"        = "failure" ] || \
+             [ "${{ needs.iac-scan.result }}"          = "failure" ] || \
+             [ "${{ needs.license-scan.result }}"      = "failure" ] || \
+             [ "${{ needs.sast.result }}"              = "failure" ] || \
+             [ "${{ needs.secret-scan.result }}"       = "failure" ] || \
+             [ "${{ needs.config-validation.result }}" = "failure" ]; then
             echo "::error::セキュリティスキャンに失敗したジョブがあります"
             exit 1
           fi
           echo "OK: 全セキュリティスキャンがクリア（またはスキップ）されました"
+      # INFRA-006 監査対応: セキュリティスキャン失敗時に GitHub Issues を自動作成して通知する
+      - name: セキュリティスキャン失敗時に GitHub Issue を作成
+        if: failure()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        with:
+          script: |
+            const title = `[Security] セキュリティスキャン失敗 - ${new Date().toISOString().slice(0,10)}`;
+            const body = [
+              '## セキュリティスキャン失敗通知',
+              '',
+              `**実行日時:** ${new Date().toISOString()}`,
+              `**ワークフロー:** ${{ github.workflow }}`,
+              `**実行 URL:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              '',
+              '### 失敗したジョブ',
+              `- trivy-scan: ${{ needs.trivy-scan.result }}`,
+              `- dependency-check: ${{ needs.dependency-check.result }}`,
+              `- image-scan: ${{ needs.image-scan.result }}`,
+              `- iac-scan: ${{ needs.iac-scan.result }}`,
+              `- license-scan: ${{ needs.license-scan.result }}`,
+              `- sast: ${{ needs.sast.result }}`,
+              `- secret-scan: ${{ needs.secret-scan.result }}`,
+              '',
+              '対応が必要なセキュリティ問題が検出されました。速やかに確認してください。',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['security', 'automated'],
+            });

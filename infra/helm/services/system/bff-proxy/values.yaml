@@ -50,7 +50,6 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
 
 pdb:
   enabled: true
@@ -65,15 +64,94 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: K8S-CRIT-001 対応
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   capabilities:
     drop: ["ALL"]
 
+# ConfigMap に注入する設定値（regions/system/server/go/bff-proxy/config/config.yaml から引用）
+# 機密情報（OIDC client_secret, Redis パスワード）は Vault 経由で注入される。
+# auth.redirect_uri / cors.allow_origins は本番環境の実際のドメインに上書きすること。
 config:
   mountPath: /etc/app
-  data: {}
+  data:
+    config.yaml: |
+      app:
+        name: bff-proxy
+        version: "0.1.0"
+        tier: system
+        environment: production
+
+      server:
+        host: "0.0.0.0"
+        port: 8080
+        read_timeout: "10s"
+        write_timeout: "30s"
+        shutdown_timeout: "15s"
+
+      observability:
+        log:
+          level: info
+          format: json
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+          otlp_insecure: false
+        metrics:
+          enabled: true
+          path: /metrics
+
+      # OIDC client_secret は Vault 経由で /vault/secrets/oidc-client-secret に注入される
+      auth:
+        discovery_url: "https://auth.k1s0.internal.example.com/realms/k1s0"
+        client_id: "k1s0-bff"
+        client_secret: ""
+        redirect_uri: "https://app.k1s0.internal.example.com/auth/callback"
+        post_logout_redirect_uri: "https://app.k1s0.internal.example.com"
+        scopes:
+          - openid
+          - profile
+          - email
+
+      # Redis パスワードは Vault 経由で /vault/secrets/redis-password に注入される
+      session:
+        redis:
+          addr: "redis.k1s0-system.svc.cluster.local:6379"
+          password: ""
+          db: 0
+          master_name: ""
+        ttl: "30m"
+        prefix: "bff:session:"
+        sliding: true
+
+      csrf:
+        enabled: true
+        header_name: "X-CSRF-Token"
+
+      # 本番環境では allow_origins を実際のフロントエンドドメインに設定すること
+      cors:
+        enabled: true
+        allow_origins:
+          - "https://app.k1s0.internal.example.com"
+        credentials_paths:
+          - "/auth/"
+          - "/api/"
+        max_age_secs: 600
+
+      rate_limit:
+        enabled: true
+        rps: 100
+        burst: 200
+
+      # ADR-0067: SSRF 対策として upstream は Kubernetes 内部サービスに限定する
+      upstream:
+        base_url: "http://auth-server.k1s0-system.svc.cluster.local:8080"
+        timeout: "30s"
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "bff-proxy" に変更する。
 # 最小権限の原則に従い、bff-proxy は自サービスのシークレットにのみアクセス可能とする（ADR-0045 参照）。

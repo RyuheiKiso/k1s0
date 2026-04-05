@@ -67,3 +67,16 @@ variable "service_passwords" {
   type        = map(string)
   sensitive   = true
 }
+
+# C-009 監査対応: バックアップ PVC のストレージクラスと容量
+variable "backup_storage_class" {
+  description = "StorageClass for backup PVC. Use environment-specific class (e.g. ceph-rbd for prod)."
+  type        = string
+  default     = "standard"
+}
+
+variable "backup_storage_size" {
+  description = "Storage size for backup PVC (e.g. 100Gi for prod)"
+  type        = string
+  default     = "50Gi"
+}

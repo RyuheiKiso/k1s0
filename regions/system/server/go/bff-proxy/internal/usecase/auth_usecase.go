@@ -12,16 +12,17 @@ import (
 	"net/url"
 	"time"
 
+	bffmetrics "github.com/k1s0-platform/system-server-go-bff-proxy/internal/metrics"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
-// exchangeCodeTTL はワンタイム交換コードの有効期間（60秒）。
-// モバイルクライアントが /auth/callback のリダイレクト後に /auth/exchange でセッションを
-// 確立するまでの猶予時間として設定する。
-const exchangeCodeTTL = 60 * time.Second
+// defaultExchangeCodeTTL はワンタイム交換コードのデフォルト有効期間（60秒）。
+// POLY-003 監査対応: TTL は設定可能にし、AuthUseCase 生成時に注入する。
+// NewAuthUseCase の exchangeCodeTTL 引数が 0 の場合はこのデフォルト値を使用する。
+const defaultExchangeCodeTTL = 60 * time.Second
 
 // AuthOAuthClient は AuthUseCase が必要とする OAuth2/OIDC 操作のインターフェース。
 // port.OAuthClient のうち認証フロー（Login/Callback/Logout）に必要なメソッドのみを定義する。
@@ -159,17 +160,24 @@ type AuthUseCase struct {
 	// exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化を担うポートインターフェース（H-5 監査対応）。
 	// SessionData.AccessToken へのセッション ID 格納という意味論的誤用を解消するために分離する。
 	exchangeCodeStore port.ExchangeCodeStore
+	// exchangeCodeTTL はワンタイム交換コードの有効期間（POLY-003 監査対応: 設定可能化）。
+	exchangeCodeTTL time.Duration
 }
 
 // NewAuthUseCase は AuthUseCase のコンストラクタ。
 // 依存するポートインターフェースを注入する。
 // exchangeCodeStore は ExchangeCodeStore インターフェースを実装する必要がある。
 // session.RedisStore と session.EncryptedStore は両方このインターフェースを実装している。
-func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore, exchangeCodeStore port.ExchangeCodeStore) *AuthUseCase {
+// exchangeCodeTTL が 0 の場合は defaultExchangeCodeTTL（60s）を使用する（POLY-003 監査対応）。
+func NewAuthUseCase(oauthClient AuthOAuthClient, sessionStore port.SessionStore, exchangeCodeStore port.ExchangeCodeStore, exchangeCodeTTL time.Duration) *AuthUseCase {
+	if exchangeCodeTTL <= 0 {
+		exchangeCodeTTL = defaultExchangeCodeTTL
+	}
 	return &AuthUseCase{
 		oauthClient:       oauthClient,
 		sessionStore:      sessionStore,
 		exchangeCodeStore: exchangeCodeStore,
+		exchangeCodeTTL:   exchangeCodeTTL,
 	}
 }
 
@@ -234,9 +242,9 @@ func (uc *AuthUseCase) buildMobileRedirectOutput(ctx context.Context, sessionID,
 	exchangeData := &session.ExchangeCodeData{
 		SessionID:        sessionID,
 		PostAuthRedirect: postAuthRedirect,
-		ExpiresAt:        time.Now().Add(exchangeCodeTTL).Unix(),
+		ExpiresAt:        time.Now().Add(uc.exchangeCodeTTL).Unix(),
 	}
-	exchangeCode, err := uc.exchangeCodeStore.CreateExchangeCode(ctx, exchangeData, exchangeCodeTTL)
+	exchangeCode, err := uc.exchangeCodeStore.CreateExchangeCode(ctx, exchangeData, uc.exchangeCodeTTL)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_EXCHANGE_CREATE_FAILED", Err: err}
 	}
@@ -271,6 +279,8 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 				"session_id", util.MaskSessionID(input.ExistingSessionID),
 				"error", err,
 			)
+			// L-003 監査対応: コールバック時の既存セッション削除失敗をメトリクスに記録する
+			bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("callback").Inc()
 		}
 	}
 
@@ -370,6 +380,8 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 			"session_id", util.MaskSessionID(input.SessionID),
 			"error", err,
 		)
+		// L-003 監査対応: ログアウト時のセッション削除失敗をメトリクスに記録する
+		bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("logout").Inc()
 	}
 
 	// IdP ログアウト URL を構築する（id_token_hint 付き）
@@ -383,8 +395,16 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 	return output, nil
 }
 
+// csrfRefreshThreshold は CSRF トークンを再生成するタイムスタンプのしきい値。
+// TTL（30分）の残り5分を切った時点で新しいトークンを発行する（H-003 監査対応）。
+// これにより CSRF トークン TTL 切れによる 403 エラーを防止しつつ、
+// 窃取されたトークンの有効期間を最小化する。
+const csrfRefreshThreshold = 25 * time.Minute
+
 // CheckSession はセッション ID からセッションデータを取得し、有効性を検証する。
 // 有効なセッションの場合はユーザー情報を返す。
+// H-003 監査対応: CSRF トークンが TTL（30分）のしきい値（25分）を超えた場合に再生成する。
+// 再生成したトークンはセッションに保存し、クライアントに返す。
 func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput) (*SessionCheckOutput, error) {
 	if input.SessionID == "" {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_SESSION_NOT_FOUND"}
@@ -403,6 +423,40 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_SESSION_EXPIRED"}
 	}
 
+	// H-003 監査対応: CSRF トークンの生成から csrfRefreshThreshold（25分）を超えた場合は再生成する。
+	// CSRFTokenCreatedAt == 0 の旧形式セッションは再生成をスキップする（後方互換性のため）。
+	csrfToken := sess.CSRFToken
+	if sess.CSRFTokenCreatedAt > 0 {
+		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+		if csrfAge > csrfRefreshThreshold {
+			// 新しい CSRF トークンを生成してセッションを更新する
+			newCSRFToken, err := generateRandomHex(32)
+			if err != nil {
+				return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
+			}
+			sess.CSRFToken = newCSRFToken
+			sess.CSRFTokenCreatedAt = time.Now().Unix()
+			// セッションストアにトークン更新を反映する（TTL はセッション TTL のデフォルト値を維持する）
+			// TTL は SessionCheckInput に含まれないため 0 を渡すと一部ストアで問題が起きる可能性があるため
+			// Update は TTL を受け取るが、ここでは残存 TTL を再設定するため sessionTTL 相当のデフォルト値を使用する。
+			// セッション自体の有効期間は SessionMiddleware の Touch で管理されるため、
+			// ここでは実際のアクセストークン有効期限（ExpiresAt）までを TTL として渡す。
+			remainingTTL := time.Until(time.Unix(sess.ExpiresAt, 0))
+			if remainingTTL <= 0 {
+				remainingTTL = 30 * time.Minute
+			}
+			if updateErr := uc.sessionStore.Update(ctx, input.SessionID, sess, remainingTTL); updateErr != nil {
+				// セッション更新失敗は警告ログを出力して処理を続行する（旧トークンを返す）
+				slog.WarnContext(ctx, "CSRF トークン再生成後のセッション更新に失敗しました（旧トークンを返します）",
+					"error", updateErr,
+				)
+				csrfToken = sess.CSRFToken
+			} else {
+				csrfToken = newCSRFToken
+			}
+		}
+	}
+
 	// roles が nil の場合は空スライスに変換する（JSON で null ではなく [] になる）
 	roles := sess.Roles
 	if roles == nil {
@@ -411,7 +465,7 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 
 	return &SessionCheckOutput{
 		Subject:   sess.Subject,
-		CSRFToken: sess.CSRFToken,
+		CSRFToken: csrfToken,
 		Roles:     roles,
 	}, nil
 }

@@ -3,6 +3,8 @@ name = "k1s0-cli"
 version = "0.1.0"
 edition = "2021"
 description = "k1s0 project CLI tool"
+# cargo run 時のデフォルトバイナリを明示することで、ambiguous なバイナリ選択警告を防ぐ（MED-04 監査対応）
+default-run = "k1s0"
 
 # バイナリ名を k1s0 に設定することで、インストール後に `k1s0` コマンドとして実行できるようにする
 [[bin]]

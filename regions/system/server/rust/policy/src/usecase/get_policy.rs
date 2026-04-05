@@ -20,9 +20,10 @@ impl GetPolicyUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<Option<Policy>, GetPolicyError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからポリシーを取得する。
+    pub async fn execute(&self, id: &Uuid, tenant_id: &str) -> Result<Option<Policy>, GetPolicyError> {
         self.repo
-            .find_by_id(id)
+            .find_by_id(id, tenant_id)
             .await
             .map_err(|e| GetPolicyError::Internal(e.to_string()))
     }
@@ -40,8 +41,8 @@ mod tests {
         let id_clone = id;
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id()
-            .withf(move |i| *i == id_clone)
-            .returning(move |_| {
+            .withf(move |i, _tenant_id| *i == id_clone)
+            .returning(move |_, _| {
                 Ok(Some(Policy {
                     id,
                     name: "test-policy".to_string(),
@@ -53,11 +54,12 @@ mod tests {
                     enabled: true,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
+                    tenant_id: "tenant-a".to_string(),
                 }))
             });
 
         let uc = GetPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_some());
     }
@@ -66,10 +68,10 @@ mod tests {
     async fn not_found() {
         let id = Uuid::new_v4();
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetPolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_none());
     }

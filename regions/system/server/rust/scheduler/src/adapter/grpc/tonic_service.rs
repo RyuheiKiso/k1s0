@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
 };
@@ -166,6 +168,16 @@ fn to_proto_execution(execution: JobExecutionData) -> ProtoJobExecution {
     }
 }
 
+/// CRIT-005 対応: gRPC リクエストの Extensions から JWT Claims を取得してテナント ID を抽出する。
+/// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 pub struct SchedulerServiceTonic {
     inner: Arc<SchedulerGrpcService>,
 }
@@ -182,6 +194,8 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoCreateJobRequest>,
     ) -> Result<Response<ProtoCreateJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let payload = prost_struct_to_json_bytes(inner.payload)?;
         let resp = self
@@ -194,6 +208,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 target_type: inner.target_type,
                 target: inner.target,
                 payload,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -206,11 +221,14 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoGetJobRequest>,
     ) -> Result<Response<ProtoGetJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .get_job(GetJobRequest {
                 job_id: inner.job_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -223,6 +241,8 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoListJobsRequest>,
     ) -> Result<Response<ProtoListJobsResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
@@ -234,6 +254,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 status: inner.status,
                 page,
                 page_size,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -252,6 +273,8 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoUpdateJobRequest>,
     ) -> Result<Response<ProtoUpdateJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let payload = prost_struct_to_json_bytes(inner.payload)?;
         let resp = self
@@ -265,6 +288,7 @@ impl SchedulerService for SchedulerServiceTonic {
                 target_type: inner.target_type,
                 target: inner.target,
                 payload,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -277,11 +301,14 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoDeleteJobRequest>,
     ) -> Result<Response<ProtoDeleteJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .delete_job(DeleteJobRequest {
                 job_id: inner.job_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -295,11 +322,14 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoPauseJobRequest>,
     ) -> Result<Response<ProtoPauseJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .pause_job(PauseJobRequest {
                 job_id: inner.job_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -312,11 +342,14 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoResumeJobRequest>,
     ) -> Result<Response<ProtoResumeJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .resume_job(ResumeJobRequest {
                 job_id: inner.job_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -329,11 +362,14 @@ impl SchedulerService for SchedulerServiceTonic {
         &self,
         request: Request<ProtoTriggerJobRequest>,
     ) -> Result<Response<ProtoTriggerJobResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .trigger_job(TriggerJobRequest {
                 job_id: inner.job_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;

@@ -1,9 +1,14 @@
 # このDockerfileはリポジトリルート (.) をビルドコンテキストとする特別な設定が必要
-# 理由: api/proto ディレクトリへのアクセスが必要なため
+# 理由: api/proto/gen/rust ディレクトリへのアクセスが必要なため
+# buf/validate.proto は BSR（Buf Schema Registry）依存のため、protoc によるオンデマンド生成を
+# 行わず api/proto/gen/rust/ の生成済み .rs ファイルを使用する（CRIT-004 対応）。
 # docker-compose.yaml の context: . および justfile の graphql-gateway 特別処理を参照
 
 # chef ベースステージ: cargo-chef とビルド依存のインストール
-# Note: build context is repo root (to include api/proto for tonic-build)
+# Note: build context is repo root (to include api/proto/gen/rust for pre-generated gRPC code)
+# buf/validate.proto は BSR（Buf Schema Registry）依存のため Docker ビルドでは protoc
+# によるオンデマンド生成を行わず、api/proto/gen/rust/ の生成済み .rs ファイルを使用する。
+# そのため libprotobuf-dev（google/protobuf/struct.proto 等）は不要となる。
 # セキュリティ: ベースイメージのダイジェスト固定（CI/CDで自動更新推奨）
 # ダイジェスト固定は .github/workflows/pin-docker-digests.yaml で自動更新される
 FROM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f31 AS chef
@@ -11,11 +16,11 @@ FROM rust@sha256:7c4ae649a84014c467d79319bbf17ce2632ae8b8be123ac2fb2ea5be46823f3
 # cargo-chef のインストール（依存キャッシュ用）
 RUN cargo install cargo-chef --locked
 
-# protobuf コンパイラ（tonic-build 用）と cmake + build-essential（rdkafka 用）のインストール
-# libprotobuf-dev: google/protobuf/struct.proto 等のウェルノウン型を含む（tonic-build の依存）
+# cmake + build-essential（rdkafka 用）のインストール
+# protobuf-compiler と libprotobuf-dev は不要:
+#   build.rs が api/proto/gen/rust/ の生成済みファイルを OUT_DIR にコピーするため
+#   protoc によるオンデマンドコンパイルを行わない（buf/validate.proto 依存問題を回避）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    protobuf-compiler \
-    libprotobuf-dev \
     cmake \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -23,15 +28,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # planner ステージ: 依存情報レシピの生成
+# api/proto/gen/rust のみを COPY する（proto ソースは不要、生成済み .rs ファイルを使用）
 FROM chef AS planner
-COPY api/proto api/proto
+COPY api/proto/gen/rust api/proto/gen/rust
 COPY regions/system regions/system
 WORKDIR /app/regions/system
 RUN cargo chef prepare --recipe-path recipe.json
 
 # cook ステージ: 依存のみビルド（キャッシュ層）
+# api/proto/gen/rust のみを COPY する（proto ソースは不要）
 FROM chef AS cook
-COPY api/proto api/proto
+COPY api/proto/gen/rust api/proto/gen/rust
 COPY --from=planner /app/regions/system/recipe.json regions/system/recipe.json
 WORKDIR /app/regions/system
 RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-graphql-gateway-server

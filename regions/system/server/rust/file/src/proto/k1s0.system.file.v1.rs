@@ -15,10 +15,12 @@ pub struct FileMetadata {
     pub uploaded_by: ::prost::alloc::string::String,
     #[prost(string, tag = "7")]
     pub status: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub created_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub updated_at: ::prost::alloc::string::String,
+    /// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+    #[prost(message, optional, tag = "8")]
+    pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
+    /// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+    #[prost(message, optional, tag = "9")]
+    pub updated_at: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(map = "string, string", tag = "10")]
     pub tags: ::std::collections::HashMap<
         ::prost::alloc::string::String,

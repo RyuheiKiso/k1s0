@@ -17,14 +17,18 @@ impl RetryAllUseCase {
         Self { repo, publisher }
     }
 
-    /// トピック内の全メッセージを再処理する。成功件数を返す。
-    pub async fn execute(&self, topic: &str) -> anyhow::Result<i64> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからトピック内の全メッセージを再処理する。
+    /// 成功件数を返す。
+    pub async fn execute(&self, topic: &str, tenant_id: &str) -> anyhow::Result<i64> {
         let mut retried = 0i64;
         let mut page = 1;
         let page_size = 100;
 
         loop {
-            let (messages, _total) = self.repo.find_by_topic(topic, page, page_size).await?;
+            let (messages, _total) = self
+                .repo
+                .find_by_topic(topic, page, page_size, tenant_id)
+                .await?;
             if messages.is_empty() {
                 break;
             }
@@ -79,10 +83,10 @@ mod tests {
     async fn test_retry_all_empty_topic() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let uc = RetryAllUseCase::new(Arc::new(mock), None);
-        let retried = uc.execute("orders.dlq.v1").await.unwrap();
+        let retried = uc.execute("orders.dlq.v1", "tenant-a").await.unwrap();
         assert_eq!(retried, 0);
     }
 
@@ -90,7 +94,7 @@ mod tests {
     async fn test_retry_all_with_messages() {
         let mut mock = MockDlqMessageRepository::new();
         let mut call_count = 0;
-        mock.expect_find_by_topic().returning(move |_, _, _| {
+        mock.expect_find_by_topic().returning(move |_, _, _, _| {
             call_count += 1;
             if call_count == 1 {
                 let msg = DlqMessage::new(
@@ -107,7 +111,7 @@ mod tests {
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = RetryAllUseCase::new(Arc::new(mock), None);
-        let retried = uc.execute("orders.dlq.v1").await.unwrap();
+        let retried = uc.execute("orders.dlq.v1", "tenant-a").await.unwrap();
         assert_eq!(retried, 1);
     }
 
@@ -117,7 +121,7 @@ mod tests {
 
         let mut mock = MockDlqMessageRepository::new();
         let mut call_count = 0;
-        mock.expect_find_by_topic().returning(move |_, _, _| {
+        mock.expect_find_by_topic().returning(move |_, _, _, _| {
             call_count += 1;
             if call_count == 1 {
                 let mut dead_msg = DlqMessage::new(
@@ -136,7 +140,7 @@ mod tests {
         // update は呼ばれないはず（is_retryable が false）
 
         let uc = RetryAllUseCase::new(Arc::new(mock), None);
-        let retried = uc.execute("orders.dlq.v1").await.unwrap();
+        let retried = uc.execute("orders.dlq.v1", "tenant-a").await.unwrap();
         assert_eq!(retried, 0);
     }
 }

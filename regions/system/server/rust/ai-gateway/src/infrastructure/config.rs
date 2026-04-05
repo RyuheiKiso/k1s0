@@ -104,8 +104,9 @@ fn default_port() -> u16 {
     8120
 }
 
+// H-005 監査対応: 非標準ポート (50061) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
 fn default_grpc_port() -> u16 {
-    50061
+    50051
 }
 
 /// データベース設定
@@ -298,9 +299,10 @@ mod tests {
     }
 
     #[test]
+    // H-005 監査対応: default_grpc_port が 50051 に統一されていることを検証する
     fn test_default_server_config() {
         assert_eq!(default_port(), 8120);
-        assert_eq!(default_grpc_port(), 50061);
+        assert_eq!(default_grpc_port(), 50051);
     }
 
     /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）

@@ -13,6 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
+import { Timestamp } from "../../common/v1/types";
 /**
  * @generated from protobuf message k1s0.system.file.v1.FileMetadata
  */
@@ -46,13 +47,17 @@ export interface FileMetadata {
      */
     status: string;
     /**
-     * @generated from protobuf field: string created_at = 8
+     * Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp created_at = 8
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: string updated_at = 9
+     * Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.Timestamp updated_at = 9
      */
-    updatedAt: string;
+    updatedAt?: Timestamp;
     /**
      * @generated from protobuf field: map<string, string> tags = 10
      */
@@ -73,6 +78,8 @@ export interface FileMetadata {
  */
 export interface GetFileMetadataRequest {
     /**
+     * ファイルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -91,6 +98,8 @@ export interface GetFileMetadataResponse {
  */
 export interface ListFilesRequest {
     /**
+     * テナントIDはUUID形式であること
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -131,18 +140,26 @@ export interface ListFilesResponse {
  */
 export interface GenerateUploadUrlRequest {
     /**
+     * ファイル名は1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string filename = 1
      */
     filename: string;
     /**
+     * コンテンツタイプは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string content_type = 2
      */
     contentType: string;
     /**
+     * テナントIDはUUID形式であること
+     *
      * @generated from protobuf field: string tenant_id = 3
      */
     tenantId: string;
     /**
+     * アップロード者IDは1文字以上であること
+     *
      * @generated from protobuf field: string uploaded_by = 4
      */
     uploadedBy: string;
@@ -183,6 +200,8 @@ export interface GenerateUploadUrlResponse {
  */
 export interface CompleteUploadRequest {
     /**
+     * ファイルIDは1文字以上であること
+     *
      * @generated from protobuf field: string file_id = 1
      */
     fileId: string;
@@ -205,6 +224,8 @@ export interface CompleteUploadResponse {
  */
 export interface GenerateDownloadUrlRequest {
     /**
+     * ファイルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -227,6 +248,8 @@ export interface GenerateDownloadUrlResponse {
  */
 export interface UpdateFileTagsRequest {
     /**
+     * ファイルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -251,6 +274,8 @@ export interface UpdateFileTagsResponse {
  */
 export interface DeleteFileRequest {
     /**
+     * ファイルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -271,8 +296,8 @@ class FileMetadata$Type extends MessageType<FileMetadata> {
             { no: 5, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "uploaded_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 9, name: "updated_at", kind: "message", T: () => Timestamp },
             { no: 10, name: "tags", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 11, name: "storage_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "checksum_sha256", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
@@ -287,8 +312,6 @@ class FileMetadata$Type extends MessageType<FileMetadata> {
         message.tenantId = "";
         message.uploadedBy = "";
         message.status = "";
-        message.createdAt = "";
-        message.updatedAt = "";
         message.tags = {};
         message.storageKey = "";
         if (value !== undefined)
@@ -321,11 +344,11 @@ class FileMetadata$Type extends MessageType<FileMetadata> {
                 case /* string status */ 7:
                     message.status = reader.string();
                     break;
-                case /* string created_at */ 8:
-                    message.createdAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp created_at */ 8:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* string updated_at */ 9:
-                    message.updatedAt = reader.string();
+                case /* k1s0.system.common.v1.Timestamp updated_at */ 9:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 case /* map<string, string> tags */ 10:
                     this.binaryReadMap10(message.tags, reader, options);
@@ -385,12 +408,12 @@ class FileMetadata$Type extends MessageType<FileMetadata> {
         /* string status = 7; */
         if (message.status !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.status);
-        /* string created_at = 8; */
-        if (message.createdAt !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.createdAt);
-        /* string updated_at = 9; */
-        if (message.updatedAt !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.updatedAt);
+        /* k1s0.system.common.v1.Timestamp created_at = 8; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.Timestamp updated_at = 9; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         /* map<string, string> tags = 10; */
         for (let k of globalThis.Object.keys(message.tags))
             writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.tags[k]).join();
@@ -414,7 +437,7 @@ export const FileMetadata = new FileMetadata$Type();
 class GetFileMetadataRequest$Type extends MessageType<GetFileMetadataRequest> {
     constructor() {
         super("k1s0.system.file.v1.GetFileMetadataRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetFileMetadataRequest>): GetFileMetadataRequest {
@@ -507,7 +530,7 @@ export const GetFileMetadataResponse = new GetFileMetadataResponse$Type();
 class ListFilesRequest$Type extends MessageType<ListFilesRequest> {
     constructor() {
         super("k1s0.system.file.v1.ListFilesRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
             { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 4, name: "uploaded_by", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "mime_type", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
@@ -636,10 +659,10 @@ export const ListFilesResponse = new ListFilesResponse$Type();
 class GenerateUploadUrlRequest$Type extends MessageType<GenerateUploadUrlRequest> {
     constructor() {
         super("k1s0.system.file.v1.GenerateUploadUrlRequest", [
-            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "content_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "uploaded_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
+            { no: 2, name: "content_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 3, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 4, name: "uploaded_by", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 5, name: "tags", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 6, name: "expires_in_seconds", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
             { no: 7, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
@@ -809,7 +832,7 @@ export const GenerateUploadUrlResponse = new GenerateUploadUrlResponse$Type();
 class CompleteUploadRequest$Type extends MessageType<CompleteUploadRequest> {
     constructor() {
         super("k1s0.system.file.v1.CompleteUploadRequest", [
-            { no: 1, name: "file_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "file_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 3, name: "checksum_sha256", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -909,7 +932,7 @@ export const CompleteUploadResponse = new CompleteUploadResponse$Type();
 class GenerateDownloadUrlRequest$Type extends MessageType<GenerateDownloadUrlRequest> {
     constructor() {
         super("k1s0.system.file.v1.GenerateDownloadUrlRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GenerateDownloadUrlRequest>): GenerateDownloadUrlRequest {
@@ -1011,7 +1034,7 @@ export const GenerateDownloadUrlResponse = new GenerateDownloadUrlResponse$Type(
 class UpdateFileTagsRequest$Type extends MessageType<UpdateFileTagsRequest> {
     constructor() {
         super("k1s0.system.file.v1.UpdateFileTagsRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "tags", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -1128,7 +1151,7 @@ export const UpdateFileTagsResponse = new UpdateFileTagsResponse$Type();
 class DeleteFileRequest$Type extends MessageType<DeleteFileRequest> {
     constructor() {
         super("k1s0.system.file.v1.DeleteFileRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteFileRequest>): DeleteFileRequest {

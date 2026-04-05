@@ -45,7 +45,7 @@ fn render_server(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -132,7 +132,8 @@ fn render_client(framework: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-app", "service", framework, "client")
         .framework(framework)
-        .build();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -159,7 +160,9 @@ fn render_library(lang: &str) -> (TempDir, Vec<String>) {
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new("task-lib", "system", lang, "library").build();
+    let ctx = TemplateContextBuilder::new("task-lib", "system", lang, "library")
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -188,7 +191,8 @@ fn render_database(db_type: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-db", "service", db_type, "database")
         .with_database(db_type)
-        .build();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -222,7 +226,7 @@ fn render_helm(api_style: &str, has_database: bool, database_type: &str) -> (Tem
         builder = builder.with_database(database_type);
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -262,7 +266,7 @@ fn render_cicd(
         builder = builder.with_database(database_type);
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -384,7 +388,8 @@ fn render_bff(lang: &str) -> (TempDir, Vec<String>) {
 
     let ctx = TemplateContextBuilder::new("task-api", "service", lang, "bff")
         .api_style("graphql")
-        .build();
+        .try_build()
+        .unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -494,7 +499,7 @@ fn render_server_multi(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -561,7 +566,7 @@ fn render_helm_multi(
         builder = builder.with_database(database_type);
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -654,7 +659,7 @@ fn render_devcontainer(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -747,7 +752,7 @@ fn render_terraform(
         builder = builder.enable_harbor();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -817,7 +822,7 @@ fn render_docker_compose(
         builder = builder.with_redis();
     }
 
-    let ctx = builder.build();
+    let ctx = builder.try_build().unwrap();
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();
 
@@ -876,7 +881,8 @@ fn render_service_mesh(
         .api_style(api_style)
         .server_port(server_port)
         .grpc_port(grpc_port)
-        .build();
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

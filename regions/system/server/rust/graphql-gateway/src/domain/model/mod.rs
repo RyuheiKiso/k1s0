@@ -17,7 +17,7 @@ pub mod workflow;
 pub use auth::{AuditLog, AuditLogConnection, PermissionCheck, Role, User};
 pub use catalog_service::{CatalogService, CatalogServiceConnection, MetadataEntry, ServiceHealth};
 pub use config_entry::ConfigEntry;
-pub use feature_flag::FeatureFlag;
+pub use feature_flag::{FeatureFlag, FlagRule, FlagVariant};
 pub use navigation::{
     GuardType, Navigation, NavigationGuard, NavigationRoute, ParamType, RouteParam,
     TransitionConfig, TransitionType,

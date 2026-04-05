@@ -1,0 +1,22 @@
+# MED-005 監査対応: ai-agent の Vault kubernetes auth ロール定義。
+# auth.tf の vault_kubernetes_auth_backend_role.ai_agent と対応するリファレンス設定。
+# service-accounts.yaml の ServiceAccount "ai-agent" (namespace: k1s0-system) と一致させる。
+# ai-agent は試験段階のサービスであるため、本番運用前に専用 HCL ポリシー（ai-agent.hcl）の作成が必要。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-agent-vault-auth
+  namespace: k1s0-system
+  labels:
+    app.kubernetes.io/name: ai-agent
+    app.kubernetes.io/component: vault-auth
+data:
+  vault-auth-config.json: |
+    {
+      "role_name": "ai-agent",
+      "bound_service_account_names": ["ai-agent"],
+      "bound_service_account_namespaces": ["k1s0-system"],
+      "token_policies": ["system", "ai-agent"],
+      "token_ttl": "3600",
+      "token_max_ttl": "14400"
+    }

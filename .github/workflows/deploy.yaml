@@ -45,7 +45,10 @@ permissions: {}
 # - Cargo/Go キャッシュ: 各言語の依存関係は CI ワークフロー（ci.yaml）側で管理
 # - Docker Registry Cache: Harbor レジストリ上の既存レイヤーを活用（push 済みイメージ）
 env:
-  REGISTRY: harbor.internal.example.com
+  # H-008 監査対応: REGISTRY は GitHub Secret から読み込む（プレースホルダー禁止）
+  # リポジトリの Settings → Secrets and variables → Actions → New repository secret で
+  # REGISTRY_URL を設定すること（例: harbor.prod.example.com, ghcr.io/your-org）
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
 
 jobs:
   # 変更されたサービスの検出
@@ -100,9 +103,14 @@ jobs:
                 service/*/server/*/*/*)    echo "$path" | cut -d'/' -f1-5 ;;
                 # infra/helm/services/{tier}/{service}/** → {tier}/server/ へのマッピング
                 # Helm chart 変更は該当 tier のサービス名で検知する
-                system/*/Chart.yaml|system/*/*.yaml)   echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
-                business/*/*/Chart.yaml|business/*/*.yaml) echo "business/$(echo "$path" | cut -d'/' -f2)/server" ;;
-                service/*/Chart.yaml|service/*/*.yaml) echo "service/$(echo "$path" | cut -d'/' -f2)/server" ;;
+                # L-008 監査対応: templates/ サブディレクトリ配下の YAML もマッチするようパターンを拡張する
+                # 修正前: system/*/*.yaml のみで templates/*.yaml が漏れていた
+                system/*/Chart.yaml|system/*/*.yaml|system/*/templates/*.yaml|system/*/templates/**/*.yaml)
+                  echo "system/server/$(echo "$path" | cut -d'/' -f2)" ;;
+                business/*/*/Chart.yaml|business/*/*.yaml|business/*/*/templates/*.yaml|business/*/*/templates/**/*.yaml)
+                  echo "business/$(echo "$path" | cut -d'/' -f2)/server" ;;
+                service/*/Chart.yaml|service/*/*.yaml|service/*/templates/*.yaml|service/*/templates/**/*.yaml)
+                  echo "service/$(echo "$path" | cut -d'/' -f2)/server" ;;
               esac
             # head -20 の制限を撤廃: 共通ライブラリ変更時に21件以上が影響を受けても全サービスをデプロイする
             done | sort -u)
@@ -125,6 +133,14 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
+      # H-008 監査対応: レジストリ URL がプレースホルダーでないことを確認する
+      # secrets.REGISTRY_URL が未設定または example.com を含む場合はデプロイを中断する
+      - name: Verify registry configuration
+        run: |
+          if [ -z "${{ env.REGISTRY }}" ] || echo "${{ env.REGISTRY }}" | grep -q "example\.com"; then
+            echo "Error: REGISTRY が未設定またはプレースホルダーのままです。GitHub Secret 'REGISTRY_URL' を設定してください。"
+            exit 1
+          fi
       - name: Set short SHA
         id: sha
         # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
@@ -132,8 +148,9 @@ jobs:
       - name: Set version
         id: version
         run: |
-          # 直近の Git タグからバージョンを取得（例: v1.2.3 → 1.2.3）
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          # 本番・staging ビルドでは必ず git tag v0.1.0 等でタグを作成してから実行すること
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Set up Docker Buildx
@@ -188,7 +205,11 @@ jobs:
       # コンテナイメージの脆弱性スキャン（ビルド後・プッシュ済みイメージに対して実行）
       # CRITICAL/HIGH の脆弱性が検出された場合、SARIF レポートを出力する
       - name: Run Trivy vulnerability scanner
+        # H-009 監査対応: id を付与し、後続の Check Trivy scan results ステップで結果を参照可能にする
+        id: trivy
         uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6a132a02 # 0.29.0
+        # H-009 監査対応: continue-on-error で SARIF レポートを確実に生成してから CI ゲートを判定する
+        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.project }}/${{ steps.image.outputs.service_name }}:${{ steps.version.outputs.value }}-${{ steps.sha.outputs.short }}
           format: 'sarif'
@@ -197,6 +218,15 @@ jobs:
           # H-07監査対応: CRITICAL/HIGH 脆弱性を検出した際に CI を失敗させる。
           # SARIF レポートは exit-code 失敗後も `if: always()` で出力されるため、レポートの可視性は維持される。
           exit-code: '1'
+      # H-009 監査対応: Trivy スキャン失敗を確実に CI ゲートとして機能させる
+      # continue-on-error で SARIF を出力した後、ここで確定的にデプロイをブロックする
+      - name: Check Trivy scan results
+        if: always()
+        run: |
+          if [ "${{ steps.trivy.outcome }}" = "failure" ]; then
+            echo "CRITICAL/HIGH 脆弱性が検出されました。デプロイをブロックします。"
+            exit 1
+          fi
       # SARIF レポートをアーティファクトとしてアップロードし、セキュリティ監査・追跡に利用する
       - name: Upload Trivy SARIF report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -242,7 +272,9 @@ jobs:
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: deploy-dev のみタグがない場合は "0.0.0-dev" をフォールバックとして使用
+          # 開発環境ではタグなしブランチでも動作できるよう特例としてフォールバックを許可する
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0-dev")
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta
@@ -318,7 +350,9 @@ jobs:
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          # staging デプロイでは必ず git tag v0.1.0 等でタグを作成してから実行すること
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta
@@ -391,6 +425,16 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
+      - name: encryption-configプレースホルダー検出（MED-005 本番デプロイブロッカー）
+        # 本番鍵が未設定のままデプロイされると etcd の Secrets/ConfigMaps が平文保存になる。
+        # プレースホルダーが残存している場合は本番デプロイを中断し、Vault からの鍵注入を強制する。
+        run: |
+          if grep -r '<REPLACE_WITH_BASE64_32BYTE_KEY>' infra/kubernetes/security/ 2>/dev/null; then
+            echo "ERROR: encryption-config.yaml にプレースホルダーが残存しています。"
+            echo "       本番デプロイ前に Vault から暗号化キーを注入してください。"
+            exit 1
+          fi
+          echo "encryption-config チェック: OK"
       - name: Set short SHA
         id: sha
         # SHA は 12 文字以上を使用し、リポジトリ拡大時の衝突リスクを低減する（M-009）
@@ -398,7 +442,9 @@ jobs:
       - name: Set version
         id: version
         run: |
-          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+          # L-007 監査対応: git タグが未設定の場合はエラー終了（0.0.0 での上書きを防止）
+          # 本番デプロイでは必ず git tag v0.1.0 等でタグを作成してから実行すること
+          VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//') || { echo "Error: git タグが設定されていません。'git tag v0.1.0' 等でタグを作成してください。"; exit 1; }
           echo "value=${VERSION}" >> "$GITHUB_OUTPUT"
       - name: Derive service metadata
         id: meta

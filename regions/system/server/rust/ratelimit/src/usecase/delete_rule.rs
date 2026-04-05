@@ -27,13 +27,14 @@ impl DeleteRuleUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, rule_id: &str) -> Result<(), DeleteRuleError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを削除する。
+    pub async fn execute(&self, rule_id: &str, tenant_id: &str) -> Result<(), DeleteRuleError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| DeleteRuleError::InvalidRuleId(rule_id.to_string()))?;
 
         let deleted = self
             .repo
-            .delete(&id)
+            .delete(&id, tenant_id)
             .await
             .map_err(|e| DeleteRuleError::Internal(e.to_string()))?;
 
@@ -54,20 +55,24 @@ mod tests {
     #[tokio::test]
     async fn test_delete_rule_success() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_delete().returning(|_| Ok(true));
+        repo.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+        let result = uc
+            .execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a")
+            .await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_delete_rule_not_found() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_delete().returning(|_| Ok(false));
+        repo.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000").await;
+        let result = uc
+            .execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a")
+            .await;
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), DeleteRuleError::NotFound(_)));
     }
@@ -76,7 +81,7 @@ mod tests {
     async fn test_delete_rule_invalid_uuid() {
         let repo = MockRateLimitRepository::new();
         let uc = DeleteRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("not-a-uuid").await;
+        let result = uc.execute("not-a-uuid", "tenant-a").await;
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),

@@ -104,6 +104,9 @@ secrecy = { version = "0.8", features = ["serde"] }
 serde_yaml = "0.9"
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 tonic = "0.12"
+# tonic-health 0.12 は gRPC Health Check Protocol (grpc.health.v1.Health) を実装する。
+# tonic 0.12 に対応したバージョンを使用する。
+tonic-health = "0.12"
 # tonic-build 0.12 は内部で prost-build 0.13 を使用し、prost 0.13 互換のコードを生成する。
 # tonic 0.12 は prost 0.13 に依存しているため、prost = "0.13" が正しい組み合わせ。
 # tonic-build 0.14 は prost ベースの configure()/compile_protos() API を持たないため使用不可。
@@ -139,6 +142,12 @@ hex = "0.4"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 # URL パース・検証: SSRF 対策で webhook URL のスキーム・ホスト・IP 範囲を検証するために使用する
 url = "2"
+# 正規表現エンジン: 複数サービスで同一バージョンを使用するため workspace で一元管理する（RUST-MED-003 対応）
+regex = "1"
+# LRU キャッシュ: 正規表現コンパイル結果のキャッシュに使用する（RUST-HIGH-003 対応）
+lru = "0.12"
+# 安全な一時ファイル作成: アトミックな作成と Drop 時の自動削除で TOCTOU 脆弱性を防止する（RUST-CRIT-001 対応）
+tempfile = "3"
 
 # ワークスペース共通リント: プロダクションコードでの unwrap() 使用と async コンテキストでの std::sync::Mutex 保持を禁止する
 [workspace.lints.clippy]

@@ -4,8 +4,10 @@ use crate::domain::entity::workflow_definition::WorkflowDefinition;
 use crate::domain::entity::workflow_step::WorkflowStep;
 use crate::domain::repository::WorkflowDefinitionRepository;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct CreateWorkflowInput {
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub enabled: bool,
@@ -49,9 +51,10 @@ impl CreateWorkflowUseCase {
             ));
         }
 
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let existing = self
             .repo
-            .find_by_name(&input.name)
+            .find_by_name(&input.tenant_id, &input.name)
             .await
             .map_err(|e| CreateWorkflowError::Internal(e.to_string()))?;
         if existing.is_some() {
@@ -68,7 +71,7 @@ impl CreateWorkflowUseCase {
         );
 
         self.repo
-            .create(&definition)
+            .create(&input.tenant_id, &definition)
             .await
             .map_err(|e| CreateWorkflowError::Internal(e.to_string()))?;
 
@@ -97,11 +100,12 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_by_name().returning(|_| Ok(None));
-        mock.expect_create().returning(|_| Ok(()));
+        mock.expect_find_by_name().returning(|_, _| Ok(None));
+        mock.expect_create().returning(|_, _| Ok(()));
 
         let uc = CreateWorkflowUseCase::new(Arc::new(mock));
         let input = CreateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             name: "purchase-approval".to_string(),
             description: "Purchase flow".to_string(),
             enabled: true,
@@ -119,7 +123,7 @@ mod tests {
     #[tokio::test]
     async fn already_exists() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_by_name().returning(|_| {
+        mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(WorkflowDefinition::new(
                 "wf_existing".to_string(),
                 "purchase-approval".to_string(),
@@ -131,6 +135,7 @@ mod tests {
 
         let uc = CreateWorkflowUseCase::new(Arc::new(mock));
         let input = CreateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             name: "purchase-approval".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -149,6 +154,7 @@ mod tests {
         let mock = MockWorkflowDefinitionRepository::new();
         let uc = CreateWorkflowUseCase::new(Arc::new(mock));
         let input = CreateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             name: "".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -165,10 +171,11 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockWorkflowDefinitionRepository::new();
         mock.expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = CreateWorkflowUseCase::new(Arc::new(mock));
         let input = CreateWorkflowInput {
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             description: "".to_string(),
             enabled: true,

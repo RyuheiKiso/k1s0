@@ -20,11 +20,11 @@ impl RetryMessageUseCase {
         Self { repo, publisher }
     }
 
-    /// DLQ メッセージを再処理する。
-    pub async fn execute(&self, id: Uuid) -> anyhow::Result<DlqMessage> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから DLQ メッセージを再処理する。
+    pub async fn execute(&self, id: Uuid, tenant_id: &str) -> anyhow::Result<DlqMessage> {
         let mut message = self
             .repo
-            .find_by_id(id)
+            .find_by_id(id, tenant_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("dlq message not found: {}", id))?;
 
@@ -91,21 +91,21 @@ mod tests {
 
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(msg_clone.clone())));
+            .returning(move |_, _| Ok(Some(msg_clone.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = RetryMessageUseCase::new(Arc::new(mock), None);
-        let result = uc.execute(msg_id).await.unwrap();
+        let result = uc.execute(msg_id, "tenant-a").await.unwrap();
         assert_eq!(result.status, DlqStatus::Resolved);
     }
 
     #[tokio::test]
     async fn test_retry_message_not_found() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = RetryMessageUseCase::new(Arc::new(mock), None);
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute(Uuid::new_v4(), "tenant-a").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
     }
@@ -124,10 +124,10 @@ mod tests {
 
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(msg_clone.clone())));
+            .returning(move |_, _| Ok(Some(msg_clone.clone())));
 
         let uc = RetryMessageUseCase::new(Arc::new(mock), None);
-        let result = uc.execute(msg_id).await;
+        let result = uc.execute(msg_id, "tenant-a").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not retryable"));
     }
@@ -147,10 +147,10 @@ mod tests {
 
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(msg_clone.clone())));
+            .returning(move |_, _| Ok(Some(msg_clone.clone())));
 
         let uc = RetryMessageUseCase::new(Arc::new(mock), None);
-        let result = uc.execute(msg_id).await;
+        let result = uc.execute(msg_id, "tenant-a").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not retryable"));
     }

@@ -13,14 +13,15 @@ impl ListMessagesUseCase {
         Self { repo }
     }
 
-    /// トピック別にメッセージ一覧を取得する。
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからトピック別にメッセージ一覧を取得する。
     pub async fn execute(
         &self,
         topic: &str,
         page: i32,
         page_size: i32,
+        tenant_id: &str,
     ) -> anyhow::Result<(Vec<DlqMessage>, i64)> {
-        self.repo.find_by_topic(topic, page, page_size).await
+        self.repo.find_by_topic(topic, page, page_size, tenant_id).await
     }
 }
 
@@ -34,10 +35,10 @@ mod tests {
     async fn test_list_messages_empty() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20).await.unwrap();
+        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20, "tenant-a").await.unwrap();
         assert!(messages.is_empty());
         assert_eq!(total, 0);
     }
@@ -45,7 +46,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_messages_with_results() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_find_by_topic().returning(|_, _, _| {
+        mock.expect_find_by_topic().returning(|_, _, _, _| {
             let msg = DlqMessage::new(
                 "orders.events.v1".to_string(),
                 "failed".to_string(),
@@ -56,7 +57,7 @@ mod tests {
         });
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20).await.unwrap();
+        let (messages, total) = uc.execute("orders.dlq.v1", 1, 20, "tenant-a").await.unwrap();
         assert_eq!(messages.len(), 1);
         assert_eq!(total, 1);
     }
@@ -65,13 +66,13 @@ mod tests {
     async fn test_list_messages_pagination_params_passed() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .withf(|topic, page, page_size| {
+            .withf(|topic, page, page_size, _tenant_id| {
                 topic == "payments.dlq.v1" && *page == 2 && *page_size == 5
             })
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let result = uc.execute("payments.dlq.v1", 2, 5).await;
+        let result = uc.execute("payments.dlq.v1", 2, 5, "tenant-a").await;
         assert!(result.is_ok());
     }
 
@@ -79,10 +80,10 @@ mod tests {
     async fn test_list_messages_repository_error_propagated() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .returning(|_, _, _| Err(anyhow::anyhow!("db connection failed")));
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("db connection failed")));
 
         let uc = ListMessagesUseCase::new(Arc::new(mock));
-        let result = uc.execute("orders.dlq.v1", 1, 20).await;
+        let result = uc.execute("orders.dlq.v1", 1, 20, "tenant-a").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("db connection"));
     }

@@ -40,11 +40,13 @@ impl CreateChannelUseCase {
         NotificationDomainService::validate_channel_type(&input.channel_type)
             .map_err(CreateChannelError::Validation)?;
 
-        // CRIT-02 SSRF対策: webhook チャンネル作成時に URL を検証する
+        // CRIT-02 / HIGH-03 SSRF対策: webhook チャンネル作成時に URL を検証する
         // config.url フィールドが存在する場合のみ検証を行い、不正な URL は作成を拒否する
+        // HIGH-03 DNS リバインド攻撃対策のため async 関数として DNS 解決も実施する
         if input.channel_type == "webhook" {
             if let Some(url) = input.config.get("url").and_then(|v| v.as_str()) {
                 NotificationDomainService::validate_webhook_url(url)
+                    .await
                     .map_err(CreateChannelError::Validation)?;
             } else {
                 return Err(CreateChannelError::Validation(

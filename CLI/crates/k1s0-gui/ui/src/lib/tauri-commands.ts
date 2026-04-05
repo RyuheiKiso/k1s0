@@ -298,12 +298,19 @@ export type ProgressEvent =
   | { kind: 'Error'; message: string }
   | { kind: 'Finished'; success: boolean; message: string };
 
+/**
+ * L-017 監査対応: DeviceAuthorizationChallenge から device_code フィールドを除外する。
+ * device_code はポーリング用の内部値であり、クライアント UI で表示・保持する必要がない。
+ * Rust サーバー側では #[serde(skip_serializing)] によってシリアライズ時に除外されるため、
+ * フロントエンドには送信されない。
+ */
 export interface DeviceAuthorizationChallenge {
   issuer: string;
   client_id: string;
   scope: string;
   token_endpoint: string;
-  device_code: string;
+  /** @deprecated L-017 監査対応: device_code はサーバーから送信されなくなりました。このフィールドは将来削除されます。 */
+  device_code?: string;
   user_code: string;
   verification_uri: string;
   verification_uri_complete: string;

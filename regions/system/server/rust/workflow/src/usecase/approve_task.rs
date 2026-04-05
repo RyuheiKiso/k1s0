@@ -8,11 +8,14 @@ use crate::domain::repository::WorkflowInstanceRepository;
 use crate::domain::repository::WorkflowTaskRepository;
 use crate::domain::service::WorkflowDomainService;
 use crate::infrastructure::kafka_producer::WorkflowEventPublisher;
-use crate::usecase::postgres_support::{insert_task_tx, update_instance_tx, update_task_tx};
+// B-MEDIUM-02 監査対応: postgres_support を adapter/repository レイヤーからインポートする
+use crate::adapter::repository::postgres_support::{insert_task_tx, update_instance_tx, update_task_tx};
 use tracing::warn;
 
+// RUST-CRIT-001 対応: テナント分離のため tenant_id フィールドを追加する
 #[derive(Debug, Clone)]
 pub struct ApproveTaskInput {
+    pub tenant_id: String,
     pub task_id: String,
     pub actor_id: String,
     pub comment: Option<String>,
@@ -87,9 +90,10 @@ impl ApproveTaskUseCase {
         &self,
         input: &ApproveTaskInput,
     ) -> Result<ApproveTaskOutput, ApproveTaskError> {
+        // テナント分離: tenant_id を渡してRLSによるフィルタリングを有効化する
         let mut task = self
             .task_repo
-            .find_by_id(&input.task_id)
+            .find_by_id(&input.tenant_id, &input.task_id)
             .await
             .map_err(|e| ApproveTaskError::Internal(e.to_string()))?
             .ok_or_else(|| ApproveTaskError::TaskNotFound(input.task_id.clone()))?;
@@ -102,14 +106,14 @@ impl ApproveTaskUseCase {
 
         let mut instance = self
             .instance_repo
-            .find_by_id(&task.instance_id)
+            .find_by_id(&input.tenant_id, &task.instance_id)
             .await
             .map_err(|e| ApproveTaskError::Internal(e.to_string()))?
             .ok_or_else(|| ApproveTaskError::InstanceNotFound(task.instance_id.clone()))?;
 
         let definition = self
             .definition_repo
-            .find_by_id(&instance.workflow_id)
+            .find_by_id(&input.tenant_id, &instance.workflow_id)
             .await
             .map_err(|e| ApproveTaskError::Internal(e.to_string()))?
             .ok_or_else(|| ApproveTaskError::DefinitionNotFound(instance.workflow_id.clone()))?;
@@ -148,18 +152,19 @@ impl ApproveTaskUseCase {
         }
 
         if let Some(pool) = &self.pool {
+            // テナント分離: トランザクション内でtenant_idを渡してRLSを有効化する
             let mut tx = pool
                 .begin()
                 .await
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
-            update_task_tx(&mut tx, &task)
+            update_task_tx(&mut tx, &task, &input.tenant_id)
                 .await
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
-            update_instance_tx(&mut tx, &instance)
+            update_instance_tx(&mut tx, &instance, &input.tenant_id)
                 .await
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
             if let Some(next_task_ref) = next_task.as_ref() {
-                insert_task_tx(&mut tx, next_task_ref)
+                insert_task_tx(&mut tx, next_task_ref, &input.tenant_id)
                     .await
                     .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
             }
@@ -168,16 +173,16 @@ impl ApproveTaskUseCase {
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
         } else {
             self.task_repo
-                .update(&task)
+                .update(&input.tenant_id, &task)
                 .await
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
             self.instance_repo
-                .update(&instance)
+                .update(&input.tenant_id, &instance)
                 .await
                 .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
             if let Some(next_task_ref) = next_task.as_ref() {
                 self.task_repo
-                    .create(next_task_ref)
+                    .create(&input.tenant_id, next_task_ref)
                     .await
                     .map_err(|e| ApproveTaskError::Internal(e.to_string()))?;
             }
@@ -272,16 +277,16 @@ mod tests {
 
         task_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(pending_task())));
-        task_mock.expect_update().returning(|_| Ok(()));
-        task_mock.expect_create().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(pending_task())));
+        task_mock.expect_update().returning(|_, _| Ok(()));
+        task_mock.expect_create().returning(|_, _| Ok(()));
         inst_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(running_instance())));
-        inst_mock.expect_update().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(running_instance())));
+        inst_mock.expect_update().returning(|_, _| Ok(()));
         def_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(two_step_definition())));
+            .returning(|_, _| Ok(Some(two_step_definition())));
         let mut publisher = MockWorkflowEventPublisher::new();
         publisher
             .expect_publish_task_completed()
@@ -295,6 +300,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = ApproveTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("Approved".to_string()),
@@ -318,19 +324,19 @@ mod tests {
         task.step_id = "step-2".to_string();
         task_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(task.clone())));
-        task_mock.expect_update().returning(|_| Ok(()));
+            .returning(move |_, _| Ok(Some(task.clone())));
+        task_mock.expect_update().returning(|_, _| Ok(()));
 
         let mut inst = running_instance();
         inst.current_step_id = Some("step-2".to_string());
         inst_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(inst.clone())));
-        inst_mock.expect_update().returning(|_| Ok(()));
+            .returning(move |_, _| Ok(Some(inst.clone())));
+        inst_mock.expect_update().returning(|_, _| Ok(()));
 
         def_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(two_step_definition())));
+            .returning(|_, _| Ok(Some(two_step_definition())));
         let mut publisher = MockWorkflowEventPublisher::new();
         publisher
             .expect_publish_task_completed()
@@ -344,6 +350,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = ApproveTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -363,7 +370,7 @@ mod tests {
         let def_mock = MockWorkflowDefinitionRepository::new();
         let publisher = MockWorkflowEventPublisher::new();
 
-        task_mock.expect_find_by_id().returning(|_| Ok(None));
+        task_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ApproveTaskUseCase::new(
             Arc::new(task_mock),
@@ -372,6 +379,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = ApproveTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_missing".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -394,7 +402,7 @@ mod tests {
         task.approve("prev-actor".to_string(), None);
         task_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(task.clone())));
+            .returning(move |_, _| Ok(Some(task.clone())));
 
         let uc = ApproveTaskUseCase::new(
             Arc::new(task_mock),
@@ -403,6 +411,7 @@ mod tests {
             Arc::new(publisher),
         );
         let input = ApproveTaskInput {
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -423,16 +432,16 @@ mod tests {
 
         task_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(pending_task())));
-        task_mock.expect_update().returning(|_| Ok(()));
-        task_mock.expect_create().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(pending_task())));
+        task_mock.expect_update().returning(|_, _| Ok(()));
+        task_mock.expect_create().returning(|_, _| Ok(()));
         inst_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(running_instance())));
-        inst_mock.expect_update().returning(|_| Ok(()));
+            .returning(|_, _| Ok(Some(running_instance())));
+        inst_mock.expect_update().returning(|_, _| Ok(()));
         def_mock
             .expect_find_by_id()
-            .returning(|_| Ok(Some(two_step_definition())));
+            .returning(|_, _| Ok(Some(two_step_definition())));
         publisher
             .expect_publish_task_completed()
             .times(1)
@@ -446,6 +455,7 @@ mod tests {
         );
         let result = uc
             .execute(&ApproveTaskInput {
+                tenant_id: "test-tenant".to_string(),
                 task_id: "task_001".to_string(),
                 actor_id: "user-002".to_string(),
                 comment: Some("Approved".to_string()),

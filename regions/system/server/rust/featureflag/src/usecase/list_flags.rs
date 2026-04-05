@@ -18,9 +18,11 @@ impl ListFlagsUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self) -> Result<Vec<FeatureFlag>, ListFlagsError> {
+    /// STATIC-CRITICAL-001 監査対応: テナントスコープのフィーチャーフラグ一覧を取得する。
+    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<FeatureFlag>, ListFlagsError> {
         self.repo
-            .find_all()
+            .find_all(tenant_id)
             .await
             .map_err(|e| ListFlagsError::Internal(e.to_string()))
     }
@@ -32,13 +34,19 @@ mod tests {
     use super::*;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
 
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> &'static str {
+        "00000000-0000-0000-0000-000000000001"
+    }
+
     #[tokio::test]
     async fn test_list_flags_success() {
         let mut repo = MockFeatureFlagRepository::new();
-        repo.expect_find_all().returning(|| Ok(vec![]));
+        // STATIC-CRITICAL-001: tenant_id を含む1引数シグネチャ
+        repo.expect_find_all().returning(|_| Ok(vec![]));
 
         let uc = ListFlagsUseCase::new(Arc::new(repo));
-        let flags = uc.execute().await.unwrap();
+        let flags = uc.execute(system_tenant()).await.unwrap();
         assert!(flags.is_empty());
     }
 }

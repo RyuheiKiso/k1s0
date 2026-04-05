@@ -4,9 +4,10 @@
 -- CREATE TABLE / CREATE INDEX は含まない。
 
 -- ============================================================
--- k1s0_task データベースに outbox スキーマを作成
+-- k1s0_service データベースに outbox スキーマを作成
+-- k1s0_task は MED-009 対応で削除済みのため k1s0_service を使用する
 -- ============================================================
-\c k1s0_task;
+\c k1s0_service;
 
 -- UUID生成のための拡張機能
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

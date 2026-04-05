@@ -3,6 +3,7 @@ package distributedlock
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"sync"
 	"time"
 )
@@ -28,6 +29,9 @@ type PostgresLock struct {
 type activeLock struct {
 	conn  *sql.Conn
 	token string
+	// done はロックが正常に Release された場合に閉じられるチャンネル。
+	// context キャンセル監視 goroutine の終了シグナルとして使用する（B-CRIT-02 監査対応）。
+	done chan struct{}
 }
 
 // PostgresLockOption は PostgresLock の設定オプション。
@@ -73,7 +77,13 @@ func (l *PostgresLock) lockKey(key string) string {
 // Acquire は advisory lock で非ブロッキングにロックを取得する。
 // TTL は advisory lock では無視される（コネクション終了まで保持）。
 // 取得したコネクションは Release まで保持される。
+// context がキャンセルされた場合は自動的にロックを解放し、接続プールの枯渇を防ぐ（B-CRIT-02 監査対応）。
 func (l *PostgresLock) Acquire(ctx context.Context, key string, _ time.Duration) (*LockGuard, error) {
+	// DB が nil の場合はパニックではなくエラーを返す（MED-05 監査対応）
+	if l.db == nil {
+		return nil, errors.New("PostgresLock: db が初期化されていません")
+	}
+
 	fullKey := l.lockKey(key)
 	// ロック所有権を識別するためのランダムトークンを生成する
 	token, err := generateToken()
@@ -99,14 +109,31 @@ func (l *PostgresLock) Acquire(ctx context.Context, key string, _ time.Duration)
 	}
 
 	// ロック取得に成功したら、Release 用にコネクションとトークンを保持する
+	// done チャンネルは Release() が呼ばれたときに閉じられ、監視 goroutine を終了させる
+	done := make(chan struct{})
 	l.mu.Lock()
-	l.activeLocks[fullKey] = activeLock{conn: conn, token: token}
+	l.activeLocks[fullKey] = activeLock{conn: conn, token: token, done: done}
 	l.mu.Unlock()
 
-	return &LockGuard{Key: key, Token: token}, nil
+	guard := &LockGuard{Key: key, Token: token}
+
+	// context キャンセル時にロックを自動解放する goroutine を起動する（B-CRIT-02 監査対応）
+	// Release() が呼ばれない場合の接続プール枯渇を防ぐ
+	go func() {
+		select {
+		case <-ctx.Done():
+			// context がキャンセルされたら自動解放する（background context で実行し、元の ctx は使わない）
+			_ = l.Release(context.Background(), guard)
+		case <-done:
+			// Release() が正常に呼ばれた場合はこの goroutine を終了する（cleanup 不要）
+		}
+	}()
+
+	return guard, nil
 }
 
 // Release は advisory lock を解放し、保持していたコネクションを返却する。
+// done チャンネルを閉じて context キャンセル監視 goroutine を終了させる（B-CRIT-02 監査対応）。
 func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 	fullKey := l.lockKey(guard.Key)
 
@@ -122,6 +149,9 @@ func (l *PostgresLock) Release(ctx context.Context, guard *LockGuard) error {
 	}
 	delete(l.activeLocks, fullKey)
 	l.mu.Unlock()
+
+	// done チャンネルを閉じて context キャンセル監視 goroutine に終了を通知する
+	close(entry.done)
 
 	defer entry.conn.Close()
 

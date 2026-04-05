@@ -48,6 +48,8 @@ pub struct DlqMessage {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_retry_at: Option<DateTime<Utc>>,
+    /// CRIT-005 対応: RLS でテナント分離するためのテナント ID。
+    pub tenant_id: String,
 }
 
 impl DlqMessage {
@@ -70,6 +72,7 @@ impl DlqMessage {
             created_at: now,
             updated_at: now,
             last_retry_at: None,
+            tenant_id: "system".to_string(),
         }
     }
 

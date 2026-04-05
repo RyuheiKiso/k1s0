@@ -29,6 +29,10 @@ use proto::k1s0::system::session::v1::session_service_client::SessionServiceClie
 
 pub struct SessionGrpcClient {
     client: SessionServiceClient<Channel>,
+    /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
+    address: String,
+    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    timeout_ms: u64,
 }
 
 impl SessionGrpcClient {
@@ -40,6 +44,8 @@ impl SessionGrpcClient {
             .connect_lazy();
         Ok(Self {
             client: SessionServiceClient::new(channel),
+            address: cfg.address.clone(),
+            timeout_ms: cfg.timeout_ms,
         })
     }
 
@@ -207,27 +213,41 @@ impl SessionGrpcClient {
         Ok(resp.revoked_count)
     }
 
+    /// gRPC Health Check Protocol を使ってサービスの疎通確認を行う。
+    /// Bearer token なしで接続できるため readyz ヘルスチェックに適している。
+    /// tonic-health サービスが登録されているサーバーに対して Check RPC を送信する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn health_check(&self) -> anyhow::Result<()> {
-        self.list_user_sessions("__readyz__").await?;
+        let channel = Channel::from_shared(self.address.clone())?
+            .timeout(Duration::from_millis(self.timeout_ms))
+            .connect_lazy();
+        let mut health_client = tonic_health::pb::health_client::HealthClient::new(channel);
+        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+            service: "k1s0.system.session.v1.SessionService".to_string(),
+        });
+        health_client
+            .check(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("session gRPC Health Check 失敗: {}", e))?;
         Ok(())
     }
 }
 
 /// proto の SessionStatus 値をドメインモデルの SessionStatus に変換するヘルパー関数。
-/// 生成コードバージョンに依存しない型変換を提供する。
-/// proto v1 (i32): 1 = Active、2 = Revoked
-/// proto v0 (String): "SESSION_STATUS_ACTIVE" = Active、それ以外は Active
-fn proto_status_to_domain_str(v: &str) -> SessionStatus {
+/// proto の SessionStatus i32 値をドメインモデルの SessionStatus に変換する。
+/// buf generate 後の生成コードでは status フィールドは i32 型（enumeration）になる。
+/// proto enum: Unspecified = 0, Active = 1, Revoked = 2
+fn proto_status_to_domain_str(v: &i32) -> SessionStatus {
     match v {
-        "SESSION_STATUS_REVOKED" => SessionStatus::Revoked,
+        // 2 = SESSION_STATUS_REVOKED
+        2 => SessionStatus::Revoked,
+        // 0 = UNSPECIFIED, 1 = ACTIVE, その他は Active とみなす
         _ => SessionStatus::Active,
     }
 }
 
 fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
-    // status フィールドは proto 生成コードのバージョンによって String 型になる場合がある。
-    // SessionStatus enum は文字列表現からドメインモデルに変換する。
+    // buf generate 後の status フィールドは i32 型（enumeration）
     let status = proto_status_to_domain_str(&s.status);
     Session {
         session_id: s.session_id,

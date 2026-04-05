@@ -193,12 +193,19 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut is_ready = true;
 
     if let Some(pool) = &state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+        // MED-006 監査対応: SELECT 1 ではなくスキーマ固有テーブルを参照して
+        // マイグレーション未実行でも ready を返す誤検知を防ぐ（ADR-0068 準拠）
+        match sqlx::query("SELECT 1 FROM tenant.tenants LIMIT 0")
+            .execute(pool.as_ref())
+            .await
+        {
             Ok(_) => {
                 checks.insert("database".to_string(), serde_json::json!("ok"));
             }
             Err(e) => {
-                checks.insert("database".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（DB接続文字列等）を露出しない
+                tracing::warn!(error = %e, "readyz database check failed");
+                checks.insert("database".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }
@@ -222,12 +229,16 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                     checks.insert("kafka".to_string(), serde_json::json!("ok"));
                 }
                 Err(e) => {
-                    checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                    // M-001 監査対応: readyz に内部エラー詳細（Kafka接続文字列等）を露出しない
+                    tracing::warn!(error = %e, "readyz kafka metadata check failed");
+                    checks.insert("kafka".to_string(), serde_json::json!("error"));
                     is_ready = false;
                 }
             },
             Err(e) => {
-                checks.insert("kafka".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（Kafka設定等）を露出しない
+                tracing::warn!(error = %e, "readyz kafka consumer creation failed");
+                checks.insert("kafka".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }
@@ -248,7 +259,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 is_ready = false;
             }
             Err(e) => {
-                checks.insert("keycloak".to_string(), serde_json::json!(e.to_string()));
+                // M-001 監査対応: readyz に内部エラー詳細（Keycloak URL等）を露出しない
+                tracing::warn!(error = %e, "readyz keycloak health check failed");
+                checks.insert("keycloak".to_string(), serde_json::json!("error"));
                 is_ready = false;
             }
         }
@@ -256,7 +269,8 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         checks.insert("keycloak".to_string(), serde_json::json!("not_configured"));
     }
 
-    let status = if is_ready { "ready" } else { "not_ready" };
+    // ADR-0068 準拠: status は healthy / unhealthy の2値を使用する（MED-006 監査対応）
+    let status = if is_ready { "healthy" } else { "unhealthy" };
     let code = if is_ready {
         StatusCode::OK
     } else {

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use uuid::Uuid;
+
 use crate::adapter::presentation::ConfigEditorSchemaDto;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::proto::k1s0::system::common::v1::{
@@ -79,8 +81,10 @@ impl ConfigGrpcService {
         self
     }
 
+    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を取得する。
     pub async fn get_config(
         &self,
+        tenant_id: Uuid,
         req: pb::GetConfigRequest,
     ) -> Result<pb::GetConfigResponse, GrpcError> {
         if req.namespace.is_empty() || req.key.is_empty() {
@@ -89,7 +93,7 @@ impl ConfigGrpcService {
             ));
         }
 
-        match self.get_config_uc.execute(&req.namespace, &req.key).await {
+        match self.get_config_uc.execute(tenant_id, &req.namespace, &req.key).await {
             Ok(entry) => Ok(pb::GetConfigResponse {
                 entry: Some(domain_config_to_pb(&entry)),
             }),
@@ -101,8 +105,10 @@ impl ConfigGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値一覧を取得する。
     pub async fn list_configs(
         &self,
+        tenant_id: Uuid,
         req: pb::ListConfigsRequest,
     ) -> Result<pb::ListConfigsResponse, GrpcError> {
         if req.namespace.is_empty() {
@@ -121,7 +127,7 @@ impl ConfigGrpcService {
             },
         };
 
-        match self.list_configs_uc.execute(&req.namespace, &params).await {
+        match self.list_configs_uc.execute(tenant_id, &req.namespace, &params).await {
             Ok(result) => Ok(pb::ListConfigsResponse {
                 entries: result.entries.iter().map(domain_config_to_pb).collect(),
                 pagination: Some(ProtoPaginationResult {
@@ -136,8 +142,10 @@ impl ConfigGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープでサービス設定を取得する。
     pub async fn get_service_config(
         &self,
+        tenant_id: Uuid,
         req: pb::GetServiceConfigRequest,
     ) -> Result<pb::GetServiceConfigResponse, GrpcError> {
         if req.service_name.is_empty() {
@@ -146,7 +154,7 @@ impl ConfigGrpcService {
             ));
         }
 
-        match self.get_service_config_uc.execute(&req.service_name).await {
+        match self.get_service_config_uc.execute(tenant_id, &req.service_name).await {
             Ok(result) => Ok(pb::GetServiceConfigResponse {
                 entries: result
                     .entries
@@ -166,8 +174,10 @@ impl ConfigGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を更新する。
     pub async fn update_config(
         &self,
+        tenant_id: Uuid,
         req: pb::UpdateConfigRequest,
     ) -> Result<pb::UpdateConfigResponse, GrpcError> {
         if req.namespace.is_empty() || req.key.is_empty() {
@@ -182,6 +192,7 @@ impl ConfigGrpcService {
             .map_err(|e| GrpcError::InvalidArgument(format!("invalid value_json: {}", e)))?;
 
         let input = UpdateConfigInput {
+            tenant_id,
             namespace: req.namespace,
             key: req.key,
             value,
@@ -214,8 +225,10 @@ impl ConfigGrpcService {
         }
     }
 
+    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を削除する。
     pub async fn delete_config(
         &self,
+        tenant_id: Uuid,
         req: pb::DeleteConfigRequest,
     ) -> Result<pb::DeleteConfigResponse, GrpcError> {
         if req.namespace.is_empty() || req.key.is_empty() {
@@ -232,7 +245,7 @@ impl ConfigGrpcService {
 
         match self
             .delete_config_uc
-            .execute(&req.namespace, &req.key, deleted_by)
+            .execute(tenant_id, &req.namespace, &req.key, deleted_by)
             .await
         {
             Ok(()) => Ok(pb::DeleteConfigResponse { success: true }),

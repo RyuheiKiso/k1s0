@@ -163,8 +163,10 @@ pub fn scan_grpc_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
+    // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
     let re = GRPC_IMPORT_RE.get_or_init(|| {
-        Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#).expect("static regex")
+        Regex::new(r#"import\s+"k1s0/(\w+)/(\w[\w-]*)/v\d+/"#)
+            .expect("gRPC proto import パターン正規表現のコンパイルに失敗（パターン: import \"k1s0/{tier}/{service}/v{n}/\"）")
     });
 
     // サービス名→tier のマップを構築
@@ -275,8 +277,12 @@ pub fn scan_kafka_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Ve
     // パブリッシャーとサブスクライバーをマッチさせて依存関係を構築
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
+    // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
     let topic_re = Some(
-        TOPIC_RE.get_or_init(|| Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.").expect("static regex")),
+        TOPIC_RE.get_or_init(|| {
+            Regex::new(r"k1s0\.(\w+)\.(\w[\w-]*)\.")
+                .expect("Kafka トピック名パターン正規表現のコンパイルに失敗（パターン: k1s0.{tier}.{service}.）")
+        }),
     );
 
     for (topic, subscribers) in &topic_subscribers {
@@ -404,11 +410,15 @@ pub fn scan_rest_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> Vec
     let mut deps = Vec::new();
     // OnceLock で正規表現を一度だけコンパイルしてキャッシュする
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
+    // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
     let re = REST_SERVICE_RE.get_or_init(|| {
-        Regex::new(r"([\w-]+)\.k1s0-(system|business|service)").expect("static regex")
+        Regex::new(r"([\w-]+)\.k1s0-(system|business|service)")
+            .expect("REST サービス名パターン正規表現のコンパイルに失敗（パターン: {service}.k1s0-{tier}）")
     });
-    let graphql_re =
-        GRAPHQL_RE.get_or_init(|| Regex::new(r"(?i)graphql|/graphql").expect("static regex"));
+    let graphql_re = GRAPHQL_RE.get_or_init(|| {
+        Regex::new(r"(?i)graphql|/graphql")
+            .expect("GraphQL エンドポイントパターン正規表現のコンパイルに失敗（パターン: graphql|/graphql）")
+    });
 
     let service_tier_map: HashMap<String, String> = services
         .iter()
@@ -488,12 +498,23 @@ pub fn scan_library_dependencies(services: &[ServiceInfo], _base_dir: &Path) -> 
     let mut deps = Vec::new();
 
     // 静的正規表現のコンパイル失敗はプログラミングエラーのため expect で即時パニックする
-    let cargo_re = CARGO_LIB_RE.get_or_init(|| Regex::new(r"k1s0-([\w-]+)").expect("static regex"));
-    let gomod_re = GOMOD_LIB_RE.get_or_init(|| {
-        Regex::new(r"k1s0/regions/system/library/go/([\w-]+)").expect("static regex")
+    // L-002 監査対応: expect メッセージをパターン内容が分かる説明的なメッセージに変更する。
+    let cargo_re = CARGO_LIB_RE.get_or_init(|| {
+        Regex::new(r"k1s0-([\w-]+)")
+            .expect("Cargo.toml k1s0 ライブラリ依存パターン正規表現のコンパイルに失敗（パターン: k1s0-{lib}）")
     });
-    let npm_re = NPM_LIB_RE.get_or_init(|| Regex::new(r"@k1s0/([\w-]+)").expect("static regex"));
-    let dart_re = DART_LIB_RE.get_or_init(|| Regex::new(r"k1s0_([\w]+)").expect("static regex"));
+    let gomod_re = GOMOD_LIB_RE.get_or_init(|| {
+        Regex::new(r"k1s0/regions/system/library/go/([\w-]+)")
+            .expect("go.mod k1s0 ライブラリ依存パターン正規表現のコンパイルに失敗（パターン: k1s0/regions/system/library/go/{lib}）")
+    });
+    let npm_re = NPM_LIB_RE.get_or_init(|| {
+        Regex::new(r"@k1s0/([\w-]+)")
+            .expect("package.json @k1s0 ライブラリ依存パターン正規表現のコンパイルに失敗（パターン: @k1s0/{lib}）")
+    });
+    let dart_re = DART_LIB_RE.get_or_init(|| {
+        Regex::new(r"k1s0_([\w]+)")
+            .expect("pubspec.yaml k1s0_ ライブラリ依存パターン正規表現のコンパイルに失敗（パターン: k1s0_{lib}）")
+    });
 
     for service in services {
         // Cargo.toml

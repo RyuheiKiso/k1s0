@@ -93,7 +93,8 @@ export interface Timestamp {
     nanos: number;
 }
 /**
- * ChangeType は設定・フラグ変更操作の種別。
+ * ChangeType は設定・フラグ・テナント等の変更操作の種別。
+ * HIGH-019 監査対応: テナントの SUSPENDED/ACTIVATED 状態変更に対応するため値を追加する
  *
  * @generated from protobuf enum k1s0.system.common.v1.ChangeType
  */
@@ -121,7 +122,19 @@ export enum ChangeType {
      *
      * @generated from protobuf enum value: CHANGE_TYPE_DELETED = 3;
      */
-    DELETED = 3
+    DELETED = 3,
+    /**
+     * CHANGE_TYPE_SUSPENDED は停止（テナント一時停止等）。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_SUSPENDED = 4;
+     */
+    SUSPENDED = 4,
+    /**
+     * CHANGE_TYPE_ACTIVATED は有効化（テナント再有効化等）。
+     *
+     * @generated from protobuf enum value: CHANGE_TYPE_ACTIVATED = 5;
+     */
+    ACTIVATED = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class Pagination$Type extends MessageType<Pagination> {

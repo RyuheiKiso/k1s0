@@ -6,10 +6,12 @@ use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 use crate::infrastructure::cache::ConfigCache;
 use async_trait::async_trait;
+use uuid::Uuid;
 
 /// CachedConfigRepository は ConfigRepository をキャッシュでラップする。
 /// find_by_namespace_and_key でキャッシュヒット時はDBアクセスをスキップする。
 /// update / delete 時はキャッシュを invalidate して整合性を保つ。
+/// STATIC-CRITICAL-001 監査対応: 全メソッドに tenant_id パラメータを追加。
 pub struct CachedConfigRepository {
     inner: Arc<dyn ConfigRepository>,
     cache: Arc<ConfigCache>,
@@ -47,6 +49,7 @@ impl ConfigRepository for CachedConfigRepository {
     /// キャッシュミスの場合はDBから取得してキャッシュに格納してから返却する。
     async fn find_by_namespace_and_key(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
@@ -63,7 +66,10 @@ impl ConfigRepository for CachedConfigRepository {
         }
 
         // キャッシュミス: DBから取得
-        let result = self.inner.find_by_namespace_and_key(namespace, key).await?;
+        let result = self
+            .inner
+            .find_by_namespace_and_key(tenant_id, namespace, key)
+            .await?;
 
         // 取得できた場合はキャッシュに格納
         if let Some(ref entry) = result {
@@ -76,19 +82,21 @@ impl ConfigRepository for CachedConfigRepository {
     /// list_by_namespace はキャッシュを使わず inner に委譲する。
     async fn list_by_namespace(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         page: i32,
         page_size: i32,
         search: Option<String>,
     ) -> Result<ConfigListResult, ConfigRepositoryError> {
         self.inner
-            .list_by_namespace(namespace, page, page_size, search)
+            .list_by_namespace(tenant_id, namespace, page, page_size, search)
             .await
     }
 
     /// update は inner に委譲し、成功時にキャッシュを invalidate する。
     async fn update(
         &self,
+        tenant_id: Uuid,
         namespace: &str,
         key: &str,
         value_json: &serde_json::Value,
@@ -99,6 +107,7 @@ impl ConfigRepository for CachedConfigRepository {
         let result = self
             .inner
             .update(
+                tenant_id,
                 namespace,
                 key,
                 value_json,
@@ -115,8 +124,13 @@ impl ConfigRepository for CachedConfigRepository {
     }
 
     /// delete は inner に委譲し、成功時にキャッシュを invalidate する。
-    async fn delete(&self, namespace: &str, key: &str) -> Result<bool, ConfigRepositoryError> {
-        let deleted = self.inner.delete(namespace, key).await?;
+    async fn delete(
+        &self,
+        tenant_id: Uuid,
+        namespace: &str,
+        key: &str,
+    ) -> Result<bool, ConfigRepositoryError> {
+        let deleted = self.inner.delete(tenant_id, namespace, key).await?;
 
         // 削除成功時はキャッシュを invalidate
         if deleted {
@@ -129,9 +143,10 @@ impl ConfigRepository for CachedConfigRepository {
     /// find_by_service_name はキャッシュを使わず inner に委譲する。
     async fn find_by_service_name(
         &self,
+        tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
-        self.inner.find_by_service_name(service_name).await
+        self.inner.find_by_service_name(tenant_id, service_name).await
     }
 
     /// record_change_log はキャッシュを使わず inner に委譲する。
@@ -147,7 +162,11 @@ mod tests {
     use crate::domain::repository::config_repository::MockConfigRepository;
     use crate::domain::repository::ConfigRepository;
     use chrono::Utc;
-    use uuid::Uuid;
+
+    /// システムテナントUUID: テスト共通
+    fn system_tenant() -> Uuid {
+        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    }
 
     fn make_entry(namespace: &str, key: &str) -> ConfigEntry {
         ConfigEntry {
@@ -182,7 +201,7 @@ mod tests {
 
         let repo = CachedConfigRepository::new(Arc::new(mock), cache);
         let result = repo
-            .find_by_namespace_and_key("system.auth.database", "max_connections")
+            .find_by_namespace_and_key(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
 
@@ -201,16 +220,16 @@ mod tests {
 
         let mut mock = MockConfigRepository::new();
         mock.expect_find_by_namespace_and_key()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
             .once()
-            .returning(move |_, _| Ok(Some(entry_clone.clone())));
+            .returning(move |_, _, _| Ok(Some(entry_clone.clone())));
 
         let cache = make_cache();
         let repo = CachedConfigRepository::new(Arc::new(mock), cache.clone());
 
         // 1回目: キャッシュミス → DBから取得
         let result = repo
-            .find_by_namespace_and_key("system.auth.database", "max_connections")
+            .find_by_namespace_and_key(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
         assert!(result.is_some());
@@ -235,9 +254,11 @@ mod tests {
 
         let mut mock = MockConfigRepository::new();
         mock.expect_update()
-            .withf(|ns, key, _, _, _, _| ns == "system.auth.database" && key == "max_connections")
+            .withf(|_tid, ns, key, _, _, _, _| {
+                ns == "system.auth.database" && key == "max_connections"
+            })
             .once()
-            .returning(move |_, _, _, _, _, _| Ok(entry_v2_clone.clone()));
+            .returning(move |_, _, _, _, _, _, _| Ok(entry_v2_clone.clone()));
 
         let cache = make_cache();
         // 事前にキャッシュにエントリを挿入（古い値）
@@ -248,6 +269,7 @@ mod tests {
         // update 実行
         let result = repo
             .update(
+                system_tenant(),
                 "system.auth.database",
                 "max_connections",
                 &serde_json::json!(100),
@@ -274,9 +296,9 @@ mod tests {
 
         let mut mock = MockConfigRepository::new();
         mock.expect_delete()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
             .once()
-            .returning(|_, _| Ok(true));
+            .returning(|_, _, _| Ok(true));
 
         let cache = make_cache();
         // 事前にキャッシュにエントリを挿入
@@ -286,7 +308,7 @@ mod tests {
 
         // delete 実行
         let deleted = repo
-            .delete("system.auth.database", "max_connections")
+            .delete(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
         assert!(deleted);
@@ -306,9 +328,9 @@ mod tests {
 
         let mut mock = MockConfigRepository::new();
         mock.expect_delete()
-            .withf(|ns, key| ns == "system.auth.database" && key == "max_connections")
+            .withf(|_tid, ns, key| ns == "system.auth.database" && key == "max_connections")
             .once()
-            .returning(|_, _| Ok(false)); // 対象なし
+            .returning(|_, _, _| Ok(false)); // 対象なし
 
         let cache = make_cache();
         cache.insert(Arc::new(entry)).await;
@@ -316,7 +338,7 @@ mod tests {
         let repo = CachedConfigRepository::new(Arc::new(mock), cache.clone());
 
         let deleted = repo
-            .delete("system.auth.database", "max_connections")
+            .delete(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
         assert!(!deleted);

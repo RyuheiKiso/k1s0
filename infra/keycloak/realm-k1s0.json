@@ -33,7 +33,7 @@
   "oauth2DeviceCodeLifespan": 600,
   "oauth2DevicePollingInterval": 5,
   "defaultSignatureAlgorithm": "RS256",
-  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and specialChars(1) and digits(1) and notUsername() and passwordHistory(5)",
+  "passwordPolicy": "length(12) and upperCase(1) and lowerCase(1) and specialChars(1) and digits(1) and notUsername() and passwordHistory(12)",
   "roles": {
     "realm": [
       {
@@ -429,6 +429,38 @@
       ]
     },
     {
+      "clientId": "auth-rust-admin",
+      "name": "AuthRustAdmin",
+      "description": "DOCKER-HIGH-003 対応: auth サービスが Keycloak から RBAC ロールマッピングを取得するためのサービスアカウント。Client Credentials Grant を使用して realm-management ロールを付与する（ADR-0061 準拠）。",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "secret": "dev-service-secret",
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "roles"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm-management-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "realm-management",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
       "clientId": "config-server",
       "name": "ConfigServer",
       "enabled": true,
@@ -564,5 +596,21 @@
     "RESET_PASSWORD"
   ],
   "adminEventsEnabled": true,
-  "adminEventsDetailsEnabled": true
+  "adminEventsDetailsEnabled": true,
+  "defaultRequiredActions": ["UPDATE_PASSWORD"],
+  "users": [
+    {
+      "username": "service-account-auth-rust-admin",
+      "enabled": true,
+      "serviceAccountClientId": "auth-rust-admin",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "query-groups",
+          "view-clients",
+          "view-realm"
+        ]
+      }
+    }
+  ]
 }

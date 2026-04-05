@@ -1,3 +1,7 @@
+// インメモリリポジトリ実装
+// テスト・開発用のインメモリストア。RLS は不要なため tenant_id パラメータは受け取るが無視する
+// RUST-CRIT-001 対応: トレイトシグネチャに合わせて tenant_id パラメータを追加する
+
 use std::collections::HashMap;
 
 use crate::domain::entity::workflow_definition::WorkflowDefinition;
@@ -27,18 +31,20 @@ impl InMemoryWorkflowDefinitionRepository {
 
 #[async_trait::async_trait]
 impl WorkflowDefinitionRepository for InMemoryWorkflowDefinitionRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    // tenant_id はインメモリ実装では使用しないが、トレイトシグネチャに合わせて受け取る
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
         let defs = self.definitions.read().await;
         Ok(defs.get(id).cloned())
     }
 
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    async fn find_by_name(&self, _tenant_id: &str, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
         let defs = self.definitions.read().await;
         Ok(defs.values().find(|d| d.name == name).cloned())
     }
 
     async fn find_all(
         &self,
+        _tenant_id: &str,
         enabled_only: bool,
         _page: u32,
         _page_size: u32,
@@ -53,19 +59,19 @@ impl WorkflowDefinitionRepository for InMemoryWorkflowDefinitionRepository {
         Ok((results, total))
     }
 
-    async fn create(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, definition: &WorkflowDefinition) -> anyhow::Result<()> {
         let mut defs = self.definitions.write().await;
         defs.insert(definition.id.clone(), definition.clone());
         Ok(())
     }
 
-    async fn update(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, definition: &WorkflowDefinition) -> anyhow::Result<()> {
         let mut defs = self.definitions.write().await;
         defs.insert(definition.id.clone(), definition.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &str) -> anyhow::Result<bool> {
         let mut defs = self.definitions.write().await;
         Ok(defs.remove(id).is_some())
     }
@@ -91,13 +97,15 @@ impl InMemoryWorkflowInstanceRepository {
 
 #[async_trait::async_trait]
 impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    // tenant_id はインメモリ実装では使用しないが、トレイトシグネチャに合わせて受け取る
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
         let instances = self.instances.read().await;
         Ok(instances.get(id).cloned())
     }
 
     async fn find_all(
         &self,
+        _tenant_id: &str,
         status: Option<String>,
         workflow_id: Option<String>,
         initiator_id: Option<String>,
@@ -120,13 +128,13 @@ impl WorkflowInstanceRepository for InMemoryWorkflowInstanceRepository {
         Ok((results, total))
     }
 
-    async fn create(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         let mut instances = self.instances.write().await;
         instances.insert(instance.id.clone(), instance.clone());
         Ok(())
     }
 
-    async fn update(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         let mut instances = self.instances.write().await;
         instances.insert(instance.id.clone(), instance.clone());
         Ok(())
@@ -153,13 +161,15 @@ impl InMemoryWorkflowTaskRepository {
 
 #[async_trait::async_trait]
 impl WorkflowTaskRepository for InMemoryWorkflowTaskRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
+    // tenant_id はインメモリ実装では使用しないが、トレイトシグネチャに合わせて受け取る
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
         let tasks = self.tasks.read().await;
         Ok(tasks.get(id).cloned())
     }
 
     async fn find_all(
         &self,
+        _tenant_id: &str,
         assignee_id: Option<String>,
         status: Option<String>,
         instance_id: Option<String>,
@@ -189,13 +199,13 @@ impl WorkflowTaskRepository for InMemoryWorkflowTaskRepository {
         Ok(tasks.values().filter(|t| t.is_overdue()).cloned().collect())
     }
 
-    async fn create(&self, task: &WorkflowTask) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, task: &WorkflowTask) -> anyhow::Result<()> {
         let mut tasks = self.tasks.write().await;
         tasks.insert(task.id.clone(), task.clone());
         Ok(())
     }
 
-    async fn update(&self, task: &WorkflowTask) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, task: &WorkflowTask) -> anyhow::Result<()> {
         let mut tasks = self.tasks.write().await;
         tasks.insert(task.id.clone(), task.clone());
         Ok(())

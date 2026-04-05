@@ -45,10 +45,11 @@ use crate::proto::k1s0::system::notification::v1::{
 };
 
 use super::notification_grpc::{
-    CreateChannelRequest, CreateTemplateRequest, DeleteChannelRequest, DeleteTemplateRequest,
-    GetChannelRequest, GetNotificationRequest, GetTemplateRequest, GrpcError, ListChannelsRequest,
-    ListNotificationsRequest, ListTemplatesRequest, NotificationGrpcService,
-    RetryNotificationRequest, SendNotificationRequest, UpdateChannelRequest, UpdateTemplateRequest,
+    tenant_id_from_metadata, CreateChannelRequest, CreateTemplateRequest, DeleteChannelRequest,
+    DeleteTemplateRequest, GetChannelRequest, GetNotificationRequest, GetTemplateRequest,
+    GrpcError, ListChannelsRequest, ListNotificationsRequest, ListTemplatesRequest,
+    NotificationGrpcService, RetryNotificationRequest, SendNotificationRequest,
+    UpdateChannelRequest, UpdateTemplateRequest,
 };
 
 // --- ヘルパー関数 ---
@@ -335,6 +336,9 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoCreateChannelRequest>,
     ) -> Result<Response<ProtoCreateChannelResponse>, Status> {
+        // ADR-0028 Phase 1: gRPC メタデータ x-tenant-id からテナント ID を取得する。
+        // メタデータが存在しない場合はシステムテナントにフォールバックする。
+        let tenant_id = tenant_id_from_metadata(request.metadata());
         let inner = request.into_inner();
         let req = CreateChannelRequest {
             name: inner.name,
@@ -345,6 +349,7 @@ impl NotificationService for NotificationServiceTonic {
                 Some(inner.config_json)
             },
             enabled: inner.enabled,
+            tenant_id,
         };
         let resp = self
             .inner

@@ -14,10 +14,10 @@ const (
 	// DefaultCSRFHeader は CSRF トークンに使用するデフォルトのヘッダー名。
 	DefaultCSRFHeader = "X-CSRF-Token"
 
-	// CSRFTokenTTL は CSRF トークンの有効期間。30分で失効する（H-12 監査対応）。
-	// MED-9 監査対応: セッション TTL（SessionTTL: 24時間）より十分短く設定している。
-	// CSRF トークンをセッション TTL に合わせると長期トークン窃取のリスクが増大するため、
-	// セッション有効中でも定期的に CSRF トークンを更新するよう 30 分に固定する。
+	// CSRFTokenTTL は CSRF トークンの有効期間（H-12 監査対応、MED-9 監査対応）。
+	// セッション TTL のデフォルト値は 30 分（config.yaml の session.ttl で変更可能）。
+	// CSRF トークンも同じく 30 分に固定し、セッション有効中でも定期的に再発行する。
+	// これによりトークン窃取時の悪用可能時間を最小化する。
 	CSRFTokenTTL = 30 * time.Minute
 )
 
@@ -79,18 +79,17 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 			return
 		}
 
-		// CSRF トークンの有効期間（30分 TTL）を検証する（H-12 監査対応）。
-		// CSRFTokenCreatedAt が 0 の場合は旧セッション互換のためスキップする。
-		if sess.CSRFTokenCreatedAt > 0 {
-			csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
-			if csrfAge > CSRFTokenTTL {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error":      "BFF_CSRF_EXPIRED",
-					"message":    "CSRF token expired",
-					"request_id": GetRequestID(c),
-				})
-				return
-			}
+		// MED-013 監査対応: 旧セッション互換バイパス条件（CSRFTokenCreatedAt > 0）を削除した。
+		// 2026-07-01 の削除期限が到来したため、TTL チェックを全セッションに対して常に行う。
+		// CSRFTokenCreatedAt = 0 の古いセッションは TTL 超過とみなされ再認証が要求される。
+		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+		if csrfAge > CSRFTokenTTL {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":      "BFF_CSRF_EXPIRED",
+				"message":    "CSRF token expired",
+				"request_id": GetRequestID(c),
+			})
+			return
 		}
 
 		c.Next()

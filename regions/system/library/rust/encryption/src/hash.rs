@@ -1,5 +1,8 @@
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{
+        rand_core::OsRng, Error as PasswordHashError, PasswordHash, PasswordHasher,
+        PasswordVerifier, SaltString,
+    },
     Algorithm, Argon2, Params, Version,
 };
 
@@ -21,10 +24,16 @@ pub fn hash_password(password: &str) -> Result<String, EncryptionError> {
     Ok(hash.to_string())
 }
 
+// L-010 監査対応: is_ok() ではエラー種別（パスワード不一致 vs 内部エラー）を区別できない。
+// password_hash::Error::Password のみ false とし、それ以外のエラーは Err として伝播する。
 pub fn verify_password(password: &str, hash: &str) -> Result<bool, EncryptionError> {
     let parsed = PasswordHash::new(hash).map_err(|e| EncryptionError::HashFailed(e.to_string()))?;
     let argon2 = argon2_instance();
-    Ok(argon2.verify_password(password.as_bytes(), &parsed).is_ok())
+    match argon2.verify_password(password.as_bytes(), &parsed) {
+        Ok(()) => Ok(true),
+        Err(PasswordHashError::Password) => Ok(false),
+        Err(e) => Err(EncryptionError::HashFailed(e.to_string())),
+    }
 }
 
 #[cfg(test)]

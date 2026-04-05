@@ -225,6 +225,8 @@ pub async fn run() -> anyhow::Result<()> {
         get_diff_uc: get_diff_uc.clone(),
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する（Arc<PgPool> から PgPool を取り出す）
+        db_pool: db_pool.as_ref().map(|p| (**p).clone()),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

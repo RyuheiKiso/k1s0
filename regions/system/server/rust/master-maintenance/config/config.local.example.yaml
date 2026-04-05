@@ -20,11 +20,14 @@ database:
   max_idle_conns: 2
   conn_max_lifetime: 300
 
+# ADR-0053 AuthConfig ネスト形式移行: ローカル開発環境用サンプル設定（config.local.yaml をコピーして利用する）
 auth:
-  jwks_url: "http://127.0.0.1:8180/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://127.0.0.1:8180/realms/k1s0"
-  audience: "react-spa"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://127.0.0.1:8180/realms/k1s0"
+    audience: "react-spa"
+  jwks:
+    url: "http://127.0.0.1:8180/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300
 
 rule_engine:
   max_rules_per_table: 100

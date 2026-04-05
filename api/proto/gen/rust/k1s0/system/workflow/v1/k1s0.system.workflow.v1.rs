@@ -7,6 +7,8 @@ pub struct WorkflowStep {
     #[prost(string, tag="2")]
     pub name: ::prost::alloc::string::String,
     /// Deprecated: use step_type_enum instead.
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="3")]
     pub step_type: ::prost::alloc::string::String,
     #[prost(string, optional, tag="4")]
@@ -56,6 +58,7 @@ pub struct ListWorkflowsResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateWorkflowRequest {
+    /// ワークフロー名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
@@ -72,6 +75,7 @@ pub struct CreateWorkflowResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetWorkflowRequest {
+    /// ワークフローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub workflow_id: ::prost::alloc::string::String,
 }
@@ -87,6 +91,7 @@ pub struct WorkflowSteps {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateWorkflowRequest {
+    /// ワークフローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub workflow_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -105,6 +110,7 @@ pub struct UpdateWorkflowResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteWorkflowRequest {
+    /// ワークフローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub workflow_id: ::prost::alloc::string::String,
 }
@@ -117,10 +123,13 @@ pub struct DeleteWorkflowResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StartInstanceRequest {
+    /// ワークフローIDは1文字以上であること
     #[prost(string, tag="1")]
     pub workflow_id: ::prost::alloc::string::String,
+    /// タイトルは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub title: ::prost::alloc::string::String,
+    /// 開始者IDは1文字以上であること
     #[prost(string, tag="3")]
     pub initiator_id: ::prost::alloc::string::String,
     /// ワークフロー実行コンテキスト（JSON バイト列）
@@ -151,6 +160,7 @@ pub struct StartInstanceResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetInstanceRequest {
+    /// インスタンスIDは1文字以上であること
     #[prost(string, tag="1")]
     pub instance_id: ::prost::alloc::string::String,
 }
@@ -179,6 +189,7 @@ pub struct ListInstancesResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelInstanceRequest {
+    /// インスタンスIDは1文字以上であること
     #[prost(string, tag="1")]
     pub instance_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="2")]
@@ -238,12 +249,15 @@ pub struct ListTasksResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReassignTaskRequest {
+    /// タスクIDは1文字以上であること
     #[prost(string, tag="1")]
     pub task_id: ::prost::alloc::string::String,
+    /// 新しい担当者IDは1文字以上であること
     #[prost(string, tag="2")]
     pub new_assignee_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="3")]
     pub reason: ::core::option::Option<::prost::alloc::string::String>,
+    /// 操作者IDは1文字以上であること
     #[prost(string, tag="4")]
     pub actor_id: ::prost::alloc::string::String,
 }
@@ -283,8 +297,10 @@ pub struct WorkflowInstance {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ApproveTaskRequest {
+    /// タスクIDは1文字以上であること
     #[prost(string, tag="1")]
     pub task_id: ::prost::alloc::string::String,
+    /// 操作者IDは1文字以上であること
     #[prost(string, tag="2")]
     pub actor_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="3")]
@@ -305,8 +321,10 @@ pub struct ApproveTaskResponse {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RejectTaskRequest {
+    /// タスクIDは1文字以上であること
     #[prost(string, tag="1")]
     pub task_id: ::prost::alloc::string::String,
+    /// 操作者IDは1文字以上であること
     #[prost(string, tag="2")]
     pub actor_id: ::prost::alloc::string::String,
     #[prost(string, optional, tag="3")]

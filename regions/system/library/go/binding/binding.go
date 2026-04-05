@@ -334,7 +334,9 @@ func (b *HTTPOutputBinding) Invoke(ctx context.Context, operation string, data [
 	}
 	defer resp.Body.Close()
 
-	respData, err := io.ReadAll(resp.Body)
+	// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+	// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+	respData, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, NewComponentError("http-binding", "Invoke",
 			fmt.Sprintf("failed to read response: %s", err), err)

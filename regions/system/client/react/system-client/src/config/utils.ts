@@ -112,12 +112,15 @@ export function isEqualValue(left: unknown, right: unknown): boolean {
 /**
  * ライブラリに依存しない深い等価比較（JSON.stringify の限界を回避）。
  * プリミティブ値は参照等価（===）で比較し、オブジェクト・配列は
- * キーを再帰的に比較する。循環参照には対応していない。
+ * キーを再帰的に比較する。WeakSet により循環参照を検出して false を返す。
  */
-function deepEqual(a: unknown, b: unknown): boolean {
+function deepEqual(a: unknown, b: unknown, visited = new WeakSet()): boolean {
   if (a === b) return true;
   if (a === null || b === null) return false;
   if (typeof a !== 'object' || typeof b !== 'object') return false;
+  // 循環参照を検出するためのWeakSet（設定値オブジェクトの安全な比較）
+  if (visited.has(a as object)) return false;
+  visited.add(a as object);
   // 配列とオブジェクトを混在させない
   if (Array.isArray(a) !== Array.isArray(b)) return false;
   const keysA = Object.keys(a as object);
@@ -125,7 +128,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
   if (keysA.length !== keysB.length) return false;
   return keysA.every(key =>
     Object.prototype.hasOwnProperty.call(b, key) &&
-    deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+    deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key], visited)
   );
 }
 

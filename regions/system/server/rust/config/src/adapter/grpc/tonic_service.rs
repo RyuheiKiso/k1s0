@@ -6,10 +6,32 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
+use uuid::Uuid;
 
 use super::config_grpc::{ConfigGrpcService, GrpcError};
 use super::watch_stream::WatchConfigRequest;
 use crate::proto::k1s0::system::config::v1 as pb;
+
+/// JWT Claims がない場合（dev モード / 認証バイパス）のシステムテナントフォールバック UUID。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// STATIC-CRITICAL-001: gRPC リクエスト extensions から tenant_id を抽出する。
+/// Claims が未設定または tenant_id が空文字の場合はシステムテナントにフォールバックする。
+fn extract_tenant_id<B>(request: &Request<B>) -> Uuid {
+    request
+        .extensions()
+        .get::<k1s0_auth::Claims>()
+        .and_then(|claims| {
+            if claims.tenant_id.is_empty() {
+                None
+            } else {
+                Uuid::parse_str(&claims.tenant_id).ok()
+            }
+        })
+        .unwrap_or_else(|| {
+            Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID must be valid")
+        })
+}
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
@@ -38,9 +60,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::GetConfigRequest>,
     ) -> Result<Response<pb::GetConfigResponse>, Status> {
+        // STATIC-CRITICAL-001: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .get_config(request.into_inner())
+            .get_config(tenant_id, request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -50,9 +74,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::ListConfigsRequest>,
     ) -> Result<Response<pb::ListConfigsResponse>, Status> {
+        // STATIC-CRITICAL-001: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .list_configs(request.into_inner())
+            .list_configs(tenant_id, request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -62,9 +88,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::UpdateConfigRequest>,
     ) -> Result<Response<pb::UpdateConfigResponse>, Status> {
+        // STATIC-CRITICAL-001: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .update_config(request.into_inner())
+            .update_config(tenant_id, request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -74,9 +102,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::DeleteConfigRequest>,
     ) -> Result<Response<pb::DeleteConfigResponse>, Status> {
+        // STATIC-CRITICAL-001: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .delete_config(request.into_inner())
+            .delete_config(tenant_id, request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -86,9 +116,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::GetServiceConfigRequest>,
     ) -> Result<Response<pb::GetServiceConfigResponse>, Status> {
+        // STATIC-CRITICAL-001: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .get_service_config(request.into_inner())
+            .get_service_config(tenant_id, request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))

@@ -95,8 +95,8 @@ just proto
 | `docker-build` | 全 Docker イメージのローカルビルド（最大 4 並列）。環境変数 `CARGO_FEATURES` を設定すると `--build-arg CARGO_FEATURES=...` 経由で各 Dockerfile に渡される（HIGH-3 監査対応）。例: `CARGO_FEATURES=k1s0-server-common/dev-auth-bypass just docker-build` |
 | `docker-build-safe` | **OOM 防止**のための安全なビルド（`--parallel 2` に制限）。WSL2 や Docker Desktop でメモリ不足が発生する場合に使用（HIGH-2 監査対応） |
 | `migrate path` | 指定パスの DB マイグレーションを実行（`sqlx migrate run`） |
-| `migrate-all` | **全システム DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応） |
-| `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose exec postgres` 経由で `*_up.sql` を適用する。Windows Git Bash 等で sqlx-cli が使えない場合に使用する |
+| `migrate-all` | **全 DB のマイグレーション一括実行**（初回セットアップ用）。`just local-up-profile infra` の後に実行する（HIGH-3/HIGH-4 監査対応）。AVAIL-002 対応: system tier は `dev` ユーザー、business/service tier は `k1s0` ユーザーで実行。`K1S0_DB_PASSWORD` 環境変数でパスワードを設定可能（デフォルト: `dev-k1s0-local`） |
+| `migrate-all-docker` | **sqlx-cli 未インストール環境向け Docker 経由マイグレーション**（C-03 監査対応）。`docker compose exec postgres` 経由で `*_up.sql` を適用する。⚠️ **制限**: raw SQL 実行のため `_sqlx_migrations` を更新しない。このコマンド実行後にサービスを起動すると `sqlx::migrate!()` との競合（`CREATE TRIGGER` 再実行エラー）が発生する。**診断・手動検証専用**。通常のセットアップには `just migrate-all` または `just local-up-dev` を使用すること（RUNTIME-001 監査対応） |
 | `proto` | Proto コード生成 (`scripts/generate-proto.sh`) |
 | `ci` | CI 全実行 (`lint` + `test` + `build`) |
 | `security` | 全言語セキュリティスキャン (`security-go` + `security-rust` + `security-ts` + `security-dart`) |
@@ -132,10 +132,16 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 
 `just local-up` が `docker-compose.dev.yaml` を使用せず、`KEYCLOAK_ADMIN_PASSWORD` 等の必須環境変数が未定義でエラーになる問題を修正した。
 
+#### `--build` フラグの追加（RUNTIME-001 監査対応）
+
+`local-up-dev` は `docker compose up --build` でサービスを起動する。`--build` フラグを付与することで、起動前に必ず Docker イメージを再ビルドし、**スタレイメージ（古いイメージキャッシュ）の使用を防止する**。
+
+このフラグがない場合、ソースコードを変更してもイメージが再ビルドされず、変更前の古いバイナリで起動してしまう問題（RUNTIME-001）が発生していた。外部監査で指摘されたため `local-up-dev` の標準動作として組み込んだ。
+
 | コマンド | 説明 |
 |---------|------|
 | `just local-up` | `local-up-dev` の別名。開発環境の標準起動コマンド。 |
-| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。 |
+| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003/AVAIL-002 対応: system/business/service 全 tier 対象）、Phase 2 でシステム/ビジネス/サービス層を起動。`sqlx-cli` が未インストールの場合は WARN を出力して続行（`just doctor` で確認を推奨）。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。<br><br>Phase 1.5 (自動): sqlx-cli がインストール済みの場合、migrate-all を自動実行します。未インストール時は WARN を出力してスキップします（手動で `just migrate-all` を実行してください）。<br>マイグレーション追加後: `just local-up-dev` を実行するとコンテナの再ビルドが自動的に行われます。 |
 | `just local-up-base` | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
 
 ### Docker Compose プロファイル構成

@@ -28,11 +28,16 @@ spec:
           containers:
             - name: postgres-backup
               image: postgres:17-alpine
-              # セキュリティ強化: 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化
+              # INFRA-HIGH-001 対応: PSS restricted 準拠 - 読み取り専用ルートファイルシステム
+              # 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化する
+              # バックアップスクリプトの一時書き込み先は emptyDir ボリューム（tmp-dir）を使用する
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -45,28 +50,49 @@ spec:
 
                   mkdir -p "${BACKUP_DIR}"
 
-                  # 全データベースのバックアップ（L-11 監査対応: 重要 DB を網羅する）
-                  # - k1s0_system: システム共通スキーマ（saga 等）
-                  # - auth_db: 認証データ（ユーザー・セッション情報）
-                  # - tenant_db: テナントデータ（マルチテナント構成の根幹）
-                  # - session_db: セッション情報
-                  # - config_db: サービス設定
-                  # - featureflag_db: フィーチャーフラグ設定
-                  # - event_store_db: イベントソーシングデータ
-                  # - workflow_db: ワークフロー定義・実行状態
-                  # - policy_db: アクセスポリシー定義
-                  # - dlq_db: デッドレターキューのメタデータ
-                  for DB in k1s0_system auth_db tenant_db session_db config_db featureflag_db event_store_db workflow_db policy_db dlq_db; do
-                    BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
+                  # K8S-BACKUP-002 監査対応: pg_dump 失敗時に不完全なバックアップファイルを削除する。
+                  # 部分的に書き込まれたダンプファイルが残ると、リストア時に破損バックアップを
+                  # 使用してしまうリスクがある。trap でクリーンアップを保証する。
+                  CURRENT_BACKUP_FILE=""
+                  cleanup_on_error() {
+                    if [ -n "${CURRENT_BACKUP_FILE}" ] && [ -f "${CURRENT_BACKUP_FILE}" ]; then
+                      echo "ERROR: pg_dump 失敗。不完全なバックアップファイルを削除します: ${CURRENT_BACKUP_FILE}"
+                      rm -f "${CURRENT_BACKUP_FILE}"
+                    fi
+                    exit 1
+                  }
+                  trap cleanup_on_error ERR
+
+                  # M-012 監査対応: DB 一覧を PostgreSQL から動的に取得する
+                  # ハードコードリストは新規 DB 追加時の手動更新忘れによるバックアップ漏れを引き起こすリスクがある。
+                  # pg_database から動的に取得することで、新規 DB が自動的にバックアップ対象に含まれる。
+                  # 除外対象: template0/template1（テンプレートDB）、postgres（運用メタデータのみ）
+                  # 参照用（以前のハードコードリスト）:
+                  # k1s0_system, auth_db, tenant_db, session_db, config_db, featureflag_db,
+                  # file_db, ratelimit_db, vault_db, quota_db, rule_engine_db, scheduler_db,
+                  # search_db, api_registry_db, app_registry_db, service_catalog_db,
+                  # event_store_db, workflow_db, policy_db, dlq_db, k1s0_saga, k1s0_service,
+                  # k1s0_business, notification_db, k1s0_event_monitor, k1s0_master_maintenance
+                  DBS=$(PGPASSWORD="${PGPASSWORD}" psql -h "${PGHOST}" -U "${PGUSER}" -d postgres -tAc \
+                    "SELECT datname FROM pg_database WHERE datistemplate = false AND datname NOT IN ('postgres') ORDER BY datname")
+                  if [ -z "${DBS}" ]; then
+                    echo "ERROR: バックアップ対象 DB の取得に失敗しました"
+                    exit 1
+                  fi
+                  echo "バックアップ対象 DB: $(echo ${DBS} | tr '\n' ' ')"
+                  for DB in ${DBS}; do
+                    CURRENT_BACKUP_FILE="${BACKUP_DIR}/${DB}-${TIMESTAMP}.dump"
                     echo "Backing up database: ${DB}"
                     pg_dump \
                       -h "${PGHOST}" \
                       -U "${PGUSER}" \
                       -d "${DB}" \
                       -Fc \
-                      -f "${BACKUP_FILE}"
-                    echo "Backup completed: ${BACKUP_FILE} ($(du -h ${BACKUP_FILE} | cut -f1))"
+                      -f "${CURRENT_BACKUP_FILE}"
+                    echo "Backup completed: ${CURRENT_BACKUP_FILE} ($(du -h ${CURRENT_BACKUP_FILE} | cut -f1))"
                   done
+                  CURRENT_BACKUP_FILE=""
+                  trap - ERR
 
                   # BACKUP_RETENTION_DAYS 日より古いバックアップを削除する（デフォルト: 30日）
                   # 保持期間を変更する場合は BACKUP_RETENTION_DAYS 環境変数を設定する（L-006）
@@ -92,6 +118,9 @@ spec:
               volumeMounts:
                 - name: backup-volume
                   mountPath: /backup
+                # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+                - name: tmp-dir
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 200m
@@ -103,3 +132,6 @@ spec:
             - name: backup-volume
               persistentVolumeClaim:
                 claimName: backup-pvc
+            # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+            - name: tmp-dir
+              emptyDir: {}

@@ -50,6 +50,7 @@ fn make_change_log(
     new_val: Option<serde_json::Value>,
 ) -> ConfigChangeLog {
     ConfigChangeLog::new(CreateChangeLogRequest {
+        tenant_id: Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap(),
         config_entry_id: Uuid::new_v4(),
         namespace: namespace.to_string(),
         key: key.to_string(),

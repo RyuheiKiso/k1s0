@@ -119,11 +119,17 @@ pub async fn get_file(
 
                 // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
                 // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-                let resource_tenant_id =
-                    crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                        &file.storage_path,
-                    )
-                    .unwrap_or("");
+                // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+                let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                    &file.storage_path,
+                ) {
+                    Some(tid) => tid,
+                    None => {
+                        tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                        let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                        return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                    }
+                };
                 if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                     resource_tenant_id,
                     request_tenant_id,
@@ -235,11 +241,17 @@ pub async fn delete_file(
         if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id =
-                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                )
-                .unwrap_or("");
+            // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                &file.storage_path,
+            ) {
+                Some(tid) => tid,
+                None => {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
                 &request_tenant_id,
@@ -307,11 +319,17 @@ pub async fn delete_file_admin(
         if !request_tenant_id.is_empty() {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id =
-                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                )
-                .unwrap_or("");
+            // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                &file.storage_path,
+            ) {
+                Some(tid) => tid,
+                None => {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
                 &request_tenant_id,
@@ -386,11 +404,17 @@ pub async fn complete_upload(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id =
-                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                )
-                .unwrap_or("");
+            // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                &file.storage_path,
+            ) {
+                Some(tid) => tid,
+                None => {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
                 request_tenant_id,
@@ -464,11 +488,17 @@ pub async fn download_url(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id =
-                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                )
-                .unwrap_or("");
+            // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                &file.storage_path,
+            ) {
+                Some(tid) => tid,
+                None => {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
                 request_tenant_id,
@@ -559,11 +589,17 @@ pub async fn update_file_tags(
         {
             // storage_path のプレフィックス（テナントID）とリクエストヘッダーのテナントIDを比較してアクセス制御を行う
             // FileMetadata から tenant_id フィールドが削除されたため、storage_path から取得する
-            let resource_tenant_id =
-                crate::domain::service::FileDomainService::tenant_id_from_storage_path(
-                    &file.storage_path,
-                )
-                .unwrap_or("");
+            // RUST-004 監査対応: storage_path からテナントID抽出に失敗した場合は明示的に 403 を返す（空文字フォールバックは除去）
+            let resource_tenant_id = match crate::domain::service::FileDomainService::tenant_id_from_storage_path(
+                &file.storage_path,
+            ) {
+                Some(tid) => tid,
+                None => {
+                    tracing::warn!(storage_path = %file.storage_path, "storage_path からテナントID抽出に失敗");
+                    let err = ErrorResponse::new(codes::file::access_denied(), "access denied");
+                    return (StatusCode::FORBIDDEN, Json(err)).into_response();
+                }
+            };
             if !crate::domain::service::FileDomainService::can_access_tenant_resource(
                 resource_tenant_id,
                 request_tenant_id,

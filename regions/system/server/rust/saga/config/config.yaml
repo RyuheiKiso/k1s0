@@ -22,7 +22,7 @@ database:
 
 kafka:
   brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-0.messaging.svc.cluster.local:9093"
   consumer_group: "saga-server.default"
   # セキュリティ: 本番環境では SASL_SSL で暗号化通信を強制する
   security_protocol: "SASL_SSL"

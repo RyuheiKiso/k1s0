@@ -96,9 +96,14 @@ rules:
       - /livez
       - /livez/*
 
-  # ルール8: system:masters グループによる操作は Metadata レベルで記録する
-  # 最高権限グループの操作は証跡を残しつつ、レスポンスボディの記録によるログ肥大化を防ぐ
-  - level: Metadata
+  # ルール8: system:masters グループによる操作は Request レベルで記録する（L-009 監査対応）
+  # system:masters は Kubernetes の最高権限グループであり、クラスター管理操作・権限昇格などの
+  # 高リスク操作を行う。Metadata レベルではリクエストボディが記録されず、
+  # 不正操作の内容追跡ができないため Request レベルに引き上げる。
+  # Request レベル: メタデータ + リクエストボディを記録（レスポンスボディは記録しない）。
+  # 注意: Secrets リソースへのアクセスは上位ルール1で Metadata レベルに制限されるため、
+  # system:masters が Secrets を操作しても内容は記録されない（安全性を維持）。
+  - level: Request
     userGroups: ["system:masters"]
 
   # ルール9: system:nodes グループ（kubelet）の操作は Metadata レベルで記録する

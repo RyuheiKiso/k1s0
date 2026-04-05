@@ -69,8 +69,8 @@ message TokenClaims {
   string sub = 1;
   // Issuer
   string iss = 2;
-  // Audience
-  string aud = 3;
+  // Audience（JWT spec では配列型。複数 audience に対応するため repeated を使用する）
+  repeated string aud = 3;
   // 有効期限（Unix epoch）
   int64 exp = 4;
   // 発行日時（Unix epoch）
@@ -213,6 +213,8 @@ message CheckPermissionResponse {
 // ============================================================
 
 // AuditEventType は監査イベントの種別。
+// C-004 監査対応: GraphQL スキーマの AuditEventType と双方向整合させる。
+// GraphQL に存在するが proto に欠落していた CREATE/UPDATE/DELETE/READ/PERMISSION_DENIED/SECRET_ACCESSED/SECRET_ROTATED を追加する。
 enum AuditEventType {
   AUDIT_EVENT_TYPE_UNSPECIFIED = 0;
   AUDIT_EVENT_TYPE_LOGIN = 1;
@@ -221,21 +223,34 @@ enum AuditEventType {
   AUDIT_EVENT_TYPE_PERMISSION_CHECK = 4;
   AUDIT_EVENT_TYPE_API_KEY_CREATED = 5;
   AUDIT_EVENT_TYPE_API_KEY_REVOKED = 6;
+  // C-004 監査対応: GraphQL スキーマに存在する汎用 CRUD 操作イベント種別を追加
+  AUDIT_EVENT_TYPE_CREATE = 7;
+  AUDIT_EVENT_TYPE_UPDATE = 8;
+  AUDIT_EVENT_TYPE_DELETE = 9;
+  AUDIT_EVENT_TYPE_READ = 10;
+  // C-004 監査対応: GraphQL スキーマに存在するセキュリティイベント種別を追加
+  AUDIT_EVENT_TYPE_PERMISSION_DENIED = 11;
+  AUDIT_EVENT_TYPE_SECRET_ACCESSED = 12;
+  AUDIT_EVENT_TYPE_SECRET_ROTATED = 13;
 }
 
 // AuditResult は監査イベントの結果。
+// C-010 監査対応: GraphQL スキーマの AuditResult.PARTIAL に対応する AUDIT_RESULT_PARTIAL を追加する。
 enum AuditResult {
   AUDIT_RESULT_UNSPECIFIED = 0;
   AUDIT_RESULT_SUCCESS = 1;
   AUDIT_RESULT_FAILURE = 2;
+  // C-010 監査対応: GraphQL の PARTIAL に対応（部分成功を表す）
+  AUDIT_RESULT_PARTIAL = 3;
 }
 
 // RecordAuditLogRequest は監査ログ記録リクエスト。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 message RecordAuditLogRequest {
-  // LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
-  // Deprecated: event_type_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string event_type = 1 [deprecated = true];
+  // フィールド番号 1(event_type), 7(result) は削除済み。ワイヤフォーマット互換性のため reserved で保護する。
+  reserved 1, 7;
+  reserved "event_type", "result";
+
   string user_id = 2;
   string ip_address = 3;
   string user_agent = 4;
@@ -243,10 +258,6 @@ message RecordAuditLogRequest {
   string resource = 5;
   // HTTP メソッドまたは gRPC メソッド名
   string action = 6;
-  // SUCCESS / FAILURE
-  // Deprecated: result_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string result = 7 [deprecated = true];
   // 操作の詳細情報（client_id, grant_type 等）
   google.protobuf.Struct detail = 8;
   // 操作対象リソースの ID
@@ -267,18 +278,16 @@ message RecordAuditLogResponse {
 }
 
 // SearchAuditLogsRequest は監査ログ検索リクエスト。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 message SearchAuditLogsRequest {
+  // フィールド番号 3(event_type), 6(result) は削除済み。ワイヤフォーマット互換性のため reserved で保護する。
+  reserved 3, 6;
+  reserved "event_type", "result";
+
   k1s0.system.common.v1.Pagination pagination = 1;
   string user_id = 2;
-  // Deprecated: event_type_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string event_type = 3 [deprecated = true];
   k1s0.system.common.v1.Timestamp from = 4;
   k1s0.system.common.v1.Timestamp to = 5;
-  // SUCCESS / FAILURE
-  // Deprecated: result_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string result = 6 [deprecated = true];
   // 監査イベント種別フィルタ（enum）
   AuditEventType event_type_enum = 7;
   // 監査イベント結果フィルタ（enum）
@@ -292,19 +301,18 @@ message SearchAuditLogsResponse {
 }
 
 // AuditLog は監査ログエントリ。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 message AuditLog {
+  // フィールド番号 2(event_type), 8(result) は削除済み。ワイヤフォーマット互換性のため reserved で保護する。
+  reserved 2, 8;
+  reserved "event_type", "result";
+
   string id = 1;
-  // Deprecated: event_type_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string event_type = 2 [deprecated = true];
   string user_id = 3;
   string ip_address = 4;
   string user_agent = 5;
   string resource = 6;
   string action = 7;
-  // Deprecated: result_enum を使用すること。
-  // [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-  string result = 8 [deprecated = true];
   // 操作の詳細情報（変更前後の値等）
   google.protobuf.Struct detail = 9;
   k1s0.system.common.v1.Timestamp created_at = 10;

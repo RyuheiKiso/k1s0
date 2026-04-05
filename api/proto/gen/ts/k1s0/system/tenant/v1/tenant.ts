@@ -11,26 +11,37 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { ChangeType } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 /**
+ * CreateTenantRequest は新規テナント作成リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.CreateTenantRequest
  */
 export interface CreateTenantRequest {
     /**
+     * テナント識別名（1〜128 文字の英数字・ハイフン）
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * テナント表示名（1〜256 文字）
+     *
      * @generated from protobuf field: string display_name = 2
      */
     displayName: string;
     /**
+     * オーナーユーザー UUID（必須）
+     *
      * @generated from protobuf field: string owner_id = 3
      */
     ownerId: string;
     /**
+     * プラン名（free, standard, enterprise 等）
+     *
      * @generated from protobuf field: string plan = 4
      */
     plan: string;
@@ -45,10 +56,14 @@ export interface CreateTenantResponse {
     tenant?: Tenant;
 }
 /**
+ * GetTenantRequest はテナント情報取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.GetTenantRequest
  */
 export interface GetTenantRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -85,18 +100,26 @@ export interface ListTenantsResponse {
     pagination?: PaginationResult;
 }
 /**
+ * UpdateTenantRequest はテナント情報更新リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.UpdateTenantRequest
  */
 export interface UpdateTenantRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
     /**
+     * テナント表示名（1〜256 文字）
+     *
      * @generated from protobuf field: string display_name = 2
      */
     displayName: string;
     /**
+     * プラン名（free, standard, enterprise 等）
+     *
      * @generated from protobuf field: string plan = 3
      */
     plan: string;
@@ -111,10 +134,14 @@ export interface UpdateTenantResponse {
     tenant?: Tenant;
 }
 /**
+ * SuspendTenantRequest はテナント停止リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.SuspendTenantRequest
  */
 export interface SuspendTenantRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -129,10 +156,14 @@ export interface SuspendTenantResponse {
     tenant?: Tenant;
 }
 /**
+ * ActivateTenantRequest はテナント再開リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.ActivateTenantRequest
  */
 export interface ActivateTenantRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -147,10 +178,14 @@ export interface ActivateTenantResponse {
     tenant?: Tenant;
 }
 /**
+ * DeleteTenantRequest はテナント削除リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.DeleteTenantRequest
  */
 export interface DeleteTenantRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -165,18 +200,26 @@ export interface DeleteTenantResponse {
     tenant?: Tenant;
 }
 /**
+ * AddMemberRequest はテナントへのメンバー追加リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.AddMemberRequest
  */
 export interface AddMemberRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 2
      */
     userId: string;
     /**
+     * ロール名（owner, admin, member, viewer）
+     *
      * @generated from protobuf field: string role = 3
      */
     role: string;
@@ -191,10 +234,14 @@ export interface AddMemberResponse {
     member?: TenantMember;
 }
 /**
+ * ListMembersRequest はテナントメンバー一覧取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.ListMembersRequest
  */
 export interface ListMembersRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
@@ -209,14 +256,20 @@ export interface ListMembersResponse {
     members: TenantMember[];
 }
 /**
+ * RemoveMemberRequest はテナントからのメンバー削除リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.RemoveMemberRequest
  */
 export interface RemoveMemberRequest {
     /**
+     * テナント UUID（必須）
+     *
      * @generated from protobuf field: string tenant_id = 1
      */
     tenantId: string;
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 2
      */
     userId: string;
@@ -231,10 +284,51 @@ export interface RemoveMemberResponse {
     success: boolean;
 }
 /**
+ * UpdateMemberRoleRequest はテナントメンバーのロール更新リクエスト。
+ * 有効なロール: owner, admin, member, viewer
+ *
+ * @generated from protobuf message k1s0.system.tenant.v1.UpdateMemberRoleRequest
+ */
+export interface UpdateMemberRoleRequest {
+    /**
+     * テナント UUID（必須）
+     *
+     * @generated from protobuf field: string tenant_id = 1
+     */
+    tenantId: string;
+    /**
+     * ユーザー UUID（必須）
+     *
+     * @generated from protobuf field: string user_id = 2
+     */
+    userId: string;
+    /**
+     * ロール名（owner, admin, member, viewer）
+     *
+     * @generated from protobuf field: string role = 3
+     */
+    role: string;
+}
+/**
+ * UpdateMemberRoleResponse はテナントメンバーのロール更新レスポンス。
+ *
+ * @generated from protobuf message k1s0.system.tenant.v1.UpdateMemberRoleResponse
+ */
+export interface UpdateMemberRoleResponse {
+    /**
+     * @generated from protobuf field: k1s0.system.tenant.v1.TenantMember member = 1
+     */
+    member?: TenantMember;
+}
+/**
+ * GetProvisioningStatusRequest はプロビジョニングジョブステータス取得リクエスト。
+ *
  * @generated from protobuf message k1s0.system.tenant.v1.GetProvisioningStatusRequest
  */
 export interface GetProvisioningStatusRequest {
     /**
+     * ジョブ UUID（必須）
+     *
      * @generated from protobuf field: string job_id = 1
      */
     jobId: string;
@@ -383,9 +477,11 @@ export interface WatchTenantResponse {
      */
     tenantId: string;
     /**
-     * CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
+     * Deprecated: change_type_enum を使用すること。文字列型では型安全性がない。
+     * HIGH-019 監査対応: 他サービス（featureflag, config）と同様に enum 型フィールドへ移行する
      *
-     * @generated from protobuf field: string change_type = 2
+     * @deprecated
+     * @generated from protobuf field: string change_type = 2 [deprecated = true]
      */
     changeType: string;
     /**
@@ -396,15 +492,22 @@ export interface WatchTenantResponse {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp changed_at = 4
      */
     changedAt?: Timestamp;
+    /**
+     * HIGH-019 監査対応: change_type の enum 版（他サービスの change_type_enum と統一）
+     * CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED は ChangeType enum で表現する
+     *
+     * @generated from protobuf field: k1s0.system.common.v1.ChangeType change_type_enum = 5
+     */
+    changeTypeEnum: ChangeType;
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateTenantRequest$Type extends MessageType<CreateTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.CreateTenantRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "plan", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
+            { no: 3, name: "owner_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 4, name: "plan", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } }
         ]);
     }
     create(value?: PartialMessage<CreateTenantRequest>): CreateTenantRequest {
@@ -518,7 +621,7 @@ export const CreateTenantResponse = new CreateTenantResponse$Type();
 class GetTenantRequest$Type extends MessageType<GetTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.GetTenantRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<GetTenantRequest>): GetTenantRequest {
@@ -711,9 +814,9 @@ export const ListTenantsResponse = new ListTenantsResponse$Type();
 class UpdateTenantRequest$Type extends MessageType<UpdateTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.UpdateTenantRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "plan", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "0", maxLen: "256" } } } },
+            { no: 3, name: "plan", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "0", maxLen: "64" } } } }
         ]);
     }
     create(value?: PartialMessage<UpdateTenantRequest>): UpdateTenantRequest {
@@ -820,7 +923,7 @@ export const UpdateTenantResponse = new UpdateTenantResponse$Type();
 class SuspendTenantRequest$Type extends MessageType<SuspendTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.SuspendTenantRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<SuspendTenantRequest>): SuspendTenantRequest {
@@ -913,7 +1016,7 @@ export const SuspendTenantResponse = new SuspendTenantResponse$Type();
 class ActivateTenantRequest$Type extends MessageType<ActivateTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.ActivateTenantRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<ActivateTenantRequest>): ActivateTenantRequest {
@@ -1006,7 +1109,7 @@ export const ActivateTenantResponse = new ActivateTenantResponse$Type();
 class DeleteTenantRequest$Type extends MessageType<DeleteTenantRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.DeleteTenantRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteTenantRequest>): DeleteTenantRequest {
@@ -1099,9 +1202,9 @@ export const DeleteTenantResponse = new DeleteTenantResponse$Type();
 class AddMemberRequest$Type extends MessageType<AddMemberRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.AddMemberRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 3, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } }
         ]);
     }
     create(value?: PartialMessage<AddMemberRequest>): AddMemberRequest {
@@ -1208,7 +1311,7 @@ export const AddMemberResponse = new AddMemberResponse$Type();
 class ListMembersRequest$Type extends MessageType<ListMembersRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.ListMembersRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<ListMembersRequest>): ListMembersRequest {
@@ -1302,8 +1405,8 @@ export const ListMembersResponse = new ListMembersResponse$Type();
 class RemoveMemberRequest$Type extends MessageType<RemoveMemberRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.RemoveMemberRequest", [
-            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<RemoveMemberRequest>): RemoveMemberRequest {
@@ -1401,10 +1504,119 @@ class RemoveMemberResponse$Type extends MessageType<RemoveMemberResponse> {
  */
 export const RemoveMemberResponse = new RemoveMemberResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class UpdateMemberRoleRequest$Type extends MessageType<UpdateMemberRoleRequest> {
+    constructor() {
+        super("k1s0.system.tenant.v1.UpdateMemberRoleRequest", [
+            { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 3, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateMemberRoleRequest>): UpdateMemberRoleRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.tenantId = "";
+        message.userId = "";
+        message.role = "";
+        if (value !== undefined)
+            reflectionMergePartial<UpdateMemberRoleRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateMemberRoleRequest): UpdateMemberRoleRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string tenant_id */ 1:
+                    message.tenantId = reader.string();
+                    break;
+                case /* string user_id */ 2:
+                    message.userId = reader.string();
+                    break;
+                case /* string role */ 3:
+                    message.role = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateMemberRoleRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string tenant_id = 1; */
+        if (message.tenantId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.tenantId);
+        /* string user_id = 2; */
+        if (message.userId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.userId);
+        /* string role = 3; */
+        if (message.role !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.role);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.tenant.v1.UpdateMemberRoleRequest
+ */
+export const UpdateMemberRoleRequest = new UpdateMemberRoleRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class UpdateMemberRoleResponse$Type extends MessageType<UpdateMemberRoleResponse> {
+    constructor() {
+        super("k1s0.system.tenant.v1.UpdateMemberRoleResponse", [
+            { no: 1, name: "member", kind: "message", T: () => TenantMember }
+        ]);
+    }
+    create(value?: PartialMessage<UpdateMemberRoleResponse>): UpdateMemberRoleResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<UpdateMemberRoleResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: UpdateMemberRoleResponse): UpdateMemberRoleResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* k1s0.system.tenant.v1.TenantMember member */ 1:
+                    message.member = TenantMember.internalBinaryRead(reader, reader.uint32(), options, message.member);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: UpdateMemberRoleResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* k1s0.system.tenant.v1.TenantMember member = 1; */
+        if (message.member)
+            TenantMember.internalBinaryWrite(message.member, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message k1s0.system.tenant.v1.UpdateMemberRoleResponse
+ */
+export const UpdateMemberRoleResponse = new UpdateMemberRoleResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetProvisioningStatusRequest$Type extends MessageType<GetProvisioningStatusRequest> {
     constructor() {
         super("k1s0.system.tenant.v1.GetProvisioningStatusRequest", [
-            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "job_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<GetProvisioningStatusRequest>): GetProvisioningStatusRequest {
@@ -1843,13 +2055,15 @@ class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
             { no: 1, name: "tenant_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "change_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "tenant", kind: "message", T: () => Tenant },
-            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp }
+            { no: 4, name: "changed_at", kind: "message", T: () => Timestamp },
+            { no: 5, name: "change_type_enum", kind: "enum", T: () => ["k1s0.system.common.v1.ChangeType", ChangeType, "CHANGE_TYPE_"] }
         ]);
     }
     create(value?: PartialMessage<WatchTenantResponse>): WatchTenantResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.tenantId = "";
         message.changeType = "";
+        message.changeTypeEnum = 0;
         if (value !== undefined)
             reflectionMergePartial<WatchTenantResponse>(this, message, value);
         return message;
@@ -1862,7 +2076,7 @@ class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
                 case /* string tenant_id */ 1:
                     message.tenantId = reader.string();
                     break;
-                case /* string change_type */ 2:
+                case /* string change_type = 2 [deprecated = true] */ 2:
                     message.changeType = reader.string();
                     break;
                 case /* k1s0.system.tenant.v1.Tenant tenant */ 3:
@@ -1870,6 +2084,9 @@ class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
                     break;
                 case /* k1s0.system.common.v1.Timestamp changed_at */ 4:
                     message.changedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.changedAt);
+                    break;
+                case /* k1s0.system.common.v1.ChangeType change_type_enum */ 5:
+                    message.changeTypeEnum = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1886,7 +2103,7 @@ class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
         /* string tenant_id = 1; */
         if (message.tenantId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.tenantId);
-        /* string change_type = 2; */
+        /* string change_type = 2 [deprecated = true]; */
         if (message.changeType !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.changeType);
         /* k1s0.system.tenant.v1.Tenant tenant = 3; */
@@ -1895,6 +2112,9 @@ class WatchTenantResponse$Type extends MessageType<WatchTenantResponse> {
         /* k1s0.system.common.v1.Timestamp changed_at = 4; */
         if (message.changedAt)
             Timestamp.internalBinaryWrite(message.changedAt, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* k1s0.system.common.v1.ChangeType change_type_enum = 5; */
+        if (message.changeTypeEnum !== 0)
+            writer.tag(5, WireType.Varint).int32(message.changeTypeEnum);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1919,6 +2139,7 @@ export const TenantService = new ServiceType("k1s0.system.tenant.v1.TenantServic
     { name: "AddMember", options: {}, I: AddMemberRequest, O: AddMemberResponse },
     { name: "ListMembers", options: {}, I: ListMembersRequest, O: ListMembersResponse },
     { name: "RemoveMember", options: {}, I: RemoveMemberRequest, O: RemoveMemberResponse },
+    { name: "UpdateMemberRole", options: {}, I: UpdateMemberRoleRequest, O: UpdateMemberRoleResponse },
     { name: "GetProvisioningStatus", options: {}, I: GetProvisioningStatusRequest, O: GetProvisioningStatusResponse },
     { name: "WatchTenant", serverStreaming: true, options: {}, I: WatchTenantRequest, O: WatchTenantResponse }
 ]);

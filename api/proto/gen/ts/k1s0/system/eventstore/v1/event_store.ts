@@ -70,6 +70,8 @@ export interface StreamInfo {
  */
 export interface AppendEventsRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -82,6 +84,8 @@ export interface AppendEventsRequest {
      */
     expectedVersion: string;
     /**
+     * アグリゲート種別は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string aggregate_type = 4
      */
     aggregateType: string;
@@ -108,6 +112,8 @@ export interface AppendEventsResponse {
  */
 export interface ReadEventsRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -156,6 +162,8 @@ export interface ReadEventsResponse {
  */
 export interface ReadEventBySequenceRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -178,6 +186,8 @@ export interface ReadEventBySequenceResponse {
  */
 export interface CreateSnapshotRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -186,6 +196,8 @@ export interface CreateSnapshotRequest {
      */
     snapshotVersion: string;
     /**
+     * アグリゲート種別は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string aggregate_type = 3
      */
     aggregateType: string;
@@ -226,6 +238,8 @@ export interface CreateSnapshotResponse {
  */
 export interface GetLatestSnapshotRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -244,6 +258,8 @@ export interface GetLatestSnapshotResponse {
  */
 export interface DeleteStreamRequest {
     /**
+     * ストリームIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string stream_id = 1
      */
     streamId: string;
@@ -548,10 +564,10 @@ export const StreamInfo = new StreamInfo$Type();
 class AppendEventsRequest$Type extends MessageType<AppendEventsRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.AppendEventsRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 2, name: "events", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => EventData },
             { no: 3, name: "expected_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 4, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<AppendEventsRequest>): AppendEventsRequest {
@@ -682,7 +698,7 @@ export const AppendEventsResponse = new AppendEventsResponse$Type();
 class ReadEventsRequest$Type extends MessageType<ReadEventsRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.ReadEventsRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 2, name: "from_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "to_version", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "pagination", kind: "message", T: () => Pagination },
@@ -828,7 +844,7 @@ export const ReadEventsResponse = new ReadEventsResponse$Type();
 class ReadEventBySequenceRequest$Type extends MessageType<ReadEventBySequenceRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.ReadEventBySequenceRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 2, name: "sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
         ]);
     }
@@ -929,9 +945,9 @@ export const ReadEventBySequenceResponse = new ReadEventBySequenceResponse$Type(
 class CreateSnapshotRequest$Type extends MessageType<CreateSnapshotRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.CreateSnapshotRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 2, name: "snapshot_version", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 3, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "aggregate_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 4, name: "state", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
     }
@@ -1078,7 +1094,7 @@ export const CreateSnapshotResponse = new CreateSnapshotResponse$Type();
 class GetLatestSnapshotRequest$Type extends MessageType<GetLatestSnapshotRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.GetLatestSnapshotRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<GetLatestSnapshotRequest>): GetLatestSnapshotRequest {
@@ -1171,7 +1187,7 @@ export const GetLatestSnapshotResponse = new GetLatestSnapshotResponse$Type();
 class DeleteStreamRequest$Type extends MessageType<DeleteStreamRequest> {
     constructor() {
         super("k1s0.system.eventstore.v1.DeleteStreamRequest", [
-            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteStreamRequest>): DeleteStreamRequest {

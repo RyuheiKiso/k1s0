@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -53,9 +54,14 @@ func (h *HealthHandler) Readyz(c *gin.Context) {
 	// 本ポッドをサービスから切り離すことで OIDC 未対応状態のトラフィックを遮断する。
 	// nil チェックは OIDC を使用しないデプロイ構成（テスト環境等）でも安全に動作させるための防御的実装（L-004）
 	if h.oidcReady != nil && !h.oidcReady.Load() {
+		// ADR-0068 準拠: "unhealthy" + checks + timestamp
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "not_ready",
-			"reason": "oidc discovery not completed",
+			"status": "unhealthy",
+			"checks": gin.H{
+				"oidc":  "not_ready",
+				"redis": "skipped",
+			},
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return
 	}
@@ -64,8 +70,12 @@ func (h *HealthHandler) Readyz(c *gin.Context) {
 	// nil チェックは OIDC を使用しないデプロイ構成（テスト環境等）でも安全に動作させるための防御的実装（L-004）
 	if h.oauthClient != nil && !h.oauthClient.IsDiscovered() {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "not_ready",
-			"reason": "oidc discovery not completed",
+			"status": "unhealthy",
+			"checks": gin.H{
+				"oidc":  "not_ready",
+				"redis": "skipped",
+			},
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return
 	}
@@ -73,11 +83,23 @@ func (h *HealthHandler) Readyz(c *gin.Context) {
 	// Redis接続の疎通確認
 	if err := h.redisClient.Ping(c.Request.Context()).Err(); err != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "not_ready",
-			"reason": "redis connection failed",
+			"status": "unhealthy",
+			"checks": gin.H{
+				"oidc":  "ok",
+				"redis": "error",
+			},
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "ready"})
+	// ADR-0068 準拠: "healthy" + checks + timestamp
+	c.JSON(http.StatusOK, gin.H{
+		"status": "healthy",
+		"checks": gin.H{
+			"oidc":  "ok",
+			"redis": "ok",
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
 }

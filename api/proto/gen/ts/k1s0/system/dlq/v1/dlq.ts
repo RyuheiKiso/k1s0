@@ -48,8 +48,10 @@ export interface DlqMessage {
     payload: Uint8Array;
     /**
      * Deprecated: use status_enum instead.
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string status = 7
+     * @deprecated
+     * @generated from protobuf field: string status = 7 [deprecated = true]
      */
     status: string;
     /**
@@ -110,6 +112,8 @@ export interface ListMessagesResponse {
  */
 export interface GetMessageRequest {
     /**
+     * メッセージIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -132,6 +136,8 @@ export interface GetMessageResponse {
  */
 export interface RetryMessageRequest {
     /**
+     * メッセージIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -154,6 +160,8 @@ export interface RetryMessageResponse {
  */
 export interface DeleteMessageRequest {
     /**
+     * メッセージIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -276,7 +284,7 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
                 case /* bytes payload */ 6:
                     message.payload = reader.bytes();
                     break;
-                case /* string status */ 7:
+                case /* string status = 7 [deprecated = true] */ 7:
                     message.status = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp created_at */ 8:
@@ -321,7 +329,7 @@ class DlqMessage$Type extends MessageType<DlqMessage> {
         /* bytes payload = 6; */
         if (message.payload.length)
             writer.tag(6, WireType.LengthDelimited).bytes(message.payload);
-        /* string status = 7; */
+        /* string status = 7 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.status);
         /* k1s0.system.common.v1.Timestamp created_at = 8; */
@@ -458,7 +466,7 @@ export const ListMessagesResponse = new ListMessagesResponse$Type();
 class GetMessageRequest$Type extends MessageType<GetMessageRequest> {
     constructor() {
         super("k1s0.system.dlq.v1.GetMessageRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetMessageRequest>): GetMessageRequest {
@@ -551,7 +559,7 @@ export const GetMessageResponse = new GetMessageResponse$Type();
 class RetryMessageRequest$Type extends MessageType<RetryMessageRequest> {
     constructor() {
         super("k1s0.system.dlq.v1.RetryMessageRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RetryMessageRequest>): RetryMessageRequest {
@@ -644,7 +652,7 @@ export const RetryMessageResponse = new RetryMessageResponse$Type();
 class DeleteMessageRequest$Type extends MessageType<DeleteMessageRequest> {
     constructor() {
         super("k1s0.system.dlq.v1.DeleteMessageRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteMessageRequest>): DeleteMessageRequest {

@@ -59,10 +59,13 @@ pub async fn run() -> anyhow::Result<()> {
     ));
 
     // Repositories: PostgreSQL or InMemory fallback
-    let (event_repo, flow_def_repo, flow_inst_repo): (
+    // db_pool_for_state: readyz エンドポイントで DB 疎通確認に使用するため保持する。
+    // in-memory モードでは None を返す（health.rs で skipped として扱われる）。
+    let (event_repo, flow_def_repo, flow_inst_repo, db_pool_for_state): (
         Arc<dyn EventRecordRepository>,
         Arc<dyn FlowDefinitionRepository>,
         Arc<dyn FlowInstanceRepository>,
+        Option<Arc<sqlx::PgPool>>,
     ) = if let Some(ref db_cfg) = cfg.database {
         info!(
             "connecting to PostgreSQL: {}:{}/{}",
@@ -71,6 +74,8 @@ pub async fn run() -> anyhow::Result<()> {
         let pool = Arc::new(super::database::connect(db_cfg).await?);
         info!("PostgreSQL connection established");
 
+        // readyz エンドポイント用に pool の参照を保持してから各 Repository に渡す
+        let pool_for_state = pool.clone();
         let event_repo: Arc<dyn EventRecordRepository> =
             Arc::new(EventRecordPostgresRepository::new(pool.clone()));
         let flow_def_repo: Arc<dyn FlowDefinitionRepository> =
@@ -78,7 +83,7 @@ pub async fn run() -> anyhow::Result<()> {
         let flow_inst_repo: Arc<dyn FlowInstanceRepository> =
             Arc::new(FlowInstancePostgresRepository::new(pool));
 
-        (event_repo, flow_def_repo, flow_inst_repo)
+        (event_repo, flow_def_repo, flow_inst_repo, Some(pool_for_state))
     } else {
         // infra_guard: stable サービスでは DB 設定を必須化（dev/test 以外はエラー）
         k1s0_server_common::require_infra(
@@ -94,7 +99,7 @@ pub async fn run() -> anyhow::Result<()> {
             Arc::new(InMemoryFlowDefinitionRepository::new());
         let flow_inst_repo: Arc<dyn FlowInstanceRepository> =
             Arc::new(InMemoryFlowInstanceRepository::new());
-        (event_repo, flow_def_repo, flow_inst_repo)
+        (event_repo, flow_def_repo, flow_inst_repo, None)
     };
 
     // KPI キャッシュ: KPI 集計結果の一時保存
@@ -244,6 +249,8 @@ pub async fn run() -> anyhow::Result<()> {
         auth_state: None,
         // DLQ クライアントが Noop かどうかを health endpoint に伝達する
         dlq_noop,
+        // readyz エンドポイントで DB 疎通確認を行うためのプール（in-memory モードでは None）
+        db_pool: db_pool_for_state,
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

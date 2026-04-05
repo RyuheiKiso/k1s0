@@ -19,6 +19,8 @@ import { Timestamp } from "../../common/v1/types";
  */
 export interface SendNotificationRequest {
     /**
+     * チャンネルIDは1文字以上であること
+     *
      * @generated from protobuf field: string channel_id = 1
      */
     channelId: string;
@@ -33,6 +35,8 @@ export interface SendNotificationRequest {
         [key: string]: string;
     };
     /**
+     * 受信者は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string recipient = 4
      */
     recipient: string;
@@ -59,8 +63,10 @@ export interface SendNotificationResponse {
     status: string;
     /**
      * Deprecated: created_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string created_at = 3
+     * @deprecated
+     * @generated from protobuf field: string created_at = 3 [deprecated = true]
      */
     createdAt: string;
     /**
@@ -75,6 +81,8 @@ export interface SendNotificationResponse {
  */
 export interface GetNotificationRequest {
     /**
+     * 通知IDは1文字以上であること
+     *
      * @generated from protobuf field: string notification_id = 1
      */
     notificationId: string;
@@ -93,6 +101,8 @@ export interface GetNotificationResponse {
  */
 export interface RetryNotificationRequest {
     /**
+     * 通知IDは1文字以上であること
+     *
      * @generated from protobuf field: string notification_id = 1
      */
     notificationId: string;
@@ -172,8 +182,10 @@ export interface NotificationLog {
     body: string;
     /**
      * Deprecated: use status_enum instead.
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string status = 8
+     * @deprecated
+     * @generated from protobuf field: string status = 8 [deprecated = true]
      */
     status: string;
     /**
@@ -186,14 +198,18 @@ export interface NotificationLog {
     errorMessage?: string;
     /**
      * Deprecated: sent_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: optional string sent_at = 11
+     * @deprecated
+     * @generated from protobuf field: optional string sent_at = 11 [deprecated = true]
      */
     sentAt?: string;
     /**
      * Deprecated: created_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string created_at = 12
+     * @deprecated
+     * @generated from protobuf field: string created_at = 12 [deprecated = true]
      */
     createdAt: string;
     /**
@@ -241,14 +257,18 @@ export interface Channel {
     enabled: boolean;
     /**
      * Deprecated: created_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string created_at = 6
+     * @deprecated
+     * @generated from protobuf field: string created_at = 6 [deprecated = true]
      */
     createdAt: string;
     /**
      * Deprecated: updated_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string updated_at = 7
+     * @deprecated
+     * @generated from protobuf field: string updated_at = 7 [deprecated = true]
      */
     updatedAt: string;
     /**
@@ -301,10 +321,14 @@ export interface ListChannelsResponse {
  */
 export interface CreateChannelRequest {
     /**
+     * チャンネル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * チャンネル種別は1文字以上64文字以下であること（例: email, slack）
+     *
      * @generated from protobuf field: string channel_type = 2
      */
     channelType: string;
@@ -331,6 +355,8 @@ export interface CreateChannelResponse {
  */
 export interface GetChannelRequest {
     /**
+     * チャンネルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -349,6 +375,8 @@ export interface GetChannelResponse {
  */
 export interface UpdateChannelRequest {
     /**
+     * チャンネルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -379,6 +407,8 @@ export interface UpdateChannelResponse {
  */
 export interface DeleteChannelRequest {
     /**
+     * チャンネルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -422,14 +452,18 @@ export interface Template {
     bodyTemplate: string;
     /**
      * Deprecated: created_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string created_at = 6
+     * @deprecated
+     * @generated from protobuf field: string created_at = 6 [deprecated = true]
      */
     createdAt: string;
     /**
      * Deprecated: updated_at_ts を使用すること。
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string updated_at = 7
+     * @deprecated
+     * @generated from protobuf field: string updated_at = 7 [deprecated = true]
      */
     updatedAt: string;
     /**
@@ -478,10 +512,14 @@ export interface ListTemplatesResponse {
  */
 export interface CreateTemplateRequest {
     /**
+     * テンプレート名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * チャンネル種別は1文字以上64文字以下であること
+     *
      * @generated from protobuf field: string channel_type = 2
      */
     channelType: string;
@@ -490,6 +528,8 @@ export interface CreateTemplateRequest {
      */
     subjectTemplate?: string;
     /**
+     * テンプレート本文は1文字以上であること
+     *
      * @generated from protobuf field: string body_template = 4
      */
     bodyTemplate: string;
@@ -508,6 +548,8 @@ export interface CreateTemplateResponse {
  */
 export interface GetTemplateRequest {
     /**
+     * テンプレートIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -526,6 +568,8 @@ export interface GetTemplateResponse {
  */
 export interface UpdateTemplateRequest {
     /**
+     * テンプレートIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -556,6 +600,8 @@ export interface UpdateTemplateResponse {
  */
 export interface DeleteTemplateRequest {
     /**
+     * テンプレートIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -614,10 +660,10 @@ export enum NotificationStatus {
 class SendNotificationRequest$Type extends MessageType<SendNotificationRequest> {
     constructor() {
         super("k1s0.system.notification.v1.SendNotificationRequest", [
-            { no: 1, name: "channel_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "channel_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "template_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "template_variables", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 4, name: "recipient", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "recipient", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 5, name: "subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "body", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -740,7 +786,7 @@ class SendNotificationResponse$Type extends MessageType<SendNotificationResponse
                 case /* string status */ 2:
                     message.status = reader.string();
                     break;
-                case /* string created_at */ 3:
+                case /* string created_at = 3 [deprecated = true] */ 3:
                     message.createdAt = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp created_at_ts */ 4:
@@ -764,7 +810,7 @@ class SendNotificationResponse$Type extends MessageType<SendNotificationResponse
         /* string status = 2; */
         if (message.status !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.status);
-        /* string created_at = 3; */
+        /* string created_at = 3 [deprecated = true]; */
         if (message.createdAt !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.createdAt);
         /* k1s0.system.common.v1.Timestamp created_at_ts = 4; */
@@ -784,7 +830,7 @@ export const SendNotificationResponse = new SendNotificationResponse$Type();
 class GetNotificationRequest$Type extends MessageType<GetNotificationRequest> {
     constructor() {
         super("k1s0.system.notification.v1.GetNotificationRequest", [
-            { no: 1, name: "notification_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "notification_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetNotificationRequest>): GetNotificationRequest {
@@ -877,7 +923,7 @@ export const GetNotificationResponse = new GetNotificationResponse$Type();
 class RetryNotificationRequest$Type extends MessageType<RetryNotificationRequest> {
     constructor() {
         super("k1s0.system.notification.v1.RetryNotificationRequest", [
-            { no: 1, name: "notification_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "notification_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RetryNotificationRequest>): RetryNotificationRequest {
@@ -1142,7 +1188,7 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
                 case /* string body */ 7:
                     message.body = reader.string();
                     break;
-                case /* string status */ 8:
+                case /* string status = 8 [deprecated = true] */ 8:
                     message.status = reader.string();
                     break;
                 case /* uint32 retry_count */ 9:
@@ -1151,10 +1197,10 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
                 case /* optional string error_message */ 10:
                     message.errorMessage = reader.string();
                     break;
-                case /* optional string sent_at */ 11:
+                case /* optional string sent_at = 11 [deprecated = true] */ 11:
                     message.sentAt = reader.string();
                     break;
-                case /* string created_at */ 12:
+                case /* string created_at = 12 [deprecated = true] */ 12:
                     message.createdAt = reader.string();
                     break;
                 case /* k1s0.system.notification.v1.NotificationStatus status_enum */ 13:
@@ -1199,7 +1245,7 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
         /* string body = 7; */
         if (message.body !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.body);
-        /* string status = 8; */
+        /* string status = 8 [deprecated = true]; */
         if (message.status !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.status);
         /* uint32 retry_count = 9; */
@@ -1208,10 +1254,10 @@ class NotificationLog$Type extends MessageType<NotificationLog> {
         /* optional string error_message = 10; */
         if (message.errorMessage !== undefined)
             writer.tag(10, WireType.LengthDelimited).string(message.errorMessage);
-        /* optional string sent_at = 11; */
+        /* optional string sent_at = 11 [deprecated = true]; */
         if (message.sentAt !== undefined)
             writer.tag(11, WireType.LengthDelimited).string(message.sentAt);
-        /* string created_at = 12; */
+        /* string created_at = 12 [deprecated = true]; */
         if (message.createdAt !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.createdAt);
         /* k1s0.system.notification.v1.NotificationStatus status_enum = 13; */
@@ -1281,10 +1327,10 @@ class Channel$Type extends MessageType<Channel> {
                 case /* bool enabled */ 5:
                     message.enabled = reader.bool();
                     break;
-                case /* string created_at */ 6:
+                case /* string created_at = 6 [deprecated = true] */ 6:
                     message.createdAt = reader.string();
                     break;
-                case /* string updated_at */ 7:
+                case /* string updated_at = 7 [deprecated = true] */ 7:
                     message.updatedAt = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp created_at_ts */ 8:
@@ -1320,10 +1366,10 @@ class Channel$Type extends MessageType<Channel> {
         /* bool enabled = 5; */
         if (message.enabled !== false)
             writer.tag(5, WireType.Varint).bool(message.enabled);
-        /* string created_at = 6; */
+        /* string created_at = 6 [deprecated = true]; */
         if (message.createdAt !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.createdAt);
-        /* string updated_at = 7; */
+        /* string updated_at = 7 [deprecated = true]; */
         if (message.updatedAt !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.updatedAt);
         /* k1s0.system.common.v1.Timestamp created_at_ts = 8; */
@@ -1461,8 +1507,8 @@ export const ListChannelsResponse = new ListChannelsResponse$Type();
 class CreateChannelRequest$Type extends MessageType<CreateChannelRequest> {
     constructor() {
         super("k1s0.system.notification.v1.CreateChannelRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "channel_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "channel_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
             { no: 3, name: "config_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
@@ -1578,7 +1624,7 @@ export const CreateChannelResponse = new CreateChannelResponse$Type();
 class GetChannelRequest$Type extends MessageType<GetChannelRequest> {
     constructor() {
         super("k1s0.system.notification.v1.GetChannelRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetChannelRequest>): GetChannelRequest {
@@ -1671,7 +1717,7 @@ export const GetChannelResponse = new GetChannelResponse$Type();
 class UpdateChannelRequest$Type extends MessageType<UpdateChannelRequest> {
     constructor() {
         super("k1s0.system.notification.v1.UpdateChannelRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
             { no: 4, name: "config_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
@@ -1785,7 +1831,7 @@ export const UpdateChannelResponse = new UpdateChannelResponse$Type();
 class DeleteChannelRequest$Type extends MessageType<DeleteChannelRequest> {
     constructor() {
         super("k1s0.system.notification.v1.DeleteChannelRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteChannelRequest>): DeleteChannelRequest {
@@ -1930,10 +1976,10 @@ class Template$Type extends MessageType<Template> {
                 case /* string body_template */ 5:
                     message.bodyTemplate = reader.string();
                     break;
-                case /* string created_at */ 6:
+                case /* string created_at = 6 [deprecated = true] */ 6:
                     message.createdAt = reader.string();
                     break;
-                case /* string updated_at */ 7:
+                case /* string updated_at = 7 [deprecated = true] */ 7:
                     message.updatedAt = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp created_at_ts */ 8:
@@ -1969,10 +2015,10 @@ class Template$Type extends MessageType<Template> {
         /* string body_template = 5; */
         if (message.bodyTemplate !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.bodyTemplate);
-        /* string created_at = 6; */
+        /* string created_at = 6 [deprecated = true]; */
         if (message.createdAt !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.createdAt);
-        /* string updated_at = 7; */
+        /* string updated_at = 7 [deprecated = true]; */
         if (message.updatedAt !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.updatedAt);
         /* k1s0.system.common.v1.Timestamp created_at_ts = 8; */
@@ -2102,10 +2148,10 @@ export const ListTemplatesResponse = new ListTemplatesResponse$Type();
 class CreateTemplateRequest$Type extends MessageType<CreateTemplateRequest> {
     constructor() {
         super("k1s0.system.notification.v1.CreateTemplateRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "channel_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "channel_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
             { no: 3, name: "subject_template", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "body_template", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 4, name: "body_template", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<CreateTemplateRequest>): CreateTemplateRequest {
@@ -2218,7 +2264,7 @@ export const CreateTemplateResponse = new CreateTemplateResponse$Type();
 class GetTemplateRequest$Type extends MessageType<GetTemplateRequest> {
     constructor() {
         super("k1s0.system.notification.v1.GetTemplateRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetTemplateRequest>): GetTemplateRequest {
@@ -2311,7 +2357,7 @@ export const GetTemplateResponse = new GetTemplateResponse$Type();
 class UpdateTemplateRequest$Type extends MessageType<UpdateTemplateRequest> {
     constructor() {
         super("k1s0.system.notification.v1.UpdateTemplateRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "subject_template", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "body_template", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
@@ -2425,7 +2471,7 @@ export const UpdateTemplateResponse = new UpdateTemplateResponse$Type();
 class DeleteTemplateRequest$Type extends MessageType<DeleteTemplateRequest> {
     constructor() {
         super("k1s0.system.notification.v1.DeleteTemplateRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteTemplateRequest>): DeleteTemplateRequest {

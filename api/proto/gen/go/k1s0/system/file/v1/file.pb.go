@@ -7,6 +7,7 @@
 package filev1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -23,19 +24,21 @@ const (
 )
 
 type FileMetadata struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Filename       string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
-	ContentType    string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
-	SizeBytes      int64                  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
-	TenantId       string                 `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	UploadedBy     string                 `protobuf:"bytes,6,opt,name=uploaded_by,json=uploadedBy,proto3" json:"uploaded_by,omitempty"`
-	Status         string                 `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
-	CreatedAt      string                 `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      string                 `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Tags           map[string]string      `protobuf:"bytes,10,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	StorageKey     string                 `protobuf:"bytes,11,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
-	ChecksumSha256 *string                `protobuf:"bytes,12,opt,name=checksum_sha256,json=checksumSha256,proto3,oneof" json:"checksum_sha256,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Filename    string                 `protobuf:"bytes,2,opt,name=filename,proto3" json:"filename,omitempty"`
+	ContentType string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	SizeBytes   int64                  `protobuf:"varint,4,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	TenantId    string                 `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	UploadedBy  string                 `protobuf:"bytes,6,opt,name=uploaded_by,json=uploadedBy,proto3" json:"uploaded_by,omitempty"`
+	Status      string                 `protobuf:"bytes,7,opt,name=status,proto3" json:"status,omitempty"`
+	// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+	CreatedAt *v1.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+	UpdatedAt      *v1.Timestamp     `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Tags           map[string]string `protobuf:"bytes,10,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	StorageKey     string            `protobuf:"bytes,11,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
+	ChecksumSha256 *string           `protobuf:"bytes,12,opt,name=checksum_sha256,json=checksumSha256,proto3,oneof" json:"checksum_sha256,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -119,18 +122,18 @@ func (x *FileMetadata) GetStatus() string {
 	return ""
 }
 
-func (x *FileMetadata) GetCreatedAt() string {
+func (x *FileMetadata) GetCreatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.CreatedAt
 	}
-	return ""
+	return nil
 }
 
-func (x *FileMetadata) GetUpdatedAt() string {
+func (x *FileMetadata) GetUpdatedAt() *v1.Timestamp {
 	if x != nil {
 		return x.UpdatedAt
 	}
-	return ""
+	return nil
 }
 
 func (x *FileMetadata) GetTags() map[string]string {
@@ -155,8 +158,9 @@ func (x *FileMetadata) GetChecksumSha256() string {
 }
 
 type GetFileMetadataRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -243,8 +247,9 @@ func (x *GetFileMetadataResponse) GetMetadata() *FileMetadata {
 }
 
 type ListFilesRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	TenantId string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// テナントIDはUUID形式であること
+	TenantId string `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
 	// ページネーションパラメータを共通型に統一
 	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	UploadedBy    *string        `protobuf:"bytes,4,opt,name=uploaded_by,json=uploadedBy,proto3,oneof" json:"uploaded_by,omitempty"`
@@ -372,14 +377,18 @@ func (x *ListFilesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type GenerateUploadUrlRequest struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	Filename         string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
-	ContentType      string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
-	TenantId         string                 `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
-	UploadedBy       string                 `protobuf:"bytes,4,opt,name=uploaded_by,json=uploadedBy,proto3" json:"uploaded_by,omitempty"`
-	Tags             map[string]string      `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	ExpiresInSeconds *uint32                `protobuf:"varint,6,opt,name=expires_in_seconds,json=expiresInSeconds,proto3,oneof" json:"expires_in_seconds,omitempty"`
-	SizeBytes        int64                  `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイル名は1文字以上512文字以下であること
+	Filename string `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	// コンテンツタイプは1文字以上128文字以下であること
+	ContentType string `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	// テナントIDはUUID形式であること
+	TenantId string `protobuf:"bytes,3,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	// アップロード者IDは1文字以上であること
+	UploadedBy       string            `protobuf:"bytes,4,opt,name=uploaded_by,json=uploadedBy,proto3" json:"uploaded_by,omitempty"`
+	Tags             map[string]string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	ExpiresInSeconds *uint32           `protobuf:"varint,6,opt,name=expires_in_seconds,json=expiresInSeconds,proto3,oneof" json:"expires_in_seconds,omitempty"`
+	SizeBytes        int64             `protobuf:"varint,7,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -524,9 +533,10 @@ func (x *GenerateUploadUrlResponse) GetExpiresInSeconds() uint32 {
 }
 
 type CompleteUploadRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	FileId         string                 `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
-	ChecksumSha256 *string                `protobuf:"bytes,3,opt,name=checksum_sha256,json=checksumSha256,proto3,oneof" json:"checksum_sha256,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイルIDは1文字以上であること
+	FileId         string  `protobuf:"bytes,1,opt,name=file_id,json=fileId,proto3" json:"file_id,omitempty"`
+	ChecksumSha256 *string `protobuf:"bytes,3,opt,name=checksum_sha256,json=checksumSha256,proto3,oneof" json:"checksum_sha256,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -620,8 +630,9 @@ func (x *CompleteUploadResponse) GetMetadata() *FileMetadata {
 }
 
 type GenerateDownloadUrlRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -716,9 +727,10 @@ func (x *GenerateDownloadUrlResponse) GetExpiresInSeconds() int32 {
 }
 
 type UpdateFileTagsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Tags          map[string]string      `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイルIDは1文字以上であること
+	Id            string            `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Tags          map[string]string `protobuf:"bytes,2,rep,name=tags,proto3" json:"tags,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -812,8 +824,9 @@ func (x *UpdateFileTagsResponse) GetMetadata() *FileMetadata {
 }
 
 type DeleteFileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ファイルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -895,7 +908,7 @@ var File_k1s0_system_file_v1_file_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\n" +
-	"\x1ek1s0/system/file/v1/file.proto\x12\x13k1s0.system.file.v1\x1a!k1s0/system/common/v1/types.proto\"\xed\x03\n" +
+	"\x1ek1s0/system/file/v1/file.proto\x12\x13k1s0.system.file.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\x04\n" +
 	"\fFileMetadata\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12!\n" +
@@ -905,11 +918,11 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\ttenant_id\x18\x05 \x01(\tR\btenantId\x12\x1f\n" +
 	"\vuploaded_by\x18\x06 \x01(\tR\n" +
 	"uploadedBy\x12\x16\n" +
-	"\x06status\x18\a \x01(\tR\x06status\x12\x1d\n" +
+	"\x06status\x18\a \x01(\tR\x06status\x12?\n" +
 	"\n" +
-	"created_at\x18\b \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\tR\tupdatedAt\x12?\n" +
+	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12?\n" +
 	"\x04tags\x18\n" +
 	" \x03(\v2+.k1s0.system.file.v1.FileMetadata.TagsEntryR\x04tags\x12\x1f\n" +
 	"\vstorage_key\x18\v \x01(\tR\n" +
@@ -918,13 +931,13 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x12\n" +
-	"\x10_checksum_sha256\"(\n" +
-	"\x16GetFileMetadataRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"X\n" +
+	"\x10_checksum_sha256\"1\n" +
+	"\x16GetFileMetadataRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"X\n" +
 	"\x17GetFileMetadataResponse\x12=\n" +
-	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"\x88\x02\n" +
-	"\x10ListFilesRequest\x12\x1b\n" +
-	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12A\n" +
+	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"\x92\x02\n" +
+	"\x10ListFilesRequest\x12%\n" +
+	"\ttenant_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12$\n" +
@@ -940,12 +953,14 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\x05files\x18\x01 \x03(\v2!.k1s0.system.file.v1.FileMetadataR\x05files\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x86\x03\n" +
-	"\x18GenerateUploadUrlRequest\x12\x1a\n" +
-	"\bfilename\x18\x01 \x01(\tR\bfilename\x12!\n" +
-	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x1b\n" +
-	"\ttenant_id\x18\x03 \x01(\tR\btenantId\x12\x1f\n" +
-	"\vuploaded_by\x18\x04 \x01(\tR\n" +
+	"pagination\"\xb1\x03\n" +
+	"\x18GenerateUploadUrlRequest\x12&\n" +
+	"\bfilename\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\bfilename\x12-\n" +
+	"\fcontent_type\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\vcontentType\x12%\n" +
+	"\ttenant_id\x18\x03 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\btenantId\x12(\n" +
+	"\vuploaded_by\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"uploadedBy\x12K\n" +
 	"\x04tags\x18\x05 \x03(\v27.k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntryR\x04tags\x121\n" +
 	"\x12expires_in_seconds\x18\x06 \x01(\rH\x00R\x10expiresInSeconds\x88\x01\x01\x12\x1d\n" +
@@ -959,28 +974,28 @@ const file_k1s0_system_file_v1_file_proto_rawDesc = "" +
 	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12\x1d\n" +
 	"\n" +
 	"upload_url\x18\x02 \x01(\tR\tuploadUrl\x12,\n" +
-	"\x12expires_in_seconds\x18\x03 \x01(\rR\x10expiresInSeconds\"r\n" +
-	"\x15CompleteUploadRequest\x12\x17\n" +
-	"\afile_id\x18\x01 \x01(\tR\x06fileId\x12,\n" +
+	"\x12expires_in_seconds\x18\x03 \x01(\rR\x10expiresInSeconds\"{\n" +
+	"\x15CompleteUploadRequest\x12 \n" +
+	"\afile_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06fileId\x12,\n" +
 	"\x0fchecksum_sha256\x18\x03 \x01(\tH\x00R\x0echecksumSha256\x88\x01\x01B\x12\n" +
 	"\x10_checksum_sha256\"W\n" +
 	"\x16CompleteUploadResponse\x12=\n" +
-	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\",\n" +
-	"\x1aGenerateDownloadUrlRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"n\n" +
+	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"5\n" +
+	"\x1aGenerateDownloadUrlRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"n\n" +
 	"\x1bGenerateDownloadUrlResponse\x12!\n" +
 	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x12,\n" +
-	"\x12expires_in_seconds\x18\x02 \x01(\x05R\x10expiresInSeconds\"\xaa\x01\n" +
-	"\x15UpdateFileTagsRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12H\n" +
+	"\x12expires_in_seconds\x18\x02 \x01(\x05R\x10expiresInSeconds\"\xb3\x01\n" +
+	"\x15UpdateFileTagsRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12H\n" +
 	"\x04tags\x18\x02 \x03(\v24.k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntryR\x04tags\x1a7\n" +
 	"\tTagsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"W\n" +
 	"\x16UpdateFileTagsResponse\x12=\n" +
-	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\"#\n" +
-	"\x11DeleteFileRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x14\n" +
+	"\bmetadata\x18\x01 \x01(\v2!.k1s0.system.file.v1.FileMetadataR\bmetadata\",\n" +
+	"\x11DeleteFileRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"\x14\n" +
 	"\x12DeleteFileResponse2\xfa\x05\n" +
 	"\vFileService\x12l\n" +
 	"\x0fGetFileMetadata\x12+.k1s0.system.file.v1.GetFileMetadataRequest\x1a,.k1s0.system.file.v1.GetFileMetadataResponse\x12Z\n" +
@@ -1024,38 +1039,41 @@ var file_k1s0_system_file_v1_file_proto_goTypes = []any{
 	nil,                                 // 15: k1s0.system.file.v1.FileMetadata.TagsEntry
 	nil,                                 // 16: k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
 	nil,                                 // 17: k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
-	(*v1.Pagination)(nil),               // 18: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),         // 19: k1s0.system.common.v1.PaginationResult
+	(*v1.Timestamp)(nil),                // 18: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),               // 19: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),         // 20: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_file_v1_file_proto_depIdxs = []int32{
-	15, // 0: k1s0.system.file.v1.FileMetadata.tags:type_name -> k1s0.system.file.v1.FileMetadata.TagsEntry
-	0,  // 1: k1s0.system.file.v1.GetFileMetadataResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	18, // 2: k1s0.system.file.v1.ListFilesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 3: k1s0.system.file.v1.ListFilesResponse.files:type_name -> k1s0.system.file.v1.FileMetadata
-	19, // 4: k1s0.system.file.v1.ListFilesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	16, // 5: k1s0.system.file.v1.GenerateUploadUrlRequest.tags:type_name -> k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
-	0,  // 6: k1s0.system.file.v1.CompleteUploadResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	17, // 7: k1s0.system.file.v1.UpdateFileTagsRequest.tags:type_name -> k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
-	0,  // 8: k1s0.system.file.v1.UpdateFileTagsResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
-	1,  // 9: k1s0.system.file.v1.FileService.GetFileMetadata:input_type -> k1s0.system.file.v1.GetFileMetadataRequest
-	3,  // 10: k1s0.system.file.v1.FileService.ListFiles:input_type -> k1s0.system.file.v1.ListFilesRequest
-	5,  // 11: k1s0.system.file.v1.FileService.GenerateUploadUrl:input_type -> k1s0.system.file.v1.GenerateUploadUrlRequest
-	7,  // 12: k1s0.system.file.v1.FileService.CompleteUpload:input_type -> k1s0.system.file.v1.CompleteUploadRequest
-	9,  // 13: k1s0.system.file.v1.FileService.GenerateDownloadUrl:input_type -> k1s0.system.file.v1.GenerateDownloadUrlRequest
-	11, // 14: k1s0.system.file.v1.FileService.UpdateFileTags:input_type -> k1s0.system.file.v1.UpdateFileTagsRequest
-	13, // 15: k1s0.system.file.v1.FileService.DeleteFile:input_type -> k1s0.system.file.v1.DeleteFileRequest
-	2,  // 16: k1s0.system.file.v1.FileService.GetFileMetadata:output_type -> k1s0.system.file.v1.GetFileMetadataResponse
-	4,  // 17: k1s0.system.file.v1.FileService.ListFiles:output_type -> k1s0.system.file.v1.ListFilesResponse
-	6,  // 18: k1s0.system.file.v1.FileService.GenerateUploadUrl:output_type -> k1s0.system.file.v1.GenerateUploadUrlResponse
-	8,  // 19: k1s0.system.file.v1.FileService.CompleteUpload:output_type -> k1s0.system.file.v1.CompleteUploadResponse
-	10, // 20: k1s0.system.file.v1.FileService.GenerateDownloadUrl:output_type -> k1s0.system.file.v1.GenerateDownloadUrlResponse
-	12, // 21: k1s0.system.file.v1.FileService.UpdateFileTags:output_type -> k1s0.system.file.v1.UpdateFileTagsResponse
-	14, // 22: k1s0.system.file.v1.FileService.DeleteFile:output_type -> k1s0.system.file.v1.DeleteFileResponse
-	16, // [16:23] is the sub-list for method output_type
-	9,  // [9:16] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	18, // 0: k1s0.system.file.v1.FileMetadata.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	18, // 1: k1s0.system.file.v1.FileMetadata.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	15, // 2: k1s0.system.file.v1.FileMetadata.tags:type_name -> k1s0.system.file.v1.FileMetadata.TagsEntry
+	0,  // 3: k1s0.system.file.v1.GetFileMetadataResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
+	19, // 4: k1s0.system.file.v1.ListFilesRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 5: k1s0.system.file.v1.ListFilesResponse.files:type_name -> k1s0.system.file.v1.FileMetadata
+	20, // 6: k1s0.system.file.v1.ListFilesResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	16, // 7: k1s0.system.file.v1.GenerateUploadUrlRequest.tags:type_name -> k1s0.system.file.v1.GenerateUploadUrlRequest.TagsEntry
+	0,  // 8: k1s0.system.file.v1.CompleteUploadResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
+	17, // 9: k1s0.system.file.v1.UpdateFileTagsRequest.tags:type_name -> k1s0.system.file.v1.UpdateFileTagsRequest.TagsEntry
+	0,  // 10: k1s0.system.file.v1.UpdateFileTagsResponse.metadata:type_name -> k1s0.system.file.v1.FileMetadata
+	1,  // 11: k1s0.system.file.v1.FileService.GetFileMetadata:input_type -> k1s0.system.file.v1.GetFileMetadataRequest
+	3,  // 12: k1s0.system.file.v1.FileService.ListFiles:input_type -> k1s0.system.file.v1.ListFilesRequest
+	5,  // 13: k1s0.system.file.v1.FileService.GenerateUploadUrl:input_type -> k1s0.system.file.v1.GenerateUploadUrlRequest
+	7,  // 14: k1s0.system.file.v1.FileService.CompleteUpload:input_type -> k1s0.system.file.v1.CompleteUploadRequest
+	9,  // 15: k1s0.system.file.v1.FileService.GenerateDownloadUrl:input_type -> k1s0.system.file.v1.GenerateDownloadUrlRequest
+	11, // 16: k1s0.system.file.v1.FileService.UpdateFileTags:input_type -> k1s0.system.file.v1.UpdateFileTagsRequest
+	13, // 17: k1s0.system.file.v1.FileService.DeleteFile:input_type -> k1s0.system.file.v1.DeleteFileRequest
+	2,  // 18: k1s0.system.file.v1.FileService.GetFileMetadata:output_type -> k1s0.system.file.v1.GetFileMetadataResponse
+	4,  // 19: k1s0.system.file.v1.FileService.ListFiles:output_type -> k1s0.system.file.v1.ListFilesResponse
+	6,  // 20: k1s0.system.file.v1.FileService.GenerateUploadUrl:output_type -> k1s0.system.file.v1.GenerateUploadUrlResponse
+	8,  // 21: k1s0.system.file.v1.FileService.CompleteUpload:output_type -> k1s0.system.file.v1.CompleteUploadResponse
+	10, // 22: k1s0.system.file.v1.FileService.GenerateDownloadUrl:output_type -> k1s0.system.file.v1.GenerateDownloadUrlResponse
+	12, // 23: k1s0.system.file.v1.FileService.UpdateFileTags:output_type -> k1s0.system.file.v1.UpdateFileTagsResponse
+	14, // 24: k1s0.system.file.v1.FileService.DeleteFile:output_type -> k1s0.system.file.v1.DeleteFileResponse
+	18, // [18:25] is the sub-list for method output_type
+	11, // [11:18] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_file_v1_file_proto_init() }

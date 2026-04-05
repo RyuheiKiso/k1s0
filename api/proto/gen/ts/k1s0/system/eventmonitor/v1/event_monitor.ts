@@ -112,6 +112,8 @@ export interface ListEventsResponse {
  */
 export interface TraceByCorrelationRequest {
     /**
+     * 相関IDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string correlation_id = 1
      */
     correlationId: string;
@@ -332,6 +334,8 @@ export interface ListFlowsResponse {
  */
 export interface GetFlowRequest {
     /**
+     * フローIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -350,6 +354,8 @@ export interface GetFlowResponse {
  */
 export interface CreateFlowRequest {
     /**
+     * フロー名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -358,6 +364,8 @@ export interface CreateFlowRequest {
      */
     description: string;
     /**
+     * ドメインは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string domain = 3
      */
     domain: string;
@@ -384,6 +392,8 @@ export interface CreateFlowResponse {
  */
 export interface UpdateFlowRequest {
     /**
+     * フローIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -418,6 +428,8 @@ export interface UpdateFlowResponse {
  */
 export interface DeleteFlowRequest {
     /**
+     * フローIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -537,6 +549,8 @@ export interface FlowKpi {
  */
 export interface GetFlowKpiRequest {
     /**
+     * フローIDは1文字以上であること
+     *
      * @generated from protobuf field: string flow_id = 1
      */
     flowId: string;
@@ -700,6 +714,8 @@ export interface BurnRateWindow {
  */
 export interface GetSloBurnRateRequest {
     /**
+     * フローIDは1文字以上であること
+     *
      * @generated from protobuf field: string flow_id = 1
      */
     flowId: string;
@@ -1102,7 +1118,7 @@ export const ListEventsResponse = new ListEventsResponse$Type();
 class TraceByCorrelationRequest$Type extends MessageType<TraceByCorrelationRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.TraceByCorrelationRequest", [
-            { no: 1, name: "correlation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "correlation_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<TraceByCorrelationRequest>): TraceByCorrelationRequest {
@@ -1819,7 +1835,7 @@ export const ListFlowsResponse = new ListFlowsResponse$Type();
 class GetFlowRequest$Type extends MessageType<GetFlowRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.GetFlowRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetFlowRequest>): GetFlowRequest {
@@ -1912,9 +1928,9 @@ export const GetFlowResponse = new GetFlowResponse$Type();
 class CreateFlowRequest$Type extends MessageType<CreateFlowRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.CreateFlowRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "domain", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 4, name: "steps", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FlowStep },
             { no: 5, name: "slo", kind: "message", T: () => FlowSlo }
         ]);
@@ -2036,7 +2052,7 @@ export const CreateFlowResponse = new CreateFlowResponse$Type();
 class UpdateFlowRequest$Type extends MessageType<UpdateFlowRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.UpdateFlowRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "steps", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FlowStep },
             { no: 4, name: "slo", kind: "message", T: () => FlowSlo },
@@ -2158,7 +2174,7 @@ export const UpdateFlowResponse = new UpdateFlowResponse$Type();
 class DeleteFlowRequest$Type extends MessageType<DeleteFlowRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.DeleteFlowRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteFlowRequest>): DeleteFlowRequest {
@@ -2536,7 +2552,7 @@ export const FlowKpi = new FlowKpi$Type();
 class GetFlowKpiRequest$Type extends MessageType<GetFlowKpiRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.GetFlowKpiRequest", [
-            { no: 1, name: "flow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "flow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "period", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -3114,7 +3130,7 @@ export const BurnRateWindow = new BurnRateWindow$Type();
 class GetSloBurnRateRequest$Type extends MessageType<GetSloBurnRateRequest> {
     constructor() {
         super("k1s0.system.eventmonitor.v1.GetSloBurnRateRequest", [
-            { no: 1, name: "flow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "flow_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetSloBurnRateRequest>): GetSloBurnRateRequest {

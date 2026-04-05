@@ -60,19 +60,21 @@ type AuthHandler struct {
 // exchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化ストアで、
 // session.RedisStore または session.EncryptedStore を渡す（H-5 監査対応）。
 // absoluteMaxTTL はセッションの絶対最大有効期間（M-17 監査対応）。
+// exchangeCodeTTL はワンタイム交換コードの有効期間（POLY-003 監査対応: 設定可能化）。0 の場合は 60s。
 func NewAuthHandler(
 	oauthClient OAuthClient,
 	sessionStore port.SessionStore,
 	exchangeCodeStore port.ExchangeCodeStore,
 	sessionTTL time.Duration,
 	absoluteMaxTTL time.Duration,
+	exchangeCodeTTL time.Duration,
 	postLogoutURI string,
 	secureCookie bool,
 	cookieDomain string,
 	logger *slog.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
-		authUseCase:    usecase.NewAuthUseCase(oauthClient, sessionStore, exchangeCodeStore),
+		authUseCase:    usecase.NewAuthUseCase(oauthClient, sessionStore, exchangeCodeStore, exchangeCodeTTL),
 		sessionTTL:     sessionTTL,
 		absoluteMaxTTL: absoluteMaxTTL,
 		postLogoutURI:  postLogoutURI,

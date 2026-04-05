@@ -95,7 +95,10 @@ impl TenantExtensionRepository for TenantExtensionPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        let merged = rows.into_iter().map(|(id, pt_id, code, display_name, description, color, allowed_transitions, is_initial, is_terminal, sort_order, created_by, created_at, updated_at, display_name_override, attributes_override, is_enabled)| {
+        let merged = rows.into_iter().map(|(id, pt_id, code, display_name, description, color, allowed_transitions_json, is_initial, is_terminal, sort_order, created_by, created_at, updated_at, display_name_override, attributes_override, is_enabled)| {
+            // JSONB カラムから取得した serde_json::Value を Vec<StatusTransition> へ変換する
+            let allowed_transitions = allowed_transitions_json
+                .and_then(|v| serde_json::from_value(v).ok());
             let base = StatusDefinition {
                 id,
                 project_type_id: pt_id,

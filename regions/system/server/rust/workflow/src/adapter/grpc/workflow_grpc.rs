@@ -1,3 +1,6 @@
+// gRPC サービス実装: ワークフロー全操作の gRPC アダプター層
+// RUST-CRIT-001 対応: リクエスト構造体に tenant_id フィールドを追加してテナント境界を適用する
+
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -90,6 +93,8 @@ pub struct WorkflowTaskData {
 
 #[derive(Debug, Clone)]
 pub struct ListWorkflowsRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub enabled_only: bool,
     pub page: i32,
     pub page_size: i32,
@@ -106,6 +111,8 @@ pub struct ListWorkflowsResponse {
 
 #[derive(Debug, Clone)]
 pub struct CreateWorkflowRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub enabled: bool,
@@ -119,6 +126,8 @@ pub struct CreateWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetWorkflowRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub workflow_id: String,
 }
 
@@ -129,6 +138,8 @@ pub struct GetWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct UpdateWorkflowRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub workflow_id: String,
     pub name: Option<String>,
     pub description: Option<String>,
@@ -143,6 +154,8 @@ pub struct UpdateWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct DeleteWorkflowRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub workflow_id: String,
 }
 
@@ -154,6 +167,8 @@ pub struct DeleteWorkflowResponse {
 
 #[derive(Debug, Clone)]
 pub struct StartInstanceRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub workflow_id: String,
     pub title: String,
     pub initiator_id: String,
@@ -175,6 +190,8 @@ pub struct StartInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetInstanceRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub instance_id: String,
 }
 
@@ -185,6 +202,8 @@ pub struct GetInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct ListInstancesRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub status: String,
     pub workflow_id: String,
     pub initiator_id: String,
@@ -203,6 +222,8 @@ pub struct ListInstancesResponse {
 
 #[derive(Debug, Clone)]
 pub struct CancelInstanceRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub instance_id: String,
     pub reason: Option<String>,
 }
@@ -214,6 +235,8 @@ pub struct CancelInstanceResponse {
 
 #[derive(Debug, Clone)]
 pub struct ListTasksRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub assignee_id: String,
     pub status: String,
     pub instance_id: String,
@@ -233,6 +256,8 @@ pub struct ListTasksResponse {
 
 #[derive(Debug, Clone)]
 pub struct ReassignTaskRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub task_id: String,
     pub new_assignee_id: String,
     pub reason: Option<String>,
@@ -247,6 +272,8 @@ pub struct ReassignTaskResponse {
 
 #[derive(Debug, Clone)]
 pub struct ApproveTaskRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub task_id: String,
     pub actor_id: String,
     pub comment: Option<String>,
@@ -262,6 +289,8 @@ pub struct ApproveTaskResponse {
 
 #[derive(Debug, Clone)]
 pub struct RejectTaskRequest {
+    /// テナント分離のため gRPC リクエストメタデータから抽出した tenant_id
+    pub tenant_id: String,
     pub task_id: String,
     pub actor_id: String,
     pub comment: Option<String>,
@@ -353,9 +382,11 @@ impl WorkflowGrpcService {
         } else {
             req.page_size as u32
         };
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
             .list_workflows_uc
             .execute(&ListWorkflowsInput {
+                tenant_id: req.tenant_id,
                 enabled_only: req.enabled_only,
                 page,
                 page_size,
@@ -382,9 +413,11 @@ impl WorkflowGrpcService {
         req: CreateWorkflowRequest,
     ) -> Result<CreateWorkflowResponse, GrpcError> {
         let steps = req.steps.into_iter().map(to_domain_step).collect();
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let created = self
             .create_workflow_uc
             .execute(&CreateWorkflowInput {
+                tenant_id: req.tenant_id,
                 name: req.name,
                 description: req.description,
                 enabled: req.enabled,
@@ -407,9 +440,11 @@ impl WorkflowGrpcService {
         &self,
         req: GetWorkflowRequest,
     ) -> Result<GetWorkflowResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let workflow = self
             .get_workflow_uc
             .execute(&GetWorkflowInput {
+                tenant_id: req.tenant_id,
                 id: req.workflow_id.clone(),
             })
             .await
@@ -428,9 +463,11 @@ impl WorkflowGrpcService {
         &self,
         req: UpdateWorkflowRequest,
     ) -> Result<UpdateWorkflowResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let updated = self
             .update_workflow_uc
             .execute(&UpdateWorkflowInput {
+                tenant_id: req.tenant_id,
                 id: req.workflow_id.clone(),
                 name: req.name,
                 description: req.description,
@@ -455,8 +492,10 @@ impl WorkflowGrpcService {
         &self,
         req: DeleteWorkflowRequest,
     ) -> Result<DeleteWorkflowResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         self.delete_workflow_uc
             .execute(&DeleteWorkflowInput {
+                tenant_id: req.tenant_id,
                 id: req.workflow_id.clone(),
             })
             .await
@@ -483,9 +522,11 @@ impl WorkflowGrpcService {
                 .map_err(|e| GrpcError::InvalidArgument(format!("invalid context_json: {}", e)))?
         };
 
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let output = self
             .start_instance_uc
             .execute(&StartInstanceInput {
+                tenant_id: req.tenant_id,
                 workflow_id: req.workflow_id,
                 title: req.title,
                 initiator_id: req.initiator_id,
@@ -522,9 +563,11 @@ impl WorkflowGrpcService {
         &self,
         req: GetInstanceRequest,
     ) -> Result<GetInstanceResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let instance = self
             .get_instance_uc
             .execute(&GetInstanceInput {
+                tenant_id: req.tenant_id,
                 id: req.instance_id,
             })
             .await
@@ -549,9 +592,11 @@ impl WorkflowGrpcService {
         } else {
             req.page_size as u32
         };
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
             .list_instances_uc
             .execute(&ListInstancesInput {
+                tenant_id: req.tenant_id,
                 status: if req.status.is_empty() {
                     None
                 } else {
@@ -591,9 +636,11 @@ impl WorkflowGrpcService {
         &self,
         req: CancelInstanceRequest,
     ) -> Result<CancelInstanceResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let instance = self
             .cancel_instance_uc
             .execute(&CancelInstanceInput {
+                tenant_id: req.tenant_id,
                 id: req.instance_id,
                 reason: req.reason,
             })
@@ -619,9 +666,11 @@ impl WorkflowGrpcService {
         } else {
             req.page_size as u32
         };
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
             .list_tasks_uc
             .execute(&ListTasksInput {
+                tenant_id: req.tenant_id,
                 assignee_id: if req.assignee_id.is_empty() {
                     None
                 } else {
@@ -659,9 +708,11 @@ impl WorkflowGrpcService {
         &self,
         req: ReassignTaskRequest,
     ) -> Result<ReassignTaskResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
             .reassign_task_uc
             .execute(&ReassignTaskInput {
+                tenant_id: req.tenant_id,
                 task_id: req.task_id,
                 new_assignee_id: req.new_assignee_id,
                 reason: req.reason,
@@ -688,9 +739,11 @@ impl WorkflowGrpcService {
         &self,
         req: ApproveTaskRequest,
     ) -> Result<ApproveTaskResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let output = self
             .approve_task_uc
             .execute(&ApproveTaskInput {
+                tenant_id: req.tenant_id,
                 task_id: req.task_id,
                 actor_id: req.actor_id,
                 comment: req.comment,
@@ -724,9 +777,11 @@ impl WorkflowGrpcService {
         &self,
         req: RejectTaskRequest,
     ) -> Result<RejectTaskResponse, GrpcError> {
+        // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let output = self
             .reject_task_uc
             .execute(&RejectTaskInput {
+                tenant_id: req.tenant_id,
                 task_id: req.task_id,
                 actor_id: req.actor_id,
                 comment: req.comment,

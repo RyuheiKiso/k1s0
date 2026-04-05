@@ -6,7 +6,7 @@ system Tier のイベントモニターデータベース（event_monitor スキ
 
 ## 概要
 
-event_monitor スキーマは `k1s0_system` データベース内に作成される専用スキーマである。system Tier のイベントモニターサービスが業務イベントフローの可視化・トランザクション追跡・KPI 集計に使用する。
+event_monitor スキーマは `k1s0_event_monitor` データベース内に作成される専用スキーマである（CRIT-001 監査対応: k1s0_system からの DB 分離）。system Tier のイベントモニターサービスが業務イベントフローの可視化・トランザクション追跡・KPI 集計に使用する。
 
 `infra/docker/init-db/18-event-monitor-schema.sql` によって `docker-compose up` 時に自動的にスキーマ・テーブルが作成される。
 

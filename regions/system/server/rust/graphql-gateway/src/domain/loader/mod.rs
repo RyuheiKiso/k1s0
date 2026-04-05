@@ -32,7 +32,8 @@ impl Loader<String> for FeatureFlagLoader {
             .list_flags_by_keys(keys)
             .await
             .map_err(Arc::new)?;
-        Ok(flags.into_iter().map(|f| (f.key.clone(), f)).collect())
+        // CRIT-007 対応: FeatureFlag のキーフィールドが flag_key に変更されたため更新する
+        Ok(flags.into_iter().map(|f| (f.flag_key.clone(), f)).collect())
     }
 }
 

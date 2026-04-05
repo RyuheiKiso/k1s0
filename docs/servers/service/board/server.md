@@ -7,7 +7,14 @@ Rust で実装する。
 
 ### RBAC対応表
 
+> DOC-CRIT-002 監査対応: [ADR-0011](../../../../docs/architecture/adr/0011-rbac-admin-privilege-separation.md) に準拠した `resource/action` 形式でリソース名を明記。
+
 service tier のロールに基づいてアクセス制御する。
+
+| リソース/アクション | 対応ロール |
+|-----------------|---------|
+| `boards/read` | svc_viewer / svc_operator / svc_admin / sys_admin |
+| `boards/write` | svc_operator / svc_admin / sys_admin |
 
 | ロール | read | write |
 |--------|------|-------|
@@ -18,8 +25,8 @@ service tier のロールに基づいてアクセス制御する。
 
 | アクション | 対象エンドポイント |
 |-----------|-----------------|
-| `read` | GET（カラム一覧・単体取得） |
-| `write` | POST / PUT（タスク数増減・WIP制限更新） |
+| `boards/read` | GET（カラム一覧・単体取得） |
+| `boards/write` | POST / PUT（タスク数増減・WIP制限更新） |
 
 実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 
@@ -61,13 +68,14 @@ service tier のボード管理サーバーは以下の機能を提供する。
 
 全エンドポイントは [API設計.md](../../architecture/api/API設計.md) D-007 の統一エラーレスポンスに従う。エラーコードのプレフィックスは `SVC_BOARD_` とする。
 
+<!-- DOCS-CRIT-001 対応: 実装（adapter/handler/mod.rs）に合わせてパス構造をフラット化し、パラメータ名を修正 -->
 | Method | Path | Description | 認可 |
 | --- | --- | --- | --- |
-| POST | `/api/v1/boards/increment` | カラムのタスク数 +1 | `board:write` |
-| POST | `/api/v1/boards/decrement` | カラムのタスク数 -1 | `board:write` |
-| GET | `/api/v1/boards/{project_id}/columns` | カラム一覧取得 | `board:read` |
-| GET | `/api/v1/boards/{project_id}/columns/{status_code}` | カラム単体取得 | `board:read` |
-| PUT | `/api/v1/boards/{project_id}/columns/{status_code}/wip-limit` | WIP制限更新 | `board:write` |
+| POST | `/api/v1/board-columns/increment` | カラムのタスク数 +1 | `board-columns:write` |
+| POST | `/api/v1/board-columns/decrement` | カラムのタスク数 -1 | `board-columns:write` |
+| GET | `/api/v1/board-columns` | カラム一覧取得 | `board-columns:read` |
+| GET | `/api/v1/board-columns/{id}` | カラム単体取得 | `board-columns:read` |
+| PUT | `/api/v1/board-columns/{id}` | WIP制限更新 | `board-columns:write` |
 | GET | `/healthz` | ヘルスチェック | 不要（公開） |
 | GET | `/readyz` | レディネスチェック | 不要（公開） |
 | GET | `/metrics` | Prometheus メトリクス | 不要（公開） |
@@ -111,6 +119,15 @@ service tier のボード管理サーバーは以下の機能を提供する。
 | フィールド | 型 | デフォルト | 説明 |
 | --- | --- | --- | --- |
 | `schema` | string | `board_service` | スキーマ名 |
+
+### kafka
+
+<!-- DOCS-010 監査対応: Kafka 設定フィールドをトピック名・デフォルト値付きで追記 -->
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `brokers` | string[] | `["kafka:9092"]` | Kafka ブローカーアドレス一覧 |
+| `board_column_updated_topic` | string | `k1s0.service.board.column_updated.v1` | ボードカラム更新イベントのトピック名 |
 
 ---
 

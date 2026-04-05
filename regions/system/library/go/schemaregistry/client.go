@@ -79,7 +79,9 @@ func (c *httpSchemaRegistryClient) RegisterSchema(ctx context.Context, subject, 
 		return 0, &NotFoundError{Resource: subject}
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return 0, &SchemaRegistryError{StatusCode: resp.StatusCode, Message: string(body)}
 	}
 
@@ -104,7 +106,9 @@ func (c *httpSchemaRegistryClient) GetSchemaByID(ctx context.Context, id int) (*
 		return nil, &NotFoundError{Resource: fmt.Sprintf("schema id=%d", id)}
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return nil, &SchemaRegistryError{StatusCode: resp.StatusCode, Message: string(body)}
 	}
 
@@ -137,7 +141,9 @@ func (c *httpSchemaRegistryClient) getSchemaVersion(ctx context.Context, subject
 		return nil, &NotFoundError{Resource: fmt.Sprintf("%s/versions/%s", subject, version)}
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return nil, &SchemaRegistryError{StatusCode: resp.StatusCode, Message: string(body)}
 	}
 
@@ -157,7 +163,9 @@ func (c *httpSchemaRegistryClient) ListSubjects(ctx context.Context) ([]string, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return nil, &SchemaRegistryError{StatusCode: resp.StatusCode, Message: string(body)}
 	}
 
@@ -181,7 +189,9 @@ func (c *httpSchemaRegistryClient) CheckCompatibility(ctx context.Context, subje
 		return false, &NotFoundError{Resource: subject}
 	}
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+		// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		return false, &SchemaRegistryError{StatusCode: resp.StatusCode, Message: string(body)}
 	}
 

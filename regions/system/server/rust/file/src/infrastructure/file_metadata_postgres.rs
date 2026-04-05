@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use k1s0_server_common::escape_like_pattern;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Postgres, QueryBuilder, Row};
 
@@ -174,25 +175,28 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         tenant_id_prefix: String,
         expected_uploader: Option<String>,
     ) -> anyhow::Result<bool> {
+        // RUST-001 監査対応: LIKE パターンの特殊文字（%・_・\）をエスケープし、
+        // 意図しないパターンマッチングを防ぐ。ESCAPE '\\' 句で明示的にエスケープ文字を指定する。
+        let escaped_prefix = escape_like_pattern(&tenant_id_prefix);
         let result = if let Some(ref uploader) = expected_uploader {
             let sql = format!(
-                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 AND uploaded_by = $3",
+                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 ESCAPE '\\\\' AND uploaded_by = $3",
                 self.table_name
             );
             sqlx::query(&sql)
                 .bind(&id)
-                .bind(format!("{}%", tenant_id_prefix))
+                .bind(format!("{}%", escaped_prefix))
                 .bind(uploader)
                 .execute(&self.pool)
                 .await?
         } else {
             let sql = format!(
-                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2",
+                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 ESCAPE '\\\\'",
                 self.table_name
             );
             sqlx::query(&sql)
                 .bind(&id)
-                .bind(format!("{}%", tenant_id_prefix))
+                .bind(format!("{}%", escaped_prefix))
                 .execute(&self.pool)
                 .await?
         };

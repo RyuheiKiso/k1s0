@@ -150,6 +150,67 @@ func TestCORSMiddleware_CredentialsPerEndpoint(t *testing.T) {
 	})
 }
 
+// TestRequiresCredentials_PrefixMatch は M-008 修正のプレフィックスマッチ精度を検証する。
+// /auth が /auth-other に誤マッチしないことを確認する（M-008 監査対応）。
+func TestRequiresCredentials_PrefixMatch(t *testing.T) {
+	tests := []struct {
+		name             string
+		path             string
+		credentialsPaths []string
+		want             bool
+	}{
+		{
+			// M-008: /auth-other は /auth プレフィックスに誤マッチしてはならない
+			name:             "/auth-other は /auth プレフィックスにマッチしない",
+			path:             "/auth-other",
+			credentialsPaths: []string{"/auth"},
+			want:             false,
+		},
+		{
+			// M-008: /auth 完全一致はマッチする
+			name:             "/auth は /auth に完全一致でマッチする",
+			path:             "/auth",
+			credentialsPaths: []string{"/auth"},
+			want:             true,
+		},
+		{
+			// M-008: /auth/ で始まるパスはマッチする
+			name:             "/auth/callback は /auth にスラッシュ区切りでマッチする",
+			path:             "/auth/callback",
+			credentialsPaths: []string{"/auth"},
+			want:             true,
+		},
+		{
+			// M-008: /authentication は /auth にマッチしない
+			name:             "/authentication は /auth にマッチしない",
+			path:             "/authentication",
+			credentialsPaths: []string{"/auth"},
+			want:             false,
+		},
+		{
+			// M-008: /api-v2 は /api にマッチしない
+			name:             "/api-v2 は /api にマッチしない",
+			path:             "/api-v2",
+			credentialsPaths: []string{"/api"},
+			want:             false,
+		},
+		{
+			// M-008: /api/v1 は /api にマッチする
+			name:             "/api/v1/users は /api にマッチする",
+			path:             "/api/v1/users",
+			credentialsPaths: []string{"/api"},
+			want:             true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := requiresCredentials(tt.path, tt.credentialsPaths)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // ワイルドカード拒否テスト
 func TestCORSMiddleware_RejectsWildcard(t *testing.T) {
 	gin.SetMode(gin.TestMode)

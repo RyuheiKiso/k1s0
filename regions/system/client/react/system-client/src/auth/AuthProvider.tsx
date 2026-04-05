@@ -5,9 +5,34 @@ import { navigateTo } from './navigation';
 // ローディング中のスピナー表示に使用する既存コンポーネントをインポートする
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
+/**
+ * L-003/L-016 監査対応: unknown 型の catch 例外から HTTP ステータスコードを安全に取り出すヘルパー。
+ * TypeScript の catch(e) は e が unknown 型のため、直接プロパティアクセスは型安全でない。
+ * typeof/instanceof チェックを通じて安全に値を取得し、危険な型アサーション (as SomeType) を最小化する。
+ * Record<string, unknown> へのキャストは、in 演算子による存在確認後の安全な narrowing として使用する。
+ */
+function extractHttpStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined;
+  }
+  // 'response' キーの存在を確認してから型を narrowing する
+  if (!('response' in error)) {
+    return undefined;
+  }
+  const asRecord = error as Record<string, unknown>;
+  const response = asRecord['response'];
+  if (typeof response !== 'object' || response === null) {
+    return undefined;
+  }
+  const status = (response as Record<string, unknown>)['status'];
+  return typeof status === 'number' ? status : undefined;
+}
+
 interface AuthProviderProps {
   children: ReactNode;
-  apiBaseURL?: string;
+  // BFF のベース URL（必須）。呼び出し側アプリの設定ファイル（config.yaml 等）から取得して渡すこと（FE-004 監査対応）
+  // ハードコードを禁止し、呼び出し元が必ず設定から渡すよう強制する
+  apiBaseURL: string;
 }
 
 // BFF /auth/session のレスポンス型
@@ -19,13 +44,14 @@ interface SessionResponse {
   roles?: string[];
 }
 
-export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProps) {
+export function AuthProvider({ children, apiBaseURL }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // 相対パス検証: 外部URLによるオープンリダイレクト防止（M-28 監査対応）
-  // '/' で始まらない値（http:// 等の外部URLを含む）はデフォルト値にフォールバックする
-  const safeApiBaseURL = apiBaseURL.startsWith('/') ? apiBaseURL : '/bff';
+  // '/' で始まらない値（http:// 等の外部URLを含む）はルートパスにフォールバックする
+  // apiBaseURL は呼び出し元が必ず渡す必須 prop のため、フォールバックは最終セーフティネット
+  const safeApiBaseURL = apiBaseURL.startsWith('/') ? apiBaseURL : '/';
 
   // APIクライアントをメモ化し、safeApiBaseURL が変わらない限り再生成しない（レンダーごとの無駄な生成を防止）
   const apiClient = useMemo(() => createApiClient({
@@ -51,8 +77,20 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
         } else {
           setUser(null);
         }
-      } catch {
-        setUser(null);
+      } catch (error) {
+        // MED-007 監査対応: HTTP ステータスコードに応じてエラーハンドリングを分岐する。
+        // L-003/L-016 監査対応: (error as {...}) の型アサーションを排除し、extractHttpStatus() で安全にステータスを取得する。
+        const status = extractHttpStatus(error);
+        if (status === 403) {
+          // 403 Forbidden: 認可エラーのためユーザー情報は保持し、警告ログを出力する
+          console.warn('[k1s0-auth] セッション確認で 403 Forbidden が返されました。権限が不足しています。');
+        } else if (status !== undefined && status >= 500) {
+          // 5xx Server Error: サービス障害のためユーザー情報は保持し、警告ログを出力する
+          console.warn(`[k1s0-auth] セッション確認でサーバーエラー (${status}) が返されました。サービスが一時的に利用できません。`);
+        } else {
+          // 401 未認証・ネットワークエラー・その他: ユーザー情報をクリアしてログアウト状態にする
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -71,8 +109,15 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
   const logout = useCallback(async () => {
     try {
       await apiClient.post('/auth/logout');
-    } catch {
-      // サーバー側のログアウトが失敗してもクライアント側のセッションは必ずクリアする
+    } catch (error) {
+      // MED-007 監査対応: ログアウト時もステータスコードに応じてログを分岐する。
+      // L-003/L-016 監査対応: (error as {...}) の型アサーションを排除し、extractHttpStatus() で安全にステータスを取得する。
+      const status = extractHttpStatus(error);
+      if (status !== undefined && status >= 500) {
+        // 5xx Server Error: サービス障害を警告ログに記録する
+        console.warn(`[k1s0-auth] ログアウトリクエストでサーバーエラー (${status}) が返されました。`);
+      }
+      // それ以外（ネットワークエラー等）はサイレントに処理する（finally でクリア済み）
     } finally {
       setCsrfToken(null);
       setUser(null);
@@ -89,6 +134,9 @@ export function AuthProvider({ children, apiBaseURL = '/bff' }: AuthProviderProp
       value={{
         user,
         isAuthenticated: user !== null,
+        // M-009 監査対応: ローディング状態をコンテキストに公開する
+        // ProtectedRoute が使用して fallback フラッシュを防止する
+        loading,
         login,
         logout,
       }}

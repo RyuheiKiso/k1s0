@@ -315,6 +315,83 @@ pub trait ConfigChangeLogRepository: Send + Sync {
 
 ---
 
+## テナント分離（STATIC-CRITICAL-001）
+
+全データアクセスはテナントスコープで分離される。
+
+| レイヤー | 実装 |
+|---------|------|
+| DB | `config_entries` / `config_change_logs` テーブルに `tenant_id UUID NOT NULL`（マイグレーション `010_add_tenant_id.up.sql`） |
+| リポジトリトレイト | 全メソッドの第1引数が `tenant_id: Uuid`（`find_by_namespace_and_key(tenant_id, ns, key)` 等） |
+| ユースケース入力 | `GetConfigInput` / `UpdateConfigInput` / `DeleteConfigInput` / `ListConfigsInput` / `GetServiceConfigInput` に `tenant_id: Uuid` |
+| ハンドラー | `Option<Extension<k1s0_auth::Claims>>` から `tenant_id` を抽出、未認証時はシステムテナント UUID をフォールバックに使用 |
+| キャッシュキー | `{tenant_id}:{namespace}:{key}` 形式（テナント間のキャッシュ汚染を防ぐ） |
+
+- システムテナント UUID: `00000000-0000-0000-0000-000000000001`
+
+---
+
+## 設定値暗号化（STATIC-HIGH-002）
+
+機密性の高い設定値（認証情報・DB 接続情報等）を AES-256-GCM で暗号化して保存する。
+
+### 設計
+
+| コンポーネント | 説明 |
+|--------------|------|
+| `ConfigPostgresRepository.encryption_key` | `Option<[u8; 32]>` — None の場合は暗号化無効 |
+| `ConfigPostgresRepository.sensitive_namespaces` | 暗号化対象の namespace プレフィックスリスト |
+| `encrypt_value()` | 機密 namespace かつ鍵あり → AES-256-GCM 暗号化 |
+| `row_to_config_entry()` | `is_encrypted=true` → `encrypted_value` を復号して `value_json` として返す |
+
+### DB スキーマ変更（マイグレーション 011）
+
+```sql
+ALTER TABLE config.config_entries
+    ADD COLUMN encrypted_value TEXT,           -- AES-256-GCM 暗号文（base64）
+    ADD COLUMN is_encrypted BOOLEAN NOT NULL DEFAULT false;
+```
+
+### 暗号化フロー
+
+```
+UPDATE /設定値書き込み
+  ├─ namespace が sensitive_namespaces に前方一致する場合
+  │   ├─ aes_encrypt(key, value_json.to_string()) → base64 暗号文
+  │   ├─ value_json = '{}'（空 JSON）
+  │   ├─ encrypted_value = 暗号文
+  │   └─ is_encrypted = true
+  └─ 非機密 namespace の場合
+      ├─ value_json = 元の値
+      ├─ encrypted_value = NULL
+      └─ is_encrypted = false
+
+SELECT /設定値読み込み
+  ├─ is_encrypted = true → aes_decrypt(key, encrypted_value) → JSON パース
+  └─ is_encrypted = false → value_json を使用
+```
+
+### 設定（config.yaml）
+
+```yaml
+config_server:
+  encryption:
+    enabled: false                   # 本番環境では true を推奨
+    sensitive_namespaces:
+      - "system.auth"
+      - "system.database"
+    key_base64: ""                   # 実際の鍵は CONFIG_ENCRYPTION_KEY 環境変数から注入
+```
+
+- 暗号化鍵: 環境変数 `CONFIG_ENCRYPTION_KEY`（base64 エンコード 32 バイト AES-256 鍵）
+- `k1s0_encryption::aes_encrypt()` / `aes_decrypt()` を使用（nonce をペイロードに含む）
+
+### ADR
+
+[ADR-0066](../../architecture/adr/0066-config-value-encryption.md) を参照。
+
+---
+
 ## ユースケース実装（Rust）
 
 ### GetConfigUseCase

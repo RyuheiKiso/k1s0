@@ -8,6 +8,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
+use chrono::Utc;
 use k1s0_auth::Claims;
 use serde::Deserialize;
 
@@ -45,10 +46,12 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     (
         status,
         Json(serde_json::json!({
-            "status": if postgres_ok { "ready" } else { "not_ready" },
+            // ADR-0068 準拠: "healthy"/"unhealthy" + timestamp
+            "status": if postgres_ok { "healthy" } else { "unhealthy" },
             "checks": {
                 "postgres": if postgres_ok { "ok" } else { "error" }
-            }
+            },
+            "timestamp": Utc::now().to_rfc3339()
         })),
     )
 }

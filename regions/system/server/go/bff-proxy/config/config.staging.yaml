@@ -1,0 +1,91 @@
+# MED-07 監査対応: bff-proxy ステージング環境設定
+# 本番に近い構成で動作確認を行うためのステージング専用設定。
+# config.yaml（デフォルト）をベースとし、ステージング環境で変更が必要な差分のみ記載する。
+# Kubernetes / Helm 環境では values-staging.yaml の config.data.config.yaml が優先して使われる。
+# このファイルはローカルステージング検証・CI パイプライン等での直接利用を想定する。
+# 機密値（client_secret, redis password 等）は環境変数または Vault 参照で注入すること。
+
+app:
+  name: bff-proxy
+  version: "0.1.0"
+  tier: system
+  # ステージング環境であることを明示する
+  environment: staging
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: "10s"
+  write_timeout: "30s"
+  shutdown_timeout: "15s"
+
+observability:
+  log:
+    # ステージングは info レベルで詳細ログを取得し、本番前の問題を早期発見する
+    level: info
+    format: json
+  trace:
+    enabled: true
+    endpoint: "otel-collector.monitoring.svc.cluster.local:4317"
+    # ステージングはサンプリングレートを 50% に設定し、負荷とトレース量のバランスを取る
+    sample_rate: 0.5
+    # ステージング内部通信は mTLS を使用するため insecure は無効にする
+    otlp_insecure: false
+  metrics:
+    enabled: true
+    path: /metrics
+
+# ステージング用 Keycloak エンドポイントに接続する
+auth:
+  discovery_url: "https://keycloak.staging.k1s0.internal/realms/k1s0"
+  client_id: "k1s0-bff"
+  # client_secret は Vault または環境変数 BFF_AUTH_CLIENT_SECRET から注入すること
+  client_secret: ""
+  # redirect_uri はステージングのフロントエンドドメインに合わせる
+  redirect_uri: "https://bff.staging.k1s0.internal/auth/callback"
+  post_logout_redirect_uri: "https://app.staging.k1s0.internal"
+  scopes:
+    - openid
+    - profile
+    - email
+
+session:
+  redis:
+    # ステージングはシングル Redis（Sentinel 不使用）で運用する
+    # 本番では redis-sentinel.k1s0-system.svc.cluster.local:26379 を使用すること
+    addr: "redis.k1s0-system.svc.cluster.local:6379"
+    # password は Vault または環境変数 BFF_SESSION_REDIS_PASSWORD から注入すること
+    password: ""
+    db: 0
+    master_name: ""
+  ttl: "30m"
+  prefix: "bff:session:"
+  sliding: true
+
+# CSRF 保護は本番と同等設定で有効化する
+csrf:
+  enabled: true
+  header_name: "X-CSRF-Token"
+
+# CORS: ステージング用フロントエンドドメインのみを許可する
+# 本番と同様にワイルドカード・localhost は使用しない（L-03 監査対応）
+cors:
+  enabled: true
+  allow_origins:
+    - "https://app.staging.k1s0.internal"
+  # H-13 監査対応: credentials は認証・API エンドポイントにのみ付与する
+  credentials_paths:
+    - "/auth/"
+    - "/api/"
+  max_age_secs: 600
+
+# レート制限はステージングでも本番と同等設定で有効化し、動作確認する（H-2 対応）
+rate_limit:
+  enabled: true
+  rps: 100
+  burst: 200
+
+# ステージング用 upstream サービス
+upstream:
+  base_url: "http://auth-server.k1s0-system.svc.cluster.local:8080"
+  timeout: "30s"

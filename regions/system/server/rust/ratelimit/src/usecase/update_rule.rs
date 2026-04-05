@@ -31,6 +31,8 @@ pub struct UpdateRuleInput {
     pub window_seconds: u32,
     pub algorithm: Option<String>,
     pub enabled: bool,
+    /// CRIT-005 対応: RLS テナント分離用テナント ID。
+    pub tenant_id: String,
 }
 
 /// UpdateRuleUseCase はルール更新ユースケース。
@@ -43,6 +45,7 @@ impl UpdateRuleUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを更新する。
     pub async fn execute(&self, input: &UpdateRuleInput) -> Result<RateLimitRule, UpdateRuleError> {
         RateLimitDomainService::validate_rule_input(
             &input.scope,
@@ -55,9 +58,10 @@ impl UpdateRuleUseCase {
         let id =
             Uuid::parse_str(&input.id).map_err(|_| UpdateRuleError::NotFound(input.id.clone()))?;
 
+        // CRIT-005 対応: テナント分離しながらルールを取得する。
         let mut rule = self
             .repo
-            .find_by_id(&id)
+            .find_by_id(&id, &input.tenant_id)
             .await
             .map_err(|e| UpdateRuleError::NotFound(e.to_string()))?;
 
@@ -103,7 +107,7 @@ mod tests {
         let return_rule = rule.clone();
 
         repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+            .returning(move |_, _| Ok(return_rule.clone()));
         repo.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateRuleUseCase::new(Arc::new(repo));
@@ -115,6 +119,7 @@ mod tests {
             window_seconds: 120,
             algorithm: Some("fixed_window".to_string()),
             enabled: false,
+            tenant_id: "tenant-a".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -130,7 +135,7 @@ mod tests {
     async fn test_update_rule_not_found() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("not found")));
 
         let uc = UpdateRuleUseCase::new(Arc::new(repo));
         let input = UpdateRuleInput {
@@ -141,6 +146,7 @@ mod tests {
             window_seconds: 60,
             algorithm: None,
             enabled: true,
+            tenant_id: "tenant-a".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -160,6 +166,7 @@ mod tests {
             window_seconds: 60,
             algorithm: None,
             enabled: true,
+            tenant_id: "tenant-a".to_string(),
         };
 
         let result = uc.execute(&input).await;

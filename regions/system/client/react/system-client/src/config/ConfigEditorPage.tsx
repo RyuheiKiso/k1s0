@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AxiosInstance } from 'axios';
 import { createApiClient } from '../http/apiClient';
+// 未認証時のナビゲーションをモック差し替え可能な関数経由で行う（型安全性向上）
+import { navigateTo } from '../auth/navigation';
 import { useConfigEditor } from './hooks/useConfigEditor';
 import { CategoryNav } from './components/CategoryNav';
 import { ConfigFieldList } from './components/ConfigFieldList';
@@ -21,7 +23,8 @@ export function ConfigEditorPage({
   const resolvedServiceName = serviceName ?? service ?? '';
   const resolvedClient = useMemo(
     // 未認証時のリダイレクト処理をコールバックで注入する
-    () => client ?? createApiClient({ baseURL: apiBaseURL, onUnauthorized: () => { window.location.href = '/auth/login'; } }),
+    // navigateTo を使うことで window.location の直書きを避け、テスト時のモック差し替えを可能にする
+    () => client ?? createApiClient({ baseURL: apiBaseURL, onUnauthorized: () => navigateTo('/auth/login') }),
     [apiBaseURL, client],
   );
   const [activeCategory, setActiveCategory] = useState('');

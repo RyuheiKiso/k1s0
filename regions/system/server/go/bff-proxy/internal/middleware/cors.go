@@ -16,13 +16,23 @@ import (
 // 明示的に credentials_paths を設定したパスのみ Access-Control-Allow-Credentials: true を付与する。
 // 注意: この変更により、credentials_paths を設定していない環境では全パスで credentials が false になる。
 // 既存クライアントに影響がある場合は credentials_paths に明示的なパスを設定すること。
+// M-008 監査対応: HasPrefix のみの判定では /auth が /auth-other にも誤マッチするため、
+// パスの完全一致またはプレフィックス+スラッシュ区切りのみを許可する正確な判定に修正する。
 func requiresCredentials(path string, credentialsPaths []string) bool {
 	if len(credentialsPaths) == 0 {
 		// LOW-07: 未設定時は false を返し、意図せず全パスで credentials を許可しない
 		return false
 	}
 	for _, prefix := range credentialsPaths {
-		if strings.HasPrefix(path, prefix) {
+		// M-008: パスの完全一致、またはプレフィックスの直後がスラッシュの場合のみマッチする。
+		// 例: prefix="/auth" → "/auth" と "/auth/login" はマッチするが "/auth-other" はマッチしない。
+		// 設定上 prefix に末尾スラッシュが含まれる場合（例: "/auth/"）を正規化して統一的に扱う。
+		normalizedPrefix := strings.TrimRight(prefix, "/")
+		if normalizedPrefix == "" {
+			// "/" のみのプレフィックスは全パスに一致させる
+			return true
+		}
+		if path == normalizedPrefix || strings.HasPrefix(path, normalizedPrefix+"/") {
 			return true
 		}
 	}

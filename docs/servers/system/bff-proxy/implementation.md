@@ -67,6 +67,20 @@ internal/
 `redirect_to` クエリパラメータは **allowlist 方式** で検証する。`k1s0://` スキームのみを許可し、それ以外はすべて拒否する。
 denylist 方式（特定スキームだけをブロック）は未知の危険スキームが通過するリスクがあるため採用しない。
 
+#### SSRF 防御（ホワイトリスト方式）
+
+アップストリームへの接続は `ssrfSafeDialContext` で保護する。DNS 解決後の IP アドレスを検証し、内部アドレスへの接続を拒否する。
+
+**設計方針（ADR-0067）**: 設定ファイル（`upstream.base_url`）で定義されたホスト名は**許可リスト（allowedHosts）**として扱い、RFC-1918 SSRF チェックをバイパスする。これにより Docker/K8s 内部ネットワーク（`10.x.x.x`、`172.17.x.x` 等）へのアクセスが可能になる。
+
+| 対象 | 挙動 |
+| --- | --- |
+| `allowedHosts` に含まれるホスト（設定ファイル由来） | RFC-1918 SSRF チェックをスキップ。クラウドメタデータ IP は除く。 |
+| `allowedHosts` に含まれないホスト（動的ターゲット） | 通常の SSRF チェックを適用（RFC-1918 全域をブロック） |
+| クラウドメタデータ（`169.254.0.0/16`） | `allowedHosts` に関係なく**常にブロック** |
+
+`config.BFFConfig.AllowedUpstreamHosts()` メソッドで `upstream.base_url` からホスト名を自動抽出する。
+
 #### セッション期限切れチェック（ミドルウェア）
 
 `SessionMiddleware` は Redis からセッションを取得後、`SessionData.IsExpired()` でアクセストークンの有効期限を確認する。
@@ -178,6 +192,9 @@ if existingSessionID, cookieErr := c.Cookie(CookieName); cookieErr == nil && exi
 - セッションごとにランダムな nonce を生成（12 バイト、GCM standard）
 - 保存形式: `base64url(nonce || ciphertext || auth_tag)`
 - `SESSION_ENCRYPTION_KEY` 環境変数に hex エンコードされた 32 バイトの鍵を設定する
+- **POLY-002 / ADR-0063 対応**: AAD（Additional Authenticated Data）としてセッション ID を渡し、暗号文をセッション ID にバインドする。これによりセッションスワップ攻撃（暗号文を別のキーにコピーする攻撃）を防止する。
+  - `Create`, `Get`, `Update`: `gcm.Seal(nonce, nonce, plaintext, []byte(sessionID))`
+  - `CreateExchangeCode`, `GetExchangeCode`: `gcm.Seal(nonce, nonce, plaintext, []byte(code))`
 
 `main.go` の起動時に `SESSION_ENCRYPTION_KEY` が設定されていれば `EncryptedStore` を使用し、未設定の場合は `RedisStore` にフォールバックして警告を出力する。
 

@@ -47,6 +47,8 @@ impl RecoverSagasUseCase {
         for saga in incomplete {
             let saga_id = saga.saga_id;
             let workflow_name = saga.workflow_name.clone();
+            // CRIT-005 対応: find_incomplete から取得した tenant_id を使って run を呼び出す
+            let tenant_id = saga.tenant_id.clone();
 
             match self.workflow_repo.get(&workflow_name).await {
                 Ok(Some(workflow)) => {
@@ -58,8 +60,8 @@ impl RecoverSagasUseCase {
                         .await
                         .map_err(|e| anyhow::anyhow!("semaphore closed unexpectedly: {}", e))?;
                     tokio::spawn(async move {
-                        info!(saga_id = %saga_id, workflow = %workflow_name, "resuming saga");
-                        if let Err(e) = execute_uc.run(saga_id, &workflow).await {
+                        info!(saga_id = %saga_id, workflow = %workflow_name, tenant_id = %tenant_id, "resuming saga");
+                        if let Err(e) = execute_uc.run(saga_id, &workflow, &tenant_id).await {
                             error!(
                                 saga_id = %saga_id,
                                 error = %e,
@@ -136,6 +138,7 @@ mod tests {
             serde_json::json!({}),
             None,
             None,
+            "system".to_string(),
         );
 
         let mut mock_saga_repo = MockSagaRepository::new();
@@ -160,7 +163,7 @@ steps:
             .returning(move |_| Ok(Some(workflow_clone.clone())));
 
         let mut mock_saga_repo2 = MockSagaRepository::new();
-        mock_saga_repo2.expect_find_by_id().returning(|_| Ok(None));
+        mock_saga_repo2.expect_find_by_id().returning(|_, _| Ok(None));
 
         let mock_caller = MockGrpcStepCaller::new();
 

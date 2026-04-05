@@ -254,6 +254,17 @@ navigation:
 
 ---
 
+## データベース設計方針
+
+navigation-rust は **DB マイグレーション不要**のサービスである。
+
+- ナビゲーション定義データは設定ファイル（`navigation.yaml`）またはインメモリで管理する。
+- データの永続化に RDBMS を使用しないため、`regions/system/database/navigation-db/` ディレクトリは存在しない（設計上不要）。
+- `navigation_path` 設定値（デフォルト: `config/navigation.yaml`）で YAML ファイルを参照し、起動時にメモリへ読み込む。
+- 設定変更は YAML ファイルを更新してサービスを再起動することで反映する。
+
+---
+
 ## 実装・デプロイ
 
 共通実装パターンは [_common/implementation.md](../../_common/implementation.md) を参照。

@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::search::v1::{
     search_service_server::SearchService, CreateIndexRequest as ProtoCreateIndexRequest,
@@ -31,6 +33,16 @@ impl From<GrpcError> for Status {
     }
 }
 
+/// CRIT-005 対応: tonic Request の Extensions から Claims を取り出しテナント ID を返すヘルパー。
+/// Claims が存在しない場合（認証不要環境等）はデフォルト値 "system" を返す。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 pub struct SearchServiceTonic {
     inner: Arc<SearchGrpcService>,
 }
@@ -47,10 +59,13 @@ impl SearchService for SearchServiceTonic {
         &self,
         request: Request<ProtoCreateIndexRequest>,
     ) -> Result<Response<ProtoCreateIndexResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = CreateIndexRequest {
             name: inner.name,
             mapping_json: inner.mapping_json,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -70,11 +85,13 @@ impl SearchService for SearchServiceTonic {
 
     async fn list_indices(
         &self,
-        _request: Request<ProtoListIndicesRequest>,
+        request: Request<ProtoListIndicesRequest>,
     ) -> Result<Response<ProtoListIndicesResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let resp = self
             .inner
-            .list_indices(ListIndicesRequest {})
+            .list_indices(ListIndicesRequest { tenant_id })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -96,11 +113,14 @@ impl SearchService for SearchServiceTonic {
         &self,
         request: Request<ProtoIndexDocumentRequest>,
     ) -> Result<Response<ProtoIndexDocumentResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = IndexDocumentRequest {
             index: inner.index,
             document_id: inner.document_id,
             document_json: inner.document_json,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -119,6 +139,8 @@ impl SearchService for SearchServiceTonic {
         &self,
         request: Request<ProtoSearchRequest>,
     ) -> Result<Response<ProtoSearchResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = SearchRequest {
             index: inner.index,
@@ -127,6 +149,7 @@ impl SearchService for SearchServiceTonic {
             from: inner.from,
             size: inner.size,
             facets: inner.facets,
+            tenant_id,
         };
         let resp = self.inner.search(req).await.map_err(Into::<Status>::into)?;
 
@@ -160,10 +183,13 @@ impl SearchService for SearchServiceTonic {
         &self,
         request: Request<ProtoDeleteDocumentRequest>,
     ) -> Result<Response<ProtoDeleteDocumentResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = DeleteDocumentRequest {
             index: inner.index,
             document_id: inner.document_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -233,9 +259,9 @@ mod tests {
     async fn test_create_index() {
         let mut mock = MockSearchRepository::new();
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(|_| Ok(None));
-        mock.expect_create_index().returning(|_| Ok(()));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(|_, _| Ok(None));
+        mock.expect_create_index().returning(|_, _| Ok(()));
 
         let tonic_svc = make_tonic_service(mock);
         let req = Request::new(ProtoCreateIndexRequest {
@@ -256,7 +282,7 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_list_indices()
-            .returning(move || Ok(vec![return_index.clone()]));
+            .returning(move |_| Ok(vec![return_index.clone()]));
 
         let tonic_svc = make_tonic_service(mock);
         let resp = tonic_svc
@@ -276,9 +302,9 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
-        mock.expect_index_document().returning(|_| Ok(()));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
+        mock.expect_index_document().returning(|_, _| Ok(()));
 
         let tonic_svc = make_tonic_service(mock);
         let req = Request::new(ProtoIndexDocumentRequest {
@@ -301,9 +327,9 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
-        mock.expect_search().returning(|_| {
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
+        mock.expect_search().returning(|_, _| {
             let total = 1u64;
             Ok(SearchResult {
                 total,
@@ -346,8 +372,8 @@ mod tests {
     async fn test_delete_document() {
         let mut mock = MockSearchRepository::new();
         mock.expect_delete_document()
-            .withf(|index, id| index == "products" && id == "doc-1")
-            .returning(|_, _| Ok(true));
+            .withf(|index, id, _tenant_id| index == "products" && id == "doc-1")
+            .returning(|_, _, _| Ok(true));
 
         let tonic_svc = make_tonic_service(mock);
         let req = Request::new(ProtoDeleteDocumentRequest {

@@ -10,6 +10,7 @@
 package vaultv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -26,9 +27,10 @@ const (
 )
 
 type GetSecretRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Version       int64                  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// シークレットパスは1文字以上512文字以下であること
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Version       int64  `protobuf:"varint,2,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -154,9 +156,10 @@ func (x *GetSecretResponse) GetPath() string {
 }
 
 type SetSecretRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Data          map[string]string      `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// シークレットパスは1文字以上512文字以下であること
+	Path          string            `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Data          map[string]string `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,9 +269,10 @@ func (x *SetSecretResponse) GetPath() string {
 }
 
 type RotateSecretRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Data          map[string]string      `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// シークレットパスは1文字以上512文字以下であること
+	Path          string            `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Data          map[string]string `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -378,9 +382,10 @@ func (x *RotateSecretResponse) GetRotated() bool {
 }
 
 type DeleteSecretRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Versions      []int64                `protobuf:"varint,2,rep,packed,name=versions,proto3" json:"versions,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// シークレットパスは1文字以上512文字以下であること
+	Path          string  `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Versions      []int64 `protobuf:"varint,2,rep,packed,name=versions,proto3" json:"versions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -474,8 +479,9 @@ func (x *DeleteSecretResponse) GetSuccess() bool {
 }
 
 type GetSecretMetadataRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// シークレットパスは1文字以上512文字以下であること
+	Path          string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -702,7 +708,10 @@ func (x *ListSecretsResponse) GetPagination() *v1.PaginationResult {
 type ListAuditLogsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ページネーションパラメータを共通型に統一
-	Pagination    *v1.Pagination `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination *v1.Pagination `protobuf:"bytes,3,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	// LOW-12 監査対応: keyset ページネーション用カーソル（前ページの最後のアイテムの UUID 文字列）。
+	// 省略または空文字の場合は先頭ページを返す。
+	AfterCursor   string `protobuf:"bytes,4,opt,name=after_cursor,json=afterCursor,proto3" json:"after_cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -744,11 +753,20 @@ func (x *ListAuditLogsRequest) GetPagination() *v1.Pagination {
 	return nil
 }
 
+func (x *ListAuditLogsRequest) GetAfterCursor() string {
+	if x != nil {
+		return x.AfterCursor
+	}
+	return ""
+}
+
 type ListAuditLogsResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Logs  []*AuditLogEntry       `protobuf:"bytes,1,rep,name=logs,proto3" json:"logs,omitempty"`
 	// ページネーション結果
-	Pagination    *v1.PaginationResult `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination *v1.PaginationResult `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	// LOW-12 監査対応: 次ページカーソル（最後のアイテムの UUID 文字列）。空文字なら最終ページ。
+	NextCursor    string `protobuf:"bytes,3,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -795,6 +813,13 @@ func (x *ListAuditLogsResponse) GetPagination() *v1.PaginationResult {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListAuditLogsResponse) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
 }
 
 type AuditLogEntry struct {
@@ -901,9 +926,10 @@ var File_k1s0_system_vault_v1_vault_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\n" +
-	" k1s0/system/vault/v1/vault.proto\x12\x14k1s0.system.vault.v1\x1a!k1s0/system/common/v1/types.proto\"@\n" +
-	"\x10GetSecretRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	" k1s0/system/vault/v1/vault.proto\x12\x14k1s0.system.vault.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"L\n" +
+	"\x10GetSecretRequest\x12\x1e\n" +
+	"\x04path\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x04path\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\x03R\aversion\"\xc3\x02\n" +
 	"\x11GetSecretResponse\x12E\n" +
 	"\x04data\x18\x01 \x03(\v21.k1s0.system.vault.v1.GetSecretResponse.DataEntryR\x04data\x12\x18\n" +
@@ -915,9 +941,10 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\x04path\x18\x05 \x01(\tR\x04path\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa5\x01\n" +
-	"\x10SetSecretRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12D\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb1\x01\n" +
+	"\x10SetSecretRequest\x12\x1e\n" +
+	"\x04path\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x04path\x12D\n" +
 	"\x04data\x18\x02 \x03(\v20.k1s0.system.vault.v1.SetSecretRequest.DataEntryR\x04data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -926,9 +953,10 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\aversion\x18\x01 \x01(\x03R\aversion\x12?\n" +
 	"\n" +
 	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12\x12\n" +
-	"\x04path\x18\x03 \x01(\tR\x04path\"\xab\x01\n" +
-	"\x13RotateSecretRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12G\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xb7\x01\n" +
+	"\x13RotateSecretRequest\x12\x1e\n" +
+	"\x04path\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x04path\x12G\n" +
 	"\x04data\x18\x02 \x03(\v23.k1s0.system.vault.v1.RotateSecretRequest.DataEntryR\x04data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -937,14 +965,16 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1f\n" +
 	"\vnew_version\x18\x02 \x01(\x03R\n" +
 	"newVersion\x12\x18\n" +
-	"\arotated\x18\x03 \x01(\bR\arotated\"E\n" +
-	"\x13DeleteSecretRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x1a\n" +
+	"\arotated\x18\x03 \x01(\bR\arotated\"Q\n" +
+	"\x13DeleteSecretRequest\x12\x1e\n" +
+	"\x04path\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x04path\x12\x1a\n" +
 	"\bversions\x18\x02 \x03(\x03R\bversions\"0\n" +
 	"\x14DeleteSecretResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\".\n" +
-	"\x18GetSecretMetadataRequest\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"\xff\x01\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\":\n" +
+	"\x18GetSecretMetadataRequest\x12\x1e\n" +
+	"\x04path\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x04path\"\xff\x01\n" +
 	"\x19GetSecretMetadataResponse\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12'\n" +
 	"\x0fcurrent_version\x18\x02 \x01(\x03R\x0ecurrentVersion\x12#\n" +
@@ -962,16 +992,19 @@ const file_k1s0_system_vault_v1_vault_proto_rawDesc = "" +
 	"\x04keys\x18\x01 \x03(\tR\x04keys\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"t\n" +
+	"pagination\"\x97\x01\n" +
 	"\x14ListAuditLogsRequest\x12A\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"paginationJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x06offsetR\x05limit\"\x99\x01\n" +
+	"pagination\x12!\n" +
+	"\fafter_cursor\x18\x04 \x01(\tR\vafterCursorJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x06offsetR\x05limit\"\xba\x01\n" +
 	"\x15ListAuditLogsResponse\x127\n" +
 	"\x04logs\x18\x01 \x03(\v2#.k1s0.system.vault.v1.AuditLogEntryR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x97\x02\n" +
+	"pagination\x12\x1f\n" +
+	"\vnext_cursor\x18\x03 \x01(\tR\n" +
+	"nextCursor\"\x97\x02\n" +
 	"\rAuditLogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
 	"\bkey_path\x18\x02 \x01(\tR\akeyPath\x12\x16\n" +

@@ -7,7 +7,8 @@ server:
   host: "0.0.0.0"
   # docker-compose のヘルスチェックおよびポートマッピング（8311:8080）に合わせてコンテナ内ポートを8080に設定する
   port: 8080
-  grpc_port: 9310
+  # H-005 監査対応: 非標準ポート (9310) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+  grpc_port: 50051
 
 database:
   host: "postgres"
@@ -44,8 +45,11 @@ kafka:
   # TaskCancelled イベント送信先トピック（topics.yaml で定義済み）
   task_cancelled_topic: "k1s0.service.task.cancelled.v1"
 
+# AuthConfig ネスト形式（ADR-0053 準拠）。jwt と jwks をサブキーに分離して Rust 構造体と整合させる。
 auth:
-  jwks_url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
-  issuer: "http://keycloak:8080/realms/k1s0"
-  audience: "k1s0-api"
-  jwks_cache_ttl_secs: 300
+  jwt:
+    issuer: "http://keycloak:8080/realms/k1s0"
+    audience: "k1s0-api"
+  jwks:
+    url: "http://keycloak:8080/realms/k1s0/protocol/openid-connect/certs"
+    cache_ttl_secs: 300

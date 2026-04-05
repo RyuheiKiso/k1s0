@@ -38,11 +38,24 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
 
             println!("    適用中: {file_name}");
 
-            let content = std::fs::read_to_string(seed_file)?;
+            // CRIT-004 監査対応: ファイル内容を -c で直接渡すのではなく -f でパスを渡す。
+            // -c はシード内容をシェルコマンドとして直接実行するため、
+            // 改ざんされたシードファイルにより任意 SQL が実行されるリスクがある。
+            // -f はファイルパスのみを psql に渡すため、この攻撃面を排除できる。
+            // L-001 監査対応: {:?} (Debug) の代わりに display() を使い {} (Display) フォーマットで出力する。
+            let seed_file_path = seed_file
+                .to_str()
+                .ok_or_else(|| anyhow::anyhow!("シードファイルパスに非UTF-8文字が含まれています: {}", seed_file.display()))?;
 
-            // PGPASSWORD は環境変数から取得する（ハードコード禁止）
-            let pg_password =
-                std::env::var("K1S0_DEV_PG_PASSWORD").unwrap_or_else(|_| "password".to_string());
+            // HIGH-011 監査対応: デフォルトパスワードのハードコードを禁止する。
+            // K1S0_DEV_PG_PASSWORD が未設定の場合はエラーで終了し、安全でない接続を防ぐ。
+            let pg_password = std::env::var("K1S0_DEV_PG_PASSWORD").map_err(|_| {
+                anyhow::anyhow!(
+                    "環境変数 K1S0_DEV_PG_PASSWORD が設定されていません。\n\
+                    .env.dev を確認し、PostgreSQL パスワードを設定してください。\n\
+                    例: K1S0_DEV_PG_PASSWORD=your-password"
+                )
+            })?;
 
             let status = std::process::Command::new("psql")
                 .args([
@@ -52,8 +65,8 @@ pub fn execute_seed(service_paths: &[String], ports: &PortAssignments) -> Result
                     &ports.postgres.to_string(),
                     "-U",
                     "app",
-                    "-c",
-                    &content,
+                    "-f",
+                    seed_file_path,
                 ])
                 .env("PGPASSWORD", &pg_password)
                 .output();

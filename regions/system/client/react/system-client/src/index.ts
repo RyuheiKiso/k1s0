@@ -2,13 +2,17 @@
 export { AuthContext } from './auth/AuthContext';
 export type { AuthContextValue, User } from './auth/AuthContext';
 export { AuthProvider } from './auth/AuthProvider';
-export { useAuth } from './auth/useAuth';
+// L-015 監査対応: i18n 対応のため AUTH_ERROR_MESSAGES と UseAuthOptions を公開する
+export { useAuth, AUTH_ERROR_MESSAGES } from './auth/useAuth';
+export type { UseAuthOptions } from './auth/useAuth';
 
 // HTTP
 export { createApiClient, setCsrfToken } from './http/apiClient';
 
 // Routing
+// L-004 監査対応: RolesCondition 型（AND/OR 混合条件）を公開する
 export { ProtectedRoute } from './routing/ProtectedRoute';
+export type { RolesCondition } from './routing/ProtectedRoute';
 
 // Components
 export { AppButton } from './components/AppButton';

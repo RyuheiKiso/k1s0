@@ -7,6 +7,7 @@
 package ratelimitv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -84,10 +85,12 @@ func (RateLimitAlgorithm) EnumDescriptor() ([]byte, []int) {
 }
 
 type CheckRateLimitRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
-	Identifier    string                 `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
-	Window        int64                  `protobuf:"varint,3,opt,name=window,proto3" json:"window,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スコープは1文字以上128文字以下であること
+	Scope string `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	// 識別子は1文字以上256文字以下であること
+	Identifier    string `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Window        int64  `protobuf:"varint,3,opt,name=window,proto3" json:"window,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -252,12 +255,14 @@ func (x *CheckRateLimitResponse) GetRuleId() string {
 }
 
 type CreateRuleRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Scope             string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
-	IdentifierPattern string                 `protobuf:"bytes,2,opt,name=identifier_pattern,json=identifierPattern,proto3" json:"identifier_pattern,omitempty"`
-	Limit             int64                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	WindowSeconds     int64                  `protobuf:"varint,4,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
-	Enabled           bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スコープは1文字以上128文字以下であること
+	Scope string `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	// 識別子パターンは1文字以上256文字以下であること
+	IdentifierPattern string `protobuf:"bytes,2,opt,name=identifier_pattern,json=identifierPattern,proto3" json:"identifier_pattern,omitempty"`
+	Limit             int64  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	WindowSeconds     int64  `protobuf:"varint,4,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
+	Enabled           bool   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -372,8 +377,9 @@ func (x *CreateRuleResponse) GetRule() *RateLimitRule {
 }
 
 type GetRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	RuleId        string `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -460,13 +466,16 @@ func (x *GetRuleResponse) GetRule() *RateLimitRule {
 }
 
 type UpdateRuleRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	RuleId            string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	Scope             string                 `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
-	IdentifierPattern string                 `protobuf:"bytes,3,opt,name=identifier_pattern,json=identifierPattern,proto3" json:"identifier_pattern,omitempty"`
-	Limit             int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
-	WindowSeconds     int64                  `protobuf:"varint,5,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
-	Enabled           bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	RuleId string `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	// スコープは1文字以上128文字以下であること
+	Scope string `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
+	// 識別子パターンは1文字以上256文字以下であること
+	IdentifierPattern string `protobuf:"bytes,3,opt,name=identifier_pattern,json=identifierPattern,proto3" json:"identifier_pattern,omitempty"`
+	Limit             int64  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	WindowSeconds     int64  `protobuf:"varint,5,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
+	Enabled           bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -588,8 +597,9 @@ func (x *UpdateRuleResponse) GetRule() *RateLimitRule {
 }
 
 type DeleteRuleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	RuleId        string `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -919,8 +929,9 @@ func (x *RateLimitRule) GetAlgorithmEnum() RateLimitAlgorithm {
 }
 
 type GetUsageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ルールIDは1文字以上であること
+	RuleId        string `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1085,9 +1096,11 @@ func (x *GetUsageResponse) GetAlgorithmEnum() RateLimitAlgorithm {
 }
 
 type ResetLimitRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
-	Identifier    string                 `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// スコープは1文字以上128文字以下であること
+	Scope string `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	// 識別子は1文字以上256文字以下であること
+	Identifier    string `protobuf:"bytes,2,opt,name=identifier,proto3" json:"identifier,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1184,11 +1197,13 @@ var File_k1s0_system_ratelimit_v1_ratelimit_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\n" +
-	"(k1s0/system/ratelimit/v1/ratelimit.proto\x12\x18k1s0.system.ratelimit.v1\x1a!k1s0/system/common/v1/types.proto\"e\n" +
-	"\x15CheckRateLimitRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\x12\x1e\n" +
+	"(k1s0/system/ratelimit/v1/ratelimit.proto\x12\x18k1s0.system.ratelimit.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"}\n" +
+	"\x15CheckRateLimitRequest\x12 \n" +
+	"\x05scope\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05scope\x12*\n" +
 	"\n" +
-	"identifier\x18\x02 \x01(\tR\n" +
+	"identifier\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"identifier\x12\x16\n" +
 	"\x06window\x18\x03 \x01(\x03R\x06window\"\xfc\x01\n" +
 	"\x16CheckRateLimitResponse\x12\x18\n" +
@@ -1202,30 +1217,34 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"identifier\x18\a \x01(\tR\n" +
 	"identifier\x12\x12\n" +
 	"\x04used\x18\b \x01(\x03R\x04used\x12\x17\n" +
-	"\arule_id\x18\t \x01(\tR\x06ruleId\"\xaf\x01\n" +
-	"\x11CreateRuleRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\x12-\n" +
-	"\x12identifier_pattern\x18\x02 \x01(\tR\x11identifierPattern\x12\x14\n" +
+	"\arule_id\x18\t \x01(\tR\x06ruleId\"\xc7\x01\n" +
+	"\x11CreateRuleRequest\x12 \n" +
+	"\x05scope\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05scope\x129\n" +
+	"\x12identifier_pattern\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x11identifierPattern\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x03R\x05limit\x12%\n" +
 	"\x0ewindow_seconds\x18\x04 \x01(\x03R\rwindowSeconds\x12\x18\n" +
 	"\aenabled\x18\x05 \x01(\bR\aenabled\"Q\n" +
 	"\x12CreateRuleResponse\x12;\n" +
-	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\")\n" +
-	"\x0eGetRuleRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"N\n" +
+	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\"2\n" +
+	"\x0eGetRuleRequest\x12 \n" +
+	"\arule_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06ruleId\"N\n" +
 	"\x0fGetRuleResponse\x12;\n" +
-	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\"\xc8\x01\n" +
-	"\x11UpdateRuleRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x14\n" +
-	"\x05scope\x18\x02 \x01(\tR\x05scope\x12-\n" +
-	"\x12identifier_pattern\x18\x03 \x01(\tR\x11identifierPattern\x12\x14\n" +
+	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\"\xe9\x01\n" +
+	"\x11UpdateRuleRequest\x12 \n" +
+	"\arule_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06ruleId\x12 \n" +
+	"\x05scope\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05scope\x129\n" +
+	"\x12identifier_pattern\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x11identifierPattern\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x03R\x05limit\x12%\n" +
 	"\x0ewindow_seconds\x18\x05 \x01(\x03R\rwindowSeconds\x12\x18\n" +
 	"\aenabled\x18\x06 \x01(\bR\aenabled\"Q\n" +
 	"\x12UpdateRuleResponse\x12;\n" +
-	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\",\n" +
-	"\x11DeleteRuleRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\".\n" +
+	"\x04rule\x18\x01 \x01(\v2'.k1s0.system.ratelimit.v1.RateLimitRuleR\x04rule\"5\n" +
+	"\x11DeleteRuleRequest\x12 \n" +
+	"\arule_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06ruleId\".\n" +
 	"\x12DeleteRuleResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"\xb5\x01\n" +
 	"\x10ListRulesRequest\x12\x14\n" +
@@ -1254,9 +1273,9 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"updated_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12\x12\n" +
 	"\x04name\x18\n" +
 	" \x01(\tR\x04name\x12S\n" +
-	"\x0ealgorithm_enum\x18\v \x01(\x0e2,.k1s0.system.ratelimit.v1.RateLimitAlgorithmR\ralgorithmEnum\"*\n" +
-	"\x0fGetUsageRequest\x12\x17\n" +
-	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\x96\x03\n" +
+	"\x0ealgorithm_enum\x18\v \x01(\x0e2,.k1s0.system.ratelimit.v1.RateLimitAlgorithmR\ralgorithmEnum\"3\n" +
+	"\x0fGetUsageRequest\x12 \n" +
+	"\arule_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06ruleId\"\x96\x03\n" +
 	"\x10GetUsageResponse\x12\x17\n" +
 	"\arule_id\x18\x01 \x01(\tR\x06ruleId\x12\x1b\n" +
 	"\trule_name\x18\x02 \x01(\tR\bruleName\x12\x14\n" +
@@ -1272,11 +1291,13 @@ const file_k1s0_system_ratelimit_v1_ratelimit_proto_rawDesc = "" +
 	"\x05_usedB\f\n" +
 	"\n" +
 	"_remainingB\v\n" +
-	"\t_reset_at\"I\n" +
-	"\x11ResetLimitRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\x12\x1e\n" +
+	"\t_reset_at\"a\n" +
+	"\x11ResetLimitRequest\x12 \n" +
+	"\x05scope\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05scope\x12*\n" +
 	"\n" +
-	"identifier\x18\x02 \x01(\tR\n" +
+	"identifier\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"identifier\".\n" +
 	"\x12ResetLimitResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess*\xd8\x01\n" +

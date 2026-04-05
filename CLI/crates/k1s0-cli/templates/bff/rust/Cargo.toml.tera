@@ -4,11 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-actix-web = "4"
+# axum 0.8: ワークスペース全体と同一の HTTP フレームワークを使用する（H-012 監査対応 actix-web → axum 移行）
+axum = "0.8"
+# tokio: 非同期ランタイム
+tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# async-graphql: GraphQL スキーマ構築・クエリ実行
 async-graphql = "7"
-async-graphql-actix-web = "7"
+# async-graphql-axum: axum との GraphQL インテグレーション（H-012 監査対応 actix-web 版から移行）
+async-graphql-axum = "7"
 reqwest = { version = "0.12", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
 anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "trace"] }

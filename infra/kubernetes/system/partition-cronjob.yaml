@@ -29,10 +29,15 @@ spec:
               # バージョン不一致はパーティション保守とバックアップ間の動作差異を引き起こす可能性がある。
               image: postgres:17-alpine
               # H-7 対応: 最小権限でコンテナを実行する（他のバックアップジョブと統一）
+              # C-007 監査対応: PSS restricted 準拠のため seccompProfile と readOnlyRootFilesystem を追加
+              # k1s0-system namespace は pod-security.kubernetes.io/enforce: restricted が設定されており必須
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -54,6 +59,9 @@ spec:
                   cpu: 200m
                   memory: 128Mi
 ---
+# K8S-MED-002 監査対応: partition-maintenance SA にautomountServiceAccountToken: false を設定する
+# partition-maintenance ジョブは PostgreSQL の psql コマンドのみを実行し Kubernetes API へのアクセスは不要である
+# デフォルトの自動マウントを無効化することでトークン漏洩リスクを低減する
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -61,3 +69,4 @@ metadata:
   namespace: k1s0-system
   labels:
     app: audit-log-maintenance
+automountServiceAccountToken: false

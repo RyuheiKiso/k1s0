@@ -18,6 +18,8 @@ pub struct StartSagaRequest {
     pub payload: Vec<u8>,
     pub correlation_id: String,
     pub initiated_by: String,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 /// StartSagaResponse はSaga開始レスポンス。
@@ -31,6 +33,8 @@ pub struct StartSagaResponse {
 #[derive(Debug)]
 pub struct GetSagaRequest {
     pub saga_id: String,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 /// GetSagaResponse はSaga取得レスポンス。
@@ -48,6 +52,8 @@ pub struct ListSagasRequest {
     pub workflow_name: String,
     pub status: String,
     pub correlation_id: String,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 /// ListSagasResponse はSaga一覧レスポンス。
@@ -64,6 +70,8 @@ pub struct ListSagasResponse {
 #[derive(Debug)]
 pub struct CancelSagaRequest {
     pub saga_id: String,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 /// CancelSagaResponse はSagaキャンセルレスポンス。
@@ -77,6 +85,8 @@ pub struct CancelSagaResponse {
 #[derive(Debug)]
 pub struct CompensateSagaRequest {
     pub saga_id: String,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 /// CompensateSagaResponse は Saga 補償実行レスポンス。
@@ -261,9 +271,10 @@ impl SagaGrpcService {
         };
 
         // ドメインエラー（SagaError）を GrpcError に型安全に変換する
+        // CRIT-005 対応: tenant_id をリクエストから取得して usecase に渡す
         let saga_id = self
             .start_saga_uc
-            .execute(req.workflow_name, json_payload, correlation, initiator)
+            .execute(req.workflow_name, json_payload, correlation, initiator, req.tenant_id)
             .await
             .map_err(map_domain_saga_error_to_grpc_error)?;
 
@@ -278,9 +289,10 @@ impl SagaGrpcService {
         let id = uuid::Uuid::parse_str(&req.saga_id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
 
+        // CRIT-005 対応: tenant_id を usecase に渡す
         let (saga, step_logs) = self
             .get_saga_uc
-            .execute(id)
+            .execute(id, &req.tenant_id)
             .await
             .map_err(|e| GrpcError::Internal(format!("failed to get saga: {}", e)))?
             .ok_or_else(|| GrpcError::NotFound(format!("saga not found: {}", req.saga_id)))?;
@@ -351,6 +363,9 @@ impl SagaGrpcService {
             Some(s)
         };
 
+        // gRPC からの呼び出しでは cursor は使用しない（REST API 専用機能）
+        // 後方互換のため OFFSET ページネーションを維持する
+        // CRIT-005 対応: tenant_id をリクエストから取得して SagaListParams に設定する
         let params = SagaListParams {
             page: req.page,
             page_size: req.page_size,
@@ -365,6 +380,8 @@ impl SagaGrpcService {
             } else {
                 Some(req.correlation_id)
             },
+            cursor: None,
+            tenant_id: req.tenant_id,
         };
 
         let (sagas, total_count) = self
@@ -423,8 +440,9 @@ impl SagaGrpcService {
         let id = uuid::Uuid::parse_str(&req.saga_id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
 
+        // CRIT-005 対応: tenant_id を usecase に渡す
         self.cancel_saga_uc
-            .execute(id)
+            .execute(id, &req.tenant_id)
             .await
             .map_err(map_cancel_error_to_grpc_error)?;
 
@@ -442,9 +460,10 @@ impl SagaGrpcService {
         let id = uuid::Uuid::parse_str(&req.saga_id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid saga_id: {}", req.saga_id)))?;
 
+        // CRIT-005 対応: tenant_id を usecase に渡す
         let state = self
             .execute_saga_uc
-            .trigger_compensate(id)
+            .trigger_compensate(id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 CompensateSagaError::NotFound(saga_id) => {

@@ -25,7 +25,7 @@ database:
 
 kafka:
   brokers:
-    - "kafka-0.messaging.svc.cluster.local:9092"
+    - "kafka-0.messaging.svc.cluster.local:9093"
     - "kafka-1.messaging.svc.cluster.local:9092"
     - "kafka-2.messaging.svc.cluster.local:9092"
   consumer_group: "config-server.default"
@@ -53,6 +53,14 @@ config_server:
     default_prefix: "system"
     allowed_tiers: ["system", "business", "service"]
     max_depth: 4
+  # STATIC-HIGH-002: 機密設定値の AES-256-GCM 暗号化設定
+  # 本番環境では enabled: true とし、CONFIG_ENCRYPTION_KEY 環境変数（base64 32 バイト鍵）を設定すること
+  encryption:
+    enabled: false
+    sensitive_namespaces:
+      - "system.auth"
+      - "system.database"
+    key_base64: ""   # 実際の鍵は CONFIG_ENCRYPTION_KEY 環境変数または Vault から注入する
 
 observability:
   log:

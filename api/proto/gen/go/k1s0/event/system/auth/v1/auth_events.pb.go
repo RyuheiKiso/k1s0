@@ -25,6 +25,57 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AuditResult は認証・監査イベントの結果を表す enum。
+// string 型の代わりに使用することで型安全性と一貫性を確保する。
+type AuditResult int32
+
+const (
+	AuditResult_AUDIT_RESULT_UNSPECIFIED AuditResult = 0
+	AuditResult_AUDIT_RESULT_SUCCESS     AuditResult = 1
+	AuditResult_AUDIT_RESULT_FAILURE     AuditResult = 2
+)
+
+// Enum value maps for AuditResult.
+var (
+	AuditResult_name = map[int32]string{
+		0: "AUDIT_RESULT_UNSPECIFIED",
+		1: "AUDIT_RESULT_SUCCESS",
+		2: "AUDIT_RESULT_FAILURE",
+	}
+	AuditResult_value = map[string]int32{
+		"AUDIT_RESULT_UNSPECIFIED": 0,
+		"AUDIT_RESULT_SUCCESS":     1,
+		"AUDIT_RESULT_FAILURE":     2,
+	}
+)
+
+func (x AuditResult) Enum() *AuditResult {
+	p := new(AuditResult)
+	*p = x
+	return p
+}
+
+func (x AuditResult) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuditResult) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_event_system_auth_v1_auth_events_proto_enumTypes[0].Descriptor()
+}
+
+func (AuditResult) Type() protoreflect.EnumType {
+	return &file_k1s0_event_system_auth_v1_auth_events_proto_enumTypes[0]
+}
+
+func (x AuditResult) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuditResult.Descriptor instead.
+func (AuditResult) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_event_system_auth_v1_auth_events_proto_rawDescGZIP(), []int{0}
+}
+
 // LoginEvent はログイン成功/失敗イベント。
 // Kafka トピック: k1s0.system.auth.login.v1
 // パーティションキー: user_id
@@ -36,8 +87,8 @@ type LoginEvent struct {
 	ClientId  string                 `protobuf:"bytes,4,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	IpAddress string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
 	UserAgent string                 `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	// SUCCESS / FAILURE
-	Result string `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
+	// ログイン結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+	Result AuditResult `protobuf:"varint,7,opt,name=result,proto3,enum=k1s0.event.system.auth.v1.AuditResult" json:"result,omitempty"`
 	// 失敗時のみ
 	FailureReason string `protobuf:"bytes,8,opt,name=failure_reason,json=failureReason,proto3" json:"failure_reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -116,11 +167,11 @@ func (x *LoginEvent) GetUserAgent() string {
 	return ""
 }
 
-func (x *LoginEvent) GetResult() string {
+func (x *LoginEvent) GetResult() AuditResult {
 	if x != nil {
 		return x.Result
 	}
-	return ""
+	return AuditResult_AUDIT_RESULT_UNSPECIFIED
 }
 
 func (x *LoginEvent) GetFailureReason() string {
@@ -309,15 +360,16 @@ func (x *PermissionCheckEvent) GetReason() string {
 // Kafka トピック: k1s0.system.auth.audit.v1
 // パーティションキー: user_id
 type AuditLogRecordedEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metadata      *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	AuditLogId    string                 `protobuf:"bytes,2,opt,name=audit_log_id,json=auditLogId,proto3" json:"audit_log_id,omitempty"`
-	EventType     string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	UserId        string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IpAddress     string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	Resource      string                 `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
-	Action        string                 `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
-	Result        string                 `protobuf:"bytes,8,opt,name=result,proto3" json:"result,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Metadata   *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	AuditLogId string                 `protobuf:"bytes,2,opt,name=audit_log_id,json=auditLogId,proto3" json:"audit_log_id,omitempty"`
+	EventType  string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	UserId     string                 `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IpAddress  string                 `protobuf:"bytes,5,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	Resource   string                 `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
+	Action     string                 `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
+	// 監査結果（AUDIT_RESULT_SUCCESS / AUDIT_RESULT_FAILURE）
+	Result        AuditResult `protobuf:"varint,8,opt,name=result,proto3,enum=k1s0.event.system.auth.v1.AuditResult" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -401,18 +453,18 @@ func (x *AuditLogRecordedEvent) GetAction() string {
 	return ""
 }
 
-func (x *AuditLogRecordedEvent) GetResult() string {
+func (x *AuditLogRecordedEvent) GetResult() AuditResult {
 	if x != nil {
 		return x.Result
 	}
-	return ""
+	return AuditResult_AUDIT_RESULT_UNSPECIFIED
 }
 
 var File_k1s0_event_system_auth_v1_auth_events_proto protoreflect.FileDescriptor
 
 const file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc = "" +
 	"\n" +
-	"+k1s0/event/system/auth/v1/auth_events.proto\x12\x19k1s0.event.system.auth.v1\x1a*k1s0/system/common/v1/event_metadata.proto\"\x9d\x02\n" +
+	"+k1s0/event/system/auth/v1/auth_events.proto\x12\x19k1s0.event.system.auth.v1\x1a*k1s0/system/common/v1/event_metadata.proto\"\xc5\x02\n" +
 	"\n" +
 	"LoginEvent\x12@\n" +
 	"\bmetadata\x18\x01 \x01(\v2$.k1s0.system.common.v1.EventMetadataR\bmetadata\x12\x17\n" +
@@ -422,8 +474,8 @@ const file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc = "" +
 	"\n" +
 	"ip_address\x18\x05 \x01(\tR\tipAddress\x12\x1d\n" +
 	"\n" +
-	"user_agent\x18\x06 \x01(\tR\tuserAgent\x12\x16\n" +
-	"\x06result\x18\a \x01(\tR\x06result\x12%\n" +
+	"user_agent\x18\x06 \x01(\tR\tuserAgent\x12>\n" +
+	"\x06result\x18\a \x01(\x0e2&.k1s0.event.system.auth.v1.AuditResultR\x06result\x12%\n" +
 	"\x0efailure_reason\x18\b \x01(\tR\rfailureReason\"\xc9\x01\n" +
 	"\x14TokenValidationEvent\x12@\n" +
 	"\bmetadata\x18\x01 \x01(\v2$.k1s0.system.common.v1.EventMetadataR\bmetadata\x12\x17\n" +
@@ -440,7 +492,7 @@ const file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc = "" +
 	"\bresource\x18\x04 \x01(\tR\bresource\x12\x14\n" +
 	"\x05roles\x18\x05 \x03(\tR\x05roles\x12\x18\n" +
 	"\aallowed\x18\x06 \x01(\bR\aallowed\x12\x16\n" +
-	"\x06reason\x18\a \x01(\tR\x06reason\"\x9e\x02\n" +
+	"\x06reason\x18\a \x01(\tR\x06reason\"\xc6\x02\n" +
 	"\x15AuditLogRecordedEvent\x12@\n" +
 	"\bmetadata\x18\x01 \x01(\v2$.k1s0.system.common.v1.EventMetadataR\bmetadata\x12 \n" +
 	"\faudit_log_id\x18\x02 \x01(\tR\n" +
@@ -451,8 +503,12 @@ const file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc = "" +
 	"\n" +
 	"ip_address\x18\x05 \x01(\tR\tipAddress\x12\x1a\n" +
 	"\bresource\x18\x06 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\a \x01(\tR\x06action\x12\x16\n" +
-	"\x06result\x18\b \x01(\tR\x06resultBKZIgithub.com/k1s0-platform/api/gen/go/k1s0/event/system/auth/v1;autheventv1b\x06proto3"
+	"\x06action\x18\a \x01(\tR\x06action\x12>\n" +
+	"\x06result\x18\b \x01(\x0e2&.k1s0.event.system.auth.v1.AuditResultR\x06result*_\n" +
+	"\vAuditResult\x12\x1c\n" +
+	"\x18AUDIT_RESULT_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14AUDIT_RESULT_SUCCESS\x10\x01\x12\x18\n" +
+	"\x14AUDIT_RESULT_FAILURE\x10\x02BKZIgithub.com/k1s0-platform/api/gen/go/k1s0/event/system/auth/v1;autheventv1b\x06proto3"
 
 var (
 	file_k1s0_event_system_auth_v1_auth_events_proto_rawDescOnce sync.Once
@@ -466,24 +522,28 @@ func file_k1s0_event_system_auth_v1_auth_events_proto_rawDescGZIP() []byte {
 	return file_k1s0_event_system_auth_v1_auth_events_proto_rawDescData
 }
 
+var file_k1s0_event_system_auth_v1_auth_events_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_event_system_auth_v1_auth_events_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_k1s0_event_system_auth_v1_auth_events_proto_goTypes = []any{
-	(*LoginEvent)(nil),            // 0: k1s0.event.system.auth.v1.LoginEvent
-	(*TokenValidationEvent)(nil),  // 1: k1s0.event.system.auth.v1.TokenValidationEvent
-	(*PermissionCheckEvent)(nil),  // 2: k1s0.event.system.auth.v1.PermissionCheckEvent
-	(*AuditLogRecordedEvent)(nil), // 3: k1s0.event.system.auth.v1.AuditLogRecordedEvent
-	(*v1.EventMetadata)(nil),      // 4: k1s0.system.common.v1.EventMetadata
+	(AuditResult)(0),              // 0: k1s0.event.system.auth.v1.AuditResult
+	(*LoginEvent)(nil),            // 1: k1s0.event.system.auth.v1.LoginEvent
+	(*TokenValidationEvent)(nil),  // 2: k1s0.event.system.auth.v1.TokenValidationEvent
+	(*PermissionCheckEvent)(nil),  // 3: k1s0.event.system.auth.v1.PermissionCheckEvent
+	(*AuditLogRecordedEvent)(nil), // 4: k1s0.event.system.auth.v1.AuditLogRecordedEvent
+	(*v1.EventMetadata)(nil),      // 5: k1s0.system.common.v1.EventMetadata
 }
 var file_k1s0_event_system_auth_v1_auth_events_proto_depIdxs = []int32{
-	4, // 0: k1s0.event.system.auth.v1.LoginEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
-	4, // 1: k1s0.event.system.auth.v1.TokenValidationEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
-	4, // 2: k1s0.event.system.auth.v1.PermissionCheckEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
-	4, // 3: k1s0.event.system.auth.v1.AuditLogRecordedEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 0: k1s0.event.system.auth.v1.LoginEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
+	0, // 1: k1s0.event.system.auth.v1.LoginEvent.result:type_name -> k1s0.event.system.auth.v1.AuditResult
+	5, // 2: k1s0.event.system.auth.v1.TokenValidationEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
+	5, // 3: k1s0.event.system.auth.v1.PermissionCheckEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
+	5, // 4: k1s0.event.system.auth.v1.AuditLogRecordedEvent.metadata:type_name -> k1s0.system.common.v1.EventMetadata
+	0, // 5: k1s0.event.system.auth.v1.AuditLogRecordedEvent.result:type_name -> k1s0.event.system.auth.v1.AuditResult
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_event_system_auth_v1_auth_events_proto_init() }
@@ -496,13 +556,14 @@ func file_k1s0_event_system_auth_v1_auth_events_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc), len(file_k1s0_event_system_auth_v1_auth_events_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_k1s0_event_system_auth_v1_auth_events_proto_goTypes,
 		DependencyIndexes: file_k1s0_event_system_auth_v1_auth_events_proto_depIdxs,
+		EnumInfos:         file_k1s0_event_system_auth_v1_auth_events_proto_enumTypes,
 		MessageInfos:      file_k1s0_event_system_auth_v1_auth_events_proto_msgTypes,
 	}.Build()
 	File_k1s0_event_system_auth_v1_auth_events_proto = out.File

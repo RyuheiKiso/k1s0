@@ -10,6 +10,7 @@
 package eventstorev1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -200,13 +201,15 @@ func (x *StreamInfo) GetUpdatedAt() *v1.Timestamp {
 }
 
 type AppendEventsRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	StreamId        string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	Events          []*EventData           `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
-	ExpectedVersion int64                  `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
-	AggregateType   string                 `protobuf:"bytes,4,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId        string       `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	Events          []*EventData `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
+	ExpectedVersion int64        `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	// アグリゲート種別は1文字以上128文字以下であること
+	AggregateType string `protobuf:"bytes,4,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AppendEventsRequest) Reset() {
@@ -328,10 +331,11 @@ func (x *AppendEventsResponse) GetCurrentVersion() int64 {
 }
 
 type ReadEventsRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	StreamId    string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	FromVersion int64                  `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
-	ToVersion   *int64                 `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId    string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	FromVersion int64  `protobuf:"varint,2,opt,name=from_version,json=fromVersion,proto3" json:"from_version,omitempty"`
+	ToVersion   *int64 `protobuf:"varint,3,opt,name=to_version,json=toVersion,proto3,oneof" json:"to_version,omitempty"`
 	// ページネーションパラメータを共通型に統一
 	Pagination    *v1.Pagination `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	EventType     *string        `protobuf:"bytes,6,opt,name=event_type,json=eventType,proto3,oneof" json:"event_type,omitempty"`
@@ -473,9 +477,10 @@ func (x *ReadEventsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type ReadEventBySequenceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	Sequence      uint64                 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId      string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	Sequence      uint64 `protobuf:"varint,2,opt,name=sequence,proto3" json:"sequence,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -569,13 +574,15 @@ func (x *ReadEventBySequenceResponse) GetEvent() *StoredEvent {
 }
 
 type CreateSnapshotRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	StreamId        string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
-	SnapshotVersion int64                  `protobuf:"varint,2,opt,name=snapshot_version,json=snapshotVersion,proto3" json:"snapshot_version,omitempty"`
-	AggregateType   string                 `protobuf:"bytes,3,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
-	State           []byte                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId        string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	SnapshotVersion int64  `protobuf:"varint,2,opt,name=snapshot_version,json=snapshotVersion,proto3" json:"snapshot_version,omitempty"`
+	// アグリゲート種別は1文字以上128文字以下であること
+	AggregateType string `protobuf:"bytes,3,opt,name=aggregate_type,json=aggregateType,proto3" json:"aggregate_type,omitempty"`
+	State         []byte `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateSnapshotRequest) Reset() {
@@ -714,8 +721,9 @@ func (x *CreateSnapshotResponse) GetAggregateType() string {
 }
 
 type GetLatestSnapshotRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId      string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -802,8 +810,9 @@ func (x *GetLatestSnapshotResponse) GetSnapshot() *Snapshot {
 }
 
 type DeleteStreamRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StreamId      string                 `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ストリームIDは1文字以上256文字以下であること
+	StreamId      string `protobuf:"bytes,1,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1208,7 +1217,7 @@ var File_k1s0_system_eventstore_v1_event_store_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\n" +
-	"+k1s0/system/eventstore/v1/event_store.proto\x12\x19k1s0.system.eventstore.v1\x1a!k1s0/system/common/v1/types.proto\"W\n" +
+	"+k1s0/system/eventstore/v1/event_store.proto\x12\x19k1s0.system.eventstore.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"W\n" +
 	"\x12ListStreamsRequest\x12A\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
@@ -1226,18 +1235,21 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"\xc2\x01\n" +
-	"\x13AppendEventsRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12<\n" +
+	"updated_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"\xda\x01\n" +
+	"\x13AppendEventsRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\x12<\n" +
 	"\x06events\x18\x02 \x03(\v2$.k1s0.system.eventstore.v1.EventDataR\x06events\x12)\n" +
-	"\x10expected_version\x18\x03 \x01(\x03R\x0fexpectedVersion\x12%\n" +
-	"\x0eaggregate_type\x18\x04 \x01(\tR\raggregateType\"\x9c\x01\n" +
+	"\x10expected_version\x18\x03 \x01(\x03R\x0fexpectedVersion\x121\n" +
+	"\x0eaggregate_type\x18\x04 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\raggregateType\"\x9c\x01\n" +
 	"\x14AppendEventsResponse\x12\x1b\n" +
 	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12>\n" +
 	"\x06events\x18\x02 \x03(\v2&.k1s0.system.eventstore.v1.StoredEventR\x06events\x12'\n" +
-	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\"\x8d\x02\n" +
-	"\x11ReadEventsRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12!\n" +
+	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\"\x99\x02\n" +
+	"\x11ReadEventsRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\x12!\n" +
 	"\ffrom_version\x18\x02 \x01(\x03R\vfromVersion\x12\"\n" +
 	"\n" +
 	"to_version\x18\x03 \x01(\x03H\x00R\ttoVersion\x88\x01\x01\x12A\n" +
@@ -1254,16 +1266,19 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\x0fcurrent_version\x18\x03 \x01(\x03R\x0ecurrentVersion\x12G\n" +
 	"\n" +
 	"pagination\x18\x04 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"U\n" +
-	"\x1aReadEventBySequenceRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12\x1a\n" +
+	"pagination\"a\n" +
+	"\x1aReadEventBySequenceRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\"[\n" +
 	"\x1bReadEventBySequenceResponse\x12<\n" +
-	"\x05event\x18\x01 \x01(\v2&.k1s0.system.eventstore.v1.StoredEventR\x05event\"\x9c\x01\n" +
-	"\x15CreateSnapshotRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\x12)\n" +
-	"\x10snapshot_version\x18\x02 \x01(\x03R\x0fsnapshotVersion\x12%\n" +
-	"\x0eaggregate_type\x18\x03 \x01(\tR\raggregateType\x12\x14\n" +
+	"\x05event\x18\x01 \x01(\v2&.k1s0.system.eventstore.v1.StoredEventR\x05event\"\xb4\x01\n" +
+	"\x15CreateSnapshotRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\x12)\n" +
+	"\x10snapshot_version\x18\x02 \x01(\x03R\x0fsnapshotVersion\x121\n" +
+	"\x0eaggregate_type\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\raggregateType\x12\x14\n" +
 	"\x05state\x18\x04 \x01(\fR\x05state\"\xd8\x01\n" +
 	"\x16CreateSnapshotResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
@@ -1271,13 +1286,15 @@ const file_k1s0_system_eventstore_v1_event_store_proto_rawDesc = "" +
 	"\x10snapshot_version\x18\x03 \x01(\x03R\x0fsnapshotVersion\x12?\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12%\n" +
-	"\x0eaggregate_type\x18\x05 \x01(\tR\raggregateType\"7\n" +
-	"\x18GetLatestSnapshotRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\"\\\n" +
+	"\x0eaggregate_type\x18\x05 \x01(\tR\raggregateType\"C\n" +
+	"\x18GetLatestSnapshotRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\"\\\n" +
 	"\x19GetLatestSnapshotResponse\x12?\n" +
-	"\bsnapshot\x18\x01 \x01(\v2#.k1s0.system.eventstore.v1.SnapshotR\bsnapshot\"2\n" +
-	"\x13DeleteStreamRequest\x12\x1b\n" +
-	"\tstream_id\x18\x01 \x01(\tR\bstreamId\"J\n" +
+	"\bsnapshot\x18\x01 \x01(\v2#.k1s0.system.eventstore.v1.SnapshotR\bsnapshot\">\n" +
+	"\x13DeleteStreamRequest\x12'\n" +
+	"\tstream_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bstreamId\"J\n" +
 	"\x14DeleteStreamResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x8f\x01\n" +

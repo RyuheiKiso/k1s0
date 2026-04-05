@@ -117,7 +117,7 @@ regions/system/server/rust/vault/
 - **HashiCorp Vault** (`adapter/gateway/vault_client.rs`): vaultrs クレートで HashiCorp Vault KV v2 に接続する
 - **SPIFFE 認可** (`adapter/middleware/spiffe.rs`): SPIFFE ID ベースのアクセス制御。`SpiffeAccessPolicy` のパターンマッチングで許可/拒否を判定する
 - **Kafka Producer** (`infrastructure/kafka_producer.rs`): `k1s0.system.vault.access.v1`（アクセス監査）および `k1s0.system.vault.secret_rotated.v1`（ローテーション通知）にイベントを配信する
-- **暗号化** (`infrastructure/encryption.rs`): PostgreSQL フォールバック時のシークレットデータ暗号化を担当する
+- **暗号化** (`infrastructure/encryption.rs`): PostgreSQL フォールバック時のシークレットデータ暗号化を担当する。AES-256-GCM を使用し、`{key_path}|{version}` を AAD（Additional Authenticated Data）としてバインドする（CRIT-003 監査対応・ADR-0090）。これにより暗号文の入れ替え攻撃（ciphertext swap attack）を防止する
 
 #### キャッシュ戦略
 

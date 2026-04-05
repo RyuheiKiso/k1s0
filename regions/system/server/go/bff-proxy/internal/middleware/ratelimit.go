@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sort"
 	"sync"
@@ -125,8 +126,25 @@ func RateLimitMiddleware(ctx context.Context, cfg config.RateLimitConfig) gin.Ha
 
 		// トークンが不足している場合は 429 Too Many Requests を返す
 		if b.tokens < 1.0 {
+			// MED-018 監査対応: Retry-After を動的値に変更。
+			// トークンが 1 個補充されるまでの待機時間（秒）を計算してセットする。
+			// rps > 0 の場合は 1/rps 秒で1トークン補充されるため、その切り上げ値を返す。
+			// 最小値は 1 秒とし、最大値は 60 秒に制限する。
+			var retryAfterSecs int
+			if rps > 0 {
+				waitSecs := 1.0 / rps
+				retryAfterSecs = int(waitSecs) + 1
+				if retryAfterSecs < 1 {
+					retryAfterSecs = 1
+				}
+				if retryAfterSecs > 60 {
+					retryAfterSecs = 60
+				}
+			} else {
+				retryAfterSecs = 60
+			}
 			b.mu.Unlock()
-			c.Header("Retry-After", "1")
+			c.Header("Retry-After", fmt.Sprintf("%d", retryAfterSecs))
 			c.AbortWithStatus(http.StatusTooManyRequests)
 			return
 		}

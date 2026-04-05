@@ -65,6 +65,10 @@ services:
   # 不正アクセスリスクを排除する
   # ============================================================
   kong:
+    # HIGH-005 監査対応: KONG_ADMIN_LISTEN を 0.0.0.0 にしないと Docker Desktop では
+    # ホストから 127.0.0.1:8001 のポートフォワードが機能しない
+    environment:
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001
     ports:
       - "127.0.0.1:${KONG_ADMIN_HOST_PORT:-8001}:8001"    # Admin API（開発用: ループバックのみ公開）
 
@@ -78,92 +82,114 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/auth_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/auth_db?sslmode=disable
+      # HIGH-02 監査対応: API キー HMAC-SHA256 ハッシュ生成に使用するペッパー値をホスト環境変数から注入する。
+      # .env.dev で定義されたローカル開発用固定値を使用する。本番環境では Vault から注入すること。
+      - API_KEY_PEPPER=${API_KEY_PEPPER}
 
   config-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/config_db?sslmode=disable
+      # config スキーマのテーブルに直接アクセスするため search_path を設定する（database.rs と同様）
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/config_db?sslmode=disable&options=-c%20search_path%3Dconfig,public
 
   saga-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
+      # CRIT-01 監査対応: ADR-0060 で saga は k1s0_saga 専用 DB に移行済みのため修正する。
+      # 誤った k1s0_system への接続を防ぎ、config.docker.yaml の database.name と一致させる。
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_saga?sslmode=disable
 
   dlq-manager:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       # init-db/05-dlq-schema.sql が dlq_db に dlq スキーマを作成するため接続先を dlq_db に修正する（H-6 監査対応）
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/dlq_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/dlq_db?sslmode=disable
 
   featureflag-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/featureflag_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/featureflag_db?sslmode=disable
 
   ratelimit-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/ratelimit_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/ratelimit_db?sslmode=disable
       # serde_yaml が redis.url の "${REDIS_PASSWORD:-dev}" を展開しないため REDIS_URL で直接指定する（C-4 監査対応）
-      - REDIS_URL=redis://:dev@redis:6379
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-dev}@redis:6379
 
   # テナントサービス: config.docker.yaml に database セクションがないため DATABASE_URL で設定する
   tenant-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/tenant_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/tenant_db?sslmode=disable
 
   # Vault サービス: DATABASE_URL で接続設定を直接指定する
   vault-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/vault_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/vault_db?sslmode=disable
 
   # API Registry: DATABASE_URL で接続設定を直接指定する
   api-registry-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/api_registry_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/api_registry_db?sslmode=disable
 
   app-registry-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/app_registry_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/app_registry_db?sslmode=disable
 
   event-monitor-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      # event_monitor スキーマは k1s0_system 内に配置する（18-event-monitor-schema.sql で作成）
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_system?sslmode=disable
+      # event_monitor スキーマは k1s0_event_monitor 専用 DB 内に配置する（18-event-monitor-schema.sql 参照）
+      # CRIT-001 監査対応: k1s0_system から k1s0_event_monitor に分離済み。k1s0_system への誤接続を修正。
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_event_monitor?sslmode=disable
 
   event-store-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/event_store_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/event_store_db?sslmode=disable
 
   file-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/file_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/file_db?sslmode=disable
 
   master-maintenance-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/k1s0_system?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_system?sslmode=disable
 
   navigation-rust:
     <<: *dev-auth-bypass
@@ -175,55 +201,66 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/notification_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/notification_db?sslmode=disable
 
   policy-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/policy_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/policy_db?sslmode=disable
 
   quota-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/quota_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/quota_db?sslmode=disable
 
   rule-engine-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/rule_engine_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/rule_engine_db?sslmode=disable
+      # DOCKER-MED-003 対応: rule-engine の in-memory バックエンドを解消するため Kafka 設定を追加
+      - KAFKA_BROKERS=kafka:9092
 
   scheduler-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/scheduler_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/scheduler_db?sslmode=disable
 
   search-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/search_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/search_db?sslmode=disable
 
   service-catalog-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/service_catalog_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/service_catalog_db?sslmode=disable
 
   session-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/session_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/session_db?sslmode=disable
 
   workflow-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
-      - DATABASE_URL=postgres://dev:dev@postgres:5432/workflow_db?sslmode=disable
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/workflow_db?sslmode=disable
 
   # GraphQL Gateway — 認証バイパス有効化
   graphql-gateway-rust:
@@ -246,21 +283,24 @@ services:
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dtask_service
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://k1s0:${K1S0_DB_PASSWORD:-dev-k1s0-local}@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dtask_service
 
   board-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dboard_service
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://k1s0:${K1S0_DB_PASSWORD:-dev-k1s0-local}@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dboard_service
 
   activity-rust:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dactivity_service
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://k1s0:${K1S0_DB_PASSWORD:-dev-k1s0-local}@postgres:5432/k1s0_service?sslmode=disable&options=--search_path%3Dactivity_service
 
   # ============================================================
   # Business プロファイル — 認証バイパス有効化 + DATABASE_URL
@@ -270,7 +310,8 @@ services:
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
       # search_path を指定しないと sqlx が public スキーマに _sqlx_migrations を作成しようとして権限エラーになる
-      - DATABASE_URL=postgres://k1s0:dev-k1s0-local@postgres:5432/k1s0_business?sslmode=disable&options=--search_path%3Dproject_master
+      # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
+      - DATABASE_URL=postgres://k1s0:${K1S0_DB_PASSWORD:-dev-k1s0-local}@postgres:5432/k1s0_business?sslmode=disable&options=--search_path%3Dproject_master
 
   # ============================================================
   # Vault — 開発環境専用の dev モード設定（L-13 監査対応）

@@ -401,6 +401,220 @@ mod tests {
     }
 
     // =========================================================================
+    // keyset ページネーションのテスト（InMemorySagaRepository使用）
+    // =========================================================================
+
+    /// cursor ページネーションで連続したページが重複なく取得できることを検証する
+    #[tokio::test]
+    async fn test_list_cursor_first_page() {
+        let repo = InMemorySagaRepository::new();
+
+        // 5件のSagaを時刻が異なるように作成する
+        let mut all_sagas = Vec::new();
+        for i in 0..5 {
+            let saga = make_saga(&format!("workflow-{}", i));
+            repo.create(&saga).await.unwrap();
+            all_sagas.push(saga);
+            // created_at を確実に異なる値にする
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+
+        // keyset ページネーションは DESC 順で取得するため、
+        // 最新（後で作成）のものが先に返る。
+        // 全5件を created_at DESC, id DESC でソートして期待値を作成する
+        all_sagas.sort_by(|a, b| {
+            b.created_at
+                .cmp(&a.created_at)
+                .then(b.saga_id.cmp(&a.saga_id))
+        });
+
+        // 最新レコードの cursor を使って最初の keyset ページを取得する（全件より1件新しい仮の cursor）
+        // 最初のページは cursor なしで取得するのが自然な使い方
+        let params_page1 = SagaListParams {
+            page: 1,
+            page_size: 2,
+            ..Default::default()
+        };
+        let (page1, total) = repo.list(&params_page1).await.unwrap();
+        assert_eq!(total, 5, "合計は5件");
+        assert_eq!(page1.len(), 2, "最初のページは2件");
+
+        // 2ページ目: OFFSET で page=2 として取得する
+        let params_page2 = SagaListParams {
+            page: 2,
+            page_size: 2,
+            ..Default::default()
+        };
+        let (page2, _) = repo.list(&params_page2).await.unwrap();
+        assert_eq!(page2.len(), 2, "2ページ目は2件");
+
+        // 3ページ目: OFFSET で page=3 として取得する
+        let params_page3 = SagaListParams {
+            page: 3,
+            page_size: 2,
+            ..Default::default()
+        };
+        let (page3, _) = repo.list(&params_page3).await.unwrap();
+        assert_eq!(page3.len(), 1, "3ページ目は1件");
+
+        // 全ページ間でIDが重複しないことを検証する
+        let page1_ids: Vec<_> = page1.iter().map(|s| s.saga_id).collect();
+        let page2_ids: Vec<_> = page2.iter().map(|s| s.saga_id).collect();
+        let page3_ids: Vec<_> = page3.iter().map(|s| s.saga_id).collect();
+
+        for id in &page1_ids {
+            assert!(!page2_ids.contains(id), "ページ1とページ2でIDが重複しない");
+            assert!(!page3_ids.contains(id), "ページ1とページ3でIDが重複しない");
+        }
+        for id in &page2_ids {
+            assert!(!page3_ids.contains(id), "ページ2とページ3でIDが重複しない");
+        }
+
+        // keyset ページネーション専用テスト:
+        // all_sagas の最新レコードから cursor を作成し、keyset で取得する
+        let newest = &all_sagas[0]; // DESC ソート済みの先頭
+        // newest より1ms新しい仮の cursor を作成（実際の keyset 最初のページ相当）
+        let fake_ts_ms = newest.created_at.timestamp_millis() + 1;
+        let fake_cursor = format!("{}_{}", fake_ts_ms, uuid::Uuid::max());
+
+        let params_keyset = SagaListParams {
+            page: 1,
+            page_size: 3,
+            cursor: Some(fake_cursor),
+            ..Default::default()
+        };
+        let (keyset_page, _) = repo.list(&params_keyset).await.unwrap();
+        // newest より古いレコードが全件返る（page_size=3 なので最大3件）
+        assert_eq!(keyset_page.len(), 3, "keyset: newest 以前のレコードが3件返る");
+
+        // 次の cursor でさらに取得する
+        let last = keyset_page.last().unwrap();
+        let next_cursor = format!("{}_{}", last.created_at.timestamp_millis(), last.saga_id);
+
+        let params_keyset2 = SagaListParams {
+            page: 1,
+            page_size: 3,
+            cursor: Some(next_cursor),
+            ..Default::default()
+        };
+        let (keyset_page2, _) = repo.list(&params_keyset2).await.unwrap();
+        assert_eq!(keyset_page2.len(), 2, "keyset 2ページ目: 残り2件");
+
+        // 2ページ間でIDが重複しないことを検証する
+        let keyset1_ids: Vec<_> = keyset_page.iter().map(|s| s.saga_id).collect();
+        let keyset2_ids: Vec<_> = keyset_page2.iter().map(|s| s.saga_id).collect();
+        for id in &keyset1_ids {
+            assert!(
+                !keyset2_ids.contains(id),
+                "keyset ページ間でIDが重複しない"
+            );
+        }
+    }
+
+    /// cursor ページネーションで最終ページが正しく取得できることを検証する
+    #[tokio::test]
+    async fn test_list_cursor_last_page() {
+        let repo = InMemorySagaRepository::new();
+
+        // 3件のSagaを作成する
+        for i in 0..3 {
+            let saga = make_saga(&format!("workflow-{}", i));
+            repo.create(&saga).await.unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+
+        // 最初の2件を OFFSET で取得する
+        let params = SagaListParams {
+            page: 1,
+            page_size: 2,
+            ..Default::default()
+        };
+        let (first_page, _) = repo.list(&params).await.unwrap();
+        assert_eq!(first_page.len(), 2);
+
+        // cursor を使って残り1件を取得する
+        let last = first_page.last().unwrap();
+        let cursor = format!("{}_{}", last.created_at.timestamp_millis(), last.saga_id);
+
+        let params_cursor = SagaListParams {
+            page: 1,
+            page_size: 2,
+            cursor: Some(cursor),
+            ..Default::default()
+        };
+        let (last_page, _) = repo.list(&params_cursor).await.unwrap();
+        assert_eq!(last_page.len(), 1, "最後のページは1件のみ");
+    }
+
+    /// cursor ページネーションで無効な cursor を渡した場合に空リストが返ることを検証する
+    #[tokio::test]
+    async fn test_list_cursor_invalid_cursor_returns_empty() {
+        let repo = InMemorySagaRepository::new();
+
+        // Saga を1件作成する
+        let saga = make_saga("workflow-a");
+        repo.create(&saga).await.unwrap();
+
+        // 不正な cursor 形式を渡す
+        let params = SagaListParams {
+            page: 1,
+            page_size: 10,
+            cursor: Some("invalid_cursor_format".to_string()),
+            ..Default::default()
+        };
+        let (sagas, total) = repo.list(&params).await.unwrap();
+        // total はフィルタ前の全件数を返す
+        assert_eq!(total, 1);
+        // 不正な cursor では空リストが返る
+        assert_eq!(sagas.len(), 0, "不正な cursor では空リストが返る");
+    }
+
+    /// cursor ページネーションとフィルタの組み合わせを検証する
+    #[tokio::test]
+    async fn test_list_cursor_with_workflow_name_filter() {
+        let repo = InMemorySagaRepository::new();
+
+        // 異なるワークフロー名のSagaを作成する
+        for i in 0..3 {
+            let saga = make_saga("wf-target");
+            repo.create(&saga).await.unwrap();
+            // 別ワークフローも挟む
+            let other = make_saga(&format!("wf-other-{}", i));
+            repo.create(&other).await.unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+
+        // wf-target でフィルタして最初の2件を取得する
+        let params = SagaListParams {
+            workflow_name: Some("wf-target".to_string()),
+            page: 1,
+            page_size: 2,
+            ..Default::default()
+        };
+        let (first_page, total) = repo.list(&params).await.unwrap();
+        assert_eq!(total, 3, "wf-target は3件");
+        assert_eq!(first_page.len(), 2);
+
+        // cursor を使って wf-target の残り1件を取得する
+        let last = first_page.last().unwrap();
+        let cursor = format!("{}_{}", last.created_at.timestamp_millis(), last.saga_id);
+
+        let params_cursor = SagaListParams {
+            workflow_name: Some("wf-target".to_string()),
+            page: 1,
+            page_size: 2,
+            cursor: Some(cursor),
+            ..Default::default()
+        };
+        let (second_page, _) = repo.list(&params_cursor).await.unwrap();
+        assert_eq!(second_page.len(), 1, "フィルタ適用後の残り1件");
+        assert_eq!(
+            second_page[0].workflow_name, "wf-target",
+            "フィルタが正しく適用される"
+        );
+    }
+
+    // =========================================================================
     // 統合テスト（PostgreSQL必要）
     // =========================================================================
 

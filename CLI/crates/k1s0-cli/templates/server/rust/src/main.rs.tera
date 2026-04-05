@@ -1,3 +1,7 @@
+// H-018 監査対応: main 関数の戻り値を anyhow::Result<()> にし、
+// expect() による強制パニックを ? 演算子による適切なエラー伝播に置き換える。
+// anyhow クレートを Cargo.toml の dependencies に追加すること。
+use anyhow::Result;
 use axum::{routing::get, Json, Router};
 use serde_json::json;
 use std::net::SocketAddr;
@@ -17,8 +21,9 @@ mod usecase;
 
 use infra::config::Config;
 
+// H-018 監査対応: 起動エラーを anyhow::Result で伝播する（expect パニック廃止）
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
 {% if tier == "system" %}
     // --- Logger ---
     tracing_subscriber::registry()
@@ -28,8 +33,8 @@ async fn main() {
         .init();
 {% endif %}
     // --- Config ---
-    let config = Config::load("config/config.yaml")
-        .expect("Failed to load config");
+    // H-018 監査対応: ? 演算子でエラーを上位に伝播する（expect パニック廃止）
+    let config = Config::load("config/config.yaml")?;
 {% if tier != "system" %}
     // --- Telemetry (k1s0-telemetry) ---
     k1s0_telemetry::init_telemetry(&TelemetryConfig {
@@ -42,8 +47,7 @@ async fn main() {
         sample_rate: config.observability.trace.sample_rate,
         log_level: config.observability.log.level.clone(),
         log_format: config.observability.log.format.clone(),
-    })
-    .expect("Failed to init telemetry");
+    })?;
 
     // --- Auth Verifier (k1s0-auth) ---
     let _verifier = JwksVerifier::new(
@@ -51,22 +55,21 @@ async fn main() {
         &config.auth.jwt.issuer,
         &config.auth.jwt.audience,
         std::time::Duration::from_secs(600),
-    ).expect("Failed to create JWKS verifier");
+    )?;
 {% endif %}
 
 {% if has_database %}
     // --- Database ---
     let db_config = config.database.as_ref()
-        .expect("database config is required");
+        .ok_or_else(|| anyhow::anyhow!("database config is required"))?;
     let pool = infra::persistence::create_pool(db_config)
-        .await
-        .expect("Failed to connect to database");
+        .await?;
 {% endif %}
 
 {% if has_kafka %}
     // --- Kafka ---
     let kafka_config = config.kafka.as_ref()
-        .expect("kafka config is required");
+        .ok_or_else(|| anyhow::anyhow!("kafka config is required"))?;
     let producer = infra::messaging::Producer::new(kafka_config);
 {% endif %}
 
@@ -94,9 +97,9 @@ async fn main() {
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter.set_serving::<adapter::handler::grpc::proto::{{ service_name_snake }}_service_server::{{ service_name_pascal }}ServiceServer<adapter::handler::grpc::{{ service_name_pascal }}GrpcService>>().await;
 
+    // H-018 監査対応: アドレスパース失敗は ? で伝播する
     let grpc_addr: SocketAddr = format!("0.0.0.0:{}", config.server.grpc_port.unwrap_or(50051))
-        .parse()
-        .expect("Invalid gRPC address");
+        .parse()?;
     tracing::info!("gRPC server starting on {}", grpc_addr);
 
     tokio::spawn(async move {
@@ -105,6 +108,7 @@ async fn main() {
             .add_service(adapter::handler::grpc::proto::{{ service_name_snake }}_service_server::{{ service_name_pascal }}ServiceServer::new(grpc_handler))
             .serve(grpc_addr)
             .await
+            // tokio::spawn クロージャ内では ? が使用できないため expect を維持する
             .expect("gRPC server error");
     });
 {% endif %}
@@ -129,32 +133,45 @@ async fn main() {
         }))
         .merge(handler.routes())
         .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive());
+        // H-016 監査対応: 本番環境では ALLOWED_ORIGIN 環境変数から CORS 許可オリジンを設定する。
+        // 未設定の場合は開発用のすべてオリジン許可（permissive）を使用する。
+        .layer({
+            let origin = std::env::var("ALLOWED_ORIGIN").ok();
+            match origin {
+                Some(origin) => CorsLayer::new()
+                    .allow_origin(origin.parse::<axum::http::HeaderValue>().expect("Invalid ALLOWED_ORIGIN"))
+                    .allow_methods(tower_http::cors::Any)
+                    .allow_headers(tower_http::cors::Any),
+                None => CorsLayer::permissive(),
+            }
+        });
 
     // --- Server ---
+    // H-018 監査対応: アドレスパース失敗は ? で伝播する
     let addr: SocketAddr = format!("0.0.0.0:{}", config.server.port)
-        .parse()
-        .expect("Invalid address");
+        .parse()?;
     tracing::info!("server starting on {}", addr);
 
+    // H-018 監査対応: バインド失敗は ? で伝播する
     let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .expect("Failed to bind");
+        .await?;
 
     // --- Graceful Shutdown ---
+    // H-018 監査対応: サーバーエラーは ? で伝播する
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-        .await
-        .expect("Server error");
+        .await?;
 {% if tier != "system" %}
     k1s0_telemetry::shutdown();
 {% endif %}
+    Ok(())
 }
 
 async fn shutdown_signal() {
     let ctrl_c = async {
         tokio::signal::ctrl_c()
             .await
+            // シャットダウンシグナルハンドラは ? が使用できないため expect を維持する
             .expect("Failed to install Ctrl+C handler");
     };
 

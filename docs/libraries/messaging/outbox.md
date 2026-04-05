@@ -488,6 +488,67 @@ format!(
 - board-server: `board_service`
 - activity-server: `activity_service`
 
+## Dead Letter Queue（DLQ）仕様（M-007 監査対応）
+
+### DeadLetter ステータスへの遷移条件
+
+`OutboxMessage` は `mark_failed()` が呼ばれるたびにリトライ回数（`retry_count`）をインクリメントし、`retry_count >= max_retries`（デフォルト: 3）に達した時点でステータスが `DeadLetter` に遷移する。
+
+```
+Pending → Processing → (publish 失敗) → Failed → ... → DeadLetter
+                                                  ↑ retry_count が max_retries を超過した時点
+```
+
+状態遷移のコード（Rust 実装）:
+
+```rust
+// mark_failed() の実装（message.rs より）
+pub fn mark_failed(&mut self, error: impl Into<String>) {
+    self.retry_count += 1;
+    self.last_error = Some(error.into());
+    if self.retry_count >= self.max_retries {
+        self.status = OutboxStatus::DeadLetter;  // DLQ 相当のステータスに遷移
+    } else {
+        self.status = OutboxStatus::Failed;
+        // 指数バックオフ: 2^retry_count 秒後に再処理
+        let delay_secs = 2u64.pow(self.retry_count);
+        self.process_after = Utc::now() + chrono::Duration::seconds(delay_secs as i64);
+    }
+}
+```
+
+### 現在の DLQ 実装
+
+現在の実装では、メッセージブローカー（Kafka）への DLQ トピック転送は行わない。`DeadLetter` ステータスのメッセージは DB テーブル上に `status = 'DEAD_LETTER'` としてマークされたまま残る。
+
+| 項目 | 詳細 |
+|------|------|
+| DLQ トピックへの転送 | **なし**（現時点では未実装） |
+| DeadLetter メッセージの保管場所 | DB テーブル（`outbox_messages`）に `status = 'DEAD_LETTER'` として残存 |
+| DeadLetter メッセージの処理 | `OutboxProcessor.fetch_pending()` の対象外（`Pending` / `Failed` のみ取得） |
+| 再処理方法 | 手動で `status = 'PENDING'` に更新するか、個別スクリプトを実行する |
+| `delete_delivered()` の対象 | `Delivered` のみ。`DeadLetter` メッセージは削除されない |
+
+### DeadLetter メッセージの確認クエリ
+
+```sql
+-- DeadLetter 状態のメッセージを確認する（手動対応が必要）
+SELECT id, topic, partition_key, retry_count, last_error, created_at
+FROM outbox_messages
+WHERE status = 'DEAD_LETTER'
+ORDER BY created_at ASC;
+```
+
+### 将来の改善: DLQ トピックへの転送
+
+将来的には、`DeadLetter` 状態に遷移した際に専用の Kafka DLQ トピック（例: `k1s0.dlq.{original_topic}`）へ転送することを検討している。これにより:
+
+- DLQ メッセージの自動モニタリング（Kafka Consumer Lag 等）が可能になる
+- 再処理ワークフローを Kafka Streams で実装できる
+- DB テーブルの肥大化を防ぐ
+
+実装時は `OutboxPublisher` トレイトの拡張または `DlqPublisher` トレイトの追加で対応する予定。
+
 ## 関連ドキュメント
 
 - [system-library-概要](../_common/概要.md) — ライブラリ一覧・テスト方針

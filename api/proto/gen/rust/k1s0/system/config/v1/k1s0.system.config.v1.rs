@@ -40,8 +40,10 @@ pub struct ConfigEntry {
 /// GetConfigRequest は設定値取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetConfigRequest {
+    /// 名前空間は1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub namespace: ::prost::alloc::string::String,
+    /// キーは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
 }
@@ -58,6 +60,7 @@ pub struct GetConfigResponse {
 /// ListConfigsRequest は設定値一覧取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListConfigsRequest {
+    /// 名前空間は1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub namespace: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -81,8 +84,10 @@ pub struct ListConfigsResponse {
 /// UpdateConfigRequest は設定値更新リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct UpdateConfigRequest {
+    /// 名前空間は1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub namespace: ::prost::alloc::string::String,
+    /// キーは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
     /// JSON エンコード済みの値
@@ -109,8 +114,10 @@ pub struct UpdateConfigResponse {
 /// DeleteConfigRequest は設定値削除リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct DeleteConfigRequest {
+    /// 名前空間は1文字以上256文字以下であること
     #[prost(string, tag="1")]
     pub namespace: ::prost::alloc::string::String,
+    /// キーは1文字以上256文字以下であること
     #[prost(string, tag="2")]
     pub key: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
@@ -129,9 +136,10 @@ pub struct DeleteConfigResponse {
 /// GetServiceConfigRequest はサービス向け設定一括取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetServiceConfigRequest {
+    /// サービス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub service_name: ::prost::alloc::string::String,
-    /// dev | staging | prod
+    /// 環境は1文字以上64文字以下であること（dev, staging, prod 等）
     #[prost(string, tag="2")]
     pub environment: ::prost::alloc::string::String,
 }
@@ -185,6 +193,8 @@ pub struct WatchConfigResponse {
     pub changed_by: ::prost::alloc::string::String,
     /// Deprecated: use change_type_enum instead.
     /// CREATED, UPDATED, DELETED
+    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
+    #[deprecated]
     #[prost(string, tag="8")]
     pub change_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag="9")]
@@ -250,6 +260,7 @@ pub struct ConfigEditorSchema {
 /// GetConfigSchemaRequest は設定スキーマ取得リクエスト。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetConfigSchemaRequest {
+    /// サービス名は1文字以上128文字以下であること
     #[prost(string, tag="1")]
     pub service_name: ::prost::alloc::string::String,
 }

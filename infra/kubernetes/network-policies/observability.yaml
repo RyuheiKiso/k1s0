@@ -74,8 +74,22 @@ spec:
         - protocol: TCP
           port: 53
     # Grafana-Prometheus 等の同一 Namespace 内通信を許可する
+    # MED-007 監査対応: part-of: k1s0 podSelector は全 Pod にマッチする過剰許可だったため削除し、
+    # 実際に通信が必要なコンポーネントのみを個別 podSelector で明示的に列挙する。
+    # (OR 条件で評価されるため、part-of: k1s0 が存在すると他の指定が冗長になっていた)
     - to:
-        - podSelector: {}
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: prometheus
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: loki
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: jaeger
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: grafana
     # Prometheus が各 Tier からメトリクスを scrape するために許可する
     - to:
         - namespaceSelector:

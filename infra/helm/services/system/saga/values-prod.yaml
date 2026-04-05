@@ -1,5 +1,10 @@
 replicaCount: 2
 
+# B-MEDIUM-01 監査対応: 本番環境では pullPolicy を Always に設定する。
+# mutable タグ（latest 等）使用時にセキュリティパッチ適用済みの最新イメージを確実に取得するため。
+image:
+  pullPolicy: Always
+
 # M-12 監査対応: 本番・ステージング環境では alertmanager を必須にする
 alertmanager:
   required: true

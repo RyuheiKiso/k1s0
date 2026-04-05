@@ -19,7 +19,7 @@ import { Pagination } from "../../common/v1/types";
  */
 export interface EvaluatePolicyRequest {
     /**
-     * 評価対象 Policy ID
+     * 評価対象 Policy ID（1文字以上であること）
      *
      * @generated from protobuf field: string policy_id = 1
      */
@@ -65,6 +65,8 @@ export interface EvaluatePolicyResponse {
  */
 export interface GetPolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -113,6 +115,8 @@ export interface ListPoliciesResponse {
  */
 export interface CreatePolicyRequest {
     /**
+     * ポリシー名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -121,10 +125,14 @@ export interface CreatePolicyRequest {
      */
     description: string;
     /**
+     * Rego コンテンツは1文字以上であること
+     *
      * @generated from protobuf field: string rego_content = 3
      */
     regoContent: string;
     /**
+     * パッケージパスは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string package_path = 4
      */
     packagePath: string;
@@ -147,6 +155,8 @@ export interface CreatePolicyResponse {
  */
 export interface UpdatePolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -177,6 +187,8 @@ export interface UpdatePolicyResponse {
  */
 export interface DeletePolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -199,6 +211,8 @@ export interface DeletePolicyResponse {
  */
 export interface CreateBundleRequest {
     /**
+     * バンドル名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -243,6 +257,8 @@ export interface ListBundlesResponse {
  */
 export interface GetBundleRequest {
     /**
+     * バンドルIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -338,7 +354,7 @@ export interface PolicyBundle {
 class EvaluatePolicyRequest$Type extends MessageType<EvaluatePolicyRequest> {
     constructor() {
         super("k1s0.system.policy.v1.EvaluatePolicyRequest", [
-            { no: 1, name: "policy_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "policy_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "input_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
     }
@@ -464,7 +480,7 @@ export const EvaluatePolicyResponse = new EvaluatePolicyResponse$Type();
 class GetPolicyRequest$Type extends MessageType<GetPolicyRequest> {
     constructor() {
         super("k1s0.system.policy.v1.GetPolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetPolicyRequest>): GetPolicyRequest {
@@ -672,10 +688,10 @@ export const ListPoliciesResponse = new ListPoliciesResponse$Type();
 class CreatePolicyRequest$Type extends MessageType<CreatePolicyRequest> {
     constructor() {
         super("k1s0.system.policy.v1.CreatePolicyRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "rego_content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "package_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "rego_content", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 4, name: "package_path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 5, name: "bundle_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -796,7 +812,7 @@ export const CreatePolicyResponse = new CreatePolicyResponse$Type();
 class UpdatePolicyRequest$Type extends MessageType<UpdatePolicyRequest> {
     constructor() {
         super("k1s0.system.policy.v1.UpdatePolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "rego_content", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ }
@@ -910,7 +926,7 @@ export const UpdatePolicyResponse = new UpdatePolicyResponse$Type();
 class DeletePolicyRequest$Type extends MessageType<DeletePolicyRequest> {
     constructor() {
         super("k1s0.system.policy.v1.DeletePolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeletePolicyRequest>): DeletePolicyRequest {
@@ -1012,7 +1028,7 @@ export const DeletePolicyResponse = new DeletePolicyResponse$Type();
 class CreateBundleRequest$Type extends MessageType<CreateBundleRequest> {
     constructor() {
         super("k1s0.system.policy.v1.CreateBundleRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "policy_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "description", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ }
@@ -1212,7 +1228,7 @@ export const ListBundlesResponse = new ListBundlesResponse$Type();
 class GetBundleRequest$Type extends MessageType<GetBundleRequest> {
     constructor() {
         super("k1s0.system.policy.v1.GetBundleRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetBundleRequest>): GetBundleRequest {

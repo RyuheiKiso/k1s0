@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -208,18 +209,22 @@ func NewAppRegistryAppUpdater(config AppUpdaterConfig, currentVersion string) (*
 
 // FetchVersionInfo はバージョン情報を取得する。
 func (a *AppRegistryAppUpdater) FetchVersionInfo(ctx context.Context) (*AppVersionInfo, error) {
-	url := fmt.Sprintf("%s/api/v1/apps/%s/versions/latest", strings.TrimRight(a.config.ServerURL, "/"), a.config.AppID)
+	// FE-HIGH-001 対応: URL パスとクエリパラメータをエスケープする
+	// RFC 3986 準拠、インジェクション防止のため url.PathEscape / url.QueryEscape を使用する
+	rawURL := fmt.Sprintf("%s/api/v1/apps/%s/versions/latest",
+		strings.TrimRight(a.config.ServerURL, "/"),
+		url.PathEscape(a.config.AppID))
 
 	if a.config.Platform != "" {
-		url += "?platform=" + a.config.Platform
+		rawURL += "?platform=" + url.QueryEscape(a.config.Platform)
 		if a.config.Arch != "" {
-			url += "&arch=" + a.config.Arch
+			rawURL += "&arch=" + url.QueryEscape(a.config.Arch)
 		}
 	} else if a.config.Arch != "" {
-		url += "?arch=" + a.config.Arch
+		rawURL += "?arch=" + url.QueryEscape(a.config.Arch)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request: %v", err))
 	}
@@ -241,7 +246,9 @@ func (a *AppRegistryAppUpdater) FetchVersionInfo(ctx context.Context) (*AppVersi
 		return nil, NewConnectionError(fmt.Sprintf("unexpected status code: %d", resp.StatusCode))
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// FE-HIGH-002 対応: レスポンスボディのサイズを 1MB に制限する
+	// 無制限の io.ReadAll は悪意あるサーバーから大量データを送信された場合にメモリ枯渇を引き起こすリスクがある
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to read response body: %v", err))
 	}

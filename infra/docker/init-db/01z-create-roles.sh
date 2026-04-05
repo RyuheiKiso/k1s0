@@ -17,6 +17,17 @@
 #   k1s0_vault_rw   — vault サービス（シークレット管理）
 #   k1s0_ratelimit_rw — ratelimit サービス（レートリミット管理）（H-17 監査対応フォローアップ）
 #   k1s0_event_monitor_rw — event-monitor サービス（イベント監視）（C-08 監査対応）
+#   k1s0_featureflag_rw — featureflag サービス（フィーチャーフラグ管理）（H-006 監査対応）
+#   k1s0_event_store_rw — event-store サービス（イベントソーシング）（H-006 監査対応）
+#   k1s0_scheduler_rw  — scheduler サービス（スケジューラ管理）（H-006 監査対応）
+#   k1s0_policy_rw     — policy サービス（アクセスポリシー管理）（H-006 監査対応）
+#   k1s0_quota_rw      — quota サービス（クォータ管理）（H-006 監査対応）
+#   k1s0_rule_engine_rw — rule-engine サービス（ルールエンジン）（H-006 監査対応）
+#   k1s0_search_rw     — search サービス（全文検索管理）（H-006 監査対応）
+#   k1s0_file_rw       — file サービス（ファイル管理）（H-006 監査対応）
+#   k1s0_service_catalog_rw — service-catalog サービス（サービスカタログ管理）（H-006 監査対応）
+#   k1s0_api_registry_rw — api-registry サービス（API スキーマレジストリ）（H-006 監査対応）
+#   k1s0_app_registry_rw — app-registry サービス（アプリバージョン管理）（H-006 監査対応）
 #
 # 環境変数が未設定の場合は開発用デフォルト値にフォールバックする（本番では必ず設定すること）。
 # M-5 監査対応: 各ロールにどのサービスが使用するかコメントを追加。
@@ -89,110 +100,65 @@ $PSQL_CMD -c "CREATE ROLE k1s0_ratelimit_rw WITH LOGIN PASSWORD \$\$${K1S0_RATEL
 # event_monitor スキーマのみ DML 可。18-event-monitor-schema.sql の GRANT 文と対応する。
 $PSQL_CMD -c "CREATE ROLE k1s0_event_monitor_rw WITH LOGIN PASSWORD \$\$${K1S0_EVENT_MONITOR_PASSWORD:-dev-event-monitor}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-# 権限付与: スキーマが存在する場合のみ権限を付与する（スキーマ未存在時のエラーを回避）（H-2 監査対応）
-# 本番環境では Terraform の postgresql_grant リソースが権限を管理する
-# パスワードを含まないため HEREDOC で安全に実行できる
-$PSQL_CMD <<-EOSQL
+# H-006 監査対応: 以下11サービス専用ロールを追加する（既存の k1s0_auth_rw パターンに従う）
+# 各ロールは対応するスキーマのみに DML 権限を付与し、最小権限の原則を遵守する
 
-DO \$\$ BEGIN
-  -- auth スキーマへの DML 権限を k1s0_auth_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
-    GRANT USAGE ON SCHEMA auth TO k1s0_auth_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA auth TO k1s0_auth_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA auth TO k1s0_auth_rw;
-  END IF;
-END \$\$;
+# featureflag サービス専用ロール
+# 使用サービス: regions/system/server/rust/featureflag（フィーチャーフラグ管理）
+# featureflag スキーマのみ DML 可。06-featureflag-schema.sql と対応する。
+$PSQL_CMD -c "CREATE ROLE k1s0_featureflag_rw WITH LOGIN PASSWORD \$\$${K1S0_FEATUREFLAG_PASSWORD:-dev-featureflag}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- config スキーマへの DML 権限を k1s0_config_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'config') THEN
-    GRANT USAGE ON SCHEMA config TO k1s0_config_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA config TO k1s0_config_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA config TO k1s0_config_rw;
-  END IF;
-END \$\$;
+# event-store サービス専用ロール
+# 使用サービス: regions/system/server/rust/event-store（イベントソーシング）
+# eventstore スキーマのみ DML 可。10-event-store-schema.sql と対応する。
+$PSQL_CMD -c "CREATE ROLE k1s0_event_store_rw WITH LOGIN PASSWORD \$\$${K1S0_EVENT_STORE_PASSWORD:-dev-event-store}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- saga スキーマへの DML 権限を k1s0_saga_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'saga') THEN
-    GRANT USAGE ON SCHEMA saga TO k1s0_saga_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA saga TO k1s0_saga_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA saga TO k1s0_saga_rw;
-  END IF;
-END \$\$;
+# scheduler サービス専用ロール
+# 使用サービス: regions/system/server/rust/scheduler（スケジューラ管理）
+# scheduler スキーマのみ DML 可。19-scheduler-schema.sql と対応する。
+$PSQL_CMD -c "CREATE ROLE k1s0_scheduler_rw WITH LOGIN PASSWORD \$\$${K1S0_SCHEDULER_PASSWORD:-dev-scheduler}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- workflow スキーマへの DML 権限を k1s0_workflow_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'workflow') THEN
-    GRANT USAGE ON SCHEMA workflow TO k1s0_workflow_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA workflow TO k1s0_workflow_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA workflow TO k1s0_workflow_rw;
-  END IF;
-END \$\$;
+# policy サービス専用ロール
+# 使用サービス: regions/system/server/rust/policy（アクセスポリシー管理）
+# policy スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_policy_rw WITH LOGIN PASSWORD \$\$${K1S0_POLICY_PASSWORD:-dev-policy}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- dlq スキーマへの DML 権限を k1s0_dlq_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'dlq') THEN
-    GRANT USAGE ON SCHEMA dlq TO k1s0_dlq_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA dlq TO k1s0_dlq_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA dlq TO k1s0_dlq_rw;
-  END IF;
-END \$\$;
+# quota サービス専用ロール
+# 使用サービス: regions/system/server/rust/quota（クォータ管理）
+# quota スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_quota_rw WITH LOGIN PASSWORD \$\$${K1S0_QUOTA_PASSWORD:-dev-quota}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- notification スキーマへの DML 権限を k1s0_notification_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'notification') THEN
-    GRANT USAGE ON SCHEMA notification TO k1s0_notification_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA notification TO k1s0_notification_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA notification TO k1s0_notification_rw;
-  END IF;
-END \$\$;
+# rule-engine サービス専用ロール
+# 使用サービス: regions/system/server/rust/rule-engine（ルールエンジン）
+# rule_engine スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_rule_engine_rw WITH LOGIN PASSWORD \$\$${K1S0_RULE_ENGINE_PASSWORD:-dev-rule-engine}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- vault スキーマへの DML 権限を k1s0_vault_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'vault') THEN
-    GRANT USAGE ON SCHEMA vault TO k1s0_vault_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA vault TO k1s0_vault_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA vault TO k1s0_vault_rw;
-  END IF;
-END \$\$;
+# search サービス専用ロール
+# 使用サービス: regions/system/server/rust/search（全文検索管理）
+# search スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_search_rw WITH LOGIN PASSWORD \$\$${K1S0_SEARCH_PASSWORD:-dev-search}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- session スキーマへの DML 権限を k1s0_session_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'session') THEN
-    GRANT USAGE ON SCHEMA session TO k1s0_session_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA session TO k1s0_session_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA session TO k1s0_session_rw;
-  END IF;
-END \$\$;
+# file サービス専用ロール
+# 使用サービス: regions/system/server/rust/file（ファイル管理）
+# file スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_file_rw WITH LOGIN PASSWORD \$\$${K1S0_FILE_PASSWORD:-dev-file}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- tenant スキーマへの DML 権限を k1s0_tenant_rw ロールに付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'tenant') THEN
-    GRANT USAGE ON SCHEMA tenant TO k1s0_tenant_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA tenant TO k1s0_tenant_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA tenant TO k1s0_tenant_rw;
-  END IF;
-END \$\$;
+# service-catalog サービス専用ロール
+# 使用サービス: regions/system/server/rust/service-catalog（サービスカタログ管理）
+# service_catalog スキーマのみ DML 可。20-service-catalog-schema.sql と対応する。
+$PSQL_CMD -c "CREATE ROLE k1s0_service_catalog_rw WITH LOGIN PASSWORD \$\$${K1S0_SERVICE_CATALOG_PASSWORD:-dev-service-catalog}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- ratelimit スキーマへの DML 権限を k1s0_ratelimit_rw ロールに付与する（H-17 監査対応フォローアップ）
-  -- このブロックは 07-ratelimit-schema.sql 実行後に ratelimit スキーマが存在する場合のみ権限を付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'ratelimit') THEN
-    GRANT USAGE ON SCHEMA ratelimit TO k1s0_ratelimit_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ratelimit TO k1s0_ratelimit_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ratelimit TO k1s0_ratelimit_rw;
-  END IF;
-END \$\$;
+# api-registry サービス専用ロール
+# 使用サービス: regions/system/server/rust/api-registry（API スキーマレジストリ）
+# api_registry スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_api_registry_rw WITH LOGIN PASSWORD \$\$${K1S0_API_REGISTRY_PASSWORD:-dev-api-registry}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-DO \$\$ BEGIN
-  -- event_monitor スキーマへの DML 権限を k1s0_event_monitor_rw ロールに付与する（C-08 監査対応）
-  -- このブロックは 18-event-monitor-schema.sql 実行後に event_monitor スキーマが存在する場合のみ権限を付与する
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'event_monitor') THEN
-    GRANT USAGE ON SCHEMA event_monitor TO k1s0_event_monitor_rw;
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA event_monitor TO k1s0_event_monitor_rw;
-    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA event_monitor TO k1s0_event_monitor_rw;
-  END IF;
-END \$\$;
+# app-registry サービス専用ロール
+# 使用サービス: regions/system/server/rust/app-registry（アプリバージョン管理）
+# app_registry スキーマのみ DML 可
+$PSQL_CMD -c "CREATE ROLE k1s0_app_registry_rw WITH LOGIN PASSWORD \$\$${K1S0_APP_REGISTRY_PASSWORD:-dev-app-registry}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
-EOSQL
+# 権限付与は 99-finalize-grants.sh で全スキーマ作成後に実行する（HIGH-008 監査対応）
+# スキーマ作成（02〜22番台の SQL ファイル）が完了した後に権限付与することで、
+# IF EXISTS ガードによる権限付与スキップを防止する。
+echo "ロール作成完了。権限付与は 99-finalize-grants.sh で実行されます。"

@@ -17,10 +17,12 @@ pub struct SearchIndex {
     pub created_at: String,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct CreateIndexRequest {
     pub name: String,
     pub mapping_json: Vec<u8>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -28,19 +30,24 @@ pub struct CreateIndexResponse {
     pub index: SearchIndex,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
-pub struct ListIndicesRequest {}
+pub struct ListIndicesRequest {
+    pub tenant_id: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct ListIndicesResponse {
     pub indices: Vec<SearchIndex>,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct IndexDocumentRequest {
     pub index: String,
     pub document_id: String,
     pub document_json: Vec<u8>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +57,7 @@ pub struct IndexDocumentResponse {
     pub result: String,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct SearchRequest {
     pub index: String,
@@ -58,6 +66,7 @@ pub struct SearchRequest {
     pub from: u32,
     pub size: u32,
     pub facets: Vec<String>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -77,10 +86,12 @@ pub struct SearchHit {
     pub document_json: Vec<u8>,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct DeleteDocumentRequest {
     pub index: String,
     pub document_id: String,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -129,6 +140,7 @@ impl SearchGrpcService {
         }
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらインデックスを作成する。
     pub async fn create_index(
         &self,
         req: CreateIndexRequest,
@@ -149,6 +161,7 @@ impl SearchGrpcService {
             .execute(&CreateIndexInput {
                 name: req.name,
                 mapping,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -168,13 +181,18 @@ impl SearchGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらインデックス一覧を取得する。
     pub async fn list_indices(
         &self,
-        _req: ListIndicesRequest,
+        req: ListIndicesRequest,
     ) -> Result<ListIndicesResponse, GrpcError> {
-        let indices = self.list_indices_uc.execute().await.map_err(|e| match e {
-            ListIndicesError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let indices = self
+            .list_indices_uc
+            .execute(&req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                ListIndicesError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(ListIndicesResponse {
             indices: indices
@@ -189,6 +207,7 @@ impl SearchGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらドキュメントを登録する。
     pub async fn index_document(
         &self,
         req: IndexDocumentRequest,
@@ -204,6 +223,7 @@ impl SearchGrpcService {
             id: req.document_id.clone(),
             index_name: req.index.clone(),
             content,
+            tenant_id: req.tenant_id,
         };
 
         match self.index_document_uc.execute(&input).await {
@@ -219,6 +239,7 @@ impl SearchGrpcService {
         }
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながら検索を実行する。
     pub async fn search(&self, req: SearchRequest) -> Result<SearchResponse, GrpcError> {
         let page_size = if req.size == 0 { 10 } else { req.size };
         let from = req.from;
@@ -236,6 +257,7 @@ impl SearchGrpcService {
             size: page_size,
             filters,
             facets: req.facets,
+            tenant_id: req.tenant_id,
         };
 
         match self.search_uc.execute(&input).await {
@@ -269,6 +291,7 @@ impl SearchGrpcService {
         }
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらドキュメントを削除する。
     pub async fn delete_document(
         &self,
         req: DeleteDocumentRequest,
@@ -276,6 +299,7 @@ impl SearchGrpcService {
         let input = crate::usecase::delete_document::DeleteDocumentInput {
             index_name: req.index.clone(),
             doc_id: req.document_id.clone(),
+            tenant_id: req.tenant_id,
         };
 
         match self.delete_document_uc.execute(&input).await {
@@ -322,10 +346,15 @@ mod tests {
     #[tokio::test]
     async fn test_list_indices_success() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_list_indices().returning(|| Ok(vec![]));
+        mock.expect_list_indices().returning(|_| Ok(vec![]));
 
         let svc = make_service(mock);
-        let resp = svc.list_indices(ListIndicesRequest {}).await.unwrap();
+        let resp = svc
+            .list_indices(ListIndicesRequest {
+                tenant_id: "tenant-a".to_string(),
+            })
+            .await
+            .unwrap();
         assert!(resp.indices.is_empty());
     }
 
@@ -336,15 +365,16 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
-        mock.expect_index_document().returning(|_| Ok(()));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
+        mock.expect_index_document().returning(|_, _| Ok(()));
 
         let svc = make_service(mock);
         let req = IndexDocumentRequest {
             index: "products".to_string(),
             document_id: "doc-1".to_string(),
             document_json: serde_json::to_vec(&serde_json::json!({"name": "Widget"})).unwrap(),
+            tenant_id: "tenant-a".to_string(),
         };
         let resp = svc.index_document(req).await.unwrap();
 
@@ -360,10 +390,10 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
 
-        mock.expect_search().returning(|_| {
+        mock.expect_search().returning(|_, _| {
             let total = 1u64;
             Ok(SearchResult {
                 total,
@@ -392,6 +422,7 @@ mod tests {
             from: 0,
             size: 10,
             facets: vec![],
+            tenant_id: "tenant-a".to_string(),
         };
         let resp = svc.search(req).await.unwrap();
 

@@ -1,3 +1,9 @@
+# MED-07 監査対応: bff-proxy ステージング環境設定
+# 本番に近い構成で動作確認を行うためのステージング専用設定。
+# values.yaml（デフォルト）と values-prod.yaml との差分のみ記載する。
+# 機密値（client_secret, redis password 等）は Vault 参照を使用すること。
+
+# ステージングは本番の縮小版として 2 レプリカで運用する
 replicaCount: 2
 
 resources:
@@ -8,21 +14,103 @@ resources:
     cpu: 500m
     memory: 512Mi
 
+# ステージングは本番より小さいスケールレンジで運用する
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 5
 
+# H-08監査対応: ステージングでも Pod をノード間に分散配置し、本番と同等の可用性検証を行う
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - bff-proxy
+          topologyKey: kubernetes.io/hostname
+
+# H-06監査対応: ステージングでも Istio mTLS・DestinationRule を有効化し、本番と同等の通信セキュリティを検証する
+istio:
+  enabled: true
+  destinationRule:
+    enabled: true
+
 config:
   data:
     config.yaml: |
+      # ステージング環境固有の設定
+      # config.yaml（デフォルト）をベースとし、ステージング環境の差分のみ上書きする
       app:
+        # ステージング環境であることを明示する
         environment: staging
+
+      # ステージング用 Keycloak エンドポイントに接続する
+      auth:
+        discovery_url: "https://keycloak.staging.k1s0.internal/realms/k1s0"
+        client_id: "k1s0-bff"
+        # redirect_uri はステージングのフロントエンドドメインに合わせる
+        redirect_uri: "https://bff.staging.k1s0.internal/auth/callback"
+        post_logout_redirect_uri: "https://app.staging.k1s0.internal"
+        scopes:
+          - openid
+          - profile
+          - email
+
       session:
         redis:
+          # ステージングはシングル Redis（Sentinel 不使用）で運用する
           addr: redis.k1s0-system.svc.cluster.local:6379
+          # パスワードは Vault から注入される（vault.secrets 参照）
+          password: ""
+          db: 0
+          master_name: ""
+        ttl: "30m"
+        prefix: "bff:session:"
+        sliding: true
+
+      # CORS: ステージング用フロントエンドドメインのみを許可する
+      # 本番と同様にワイルドカード・localhost は使用しない
+      cors:
+        enabled: true
+        allow_origins:
+          - "https://app.staging.k1s0.internal"
+        credentials_paths:
+          - "/auth/"
+          - "/api/"
+        max_age_secs: 600
+
+      # CSRF 保護は本番と同等設定で有効化する
+      csrf:
+        enabled: true
+        header_name: "X-CSRF-Token"
+
+      # レート制限はステージングでも本番と同等設定で有効化し、動作確認する
+      rate_limit:
+        enabled: true
+        rps: 100
+        burst: 200
+
+      # ステージング用 upstream サービス（auth-server の staging エンドポイント）
+      upstream:
+        base_url: "http://auth-server.k1s0-system.svc.cluster.local:8080"
+        timeout: "30s"
+
       observability:
         log:
+          # ステージングは info レベルで詳細ログを取得し、本番前の問題を早期発見する
           level: info
         trace:
+          enabled: true
+          endpoint: "otel-collector.monitoring.svc.cluster.local:4317"
+          # ステージングはサンプリングレートを 50% に設定し、負荷とトレース量のバランスを取る
           sample_rate: 0.5
+          # ステージング内部通信は mTLS を使用するため insecure は無効にする
+          otlp_insecure: false
+        metrics:
+          enabled: true
+          path: /metrics

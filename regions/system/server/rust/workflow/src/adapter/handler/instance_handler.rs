@@ -1,10 +1,12 @@
 // インスタンス管理ハンドラ
 // ワークフローインスタンスの実行・取得・一覧・キャンセル操作を提供する
+// RUST-CRIT-001 対応: Claims から tenant_id を取得してテナント境界を適用する
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use k1s0_auth::Claims;
 
 use crate::usecase::cancel_instance::{CancelInstanceError, CancelInstanceInput};
 use crate::usecase::get_instance::{GetInstanceError, GetInstanceInput};
@@ -16,18 +18,37 @@ use super::dto::{
     InstanceStatusResponse, ListInstancesQuery,
 };
 
+/// Claims が存在する場合は tenant_id を返し、存在しない場合は "system" を返す
+fn tenant_id_from_claims(claims: Option<&Claims>) -> String {
+    claims
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 /// POST /api/v1/workflows/:id/execute
 /// 指定されたワークフローの新しいインスタンスを開始する
 pub async fn execute_workflow(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<ExecuteWorkflowRequest>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
+    // RUST-LOW-001 対応: initiator_id は JWT Claims の sub から取得する
+    // ユーザーが任意の initiator_id を指定することを防ぐためセキュリティ上重要
+    // Claims が存在しない場合（システム内部呼び出し等）はリクエストの値にフォールバックする
+    let initiator_id = claims
+        .as_ref()
+        .map(|e| e.0.sub.clone())
+        .or(req.initiator_id)
+        .unwrap_or_else(|| "system".to_string());
     // リクエストからユースケース入力を組み立てる
     let input = StartInstanceInput {
+        tenant_id,
         workflow_id: id.clone(),
         title: req.title,
-        initiator_id: req.initiator_id,
+        initiator_id,
         context: req.context,
     };
 
@@ -90,9 +111,12 @@ pub async fn execute_workflow(
 /// インスタンスのステータス情報を取得する
 pub async fn get_instance_status(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let input = GetInstanceInput { id: id.clone() };
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
+    let input = GetInstanceInput { tenant_id, id: id.clone() };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {
@@ -135,10 +159,14 @@ pub async fn get_instance_status(
 /// フィルタ条件に基づいてインスタンス一覧を取得する
 pub async fn list_instances(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListInstancesQuery>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     // クエリパラメータからユースケース入力を組み立てる
     let input = ListInstancesInput {
+        tenant_id,
         status: query.status,
         workflow_id: query.workflow_id,
         initiator_id: query.initiator_id,
@@ -194,9 +222,12 @@ pub async fn list_instances(
 /// 指定されたインスタンスの詳細情報を取得する
 pub async fn get_instance(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let input = GetInstanceInput { id: id.clone() };
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
+    let input = GetInstanceInput { tenant_id, id: id.clone() };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {
@@ -239,10 +270,14 @@ pub async fn get_instance(
 /// 実行中のインスタンスをキャンセルする
 pub async fn cancel_instance(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<CancelInstanceRequest>,
 ) -> impl IntoResponse {
+    // RLS テナント分離のため Claims から tenant_id を取得する
+    let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
     let input = CancelInstanceInput {
+        tenant_id,
         id: id.clone(),
         reason: req.reason,
     };

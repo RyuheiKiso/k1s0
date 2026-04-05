@@ -20,9 +20,8 @@ use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, BearerTok
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
-// ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
-// H-02 監査対応: AuditEventType/AuditResult は GraphQL スキーマの enum 定義に必要だが
-// graphql_handler.rs 内では直接参照されないためインポートを削除する
+// HIGH-014 監査対応: AuditEventType/AuditResult を GraphQL 入力型・クエリ引数として直接使用する
+use crate::domain::model::auth::{AuditEventType, AuditResult};
 use crate::domain::model::{
     ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
@@ -34,7 +33,7 @@ use crate::domain::model::{
     RejectTaskPayload, ResumeJobPayload, RetryNotificationPayload, RevokeAllSessionsPayload,
     RevokeSessionPayload, Role, RotateSecretPayload, SecretMetadata, SendNotificationPayload,
     ServiceHealth, Session, SetFeatureFlagPayload, SetSecretPayload, StartInstancePayload, Tenant,
-    TenantConnection, TenantStatus, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
+    TenantConnection, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
     UpdateServicePayload, UpdateTemplatePayload, UpdateTenantPayload, UpdateWorkflowPayload, User,
     UserError, VaultAuditLogEntry, WorkflowDefinition, WorkflowInstance, WorkflowTask,
 };
@@ -70,6 +69,9 @@ fn gql_error(code: &'static str, message: impl Into<String>) -> async_graphql::E
 /// M-15 監査対応: tonic::Status を直接受け取りステータスコードで分類する。
 /// usecase 層が tonic::Status を直接返す箇所ではこちらを使用すること。
 // H-02 監査対応: classify_domain_error と対になる関数。tonic::Status を直接受け取る usecase で使用予定
+// RUST-MED-004 監査対応: classify_from_grpc_status への移行は次フェーズで実施。
+// 現状では全 usecase が anyhow::Error に変換済みのため、tonic::Status を直接受け取れない。
+// 移行には全 usecase の返り値型を tonic::Status に統一する大規模リファクタリングが必要。
 #[allow(dead_code)]
 fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
     use crate::domain::error::GrpcErrorCategory;
@@ -80,6 +82,8 @@ fn classify_from_grpc_status(status: &tonic::Status) -> &'static str {
 /// M-15 監査対応: tonic::Status のエラーコード文字列表現（"status: Unauthenticated, ..."）を
 /// 考慮し、GrpcErrorCategory の型安全な分類を文字列解析の前段として適用する。
 /// usecase 層が anyhow::Error に変換済みの場合に使用する。
+// DEPRECATED: classify_from_grpc_status に移行予定（RUST-MED-004）。
+// 現状では usecase が anyhow::Error を返すため文字列マッチングに依存している。
 fn classify_domain_error(message: &str) -> &'static str {
     let lower = message.to_ascii_lowercase();
     // tonic::Status の to_string() 表現: "status: Unauthenticated, message: ..."
@@ -159,31 +163,73 @@ fn ensure_write_permission(ctx: &Context<'_>) -> FieldResult<()> {
 // --- Input types ---
 
 /// テナント作成の入力型
+/// C-003 監査対応: GraphQL スキーマの CreateTenantInput（4フィールド必須）に合わせて
+/// displayName, ownerId, plan フィールドを追加する。proto CreateTenantRequest と整合させる。
 #[derive(async_graphql::InputObject)]
 pub struct CreateTenantInput {
     /// テナント名（1〜255文字）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub name: String,
+    /// テナント表示名（1〜255文字）
+    #[graphql(validator(min_length = 1, max_length = 255))]
+    pub display_name: String,
+    /// オーナーユーザー UUID（必須）
+    #[graphql(validator(min_length = 1, max_length = 255))]
+    pub owner_id: String,
+    /// プラン名（free, standard, enterprise 等）（1〜64文字）
+    #[graphql(validator(min_length = 1, max_length = 64))]
+    pub plan: String,
 }
 
 /// テナント更新の入力型
+/// CRIT-007 対応: proto UpdateTenantRequest に合わせて displayName と plan に変更
+/// status 変更は suspendTenant/activateTenant 専用ミューテーションを使用すること
 #[derive(async_graphql::InputObject)]
 pub struct UpdateTenantInput {
-    /// テナント名（1〜255文字、省略可）
-    #[graphql(validator(min_length = 1, max_length = 255))]
-    pub name: Option<String>,
-    pub status: Option<TenantStatus>,
+    /// 表示名（1〜256文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 256))]
+    pub display_name: Option<String>,
+    /// プラン名（free, standard, enterprise 等、省略可）
+    #[graphql(validator(min_length = 1, max_length = 64))]
+    pub plan: Option<String>,
 }
 
 /// フィーチャーフラグ設定の入力型
+/// CRIT-007 監査対応: proto UpdateFlagRequest と整合させ、
+/// rollout_percentage/target_environments を廃止して variants/rules を直接受け付ける
 #[derive(async_graphql::InputObject)]
 pub struct SetFeatureFlagInput {
+    /// フラグの有効/無効
     pub enabled: bool,
-    /// ロールアウト割合（0〜100）
+    /// バリアント一覧（省略時は空リスト）
+    pub variants: Option<Vec<FlagVariantInput>>,
+    /// 評価ルール一覧（省略時は空リスト）
+    pub rules: Option<Vec<FlagRuleInput>>,
+}
+
+/// FlagVariant 入力型（proto FlagVariant と整合）
+#[derive(async_graphql::InputObject)]
+pub struct FlagVariantInput {
+    /// バリアント名
+    pub name: String,
+    /// バリアント値
+    pub value: String,
+    /// ウェイト（0〜100）
     #[graphql(validator(minimum = 0, maximum = 100))]
-    pub rollout_percentage: Option<i32>,
-    /// 対象環境リスト
-    pub target_environments: Option<Vec<String>>,
+    pub weight: i32,
+}
+
+/// FlagRule 入力型（proto FlagRule と整合）
+#[derive(async_graphql::InputObject)]
+pub struct FlagRuleInput {
+    /// 評価対象の属性名
+    pub attribute: String,
+    /// 比較演算子（EQ / NE / CONTAINS / GT / LT）
+    pub operator: String,
+    /// 比較値
+    pub value: String,
+    /// マッチ時に適用するバリアント名
+    pub variant: String,
 }
 
 /// サービス登録の入力型
@@ -245,20 +291,19 @@ pub struct UpdateServiceInput {
 /// - userId: JWT claims の sub フィールドから取得（なりすまし防止）
 /// - ipAddress: リクエストの X-Forwarded-For / RemoteAddr ヘッダから取得
 /// - userAgent: リクエストの User-Agent ヘッダから取得
+/// HIGH-014 監査対応: event_type/result を String から型安全な enum へ変更する。
 #[derive(async_graphql::InputObject)]
 pub struct RecordAuditLogInput {
-    /// イベント種別（1〜100文字）
-    #[graphql(validator(min_length = 1, max_length = 100))]
-    pub event_type: String,
+    /// 監査イベント種別（enum）
+    pub event_type: AuditEventType,
     /// リソース名（1〜255文字）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource: String,
     /// アクション名（1〜100文字）
     #[graphql(validator(min_length = 1, max_length = 100))]
     pub action: String,
-    /// 結果（1〜100文字）
-    #[graphql(validator(min_length = 1, max_length = 100))]
-    pub result: String,
+    /// 監査結果（enum）
+    pub result: AuditResult,
     /// リソースID（1〜255文字、省略可）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource_id: Option<String>,
@@ -825,8 +870,9 @@ impl QueryRoot {
         first: Option<i32>,
         after: Option<i32>,
         user_id: Option<String>,
-        event_type: Option<String>,
-        result: Option<String>,
+        // HIGH-014 監査対応: String → enum フィルタへ変更
+        event_type: Option<AuditEventType>,
+        result: Option<AuditResult>,
     ) -> FieldResult<AuditLogConnection> {
         ensure_read_permission(ctx)?;
         // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
@@ -836,8 +882,8 @@ impl QueryRoot {
                 first,
                 after,
                 user_id.as_deref(),
-                event_type.as_deref(),
-                result.as_deref(),
+                event_type,
+                result,
             )
             .await
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
@@ -1154,11 +1200,11 @@ impl MutationRoot {
         input: CreateTenantInput,
     ) -> FieldResult<CreateTenantPayload> {
         ensure_write_permission(ctx)?;
-        let claims = ctx.data::<Claims>().ok();
-        let owner_user_id = claims.map(|c| c.sub.as_str()).unwrap_or("unknown");
+        // C-003 監査対応: input の全フィールド（name, display_name, owner_id, plan）を渡す。
+        // JWT claims の owner_id よりも input.owner_id を優先する（スキーマ仕様に従う）。
         Ok(self
             .tenant_mutation
-            .create_tenant(&input.name, owner_user_id)
+            .create_tenant(&input.name, &input.display_name, &input.owner_id, &input.plan)
             .await)
     }
 
@@ -1169,14 +1215,14 @@ impl MutationRoot {
         input: UpdateTenantInput,
     ) -> FieldResult<UpdateTenantPayload> {
         ensure_write_permission(ctx)?;
-        let status_str = input.status.map(|s| match s {
-            TenantStatus::Active => "ACTIVE".to_string(),
-            TenantStatus::Suspended => "SUSPENDED".to_string(),
-            TenantStatus::Deleted => "DELETED".to_string(),
-        });
+        // CRIT-007 対応: display_name と plan を proto UpdateTenantRequest に直接渡す
         Ok(self
             .tenant_mutation
-            .update_tenant(id.as_str(), input.name.as_deref(), status_str.as_deref())
+            .update_tenant(
+                id.as_str(),
+                input.display_name.as_deref(),
+                input.plan.as_deref(),
+            )
             .await)
     }
 
@@ -1187,14 +1233,44 @@ impl MutationRoot {
         input: SetFeatureFlagInput,
     ) -> FieldResult<SetFeatureFlagPayload> {
         ensure_write_permission(ctx)?;
+        // SetFeatureFlagInput の variants/rules を proto 型に変換する
+        let proto_variants = input
+            .variants
+            .unwrap_or_default()
+            .into_iter()
+            .map(|v| {
+                crate::infrastructure::grpc::feature_flag_client::proto::k1s0::system::featureflag::v1::FlagVariant {
+                    name: v.name,
+                    value: v.value,
+                    weight: v.weight,
+                }
+            })
+            .collect();
+        // operator 文字列を i32 に変換する（proto enum Operator と対応させる）
+        let proto_rules = input
+            .rules
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| {
+                let op_i32 = match r.operator.to_uppercase().as_str() {
+                    "EQ" => 1,
+                    "NE" => 2,
+                    "CONTAINS" => 3,
+                    "GT" => 4,
+                    "LT" => 5,
+                    _ => 0,
+                };
+                crate::infrastructure::grpc::feature_flag_client::proto::k1s0::system::featureflag::v1::FlagRule {
+                    attribute: r.attribute,
+                    operator: op_i32,
+                    value: r.value,
+                    variant: r.variant,
+                }
+            })
+            .collect();
         match self
             .feature_flag_client
-            .set_flag(
-                &key,
-                input.enabled,
-                input.rollout_percentage,
-                input.target_environments,
-            )
+            .set_flag(&key, input.enabled, proto_variants, proto_rules)
             .await
         {
             Ok(flag) => Ok(SetFeatureFlagPayload {
@@ -1286,13 +1362,13 @@ impl MutationRoot {
         Ok(self
             .auth_mutation
             .record_audit_log(
-                &input.event_type,
+                input.event_type,
                 &gql_ctx.user_id,
                 &gql_ctx.ip_address,
                 &gql_ctx.user_agent,
                 &input.resource,
                 &input.action,
-                &input.result,
+                input.result,
                 input.resource_id.as_deref(),
                 input.trace_id.as_deref(),
             )
@@ -1991,89 +2067,117 @@ async fn healthz() -> Json<serde_json::Value> {
 }
 
 async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let tenant_status = match state.tenant_client.list_tenants(1, 1).await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let featureflag_status = match state.feature_flag_client.list_flags(None).await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let config_status = match state
-        .config_client
-        .get_config("__readyz__", "__readyz__")
-        .await
-    {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let navigation_status = match state.navigation_client.get_navigation("").await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let service_catalog_status = match state
-        .service_catalog_client
-        .list_services(1, 1, None, None, None)
-        .await
-    {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let auth_status = match state.auth_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let session_status = match state.session_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let vault_status = match state.vault_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let scheduler_status = match state.scheduler_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let notification_status = match state.notification_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-    let workflow_status = match state.workflow_client.health_check().await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
+    // HIGH-001 対応: 全バックエンドサービスを tokio::join! で並列チェックし、
+    // 直列実行による応答時間の累積（約4.1秒）を解消する。
+    // 各チェックには2秒のタイムアウトを設定し、5秒の healthcheck timeout に収まるようにする。
+    // essential サービス（auth/session/tenant/config）の失敗のみ not_ready とし、
+    // non-essential サービスの失敗は degraded として HTTP 200 で返す。
+    // MED-005 対応: workflow など1サービスの障害で gateway 全体が not_ready になる問題を解消する。
+    use std::time::Duration;
 
-    let ready = tenant_status == "ok"
+    // 各バックエンドチェックのタイムアウト（2秒）
+    let timeout = Duration::from_secs(2);
+
+    // 全11サービスを同時に並列実行する。
+    // AVAIL-001 対応: 各バックエンドサービスに gRPC Health Check Protocol を使って疎通確認する。
+    // Bearer token なしで接続できるため readyz が認証エラーで 503 になる問題を解消する。
+    // DOCKER-CRIT-001 対応: service-catalog は /api/v1/services ではなく /healthz を使用する。
+    // /api/v1/services は認証が必要なため readyz チェック時に 401 エラーが発生していた。
+    // /healthz は認証不要で呼び出し可能なため、ヘルスチェックに使用する。
+    let (
+        auth_result,
+        session_result,
+        tenant_result,
+        config_result,
+        featureflag_result,
+        navigation_result,
+        service_catalog_result,
+        vault_result,
+        scheduler_result,
+        notification_result,
+        workflow_result,
+    ) = tokio::join!(
+        tokio::time::timeout(timeout, state.auth_client.health_check()),
+        tokio::time::timeout(timeout, state.session_client.health_check()),
+        tokio::time::timeout(timeout, state.tenant_client.health_check()),
+        tokio::time::timeout(timeout, state.config_client.health_check()),
+        tokio::time::timeout(timeout, state.feature_flag_client.health_check()),
+        tokio::time::timeout(timeout, state.navigation_client.health_check()),
+        tokio::time::timeout(
+            timeout,
+            state.service_catalog_client.healthz()
+        ),
+        tokio::time::timeout(timeout, state.vault_client.health_check()),
+        tokio::time::timeout(timeout, state.scheduler_client.health_check()),
+        tokio::time::timeout(timeout, state.notification_client.health_check()),
+        tokio::time::timeout(timeout, state.workflow_client.health_check()),
+    );
+
+    // Result<Result<T, E>, Elapsed> をステータス文字列に変換するローカルヘルパー関数
+    fn to_status<T, E: std::fmt::Display>(
+        r: Result<Result<T, E>, tokio::time::error::Elapsed>,
+    ) -> String {
+        match r {
+            Ok(Ok(_)) => "ok".to_string(),
+            Ok(Err(e)) => format!("error: {}", e),
+            Err(_) => "error: timeout".to_string(),
+        }
+    }
+
+    // 各サービスの結果をステータス文字列に変換する
+    let auth_status = to_status(auth_result);
+    let session_status = to_status(session_result);
+    let tenant_status = to_status(tenant_result);
+    let config_status = to_status(config_result);
+    let featureflag_status = to_status(featureflag_result);
+    let navigation_status = to_status(navigation_result);
+    let service_catalog_status = to_status(service_catalog_result);
+    let vault_status = to_status(vault_result);
+    let scheduler_status = to_status(scheduler_result);
+    let notification_status = to_status(notification_result);
+    let workflow_status = to_status(workflow_result);
+
+    // essential サービス（基幹機能）が全て ok の場合のみ ready または degraded とする
+    let essential_ok = auth_status == "ok"
+        && session_status == "ok"
+        && tenant_status == "ok"
+        && config_status == "ok";
+
+    // non-essential を含む全サービスが ok かどうか確認する
+    let all_ok = essential_ok
         && featureflag_status == "ok"
-        && config_status == "ok"
         && navigation_status == "ok"
         && service_catalog_status == "ok"
-        && auth_status == "ok"
-        && session_status == "ok"
         && vault_status == "ok"
         && scheduler_status == "ok"
         && notification_status == "ok"
         && workflow_status == "ok";
-    let status_code = if ready {
-        StatusCode::OK
+
+    // ステータスと HTTP ステータスコードを決定する:
+    // - 全サービス ok → "ready" / 200
+    // - essential のみ ok → "degraded" / 200（non-essential の障害は許容）
+    // - essential に失敗あり → "not_ready" / 503
+    let (status_str, status_code) = if all_ok {
+        ("ready", StatusCode::OK)
+    } else if essential_ok {
+        ("degraded", StatusCode::OK)
     } else {
-        StatusCode::SERVICE_UNAVAILABLE
+        ("not_ready", StatusCode::SERVICE_UNAVAILABLE)
     };
 
     (
         status_code,
         Json(serde_json::json!({
-            "status": if ready { "ready" } else { "not_ready" },
+            "status": status_str,
             "checks": {
+                "auth_grpc": auth_status,
+                "session_grpc": session_status,
                 "tenant_grpc": tenant_status,
-                "featureflag_grpc": featureflag_status,
                 "config_grpc": config_status,
+                "featureflag_grpc": featureflag_status,
                 "navigation_grpc": navigation_status,
                 // service-catalog は REST 接続のため key 名を http に変更
                 "service_catalog_http": service_catalog_status,
-                "auth_grpc": auth_status,
-                "session_grpc": session_status,
                 "vault_grpc": vault_status,
                 "scheduler_grpc": scheduler_status,
                 "notification_grpc": notification_status,
@@ -2157,11 +2261,13 @@ fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Opt
         if token.is_empty() {
             return None;
         }
-        if let Some(bearer) = token
-            .strip_prefix("Bearer ")
-            .or_else(|| token.strip_prefix("bearer "))
+        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+        if token.len() >= BEARER_PREFIX_LEN
+            && token[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ")
         {
-            let trimmed = bearer.trim();
+            let trimmed = token[BEARER_PREFIX_LEN..].trim();
             if trimmed.is_empty() {
                 None
             } else {

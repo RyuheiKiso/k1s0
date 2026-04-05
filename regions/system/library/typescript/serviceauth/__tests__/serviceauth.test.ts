@@ -206,6 +206,43 @@ describe('HttpServiceAuthClient', () => {
       expect(second).toBe('Bearer test-token');
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
+
+    it('並行呼び出し時に getToken が1回のみ実行されること (H-017)', async () => {
+      // H-017 監査対応: thundering herd 問題の検証
+      // 並行して複数の getCachedToken() を呼び出しても、getToken()（= fetch）は1回しか呼ばれないことを確認する
+      mockFetch.mockReturnValueOnce(mockTokenResponse(3600));
+
+      // 並行して3回同時に呼び出す
+      const [result1, result2, result3] = await Promise.all([
+        client.getCachedToken(),
+        client.getCachedToken(),
+        client.getCachedToken(),
+      ]);
+
+      expect(result1).toBe('Bearer test-token');
+      expect(result2).toBe('Bearer test-token');
+      expect(result3).toBe('Bearer test-token');
+      // fetchは1回のみ呼ばれる（pending Promise の再利用による重複排除）
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('getToken エラー時に pending がクリアされ次回呼び出しで再試行できること (H-017)', async () => {
+      // H-017 監査対応: エラー発生後に pending がリセットされることを確認する
+      mockFetch.mockReturnValueOnce(
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('internal server error'),
+        } as Response),
+      );
+
+      await expect(client.getCachedToken()).rejects.toThrow(ServiceAuthError);
+
+      // エラー後に再試行できることを確認（pending がクリアされているため）
+      mockFetch.mockReturnValueOnce(mockTokenResponse(3600));
+      const result = await client.getCachedToken();
+      expect(result).toBe('Bearer test-token');
+    });
   });
 
   describe('validateSpiffeId', () => {

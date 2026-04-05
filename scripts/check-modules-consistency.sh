@@ -19,6 +19,8 @@ set -euo pipefail
 
 # C-01 対応: Windows/CI 環境での Python UTF-8 出力を保証する。
 # PYTHONIOENCODING が未設定の場合、日本語を含む YAML のパース・出力が文字化けする可能性がある。
+# MED-004 監査対応: PYTHONUTF8=1 で Python 3.7+ の UTF-8 モードを強制する。
+export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

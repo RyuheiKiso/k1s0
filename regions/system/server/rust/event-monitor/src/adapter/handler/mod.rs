@@ -39,6 +39,9 @@ pub struct AppState {
     pub auth_state: Option<AuthState>,
     /// DLQ クライアントが Noop の場合 true。health endpoint で degraded ステータスを返すために使用。
     pub dlq_noop: bool,
+    /// DB 接続プール。readyz エンドポイントで DB 疎通確認に使用する。
+    /// DB 設定がない場合（in-memory モード）は None。
+    pub db_pool: Option<Arc<sqlx::PgPool>>,
 }
 
 impl AppState {

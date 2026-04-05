@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::common::v1::{
     PaginationResult as ProtoPaginationResult, Timestamp as ProtoTimestamp,
 };
@@ -75,6 +77,16 @@ fn to_proto_bundle(bundle: PolicyBundleData) -> ProtoPolicyBundle {
     }
 }
 
+/// CRIT-005 対応: tonic Request の Extensions から Claims を取り出しテナント ID を返すヘルパー。
+/// Claims が存在しない場合（認証不要環境等）はデフォルト値 "system" を返す。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 pub struct PolicyServiceTonic {
     inner: Arc<PolicyGrpcService>,
 }
@@ -91,12 +103,15 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoEvaluatePolicyRequest>,
     ) -> Result<Response<ProtoEvaluatePolicyResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
             .evaluate_policy(EvaluatePolicyRequest {
                 policy_id: inner.policy_id,
                 input_json: inner.input_json,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -113,10 +128,15 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoGetPolicyRequest>,
     ) -> Result<Response<ProtoGetPolicyResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
-            .get_policy(GetPolicyRequest { id: inner.id })
+            .get_policy(GetPolicyRequest {
+                id: inner.id,
+                tenant_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -129,6 +149,8 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoListPoliciesRequest>,
     ) -> Result<Response<ProtoListPoliciesResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
@@ -141,6 +163,7 @@ impl PolicyService for PolicyServiceTonic {
                 page_size,
                 bundle_id: inner.bundle_id,
                 enabled_only: inner.enabled_only,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -160,6 +183,8 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoCreatePolicyRequest>,
     ) -> Result<Response<ProtoCreatePolicyResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -169,6 +194,7 @@ impl PolicyService for PolicyServiceTonic {
                 rego_content: inner.rego_content,
                 package_path: inner.package_path,
                 bundle_id: inner.bundle_id,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -182,6 +208,8 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoUpdatePolicyRequest>,
     ) -> Result<Response<ProtoUpdatePolicyResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -190,6 +218,7 @@ impl PolicyService for PolicyServiceTonic {
                 description: inner.description,
                 rego_content: inner.rego_content,
                 enabled: inner.enabled,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -203,10 +232,15 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoDeletePolicyRequest>,
     ) -> Result<Response<ProtoDeletePolicyResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
-            .delete_policy(DeletePolicyRequest { id: inner.id })
+            .delete_policy(DeletePolicyRequest {
+                id: inner.id,
+                tenant_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -220,6 +254,8 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoCreateBundleRequest>,
     ) -> Result<Response<ProtoCreateBundleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
@@ -228,6 +264,7 @@ impl PolicyService for PolicyServiceTonic {
                 description: inner.description,
                 enabled: inner.enabled,
                 policy_ids: inner.policy_ids,
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;
@@ -239,11 +276,13 @@ impl PolicyService for PolicyServiceTonic {
 
     async fn list_bundles(
         &self,
-        _request: Request<ProtoListBundlesRequest>,
+        request: Request<ProtoListBundlesRequest>,
     ) -> Result<Response<ProtoListBundlesResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let resp = self
             .inner
-            .list_bundles(ListBundlesRequest)
+            .list_bundles(ListBundlesRequest { tenant_id })
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -256,10 +295,15 @@ impl PolicyService for PolicyServiceTonic {
         &self,
         request: Request<ProtoGetBundleRequest>,
     ) -> Result<Response<ProtoGetBundleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let resp = self
             .inner
-            .get_bundle(GetBundleRequest { id: inner.id })
+            .get_bundle(GetBundleRequest {
+                id: inner.id,
+                tenant_id,
+            })
             .await
             .map_err(Into::<Status>::into)?;
 

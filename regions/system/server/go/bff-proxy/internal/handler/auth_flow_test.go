@@ -193,6 +193,7 @@ func newTestAuthHandler(oauthClient OAuthClient, store testStore) *AuthHandler {
 		store,
 		30*time.Minute,
 		24*time.Hour,
+		60*time.Second, // POLY-003 監査対応: exchangeCodeTTL（デフォルト 60s）
 		"https://app.example.com",
 		false,
 		"",

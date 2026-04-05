@@ -1,3 +1,4 @@
+use crate::domain::model::auth::{AuditEventType, AuditResult};
 use crate::domain::model::{AuditLogConnection, PermissionCheck, Role, User};
 use crate::infrastructure::grpc::AuthGrpcClient;
 use std::sync::Arc;
@@ -56,8 +57,8 @@ impl AuthQueryResolver {
         first: Option<i32>,
         after: Option<i32>,
         user_id: Option<&str>,
-        event_type: Option<&str>,
-        result: Option<&str>,
+        event_type: Option<AuditEventType>,
+        result: Option<AuditResult>,
     ) -> anyhow::Result<AuditLogConnection> {
         let page_size = first.unwrap_or(20);
         let page = after.map(|a| a + 1).unwrap_or(1);

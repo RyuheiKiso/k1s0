@@ -24,6 +24,10 @@ plugins:
     opt:
       - compile_well_known_types
 
+  # 注意: neoeinstein-tonic プラグインは tonic 0.13 互換のコードを生成する。
+  # workspace が tonic 0.12 を使用しているため、生成後に以下の手動修正が必要:
+  #   1. tonic_prost::ProstCodec -> tonic::codec::ProstCodec
+  #   2. tonic::body::Body (完全修飾パス) -> tonic::body::BoxBody
   - remote: buf.build/community/neoeinstein-tonic
     out: gen/rust
     opt:

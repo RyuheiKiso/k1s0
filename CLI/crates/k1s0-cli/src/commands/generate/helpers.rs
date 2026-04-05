@@ -13,9 +13,44 @@ struct DatabaseYaml {
     rdbms: Option<String>,
 }
 
+/// CLI-MED-003 監査対応: プロジェクトルートを解決するヘルパー関数。
+/// `K1S0_ROOT` 環境変数を優先し、未設定時はカレントディレクトリから
+/// `find_workspace_root` でワークスペースルートを探索する。
+/// どちらも見つからない場合は `None` を返す。
+// L-001 監査対応: doc コメント内のコード識別子をバッククォートで囲む（doc_markdown lint 対応）。
+fn resolve_project_root() -> Option<std::path::PathBuf> {
+    // 優先度1: K1S0_ROOT 環境変数が設定されている場合はそのパスを使用する
+    if let Ok(root) = std::env::var("K1S0_ROOT") {
+        let path = std::path::PathBuf::from(&root);
+        if path.is_dir() {
+            return Some(path);
+        }
+    }
+    // 優先度2: カレントディレクトリからワークスペースルートを探索する
+    if let Ok(cwd) = std::env::current_dir() {
+        if let Some(root) = k1s0_core::find_workspace_root(&cwd) {
+            return Some(root);
+        }
+    }
+    None
+}
+
 /// 既存ディレクトリを走査して名前一覧を返す。
+/// CLI-MED-003 監査対応: `base` パスがプロジェクトルートからの相対パスの場合は
+/// `resolve_project_root()` でルートを解決し、絶対パスに変換してから走査する。
 pub(super) fn scan_existing_dirs(base: &str) -> Vec<String> {
-    let path = Path::new(base);
+    // 相対パスの場合はプロジェクトルートを基準に解決する
+    let resolved = {
+        let p = Path::new(base);
+        if p.is_absolute() {
+            p.to_path_buf()
+        } else if let Some(root) = resolve_project_root() {
+            root.join(base)
+        } else {
+            p.to_path_buf()
+        }
+    };
+    let path = resolved.as_path();
     if !path.is_dir() {
         return Vec::new();
     }
@@ -34,22 +69,29 @@ pub(super) fn scan_existing_dirs(base: &str) -> Vec<String> {
 }
 
 /// 既存データベースを走査する。
+/// CLI-MED-003 監査対応: 検索パスをプロジェクトルートからの絶対パスに解決する。
 pub(super) fn scan_existing_databases() -> Vec<DbInfo> {
     let mut dbs = Vec::new();
-    let search_paths = &[
+    let relative_paths = &[
         "regions/system/database",
         "regions/business",
         "regions/service",
     ];
 
-    for base in search_paths {
-        scan_db_recursive(Path::new(base), &mut dbs);
+    let root = resolve_project_root();
+    for rel in relative_paths {
+        let base = if let Some(ref r) = root {
+            r.join(rel)
+        } else {
+            std::path::PathBuf::from(rel)
+        };
+        scan_db_recursive(&base, &mut dbs);
     }
 
     dbs
 }
 
-/// database.yaml を再帰的に探索して DB 情報を収集する。
+/// `database.yaml` を再帰的に探索して DB 情報を収集する。
 /// M-19 監査対応: 手動 `strip_prefix` パーサーから `serde_yaml` による型安全なデシリアライズに変更。
 fn scan_db_recursive(path: &Path, dbs: &mut Vec<DbInfo>) {
     if !path.is_dir() {

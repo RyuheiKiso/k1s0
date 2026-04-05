@@ -23,6 +23,10 @@ spec:
   template:
     metadata:
       annotations:
+        {{/* K8S-CRIT-001 対応: Vault Agent Injector がシークレットを Pod に注入するために必要なアノテーションを付与する。
+             vaultAnnotations が istioAnnotations より先に展開されることで、Vault の init コンテナが
+             Istio サイドカーより前に起動し、アプリ起動前にシークレットが確実にマウントされる。 */}}
+        {{- include "k1s0-common.vaultAnnotations" . | nindent 8 }}
         {{- include "k1s0-common.istioAnnotations" . | nindent 8 }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
@@ -62,9 +66,14 @@ spec:
             {{- toYaml .Values.container.args | nindent 12 }}
           {{- end }}
           ports:
+            {{- /* K8S-HELM-001 監査対応: gRPC 専用サービス（grpcOnly: true）の場合は HTTP ポートを公開しない。
+                 gRPC のみを使用するサービスに HTTP ポートを定義すると、未使用ポートが攻撃面を広げるリスクがある。
+                 例: saga, dlq-manager, api-registry などの純粋 gRPC サービス */}}
+            {{- if not (and .Values.container .Values.container.grpcOnly) }}
             - name: http
               containerPort: {{ if .Values.container }}{{ .Values.container.port | default 8080 }}{{ else }}8080{{ end }}
               protocol: TCP
+            {{- end }}
             {{- if and .Values.container .Values.container.grpcPort }}
             - name: grpc
               containerPort: {{ .Values.container.grpcPort }}
@@ -141,6 +150,10 @@ spec:
               mountPath: {{ if .Values.config }}{{ .Values.config.mountPath | default "/etc/app" }}{{ else }}/etc/app{{ end }}
               readOnly: true
             {{- with .Values.extraVolumeMounts }}
+            {{/* LOW-006 整合性確認済み: extraVolumeMounts と extraVolumes は対称的に実装されている。
+                 片方のみ定義した場合は Kubernetes が "volume not found" または "unused volume" で
+                 Pod 起動失敗となるため、values.yaml で両方セットで定義すること。
+                 例: extraVolumes に name: foo を定義したら extraVolumeMounts にも name: foo を定義する。 */}}
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:

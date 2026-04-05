@@ -1,5 +1,9 @@
 # k1s0-common Library Chart default values
 # These values serve as defaults and are typically overridden by service-specific values.yaml
+# DOC-LOW-001: Helm values 同期方針
+# このファイルはすべてのサービスの共通デフォルト値を定義する。
+# 各サービス固有の値は infra/helm/services/<tier>/<service>/values.yaml で上書きする。
+# ドキュメントとの同期は docs-check スキルで検証する（/docs-check コマンド参照）。
 
 # 共通設定
 nameOverride: ""
@@ -10,6 +14,15 @@ image:
   registry: harbor.internal.example.com
   repository: k1s0-service/app
   tag: ""                              # CI/CD で上書き
+  # B-MEDIUM-01 監査対応: IfNotPresent は開発・ステージング環境向けのデフォルト値。
+  # 本番環境では values-prod.yaml で Always にオーバーライドすること。
+  # （IfNotPresent はタグが不変な場合は効率的だが、mutable タグ使用時はセキュリティパッチが適用されないリスクがある）
+  # LOW-002 監査対応: 本番環境では pullPolicy を Always に上書きすること。
+  # 本番用 values-prod.yaml で pullPolicy: Always を設定し、セキュリティパッチ適用済みイメージへの更新を保証する。
+  # M-033 監査対応: 本番環境では values-prod.yaml で pullPolicy: Always を設定すること。
+  # 例: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
+  #   image:
+  #     pullPolicy: Always
   pullPolicy: IfNotPresent
 
 imagePullSecrets:
@@ -84,16 +97,20 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
-  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ、OOM 前にスケールアウトする余裕を確保する
+  # INFRA-MED-001 対応: OOM Kill 前にスケールアウトする余裕を確保するため 70% に修正
+  # L-13 監査対応: メモリ使用率閾値を 80% → 70% に引き下げ
+  # メモリ使用率によるスケールアウトを追加（AVAIL-003 監査対応）
+  # Kafka コンシューマや大量 JSON 処理サービスの OOM Kill を防止する
   targetMemoryUtilizationPercentage: 70
 
 # PodDisruptionBudget
-# I-2 対応: minAvailable を絶対値（1）から相対値（"50%"）に変更
-# 絶対値だとレプリカ数が少ない場合に可用性保証が不十分になるため、
-# レプリカ数に依存しない割合指定とすることで常に半数以上の Pod 稼働を保証する
+# MED-003 対応: replicaCount=1 の場合 "50%" は floor(0.5)=0 となり実質無効なため絶対値 1 に変更。
+# 絶対値 1 とすることで replicaCount に関わらず常に最低 1 Pod の稼働を保証する。
+# 例: replicaCount=2 なら 1Pod 保護 → ローリングアップデート時に同時停止可能な Pod は 1 つ
+# prod 環境で高速ロールアウトが必要な場合は各サービスの values-prod.yaml で値を調整すること
 pdb:
   enabled: true
-  minAvailable: "50%"
+  minAvailable: 1
 
 # L-9 監査対応: Ingress はデフォルト無効。
 # 外部トラフィックは原則として k1s0-system の Kong Gateway 経由でルーティングする。
@@ -129,6 +146,9 @@ config:
   data: {}                             # ConfigMap として作成
 
 # Vault Agent Injector
+# MED-004 監査対応: vault.role の共通デフォルト値は "service"。
+# 各サービス固有のポリシーがある場合は、個別の values.yaml で role を上書きすること。
+# ADR-0045 参照: per-service Vault ロール分離設計。
 vault:
   enabled: true
   role: "service"
@@ -200,8 +220,15 @@ istio:
 # pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない
 # L-8 監査対応: 本番環境の values.yaml では required: true を設定すること。
 # required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
+# L-010 監査対応: alertmanager.required のデフォルト値は false（開発環境用）。
+# 警告: 本番環境では必ず true に設定すること。false のままでは AlertManager が未設定でも
+# デプロイが成功してしまい、障害通知が届かない。
+# 設定方法: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
+#   alertmanager:
+#     required: true
+#     webhookUrl: "https://hooks.teams.microsoft.com/..."
 alertmanager:
-  required: false           # 本番環境では true に設定すること（L-8 監査対応: 障害通知欠落防止）
+  required: false           # 本番環境では true に設定すること（L-8/L-010 監査対応: 障害通知欠落防止）
   webhookUrl: ""            # Microsoft Teams デフォルト Webhook URL（環境別に上書きすること）
   criticalWebhookUrl: ""    # Microsoft Teams critical Webhook URL（環境別に上書きすること）
   warningWebhookUrl: ""     # Microsoft Teams warning Webhook URL（環境別に上書きすること）

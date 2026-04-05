@@ -14,6 +14,9 @@ pub struct Config {
     pub database: Option<DatabaseConfig>,
     #[serde(default)]
     pub storage: StorageConfig,
+    /// STATIC-CRITICAL-002: Cosign 署名検証設定
+    #[serde(default)]
+    pub cosign: CosignConfig,
 }
 
 impl Config {
@@ -182,6 +185,35 @@ impl Default for StorageConfig {
 
 fn default_storage_path() -> String {
     "/data/apps".to_string()
+}
+
+/// STATIC-CRITICAL-002: Cosign 署名検証設定。
+/// verify_enabled が true の場合、SubprocessCosignVerifier を使用して cosign CLI で検証する。
+#[derive(Debug, Clone, Deserialize)]
+pub struct CosignConfig {
+    /// 署名検証を有効にするフラグ。本番環境では true を推奨。開発環境は false（スタブ使用）。
+    #[serde(default = "default_cosign_verify_enabled")]
+    pub verify_enabled: bool,
+    /// Cosign 署名検証に使用する公開鍵ファイルのパス（verify_enabled が true の場合に必要）。
+    #[serde(default = "default_cosign_public_key_path")]
+    pub public_key_path: String,
+}
+
+impl Default for CosignConfig {
+    fn default() -> Self {
+        Self {
+            verify_enabled: default_cosign_verify_enabled(),
+            public_key_path: default_cosign_public_key_path(),
+        }
+    }
+}
+
+fn default_cosign_verify_enabled() -> bool {
+    false
+}
+
+fn default_cosign_public_key_path() -> String {
+    "/etc/cosign/cosign.pub".to_string()
 }
 
 pub fn parse_pool_duration(input: &str) -> Option<std::time::Duration> {

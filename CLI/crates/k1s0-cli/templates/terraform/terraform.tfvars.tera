@@ -120,6 +120,7 @@ kafka_namespace = "messaging"
 
 {% if enable_vault %}
 {% if environment == "prod" %}
+# TODO: デプロイ前に実際のホスト名に変更すること（L-013 監査対応: example.com はプレースホルダー）
 vault_address = "https://vault.internal.example.com:8200"
 {% elif environment == "staging" %}
 vault_address = "https://vault-staging.internal.example.com:8200"
@@ -156,6 +157,7 @@ secret_engines = {
 
 {% if enable_harbor %}
 {% if environment == "prod" %}
+# TODO: デプロイ前に実際のホスト名に変更すること（L-013 監査対応: example.com はプレースホルダー）
 harbor_url           = "https://harbor.internal.example.com"
 harbor_domain        = "harbor.internal.example.com"
 {% elif environment == "staging" %}

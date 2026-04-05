@@ -10,14 +10,22 @@ image:
 imagePullSecrets:
   - name: harbor-pull-secret
 
+# H-004 監査対応: アプリの grpc_port (50051) に合わせて K8s Service/container に gRPC ポートを追加
 container:
   port: 8080
+  grpcPort: 50051
+
+service:
+  grpcPort: 50051
 
 # H-002 監査対応: SecurityContext を明示しないと k1s0-common なしでは PSS 違反になる
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
   fsGroup: 65532
+  # PSS restricted 準拠: K8S-CRIT-001 対応
+  seccompProfile:
+    type: RuntimeDefault
 containerSecurityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
@@ -26,14 +34,17 @@ containerSecurityContext:
 
 vault:
   enabled: true
-  role: "service"
+  # K8S-HIGH-002〜004 監査対応: ADR-0045に従いVaultロールをサービス単位に個別化する
+  role: "board-rust"
   secrets:
     - path: "secret/data/k1s0/service/board/database"
       key: "password"
       mountPath: "/vault/secrets/db-password"
 
 # Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+# K8S-CRIT-002 対応: create: true を設定して専用 ServiceAccount を Helm で管理する
 serviceAccount:
+  create: true
   name: "board-rust"
 
 labels:
@@ -44,3 +55,60 @@ kafka:
 
 redis:
   enabled: false
+
+# ConfigMap に注入する設定値（regions/service/board/server/rust/board/config/default.yaml から引用）
+# 機密情報（DB パスワード）は Vault 経由で /vault/secrets/db-password に注入される。
+# 本番環境では database.host を実際の DB ホストに変更し、ssl_mode を "require" に設定すること。
+config:
+  mountPath: /etc/app
+  data:
+    config.yaml: |
+      app:
+        name: k1s0-board-server
+        version: "0.1.0"
+        environment: production
+
+      server:
+        host: "0.0.0.0"
+        port: 8080
+        # H-005 監査対応: 非標準ポート (9320) から標準 gRPC ポート (50051) に統一し NetworkPolicy の許可ルールと整合させる
+        grpc_port: 50051
+
+      # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      database:
+        host: "postgres.k1s0-service.svc.cluster.local"
+        port: 5432
+        name: k1s0_service
+        schema: board_service
+        user: k1s0
+        password: ""
+        ssl_mode: "require"
+        max_connections: 25
+        max_idle_conns: 5
+        conn_max_lifetime: 300
+
+      observability:
+        log:
+          level: info
+          format: json
+        trace:
+          enabled: true
+          endpoint: "http://otel-collector.observability:4317"
+          sample_rate: 1.0
+        metrics:
+          enabled: true
+          path: /metrics
+
+      kafka:
+        brokers:
+          - "kafka-0.messaging.svc.cluster.local:9093"
+        board_column_updated_topic: "k1s0.service.board.column_updated.v1"
+
+      # AuthConfig ネスト形式（ADR-0053 準拠）
+      auth:
+        jwt:
+          issuer: "https://auth.k1s0.internal.example.com/realms/k1s0"
+          audience: "k1s0-api"
+        jwks:
+          url: "https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/certs"
+          cache_ttl_secs: 300

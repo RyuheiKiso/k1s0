@@ -23,7 +23,9 @@ fn render_consul(service_name: &str, tier: &str) -> Option<(TempDir, Vec<String>
     let output_dir = tmp.path().join("output");
     fs::create_dir_all(&output_dir).unwrap();
 
-    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "consul").build();
+    let ctx = TemplateContextBuilder::new(service_name, tier, "go", "consul")
+        .try_build()
+        .unwrap();
 
     let mut engine = TemplateEngine::new(&tpl_dir).unwrap();
     let generated = engine.render_to_dir(&ctx, &output_dir).unwrap();

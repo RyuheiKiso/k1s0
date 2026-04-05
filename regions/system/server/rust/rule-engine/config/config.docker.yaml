@@ -22,3 +22,15 @@ database:
 cache:
   max_entries: 100000
   ttl_seconds: 60
+
+# H-011 監査対応: kafka セクションを追加してイベント発行を有効化する
+# 未設定の場合は no-op publisher が使用されルールエンジンのイベント発行が無効になる
+kafka:
+  # DOCKER-MED-003 修正: brokers は Vec<String> 型のため YAML シーケンス形式で記述する
+  # serde_yaml はシェル変数展開を行わないため、環境変数は DATABASE_URL 方式で
+  # docker-compose.dev.yaml の KAFKA_BROKERS 環境変数から startup.rs が読み込む
+  brokers:
+    - "kafka:9092"
+  # Docker 開発環境では PLAINTEXT を明示する（デフォルト SASL_SSL は OpenSSL が必要なため使用不可）
+  security_protocol: "PLAINTEXT"
+  topic: "k1s0.system.rule_engine.event.v1"

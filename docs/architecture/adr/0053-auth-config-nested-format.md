@@ -46,6 +46,7 @@ pub struct JwksConfig {
 1. **server-common の `AuthConfig` を更新**: nested 形式に変更し、全サービスがこの定義を使用する
 2. **saga / workflow の独自 AuthConfig を削除**: server-common の共通定義に統一する
 3. **回帰防止テスト**: `include_str!` を使用した config parse テストを各サービスに追加し、YAML と構造体の整合性を継続的に検証する
+4. **task / board / activity の `config/default.yaml` を修正**: フラット形式（`auth.jwks_url` 等）から nested 形式（`auth.jwt.*`, `auth.jwks.*`）へ変換し、Rust 構造体との整合性を回復する（CRIT-001 対応）
 
 ## 理由
 
@@ -78,10 +79,11 @@ pub struct JwksConfig {
 
 ## 参考
 
-- [ADR-0004: JWT 認証設計](0004-jwt-authentication.md)
+- [ADR-0008: JWT 秘密鍵ローテーション手順](0008-jwt-key-rotation.md)
 
 ## 更新履歴
 
 | 日付 | 変更内容 | 変更者 |
 |------|---------|--------|
 | 2026-03-29 | 初版作成 | @team |
+| 2026-04-01 | task / board / activity を適用対象として明示（CRIT-001 対応）。各サービスの config/default.yaml をフラット形式から nested 形式へ修正 | @team |

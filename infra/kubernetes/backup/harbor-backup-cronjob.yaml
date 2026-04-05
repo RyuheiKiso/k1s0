@@ -26,11 +26,16 @@ spec:
           containers:
             - name: harbor-backup
               image: postgres:17-alpine
-              # H-7 対応: 最小権限でコンテナを実行する（他のバックアップジョブと統一）
+              # INFRA-HIGH-001 対応: PSS restricted 準拠 - 読み取り専用ルートファイルシステム
+              # 非rootユーザーで実行し、特権昇格とLinuxケーパビリティを無効化する
+              # バックアップスクリプトの一時書き込み先は emptyDir ボリューム（tmp-dir）を使用する
               securityContext:
                 runAsNonRoot: true
                 runAsUser: 1000
                 allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                seccompProfile:
+                  type: RuntimeDefault
                 capabilities:
                   drop: ["ALL"]
               command:
@@ -43,8 +48,22 @@ spec:
 
                   mkdir -p "${BACKUP_DIR}"
 
+                  # K8S-MED-006 監査対応: pg_dump 失敗時に不完全なバックアップファイルを削除する trap を追加する
+                  # 部分的に書き込まれたダンプファイルが残ると、リストア時に破損バックアップを
+                  # 使用してしまうリスクがある。trap でクリーンアップを保証する。
+                  CURRENT_BACKUP_FILE=""
+                  cleanup_on_error() {
+                    if [ -n "${CURRENT_BACKUP_FILE}" ] && [ -f "${CURRENT_BACKUP_FILE}" ]; then
+                      echo "ERROR: pg_dump 失敗。不完全なバックアップファイルを削除します: ${CURRENT_BACKUP_FILE}"
+                      rm -f "${CURRENT_BACKUP_FILE}"
+                    fi
+                    exit 1
+                  }
+                  trap cleanup_on_error ERR
+
                   # Harbor データベースバックアップ
-                  BACKUP_FILE="${BACKUP_DIR}/harbor-db-${TIMESTAMP}.dump"
+                  CURRENT_BACKUP_FILE="${BACKUP_DIR}/harbor-db-${TIMESTAMP}.dump"
+                  BACKUP_FILE="${CURRENT_BACKUP_FILE}"
                   echo "Backing up Harbor database..."
                   pg_dump \
                     -h "${HARBOR_DB_HOST}" \
@@ -53,6 +72,8 @@ spec:
                     -Fc \
                     -f "${BACKUP_FILE}"
                   echo "Database backup completed: ${BACKUP_FILE}"
+                  CURRENT_BACKUP_FILE=""
+                  trap - ERR
 
                   # 90日より古いバックアップを削除
                   find "${BACKUP_DIR}" -name "harbor-db-*.dump" -mtime +90 -delete
@@ -76,6 +97,9 @@ spec:
               volumeMounts:
                 - name: backup-volume
                   mountPath: /backup
+                # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+                - name: tmp-dir
+                  mountPath: /tmp
               resources:
                 requests:
                   cpu: 200m
@@ -87,3 +111,6 @@ spec:
             - name: backup-volume
               persistentVolumeClaim:
                 claimName: backup-pvc
+            # INFRA-HIGH-001 対応: readOnlyRootFilesystem 有効時にスクリプトが /tmp に書き込めるよう emptyDir を追加する
+            - name: tmp-dir
+              emptyDir: {}

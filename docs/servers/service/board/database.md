@@ -49,7 +49,7 @@ Kanban ボードのカラム情報を管理する。`project_id` + `status_code`
 
 | カラム | 型 | 制約 | 説明 |
 | --- | --- | --- | --- |
-| id | UUID | PK | カラムの一意識別子 |
+| id | UUID | PK | カラムの一意識別子（アプリケーション側で UUID を生成して挿入） |
 | project_id | TEXT | NOT NULL, UNIQUE(project_id, status_code) | プロジェクト ID |
 | status_code | TEXT | NOT NULL, UNIQUE(project_id, status_code) | ステータスコード（project-master の status_definitions.code と対応） |
 | task_count | INTEGER | NOT NULL, DEFAULT 0, CHECK >= 0 | 現在のタスク数 |
@@ -58,13 +58,16 @@ Kanban ボードのカラム情報を管理する。`project_id` + `status_code`
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時 |
 
+<!-- DOCS-HIGH-003 対応: migration の実装に合わせて id カラムの DEFAULT を削除（2026-04-03） -->
+<!-- 実装では UUID はアプリケーション（Rust）側で生成し DB に挿入するため DEFAULT gen_random_uuid() は不要 -->
+<!-- wip_limit の CHECK 制約は実装に含まれていないため設計書からも削除する -->
 ```sql
 CREATE TABLE board_service.board_columns (
-    id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    id           UUID         PRIMARY KEY,
     project_id   TEXT         NOT NULL,
     status_code  TEXT         NOT NULL,
     task_count   INTEGER      NOT NULL DEFAULT 0 CHECK (task_count >= 0),
-    wip_limit    INTEGER      NOT NULL DEFAULT 0 CHECK (wip_limit >= 0),
+    wip_limit    INTEGER      NOT NULL DEFAULT 0,
     version      INTEGER      NOT NULL DEFAULT 1,
     created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

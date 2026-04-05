@@ -53,19 +53,28 @@ rules:
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses", "networkpolicies"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # RBAC リソースの管理（H-6 監査対応: clusterroles/clusterrolebindings の操作権限は k1s0-security-admin に分離）
-  # k1s0-admin は Namespace スコープの roles/rolebindings のみ操作可能にし、権限エスカレーションリスクを軽減する
+  # RBAC リソースの参照（HIGH-002 監査対応: 権限エスカレーション防止のため read-only に制限）
+  # k1s0-admin は Namespace スコープの roles/rolebindings を参照のみに限定する。
+  # 理由1: Namespace RoleBinding で ClusterRole を参照することで、
+  #         自身の権限を実質的に ClusterRole レベルまで昇格させる経路が存在する。
+  # 理由2: clusterroles/clusterrolebindings と同様の最小権限原則を Namespace スコープにも適用する。
+  # roles/rolebindings の作成・変更が必要な場合は k1s0-security-admin（セキュリティチーム専用）が担当する。
+  # clusterroles/clusterrolebindings の管理は k1s0-security-admin のみ（ADR-0038 の最小権限原則）。
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "rolebindings"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch"]
   # オートスケーリングの管理
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  # ストレージの管理
+  # MED-006 監査対応: ストレージリソースの権限を参照のみに限定する。
+  # storageclasses と persistentvolumes はクラスタ全体のリソースであり、
+  # k1s0-admin が delete/patch 権限を持つと意図しないストレージ削除によるデータ損失リスクがある。
+  # アプリケーション運用に必要な参照（get, list, watch）のみを許可し、
+  # ストレージの構成変更は k1s0-security-admin または外部プロビジョナーに委任する。
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses", "persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch"]
 ---
 # セキュリティ管理者用 Role（H-6 監査対応: ADR-0038）
 # ClusterRole/ClusterRoleBinding への操作権限を分離し、セキュリティチームのみに付与する。

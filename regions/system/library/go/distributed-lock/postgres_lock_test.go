@@ -72,12 +72,12 @@ func TestNewPostgresLockFromURL_CustomPrefix(t *testing.T) {
 	assert.Equal(t, "custom", l.keyPrefix)
 }
 
-// DBがnilの場合にAcquireがパニックすることを確認する。
+// MED-05 監査対応: nil DB の場合はパニックではなくエラーを返すことを確認する。
 func TestPostgresLock_Acquire_NilDB(t *testing.T) {
 	l := NewPostgresLock(nil)
-	assert.Panics(t, func() {
-		_, _ = l.Acquire(context.Background(), "key1", 0)
-	})
+	_, err := l.Acquire(context.Background(), "key1", 0)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "db が初期化されていません")
 }
 
 // 取得していないキーのReleaseがErrLockNotFoundを返すことを確認する。

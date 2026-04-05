@@ -34,11 +34,13 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: ingress
       # I-1 対応: ポート制限を追加し、service Tier アプリケーションの許可ポートを明示的に制限
+      # H-005 確認: H-004 で activity/board/task/scheduler/workflow/quota の container.grpcPort および
+      #             service.grpcPort を 50051 に統一したため、このポリシーの変更は不要。
       ports:
         - protocol: TCP
           port: 8080    # HTTP REST API ポート
         - protocol: TCP
-          port: 50051   # gRPC ポート
+          port: 50051   # gRPC ポート（H-004 対応済みサービスはすべてこのポートを使用）
         - protocol: TCP
           port: 9090    # Prometheus メトリクスポート
 ---

@@ -283,10 +283,17 @@ String? validateFieldValue(ConfigFieldSchema schema, ConfigValue value) {
       return value is ListConfigValue ? null : 'Enter an array';
     case ConfigFieldType.string:
       if (value is! StringConfigValue) return 'Enter a string';
-      if (schema.pattern != null &&
-          value.value.isNotEmpty &&
-          !RegExp(schema.pattern!).hasMatch(value.value)) {
-        return 'Must match ${schema.pattern}';
+      if (schema.pattern != null && value.value.isNotEmpty) {
+        // 不正な正規表現パターンによる FormatException を安全にキャッチする
+        // 不正パターンはバリデーションエラーとして扱い、アプリのクラッシュを防ぐ
+        try {
+          if (!RegExp(schema.pattern!).hasMatch(value.value)) {
+            return 'Must match ${schema.pattern}';
+          }
+        } on FormatException catch (e) {
+          // 不正な正規表現パターンの場合はバリデーションエラーとして扱う
+          return '不正な正規表現パターンです: ${e.message}';
+        }
       }
       return null;
   }

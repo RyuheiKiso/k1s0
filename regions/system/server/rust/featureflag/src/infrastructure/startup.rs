@@ -324,6 +324,14 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = ([0, 0, 0, 0], cfg.server.grpc_port).into();
     info!("gRPC server starting on {}", grpc_addr);
 
+    // gRPC Health Check Protocol サービスを登録する。
+    // readyz エンドポイントや Kubernetes の livenessProbe/readinessProbe が
+    // Bearer token なしでヘルスチェックできるようにするため。
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<FeatureFlagServiceServer<crate::adapter::grpc::FeatureFlagServiceTonic>>()
+        .await;
+
     // gRPC グレースフルシャットダウン用シグナル
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_metrics = metrics;
@@ -331,6 +339,7 @@ pub async fn run() -> anyhow::Result<()> {
         tonic::transport::Server::builder()
             .layer(grpc_auth_layer)
             .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            .add_service(health_service)
             .add_service(FeatureFlagServiceServer::new(featureflag_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;
@@ -413,9 +422,13 @@ impl InMemoryFeatureFlagRepository {
     }
 }
 
+/// STATIC-CRITICAL-001 監査対応: InMemoryFeatureFlagRepository は全メソッドで
+/// tenant_id を受け取るが、インメモリ実装ではフラグキーのみでアクセスする。
+/// 本実装はローカル開発・テスト用のフォールバックであり、本番では PostgreSQL 実装を使用する。
+/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 #[async_trait::async_trait]
 impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
-    async fn find_by_key(&self, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         let flags = self.flags.read().await;
         flags
             .get(flag_key)
@@ -423,24 +436,24 @@ impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         let flags = self.flags.read().await;
         Ok(flags.values().cloned().collect())
     }
 
-    async fn create(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let mut flags = self.flags.write().await;
         flags.insert(flag.flag_key.clone(), flag.clone());
         Ok(())
     }
 
-    async fn update(&self, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let mut flags = self.flags.write().await;
         flags.insert(flag.flag_key.clone(), flag.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         let mut flags = self.flags.write().await;
         let key = flags
             .iter()
@@ -454,7 +467,7 @@ impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
         }
     }
 
-    async fn exists_by_key(&self, flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         let flags = self.flags.read().await;
         Ok(flags.contains_key(flag_key))
     }

@@ -7,7 +7,14 @@ Rust で実装する。
 
 ### RBAC対応表
 
+> DOC-CRIT-002 監査対応: [ADR-0011](../../../../docs/architecture/adr/0011-rbac-admin-privilege-separation.md) に準拠した `resource/action` 形式でリソース名を明記。
+
 service tier のロールに基づいてアクセス制御する。
+
+| リソース/アクション | 対応ロール |
+|-----------------|---------|
+| `tasks/read` | svc_viewer / svc_operator / svc_admin / sys_admin |
+| `tasks/write` | svc_operator / svc_admin / sys_admin |
 
 | ロール | read | write |
 |--------|------|-------|
@@ -18,8 +25,8 @@ service tier のロールに基づいてアクセス制御する。
 
 | アクション | 対象エンドポイント |
 |-----------|-----------------|
-| `read` | GET（タスク一覧・詳細・チェックリスト取得） |
-| `write` | POST / PUT（タスク作成・更新・ステータス遷移） |
+| `tasks/read` | GET（タスク一覧・詳細・チェックリスト取得） |
+| `tasks/write` | POST / PUT（タスク作成・更新・ステータス遷移） |
 
 実装: `adapter/middleware/rbac.rs` の `require_permission` + `k1s0-server-common` の `check_permission(Tier::Service, ...)` を使用。認証は Bearer JWT 検証（JWKS）。`/healthz`・`/readyz`・`/metrics` は認証除外。
 
@@ -468,12 +475,14 @@ proto ファイル参照: `api/proto/k1s0/service/task/v1/task.proto`
 
 ### kafka
 
-| フィールド | 型 | 説明 |
-| --- | --- | --- |
-| `brokers` | string[] | Kafka ブローカーアドレス一覧 |
-| `task_created_topic` | string | タスク作成イベントのトピック名 |
-| `task_updated_topic` | string | タスク更新イベントのトピック名 |
-| `task_cancelled_topic` | string | タスクキャンセルイベントのトピック名 |
+<!-- DOCS-010 監査対応: 設定フィールドにデフォルト値とトピック名を統一形式で追記 -->
+
+| フィールド | 型 | デフォルト | 説明 |
+| --- | --- | --- | --- |
+| `brokers` | string[] | `["kafka:9092"]` | Kafka ブローカーアドレス一覧 |
+| `task_created_topic` | string | `k1s0.service.task.created.v1` | タスク作成イベントのトピック名 |
+| `task_updated_topic` | string | `k1s0.service.task.updated.v1` | タスク更新イベントのトピック名 |
+| `task_cancelled_topic` | string | `k1s0.service.task.cancelled.v1` | タスクキャンセルイベントのトピック名 |
 
 ### auth
 

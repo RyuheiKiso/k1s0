@@ -15,7 +15,9 @@ import { ChangeType } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
 import { Timestamp } from "../../common/v1/types";
-// ============================================================// ConfigEntry// ============================================================
+// ============================================================
+// ConfigEntry
+// ============================================================
 
 /**
  * ConfigEntry は設定値エントリ。
@@ -74,7 +76,9 @@ export interface ConfigEntry {
      */
     updatedAt?: Timestamp;
 }
-// ============================================================// GetConfig// ============================================================
+// ============================================================
+// GetConfig
+// ============================================================
 
 /**
  * GetConfigRequest は設定値取得リクエスト。
@@ -83,10 +87,14 @@ export interface ConfigEntry {
  */
 export interface GetConfigRequest {
     /**
+     * 名前空間は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string namespace = 1
      */
     namespace: string;
     /**
+     * キーは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string key = 2
      */
     key: string;
@@ -102,7 +110,9 @@ export interface GetConfigResponse {
      */
     entry?: ConfigEntry;
 }
-// ============================================================// ListConfigs// ============================================================
+// ============================================================
+// ListConfigs
+// ============================================================
 
 /**
  * ListConfigsRequest は設定値一覧取得リクエスト。
@@ -111,6 +121,8 @@ export interface GetConfigResponse {
  */
 export interface ListConfigsRequest {
     /**
+     * 名前空間は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string namespace = 1
      */
     namespace: string;
@@ -140,7 +152,9 @@ export interface ListConfigsResponse {
      */
     pagination?: PaginationResult;
 }
-// ============================================================// UpdateConfig// ============================================================
+// ============================================================
+// UpdateConfig
+// ============================================================
 
 /**
  * UpdateConfigRequest は設定値更新リクエスト。
@@ -149,10 +163,14 @@ export interface ListConfigsResponse {
  */
 export interface UpdateConfigRequest {
     /**
+     * 名前空間は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string namespace = 1
      */
     namespace: string;
     /**
+     * キーは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string key = 2
      */
     key: string;
@@ -188,7 +206,9 @@ export interface UpdateConfigResponse {
      */
     entry?: ConfigEntry;
 }
-// ============================================================// DeleteConfig// ============================================================
+// ============================================================
+// DeleteConfig
+// ============================================================
 
 /**
  * DeleteConfigRequest は設定値削除リクエスト。
@@ -197,10 +217,14 @@ export interface UpdateConfigResponse {
  */
 export interface DeleteConfigRequest {
     /**
+     * 名前空間は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string namespace = 1
      */
     namespace: string;
     /**
+     * キーは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string key = 2
      */
     key: string;
@@ -220,7 +244,9 @@ export interface DeleteConfigResponse {
      */
     success: boolean;
 }
-// ============================================================// GetServiceConfig// ============================================================
+// ============================================================
+// GetServiceConfig
+// ============================================================
 
 /**
  * GetServiceConfigRequest はサービス向け設定一括取得リクエスト。
@@ -229,11 +255,13 @@ export interface DeleteConfigResponse {
  */
 export interface GetServiceConfigRequest {
     /**
+     * サービス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string service_name = 1
      */
     serviceName: string;
     /**
-     * dev | staging | prod
+     * 環境は1文字以上64文字以下であること（dev, staging, prod 等）
      *
      * @generated from protobuf field: string environment = 2
      */
@@ -273,7 +301,9 @@ export interface GetServiceConfigResponse {
      */
     entries: ServiceConfigEntry[];
 }
-// ============================================================// WatchConfig（Server-Side Streaming）// ============================================================
+// ============================================================
+// WatchConfig（Server-Side Streaming）
+// ============================================================
 
 /**
  * WatchConfigRequest は設定変更監視リクエスト。
@@ -291,9 +321,18 @@ export interface WatchConfigRequest {
 /**
  * WatchConfigResponse は設定変更の監視レスポンス（ストリーミング）。
  *
+ * M-013 監査対応: 削除予定フィールドのフィールド番号・名前を reserved で保護する準備
+ * 将来このフィールド番号が再利用されるとワイヤフォーマット互換性が破壊される
+ * TODO(2026-06): deprecated フィールド削除時に以下の reserved 宣言を有効化すること
+ * reserved 8;
+ * reserved "change_type";
+ *
  * @generated from protobuf message k1s0.system.config.v1.WatchConfigResponse
  */
 export interface WatchConfigResponse {
+    // M-014 監査対応: 削除期限 2026-06（config.proto 内の全 deprecated フィールド共通）
+    // 削除時はこのフィールドのフィールド番号と名前を reserved に追記すること
+
     /**
      * @generated from protobuf field: string namespace = 1
      */
@@ -329,8 +368,10 @@ export interface WatchConfigResponse {
     /**
      * Deprecated: use change_type_enum instead.
      * CREATED, UPDATED, DELETED
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string change_type = 8
+     * @deprecated
+     * @generated from protobuf field: string change_type = 8 [deprecated = true]
      */
     changeType: string;
     /**
@@ -441,7 +482,9 @@ export interface ConfigEditorSchema {
      */
     updatedAt?: Timestamp;
 }
-// ============================================================// GetConfigSchema// ============================================================
+// ============================================================
+// GetConfigSchema
+// ============================================================
 
 /**
  * GetConfigSchemaRequest は設定スキーマ取得リクエスト。
@@ -450,6 +493,8 @@ export interface ConfigEditorSchema {
  */
 export interface GetConfigSchemaRequest {
     /**
+     * サービス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string service_name = 1
      */
     serviceName: string;
@@ -465,7 +510,9 @@ export interface GetConfigSchemaResponse {
      */
     schema?: ConfigEditorSchema;
 }
-// ============================================================// UpsertConfigSchema// ============================================================
+// ============================================================
+// UpsertConfigSchema
+// ============================================================
 
 /**
  * UpsertConfigSchemaRequest は設定スキーマ作成・更新リクエスト。
@@ -493,7 +540,9 @@ export interface UpsertConfigSchemaResponse {
      */
     schema?: ConfigEditorSchema;
 }
-// ============================================================// ListConfigSchemas// ============================================================
+// ============================================================
+// ListConfigSchemas
+// ============================================================
 
 /**
  * ListConfigSchemasRequest は設定スキーマ一覧取得リクエスト。
@@ -513,7 +562,9 @@ export interface ListConfigSchemasResponse {
      */
     schemas: ConfigEditorSchema[];
 }
-// ============================================================// ConfigEditorSchema（設定エディタ向けスキーマ）// ============================================================
+// ============================================================
+// ConfigEditorSchema（設定エディタ向けスキーマ）
+// ============================================================
 
 /**
  * ConfigFieldType は設定フィールドの型を表す。
@@ -675,8 +726,8 @@ export const ConfigEntry = new ConfigEntry$Type();
 class GetConfigRequest$Type extends MessageType<GetConfigRequest> {
     constructor() {
         super("k1s0.system.config.v1.GetConfigRequest", [
-            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
+            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<GetConfigRequest>): GetConfigRequest {
@@ -776,7 +827,7 @@ export const GetConfigResponse = new GetConfigResponse$Type();
 class ListConfigsRequest$Type extends MessageType<ListConfigsRequest> {
     constructor() {
         super("k1s0.system.config.v1.ListConfigsRequest", [
-            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 2, name: "pagination", kind: "message", T: () => Pagination },
             { no: 3, name: "search", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -892,8 +943,8 @@ export const ListConfigsResponse = new ListConfigsResponse$Type();
 class UpdateConfigRequest$Type extends MessageType<UpdateConfigRequest> {
     constructor() {
         super("k1s0.system.config.v1.UpdateConfigRequest", [
-            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
+            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "value", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 4, name: "version", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 5, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -1025,8 +1076,8 @@ export const UpdateConfigResponse = new UpdateConfigResponse$Type();
 class DeleteConfigRequest$Type extends MessageType<DeleteConfigRequest> {
     constructor() {
         super("k1s0.system.config.v1.DeleteConfigRequest", [
-            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
+            { no: 2, name: "key", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "deleted_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1135,8 +1186,8 @@ export const DeleteConfigResponse = new DeleteConfigResponse$Type();
 class GetServiceConfigRequest$Type extends MessageType<GetServiceConfigRequest> {
     constructor() {
         super("k1s0.system.config.v1.GetServiceConfigRequest", [
-            { no: 1, name: "service_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "environment", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "service_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "environment", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } }
         ]);
     }
     create(value?: PartialMessage<GetServiceConfigRequest>): GetServiceConfigRequest {
@@ -1408,7 +1459,7 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
                 case /* string changed_by */ 7:
                     message.changedBy = reader.string();
                     break;
-                case /* string change_type */ 8:
+                case /* string change_type = 8 [deprecated = true] */ 8:
                     message.changeType = reader.string();
                     break;
                 case /* k1s0.system.common.v1.Timestamp changed_at */ 9:
@@ -1450,7 +1501,7 @@ class WatchConfigResponse$Type extends MessageType<WatchConfigResponse> {
         /* string changed_by = 7; */
         if (message.changedBy !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.changedBy);
-        /* string change_type = 8; */
+        /* string change_type = 8 [deprecated = true]; */
         if (message.changeType !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.changeType);
         /* k1s0.system.common.v1.Timestamp changed_at = 9; */
@@ -1741,7 +1792,7 @@ export const ConfigEditorSchema = new ConfigEditorSchema$Type();
 class GetConfigSchemaRequest$Type extends MessageType<GetConfigSchemaRequest> {
     constructor() {
         super("k1s0.system.config.v1.GetConfigSchemaRequest", [
-            { no: 1, name: "service_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "service_name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<GetConfigSchemaRequest>): GetConfigSchemaRequest {

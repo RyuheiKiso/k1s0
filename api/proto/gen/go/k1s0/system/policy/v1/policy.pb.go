@@ -11,6 +11,7 @@
 package policyv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -28,7 +29,7 @@ const (
 
 type EvaluatePolicyRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// 評価対象 Policy ID
+	// 評価対象 Policy ID（1文字以上であること）
 	PolicyId string `protobuf:"bytes,1,opt,name=policy_id,json=policyId,proto3" json:"policy_id,omitempty"`
 	// 評価入力データ（JSON バイト列）
 	InputJson     []byte `protobuf:"bytes,2,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
@@ -153,8 +154,9 @@ func (x *EvaluatePolicyResponse) GetCached() bool {
 }
 
 type GetPolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -353,12 +355,15 @@ func (x *ListPoliciesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type CreatePolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	RegoContent   string                 `protobuf:"bytes,3,opt,name=rego_content,json=regoContent,proto3" json:"rego_content,omitempty"`
-	PackagePath   string                 `protobuf:"bytes,4,opt,name=package_path,json=packagePath,proto3" json:"package_path,omitempty"`
-	BundleId      *string                `protobuf:"bytes,5,opt,name=bundle_id,json=bundleId,proto3,oneof" json:"bundle_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシー名は1文字以上128文字以下であること
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// Rego コンテンツは1文字以上であること
+	RegoContent string `protobuf:"bytes,3,opt,name=rego_content,json=regoContent,proto3" json:"rego_content,omitempty"`
+	// パッケージパスは1文字以上256文字以下であること
+	PackagePath   string  `protobuf:"bytes,4,opt,name=package_path,json=packagePath,proto3" json:"package_path,omitempty"`
+	BundleId      *string `protobuf:"bytes,5,opt,name=bundle_id,json=bundleId,proto3,oneof" json:"bundle_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -473,11 +478,12 @@ func (x *CreatePolicyResponse) GetPolicy() *Policy {
 }
 
 type UpdatePolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Description   *string                `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	RegoContent   *string                `protobuf:"bytes,3,opt,name=rego_content,json=regoContent,proto3,oneof" json:"rego_content,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id            string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description   *string `protobuf:"bytes,2,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	RegoContent   *string `protobuf:"bytes,3,opt,name=rego_content,json=regoContent,proto3,oneof" json:"rego_content,omitempty"`
+	Enabled       *bool   `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -585,8 +591,9 @@ func (x *UpdatePolicyResponse) GetPolicy() *Policy {
 }
 
 type DeletePolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -681,11 +688,12 @@ func (x *DeletePolicyResponse) GetMessage() string {
 }
 
 type CreateBundleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	PolicyIds     []string               `protobuf:"bytes,2,rep,name=policy_ids,json=policyIds,proto3" json:"policy_ids,omitempty"`
-	Description   *string                `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// バンドル名は1文字以上128文字以下であること
+	Name          string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	PolicyIds     []string `protobuf:"bytes,2,rep,name=policy_ids,json=policyIds,proto3" json:"policy_ids,omitempty"`
+	Description   *string  `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Enabled       *bool    `protobuf:"varint,4,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -873,8 +881,9 @@ func (x *ListBundlesResponse) GetBundles() []*PolicyBundle {
 }
 
 type GetBundleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// バンドルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1172,9 +1181,9 @@ var File_k1s0_system_policy_v1_policy_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\"k1s0/system/policy/v1/policy.proto\x12\x15k1s0.system.policy.v1\x1a!k1s0/system/common/v1/types.proto\"S\n" +
-	"\x15EvaluatePolicyRequest\x12\x1b\n" +
-	"\tpolicy_id\x18\x01 \x01(\tR\bpolicyId\x12\x1d\n" +
+	"\"k1s0/system/policy/v1/policy.proto\x12\x15k1s0.system.policy.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\\\n" +
+	"\x15EvaluatePolicyRequest\x12$\n" +
+	"\tpolicy_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bpolicyId\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x02 \x01(\fR\tinputJson\"\x8e\x01\n" +
 	"\x16EvaluatePolicyResponse\x12\x18\n" +
@@ -1182,9 +1191,9 @@ const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\fpackage_path\x18\x02 \x01(\tR\vpackagePath\x12\x1f\n" +
 	"\vdecision_id\x18\x03 \x01(\tR\n" +
 	"decisionId\x12\x16\n" +
-	"\x06cached\x18\x04 \x01(\bR\x06cached\"\"\n" +
-	"\x10GetPolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"J\n" +
+	"\x06cached\x18\x04 \x01(\bR\x06cached\"+\n" +
+	"\x10GetPolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"J\n" +
 	"\x11GetPolicyResponse\x125\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1d.k1s0.system.policy.v1.PolicyR\x06policy\"\xab\x01\n" +
 	"\x13ListPoliciesRequest\x12A\n" +
@@ -1199,19 +1208,21 @@ const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\bpolicies\x18\x01 \x03(\v2\x1d.k1s0.system.policy.v1.PolicyR\bpolicies\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xc1\x01\n" +
-	"\x13CreatePolicyRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12!\n" +
-	"\frego_content\x18\x03 \x01(\tR\vregoContent\x12!\n" +
-	"\fpackage_path\x18\x04 \x01(\tR\vpackagePath\x12 \n" +
+	"pagination\"\xe2\x01\n" +
+	"\x13CreatePolicyRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
+	"\frego_content\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vregoContent\x12-\n" +
+	"\fpackage_path\x18\x04 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\vpackagePath\x12 \n" +
 	"\tbundle_id\x18\x05 \x01(\tH\x00R\bbundleId\x88\x01\x01B\f\n" +
 	"\n" +
 	"_bundle_id\"M\n" +
 	"\x14CreatePolicyResponse\x125\n" +
-	"\x06policy\x18\x01 \x01(\v2\x1d.k1s0.system.policy.v1.PolicyR\x06policy\"\xc0\x01\n" +
-	"\x13UpdatePolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
+	"\x06policy\x18\x01 \x01(\v2\x1d.k1s0.system.policy.v1.PolicyR\x06policy\"\xc9\x01\n" +
+	"\x13UpdatePolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12%\n" +
 	"\vdescription\x18\x02 \x01(\tH\x00R\vdescription\x88\x01\x01\x12&\n" +
 	"\frego_content\x18\x03 \x01(\tH\x01R\vregoContent\x88\x01\x01\x12\x1d\n" +
 	"\aenabled\x18\x04 \x01(\bH\x02R\aenabled\x88\x01\x01B\x0e\n" +
@@ -1220,14 +1231,15 @@ const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\n" +
 	"\b_enabled\"M\n" +
 	"\x14UpdatePolicyResponse\x125\n" +
-	"\x06policy\x18\x01 \x01(\v2\x1d.k1s0.system.policy.v1.PolicyR\x06policy\"%\n" +
-	"\x13DeletePolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"J\n" +
+	"\x06policy\x18\x01 \x01(\v2\x1d.k1s0.system.policy.v1.PolicyR\x06policy\".\n" +
+	"\x13DeletePolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"J\n" +
 	"\x14DeletePolicyResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xaa\x01\n" +
-	"\x13CreateBundleRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\xb6\x01\n" +
+	"\x13CreateBundleRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12\x1d\n" +
 	"\n" +
 	"policy_ids\x18\x02 \x03(\tR\tpolicyIds\x12%\n" +
 	"\vdescription\x18\x03 \x01(\tH\x00R\vdescription\x88\x01\x01\x12\x1d\n" +
@@ -1239,9 +1251,9 @@ const file_k1s0_system_policy_v1_policy_proto_rawDesc = "" +
 	"\x06bundle\x18\x01 \x01(\v2#.k1s0.system.policy.v1.PolicyBundleR\x06bundle\"\x14\n" +
 	"\x12ListBundlesRequest\"T\n" +
 	"\x13ListBundlesResponse\x12=\n" +
-	"\abundles\x18\x01 \x03(\v2#.k1s0.system.policy.v1.PolicyBundleR\abundles\"\"\n" +
-	"\x10GetBundleRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\abundles\x18\x01 \x03(\v2#.k1s0.system.policy.v1.PolicyBundleR\abundles\"+\n" +
+	"\x10GetBundleRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"P\n" +
 	"\x11GetBundleResponse\x12;\n" +
 	"\x06bundle\x18\x01 \x01(\v2#.k1s0.system.policy.v1.PolicyBundleR\x06bundle\"\xfa\x02\n" +
 	"\x06Policy\x12\x0e\n" +

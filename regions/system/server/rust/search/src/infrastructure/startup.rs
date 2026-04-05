@@ -53,6 +53,9 @@ pub async fn run() -> anyhow::Result<()> {
         "starting search server"
     );
 
+    // CRITICAL-003 対応: readyz ハンドラに渡す db_pool を事前確保する
+    let mut db_pool_for_readyz: Option<sqlx::PgPool> = None;
+
     // --- Repository: OpenSearch → PostgreSQL → InMemory fallback ---
     let base_search_repo: Arc<dyn SearchRepository> = if let Some(ref os_cfg) = cfg.opensearch {
         info!(url = %os_cfg.url, prefix = %os_cfg.index_prefix, "connecting to OpenSearch for search repository");
@@ -73,6 +76,8 @@ pub async fn run() -> anyhow::Result<()> {
         if let Some(url) = db_url {
             info!("connecting to PostgreSQL for search repository");
             let pool = super::database::connect(&url, 10).await?;
+            // readyz で SELECT 1 チェックに使用するため clone を保持する（PgPool はArc-backed で軽量）
+            db_pool_for_readyz = Some(pool.clone());
             let pool = Arc::new(pool);
             Arc::new(SearchPostgresRepository::new(pool))
         } else {
@@ -205,6 +210,8 @@ pub async fn run() -> anyhow::Result<()> {
         list_indices_uc,
         metrics: metrics.clone(),
         auth_state: None,
+        // CRITICAL-003 対応: /readyz で DB 疎通確認に使用する
+        db_pool: db_pool_for_readyz,
     };
     // gRPC 認証レイヤー用に auth_state を REST への移動前にクローンしておく。
     let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone(), Tier::System, search_grpc_action);

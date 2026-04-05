@@ -30,6 +30,10 @@ use proto::k1s0::system::workflow::v1::workflow_service_client::WorkflowServiceC
 
 pub struct WorkflowGrpcClient {
     client: WorkflowServiceClient<Channel>,
+    /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
+    address: String,
+    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    timeout_ms: u64,
 }
 
 impl WorkflowGrpcClient {
@@ -41,6 +45,8 @@ impl WorkflowGrpcClient {
             .connect_lazy();
         Ok(Self {
             client: WorkflowServiceClient::new(channel),
+            address: cfg.address.clone(),
+            timeout_ms: cfg.timeout_ms,
         })
     }
 
@@ -75,14 +81,20 @@ impl WorkflowGrpcClient {
 
     fn instance_from_proto(
         i: proto::k1s0::system::workflow::v1::WorkflowInstance,
-    ) -> WorkflowInstance {
+    ) -> anyhow::Result<WorkflowInstance> {
+        // M-016 監査対応: 非 UTF-8 バイナリが REPLACEMENT CHARACTER に化けることを防ぐ
+        // from_utf8_lossy は不正バイトを U+FFFD に置換してしまうため、
+        // from_utf8 でエラーとして検出し、呼び出し元に伝播させる。
         let context_json = if i.context_json.is_empty() {
             None
         } else {
-            Some(String::from_utf8_lossy(&i.context_json).to_string())
+            Some(
+                String::from_utf8(i.context_json)
+                    .map_err(|e| anyhow::anyhow!("context_json is not valid UTF-8: {e}"))?,
+            )
         };
 
-        WorkflowInstance {
+        Ok(WorkflowInstance {
             id: i.id,
             workflow_id: i.workflow_id,
             workflow_name: i.workflow_name,
@@ -94,7 +106,7 @@ impl WorkflowGrpcClient {
             started_at: timestamp_to_rfc3339(i.started_at),
             completed_at: optional_timestamp_to_rfc3339(i.completed_at),
             created_at: optional_timestamp_to_rfc3339(i.created_at),
-        }
+        })
     }
 
     fn task_from_proto(t: proto::k1s0::system::workflow::v1::WorkflowTask) -> WorkflowTask {
@@ -298,10 +310,14 @@ impl WorkflowGrpcClient {
             .map_err(|e| anyhow::anyhow!("WorkflowService.StartInstance failed: {}", e))?
             .into_inner();
 
+        // M-016 監査対応: 非 UTF-8 バイナリが REPLACEMENT CHARACTER に化けることを防ぐ
         let context_json = if resp.context_json.is_empty() {
             None
         } else {
-            Some(String::from_utf8_lossy(&resp.context_json).to_string())
+            Some(
+                String::from_utf8(resp.context_json)
+                    .map_err(|e| anyhow::anyhow!("context_json is not valid UTF-8: {e}"))?,
+            )
         };
 
         Ok(WorkflowInstance {
@@ -334,7 +350,7 @@ impl WorkflowGrpcClient {
                     Some(i) => i,
                     None => return Ok(None),
                 };
-                Ok(Some(Self::instance_from_proto(i)))
+                Ok(Some(Self::instance_from_proto(i)?))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!("WorkflowService.GetInstance failed: {}", e)),
@@ -369,11 +385,10 @@ impl WorkflowGrpcClient {
             .map_err(|e| anyhow::anyhow!("WorkflowService.ListInstances failed: {}", e))?
             .into_inner();
 
-        Ok(resp
-            .instances
+        resp.instances
             .into_iter()
             .map(Self::instance_from_proto)
-            .collect())
+            .collect::<anyhow::Result<Vec<_>>>()
     }
 
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
@@ -398,7 +413,7 @@ impl WorkflowGrpcClient {
             .instance
             .ok_or_else(|| anyhow::anyhow!("empty instance in cancel response"))?;
 
-        Ok(Self::instance_from_proto(i))
+        Self::instance_from_proto(i)
     }
 
     // ── Workflow Task ──
@@ -526,9 +541,22 @@ impl WorkflowGrpcClient {
 
     // ── Health Check ──
 
+    /// gRPC Health Check Protocol を使ってサービスの疎通確認を行う。
+    /// Bearer token なしで接続できるため readyz ヘルスチェックに適している。
+    /// tonic-health サービスが登録されているサーバーに対して Check RPC を送信する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn health_check(&self) -> anyhow::Result<()> {
-        self.list_workflows(false, Some(1), Some(1)).await?;
+        let channel = Channel::from_shared(self.address.clone())?
+            .timeout(Duration::from_millis(self.timeout_ms))
+            .connect_lazy();
+        let mut health_client = tonic_health::pb::health_client::HealthClient::new(channel);
+        let request = tonic::Request::new(tonic_health::pb::HealthCheckRequest {
+            service: "k1s0.system.workflow.v1.WorkflowService".to_string(),
+        });
+        health_client
+            .check(request)
+            .await
+            .map_err(|e| anyhow::anyhow!("workflow gRPC Health Check 失敗: {}", e))?;
         Ok(())
     }
 }

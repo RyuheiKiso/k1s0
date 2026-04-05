@@ -11,6 +11,7 @@
 package schedulerv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -27,6 +28,120 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// JobStatus はジョブのステータス。
+type JobStatus int32
+
+const (
+	// JOB_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+	JobStatus_JOB_STATUS_UNSPECIFIED JobStatus = 0
+	// JOB_STATUS_ACTIVE はジョブが有効で次回実行を待機中。
+	JobStatus_JOB_STATUS_ACTIVE JobStatus = 1
+	// JOB_STATUS_PAUSED はジョブが一時停止中。
+	JobStatus_JOB_STATUS_PAUSED JobStatus = 2
+	// JOB_STATUS_DISABLED はジョブが無効化されている。
+	JobStatus_JOB_STATUS_DISABLED JobStatus = 3
+)
+
+// Enum value maps for JobStatus.
+var (
+	JobStatus_name = map[int32]string{
+		0: "JOB_STATUS_UNSPECIFIED",
+		1: "JOB_STATUS_ACTIVE",
+		2: "JOB_STATUS_PAUSED",
+		3: "JOB_STATUS_DISABLED",
+	}
+	JobStatus_value = map[string]int32{
+		"JOB_STATUS_UNSPECIFIED": 0,
+		"JOB_STATUS_ACTIVE":      1,
+		"JOB_STATUS_PAUSED":      2,
+		"JOB_STATUS_DISABLED":    3,
+	}
+)
+
+func (x JobStatus) Enum() *JobStatus {
+	p := new(JobStatus)
+	*p = x
+	return p
+}
+
+func (x JobStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (JobStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes[0].Descriptor()
+}
+
+func (JobStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes[0]
+}
+
+func (x JobStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use JobStatus.Descriptor instead.
+func (JobStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_scheduler_v1_scheduler_proto_rawDescGZIP(), []int{0}
+}
+
+// JobExecutionStatus はジョブ実行のステータス。
+type JobExecutionStatus int32
+
+const (
+	// JOB_EXECUTION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+	JobExecutionStatus_JOB_EXECUTION_STATUS_UNSPECIFIED JobExecutionStatus = 0
+	// JOB_EXECUTION_STATUS_RUNNING は実行中。
+	JobExecutionStatus_JOB_EXECUTION_STATUS_RUNNING JobExecutionStatus = 1
+	// JOB_EXECUTION_STATUS_SUCCEEDED は成功完了。
+	JobExecutionStatus_JOB_EXECUTION_STATUS_SUCCEEDED JobExecutionStatus = 2
+	// JOB_EXECUTION_STATUS_FAILED は失敗。
+	JobExecutionStatus_JOB_EXECUTION_STATUS_FAILED JobExecutionStatus = 3
+)
+
+// Enum value maps for JobExecutionStatus.
+var (
+	JobExecutionStatus_name = map[int32]string{
+		0: "JOB_EXECUTION_STATUS_UNSPECIFIED",
+		1: "JOB_EXECUTION_STATUS_RUNNING",
+		2: "JOB_EXECUTION_STATUS_SUCCEEDED",
+		3: "JOB_EXECUTION_STATUS_FAILED",
+	}
+	JobExecutionStatus_value = map[string]int32{
+		"JOB_EXECUTION_STATUS_UNSPECIFIED": 0,
+		"JOB_EXECUTION_STATUS_RUNNING":     1,
+		"JOB_EXECUTION_STATUS_SUCCEEDED":   2,
+		"JOB_EXECUTION_STATUS_FAILED":      3,
+	}
+)
+
+func (x JobExecutionStatus) Enum() *JobExecutionStatus {
+	p := new(JobExecutionStatus)
+	*p = x
+	return p
+}
+
+func (x JobExecutionStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (JobExecutionStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes[1].Descriptor()
+}
+
+func (JobExecutionStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes[1]
+}
+
+func (x JobExecutionStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use JobExecutionStatus.Descriptor instead.
+func (JobExecutionStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_scheduler_v1_scheduler_proto_rawDescGZIP(), []int{1}
+}
+
 type Job struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -37,13 +152,18 @@ type Job struct {
 	TargetType     string                 `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
 	Target         string                 `protobuf:"bytes,7,opt,name=target,proto3" json:"target,omitempty"`
 	Payload        *structpb.Struct       `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
-	Status         string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
-	NextRunAt      *v1.Timestamp          `protobuf:"bytes,10,opt,name=next_run_at,json=nextRunAt,proto3,oneof" json:"next_run_at,omitempty"`
-	LastRunAt      *v1.Timestamp          `protobuf:"bytes,11,opt,name=last_run_at,json=lastRunAt,proto3,oneof" json:"last_run_at,omitempty"`
-	CreatedAt      *v1.Timestamp          `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      *v1.Timestamp          `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Deprecated: use status_enum instead. 後方互換性のため削除しない。
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
+	Status    string        `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	NextRunAt *v1.Timestamp `protobuf:"bytes,10,opt,name=next_run_at,json=nextRunAt,proto3,oneof" json:"next_run_at,omitempty"`
+	LastRunAt *v1.Timestamp `protobuf:"bytes,11,opt,name=last_run_at,json=lastRunAt,proto3,oneof" json:"last_run_at,omitempty"`
+	CreatedAt *v1.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt *v1.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// MED-025 監査対応: ジョブステータスの enum 版（status の型付き版）。
+	StatusEnum    JobStatus `protobuf:"varint,14,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.scheduler.v1.JobStatus" json:"status_enum,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Job) Reset() {
@@ -132,6 +252,7 @@ func (x *Job) GetPayload() *structpb.Struct {
 	return nil
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
 func (x *Job) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -167,17 +288,29 @@ func (x *Job) GetUpdatedAt() *v1.Timestamp {
 	return nil
 }
 
+func (x *Job) GetStatusEnum() JobStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return JobStatus_JOB_STATUS_UNSPECIFIED
+}
+
 type CreateJobRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	CronExpression string                 `protobuf:"bytes,3,opt,name=cron_expression,json=cronExpression,proto3" json:"cron_expression,omitempty"`
-	Timezone       string                 `protobuf:"bytes,4,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	TargetType     string                 `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	Target         string                 `protobuf:"bytes,6,opt,name=target,proto3" json:"target,omitempty"`
-	Payload        *structpb.Struct       `protobuf:"bytes,7,opt,name=payload,proto3" json:"payload,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブ名は1文字以上128文字以下であること
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// cron 式は1文字以上128文字以下であること
+	CronExpression string `protobuf:"bytes,3,opt,name=cron_expression,json=cronExpression,proto3" json:"cron_expression,omitempty"`
+	// タイムゾーンは1文字以上64文字以下であること（例: Asia/Tokyo）
+	Timezone string `protobuf:"bytes,4,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	// ターゲット種別は1文字以上64文字以下であること（例: http, kafka）
+	TargetType string `protobuf:"bytes,5,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	// ターゲットは1文字以上512文字以下であること（URL 等）
+	Target        string           `protobuf:"bytes,6,opt,name=target,proto3" json:"target,omitempty"`
+	Payload       *structpb.Struct `protobuf:"bytes,7,opt,name=payload,proto3" json:"payload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateJobRequest) Reset() {
@@ -304,8 +437,9 @@ func (x *CreateJobResponse) GetJob() *Job {
 }
 
 type GetJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -392,9 +526,14 @@ func (x *GetJobResponse) GetJob() *Job {
 }
 
 type ListJobsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Pagination    *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Deprecated: use status_enum instead. 後方互換性のため削除しない。
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
+	Status     string         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Pagination *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	// MED-025 監査対応: enum 型フィルター（status の型付き版）。
+	StatusEnum    *JobStatus `protobuf:"varint,3,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.scheduler.v1.JobStatus,oneof" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -429,6 +568,7 @@ func (*ListJobsRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_scheduler_v1_scheduler_proto_rawDescGZIP(), []int{5}
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
 func (x *ListJobsRequest) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -441,6 +581,13 @@ func (x *ListJobsRequest) GetPagination() *v1.Pagination {
 		return x.Pagination
 	}
 	return nil
+}
+
+func (x *ListJobsRequest) GetStatusEnum() JobStatus {
+	if x != nil && x.StatusEnum != nil {
+		return *x.StatusEnum
+	}
+	return JobStatus_JOB_STATUS_UNSPECIFIED
 }
 
 type ListJobsResponse struct {
@@ -496,15 +643,16 @@ func (x *ListJobsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type UpdateJobRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	JobId          string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	CronExpression string                 `protobuf:"bytes,4,opt,name=cron_expression,json=cronExpression,proto3" json:"cron_expression,omitempty"`
-	Timezone       string                 `protobuf:"bytes,5,opt,name=timezone,proto3" json:"timezone,omitempty"`
-	TargetType     string                 `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
-	Target         string                 `protobuf:"bytes,7,opt,name=target,proto3" json:"target,omitempty"`
-	Payload        *structpb.Struct       `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId          string           `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Name           string           `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description    string           `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	CronExpression string           `protobuf:"bytes,4,opt,name=cron_expression,json=cronExpression,proto3" json:"cron_expression,omitempty"`
+	Timezone       string           `protobuf:"bytes,5,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	TargetType     string           `protobuf:"bytes,6,opt,name=target_type,json=targetType,proto3" json:"target_type,omitempty"`
+	Target         string           `protobuf:"bytes,7,opt,name=target,proto3" json:"target,omitempty"`
+	Payload        *structpb.Struct `protobuf:"bytes,8,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -640,8 +788,9 @@ func (x *UpdateJobResponse) GetJob() *Job {
 }
 
 type DeleteJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -736,8 +885,9 @@ func (x *DeleteJobResponse) GetMessage() string {
 }
 
 type PauseJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -824,8 +974,9 @@ func (x *PauseJobResponse) GetJob() *Job {
 }
 
 type ResumeJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -912,8 +1063,9 @@ func (x *ResumeJobResponse) GetJob() *Job {
 }
 
 type TriggerJobRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1025,8 +1177,9 @@ func (x *TriggerJobResponse) GetTriggeredAt() *v1.Timestamp {
 }
 
 type GetJobExecutionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 実行IDは1文字以上であること
+	ExecutionId   string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1113,12 +1266,13 @@ func (x *GetJobExecutionResponse) GetExecution() *JobExecution {
 }
 
 type ListExecutionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Pagination    *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
-	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
-	From          *v1.Timestamp          `protobuf:"bytes,4,opt,name=from,proto3,oneof" json:"from,omitempty"`
-	To            *v1.Timestamp          `protobuf:"bytes,5,opt,name=to,proto3,oneof" json:"to,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ジョブIDは1文字以上であること
+	JobId         string         `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Pagination    *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Status        *string        `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`
+	From          *v1.Timestamp  `protobuf:"bytes,4,opt,name=from,proto3,oneof" json:"from,omitempty"`
+	To            *v1.Timestamp  `protobuf:"bytes,5,opt,name=to,proto3,oneof" json:"to,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1244,15 +1398,20 @@ type JobExecution struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	JobId string                 `protobuf:"bytes,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	// Deprecated: use status_enum instead. 後方互換性のため削除しない。
 	// 実行状態（running / succeeded / failed）
+	//
+	// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
 	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	// 実行トリガー（scheduler / manual）
 	TriggeredBy string        `protobuf:"bytes,4,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
 	StartedAt   *v1.Timestamp `protobuf:"bytes,5,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	FinishedAt  *v1.Timestamp `protobuf:"bytes,6,opt,name=finished_at,json=finishedAt,proto3,oneof" json:"finished_at,omitempty"`
 	// 実行時間（ミリ秒）
-	DurationMs    *uint64 `protobuf:"varint,7,opt,name=duration_ms,json=durationMs,proto3,oneof" json:"duration_ms,omitempty"`
-	ErrorMessage  *string `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
+	DurationMs   *uint64 `protobuf:"varint,7,opt,name=duration_ms,json=durationMs,proto3,oneof" json:"duration_ms,omitempty"`
+	ErrorMessage *string `protobuf:"bytes,8,opt,name=error_message,json=errorMessage,proto3,oneof" json:"error_message,omitempty"`
+	// MED-025 監査対応: 実行ステータスの enum 版（status の型付き版）。
+	StatusEnum    JobExecutionStatus `protobuf:"varint,9,opt,name=status_enum,json=statusEnum,proto3,enum=k1s0.system.scheduler.v1.JobExecutionStatus" json:"status_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1301,6 +1460,7 @@ func (x *JobExecution) GetJobId() string {
 	return ""
 }
 
+// Deprecated: Marked as deprecated in k1s0/system/scheduler/v1/scheduler.proto.
 func (x *JobExecution) GetStatus() string {
 	if x != nil {
 		return x.Status
@@ -1343,11 +1503,18 @@ func (x *JobExecution) GetErrorMessage() string {
 	return ""
 }
 
+func (x *JobExecution) GetStatusEnum() JobExecutionStatus {
+	if x != nil {
+		return x.StatusEnum
+	}
+	return JobExecutionStatus_JOB_EXECUTION_STATUS_UNSPECIFIED
+}
+
 var File_k1s0_system_scheduler_v1_scheduler_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc = "" +
 	"\n" +
-	"(k1s0/system/scheduler/v1/scheduler.proto\x12\x18k1s0.system.scheduler.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xc4\x04\n" +
+	"(k1s0/system/scheduler/v1/scheduler.proto\x12\x18k1s0.system.scheduler.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bbuf/validate/validate.proto\"\x8e\x05\n" +
 	"\x03Job\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1357,44 +1524,52 @@ const file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc = "" +
 	"\vtarget_type\x18\x06 \x01(\tR\n" +
 	"targetType\x12\x16\n" +
 	"\x06target\x18\a \x01(\tR\x06target\x121\n" +
-	"\apayload\x18\b \x01(\v2\x17.google.protobuf.StructR\apayload\x12\x16\n" +
-	"\x06status\x18\t \x01(\tR\x06status\x12E\n" +
+	"\apayload\x18\b \x01(\v2\x17.google.protobuf.StructR\apayload\x12\x1a\n" +
+	"\x06status\x18\t \x01(\tB\x02\x18\x01R\x06status\x12E\n" +
 	"\vnext_run_at\x18\n" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampH\x00R\tnextRunAt\x88\x01\x01\x12E\n" +
 	"\vlast_run_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampH\x01R\tlastRunAt\x88\x01\x01\x12?\n" +
 	"\n" +
 	"created_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAtB\x0e\n" +
+	"updated_at\x18\r \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\x12D\n" +
+	"\vstatus_enum\x18\x0e \x01(\x0e2#.k1s0.system.scheduler.v1.JobStatusR\n" +
+	"statusEnumB\x0e\n" +
 	"\f_next_run_atB\x0e\n" +
-	"\f_last_run_at\"\xf9\x01\n" +
-	"\x10CreateJobRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12'\n" +
-	"\x0fcron_expression\x18\x03 \x01(\tR\x0ecronExpression\x12\x1a\n" +
-	"\btimezone\x18\x04 \x01(\tR\btimezone\x12\x1f\n" +
-	"\vtarget_type\x18\x05 \x01(\tR\n" +
-	"targetType\x12\x16\n" +
-	"\x06target\x18\x06 \x01(\tR\x06target\x121\n" +
+	"\f_last_run_at\"\xb3\x02\n" +
+	"\x10CreateJobRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x123\n" +
+	"\x0fcron_expression\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x0ecronExpression\x12%\n" +
+	"\btimezone\x18\x04 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\btimezone\x12*\n" +
+	"\vtarget_type\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\n" +
+	"targetType\x12\"\n" +
+	"\x06target\x18\x06 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x04R\x06target\x121\n" +
 	"\apayload\x18\a \x01(\v2\x17.google.protobuf.StructR\apayload\"D\n" +
 	"\x11CreateJobResponse\x12/\n" +
-	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"&\n" +
-	"\rGetJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"A\n" +
+	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"/\n" +
+	"\rGetJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\"A\n" +
 	"\x0eGetJobResponse\x12/\n" +
-	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"l\n" +
-	"\x0fListJobsRequest\x12\x16\n" +
-	"\x06status\x18\x01 \x01(\tR\x06status\x12A\n" +
+	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"\xcb\x01\n" +
+	"\x0fListJobsRequest\x12\x1a\n" +
+	"\x06status\x18\x01 \x01(\tB\x02\x18\x01R\x06status\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
-	"pagination\"\x8e\x01\n" +
+	"pagination\x12I\n" +
+	"\vstatus_enum\x18\x03 \x01(\x0e2#.k1s0.system.scheduler.v1.JobStatusH\x00R\n" +
+	"statusEnum\x88\x01\x01B\x0e\n" +
+	"\f_status_enum\"\x8e\x01\n" +
 	"\x10ListJobsResponse\x121\n" +
 	"\x04jobs\x18\x01 \x03(\v2\x1d.k1s0.system.scheduler.v1.JobR\x04jobs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x90\x02\n" +
-	"\x10UpdateJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
+	"pagination\"\x99\x02\n" +
+	"\x10UpdateJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12'\n" +
 	"\x0fcron_expression\x18\x04 \x01(\tR\x0ecronExpression\x12\x1a\n" +
@@ -1404,33 +1579,33 @@ const file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc = "" +
 	"\x06target\x18\a \x01(\tR\x06target\x121\n" +
 	"\apayload\x18\b \x01(\v2\x17.google.protobuf.StructR\apayload\"D\n" +
 	"\x11UpdateJobResponse\x12/\n" +
-	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\")\n" +
-	"\x10DeleteJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"G\n" +
+	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"2\n" +
+	"\x10DeleteJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\"G\n" +
 	"\x11DeleteJobResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"(\n" +
-	"\x0fPauseJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"C\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"1\n" +
+	"\x0fPauseJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\"C\n" +
 	"\x10PauseJobResponse\x12/\n" +
-	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\")\n" +
-	"\x10ResumeJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"D\n" +
+	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"2\n" +
+	"\x10ResumeJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\"D\n" +
 	"\x11ResumeJobResponse\x12/\n" +
-	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"*\n" +
-	"\x11TriggerJobRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\"\xab\x01\n" +
+	"\x03job\x18\x01 \x01(\v2\x1d.k1s0.system.scheduler.v1.JobR\x03job\"3\n" +
+	"\x11TriggerJobRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\"\xab\x01\n" +
 	"\x12TriggerJobResponse\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12C\n" +
-	"\ftriggered_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vtriggeredAt\";\n" +
-	"\x16GetJobExecutionRequest\x12!\n" +
-	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\"_\n" +
+	"\ftriggered_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vtriggeredAt\"D\n" +
+	"\x16GetJobExecutionRequest\x12*\n" +
+	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\"_\n" +
 	"\x17GetJobExecutionResponse\x12D\n" +
-	"\texecution\x18\x01 \x01(\v2&.k1s0.system.scheduler.v1.JobExecutionR\texecution\"\x9b\x02\n" +
-	"\x15ListExecutionsRequest\x12\x15\n" +
-	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12A\n" +
+	"\texecution\x18\x01 \x01(\v2&.k1s0.system.scheduler.v1.JobExecutionR\texecution\"\xa4\x02\n" +
+	"\x15ListExecutionsRequest\x12\x1e\n" +
+	"\x06job_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05jobId\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x1b\n" +
@@ -1446,11 +1621,11 @@ const file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc = "" +
 	"executions\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xfb\x02\n" +
+	"pagination\"\xce\x03\n" +
 	"\fJobExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
-	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x16\n" +
-	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
+	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x1a\n" +
+	"\x06status\x18\x03 \x01(\tB\x02\x18\x01R\x06status\x12!\n" +
 	"\ftriggered_by\x18\x04 \x01(\tR\vtriggeredBy\x12?\n" +
 	"\n" +
 	"started_at\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\tstartedAt\x12F\n" +
@@ -1458,10 +1633,22 @@ const file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc = "" +
 	"finishedAt\x88\x01\x01\x12$\n" +
 	"\vduration_ms\x18\a \x01(\x04H\x01R\n" +
 	"durationMs\x88\x01\x01\x12(\n" +
-	"\rerror_message\x18\b \x01(\tH\x02R\ferrorMessage\x88\x01\x01B\x0e\n" +
+	"\rerror_message\x18\b \x01(\tH\x02R\ferrorMessage\x88\x01\x01\x12M\n" +
+	"\vstatus_enum\x18\t \x01(\x0e2,.k1s0.system.scheduler.v1.JobExecutionStatusR\n" +
+	"statusEnumB\x0e\n" +
 	"\f_finished_atB\x0e\n" +
 	"\f_duration_msB\x10\n" +
-	"\x0e_error_message2\xa3\b\n" +
+	"\x0e_error_message*n\n" +
+	"\tJobStatus\x12\x1a\n" +
+	"\x16JOB_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
+	"\x11JOB_STATUS_ACTIVE\x10\x01\x12\x15\n" +
+	"\x11JOB_STATUS_PAUSED\x10\x02\x12\x17\n" +
+	"\x13JOB_STATUS_DISABLED\x10\x03*\xa1\x01\n" +
+	"\x12JobExecutionStatus\x12$\n" +
+	" JOB_EXECUTION_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cJOB_EXECUTION_STATUS_RUNNING\x10\x01\x12\"\n" +
+	"\x1eJOB_EXECUTION_STATUS_SUCCEEDED\x10\x02\x12\x1f\n" +
+	"\x1bJOB_EXECUTION_STATUS_FAILED\x10\x032\xa3\b\n" +
 	"\x10SchedulerService\x12d\n" +
 	"\tCreateJob\x12*.k1s0.system.scheduler.v1.CreateJobRequest\x1a+.k1s0.system.scheduler.v1.CreateJobResponse\x12[\n" +
 	"\x06GetJob\x12'.k1s0.system.scheduler.v1.GetJobRequest\x1a(.k1s0.system.scheduler.v1.GetJobResponse\x12a\n" +
@@ -1487,85 +1674,91 @@ func file_k1s0_system_scheduler_v1_scheduler_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_scheduler_v1_scheduler_proto_rawDescData
 }
 
+var file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_k1s0_system_scheduler_v1_scheduler_proto_goTypes = []any{
-	(*Job)(nil),                     // 0: k1s0.system.scheduler.v1.Job
-	(*CreateJobRequest)(nil),        // 1: k1s0.system.scheduler.v1.CreateJobRequest
-	(*CreateJobResponse)(nil),       // 2: k1s0.system.scheduler.v1.CreateJobResponse
-	(*GetJobRequest)(nil),           // 3: k1s0.system.scheduler.v1.GetJobRequest
-	(*GetJobResponse)(nil),          // 4: k1s0.system.scheduler.v1.GetJobResponse
-	(*ListJobsRequest)(nil),         // 5: k1s0.system.scheduler.v1.ListJobsRequest
-	(*ListJobsResponse)(nil),        // 6: k1s0.system.scheduler.v1.ListJobsResponse
-	(*UpdateJobRequest)(nil),        // 7: k1s0.system.scheduler.v1.UpdateJobRequest
-	(*UpdateJobResponse)(nil),       // 8: k1s0.system.scheduler.v1.UpdateJobResponse
-	(*DeleteJobRequest)(nil),        // 9: k1s0.system.scheduler.v1.DeleteJobRequest
-	(*DeleteJobResponse)(nil),       // 10: k1s0.system.scheduler.v1.DeleteJobResponse
-	(*PauseJobRequest)(nil),         // 11: k1s0.system.scheduler.v1.PauseJobRequest
-	(*PauseJobResponse)(nil),        // 12: k1s0.system.scheduler.v1.PauseJobResponse
-	(*ResumeJobRequest)(nil),        // 13: k1s0.system.scheduler.v1.ResumeJobRequest
-	(*ResumeJobResponse)(nil),       // 14: k1s0.system.scheduler.v1.ResumeJobResponse
-	(*TriggerJobRequest)(nil),       // 15: k1s0.system.scheduler.v1.TriggerJobRequest
-	(*TriggerJobResponse)(nil),      // 16: k1s0.system.scheduler.v1.TriggerJobResponse
-	(*GetJobExecutionRequest)(nil),  // 17: k1s0.system.scheduler.v1.GetJobExecutionRequest
-	(*GetJobExecutionResponse)(nil), // 18: k1s0.system.scheduler.v1.GetJobExecutionResponse
-	(*ListExecutionsRequest)(nil),   // 19: k1s0.system.scheduler.v1.ListExecutionsRequest
-	(*ListExecutionsResponse)(nil),  // 20: k1s0.system.scheduler.v1.ListExecutionsResponse
-	(*JobExecution)(nil),            // 21: k1s0.system.scheduler.v1.JobExecution
-	(*structpb.Struct)(nil),         // 22: google.protobuf.Struct
-	(*v1.Timestamp)(nil),            // 23: k1s0.system.common.v1.Timestamp
-	(*v1.Pagination)(nil),           // 24: k1s0.system.common.v1.Pagination
-	(*v1.PaginationResult)(nil),     // 25: k1s0.system.common.v1.PaginationResult
+	(JobStatus)(0),                  // 0: k1s0.system.scheduler.v1.JobStatus
+	(JobExecutionStatus)(0),         // 1: k1s0.system.scheduler.v1.JobExecutionStatus
+	(*Job)(nil),                     // 2: k1s0.system.scheduler.v1.Job
+	(*CreateJobRequest)(nil),        // 3: k1s0.system.scheduler.v1.CreateJobRequest
+	(*CreateJobResponse)(nil),       // 4: k1s0.system.scheduler.v1.CreateJobResponse
+	(*GetJobRequest)(nil),           // 5: k1s0.system.scheduler.v1.GetJobRequest
+	(*GetJobResponse)(nil),          // 6: k1s0.system.scheduler.v1.GetJobResponse
+	(*ListJobsRequest)(nil),         // 7: k1s0.system.scheduler.v1.ListJobsRequest
+	(*ListJobsResponse)(nil),        // 8: k1s0.system.scheduler.v1.ListJobsResponse
+	(*UpdateJobRequest)(nil),        // 9: k1s0.system.scheduler.v1.UpdateJobRequest
+	(*UpdateJobResponse)(nil),       // 10: k1s0.system.scheduler.v1.UpdateJobResponse
+	(*DeleteJobRequest)(nil),        // 11: k1s0.system.scheduler.v1.DeleteJobRequest
+	(*DeleteJobResponse)(nil),       // 12: k1s0.system.scheduler.v1.DeleteJobResponse
+	(*PauseJobRequest)(nil),         // 13: k1s0.system.scheduler.v1.PauseJobRequest
+	(*PauseJobResponse)(nil),        // 14: k1s0.system.scheduler.v1.PauseJobResponse
+	(*ResumeJobRequest)(nil),        // 15: k1s0.system.scheduler.v1.ResumeJobRequest
+	(*ResumeJobResponse)(nil),       // 16: k1s0.system.scheduler.v1.ResumeJobResponse
+	(*TriggerJobRequest)(nil),       // 17: k1s0.system.scheduler.v1.TriggerJobRequest
+	(*TriggerJobResponse)(nil),      // 18: k1s0.system.scheduler.v1.TriggerJobResponse
+	(*GetJobExecutionRequest)(nil),  // 19: k1s0.system.scheduler.v1.GetJobExecutionRequest
+	(*GetJobExecutionResponse)(nil), // 20: k1s0.system.scheduler.v1.GetJobExecutionResponse
+	(*ListExecutionsRequest)(nil),   // 21: k1s0.system.scheduler.v1.ListExecutionsRequest
+	(*ListExecutionsResponse)(nil),  // 22: k1s0.system.scheduler.v1.ListExecutionsResponse
+	(*JobExecution)(nil),            // 23: k1s0.system.scheduler.v1.JobExecution
+	(*structpb.Struct)(nil),         // 24: google.protobuf.Struct
+	(*v1.Timestamp)(nil),            // 25: k1s0.system.common.v1.Timestamp
+	(*v1.Pagination)(nil),           // 26: k1s0.system.common.v1.Pagination
+	(*v1.PaginationResult)(nil),     // 27: k1s0.system.common.v1.PaginationResult
 }
 var file_k1s0_system_scheduler_v1_scheduler_proto_depIdxs = []int32{
-	22, // 0: k1s0.system.scheduler.v1.Job.payload:type_name -> google.protobuf.Struct
-	23, // 1: k1s0.system.scheduler.v1.Job.next_run_at:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 2: k1s0.system.scheduler.v1.Job.last_run_at:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 3: k1s0.system.scheduler.v1.Job.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 4: k1s0.system.scheduler.v1.Job.updated_at:type_name -> k1s0.system.common.v1.Timestamp
-	22, // 5: k1s0.system.scheduler.v1.CreateJobRequest.payload:type_name -> google.protobuf.Struct
-	0,  // 6: k1s0.system.scheduler.v1.CreateJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
-	0,  // 7: k1s0.system.scheduler.v1.GetJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
-	24, // 8: k1s0.system.scheduler.v1.ListJobsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	0,  // 9: k1s0.system.scheduler.v1.ListJobsResponse.jobs:type_name -> k1s0.system.scheduler.v1.Job
-	25, // 10: k1s0.system.scheduler.v1.ListJobsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	22, // 11: k1s0.system.scheduler.v1.UpdateJobRequest.payload:type_name -> google.protobuf.Struct
-	0,  // 12: k1s0.system.scheduler.v1.UpdateJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
-	0,  // 13: k1s0.system.scheduler.v1.PauseJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
-	0,  // 14: k1s0.system.scheduler.v1.ResumeJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
-	23, // 15: k1s0.system.scheduler.v1.TriggerJobResponse.triggered_at:type_name -> k1s0.system.common.v1.Timestamp
-	21, // 16: k1s0.system.scheduler.v1.GetJobExecutionResponse.execution:type_name -> k1s0.system.scheduler.v1.JobExecution
-	24, // 17: k1s0.system.scheduler.v1.ListExecutionsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
-	23, // 18: k1s0.system.scheduler.v1.ListExecutionsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 19: k1s0.system.scheduler.v1.ListExecutionsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
-	21, // 20: k1s0.system.scheduler.v1.ListExecutionsResponse.executions:type_name -> k1s0.system.scheduler.v1.JobExecution
-	25, // 21: k1s0.system.scheduler.v1.ListExecutionsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
-	23, // 22: k1s0.system.scheduler.v1.JobExecution.started_at:type_name -> k1s0.system.common.v1.Timestamp
-	23, // 23: k1s0.system.scheduler.v1.JobExecution.finished_at:type_name -> k1s0.system.common.v1.Timestamp
-	1,  // 24: k1s0.system.scheduler.v1.SchedulerService.CreateJob:input_type -> k1s0.system.scheduler.v1.CreateJobRequest
-	3,  // 25: k1s0.system.scheduler.v1.SchedulerService.GetJob:input_type -> k1s0.system.scheduler.v1.GetJobRequest
-	5,  // 26: k1s0.system.scheduler.v1.SchedulerService.ListJobs:input_type -> k1s0.system.scheduler.v1.ListJobsRequest
-	7,  // 27: k1s0.system.scheduler.v1.SchedulerService.UpdateJob:input_type -> k1s0.system.scheduler.v1.UpdateJobRequest
-	9,  // 28: k1s0.system.scheduler.v1.SchedulerService.DeleteJob:input_type -> k1s0.system.scheduler.v1.DeleteJobRequest
-	11, // 29: k1s0.system.scheduler.v1.SchedulerService.PauseJob:input_type -> k1s0.system.scheduler.v1.PauseJobRequest
-	13, // 30: k1s0.system.scheduler.v1.SchedulerService.ResumeJob:input_type -> k1s0.system.scheduler.v1.ResumeJobRequest
-	15, // 31: k1s0.system.scheduler.v1.SchedulerService.TriggerJob:input_type -> k1s0.system.scheduler.v1.TriggerJobRequest
-	17, // 32: k1s0.system.scheduler.v1.SchedulerService.GetJobExecution:input_type -> k1s0.system.scheduler.v1.GetJobExecutionRequest
-	19, // 33: k1s0.system.scheduler.v1.SchedulerService.ListExecutions:input_type -> k1s0.system.scheduler.v1.ListExecutionsRequest
-	2,  // 34: k1s0.system.scheduler.v1.SchedulerService.CreateJob:output_type -> k1s0.system.scheduler.v1.CreateJobResponse
-	4,  // 35: k1s0.system.scheduler.v1.SchedulerService.GetJob:output_type -> k1s0.system.scheduler.v1.GetJobResponse
-	6,  // 36: k1s0.system.scheduler.v1.SchedulerService.ListJobs:output_type -> k1s0.system.scheduler.v1.ListJobsResponse
-	8,  // 37: k1s0.system.scheduler.v1.SchedulerService.UpdateJob:output_type -> k1s0.system.scheduler.v1.UpdateJobResponse
-	10, // 38: k1s0.system.scheduler.v1.SchedulerService.DeleteJob:output_type -> k1s0.system.scheduler.v1.DeleteJobResponse
-	12, // 39: k1s0.system.scheduler.v1.SchedulerService.PauseJob:output_type -> k1s0.system.scheduler.v1.PauseJobResponse
-	14, // 40: k1s0.system.scheduler.v1.SchedulerService.ResumeJob:output_type -> k1s0.system.scheduler.v1.ResumeJobResponse
-	16, // 41: k1s0.system.scheduler.v1.SchedulerService.TriggerJob:output_type -> k1s0.system.scheduler.v1.TriggerJobResponse
-	18, // 42: k1s0.system.scheduler.v1.SchedulerService.GetJobExecution:output_type -> k1s0.system.scheduler.v1.GetJobExecutionResponse
-	20, // 43: k1s0.system.scheduler.v1.SchedulerService.ListExecutions:output_type -> k1s0.system.scheduler.v1.ListExecutionsResponse
-	34, // [34:44] is the sub-list for method output_type
-	24, // [24:34] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	24, // 0: k1s0.system.scheduler.v1.Job.payload:type_name -> google.protobuf.Struct
+	25, // 1: k1s0.system.scheduler.v1.Job.next_run_at:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 2: k1s0.system.scheduler.v1.Job.last_run_at:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 3: k1s0.system.scheduler.v1.Job.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 4: k1s0.system.scheduler.v1.Job.updated_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 5: k1s0.system.scheduler.v1.Job.status_enum:type_name -> k1s0.system.scheduler.v1.JobStatus
+	24, // 6: k1s0.system.scheduler.v1.CreateJobRequest.payload:type_name -> google.protobuf.Struct
+	2,  // 7: k1s0.system.scheduler.v1.CreateJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
+	2,  // 8: k1s0.system.scheduler.v1.GetJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
+	26, // 9: k1s0.system.scheduler.v1.ListJobsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	0,  // 10: k1s0.system.scheduler.v1.ListJobsRequest.status_enum:type_name -> k1s0.system.scheduler.v1.JobStatus
+	2,  // 11: k1s0.system.scheduler.v1.ListJobsResponse.jobs:type_name -> k1s0.system.scheduler.v1.Job
+	27, // 12: k1s0.system.scheduler.v1.ListJobsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	24, // 13: k1s0.system.scheduler.v1.UpdateJobRequest.payload:type_name -> google.protobuf.Struct
+	2,  // 14: k1s0.system.scheduler.v1.UpdateJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
+	2,  // 15: k1s0.system.scheduler.v1.PauseJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
+	2,  // 16: k1s0.system.scheduler.v1.ResumeJobResponse.job:type_name -> k1s0.system.scheduler.v1.Job
+	25, // 17: k1s0.system.scheduler.v1.TriggerJobResponse.triggered_at:type_name -> k1s0.system.common.v1.Timestamp
+	23, // 18: k1s0.system.scheduler.v1.GetJobExecutionResponse.execution:type_name -> k1s0.system.scheduler.v1.JobExecution
+	26, // 19: k1s0.system.scheduler.v1.ListExecutionsRequest.pagination:type_name -> k1s0.system.common.v1.Pagination
+	25, // 20: k1s0.system.scheduler.v1.ListExecutionsRequest.from:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 21: k1s0.system.scheduler.v1.ListExecutionsRequest.to:type_name -> k1s0.system.common.v1.Timestamp
+	23, // 22: k1s0.system.scheduler.v1.ListExecutionsResponse.executions:type_name -> k1s0.system.scheduler.v1.JobExecution
+	27, // 23: k1s0.system.scheduler.v1.ListExecutionsResponse.pagination:type_name -> k1s0.system.common.v1.PaginationResult
+	25, // 24: k1s0.system.scheduler.v1.JobExecution.started_at:type_name -> k1s0.system.common.v1.Timestamp
+	25, // 25: k1s0.system.scheduler.v1.JobExecution.finished_at:type_name -> k1s0.system.common.v1.Timestamp
+	1,  // 26: k1s0.system.scheduler.v1.JobExecution.status_enum:type_name -> k1s0.system.scheduler.v1.JobExecutionStatus
+	3,  // 27: k1s0.system.scheduler.v1.SchedulerService.CreateJob:input_type -> k1s0.system.scheduler.v1.CreateJobRequest
+	5,  // 28: k1s0.system.scheduler.v1.SchedulerService.GetJob:input_type -> k1s0.system.scheduler.v1.GetJobRequest
+	7,  // 29: k1s0.system.scheduler.v1.SchedulerService.ListJobs:input_type -> k1s0.system.scheduler.v1.ListJobsRequest
+	9,  // 30: k1s0.system.scheduler.v1.SchedulerService.UpdateJob:input_type -> k1s0.system.scheduler.v1.UpdateJobRequest
+	11, // 31: k1s0.system.scheduler.v1.SchedulerService.DeleteJob:input_type -> k1s0.system.scheduler.v1.DeleteJobRequest
+	13, // 32: k1s0.system.scheduler.v1.SchedulerService.PauseJob:input_type -> k1s0.system.scheduler.v1.PauseJobRequest
+	15, // 33: k1s0.system.scheduler.v1.SchedulerService.ResumeJob:input_type -> k1s0.system.scheduler.v1.ResumeJobRequest
+	17, // 34: k1s0.system.scheduler.v1.SchedulerService.TriggerJob:input_type -> k1s0.system.scheduler.v1.TriggerJobRequest
+	19, // 35: k1s0.system.scheduler.v1.SchedulerService.GetJobExecution:input_type -> k1s0.system.scheduler.v1.GetJobExecutionRequest
+	21, // 36: k1s0.system.scheduler.v1.SchedulerService.ListExecutions:input_type -> k1s0.system.scheduler.v1.ListExecutionsRequest
+	4,  // 37: k1s0.system.scheduler.v1.SchedulerService.CreateJob:output_type -> k1s0.system.scheduler.v1.CreateJobResponse
+	6,  // 38: k1s0.system.scheduler.v1.SchedulerService.GetJob:output_type -> k1s0.system.scheduler.v1.GetJobResponse
+	8,  // 39: k1s0.system.scheduler.v1.SchedulerService.ListJobs:output_type -> k1s0.system.scheduler.v1.ListJobsResponse
+	10, // 40: k1s0.system.scheduler.v1.SchedulerService.UpdateJob:output_type -> k1s0.system.scheduler.v1.UpdateJobResponse
+	12, // 41: k1s0.system.scheduler.v1.SchedulerService.DeleteJob:output_type -> k1s0.system.scheduler.v1.DeleteJobResponse
+	14, // 42: k1s0.system.scheduler.v1.SchedulerService.PauseJob:output_type -> k1s0.system.scheduler.v1.PauseJobResponse
+	16, // 43: k1s0.system.scheduler.v1.SchedulerService.ResumeJob:output_type -> k1s0.system.scheduler.v1.ResumeJobResponse
+	18, // 44: k1s0.system.scheduler.v1.SchedulerService.TriggerJob:output_type -> k1s0.system.scheduler.v1.TriggerJobResponse
+	20, // 45: k1s0.system.scheduler.v1.SchedulerService.GetJobExecution:output_type -> k1s0.system.scheduler.v1.GetJobExecutionResponse
+	22, // 46: k1s0.system.scheduler.v1.SchedulerService.ListExecutions:output_type -> k1s0.system.scheduler.v1.ListExecutionsResponse
+	37, // [37:47] is the sub-list for method output_type
+	27, // [27:37] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_scheduler_v1_scheduler_proto_init() }
@@ -1574,6 +1767,7 @@ func file_k1s0_system_scheduler_v1_scheduler_proto_init() {
 		return
 	}
 	file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes[0].OneofWrappers = []any{}
+	file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes[5].OneofWrappers = []any{}
 	file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes[19].OneofWrappers = []any{}
 	file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
@@ -1581,13 +1775,14 @@ func file_k1s0_system_scheduler_v1_scheduler_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc), len(file_k1s0_system_scheduler_v1_scheduler_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      2,
 			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_scheduler_v1_scheduler_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_scheduler_v1_scheduler_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_scheduler_v1_scheduler_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_scheduler_v1_scheduler_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_scheduler_v1_scheduler_proto = out.File

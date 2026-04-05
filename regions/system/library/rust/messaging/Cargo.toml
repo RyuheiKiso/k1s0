@@ -7,6 +7,9 @@ edition = "2021"
 mock = ["mockall"]
 kafka = ["rdkafka"]
 protobuf = ["dep:prost"]
+# LOW-013 監査対応: testing フィーチャーを有効化すると InMemoryEventProducer がエクスポートされる。
+# 各サービスの Cargo.toml で `k1s0-messaging = { ..., features = ["testing"] }` と指定して使用する。
+testing = []
 
 [dependencies]
 async-trait = {workspace = true}

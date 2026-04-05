@@ -6,12 +6,17 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  # LOW-004 監査対応: gRPC サーバーポートを明示する（コンテナ内ポート; ホスト側は docker-compose.yaml で上書き可能）
+  grpc_port: 50051
 
 database:
   host: postgres
   port: 5432
   name: auth_db
   user: dev
+  # LOW-021 監査対応（開発専用パスワード）:
+  # このパスワードは Docker ローカル開発環境専用の固定値である。
+  # 本番環境では Vault の dynamic secrets または Kubernetes Secret 経由で注入すること。
   # serde_yaml はシェル変数展開をしないため直値で設定する（本番は DATABASE_URL 環境変数で上書きされる）
   password: "dev"
   ssl_mode: disable
@@ -42,21 +47,17 @@ audit:
   kafka_enabled: false
   retention_days: 30
 
+# STATIC-MEDIUM-003 監査対応 (ADR-0061): ROPC（admin_username / admin_password）を廃止し、
+# Client Credentials Grant のみを使用するよう統一した。
+# Keycloak 側で auth-rust 専用 Service Account（auth-rust-admin クライアント）を作成し、
+# realm-management ロールを付与した上で、client_secret を本番値に置き換えること。
 keycloak:
   base_url: "http://keycloak:8080"
   realm: "k1s0"
-  client_id: "k1s0-service"
-  # serde_yaml はシェル変数展開をしないため直値で設定する。
-  # 本番環境では Vault から注入した config ファイルまたは Kubernetes Secret で別途上書きすること（環境変数オーバーライド未実装）。
-  client_secret: "dev-service-secret"
-  admin_realm: "master"
-  admin_client_id: "admin-cli"
-  admin_username: "admin"
-  # !!!! ローカル開発専用の固定値（LOW-1 監査対応） !!!!
-  # serde_yaml はシェル変数展開をしないため直値で設定する。
+  client_id: "auth-rust-admin"
+  # !!!! ローカル開発専用の固定値 !!!!
   # 本番環境では Vault から注入した config ファイルまたは Kubernetes Secret で別途上書きすること。
-  # git 履歴に残るが開発用固定値（admin/dev）のため実害は限定的。
-  admin_password: "dev"
+  client_secret: "dev-service-secret"
 
 keycloak_admin:
   token_cache_ttl_secs: 60

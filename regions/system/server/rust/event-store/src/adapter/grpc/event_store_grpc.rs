@@ -138,13 +138,19 @@ impl EventStoreGrpcService {
         &self,
         req: ProtoAppendEventsRequest,
     ) -> Result<ProtoAppendEventsResponse, GrpcError> {
+        // JSONデシリアライズ失敗をサイレントに無視せず、INVALID_ARGUMENTとして伝播する
         let events: Vec<EventData> = req
             .events
             .into_iter()
             .map(|e| {
-                let payload = serde_json::from_slice(&e.payload).unwrap_or(serde_json::Value::Null);
+                let payload = serde_json::from_slice(&e.payload).map_err(|err| {
+                    GrpcError::InvalidArgument(format!(
+                        "イベントペイロードが不正なJSONです: {}",
+                        err
+                    ))
+                })?;
                 let metadata = e.metadata.unwrap_or_default();
-                EventData {
+                Ok(EventData {
                     event_type: e.event_type,
                     payload,
                     metadata: EventMetadata::new(
@@ -152,9 +158,9 @@ impl EventStoreGrpcService {
                         metadata.correlation_id,
                         metadata.causation_id,
                     ),
-                }
+                })
             })
-            .collect();
+            .collect::<Result<Vec<EventData>, GrpcError>>()?;
 
         let input = AppendEventsInput {
             stream_id: req.stream_id,
@@ -176,13 +182,15 @@ impl EventStoreGrpcService {
                     output.events.clone(),
                 );
 
+                // シリアライズ失敗をエラーとして収集し、失敗時はINTERNALを返す
+                let events = output
+                    .events
+                    .into_iter()
+                    .map(stored_event_to_proto)
+                    .collect::<Result<Vec<ProtoStoredEvent>, GrpcError>>()?;
                 Ok(ProtoAppendEventsResponse {
                     stream_id: output.stream_id,
-                    events: output
-                        .events
-                        .into_iter()
-                        .map(stored_event_to_proto)
-                        .collect(),
+                    events,
                     current_version: output.current_version,
                 })
             }
@@ -231,21 +239,25 @@ impl EventStoreGrpcService {
         };
 
         match self.read_events_uc.execute(&input).await {
-            Ok(output) => Ok(ProtoReadEventsResponse {
-                stream_id: output.stream_id,
-                events: output
+            Ok(output) => {
+                // シリアライズ失敗をエラーとして収集し、失敗時はINTERNALを返す
+                let events = output
                     .events
                     .into_iter()
                     .map(stored_event_to_proto)
-                    .collect(),
-                current_version: output.current_version,
-                pagination: Some(ProtoPaginationResult {
-                    total_count: output.pagination.total_count as i64,
-                    page: page as i32,
-                    page_size: page_size as i32,
-                    has_next: output.pagination.has_next,
-                }),
-            }),
+                    .collect::<Result<Vec<ProtoStoredEvent>, GrpcError>>()?;
+                Ok(ProtoReadEventsResponse {
+                    stream_id: output.stream_id,
+                    events,
+                    current_version: output.current_version,
+                    pagination: Some(ProtoPaginationResult {
+                        total_count: output.pagination.total_count as i64,
+                        page: page as i32,
+                        page_size: page_size as i32,
+                        has_next: output.pagination.has_next,
+                    }),
+                })
+            }
             Err(ReadEventsError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
@@ -263,9 +275,12 @@ impl EventStoreGrpcService {
         };
 
         match self.read_event_by_sequence_uc.execute(&input).await {
-            Ok(event) => Ok(ProtoReadEventBySequenceResponse {
-                event: Some(stored_event_to_proto(event)),
-            }),
+            Ok(event) => {
+                // シリアライズ失敗時はINTERNALエラーとして伝播する
+                Ok(ProtoReadEventBySequenceResponse {
+                    event: Some(stored_event_to_proto(event)?),
+                })
+            }
             Err(ReadEventBySequenceError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
@@ -284,7 +299,13 @@ impl EventStoreGrpcService {
         &self,
         req: ProtoCreateSnapshotRequest,
     ) -> Result<ProtoCreateSnapshotResponse, GrpcError> {
-        let state = serde_json::from_slice(&req.state).unwrap_or(serde_json::Value::Null);
+        // スナップショット状態のJSONデシリアライズ失敗をINVALID_ARGUMENTとして伝播する
+        let state = serde_json::from_slice(&req.state).map_err(|err| {
+            GrpcError::InvalidArgument(format!(
+                "スナップショット状態が不正なJSONです: {}",
+                err
+            ))
+        })?;
 
         let input = CreateSnapshotInput {
             stream_id: req.stream_id,
@@ -318,16 +339,25 @@ impl EventStoreGrpcService {
         };
 
         match self.get_latest_snapshot_uc.execute(&input).await {
-            Ok(snapshot) => Ok(ProtoGetLatestSnapshotResponse {
-                snapshot: Some(ProtoSnapshot {
-                    id: snapshot.id,
-                    stream_id: snapshot.stream_id,
-                    snapshot_version: snapshot.snapshot_version,
-                    aggregate_type: snapshot.aggregate_type,
-                    state: serde_json::to_vec(&snapshot.state).unwrap_or_default(),
-                    created_at: datetime_to_proto_timestamp(snapshot.created_at),
-                }),
-            }),
+            Ok(snapshot) => {
+                // スナップショット状態のシリアライズ失敗はINTERNALエラーとして伝播する
+                let state = serde_json::to_vec(&snapshot.state).map_err(|err| {
+                    GrpcError::Internal(format!(
+                        "スナップショット状態のシリアライズに失敗しました: {}",
+                        err
+                    ))
+                })?;
+                Ok(ProtoGetLatestSnapshotResponse {
+                    snapshot: Some(ProtoSnapshot {
+                        id: snapshot.id,
+                        stream_id: snapshot.stream_id,
+                        snapshot_version: snapshot.snapshot_version,
+                        aggregate_type: snapshot.aggregate_type,
+                        state,
+                        created_at: datetime_to_proto_timestamp(snapshot.created_at),
+                    }),
+                })
+            }
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
                 Err(GrpcError::NotFound(format!("stream not found: {}", id)))
             }
@@ -372,13 +402,24 @@ fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
     })
 }
 
-fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoStoredEvent {
-    ProtoStoredEvent {
+/// StoredEvent を Proto メッセージに変換する。
+/// ペイロードのシリアライズ失敗はINTERNALエラーとして伝播する。
+fn stored_event_to_proto(
+    e: crate::domain::entity::event::StoredEvent,
+) -> Result<ProtoStoredEvent, GrpcError> {
+    // ペイロードのシリアライズ失敗をサイレントに無視せず、INTERNALエラーとして伝播する
+    let payload = serde_json::to_vec(&e.payload).map_err(|err| {
+        GrpcError::Internal(format!(
+            "イベントペイロードのシリアライズに失敗しました: {}",
+            err
+        ))
+    })?;
+    Ok(ProtoStoredEvent {
         stream_id: e.stream_id,
         sequence: e.sequence,
         event_type: e.event_type,
         version: e.version,
-        payload: serde_json::to_vec(&e.payload).unwrap_or_default(),
+        payload,
         metadata: Some(ProtoEventMetadata {
             actor_id: e.metadata.actor_id,
             correlation_id: e.metadata.correlation_id,
@@ -386,5 +427,209 @@ fn stored_event_to_proto(e: crate::domain::entity::event::StoredEvent) -> ProtoS
         }),
         occurred_at: datetime_to_proto_timestamp(e.occurred_at),
         stored_at: datetime_to_proto_timestamp(e.stored_at),
+    })
+}
+
+// ---------------------------------------------------------------------------
+// CRIT-004 監査対応: JSONデシリアライズエラーが適切なgRPCエラーとして伝播することを検証する。
+// サイレントに無視せず、InvalidArgument として呼び出し元にエラーを返すことを確認する。
+// ---------------------------------------------------------------------------
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::domain::repository::event_repository::{
+        MockEventRepository, MockEventStreamRepository, MockSnapshotRepository,
+    };
+    use crate::infrastructure::kafka::MockEventPublisher;
+    use crate::usecase::append_events::AppendEventsUseCase;
+    use crate::usecase::create_snapshot::CreateSnapshotUseCase;
+    use crate::usecase::delete_stream::DeleteStreamUseCase;
+    use crate::usecase::get_latest_snapshot::GetLatestSnapshotUseCase;
+    use crate::usecase::read_event_by_sequence::ReadEventBySequenceUseCase;
+    use crate::usecase::read_events::ReadEventsUseCase;
+
+    /// テスト用の EventStoreGrpcService を構築するヘルパー。
+    /// スタブの実装をモックとして注入し、JSONパース処理だけをテストする。
+    fn make_service() -> EventStoreGrpcService {
+        let stream_repo = Arc::new(MockEventStreamRepository::new());
+        let event_repo = Arc::new(MockEventRepository::new());
+        let snapshot_repo = Arc::new(MockSnapshotRepository::new());
+        let publisher = Arc::new(MockEventPublisher::new());
+
+        let append_uc = Arc::new(AppendEventsUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let read_events_uc = Arc::new(ReadEventsUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let read_by_seq_uc = Arc::new(ReadEventBySequenceUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let create_snap_uc = Arc::new(CreateSnapshotUseCase::new(
+            stream_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+        let get_snap_uc = Arc::new(GetLatestSnapshotUseCase::new(
+            stream_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+        let delete_uc = Arc::new(DeleteStreamUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+
+        EventStoreGrpcService::new(
+            append_uc,
+            read_events_uc,
+            read_by_seq_uc,
+            create_snap_uc,
+            get_snap_uc,
+            delete_uc,
+            stream_repo,
+            publisher,
+        )
+    }
+
+    /// CRIT-004 監査対応: 不正なJSONペイロードを持つイベントの append_events リクエストは
+    /// InvalidArgument エラーとして伝播し、サイレントに無視されないことを確認する。
+    #[tokio::test]
+    async fn test_append_events_invalid_json_payload_returns_invalid_argument() {
+        let svc = make_service();
+
+        let req = ProtoAppendEventsRequest {
+            stream_id: "stream-001".to_string(),
+            expected_version: -1,
+            aggregate_type: "TestAggregate".to_string(),
+            events: vec![
+                crate::proto::k1s0::system::eventstore::v1::EventData {
+                    event_type: "TestEvent".to_string(),
+                    // 不正なバイト列: 有効なJSONではない
+                    payload: b"not-valid-json{{{".to_vec(),
+                    metadata: None,
+                },
+            ],
+        };
+
+        let result = svc.append_events(req).await;
+        assert!(result.is_err(), "不正なJSONペイロードはエラーを返すべき");
+        match result.unwrap_err() {
+            GrpcError::InvalidArgument(msg) => {
+                assert!(
+                    msg.contains("不正なJSON") || msg.contains("JSON"),
+                    "エラーメッセージにJSON不正の旨が含まれるべき: {msg}"
+                );
+            }
+            e => panic!("InvalidArgument を期待したが {e:?} が返った"),
+        }
+    }
+
+    /// CRIT-004 監査対応: 不正なJSONバイト列を持つ create_snapshot リクエストは
+    /// InvalidArgument エラーとして伝播し、サイレントに無視されないことを確認する。
+    #[tokio::test]
+    async fn test_create_snapshot_invalid_json_state_returns_invalid_argument() {
+        let svc = make_service();
+
+        let req = ProtoCreateSnapshotRequest {
+            stream_id: "stream-001".to_string(),
+            snapshot_version: 1,
+            aggregate_type: "TestAggregate".to_string(),
+            // 不正なバイト列: 有効なJSONではない
+            state: b"not-valid-json{{{".to_vec(),
+        };
+
+        let result = svc.create_snapshot(req).await;
+        assert!(result.is_err(), "不正なJSONスナップショット状態はエラーを返すべき");
+        match result.unwrap_err() {
+            GrpcError::InvalidArgument(msg) => {
+                assert!(
+                    msg.contains("不正なJSON") || msg.contains("JSON"),
+                    "エラーメッセージにJSON不正の旨が含まれるべき: {msg}"
+                );
+            }
+            e => panic!("InvalidArgument を期待したが {e:?} が返った"),
+        }
+    }
+
+    /// CRIT-004 監査対応: 有効なJSONペイロード（空オブジェクト）は正常にパースされ、
+    /// InvalidArgument エラーにならないことを確認する（誤発火防止）。
+    /// ユースケース層でエラーが発生しても、JSONパースエラーではないことを検証する。
+    #[tokio::test]
+    async fn test_append_events_valid_json_payload_does_not_return_invalid_argument() {
+        // このテストではストリームが見つからないエラー（StreamNotFound）が返ることを想定するため、
+        // MockEventStreamRepository に find_by_id の期待値を設定する必要がある。
+        // make_service() とは別に個別にモックを組み立てる。
+        let mut stream_repo = MockEventStreamRepository::new();
+        stream_repo
+            .expect_find_by_id()
+            .returning(|_| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
+        let stream_repo = Arc::new(stream_repo);
+
+        let event_repo = Arc::new(MockEventRepository::new());
+        let snapshot_repo = Arc::new(MockSnapshotRepository::new());
+        let publisher = Arc::new(MockEventPublisher::new());
+
+        let append_uc = Arc::new(AppendEventsUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let read_events_uc = Arc::new(ReadEventsUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let read_by_seq_uc = Arc::new(ReadEventBySequenceUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+        ));
+        let create_snap_uc = Arc::new(CreateSnapshotUseCase::new(
+            stream_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+        let get_snap_uc = Arc::new(GetLatestSnapshotUseCase::new(
+            stream_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+        let delete_uc = Arc::new(DeleteStreamUseCase::new(
+            stream_repo.clone(),
+            event_repo.clone(),
+            snapshot_repo.clone(),
+        ));
+        let svc = EventStoreGrpcService::new(
+            append_uc,
+            read_events_uc,
+            read_by_seq_uc,
+            create_snap_uc,
+            get_snap_uc,
+            delete_uc,
+            stream_repo,
+            publisher,
+        );
+
+        let req = ProtoAppendEventsRequest {
+            stream_id: "stream-001".to_string(),
+            expected_version: 0, // 0 を指定するとストリームが存在しないため StreamNotFound になる
+            aggregate_type: "TestAggregate".to_string(),
+            events: vec![
+                crate::proto::k1s0::system::eventstore::v1::EventData {
+                    event_type: "TestEvent".to_string(),
+                    // 有効なJSON
+                    payload: b"{}".to_vec(),
+                    metadata: None,
+                },
+            ],
+        };
+
+        let result = svc.append_events(req).await;
+        // ストリームが存在しないため StreamNotFound エラーが返るが、
+        // InvalidArgument（JSONパースエラー）は返ってはいけない
+        assert!(result.is_err(), "ストリームが存在しないためエラーが返るべき");
+        assert!(
+            matches!(result.unwrap_err(), GrpcError::NotFound(_)),
+            "有効なJSONの場合は NotFound エラーが返り、InvalidArgument は返ってはいけない"
+        );
     }
 }
