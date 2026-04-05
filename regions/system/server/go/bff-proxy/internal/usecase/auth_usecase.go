@@ -423,36 +423,36 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 	}
 
 	// H-003 監査対応: CSRF トークンの生成から csrfRefreshThreshold（25分）を超えた場合は再生成する。
-	// CSRFTokenCreatedAt == 0 の旧形式セッションは再生成をスキップする（後方互換性のため）。
+	// MED-001 監査対応: CSRFTokenCreatedAt > 0 の後方互換ガードを削除した。
+	// CSRFTokenCreatedAt = 0 の旧セッションは 1970-01-01 起算となり TTL 超過と判定され再生成される。
+	// csrf_middleware.go も同様に全セッションに対して TTL チェックを行うよう統一済み。
 	csrfToken := sess.CSRFToken
-	if sess.CSRFTokenCreatedAt > 0 {
-		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
-		if csrfAge > csrfRefreshThreshold {
-			// 新しい CSRF トークンを生成してセッションを更新する
-			newCSRFToken, err := util.GenerateRandomHex(32)
-			if err != nil {
-				return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
-			}
-			sess.CSRFToken = newCSRFToken
-			sess.CSRFTokenCreatedAt = time.Now().Unix()
-			// セッションストアにトークン更新を反映する（TTL はセッション TTL のデフォルト値を維持する）
-			// TTL は SessionCheckInput に含まれないため 0 を渡すと一部ストアで問題が起きる可能性があるため
-			// Update は TTL を受け取るが、ここでは残存 TTL を再設定するため sessionTTL 相当のデフォルト値を使用する。
-			// セッション自体の有効期間は SessionMiddleware の Touch で管理されるため、
-			// ここでは実際のアクセストークン有効期限（ExpiresAt）までを TTL として渡す。
-			remainingTTL := time.Until(time.Unix(sess.ExpiresAt, 0))
-			if remainingTTL <= 0 {
-				remainingTTL = 30 * time.Minute
-			}
-			if updateErr := uc.sessionStore.Update(ctx, input.SessionID, sess, remainingTTL); updateErr != nil {
-				// セッション更新失敗は警告ログを出力して処理を続行する（旧トークンを返す）
-				slog.WarnContext(ctx, "CSRF トークン再生成後のセッション更新に失敗しました（旧トークンを返します）",
-					"error", updateErr,
-				)
-				csrfToken = sess.CSRFToken
-			} else {
-				csrfToken = newCSRFToken
-			}
+	csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+	if csrfAge > csrfRefreshThreshold {
+		// 新しい CSRF トークンを生成してセッションを更新する
+		newCSRFToken, err := util.GenerateRandomHex(32)
+		if err != nil {
+			return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
+		}
+		sess.CSRFToken = newCSRFToken
+		sess.CSRFTokenCreatedAt = time.Now().Unix()
+		// セッションストアにトークン更新を反映する（TTL はセッション TTL のデフォルト値を維持する）
+		// TTL は SessionCheckInput に含まれないため 0 を渡すと一部ストアで問題が起きる可能性があるため
+		// Update は TTL を受け取るが、ここでは残存 TTL を再設定するため sessionTTL 相当のデフォルト値を使用する。
+		// セッション自体の有効期間は SessionMiddleware の Touch で管理されるため、
+		// ここでは実際のアクセストークン有効期限（ExpiresAt）までを TTL として渡す。
+		remainingTTL := time.Until(time.Unix(sess.ExpiresAt, 0))
+		if remainingTTL <= 0 {
+			remainingTTL = 30 * time.Minute
+		}
+		if updateErr := uc.sessionStore.Update(ctx, input.SessionID, sess, remainingTTL); updateErr != nil {
+			// セッション更新失敗は警告ログを出力して処理を続行する（旧トークンを返す）
+			slog.WarnContext(ctx, "CSRF トークン再生成後のセッション更新に失敗しました（旧トークンを返します）",
+				"error", updateErr,
+			)
+			csrfToken = sess.CSRFToken
+		} else {
+			csrfToken = newCSRFToken
 		}
 	}
 

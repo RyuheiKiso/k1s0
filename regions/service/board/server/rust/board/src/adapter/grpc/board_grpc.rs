@@ -1,6 +1,7 @@
 // ボードサービス gRPC 実装。
 // 各メソッドで proto Request をドメイン入力型に変換し、UseCase を呼び出して proto Response を返す。
-// テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" をフォールバックとして使用する。
+// CRIT-006 対応: テナント分離のためメタデータから x-tenant-id を取得する。
+// x-tenant-id が未設定の場合は UNAUTHENTICATED エラーを返す（フェイルクローズ設計）。
 use crate::domain::entity::board_column::{
     BoardColumnFilter, DecrementColumnRequest as DomainDecrementReq,
     IncrementColumnRequest as DomainIncrementReq,
@@ -44,6 +45,24 @@ fn domain_column_to_proto(c: crate::domain::entity::board_column::BoardColumn) -
     }
 }
 
+/// gRPC メタデータから x-tenant-id を取得する。
+/// CRIT-006 監査対応: フェイルクローズ設計に変更。
+/// x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返し、
+/// 認証ミドルウェアの設定漏れを即座に検出できるようにする（task_grpc.rs の実装に統一）。
+fn tenant_id_from_metadata<T>(req: &Request<T>) -> Result<String, Status> {
+    req.metadata()
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            tracing::error!(
+                "x-tenant-id metadata が設定されていません。認証ミドルウェアの設定を確認してください。"
+            );
+            Status::unauthenticated("x-tenant-id ヘッダーが必須です")
+        })
+}
+
 pub struct BoardGrpcService {
     pub increment_column_uc: Arc<usecase::increment_column::IncrementColumnUseCase>,
     pub decrement_column_uc: Arc<usecase::decrement_column::DecrementColumnUseCase>,
@@ -68,12 +87,8 @@ impl BoardGrpcService {
 impl BoardService for BoardGrpcService {
     // カラムタスク数増加: proto Request をドメイン IncrementColumnRequest に変換して UseCase を実行する
     async fn increment_column(&self, req: Request<IncrementColumnRequest>) -> Result<Response<IncrementColumnResponse>, Status> {
-        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
-        let tenant_id = req.metadata()
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system")
-            .to_owned();
+        // メタデータから tenant_id を取得する（フェイルクローズ: 未設定時は UNAUTHENTICATED を返す）
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -96,12 +111,8 @@ impl BoardService for BoardGrpcService {
 
     // カラムタスク数減少: proto Request をドメイン DecrementColumnRequest に変換して UseCase を実行する
     async fn decrement_column(&self, req: Request<DecrementColumnRequest>) -> Result<Response<DecrementColumnResponse>, Status> {
-        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
-        let tenant_id = req.metadata()
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system")
-            .to_owned();
+        // メタデータから tenant_id を取得する（フェイルクローズ: 未設定時は UNAUTHENTICATED を返す）
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -126,12 +137,8 @@ impl BoardService for BoardGrpcService {
 
     // ボードカラム取得: column_id を UUID に変換して UseCase を実行する
     async fn get_board_column(&self, req: Request<GetBoardColumnRequest>) -> Result<Response<GetBoardColumnResponse>, Status> {
-        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
-        let tenant_id = req.metadata()
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system")
-            .to_owned();
+        // メタデータから tenant_id を取得する（フェイルクローズ: 未設定時は UNAUTHENTICATED を返す）
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.column_id)
             .map_err(|_| Status::invalid_argument("invalid column_id"))?;
@@ -148,12 +155,8 @@ impl BoardService for BoardGrpcService {
 
     // ボードカラム一覧: ページネーションパラメータを BoardColumnFilter に変換して UseCase を実行する
     async fn list_board_columns(&self, req: Request<ListBoardColumnsRequest>) -> Result<Response<ListBoardColumnsResponse>, Status> {
-        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
-        let tenant_id = req.metadata()
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system")
-            .to_owned();
+        // メタデータから tenant_id を取得する（フェイルクローズ: 未設定時は UNAUTHENTICATED を返す）
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
 
         // project_id が指定された場合は UUID に変換する
@@ -207,12 +210,8 @@ impl BoardService for BoardGrpcService {
 
     // WIP 制限更新: proto Request をドメイン UpdateWipLimitRequest に変換して UseCase を実行する
     async fn update_wip_limit(&self, req: Request<UpdateWipLimitRequest>) -> Result<Response<UpdateWipLimitResponse>, Status> {
-        // テナント分離のためメタデータから x-tenant-id を取得し、存在しない場合は "system" を使用する
-        let tenant_id = req.metadata()
-            .get("x-tenant-id")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("system")
-            .to_owned();
+        // メタデータから tenant_id を取得する（フェイルクローズ: 未設定時は UNAUTHENTICATED を返す）
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let column_id = Uuid::parse_str(&r.column_id)
             .map_err(|_| Status::invalid_argument("invalid column_id"))?;

@@ -28,7 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("featureflag/v1", "k1s0.system.featureflag.v1"),
         ("config/v1", "k1s0.system.config.v1"),
         ("navigation/v1", "k1s0.system.navigation.v1"),
-        ("servicecatalog/v1", "k1s0.system.servicecatalog.v1"),
+        // HIGH-008 対応: servicecatalog サービスは gRPC を実装せず REST のみのため proto 削除済み。
+        // graphql-gateway は HTTP REST クライアント（service_catalog_client.rs）で接続する。
         ("auth/v1", "k1s0.system.auth.v1"),
         ("session/v1", "k1s0.system.session.v1"),
         ("vault/v1", "k1s0.system.vault.v1"),
@@ -89,8 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let config_proto = "../../../../../api/proto/k1s0/system/config/v1/config.proto";
         let navigation_proto =
             "../../../../../api/proto/k1s0/system/navigation/v1/navigation.proto";
-        let service_catalog_proto =
-            "../../../../../api/proto/k1s0/system/servicecatalog/v1/service_catalog.proto";
+        // HIGH-008 対応: service_catalog.proto は削除済み（gRPC 未実装、REST のみ）
         let api_common_proto = "../../../../../api/proto/k1s0/system/common/v1/types.proto";
         let auth_proto = "../../../../../api/proto/k1s0/system/auth/v1/auth.proto";
         let session_proto = "../../../../../api/proto/k1s0/system/session/v1/session.proto";
@@ -106,7 +106,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             && std::path::Path::new(featureflag_proto).exists()
             && std::path::Path::new(config_proto).exists()
             && std::path::Path::new(navigation_proto).exists()
-            && std::path::Path::new(service_catalog_proto).exists()
             && std::path::Path::new(api_common_proto).exists()
             && std::path::Path::new(auth_proto).exists()
             && std::path::Path::new(session_proto).exists()
@@ -129,7 +128,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         featureflag_proto,
                         config_proto,
                         navigation_proto,
-                        service_catalog_proto,
                         api_common_proto,
                         auth_proto,
                         session_proto,

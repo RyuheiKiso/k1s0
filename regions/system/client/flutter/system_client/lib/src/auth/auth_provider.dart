@@ -217,8 +217,8 @@ class AuthNotifier extends Notifier<AuthState> {
         if (!ref.mounted) return;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
-    // M-010 監査対応: エラーを分類してデバッグ情報を保持する
-    on PlatformException catch (e) {
+    // try ブロックの閉じ括弧（CRIT-005 修正: 欠落していた } を追加）
+    } on PlatformException catch (e) {
       // ユーザーキャンセルと認証失敗を区別する
       if (e.code == 'CANCELED') {
         debugPrint('User cancelled login');

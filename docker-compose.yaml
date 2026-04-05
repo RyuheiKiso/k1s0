@@ -248,8 +248,11 @@ services:
       - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
-      # CRIT-009 対応: JMX 認証ファイルをコンテナにマウントする（読み取り専用）
-      - ./infra/docker/kafka/jmx:/etc/kafka/jmx:ro
+      # CRIT-009 対応: JMX 認証ファイルをコンテナにマウントする
+      # :ro を外すことで Kafka 起動スクリプトが chmod 0400 を適用できるようにする（監査対応 CRIT-001）
+      # read-only マウントでは JMX パスワードファイルのパーミッション制限（0400 必須）を
+      # コンテナ内から設定できないため起動失敗が発生していた
+      - ./infra/docker/kafka/jmx:/etc/kafka/jmx
     healthcheck:
       # DOCKER-003 監査対応: タイムアウトを 5s → 15s に延長し、起動待機期間を追加する。
       # Kafka ブローカーはリーダー選出に時間がかかるため、起動直後のヘルスチェックが
@@ -508,9 +511,11 @@ services:
     # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
     # Vault dev モードはインメモリストレージを使用するためファイル書き込み不要
     # /tmp は tmpfs で一時ストレージを確保する
+    # /home/vault は Vault dev モードが .vault-token.tmp 等を書き込むために必要（CRIT-002 対応）
     read_only: true
     tmpfs:
       - /tmp
+      - /home/vault
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
@@ -567,10 +572,11 @@ services:
       KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: "cjson.safe"
     # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にしてホストへの書き込みを防止する
     # Kong は設定ファイル（:ro マウント）のみを参照し、ログは stdout/stderr に出力するため書き込み不要
-    # Kong のワーカー一時ファイル（/tmp）は tmpfs でカバーする
+    # Kong のワーカーソケット（/usr/local/kong/sockets）と一時ファイル（/tmp）は tmpfs でカバーする（CRIT-003 対応）
     read_only: true
     tmpfs:
       - /tmp
+      - /usr/local/kong
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:

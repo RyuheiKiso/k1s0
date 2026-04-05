@@ -803,6 +803,7 @@ jobs:
 
 ```yaml
 # .github/workflows/proto.yaml
+# LOW-005 対応: buf.lock 変更時も Proto Check を実行するよう paths に追加した
 name: Proto Check
 
 on:
@@ -813,28 +814,36 @@ on:
       - 'api/proto/buf.gen.yaml'
       - 'api/proto/buf.lock'    # H-012: buf.lock 変更時も Proto Check を実行する
 
+# 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
+permissions: {}
+
 jobs:
   proto-lint:
     runs-on: ubuntu-latest
+    # コードの読み取りのみ必要
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: bufbuild/buf-setup-action@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
         with:
           version: "1.47.2"              # devcontainer設計.md の BUF_VERSION と同期
+      # Dart Proto コード生成に必要な Dart SDK + protoc_plugin をインストールする（C-002）
+      - uses: dart-lang/setup-dart@e630b99d28a3ae479d3857b5de7a6d24f33fcba4 # v1
+        with:
+          sdk: stable
+      - name: Install protoc-gen-dart
+        run: |
+          dart pub global activate protoc_plugin
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
       - name: Lint
         run: buf lint api/proto
       - name: Breaking change detection
         run: buf breaking api/proto --against '.git#branch=main'
-      - name: Generate (dry-run)
-        run: buf generate api/proto --template buf.gen.yaml
-      # H-012 監査対応: buf.lock の存在を検証する（依存バージョン固定の強制）
-      - name: Verify buf.lock exists
-        run: |
-          if [ ! -f api/proto/buf.lock ]; then
-            echo "::error::api/proto/buf.lock が存在しません。cd api/proto && buf mod update を実行してください。"
-            exit 1
-          fi
-          echo "buf.lock: OK"
+      # LOW-005 対応: CI での実態は buf generate ではなく check-proto-generated.sh（生成済みファイルの検証）
+      # buf generate はローカル開発でのみ実行し、CI では差分がないことを確認する
+      - name: Verify generated artifacts
+        run: bash scripts/check-proto-generated.sh
 ```
 
 ### Security Scan ワークフロー（security.yaml）

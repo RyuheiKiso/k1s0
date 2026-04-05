@@ -151,10 +151,15 @@ SET LOCAL app.current_tenant_id = '{tenant_id}';
 | ratelimit-db | レートリミット管理。システムインフラ。tenant_id カラムなし |
 | featureflag-db | ADR-0012 により設計上除外。グローバル設定として管理。flag_evaluations の tenant_id はコンテキスト記録用 |
 | api-registry-db | ADR-0012 により設計上除外 |
-| outbox テーブル群 | システム内部イベントバスとして機能するため、RLS 対象外（multi-tenancy.md 設計方針） |
+| outbox テーブル群 | システム内部イベントバスとして機能するため、RLS 対象外。outbox publisher が全テナントイベントを横断的に処理するため意図的設計（ADR-0080, ADR-0110 参照） |
+| vault-db | RLS 非適用。key_path プレフィックスによる論理分離とユースケース層バリデーションで補完（ADR-0109 参照） |
+| event-monitor-db | RLS 非適用。システムレベルのイベント監視基盤であり、全テナント集約が設計上の要件（ADR-0109 参照） |
+| master-maintenance-db | RLS 非適用。テナント横断のマスターデータ定義（テーブル定義、カラム定義等のメタデータ）であり、テナント分離は不要（ADR-0109 参照） |
 
-### 将来検討対象
+### outbox_events テナント分離の注意事項
 
-| データベース | 検討内容 |
-|---|---|
-| vault-db | secret_access_logs の tenant_id は nullable（監査ログ用）。RLS 適用には NOT NULL 制約追加とスキーマ整合が前提 |
+`outbox_events` テーブルを参照する outbox publisher クエリは `tenant_id IS NULL` 条件を使用している。
+これは RLS が有効な状態でも publisher が全テナントのイベントを処理できるようにするための意図的設計である（ADR-0080）。
+
+将来的には `k1s0_outbox_publisher` ロール（BYPASSRLS 権限）を導入して `IS NULL` 条件を削除する予定。
+移行ロードマップは [ADR-0110](adr/0110-outbox-bypassrls-publisher-role.md) を参照。

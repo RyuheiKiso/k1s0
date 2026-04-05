@@ -337,8 +337,8 @@ impl NotificationService for NotificationServiceTonic {
         request: Request<ProtoCreateChannelRequest>,
     ) -> Result<Response<ProtoCreateChannelResponse>, Status> {
         // ADR-0028 Phase 1: gRPC メタデータ x-tenant-id からテナント ID を取得する。
-        // メタデータが存在しない場合はシステムテナントにフォールバックする。
-        let tenant_id = tenant_id_from_metadata(request.metadata());
+        // CRIT-006 対応: フェイルクローズ設計。x-tenant-id が未設定の場合は UNAUTHENTICATED を返す。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = CreateChannelRequest {
             name: inner.name,

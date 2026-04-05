@@ -7,6 +7,7 @@ on:
       - 'api/proto/**'
       - 'api/proto/buf.yaml'
       - 'api/proto/buf.gen.yaml'
+      - 'api/proto/buf.lock'    # LOW-005: buf.lock 変更時も Proto Check を実行する（依存ピン留め検証）
 
 # 最小権限の原則: ワークフロー全体のデフォルトを全拒否に設定
 permissions: {}

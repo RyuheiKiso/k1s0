@@ -144,6 +144,12 @@ service tier のボード管理サーバーは以下の機能を提供する。
 | usecase | `BoardEventPublisher` | イベント発行トレイト |
 | adapter/handler | REST ハンドラー + gRPC サービス | プロトコル変換 |
 | infrastructure/persistence | `BoardColumnPostgresRepository` | PostgreSQL + Outbox |
+
+### gRPC テナント分離設計（CRIT-006 対応）
+
+全 gRPC エンドポイントはリクエストメタデータ `x-tenant-id` ヘッダーから tenant_id を取得する。
+**フェイルクローズ設計**: `x-tenant-id` が未設定または空文字の場合は `UNAUTHENTICATED` エラーを返す。
+旧来の各メソッド内インライン `.unwrap_or("system")` パターンは `tenant_id_from_metadata` 共通関数に統一済み。
 | infrastructure/messaging | `BoardKafkaProducer` | Kafka プロデューサー |
 
 ---

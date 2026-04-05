@@ -1,6 +1,7 @@
 // アクティビティサービス gRPC 実装。
 // 各メソッドで proto Request をドメイン入力型に変換し、UseCase を呼び出して proto Response を返す。
-// RLS テナント分離のため gRPC メタデータから x-tenant-id を取得する。存在しない場合は "system" を使用する。
+// RLS テナント分離のため gRPC メタデータから x-tenant-id を取得する。
+// CRIT-006 対応: x-tenant-id が未設定の場合は UNAUTHENTICATED エラーを返す（フェイルクローズ設計）。
 use crate::domain::entity::activity::{
     ActivityFilter, ActivityStatus, ActivityType, CreateActivity,
 };
@@ -92,26 +93,21 @@ fn domain_activity_to_proto(a: crate::domain::entity::activity::Activity) -> Pro
 }
 
 /// gRPC メタデータから x-tenant-id を取得する。
-/// 存在しない場合または不正なバイト列の場合は "system" をフォールバックとして使用し、
-/// 認証ミドルウェアの設定漏れを検知するために警告ログを出力する。
-fn tenant_id_from_metadata<T>(req: &Request<T>) -> String {
-    let tenant_id = req.metadata()
+/// CRIT-006 監査対応: フェイルクローズ設計に変更。
+/// x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返し、
+/// 認証ミドルウェアの設定漏れを即座に検出できるようにする（task_grpc.rs の実装に統一）。
+fn tenant_id_from_metadata<T>(req: &Request<T>) -> Result<String, Status> {
+    req.metadata()
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string());
-
-    match tenant_id {
-        Some(id) => id,
-        None => {
-            // x-tenant-id が設定されていない場合は認証ミドルウェアの設定漏れを示す
-            tracing::warn!(
-                "x-tenant-id metadata missing, falling back to 'system'. \
-                This should be set by the auth middleware."
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            tracing::error!(
+                "x-tenant-id metadata が設定されていません。認証ミドルウェアの設定を確認してください。"
             );
-            "system".to_string()
-        }
-    }
+            Status::unauthenticated("x-tenant-id ヘッダーが必須です")
+        })
 }
 
 pub struct ActivityGrpcService {
@@ -141,7 +137,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ作成: proto Request をドメイン CreateActivity に変換して UseCase を実行する
     async fn create_activity(&self, req: Request<CreateActivityRequest>) -> Result<Response<CreateActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -165,7 +161,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ取得: activity_id を UUID に変換して UseCase を実行する
     async fn get_activity(&self, req: Request<GetActivityRequest>) -> Result<Response<GetActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
@@ -183,7 +179,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ一覧: ページネーションパラメータを ActivityFilter に変換して UseCase を実行する
     async fn list_activities(&self, req: Request<ListActivitiesRequest>) -> Result<Response<ListActivitiesResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
 
         // task_id が指定された場合は UUID に変換する
@@ -247,7 +243,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ提出: activity_id を UUID に変換して UseCase を実行する（Active → Submitted）
     async fn submit_activity(&self, req: Request<SubmitActivityRequest>) -> Result<Response<SubmitActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
@@ -263,7 +259,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ承認: activity_id を UUID に変換して UseCase を実行する（Submitted → Approved）
     async fn approve_activity(&self, req: Request<ApproveActivityRequest>) -> Result<Response<ApproveActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
@@ -279,7 +275,7 @@ impl ActivityService for ActivityGrpcService {
     // アクティビティ却下: activity_id を UUID に変換して UseCase を実行する（Submitted → Rejected）
     async fn reject_activity(&self, req: Request<RejectActivityRequest>) -> Result<Response<RejectActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
-        let tenant_id = tenant_id_from_metadata(&req);
+        let tenant_id = tenant_id_from_metadata(&req)?;
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;

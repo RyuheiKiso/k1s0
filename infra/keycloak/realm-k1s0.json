@@ -20,7 +20,7 @@
   "accessTokenLifespanForImplicitFlow": 300,
   "ssoSessionIdleTimeout": 1800,
   "refreshTokenLifespan": 1800,
-  "ssoSessionMaxLifespan": 86400,
+  "ssoSessionMaxLifespan": 28800,
   "revokeRefreshToken": true,
   "refreshTokenMaxReuse": 0,
   "offlineSessionIdleTimeout": 2592000,
@@ -439,7 +439,7 @@
       "directAccessGrantsEnabled": false,
       "standardFlowEnabled": false,
       "serviceAccountsEnabled": true,
-      "secret": "dev-service-secret",
+      "secret": "${KC_AUTH_ADMIN_SECRET:-dev-service-secret}",
       "defaultClientScopes": [
         "openid",
         "profile",

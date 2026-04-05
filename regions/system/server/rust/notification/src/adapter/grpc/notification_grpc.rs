@@ -265,20 +265,23 @@ pub enum GrpcError {
 
 // --- テナント ID ヘルパー ---
 
-/// システムテナントを示すフォールバック値。
-/// gRPC メタデータに x-tenant-id が含まれない場合に使用する（ADR-0028 Phase 1 準拠）。
-const SYSTEM_TENANT_ID: &str = "system";
-
 /// gRPC メタデータから x-tenant-id ヘッダーを取得してテナント ID 文字列を返すヘルパー。
-/// ヘッダーが存在しない場合は SYSTEM_TENANT_ID にフォールバックする（ADR-0028 Phase 1）。
-/// Phase 2 でメタデータ必須化後にこのフォールバックは廃止予定。
-pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> String {
+/// CRIT-006 監査対応: フェイルクローズ設計に変更。
+/// x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返し、
+/// 認証ミドルウェアの設定漏れを即座に検出できるようにする（task_grpc.rs の実装に統一）。
+/// （旧フォールバック値 SYSTEM_TENANT_ID は廃止）
+pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<String, tonic::Status> {
     metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
         .filter(|s| !s.is_empty())
-        .unwrap_or(SYSTEM_TENANT_ID)
-        .to_string()
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            tracing::error!(
+                "x-tenant-id metadata が設定されていません。認証ミドルウェアの設定を確認してください。"
+            );
+            tonic::Status::unauthenticated("x-tenant-id ヘッダーが必須です")
+        })
 }
 
 // --- NotificationGrpcService ---

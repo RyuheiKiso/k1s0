@@ -357,7 +357,6 @@ func initRouter(
 	router.GET("/auth/callback", authHandler.Callback)
 	router.GET("/auth/session", authHandler.Session)
 	router.GET("/auth/exchange", authHandler.Exchange)
-	router.POST("/auth/logout", authHandler.Logout)
 
 	// H-7 監査対応: 本番環境では CSRF 保護を強制的に有効化する。
 	// csrf.enabled を false に設定したまま本番運用されるリスクを防ぐ。
@@ -376,6 +375,21 @@ func initRouter(
 		api.Use(middleware.CSRFMiddleware(sessionStore, csrfHeader, handler.CookieName))
 	}
 	api.Any("/*path", proxyHandler.Handle)
+
+	// HIGH-006 対応: /auth/logout は状態変更操作（セッション破棄）のため CSRF 保護が必要。
+	// SessionMiddleware でセッション検証、CSRFMiddleware で CSRF トークン照合を行う。
+	// login/callback/session/exchange は認証前アクセスが必要なため CSRF 保護対象外。
+	authProtected := router.Group("/auth")
+	authProtected.Use(middleware.SessionMiddleware(sessionStore, handler.CookieName, sessionTTL, cfg.Session.Sliding))
+	if cfg.CSRF.Enabled {
+		csrfHeader := cfg.CSRF.HeaderName
+		if csrfHeader == "" {
+			csrfHeader = middleware.DefaultCSRFHeader
+		}
+		authProtected.Use(middleware.CSRFMiddleware(sessionStore, csrfHeader, handler.CookieName))
+	}
+	authProtected.POST("/logout", authHandler.Logout)
+
 	return router, nil
 }
 
