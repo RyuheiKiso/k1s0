@@ -735,29 +735,57 @@ done
 
 ---
 
-## stale Docker イメージ問題（HIGH-002 / HIGH-003 / HIGH-006 対応）
+## stale Docker イメージ問題（CRIT-002 / CRIT-003 / HIGH-002 / HIGH-003 / HIGH-006 対応）
 
 ### 症状
 
 - ソースコードを変更したのに稼働中コンテナに反映されない
 - readyz が 404 を返す（例: featureflag の `/readyz` エンドポイント）
 - healthz が旧バージョンのレスポンスを返す
+- `config-rust` が `Error: auth configuration is required` で起動ループする（`Restarting` 状態）
+- `featureflag-rust` が `503 Service Unavailable` を返し続け `unhealthy` になる
 
 ### 原因
 
 稼働中の Docker コンテナが古いイメージを使用している。`docker ps` で `CREATED` 列を確認し、数時間〜数日前になっていれば stale image の可能性が高い。
 
+`docker compose up`（just を使わず直接）を実行した場合、`--build` オプションが省略されるため新しいコードが反映されない。
+
+**具体的な症状別原因**:
+
+| 症状 | 根本原因 |
+|------|---------|
+| config-rust が起動ループ（CRIT-002） | `dev-auth-bypass` feature フラグを含まないイメージが起動している |
+| featureflag-rust が unhealthy（CRIT-003） | migration 006（UUID→TEXT）対応前の古いイメージが動作している |
+| マイグレーション未実行でサービス unhealthy（HIGH-003） | `just local-up` を使わず `docker compose up` を直接実行した |
+
 ### 対処
 
+**最も確実な方法（推奨）**: `just local-up` を使用する
+
 ```bash
-# 対象サービスを特定してリビルド・再起動する
-docker compose --env-file .env.dev \
-  -f docker-compose.yaml -f docker-compose.dev.yaml \
-  build featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust && \
-docker compose --env-file .env.dev \
-  -f docker-compose.yaml -f docker-compose.dev.yaml \
-  up -d --force-recreate featureflag-rust graphql-gateway-rust event-store-rust event-monitor-rust
+# just local-up は --build と migrate-all が自動適用される
+just local-up
 ```
+
+`just local-up` は `just local-up-dev` のエイリアスであり、以下を自動実行する:
+1. **Phase 1**: インフラサービスを `--build` 付きで起動
+2. **Phase 1.5**: `just migrate-all`（DB マイグレーション）を自動実行
+3. **Phase 2**: 全サービスを `--build` 付きで起動
+
+**特定サービスのみ再ビルドする場合**:
+
+```bash
+# config-rust と featureflag-rust のみ再ビルド・再起動する
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  build config-rust featureflag-rust && \
+docker compose --env-file .env.dev \
+  -f docker-compose.yaml -f docker-compose.dev.yaml \
+  up -d --force-recreate config-rust featureflag-rust
+```
+
+**注意**: `docker compose up` を直接実行することは推奨しない。`--build` と `--env-file .env.dev` と `-f docker-compose.dev.yaml` の全てを手動で指定しなければならず、漏れると上記の CRIT-002/003 症状が発生する。
 
 ### stale image の検出
 
@@ -765,6 +793,46 @@ docker compose --env-file .env.dev \
 # 長時間起動しているコンテナを確認する（24 時間以上が目安）
 docker ps --format "table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}" | sort
 ```
+
+---
+
+## ghcr.io レジストリアクセス拒否（HIGH-002 対応）
+
+### 症状
+
+```
+Error response from daemon: Head "https://ghcr.io/v2/prometheus/jmx-exporter/manifests/1.0.1":
+denied: denied
+```
+
+または
+
+```
+Error response from daemon: pull access denied for ghcr.io/prometheus/jmx-exporter,
+repository does not exist or may require 'docker login'
+```
+
+### 原因
+
+GitHub Container Registry（ghcr.io）への認証が未設定。ghcr.io はパブリックイメージでも Docker ログインが必要な場合がある。
+
+### 対処
+
+```bash
+# GitHub Personal Access Token（read:packages スコープ）でログインする
+# GITHUB_TOKEN 環境変数が設定済みの場合
+echo $GITHUB_TOKEN | docker login ghcr.io -u <your-github-username> --password-stdin
+
+# 対話的にログインする場合（パスワード欄に Personal Access Token を入力）
+docker login ghcr.io
+```
+
+**Personal Access Token の作成方法**:
+1. GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. `read:packages` スコープを選択して生成
+3. 上記コマンドのパスワード欄に貼り付け
+
+ログイン後、`docker compose pull` または `just local-up` を再実行する。
 
 ---
 

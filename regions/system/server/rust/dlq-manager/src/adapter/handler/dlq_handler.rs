@@ -106,16 +106,27 @@ pub async fn healthz() -> Json<serde_json::Value> {
 
 #[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready")))]
 pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoResponse {
+    // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
     let (db_status, db_ready) = if let Some(pool) = &state.db_pool {
-        let ok = sqlx::query("SELECT 1").execute(pool.as_ref()).await.is_ok();
-        (if ok { "ok" } else { "error" }, ok)
+        match sqlx::query("SELECT 1").execute(pool.as_ref()).await {
+            Ok(_) => ("ok", true),
+            Err(e) => {
+                tracing::error!(error = %e, "readyz: DB ping failed");
+                ("error", false)
+            }
+        }
     } else {
         ("not_configured", true)
     };
 
     let (kafka_status, kafka_ready) = if let Some(publisher) = &state.publisher {
-        let ok = publisher.health_check().await.is_ok();
-        (if ok { "ok" } else { "error" }, ok)
+        match publisher.health_check().await {
+            Ok(_) => ("ok", true),
+            Err(e) => {
+                tracing::error!(error = %e, "readyz: Kafka health check failed");
+                ("error", false)
+            }
+        }
     } else {
         ("not_configured", true)
     };

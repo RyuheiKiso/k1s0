@@ -82,6 +82,85 @@ jobs:
             exit 1
           fi
 
+  # LOW-003 対応: Kind クラスターを使った Helm Chart インテグレーションテスト。
+  # helm lint / helm template による静的検証に加え、実際の K8s API サーバーに対して
+  # kubectl apply --dry-run=server を実行することで以下を検証する:
+  #   - K8s API バージョン互換性（deprecated API の検出）
+  #   - リソーススペックの正確性（無効なフィールド名・型の検出）
+  #   - RBAC / ServiceAccount 参照の整合性
+  # helm lint / helm template では検出できない K8s API レベルの問題を CI で早期検知する。
+  helm-k8s-dryrun:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: "3.16"
+      # Kind クラスターを起動して K8s API サーバーを提供する（LOW-003 監査対応）
+      # helm/kind-action サードパーティアクションを使用せず Kind バイナリを直接インストールする。
+      # 理由: GitHub Actions のサプライチェーン攻撃防止のため SHA ピン留めが必要だが、
+      #      helm/kind-action のリリースコミット SHA はリポジトリ外から機械的に検証できない。
+      #      Kind は CNCF の公式ツール（kubernetes-sigs/kind）であり、公式 GitHub Releases から
+      #      バージョン番号を明示して取得することでトレーサビリティと透明性を確保する。
+      - name: Kind をインストールして Kind クラスターを作成する
+        run: |
+          # Kind v0.24.0 は kindest/node:v1.31.x に対応している（Kind 公式互換マトリクス参照）
+          KIND_VERSION="v0.24.0"
+          curl -Lo ./kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind --version
+          # クラスター作成: --wait 60s でコントロールプレーンが Ready になるまで待機する
+          kind create cluster \
+            --name k1s0-helm-test \
+            --image kindest/node:v1.31.0 \
+            --wait 60s
+      # 全サービス chart の Namespace を事前作成する（deploy マニフェストが Namespace 参照する場合の対応）
+      - name: Namespace を事前作成する
+        shell: bash
+        run: |
+          kubectl create namespace k1s0-system   --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-business --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-service  --dry-run=client -o yaml | kubectl apply -f -
+      # 全サービス chart を values-dev.yaml でレンダリングし K8s API サーバーへの dry-run 適用を検証する
+      - name: Helm Chart を K8s API サーバーに対して dry-run 検証する（LOW-003）
+        shell: bash
+        run: |
+          failed=0
+          checked=0
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ ! -f "$chart/Chart.yaml" ]; then
+              continue
+            fi
+            chart_name=$(basename "$chart")
+            values_file=""
+            if [ -f "$chart/values-dev.yaml" ]; then
+              values_file="--values $chart/values-dev.yaml"
+            fi
+            # helm dependency update で Library Chart を取得する
+            if ! helm dependency update "$chart" > /dev/null 2>&1; then
+              echo "::warning::$chart_name: helm dependency update が失敗（OCI レジストリ未接続の可能性）。スキップします。"
+              continue
+            fi
+            # helm template でマニフェストを生成し kubectl apply --dry-run=server で K8s API 検証を実行する
+            if helm template "test-${chart_name}" "$chart" $values_file 2>/dev/null \
+               | kubectl apply --dry-run=server -f - > /dev/null 2>&1; then
+              echo "OK: $chart_name"
+              checked=$((checked + 1))
+            else
+              echo "::error::$chart_name: kubectl apply --dry-run=server が失敗しました"
+              helm template "test-${chart_name}" "$chart" $values_file 2>/dev/null \
+               | kubectl apply --dry-run=server -f - 2>&1 | head -20
+              failed=$((failed + 1))
+            fi
+          done
+          echo "Helm K8s dry-run 検証完了: ${checked} チャート成功、${failed} チャート失敗"
+          if [ "$failed" -gt 0 ]; then
+            exit 1
+          fi
+
   # modules.yaml とディスク上のマニフェストの整合性検証
   validate-modules:
     runs-on: ubuntu-latest

@@ -19,8 +19,21 @@ pub async fn healthz() -> impl IntoResponse {
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // DB 疎通確認はシステムテナント UUID でフォールバックする（ADR-0028 Phase 1）
     // HIGH-005 対応: &str 型で直接渡す（Uuid::parse_str 不要）
-    let db_ok = state.flag_repo.find_all(SYSTEM_TENANT_ID).await.is_ok();
-    let kafka_ok = state.event_publisher.health_check().await.is_ok();
+    // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
+    let db_ok = match state.flag_repo.find_all(SYSTEM_TENANT_ID).await {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: DB health check failed");
+            false
+        }
+    };
+    let kafka_ok = match state.event_publisher.health_check().await {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: Kafka health check failed");
+            false
+        }
+    };
     let ready = db_ok && kafka_ok;
 
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す

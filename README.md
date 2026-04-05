@@ -410,6 +410,10 @@ VSCode Dev Containers を使用すると、必要なツールチェイン（Rust
 > ⚠️ **ローカル開発では必ず `docker-compose.dev.yaml` を併用してください（MED-6 監査対応）。**
 > `docker-compose.yaml` のみでは DATABASE_URL 等の環境変数が未解決になりサービスがクラッシュします。
 > **`just local-up` コマンドが `.env.dev` と `docker-compose.dev.yaml` を自動的に適用します（推奨）。**
+>
+> ⛔ **`docker compose up` を直接実行しないでください。** `--build` が省略されると古いイメージが使われ、
+> `config-rust` が起動ループ、`featureflag-rust` が unhealthy になります（外部監査 CRIT-002/CRIT-003）。
+> `just local-up` は `--build` とマイグレーションを自動適用するため、常に `just local-up` を使用してください。
 
 Docker Compose の設定は安全なベース設定と開発用オーバーライドに分離されています。
 

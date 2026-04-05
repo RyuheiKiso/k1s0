@@ -55,11 +55,18 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // システムテナントで軽量クエリを実行して DB 接続確認を行う
     let system_tenant =
         Uuid::parse_str(SYSTEM_TENANT_ID).expect("system tenant UUID must be valid");
-    let db_ok = state
+    // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
+    let db_ok = match state
         .config_repo
         .list_by_namespace(system_tenant, "__readyz__", 1, 1, None)
         .await
-        .is_ok();
+    {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: DB health check failed");
+            false
+        }
+    };
 
     let db_status = if db_ok { "ok" } else { "error" };
 

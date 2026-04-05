@@ -53,16 +53,32 @@ WARN_THRESHOLD="${WARN_THRESHOLD:-5}"
 
 # 各バックグラウンドジョブの PID を追跡する配列
 declare -a PIDS=()
+# MED-003 対応: PID→トピック名マッピング（失敗時にトピック名をログ出力するため）
+declare -A PID_TOPIC_MAP
 
 # CRIT-001 監査対応: トピック作成を並列度制限付きでバックグラウンド実行するヘルパー関数
 # 実行中のバックグラウンドジョブが MAX_PARALLEL に達したら 1 つ完了するまで待機する
 # --bootstrap-server は環境変数 BOOTSTRAP_SERVER から自動設定する
+# MED-003 対応: --topic 引数のトピック名を PID_TOPIC_MAP に記録し、WARN/ERROR 時に出力する
 create_topic() {
+  # --topic 引数の値を抽出してトピック名を取得する
+  local topic_name="unknown"
+  local prev_arg=""
+  for arg in "$@"; do
+    if [ "${prev_arg}" = "--topic" ]; then
+      topic_name="${arg}"
+      break
+    fi
+    prev_arg="${arg}"
+  done
+
   while [ "$(jobs -rp 2>/dev/null | wc -l || echo 0)" -ge "${MAX_PARALLEL}" ]; do
     sleep 0.1
   done
   kafka-topics.sh --bootstrap-server "${BOOTSTRAP_SERVER}" "$@" &
-  PIDS+=($!)
+  local pid=$!
+  PIDS+=($pid)
+  PID_TOPIC_MAP[$pid]="${topic_name}"
 }
 
 echo "=== Creating Kafka topics (bootstrap: ${BOOTSTRAP_SERVER}) ==="
@@ -356,13 +372,17 @@ done
 WARN_COUNT=0
 for pid in "${PIDS[@]}"; do
   if ! wait "$pid"; then
-    echo "WARN: PID $pid のトピック作成が非ゼロ終了（--if-not-exists 使用のため無視）" >&2
+    # MED-003 対応: PID ではなくトピック名を出力し、障害の特定を容易にする
+    # --if-not-exists を使用しているため既存トピックの場合は非ゼロ終了するが無視する
+    echo "WARN: トピック '${PID_TOPIC_MAP[$pid]:-unknown}' (PID $pid) の作成が非ゼロ終了（--if-not-exists 使用のため無視）" >&2
     WARN_COUNT=$((WARN_COUNT + 1))
   fi
 done
 
 if [ "${WARN_COUNT}" -gt "${WARN_THRESHOLD}" ]; then
+  # MED-003 対応: 閾値超過時は上記の WARN ログにトピック名が記録済みのため詳細確認を促す
   echo "ERROR: ${WARN_COUNT} 件のトピック作成が失敗しました（閾値: ${WARN_THRESHOLD}）" >&2
+  echo "       上記の WARN ログで失敗したトピック名を確認してください。" >&2
   echo "       OOM または Kafka 接続エラーの可能性があります。コンテナを再起動します。" >&2
   exit 1
 elif [ "${WARN_COUNT}" -gt 0 ]; then

@@ -10,8 +10,21 @@ pub async fn healthz() -> impl IntoResponse {
 }
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
-    let db_ok = state.stream_repo.list_all(1, 1).await.is_ok();
-    let kafka_ok = state.event_publisher.health_check().await.is_ok();
+    // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
+    let db_ok = match state.stream_repo.list_all(1, 1).await {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: DB health check failed");
+            false
+        }
+    };
+    let kafka_ok = match state.event_publisher.health_check().await {
+        Ok(_) => true,
+        Err(e) => {
+            tracing::error!(error = %e, "readyz: Kafka health check failed");
+            false
+        }
+    };
     let ready = db_ok && kafka_ok;
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す（タプル式内での let 宣言は Rust 文法違反のため外に出す）
     let timestamp = chrono::Utc::now().to_rfc3339();

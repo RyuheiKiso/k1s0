@@ -346,6 +346,44 @@ jobs:
             fi
           done
 
+  # LOW-003 監査対応: Kind クラスターを使った Helm Chart インテグレーションテスト。
+  # helm lint / helm template による静的検証に加え、実際の K8s API サーバーに対して
+  # kubectl apply --dry-run=server を実行することで以下を検証する:
+  #   - K8s API バージョン互換性（deprecated API の検出）
+  #   - リソーススペックの正確性（無効なフィールド名・型の検出）
+  #   - RBAC / ServiceAccount 参照の整合性
+  # 実装ファイル: .github/workflows/_validate.yaml の helm-k8s-dryrun ジョブ
+  helm-k8s-dryrun:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: "3.16"
+      # helm/kind-action サードパーティアクションは使用せず Kind バイナリを直接インストールする
+      # （サプライチェーン攻撃防止: 未検証 SHA のサードパーティアクション使用回避）
+      - name: Kind をインストールして Kind クラスターを作成する
+        run: |
+          KIND_VERSION="v0.24.0"
+          curl -Lo ./kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+          kind create cluster --name k1s0-helm-test --image kindest/node:v1.31.0 --wait 60s
+      - name: Namespace 事前作成
+        run: |
+          kubectl create namespace k1s0-system   --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-business --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace k1s0-service  --dry-run=client -o yaml | kubectl apply -f -
+      - name: Helm Chart を K8s API サーバーに対して dry-run 検証（values-dev.yaml 使用）
+        run: |
+          for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              helm dependency update "$chart" 2>/dev/null || continue
+              helm template "test-$(basename $chart)" "$chart" \
+                $([ -f "$chart/values-dev.yaml" ] && echo "--values $chart/values-dev.yaml") \
+                2>/dev/null | kubectl apply --dry-run=server -f -
+            fi
+          done
+
   build:
     needs:
       - test-rust

@@ -26,16 +26,21 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
                 "timestamp": timestamp
             }))
             .into_response(),
-            Err(e) => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(serde_json::json!({
-                    // ADR-0068 対応: "not_ready" から "unhealthy" に変更する
-                    "status": "unhealthy",
-                    "checks": { "database": format!("error: {}", e) },
-                    "timestamp": timestamp
-                })),
-            )
-                .into_response(),
+            Err(e) => {
+                // MED-001 対応: エラー詳細を tracing::error! でログ出力する
+                // .is_ok() パターンではエラーが無音で握り潰されるため、障害診断が困難になる
+                tracing::error!(error = %e, "readyz: DB health check failed");
+                (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(serde_json::json!({
+                        // ADR-0068 対応: "not_ready" から "unhealthy" に変更する
+                        "status": "unhealthy",
+                        "checks": { "database": "error" },
+                        "timestamp": timestamp
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         Json(serde_json::json!({

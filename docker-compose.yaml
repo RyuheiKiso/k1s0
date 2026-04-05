@@ -213,7 +213,9 @@ services:
       # DOCKER-003 監査対応: タイムアウトを 5s → 15s に延長し、起動待機期間を追加する。
       # Kafka ブローカーはリーダー選出に時間がかかるため、起動直後のヘルスチェックが
       # タイムアウトして不要な再起動が発生していた。start_period で起動猶予を確保する。
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092"]
+      # HIGH-005 対応: kafka-broker-api-versions.sh は JVM として起動するため KAFKA_JMX_PORT が
+      # 設定されていると既存ブローカーと同一ポートを再バインドして失敗する。実行前にクリアする。
+      test: ["CMD-SHELL", "KAFKA_JMX_OPTS='' JMX_PORT='' /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 15s
       retries: 5
@@ -239,7 +241,8 @@ services:
       # JMX Exporter のメトリクスポートはホストのループバックにのみバインドする
       - "127.0.0.1:9101:9101"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9101/metrics > /dev/null || exit 1"]
+      # HIGH-001 対応: JMX Exporter イメージ（JRE ベース）に wget が含まれないため curl に変更する
+      test: ["CMD-SHELL", "curl -sf http://localhost:9101/metrics > /dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1403,10 +1406,14 @@ services:
     cap_drop:
       - ALL
     read_only: true
-    # MED-012 監査対応: :exec → :noexec に変更。kafka-topics.sh はシェルスクリプトであり、
-    # /tmp 内でバイナリを実行する必要はない。noexec でセキュリティを強化する。
+    # MED-012 監査対応: :exec → :noexec に変更。kafka-topics.sh はシェルスクリプトだが、
+    # 呼び出し先の JVM が libzstd-jni ネイティブライブラリを /tmp に展開して実行するため
+    # /tmp:noexec のままでは起動不能（CRIT-001 誤対応の根本原因）。
+    # CRIT-001 対応: /tmp:noexec は維持し、/var/tmp を exec 許可で追加する。
+    # JAVA_TOOL_OPTIONS で java.io.tmpdir=/var/tmp を設定し libzstd-jni の展開先を変更する。
     tmpfs:
       - /tmp:noexec
+      - /var/tmp
     depends_on:
       kafka:
         condition: service_healthy
@@ -1416,6 +1423,8 @@ services:
       PATH: "/opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
       # DOCKER-MED-002 対応: JVM ヒープを明示的に制限し、コンテナのメモリ上限内に収める
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      # CRIT-001 対応: /tmp:noexec を維持しつつ JVM の libzstd-jni 展開先を /var/tmp（exec 許可）に変更する
+      JAVA_TOOL_OPTIONS: "-Djava.io.tmpdir=/var/tmp"
     volumes:
       - ./infra/messaging/kafka/create-topics.sh:/scripts/create-topics.sh:ro
     entrypoint: ["/bin/bash", "/scripts/create-topics.sh"]
@@ -1491,6 +1500,9 @@ services:
       - "--web.console.libraries=/usr/share/prometheus/console_libraries"
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--web.config.file=/etc/prometheus/web.yml"
+    # CRIT-004 対応: healthcheck で Basic Auth を通過するためにコンテナ内に認証情報を注入する
+    environment:
+      PROMETHEUS_ADMIN_PASSWORD: ${PROMETHEUS_ADMIN_PASSWORD:-prometheus_admin}
     volumes:
       - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
       - ./infra/docker/prometheus/recording_rules.yaml:/etc/prometheus/recording_rules.yaml:ro
@@ -1501,8 +1513,10 @@ services:
     ports:
       - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     # ヘルスチェック: Prometheus の ready エンドポイントで起動完了を確認する（M-4 対応）
+    # CRIT-004 対応: Basic Auth が /-/healthy を含む全エンドポイントに適用されるため認証情報を付与する。
+    # $$PROMETHEUS_ADMIN_PASSWORD は Docker Compose の変数展開を回避し、コンテナシェルが展開する。
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/-/healthy || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- --user=prometheus_admin --password=$$PROMETHEUS_ADMIN_PASSWORD http://localhost:9090/-/healthy || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

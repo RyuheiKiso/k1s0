@@ -138,11 +138,14 @@ docker build -f regions/system/server/rust/auth/Dockerfile \
 
 このフラグがない場合、ソースコードを変更してもイメージが再ビルドされず、変更前の古いバイナリで起動してしまう問題（RUNTIME-001）が発生していた。外部監査で指摘されたため `local-up-dev` の標準動作として組み込んだ。
 
-| コマンド | 説明 |
-|---------|------|
-| `just local-up` | `local-up-dev` の別名。開発環境の標準起動コマンド。 |
-| `just local-up-dev` | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003/AVAIL-002 対応: system/business/service 全 tier 対象）、Phase 2 でシステム/ビジネス/サービス層を起動。`sqlx-cli` が未インストールの場合は WARN を出力して続行（`just doctor` で確認を推奨）。**`--build` フラグを付与**（RUNTIME-001 監査対応）してスタレイメージを防止する。<br><br>Phase 1.5 (自動): sqlx-cli がインストール済みの場合、migrate-all を自動実行します。未インストール時は WARN を出力してスキップします（手動で `just migrate-all` を実行してください）。<br>マイグレーション追加後: `just local-up-dev` を実行するとコンテナの再ビルドが自動的に行われます。 |
-| `just local-up-base` | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
+| コマンド | `--build` | `migrate-all` | 説明 |
+|---------|-----------|--------------|------|
+| `just local-up` | ✅ 自動 | ✅ 自動 | **推奨**。`local-up-dev` の別名。開発環境の標準起動コマンド。 |
+| `just local-up-dev` | ✅ 自動 | ✅ 自動 | `docker-compose.yaml` + `docker-compose.dev.yaml` を使用。必須変数のデフォルト値を自動提供。**3フェーズ起動**（RUNTIME-001/HIGH-003 監査対応）: Phase 1 でインフラのみ起動し postgres の healthy を確認・Vault init を実行、**Phase 1.5 で `sqlx-cli` インストール済みの場合は `just migrate-all` を自動実行**（HIGH-003/AVAIL-002 対応: system/business/service 全 tier 対象）、Phase 2 でシステム/ビジネス/サービス層を起動。 |
+| `just local-up-base` | ✅ 自動 | ❌ 手動 | `docker-compose.yaml` 単体起動（CI・本番確認用）。`.env` に必須変数を設定した上で使用すること。 |
+| `docker compose up` | ❌ **手動指定必須** | ❌ **手動** | **非推奨**。`--build` が省略されると古いイメージが使われ config-rust / featureflag-rust が起動ループに陥る（CRIT-002/CRIT-003）。`docker-compose.dev.yaml` の指定も忘れると dev-auth-bypass が無効になる。 |
+
+> **重要**: `docker compose up` を直接実行しないこと。`just local-up` には `--build` と `migrate-all` が自動適用されるため、常に `just local-up` を使用すること（外部技術監査 CRIT-002/003/HIGH-003 対応）。
 
 ### Docker Compose プロファイル構成
 

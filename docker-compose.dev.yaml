@@ -46,6 +46,14 @@
 #
 # 新しいサービスを追加する場合は <<: *dev-auth-bypass の2行を追加するだけでよい。
 
+# LOW-002 対応: --env-file .env.dev を省略した場合に即時エラーを発生させるガード変数。
+# Docker Compose の ${VAR:?err} 演算子はファイルパース時にすべての文字列値で評価される（Compose Spec 変数補間仕様）。
+# DEV_ENV_GUARD が .env.dev から注入されていない場合、Docker Compose はパースを中断してエラーを返す。
+# このフィールドは Extension Field（x-*）として定義するため、コンテナ環境変数には渡されない。
+# ネストしたオブジェクト（旧: x-dev-env-validate._guard）より、スカラー値のフラット形式が
+# Docker Compose 変数補間エンジンの評価対象として明確に保証されるため、この形式を採用する。
+x-dev-env-guard: "${DEV_ENV_GUARD:?'[ERROR] .env.dev が読み込まれていません。docker compose に --env-file .env.dev を指定するか、just local-up を使用してください。詳細: docs/infrastructure/devenv/troubleshooting.md'}"
+
 # 認証バイパスの共通設定を YAML アンカーで定義する。
 # 全サービスで同一設定を使用するため、ここで一元管理する。
 # 注意: config.docker.yaml の "${DB_PASSWORD:-dev}" は serde_yaml がシェル展開しないため

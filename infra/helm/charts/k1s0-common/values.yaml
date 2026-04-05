@@ -218,17 +218,13 @@ istio:
 
 # Alertmanager 設定（H-03 対応: PagerDuty エスカレーション通知チャネルを追加）
 # pagerdutyRoutingKey は本番環境では Vault 経由で注入し、空文字の場合は通知されない
-# L-8 監査対応: 本番環境の values.yaml では required: true を設定すること。
-# required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
-# L-010 監査対応: alertmanager.required のデフォルト値は false（開発環境用）。
-# 警告: 本番環境では必ず true に設定すること。false のままでは AlertManager が未設定でも
-# デプロイが成功してしまい、障害通知が届かない。
-# 設定方法: infra/helm/services/<tier>/<service>/values-prod.yaml に以下を追加する:
-#   alertmanager:
-#     required: true
-#     webhookUrl: "https://hooks.teams.microsoft.com/..."
+# L-8/L-010 監査対応: required=true かつ webhookUrl が空の場合、helm install/upgrade が失敗してデプロイを防止する。
+# MED-004 対応: デフォルトを true に変更し、alertmanager.webhookUrl 未設定での本番デプロイを防止する。
+# 開発環境では values-dev.yaml に required: false を明示的に設定すること（全 values-dev.yaml 設定済み）。
 alertmanager:
-  required: false           # 本番環境では true に設定すること（L-8/L-010 監査対応: 障害通知欠落防止）
+  # MED-004 対応: デフォルト true でフェイルセーフ化（誤って alertmanager 未設定のまま本番デプロイを防止）
+  # 開発環境は各サービスの values-dev.yaml で required: false を明示的に指定する
+  required: true
   webhookUrl: ""            # Microsoft Teams デフォルト Webhook URL（環境別に上書きすること）
   criticalWebhookUrl: ""    # Microsoft Teams critical Webhook URL（環境別に上書きすること）
   warningWebhookUrl: ""     # Microsoft Teams warning Webhook URL（環境別に上書きすること）
