@@ -10,6 +10,7 @@
 package commonv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,7 +31,10 @@ type Money struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// amount は金額（最小通貨単位）。負の値は返金・クレジットを表す。
 	Amount int64 `protobuf:"varint,1,opt,name=amount,proto3" json:"amount,omitempty"`
-	// currency_code は ISO 4217 通貨コード（例: "JPY", "USD"）。
+	// currency_code は ISO 4217 準拠の3文字大文字アルファベット通貨コード（例: JPY, USD）。
+	// buf.validate で長さと形式を強制する。
+	// 参考: https://www.iso.org/iso-4217-currency-codes.html
+	// len: 3 で min_len + max_len の重複を避ける（buf lint 推奨）
 	CurrencyCode  string `protobuf:"bytes,2,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -84,10 +88,11 @@ var File_k1s0_system_common_v1_money_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_common_v1_money_proto_rawDesc = "" +
 	"\n" +
-	"!k1s0/system/common/v1/money.proto\x12\x15k1s0.system.common.v1\"D\n" +
+	"!k1s0/system/common/v1/money.proto\x12\x15k1s0.system.common.v1\x1a\x1bbuf/validate/validate.proto\"Z\n" +
 	"\x05Money\x12\x16\n" +
-	"\x06amount\x18\x01 \x01(\x03R\x06amount\x12#\n" +
-	"\rcurrency_code\x18\x02 \x01(\tR\fcurrencyCodeBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
+	"\x06amount\x18\x01 \x01(\x03R\x06amount\x129\n" +
+	"\rcurrency_code\x18\x02 \x01(\tB\x14\xbaH\x11r\x0f2\n" +
+	"^[A-Z]{3}$\x98\x01\x03R\fcurrencyCodeBDZBgithub.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1b\x06proto3"
 
 var (
 	file_k1s0_system_common_v1_money_proto_rawDescOnce sync.Once

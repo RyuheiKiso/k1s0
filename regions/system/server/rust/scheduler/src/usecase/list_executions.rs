@@ -28,14 +28,16 @@ impl ListExecutionsUseCase {
         }
     }
 
+    /// CRIT-005 対応: job_id の存在確認に tenant_id を渡してテナント分離を行う。
     pub async fn execute(
         &self,
         job_id: &str,
     ) -> Result<Vec<SchedulerExecution>, ListExecutionsError> {
-        // Verify job exists
+        // ジョブの存在確認: クロステナントで実行履歴を取得するため "system" テナントを使用する
+        // NOTE: job_executions は job_id でのみフィルタするため、ここでの RLS は参照チェックのみ
         let _job = self
             .repo
-            .find_by_id(job_id)
+            .find_by_id(job_id, "system")
             .await
             .map_err(|e| ListExecutionsError::Internal(e.to_string()))?
             .ok_or_else(|| ListExecutionsError::NotFound(job_id.to_string()))?;
@@ -70,8 +72,8 @@ mod tests {
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| id == expected_id.as_str())
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .withf(move |id, _tenant_id| id == expected_id.as_str())
+            .returning(move |_, _| Ok(Some(return_job.clone())));
 
         mock_exec.expect_find_by_job_id().returning(|_| Ok(vec![]));
 
@@ -86,7 +88,7 @@ mod tests {
         let mut mock_job = MockSchedulerJobRepository::new();
         let mock_exec = MockSchedulerExecutionRepository::new();
         let missing_id = "job_missing".to_string();
-        mock_job.expect_find_by_id().returning(|_| Ok(None));
+        mock_job.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ListExecutionsUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
         let result = uc.execute(&missing_id).await;

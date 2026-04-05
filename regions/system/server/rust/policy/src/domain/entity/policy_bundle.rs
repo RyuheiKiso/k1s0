@@ -10,6 +10,8 @@ pub struct PolicyBundle {
     pub policy_ids: Vec<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 impl PolicyBundle {
@@ -28,6 +30,7 @@ impl PolicyBundle {
             policy_ids,
             created_at: now,
             updated_at: now,
+            tenant_id: "system".to_string(),
         }
     }
 }

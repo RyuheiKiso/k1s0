@@ -108,7 +108,8 @@ class AuthClient {
 
     // H-008 監査対応: await を追加して code_verifier の永続化完了を保証する
     await _tokenStore.setCodeVerifier(codeVerifier);
-    _tokenStore.setState(state);
+    // MED-016 監査対応: setState も await して永続化完了を保証する
+    await _tokenStore.setState(state);
 
     final discovery = await fetchDiscovery();
     final params = {
@@ -134,7 +135,8 @@ class AuthClient {
 
     // H-008 監査対応: await を追加して code_verifier の永続化完了を保証する
     await _tokenStore.setCodeVerifier(codeVerifier);
-    _tokenStore.setState(state);
+    // MED-016 監査対応: setState も await して永続化完了を保証する
+    await _tokenStore.setState(state);
 
     final discovery = await fetchDiscovery();
     final params = {
@@ -194,6 +196,11 @@ class AuthClient {
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
     );
 
+    // MED-015 監査対応: id_token の JWKS 署名検証が未実装。
+    // TODO: JWKS エンドポイント（discoveryUrl の jwks_uri）を使った RSA 署名検証を実装する必要がある。
+    // 具体的には: 1) discovery.jwksUri から公開鍵を取得、2) dart_jsonwebtoken 等のライブラリで検証、
+    // 3) iss/aud/exp クレームを検証してなりすましを防止する。
+    // 参考: ADR-0100、https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
     await _tokenStore.setTokenSet(tokenSet); // POLY-007 監査対応: await で永続化完了を保証
     _tokenStore.clearCodeVerifier();
     _tokenStore.clearState();

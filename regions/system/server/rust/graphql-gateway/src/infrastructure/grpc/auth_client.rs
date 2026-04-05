@@ -4,7 +4,9 @@ use chrono::{DateTime, Utc};
 use tonic::transport::Channel;
 use tracing::instrument;
 
-use crate::domain::model::auth::{parse_audit_event_type, parse_audit_result};
+use crate::domain::model::auth::{
+    audit_event_type_to_str, audit_result_to_str, AuditEventType, AuditResult,
+};
 use crate::domain::model::{AuditLog, PermissionCheck, Role, User};
 use crate::infrastructure::config::BackendConfig;
 use crate::infrastructure::grpc_retry::with_retry;
@@ -166,53 +168,25 @@ impl AuthGrpcClient {
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn record_audit_log(
         &self,
-        event_type: &str,
+        event_type: AuditEventType,
         user_id: &str,
         ip_address: &str,
         user_agent: &str,
         resource: &str,
         action: &str,
-        result: &str,
+        result: AuditResult,
         resource_id: &str,
         trace_id: &str,
     ) -> anyhow::Result<(String, String)> {
-        // dual-write: 旧文字列フィールドと新 enum フィールドを同時設定して後方互換性維持
-        let event_type_enum = match event_type {
-            s if s.starts_with("LOGIN") => {
-                proto::k1s0::system::auth::v1::AuditEventType::Login as i32
-            }
-            "LOGOUT" => proto::k1s0::system::auth::v1::AuditEventType::Logout as i32,
-            "TOKEN_VALIDATE" | "TOKEN_REFRESH" => {
-                proto::k1s0::system::auth::v1::AuditEventType::TokenRefresh as i32
-            }
-            "PERMISSION_CHECK" => {
-                proto::k1s0::system::auth::v1::AuditEventType::PermissionCheck as i32
-            }
-            "API_KEY_CREATED" => {
-                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyCreated as i32
-            }
-            "API_KEY_REVOKED" => {
-                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyRevoked as i32
-            }
-            _ => proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32,
-        };
-        let result_enum = match result {
-            "SUCCESS" => proto::k1s0::system::auth::v1::AuditResult::Success as i32,
-            "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
-            _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
-        };
-        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
-        #[allow(deprecated)]
+        // HIGH-014 監査対応: deprecated string フィールド削除済み。enum フィールドのみ設定する。
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::RecordAuditLogRequest {
-            event_type: event_type.to_owned(),
-            event_type_enum,
+            event_type_enum: domain_event_type_to_proto_i32(event_type),
             user_id: user_id.to_owned(),
             ip_address: ip_address.to_owned(),
             user_agent: user_agent.to_owned(),
             resource: resource.to_owned(),
             action: action.to_owned(),
-            result: result.to_owned(),
-            result_enum,
+            result_enum: domain_result_to_proto_i32(result),
             resource_id: resource_id.to_owned(),
             trace_id: trace_id.to_owned(),
             detail: None,
@@ -235,48 +209,22 @@ impl AuthGrpcClient {
         page_size: Option<i32>,
         page: Option<i32>,
         user_id: Option<&str>,
-        event_type: Option<&str>,
-        result: Option<&str>,
+        event_type: Option<AuditEventType>,
+        result: Option<AuditResult>,
     ) -> anyhow::Result<(Vec<AuditLog>, i64, bool)> {
-        // dual-write: 検索フィルタも旧文字列フィールドと新 enum フィールドを同時設定
-        let event_type_str = event_type.unwrap_or_default();
-        let result_str = result.unwrap_or_default();
-        let event_type_filter_enum = match event_type_str {
-            s if s.starts_with("LOGIN") => {
-                proto::k1s0::system::auth::v1::AuditEventType::Login as i32
-            }
-            "LOGOUT" => proto::k1s0::system::auth::v1::AuditEventType::Logout as i32,
-            "TOKEN_VALIDATE" | "TOKEN_REFRESH" => {
-                proto::k1s0::system::auth::v1::AuditEventType::TokenRefresh as i32
-            }
-            "PERMISSION_CHECK" => {
-                proto::k1s0::system::auth::v1::AuditEventType::PermissionCheck as i32
-            }
-            "API_KEY_CREATED" => {
-                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyCreated as i32
-            }
-            "API_KEY_REVOKED" => {
-                proto::k1s0::system::auth::v1::AuditEventType::ApiKeyRevoked as i32
-            }
-            _ => proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32,
-        };
-        let result_filter_enum = match result_str {
-            "SUCCESS" => proto::k1s0::system::auth::v1::AuditResult::Success as i32,
-            "FAILURE" => proto::k1s0::system::auth::v1::AuditResult::Failure as i32,
-            _ => proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
-        };
-        // H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
-        #[allow(deprecated)]
+        // HIGH-014 監査対応: deprecated string フィールド削除済み。enum フィールドのみ設定する。
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::SearchAuditLogsRequest {
             pagination: Some(proto::k1s0::system::common::v1::Pagination {
                 page: page.unwrap_or(1),
                 page_size: page_size.unwrap_or(50),
             }),
             user_id: user_id.unwrap_or_default().to_owned(),
-            event_type: event_type_str.to_owned(),
-            event_type_enum: event_type_filter_enum,
-            result: result_str.to_owned(),
-            result_enum: result_filter_enum,
+            event_type_enum: event_type
+                .map(domain_event_type_to_proto_i32)
+                .unwrap_or(proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32),
+            result_enum: result
+                .map(domain_result_to_proto_i32)
+                .unwrap_or(proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32),
             from: None,
             to: None,
         });
@@ -340,21 +288,29 @@ fn role_from_proto(r: proto::k1s0::system::auth::v1::Role) -> Role {
     }
 }
 
-// H-02 監査対応: proto 生成コードの deprecated フィールドアクセス（後方互換維持のため）
-#[allow(deprecated)]
+// HIGH-014 監査対応: deprecated string フィールド削除済み。enum フィールドから逆変換して後方互換 string を生成する。
 fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog {
-    // C-9 監査対応: event_type/result 文字列から型安全な enum へ変換し、新フィールドに設定する
-    let event_type_enum = parse_audit_event_type(&l.event_type);
-    let result_enum = parse_audit_result(&l.result);
+    // proto enum i32 → ドメイン enum
+    let event_type_enum = proto_i32_to_domain_event_type(l.event_type_enum);
+    let result_enum = proto_i32_to_domain_result(l.result_enum);
+    // GraphQL deprecated string フィールドは enum から逆変換して後方互換クライアントに提供する
+    let event_type_str = event_type_enum
+        .map(audit_event_type_to_str)
+        .unwrap_or("")
+        .to_string();
+    let result_str = result_enum
+        .map(audit_result_to_str)
+        .unwrap_or("")
+        .to_string();
     AuditLog {
         id: l.id,
-        event_type: l.event_type,
+        event_type: event_type_str,
         user_id: l.user_id,
         ip_address: l.ip_address,
         user_agent: l.user_agent,
         resource: l.resource,
         action: l.action,
-        result: l.result,
+        result: result_str,
         resource_id: l.resource_id,
         trace_id: l.trace_id,
         created_at: timestamp_to_rfc3339(l.created_at),
@@ -367,4 +323,68 @@ fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) 
     ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
+}
+
+/// ドメイン AuditEventType → proto AuditEventType の i32 値に変換する。
+fn domain_event_type_to_proto_i32(e: AuditEventType) -> i32 {
+    use proto::k1s0::system::auth::v1::AuditEventType as ProtoAET;
+    let proto_enum = match e {
+        AuditEventType::Login => ProtoAET::Login,
+        AuditEventType::Logout => ProtoAET::Logout,
+        AuditEventType::TokenRefresh => ProtoAET::TokenRefresh,
+        AuditEventType::PermissionCheck => ProtoAET::PermissionCheck,
+        AuditEventType::Create => ProtoAET::Create,
+        AuditEventType::Update => ProtoAET::Update,
+        AuditEventType::Delete => ProtoAET::Delete,
+        AuditEventType::Read => ProtoAET::Read,
+        AuditEventType::PermissionDenied => ProtoAET::PermissionDenied,
+        AuditEventType::ApiKeyCreated => ProtoAET::ApiKeyCreated,
+        AuditEventType::ApiKeyRevoked => ProtoAET::ApiKeyRevoked,
+        AuditEventType::SecretAccessed => ProtoAET::SecretAccessed,
+        AuditEventType::SecretRotated => ProtoAET::SecretRotated,
+    };
+    proto_enum as i32
+}
+
+/// ドメイン AuditResult → proto AuditResult の i32 値に変換する。
+fn domain_result_to_proto_i32(r: AuditResult) -> i32 {
+    use proto::k1s0::system::auth::v1::AuditResult as ProtoAR;
+    let proto_enum = match r {
+        AuditResult::Success => ProtoAR::Success,
+        AuditResult::Failure => ProtoAR::Failure,
+        AuditResult::Partial => ProtoAR::Partial,
+    };
+    proto_enum as i32
+}
+
+/// proto AuditEventType i32 → ドメイン AuditEventType に変換する。
+fn proto_i32_to_domain_event_type(i: i32) -> Option<AuditEventType> {
+    use proto::k1s0::system::auth::v1::AuditEventType as ProtoAET;
+    match ProtoAET::try_from(i).unwrap_or(ProtoAET::Unspecified) {
+        ProtoAET::Unspecified => None,
+        ProtoAET::Login => Some(AuditEventType::Login),
+        ProtoAET::Logout => Some(AuditEventType::Logout),
+        ProtoAET::TokenRefresh => Some(AuditEventType::TokenRefresh),
+        ProtoAET::PermissionCheck => Some(AuditEventType::PermissionCheck),
+        ProtoAET::ApiKeyCreated => Some(AuditEventType::ApiKeyCreated),
+        ProtoAET::ApiKeyRevoked => Some(AuditEventType::ApiKeyRevoked),
+        ProtoAET::Create => Some(AuditEventType::Create),
+        ProtoAET::Update => Some(AuditEventType::Update),
+        ProtoAET::Delete => Some(AuditEventType::Delete),
+        ProtoAET::Read => Some(AuditEventType::Read),
+        ProtoAET::PermissionDenied => Some(AuditEventType::PermissionDenied),
+        ProtoAET::SecretAccessed => Some(AuditEventType::SecretAccessed),
+        ProtoAET::SecretRotated => Some(AuditEventType::SecretRotated),
+    }
+}
+
+/// proto AuditResult i32 → ドメイン AuditResult に変換する。
+fn proto_i32_to_domain_result(i: i32) -> Option<AuditResult> {
+    use proto::k1s0::system::auth::v1::AuditResult as ProtoAR;
+    match ProtoAR::try_from(i).unwrap_or(ProtoAR::Unspecified) {
+        ProtoAR::Unspecified => None,
+        ProtoAR::Success => Some(AuditResult::Success),
+        ProtoAR::Failure => Some(AuditResult::Failure),
+        ProtoAR::Partial => Some(AuditResult::Partial),
+    }
 }

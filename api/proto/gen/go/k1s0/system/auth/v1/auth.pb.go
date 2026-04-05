@@ -10,6 +10,7 @@
 package authv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -27,6 +28,8 @@ const (
 )
 
 // AuditEventType は監査イベントの種別。
+// C-004 監査対応: GraphQL スキーマの AuditEventType と双方向整合させる。
+// GraphQL に存在するが proto に欠落していた CREATE/UPDATE/DELETE/READ/PERMISSION_DENIED/SECRET_ACCESSED/SECRET_ROTATED を追加する。
 type AuditEventType int32
 
 const (
@@ -37,27 +40,50 @@ const (
 	AuditEventType_AUDIT_EVENT_TYPE_PERMISSION_CHECK AuditEventType = 4
 	AuditEventType_AUDIT_EVENT_TYPE_API_KEY_CREATED  AuditEventType = 5
 	AuditEventType_AUDIT_EVENT_TYPE_API_KEY_REVOKED  AuditEventType = 6
+	// C-004 監査対応: GraphQL スキーマに存在する汎用 CRUD 操作イベント種別を追加
+	AuditEventType_AUDIT_EVENT_TYPE_CREATE AuditEventType = 7
+	AuditEventType_AUDIT_EVENT_TYPE_UPDATE AuditEventType = 8
+	AuditEventType_AUDIT_EVENT_TYPE_DELETE AuditEventType = 9
+	AuditEventType_AUDIT_EVENT_TYPE_READ   AuditEventType = 10
+	// C-004 監査対応: GraphQL スキーマに存在するセキュリティイベント種別を追加
+	AuditEventType_AUDIT_EVENT_TYPE_PERMISSION_DENIED AuditEventType = 11
+	AuditEventType_AUDIT_EVENT_TYPE_SECRET_ACCESSED   AuditEventType = 12
+	AuditEventType_AUDIT_EVENT_TYPE_SECRET_ROTATED    AuditEventType = 13
 )
 
 // Enum value maps for AuditEventType.
 var (
 	AuditEventType_name = map[int32]string{
-		0: "AUDIT_EVENT_TYPE_UNSPECIFIED",
-		1: "AUDIT_EVENT_TYPE_LOGIN",
-		2: "AUDIT_EVENT_TYPE_LOGOUT",
-		3: "AUDIT_EVENT_TYPE_TOKEN_REFRESH",
-		4: "AUDIT_EVENT_TYPE_PERMISSION_CHECK",
-		5: "AUDIT_EVENT_TYPE_API_KEY_CREATED",
-		6: "AUDIT_EVENT_TYPE_API_KEY_REVOKED",
+		0:  "AUDIT_EVENT_TYPE_UNSPECIFIED",
+		1:  "AUDIT_EVENT_TYPE_LOGIN",
+		2:  "AUDIT_EVENT_TYPE_LOGOUT",
+		3:  "AUDIT_EVENT_TYPE_TOKEN_REFRESH",
+		4:  "AUDIT_EVENT_TYPE_PERMISSION_CHECK",
+		5:  "AUDIT_EVENT_TYPE_API_KEY_CREATED",
+		6:  "AUDIT_EVENT_TYPE_API_KEY_REVOKED",
+		7:  "AUDIT_EVENT_TYPE_CREATE",
+		8:  "AUDIT_EVENT_TYPE_UPDATE",
+		9:  "AUDIT_EVENT_TYPE_DELETE",
+		10: "AUDIT_EVENT_TYPE_READ",
+		11: "AUDIT_EVENT_TYPE_PERMISSION_DENIED",
+		12: "AUDIT_EVENT_TYPE_SECRET_ACCESSED",
+		13: "AUDIT_EVENT_TYPE_SECRET_ROTATED",
 	}
 	AuditEventType_value = map[string]int32{
-		"AUDIT_EVENT_TYPE_UNSPECIFIED":      0,
-		"AUDIT_EVENT_TYPE_LOGIN":            1,
-		"AUDIT_EVENT_TYPE_LOGOUT":           2,
-		"AUDIT_EVENT_TYPE_TOKEN_REFRESH":    3,
-		"AUDIT_EVENT_TYPE_PERMISSION_CHECK": 4,
-		"AUDIT_EVENT_TYPE_API_KEY_CREATED":  5,
-		"AUDIT_EVENT_TYPE_API_KEY_REVOKED":  6,
+		"AUDIT_EVENT_TYPE_UNSPECIFIED":       0,
+		"AUDIT_EVENT_TYPE_LOGIN":             1,
+		"AUDIT_EVENT_TYPE_LOGOUT":            2,
+		"AUDIT_EVENT_TYPE_TOKEN_REFRESH":     3,
+		"AUDIT_EVENT_TYPE_PERMISSION_CHECK":  4,
+		"AUDIT_EVENT_TYPE_API_KEY_CREATED":   5,
+		"AUDIT_EVENT_TYPE_API_KEY_REVOKED":   6,
+		"AUDIT_EVENT_TYPE_CREATE":            7,
+		"AUDIT_EVENT_TYPE_UPDATE":            8,
+		"AUDIT_EVENT_TYPE_DELETE":            9,
+		"AUDIT_EVENT_TYPE_READ":              10,
+		"AUDIT_EVENT_TYPE_PERMISSION_DENIED": 11,
+		"AUDIT_EVENT_TYPE_SECRET_ACCESSED":   12,
+		"AUDIT_EVENT_TYPE_SECRET_ROTATED":    13,
 	}
 )
 
@@ -89,12 +115,15 @@ func (AuditEventType) EnumDescriptor() ([]byte, []int) {
 }
 
 // AuditResult は監査イベントの結果。
+// C-010 監査対応: GraphQL スキーマの AuditResult.PARTIAL に対応する AUDIT_RESULT_PARTIAL を追加する。
 type AuditResult int32
 
 const (
 	AuditResult_AUDIT_RESULT_UNSPECIFIED AuditResult = 0
 	AuditResult_AUDIT_RESULT_SUCCESS     AuditResult = 1
 	AuditResult_AUDIT_RESULT_FAILURE     AuditResult = 2
+	// C-010 監査対応: GraphQL の PARTIAL に対応（部分成功を表す）
+	AuditResult_AUDIT_RESULT_PARTIAL AuditResult = 3
 )
 
 // Enum value maps for AuditResult.
@@ -103,11 +132,13 @@ var (
 		0: "AUDIT_RESULT_UNSPECIFIED",
 		1: "AUDIT_RESULT_SUCCESS",
 		2: "AUDIT_RESULT_FAILURE",
+		3: "AUDIT_RESULT_PARTIAL",
 	}
 	AuditResult_value = map[string]int32{
 		"AUDIT_RESULT_UNSPECIFIED": 0,
 		"AUDIT_RESULT_SUCCESS":     1,
 		"AUDIT_RESULT_FAILURE":     2,
+		"AUDIT_RESULT_PARTIAL":     3,
 	}
 )
 
@@ -140,8 +171,9 @@ func (AuditResult) EnumDescriptor() ([]byte, []int) {
 
 // ValidateTokenRequest はトークン検証リクエスト。
 type ValidateTokenRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JWT Bearer トークン文字列（必須）
+	Token         string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -252,8 +284,8 @@ type TokenClaims struct {
 	Sub string `protobuf:"bytes,1,opt,name=sub,proto3" json:"sub,omitempty"`
 	// Issuer
 	Iss string `protobuf:"bytes,2,opt,name=iss,proto3" json:"iss,omitempty"`
-	// Audience
-	Aud string `protobuf:"bytes,3,opt,name=aud,proto3" json:"aud,omitempty"`
+	// Audience（JWT spec では配列型。複数 audience に対応するため repeated を使用する）
+	Aud []string `protobuf:"bytes,3,rep,name=aud,proto3" json:"aud,omitempty"`
 	// 有効期限（Unix epoch）
 	Exp int64 `protobuf:"varint,4,opt,name=exp,proto3" json:"exp,omitempty"`
 	// 発行日時（Unix epoch）
@@ -324,11 +356,11 @@ func (x *TokenClaims) GetIss() string {
 	return ""
 }
 
-func (x *TokenClaims) GetAud() string {
+func (x *TokenClaims) GetAud() []string {
 	if x != nil {
 		return x.Aud
 	}
-	return ""
+	return nil
 }
 
 func (x *TokenClaims) GetExp() int64 {
@@ -500,8 +532,9 @@ func (x *ClientRoles) GetRoles() []string {
 
 // GetUserRequest はユーザー情報取得リクエスト。
 type GetUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（必須）
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -861,8 +894,9 @@ func (x *StringList) GetValues() []string {
 
 // GetUserRolesRequest はユーザーロール取得リクエスト。
 type GetUserRolesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（必須）
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1075,11 +1109,12 @@ func (x *RoleList) GetRoles() []*Role {
 
 // CheckPermissionRequest はパーミッション確認リクエスト。
 type CheckPermissionRequest struct {
-	state  protoimpl.MessageState `protogen:"open.v1"`
-	UserId *string                `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3,oneof" json:"user_id,omitempty"`
-	// read, write, delete, admin
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（省略可、JWT から自動取得する場合）
+	UserId *string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3,oneof" json:"user_id,omitempty"`
+	// 権限種別: read, write, delete, admin（必須）
 	Permission string `protobuf:"bytes,2,opt,name=permission,proto3" json:"permission,omitempty"`
-	// users, auth_config, audit_logs, etc.
+	// リソース名: users, auth_config, audit_logs 等（必須）
 	Resource string `protobuf:"bytes,3,opt,name=resource,proto3" json:"resource,omitempty"`
 	// JWT Claims から取得したロール一覧
 	Roles         []string `protobuf:"bytes,4,rep,name=roles,proto3" json:"roles,omitempty"`
@@ -1200,27 +1235,16 @@ func (x *CheckPermissionResponse) GetReason() string {
 }
 
 // RecordAuditLogRequest は監査ログ記録リクエスト。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 type RecordAuditLogRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
-	// Deprecated: event_type_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IpAddress string `protobuf:"bytes,3,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	UserAgent string `protobuf:"bytes,4,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	UserId    string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IpAddress string                 `protobuf:"bytes,3,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	UserAgent string                 `protobuf:"bytes,4,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
 	// アクセス対象リソース
 	Resource string `protobuf:"bytes,5,opt,name=resource,proto3" json:"resource,omitempty"`
 	// HTTP メソッドまたは gRPC メソッド名
 	Action string `protobuf:"bytes,6,opt,name=action,proto3" json:"action,omitempty"`
-	// SUCCESS / FAILURE
-	// Deprecated: result_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	Result string `protobuf:"bytes,7,opt,name=result,proto3" json:"result,omitempty"`
 	// 操作の詳細情報（client_id, grant_type 等）
 	Detail *structpb.Struct `protobuf:"bytes,8,opt,name=detail,proto3" json:"detail,omitempty"`
 	// 操作対象リソースの ID
@@ -1265,14 +1289,6 @@ func (*RecordAuditLogRequest) Descriptor() ([]byte, []int) {
 	return file_k1s0_system_auth_v1_auth_proto_rawDescGZIP(), []int{17}
 }
 
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *RecordAuditLogRequest) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
 func (x *RecordAuditLogRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
@@ -1304,14 +1320,6 @@ func (x *RecordAuditLogRequest) GetResource() string {
 func (x *RecordAuditLogRequest) GetAction() string {
 	if x != nil {
 		return x.Action
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *RecordAuditLogRequest) GetResult() string {
-	if x != nil {
-		return x.Result
 	}
 	return ""
 }
@@ -1406,23 +1414,13 @@ func (x *RecordAuditLogResponse) GetCreatedAt() *v1.Timestamp {
 }
 
 // SearchAuditLogsRequest は監査ログ検索リクエスト。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 type SearchAuditLogsRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	Pagination *v1.Pagination         `protobuf:"bytes,1,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	UserId     string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// Deprecated: event_type_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	EventType string        `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	From      *v1.Timestamp `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
-	To        *v1.Timestamp `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
-	// SUCCESS / FAILURE
-	// Deprecated: result_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	Result string `protobuf:"bytes,6,opt,name=result,proto3" json:"result,omitempty"`
+	From       *v1.Timestamp          `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
+	To         *v1.Timestamp          `protobuf:"bytes,5,opt,name=to,proto3" json:"to,omitempty"`
 	// 監査イベント種別フィルタ（enum）
 	EventTypeEnum AuditEventType `protobuf:"varint,7,opt,name=event_type_enum,json=eventTypeEnum,proto3,enum=k1s0.system.auth.v1.AuditEventType" json:"event_type_enum,omitempty"`
 	// 監査イベント結果フィルタ（enum）
@@ -1475,14 +1473,6 @@ func (x *SearchAuditLogsRequest) GetUserId() string {
 	return ""
 }
 
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *SearchAuditLogsRequest) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
 func (x *SearchAuditLogsRequest) GetFrom() *v1.Timestamp {
 	if x != nil {
 		return x.From
@@ -1495,14 +1485,6 @@ func (x *SearchAuditLogsRequest) GetTo() *v1.Timestamp {
 		return x.To
 	}
 	return nil
-}
-
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *SearchAuditLogsRequest) GetResult() string {
-	if x != nil {
-		return x.Result
-	}
-	return ""
 }
 
 func (x *SearchAuditLogsRequest) GetEventTypeEnum() AuditEventType {
@@ -1573,24 +1555,15 @@ func (x *SearchAuditLogsResponse) GetPagination() *v1.PaginationResult {
 }
 
 // AuditLog は監査ログエントリ。
+// HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
 type AuditLog struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Deprecated: event_type_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	EventType string `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
-	UserId    string `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	IpAddress string `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
-	UserAgent string `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
-	Resource  string `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
-	Action    string `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
-	// Deprecated: result_enum を使用すること。
-	// [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-	//
-	// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-	Result string `protobuf:"bytes,8,opt,name=result,proto3" json:"result,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId    string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	IpAddress string                 `protobuf:"bytes,4,opt,name=ip_address,json=ipAddress,proto3" json:"ip_address,omitempty"`
+	UserAgent string                 `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	Resource  string                 `protobuf:"bytes,6,opt,name=resource,proto3" json:"resource,omitempty"`
+	Action    string                 `protobuf:"bytes,7,opt,name=action,proto3" json:"action,omitempty"`
 	// 操作の詳細情報（変更前後の値等）
 	Detail    *structpb.Struct `protobuf:"bytes,9,opt,name=detail,proto3" json:"detail,omitempty"`
 	CreatedAt *v1.Timestamp    `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
@@ -1643,14 +1616,6 @@ func (x *AuditLog) GetId() string {
 	return ""
 }
 
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *AuditLog) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
 func (x *AuditLog) GetUserId() string {
 	if x != nil {
 		return x.UserId
@@ -1682,14 +1647,6 @@ func (x *AuditLog) GetResource() string {
 func (x *AuditLog) GetAction() string {
 	if x != nil {
 		return x.Action
-	}
-	return ""
-}
-
-// Deprecated: Marked as deprecated in k1s0/system/auth/v1/auth.proto.
-func (x *AuditLog) GetResult() string {
-	if x != nil {
-		return x.Result
 	}
 	return ""
 }
@@ -1740,9 +1697,9 @@ var File_k1s0_system_auth_v1_auth_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x1ek1s0/system/auth/v1/auth.proto\x12\x13k1s0.system.auth.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\",\n" +
-	"\x14ValidateTokenRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"\x8c\x01\n" +
+	"\x1ek1s0/system/auth/v1/auth.proto\x12\x13k1s0.system.auth.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1bbuf/validate/validate.proto\"5\n" +
+	"\x14ValidateTokenRequest\x12\x1d\n" +
+	"\x05token\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05token\"\x8c\x01\n" +
 	"\x15ValidateTokenResponse\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x128\n" +
 	"\x06claims\x18\x02 \x01(\v2 .k1s0.system.auth.v1.TokenClaimsR\x06claims\x12#\n" +
@@ -1750,7 +1707,7 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\vTokenClaims\x12\x10\n" +
 	"\x03sub\x18\x01 \x01(\tR\x03sub\x12\x10\n" +
 	"\x03iss\x18\x02 \x01(\tR\x03iss\x12\x10\n" +
-	"\x03aud\x18\x03 \x01(\tR\x03aud\x12\x10\n" +
+	"\x03aud\x18\x03 \x03(\tR\x03aud\x12\x10\n" +
 	"\x03exp\x18\x04 \x01(\x03R\x03exp\x12\x10\n" +
 	"\x03iat\x18\x05 \x01(\x03R\x03iat\x12\x10\n" +
 	"\x03jti\x18\x06 \x01(\tR\x03jti\x12-\n" +
@@ -1772,9 +1729,9 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\vRealmAccess\x12\x14\n" +
 	"\x05roles\x18\x01 \x03(\tR\x05roles\"#\n" +
 	"\vClientRoles\x12\x14\n" +
-	"\x05roles\x18\x01 \x03(\tR\x05roles\")\n" +
-	"\x0eGetUserRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
+	"\x05roles\x18\x01 \x03(\tR\x05roles\"3\n" +
+	"\x0eGetUserRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"@\n" +
 	"\x0fGetUserResponse\x12-\n" +
 	"\x04user\x18\x01 \x01(\v2\x19.k1s0.system.auth.v1.UserR\x04user\"\x98\x01\n" +
 	"\x10ListUsersRequest\x12A\n" +
@@ -1809,9 +1766,9 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x1f.k1s0.system.auth.v1.StringListR\x05value:\x028\x01\"$\n" +
 	"\n" +
 	"StringList\x12\x16\n" +
-	"\x06values\x18\x01 \x03(\tR\x06values\".\n" +
-	"\x13GetUserRolesRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"\xa9\x02\n" +
+	"\x06values\x18\x01 \x03(\tR\x06values\"8\n" +
+	"\x13GetUserRolesRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"\xa9\x02\n" +
 	"\x14GetUserRolesResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12:\n" +
 	"\vrealm_roles\x18\x02 \x03(\v2\x19.k1s0.system.auth.v1.RoleR\n" +
@@ -1825,30 +1782,28 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\";\n" +
 	"\bRoleList\x12/\n" +
-	"\x05roles\x18\x01 \x03(\v2\x19.k1s0.system.auth.v1.RoleR\x05roles\"\x94\x01\n" +
-	"\x16CheckPermissionRequest\x12\x1c\n" +
-	"\auser_id\x18\x01 \x01(\tH\x00R\x06userId\x88\x01\x01\x12\x1e\n" +
+	"\x05roles\x18\x01 \x03(\v2\x19.k1s0.system.auth.v1.RoleR\x05roles\"\xb5\x01\n" +
+	"\x16CheckPermissionRequest\x12&\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x00R\x06userId\x88\x01\x01\x12)\n" +
 	"\n" +
-	"permission\x18\x02 \x01(\tR\n" +
-	"permission\x12\x1a\n" +
-	"\bresource\x18\x03 \x01(\tR\bresource\x12\x14\n" +
+	"permission\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\n" +
+	"permission\x12&\n" +
+	"\bresource\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bresource\x12\x14\n" +
 	"\x05roles\x18\x04 \x03(\tR\x05rolesB\n" +
 	"\n" +
 	"\b_user_id\"K\n" +
 	"\x17CheckPermissionResponse\x12\x18\n" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xde\x03\n" +
-	"\x15RecordAuditLogRequest\x12!\n" +
-	"\n" +
-	"event_type\x18\x01 \x01(\tB\x02\x18\x01R\teventType\x12\x17\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xbf\x03\n" +
+	"\x15RecordAuditLogRequest\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"ip_address\x18\x03 \x01(\tR\tipAddress\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x04 \x01(\tR\tuserAgent\x12\x1a\n" +
 	"\bresource\x18\x05 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\x06 \x01(\tR\x06action\x12\x1a\n" +
-	"\x06result\x18\a \x01(\tB\x02\x18\x01R\x06result\x12/\n" +
+	"\x06action\x18\x06 \x01(\tR\x06action\x12/\n" +
 	"\x06detail\x18\b \x01(\v2\x17.google.protobuf.StructR\x06detail\x12\x1f\n" +
 	"\vresource_id\x18\t \x01(\tR\n" +
 	"resourceId\x12\x19\n" +
@@ -1856,41 +1811,37 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	" \x01(\tR\atraceId\x12K\n" +
 	"\x0fevent_type_enum\x18\v \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
 	"\vresult_enum\x18\f \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
-	"resultEnum\"i\n" +
+	"resultEnumJ\x04\b\x01\x10\x02J\x04\b\a\x10\bR\n" +
+	"event_typeR\x06result\"i\n" +
 	"\x16RecordAuditLogResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12?\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xab\x03\n" +
+	"created_at\x18\x02 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\x8c\x03\n" +
 	"\x16SearchAuditLogsRequest\x12A\n" +
 	"\n" +
 	"pagination\x18\x01 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12!\n" +
-	"\n" +
-	"event_type\x18\x03 \x01(\tB\x02\x18\x01R\teventType\x124\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x124\n" +
 	"\x04from\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\x04from\x120\n" +
-	"\x02to\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\x02to\x12\x1a\n" +
-	"\x06result\x18\x06 \x01(\tB\x02\x18\x01R\x06result\x12K\n" +
+	"\x02to\x18\x05 \x01(\v2 .k1s0.system.common.v1.TimestampR\x02to\x12K\n" +
 	"\x0fevent_type_enum\x18\a \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
 	"\vresult_enum\x18\b \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
-	"resultEnum\"\x95\x01\n" +
+	"resultEnumJ\x04\b\x03\x10\x04J\x04\b\x06\x10\aR\n" +
+	"event_typeR\x06result\"\x95\x01\n" +
 	"\x17SearchAuditLogsResponse\x121\n" +
 	"\x04logs\x18\x01 \x03(\v2\x1d.k1s0.system.auth.v1.AuditLogR\x04logs\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xa2\x04\n" +
+	"pagination\"\x83\x04\n" +
 	"\bAuditLog\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\n" +
-	"event_type\x18\x02 \x01(\tB\x02\x18\x01R\teventType\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
 	"ip_address\x18\x04 \x01(\tR\tipAddress\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x05 \x01(\tR\tuserAgent\x12\x1a\n" +
 	"\bresource\x18\x06 \x01(\tR\bresource\x12\x16\n" +
-	"\x06action\x18\a \x01(\tR\x06action\x12\x1a\n" +
-	"\x06result\x18\b \x01(\tB\x02\x18\x01R\x06result\x12/\n" +
+	"\x06action\x18\a \x01(\tR\x06action\x12/\n" +
 	"\x06detail\x18\t \x01(\v2\x17.google.protobuf.StructR\x06detail\x12?\n" +
 	"\n" +
 	"created_at\x18\n" +
@@ -1900,7 +1851,8 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\btrace_id\x18\f \x01(\tR\atraceId\x12K\n" +
 	"\x0fevent_type_enum\x18\r \x01(\x0e2#.k1s0.system.auth.v1.AuditEventTypeR\reventTypeEnum\x12A\n" +
 	"\vresult_enum\x18\x0e \x01(\x0e2 .k1s0.system.auth.v1.AuditResultR\n" +
-	"resultEnum*\x82\x02\n" +
+	"resultEnumJ\x04\b\x02\x10\x03J\x04\b\b\x10\tR\n" +
+	"event_typeR\x06result*\xe7\x03\n" +
 	"\x0eAuditEventType\x12 \n" +
 	"\x1cAUDIT_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16AUDIT_EVENT_TYPE_LOGIN\x10\x01\x12\x1b\n" +
@@ -1908,11 +1860,20 @@ const file_k1s0_system_auth_v1_auth_proto_rawDesc = "" +
 	"\x1eAUDIT_EVENT_TYPE_TOKEN_REFRESH\x10\x03\x12%\n" +
 	"!AUDIT_EVENT_TYPE_PERMISSION_CHECK\x10\x04\x12$\n" +
 	" AUDIT_EVENT_TYPE_API_KEY_CREATED\x10\x05\x12$\n" +
-	" AUDIT_EVENT_TYPE_API_KEY_REVOKED\x10\x06*_\n" +
+	" AUDIT_EVENT_TYPE_API_KEY_REVOKED\x10\x06\x12\x1b\n" +
+	"\x17AUDIT_EVENT_TYPE_CREATE\x10\a\x12\x1b\n" +
+	"\x17AUDIT_EVENT_TYPE_UPDATE\x10\b\x12\x1b\n" +
+	"\x17AUDIT_EVENT_TYPE_DELETE\x10\t\x12\x19\n" +
+	"\x15AUDIT_EVENT_TYPE_READ\x10\n" +
+	"\x12&\n" +
+	"\"AUDIT_EVENT_TYPE_PERMISSION_DENIED\x10\v\x12$\n" +
+	" AUDIT_EVENT_TYPE_SECRET_ACCESSED\x10\f\x12#\n" +
+	"\x1fAUDIT_EVENT_TYPE_SECRET_ROTATED\x10\r*y\n" +
 	"\vAuditResult\x12\x1c\n" +
 	"\x18AUDIT_RESULT_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14AUDIT_RESULT_SUCCESS\x10\x01\x12\x18\n" +
-	"\x14AUDIT_RESULT_FAILURE\x10\x022\xfa\x03\n" +
+	"\x14AUDIT_RESULT_FAILURE\x10\x02\x12\x18\n" +
+	"\x14AUDIT_RESULT_PARTIAL\x10\x032\xfa\x03\n" +
 	"\vAuthService\x12f\n" +
 	"\rValidateToken\x12).k1s0.system.auth.v1.ValidateTokenRequest\x1a*.k1s0.system.auth.v1.ValidateTokenResponse\x12T\n" +
 	"\aGetUser\x12#.k1s0.system.auth.v1.GetUserRequest\x1a$.k1s0.system.auth.v1.GetUserResponse\x12Z\n" +

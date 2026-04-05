@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::evaluation::{EvaluationContext, EvaluationResult};
 use crate::domain::repository::FeatureFlagRepository;
 use crate::domain::service::FeatureFlagDomainService;
 
 /// EvaluateFlagInput はフィーチャーフラグ評価の入力データ。
 /// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
+/// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagInput {
-    pub tenant_id: Uuid,
+    pub tenant_id: String,
     pub flag_key: String,
     pub context: EvaluationContext,
 }
@@ -40,7 +39,7 @@ impl EvaluateFlagUseCase {
     ) -> Result<EvaluationResult, EvaluateFlagError> {
         let flag = self
             .repo
-            .find_by_key(input.tenant_id, &input.flag_key)
+            .find_by_key(&input.tenant_id, &input.flag_key)
             .await
             .map_err(|e| {
                 let msg = e.to_string();
@@ -68,10 +67,11 @@ mod tests {
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use chrono::Utc;
     use std::collections::HashMap;
+    use uuid::Uuid;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> String {
+        "00000000-0000-0000-0000-000000000001".to_string()
     }
 
     fn make_context() -> EvaluationContext {

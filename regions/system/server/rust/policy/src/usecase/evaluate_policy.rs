@@ -12,6 +12,8 @@ pub struct EvaluatePolicyInput {
     pub policy_id: Option<Uuid>,
     pub package_path: String,
     pub input: serde_json::Value,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -49,10 +51,11 @@ impl EvaluatePolicyUseCase {
     ) -> Result<EvaluatePolicyOutput, EvaluatePolicyError> {
         // Resolve policy first when a policy_id is provided, so both OPA and fallback paths
         // can consistently use the stored package path.
+        // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
         let resolved_policy = if let Some(policy_id) = input.policy_id {
             Some(
                 self.repo
-                    .find_by_id(&policy_id)
+                    .find_by_id(&policy_id, &input.tenant_id)
                     .await
                     .map_err(|e| EvaluatePolicyError::Internal(e.to_string()))?
                     .ok_or(EvaluatePolicyError::NotFound(policy_id))?,
@@ -166,8 +169,8 @@ mod tests {
         let id_clone = id;
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id()
-            .withf(move |i| *i == id_clone)
-            .returning(move |_| {
+            .withf(move |i, _tenant_id| *i == id_clone)
+            .returning(move |_, _| {
                 Ok(Some(Policy {
                     id,
                     name: "allow-all".to_string(),
@@ -179,6 +182,7 @@ mod tests {
                     enabled: true,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
+                    tenant_id: "tenant-a".to_string(),
                 }))
             });
 
@@ -187,6 +191,7 @@ mod tests {
             policy_id: Some(id),
             package_path: String::new(),
             input: serde_json::json!({"action": "read"}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -202,8 +207,8 @@ mod tests {
         let id_clone = id;
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id()
-            .withf(move |i| *i == id_clone)
-            .returning(move |_| {
+            .withf(move |i, _tenant_id| *i == id_clone)
+            .returning(move |_, _| {
                 Ok(Some(Policy {
                     id,
                     name: "deny-all".to_string(),
@@ -215,6 +220,7 @@ mod tests {
                     enabled: false,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
+                    tenant_id: "tenant-a".to_string(),
                 }))
             });
 
@@ -223,6 +229,7 @@ mod tests {
             policy_id: Some(id),
             package_path: String::new(),
             input: serde_json::json!({"action": "write"}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -235,13 +242,14 @@ mod tests {
     async fn policy_not_found() {
         let id = Uuid::new_v4();
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = EvaluatePolicyUseCase::new(Arc::new(mock), None);
         let input = EvaluatePolicyInput {
             policy_id: Some(id),
             package_path: String::new(),
             input: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

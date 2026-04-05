@@ -9,6 +9,8 @@ pub struct SearchIndex {
     pub name: String,
     pub mapping: serde_json::Value,
     pub created_at: DateTime<Utc>,
+    /// CRIT-005 対応: RLS でテナント分離するためのテナント ID。
+    pub tenant_id: String,
 }
 
 impl SearchIndex {
@@ -18,6 +20,7 @@ impl SearchIndex {
             name,
             mapping,
             created_at: Utc::now(),
+            tenant_id: "system".to_string(),
         }
     }
 }

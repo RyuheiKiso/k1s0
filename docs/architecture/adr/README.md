@@ -98,6 +98,14 @@
 | [ADR-0090](./0090-aes-gcm-aad-introduction.md) | AES-GCM AAD（Additional Authenticated Data）導入 | 承認済み |
 | [ADR-0091](./0091-jwt-token-introspection-hybrid.md) | JWT Token Introspection ハイブリッド方式 | 承認済み |
 | [ADR-0092](./0092-aes-gcm-siv-migration-consideration.md) | AES-GCM-SIV 移行検討（M-002 監査対応） | 提案中 |
+| [ADR-0093](./0093-tenant-id-uuid-to-text-migration.md) | tenant_id 型統一 — featureflag-db・config-db の UUID→TEXT マイグレーション | 承認済み |
+| [ADR-0094](./0094-ts-auth-jwt-id-token-verification.md) | TypeScript Auth ライブラリ JWT id_token 署名検証の追加 | 承認済み |
+| [ADR-0095](./0095-cli-template-version-alignment.md) | CLI テンプレートバージョンのワークスペース同期ポリシー | 承認済み |
+| [ADR-0096](./0096-dart-auth-flutter-dependency-abstraction.md) | Dart Auth ライブラリの flutter_secure_storage 依存抽象化 | 承認済み |
+| [ADR-0097](./0097-cross-service-fk-and-error-codes.md) | クロスサービス FK 不在の設計根拠と Proto エラーコード方針 | 承認済み |
+| [ADR-0098](./0098-graphql-proto-alignment-policy.md) | GraphQL スキーマと Protocol Buffers の整合方針 | 承認済み |
+| [ADR-0099](./0099-proto-field-type-migration-policy.md) | Protocol Buffers フィールド型移行方針（aud repeated・Timestamp 統一・reserved 宣言） | 承認済み |
+| [ADR-0100](./0100-vault-audit-log-rotation.md) | Vault 監査ログローテーション管理方針 | 承認済み |
 
 ## ADR の追加方法
 

@@ -390,12 +390,14 @@ impl InMemorySchedulerJobRepository {
 
 #[async_trait::async_trait]
 impl SchedulerJobRepository for InMemorySchedulerJobRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerJob>> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<SchedulerJob>> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.values().cloned().collect())
     }
@@ -412,7 +414,8 @@ impl SchedulerJobRepository for InMemorySchedulerJobRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut jobs = self.jobs.write().await;
         Ok(jobs.remove(id).is_some())
     }

@@ -11,6 +11,7 @@
 package activityv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -273,13 +274,14 @@ func (x *Activity) GetUpdatedAt() *v1.Timestamp {
 }
 
 type CreateActivityRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	TaskId          string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ActivityType    ActivityType           `protobuf:"varint,2,opt,name=activity_type,json=activityType,proto3,enum=k1s0.service.activity.v1.ActivityType" json:"activity_type,omitempty"`
-	Content         *string                `protobuf:"bytes,3,opt,name=content,proto3,oneof" json:"content,omitempty"`
-	DurationMinutes *int32                 `protobuf:"varint,4,opt,name=duration_minutes,json=durationMinutes,proto3,oneof" json:"duration_minutes,omitempty"`
-	Metadata        *structpb.Struct       `protobuf:"bytes,5,opt,name=metadata,proto3,oneof" json:"metadata,omitempty"`
-	IdempotencyKey  *string                `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId          string           `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ActivityType    ActivityType     `protobuf:"varint,2,opt,name=activity_type,json=activityType,proto3,enum=k1s0.service.activity.v1.ActivityType" json:"activity_type,omitempty"`
+	Content         *string          `protobuf:"bytes,3,opt,name=content,proto3,oneof" json:"content,omitempty"`
+	DurationMinutes *int32           `protobuf:"varint,4,opt,name=duration_minutes,json=durationMinutes,proto3,oneof" json:"duration_minutes,omitempty"`
+	Metadata        *structpb.Struct `protobuf:"bytes,5,opt,name=metadata,proto3,oneof" json:"metadata,omitempty"`
+	IdempotencyKey  *string          `protobuf:"bytes,6,opt,name=idempotency_key,json=idempotencyKey,proto3,oneof" json:"idempotency_key,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -401,8 +403,9 @@ func (x *CreateActivityResponse) GetActivity() *Activity {
 }
 
 type GetActivityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActivityId    string                 `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// アクティビティIDは1文字以上であること
+	ActivityId    string `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -630,8 +633,9 @@ func (x *ListActivitiesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type SubmitActivityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActivityId    string                 `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// アクティビティIDは1文字以上であること
+	ActivityId    string `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -718,8 +722,9 @@ func (x *SubmitActivityResponse) GetActivity() *Activity {
 }
 
 type ApproveActivityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActivityId    string                 `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// アクティビティIDは1文字以上であること
+	ActivityId    string `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -806,9 +811,10 @@ func (x *ApproveActivityResponse) GetActivity() *Activity {
 }
 
 type RejectActivityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ActivityId    string                 `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// アクティビティIDは1文字以上であること
+	ActivityId    string `protobuf:"bytes,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -905,7 +911,7 @@ var File_k1s0_service_activity_v1_activity_proto protoreflect.FileDescriptor
 
 const file_k1s0_service_activity_v1_activity_proto_rawDesc = "" +
 	"\n" +
-	"'k1s0/service/activity/v1/activity.proto\x12\x18k1s0.service.activity.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a!k1s0/system/common/v1/types.proto\"\xf2\x04\n" +
+	"'k1s0/service/activity/v1/activity.proto\x12\x18k1s0.service.activity.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xf2\x04\n" +
 	"\bActivity\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x19\n" +
@@ -926,9 +932,9 @@ const file_k1s0_service_activity_v1_activity_proto_rawDesc = "" +
 	"\b_contentB\x13\n" +
 	"\x11_duration_minutesB\v\n" +
 	"\t_metadataB\x12\n" +
-	"\x10_idempotency_key\"\xf6\x02\n" +
-	"\x15CreateActivityRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12K\n" +
+	"\x10_idempotency_key\"\xff\x02\n" +
+	"\x15CreateActivityRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12K\n" +
 	"\ractivity_type\x18\x02 \x01(\x0e2&.k1s0.service.activity.v1.ActivityTypeR\factivityType\x12\x1d\n" +
 	"\acontent\x18\x03 \x01(\tH\x00R\acontent\x88\x01\x01\x12.\n" +
 	"\x10duration_minutes\x18\x04 \x01(\x05H\x01R\x0fdurationMinutes\x88\x01\x01\x128\n" +
@@ -940,9 +946,9 @@ const file_k1s0_service_activity_v1_activity_proto_rawDesc = "" +
 	"\t_metadataB\x12\n" +
 	"\x10_idempotency_key\"X\n" +
 	"\x16CreateActivityResponse\x12>\n" +
-	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"5\n" +
-	"\x12GetActivityRequest\x12\x1f\n" +
-	"\vactivity_id\x18\x01 \x01(\tR\n" +
+	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\">\n" +
+	"\x12GetActivityRequest\x12(\n" +
+	"\vactivity_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"activityId\"U\n" +
 	"\x13GetActivityResponse\x12>\n" +
 	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"\xa1\x03\n" +
@@ -968,19 +974,19 @@ const file_k1s0_service_activity_v1_activity_proto_rawDesc = "" +
 	"activities\x12G\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"8\n" +
-	"\x15SubmitActivityRequest\x12\x1f\n" +
-	"\vactivity_id\x18\x01 \x01(\tR\n" +
+	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"A\n" +
+	"\x15SubmitActivityRequest\x12(\n" +
+	"\vactivity_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"activityId\"X\n" +
 	"\x16SubmitActivityResponse\x12>\n" +
-	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"9\n" +
-	"\x16ApproveActivityRequest\x12\x1f\n" +
-	"\vactivity_id\x18\x01 \x01(\tR\n" +
+	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"B\n" +
+	"\x16ApproveActivityRequest\x12(\n" +
+	"\vactivity_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"activityId\"Y\n" +
 	"\x17ApproveActivityResponse\x12>\n" +
-	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"P\n" +
-	"\x15RejectActivityRequest\x12\x1f\n" +
-	"\vactivity_id\x18\x01 \x01(\tR\n" +
+	"\bactivity\x18\x01 \x01(\v2\".k1s0.service.activity.v1.ActivityR\bactivity\"Y\n" +
+	"\x15RejectActivityRequest\x12(\n" +
+	"\vactivity_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"activityId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"X\n" +
 	"\x16RejectActivityResponse\x12>\n" +

@@ -10,6 +10,7 @@
 package configv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -214,9 +215,11 @@ func (x *ConfigEntry) GetUpdatedAt() *v1.Timestamp {
 
 // GetConfigRequest は設定値取得リクエスト。
 type GetConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 名前空間は1文字以上256文字以下であること
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// キーは1文字以上256文字以下であること
+	Key           string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -312,9 +315,10 @@ func (x *GetConfigResponse) GetEntry() *ConfigEntry {
 
 // ListConfigsRequest は設定値一覧取得リクエスト。
 type ListConfigsRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Namespace  string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Pagination *v1.Pagination         `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 名前空間は1文字以上256文字以下であること
+	Namespace  string         `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	Pagination *v1.Pagination `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
 	// キー名の部分一致検索
 	Search        string `protobuf:"bytes,3,opt,name=search,proto3" json:"search,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -427,9 +431,11 @@ func (x *ListConfigsResponse) GetPagination() *v1.PaginationResult {
 
 // UpdateConfigRequest は設定値更新リクエスト。
 type UpdateConfigRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Namespace string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key       string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 名前空間は1文字以上256文字以下であること
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// キーは1文字以上256文字以下であること
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// JSON エンコード済みの値
 	Value []byte `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
 	// 楽観的排他制御用（現在のバージョン番号）
@@ -559,10 +565,12 @@ func (x *UpdateConfigResponse) GetEntry() *ConfigEntry {
 
 // DeleteConfigRequest は設定値削除リクエスト。
 type DeleteConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Namespace     string                 `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
-	Key           string                 `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	DeletedBy     string                 `protobuf:"bytes,3,opt,name=deleted_by,json=deletedBy,proto3" json:"deleted_by,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 名前空間は1文字以上256文字以下であること
+	Namespace string `protobuf:"bytes,1,opt,name=namespace,proto3" json:"namespace,omitempty"`
+	// キーは1文字以上256文字以下であること
+	Key           string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	DeletedBy     string `protobuf:"bytes,3,opt,name=deleted_by,json=deletedBy,proto3" json:"deleted_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -665,9 +673,10 @@ func (x *DeleteConfigResponse) GetSuccess() bool {
 
 // GetServiceConfigRequest はサービス向け設定一括取得リクエスト。
 type GetServiceConfigRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
-	// dev | staging | prod
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// サービス名は1文字以上128文字以下であること
+	ServiceName string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	// 環境は1文字以上64文字以下であること（dev, staging, prod 等）
 	Environment   string `protobuf:"bytes,2,opt,name=environment,proto3" json:"environment,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1268,8 +1277,9 @@ func (x *ConfigEditorSchema) GetUpdatedAt() *v1.Timestamp {
 
 // GetConfigSchemaRequest は設定スキーマ取得リクエスト。
 type GetConfigSchemaRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ServiceName   string                 `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// サービス名は1文字以上128文字以下であること
+	ServiceName   string `protobuf:"bytes,1,opt,name=service_name,json=serviceName,proto3" json:"service_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1540,7 +1550,7 @@ var File_k1s0_system_config_v1_config_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\"k1s0/system/config/v1/config.proto\x12\x15k1s0.system.config.v1\x1a!k1s0/system/common/v1/types.proto\"\xdf\x02\n" +
+	"\"k1s0/system/config/v1/config.proto\x12\x15k1s0.system.config.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xdf\x02\n" +
 	"\vConfigEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1c\n" +
 	"\tnamespace\x18\x02 \x01(\tR\tnamespace\x12\x10\n" +
@@ -1556,14 +1566,17 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"B\n" +
-	"\x10GetConfigRequest\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\"M\n" +
+	" \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"Z\n" +
+	"\x10GetConfigRequest\x12(\n" +
+	"\tnamespace\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tnamespace\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x03key\"M\n" +
 	"\x11GetConfigResponse\x128\n" +
-	"\x05entry\x18\x01 \x01(\v2\".k1s0.system.config.v1.ConfigEntryR\x05entry\"\x8d\x01\n" +
-	"\x12ListConfigsRequest\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12A\n" +
+	"\x05entry\x18\x01 \x01(\v2\".k1s0.system.config.v1.ConfigEntryR\x05entry\"\x99\x01\n" +
+	"\x12ListConfigsRequest\x12(\n" +
+	"\tnamespace\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tnamespace\x12A\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2!.k1s0.system.common.v1.PaginationR\n" +
 	"pagination\x12\x16\n" +
@@ -1572,27 +1585,32 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"\aentries\x18\x01 \x03(\v2\".k1s0.system.config.v1.ConfigEntryR\aentries\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xb6\x01\n" +
-	"\x13UpdateConfigRequest\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\x12\x14\n" +
+	"pagination\"\xce\x01\n" +
+	"\x13UpdateConfigRequest\x12(\n" +
+	"\tnamespace\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tnamespace\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x03key\x12\x14\n" +
 	"\x05value\x18\x03 \x01(\fR\x05value\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x05R\aversion\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
 	"updated_by\x18\x06 \x01(\tR\tupdatedBy\"P\n" +
 	"\x14UpdateConfigResponse\x128\n" +
-	"\x05entry\x18\x01 \x01(\v2\".k1s0.system.config.v1.ConfigEntryR\x05entry\"d\n" +
-	"\x13DeleteConfigRequest\x12\x1c\n" +
-	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\tR\x03key\x12\x1d\n" +
+	"\x05entry\x18\x01 \x01(\v2\".k1s0.system.config.v1.ConfigEntryR\x05entry\"|\n" +
+	"\x13DeleteConfigRequest\x12(\n" +
+	"\tnamespace\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tnamespace\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x03key\x12\x1d\n" +
 	"\n" +
 	"deleted_by\x18\x03 \x01(\tR\tdeletedBy\"0\n" +
 	"\x14DeleteConfigResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"^\n" +
-	"\x17GetServiceConfigRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\x12 \n" +
-	"\venvironment\x18\x02 \x01(\tR\venvironment\"t\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"u\n" +
+	"\x17GetServiceConfigRequest\x12-\n" +
+	"\fservice_name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\vserviceName\x12+\n" +
+	"\venvironment\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\venvironment\"t\n" +
 	"\x12ServiceConfigEntry\x12\x1c\n" +
 	"\tnamespace\x18\x01 \x01(\tR\tnamespace\x12\x10\n" +
 	"\x03key\x18\x02 \x01(\tR\x03key\x12\x14\n" +
@@ -1648,9 +1666,10 @@ const file_k1s0_system_config_v1_config_proto_rawDesc = "" +
 	"categories\x18\x03 \x03(\v2+.k1s0.system.config.v1.ConfigCategorySchemaR\n" +
 	"categories\x12?\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\";\n" +
-	"\x16GetConfigSchemaRequest\x12!\n" +
-	"\fservice_name\x18\x01 \x01(\tR\vserviceName\"\\\n" +
+	"updated_at\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"G\n" +
+	"\x16GetConfigSchemaRequest\x12-\n" +
+	"\fservice_name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\vserviceName\"\\\n" +
 	"\x17GetConfigSchemaResponse\x12A\n" +
 	"\x06schema\x18\x01 \x01(\v2).k1s0.system.config.v1.ConfigEditorSchemaR\x06schema\"}\n" +
 	"\x19UpsertConfigSchemaRequest\x12A\n" +

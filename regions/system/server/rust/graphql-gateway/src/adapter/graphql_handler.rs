@@ -20,9 +20,8 @@ use crate::adapter::middleware::auth_middleware::{AuthMiddlewareLayer, BearerTok
 use crate::domain::model::graphql_context::{
     ConfigLoader, FeatureFlagLoader, GraphqlContext, TenantLoader,
 };
-// ローダー構築時にポートトレイトオブジェクトへキャストするためインポートする
-// H-02 監査対応: AuditEventType/AuditResult は GraphQL スキーマの enum 定義に必要だが
-// graphql_handler.rs 内では直接参照されないためインポートを削除する
+// HIGH-014 監査対応: AuditEventType/AuditResult を GraphQL 入力型・クエリ引数として直接使用する
+use crate::domain::model::auth::{AuditEventType, AuditResult};
 use crate::domain::model::{
     ApproveTaskPayload, AuditLogConnection, CancelInstancePayload, CatalogService,
     CatalogServiceConnection, ConfigEntry, CreateChannelPayload, CreateJobPayload,
@@ -34,7 +33,7 @@ use crate::domain::model::{
     RejectTaskPayload, ResumeJobPayload, RetryNotificationPayload, RevokeAllSessionsPayload,
     RevokeSessionPayload, Role, RotateSecretPayload, SecretMetadata, SendNotificationPayload,
     ServiceHealth, Session, SetFeatureFlagPayload, SetSecretPayload, StartInstancePayload, Tenant,
-    TenantConnection, TenantStatus, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
+    TenantConnection, TriggerJobPayload, UpdateChannelPayload, UpdateJobPayload,
     UpdateServicePayload, UpdateTemplatePayload, UpdateTenantPayload, UpdateWorkflowPayload, User,
     UserError, VaultAuditLogEntry, WorkflowDefinition, WorkflowInstance, WorkflowTask,
 };
@@ -183,23 +182,54 @@ pub struct CreateTenantInput {
 }
 
 /// テナント更新の入力型
+/// CRIT-007 対応: proto UpdateTenantRequest に合わせて displayName と plan に変更
+/// status 変更は suspendTenant/activateTenant 専用ミューテーションを使用すること
 #[derive(async_graphql::InputObject)]
 pub struct UpdateTenantInput {
-    /// テナント名（1〜255文字、省略可）
-    #[graphql(validator(min_length = 1, max_length = 255))]
-    pub name: Option<String>,
-    pub status: Option<TenantStatus>,
+    /// 表示名（1〜256文字、省略可）
+    #[graphql(validator(min_length = 1, max_length = 256))]
+    pub display_name: Option<String>,
+    /// プラン名（free, standard, enterprise 等、省略可）
+    #[graphql(validator(min_length = 1, max_length = 64))]
+    pub plan: Option<String>,
 }
 
 /// フィーチャーフラグ設定の入力型
+/// CRIT-007 監査対応: proto UpdateFlagRequest と整合させ、
+/// rollout_percentage/target_environments を廃止して variants/rules を直接受け付ける
 #[derive(async_graphql::InputObject)]
 pub struct SetFeatureFlagInput {
+    /// フラグの有効/無効
     pub enabled: bool,
-    /// ロールアウト割合（0〜100）
+    /// バリアント一覧（省略時は空リスト）
+    pub variants: Option<Vec<FlagVariantInput>>,
+    /// 評価ルール一覧（省略時は空リスト）
+    pub rules: Option<Vec<FlagRuleInput>>,
+}
+
+/// FlagVariant 入力型（proto FlagVariant と整合）
+#[derive(async_graphql::InputObject)]
+pub struct FlagVariantInput {
+    /// バリアント名
+    pub name: String,
+    /// バリアント値
+    pub value: String,
+    /// ウェイト（0〜100）
     #[graphql(validator(minimum = 0, maximum = 100))]
-    pub rollout_percentage: Option<i32>,
-    /// 対象環境リスト
-    pub target_environments: Option<Vec<String>>,
+    pub weight: i32,
+}
+
+/// FlagRule 入力型（proto FlagRule と整合）
+#[derive(async_graphql::InputObject)]
+pub struct FlagRuleInput {
+    /// 評価対象の属性名
+    pub attribute: String,
+    /// 比較演算子（EQ / NE / CONTAINS / GT / LT）
+    pub operator: String,
+    /// 比較値
+    pub value: String,
+    /// マッチ時に適用するバリアント名
+    pub variant: String,
 }
 
 /// サービス登録の入力型
@@ -261,20 +291,19 @@ pub struct UpdateServiceInput {
 /// - userId: JWT claims の sub フィールドから取得（なりすまし防止）
 /// - ipAddress: リクエストの X-Forwarded-For / RemoteAddr ヘッダから取得
 /// - userAgent: リクエストの User-Agent ヘッダから取得
+/// HIGH-014 監査対応: event_type/result を String から型安全な enum へ変更する。
 #[derive(async_graphql::InputObject)]
 pub struct RecordAuditLogInput {
-    /// イベント種別（1〜100文字）
-    #[graphql(validator(min_length = 1, max_length = 100))]
-    pub event_type: String,
+    /// 監査イベント種別（enum）
+    pub event_type: AuditEventType,
     /// リソース名（1〜255文字）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource: String,
     /// アクション名（1〜100文字）
     #[graphql(validator(min_length = 1, max_length = 100))]
     pub action: String,
-    /// 結果（1〜100文字）
-    #[graphql(validator(min_length = 1, max_length = 100))]
-    pub result: String,
+    /// 監査結果（enum）
+    pub result: AuditResult,
     /// リソースID（1〜255文字、省略可）
     #[graphql(validator(min_length = 1, max_length = 255))]
     pub resource_id: Option<String>,
@@ -841,8 +870,9 @@ impl QueryRoot {
         first: Option<i32>,
         after: Option<i32>,
         user_id: Option<String>,
-        event_type: Option<String>,
-        result: Option<String>,
+        // HIGH-014 監査対応: String → enum フィルタへ変更
+        event_type: Option<AuditEventType>,
+        result: Option<AuditResult>,
     ) -> FieldResult<AuditLogConnection> {
         ensure_read_permission(ctx)?;
         // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
@@ -852,8 +882,8 @@ impl QueryRoot {
                 first,
                 after,
                 user_id.as_deref(),
-                event_type.as_deref(),
-                result.as_deref(),
+                event_type,
+                result,
             )
             .await
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
@@ -1185,14 +1215,14 @@ impl MutationRoot {
         input: UpdateTenantInput,
     ) -> FieldResult<UpdateTenantPayload> {
         ensure_write_permission(ctx)?;
-        let status_str = input.status.map(|s| match s {
-            TenantStatus::Active => "ACTIVE".to_string(),
-            TenantStatus::Suspended => "SUSPENDED".to_string(),
-            TenantStatus::Deleted => "DELETED".to_string(),
-        });
+        // CRIT-007 対応: display_name と plan を proto UpdateTenantRequest に直接渡す
         Ok(self
             .tenant_mutation
-            .update_tenant(id.as_str(), input.name.as_deref(), status_str.as_deref())
+            .update_tenant(
+                id.as_str(),
+                input.display_name.as_deref(),
+                input.plan.as_deref(),
+            )
             .await)
     }
 
@@ -1203,14 +1233,44 @@ impl MutationRoot {
         input: SetFeatureFlagInput,
     ) -> FieldResult<SetFeatureFlagPayload> {
         ensure_write_permission(ctx)?;
+        // SetFeatureFlagInput の variants/rules を proto 型に変換する
+        let proto_variants = input
+            .variants
+            .unwrap_or_default()
+            .into_iter()
+            .map(|v| {
+                crate::infrastructure::grpc::feature_flag_client::proto::k1s0::system::featureflag::v1::FlagVariant {
+                    name: v.name,
+                    value: v.value,
+                    weight: v.weight,
+                }
+            })
+            .collect();
+        // operator 文字列を i32 に変換する（proto enum Operator と対応させる）
+        let proto_rules = input
+            .rules
+            .unwrap_or_default()
+            .into_iter()
+            .map(|r| {
+                let op_i32 = match r.operator.to_uppercase().as_str() {
+                    "EQ" => 1,
+                    "NE" => 2,
+                    "CONTAINS" => 3,
+                    "GT" => 4,
+                    "LT" => 5,
+                    _ => 0,
+                };
+                crate::infrastructure::grpc::feature_flag_client::proto::k1s0::system::featureflag::v1::FlagRule {
+                    attribute: r.attribute,
+                    operator: op_i32,
+                    value: r.value,
+                    variant: r.variant,
+                }
+            })
+            .collect();
         match self
             .feature_flag_client
-            .set_flag(
-                &key,
-                input.enabled,
-                input.rollout_percentage,
-                input.target_environments,
-            )
+            .set_flag(&key, input.enabled, proto_variants, proto_rules)
             .await
         {
             Ok(flag) => Ok(SetFeatureFlagPayload {
@@ -1302,13 +1362,13 @@ impl MutationRoot {
         Ok(self
             .auth_mutation
             .record_audit_log(
-                &input.event_type,
+                input.event_type,
                 &gql_ctx.user_id,
                 &gql_ctx.ip_address,
                 &gql_ctx.user_agent,
                 &input.resource,
                 &input.action,
-                &input.result,
+                input.result,
                 input.resource_id.as_deref(),
                 input.trace_id.as_deref(),
             )

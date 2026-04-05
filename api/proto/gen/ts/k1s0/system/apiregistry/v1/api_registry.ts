@@ -19,6 +19,8 @@ import { Pagination } from "../../common/v1/types";
  */
 export interface GetSchemaRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -54,6 +56,8 @@ export interface ListSchemasResponse {
  */
 export interface RegisterSchemaRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -62,14 +66,20 @@ export interface RegisterSchemaRequest {
      */
     description: string;
     /**
+     * スキーマ種別は1文字以上64文字以下であること（例: openapi, proto, json）
+     *
      * @generated from protobuf field: string schema_type = 3
      */
     schemaType: string;
     /**
+     * スキーマコンテンツは1文字以上であること
+     *
      * @generated from protobuf field: string content = 4
      */
     content: string;
     /**
+     * 登録者IDは1文字以上であること
+     *
      * @generated from protobuf field: string registered_by = 5
      */
     registeredBy: string;
@@ -101,6 +111,8 @@ export interface GetSchemaResponse {
  */
 export interface ListVersionsRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -131,14 +143,20 @@ export interface ListVersionsResponse {
  */
 export interface RegisterVersionRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * スキーマコンテンツは1文字以上であること
+     *
      * @generated from protobuf field: string content = 2
      */
     content: string;
     /**
+     * 登録者IDは1文字以上であること
+     *
      * @generated from protobuf field: string registered_by = 3
      */
     registeredBy: string;
@@ -157,6 +175,8 @@ export interface RegisterVersionResponse {
  */
 export interface GetSchemaVersionRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -179,6 +199,8 @@ export interface GetSchemaVersionResponse {
  */
 export interface DeleteVersionRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -205,10 +227,14 @@ export interface DeleteVersionResponse {
  */
 export interface CheckCompatibilityRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * スキーマコンテンツは1文字以上であること
+     *
      * @generated from protobuf field: string content = 2
      */
     content: string;
@@ -239,6 +265,8 @@ export interface CheckCompatibilityResponse {
  */
 export interface GetDiffRequest {
     /**
+     * スキーマ名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -439,7 +467,7 @@ export interface DiffModifiedEntryProto {
 class GetSchemaRequest$Type extends MessageType<GetSchemaRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.GetSchemaRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } }
         ]);
     }
     create(value?: PartialMessage<GetSchemaRequest>): GetSchemaRequest {
@@ -594,11 +622,11 @@ export const ListSchemasResponse = new ListSchemasResponse$Type();
 class RegisterSchemaRequest$Type extends MessageType<RegisterSchemaRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.RegisterSchemaRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "schema_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "registered_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "schema_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 4, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 5, name: "registered_by", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RegisterSchemaRequest>): RegisterSchemaRequest {
@@ -773,7 +801,7 @@ export const GetSchemaResponse = new GetSchemaResponse$Type();
 class ListVersionsRequest$Type extends MessageType<ListVersionsRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.ListVersionsRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "pagination", kind: "message", T: () => Pagination }
         ]);
     }
@@ -889,9 +917,9 @@ export const ListVersionsResponse = new ListVersionsResponse$Type();
 class RegisterVersionRequest$Type extends MessageType<RegisterVersionRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.RegisterVersionRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "registered_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 3, name: "registered_by", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<RegisterVersionRequest>): RegisterVersionRequest {
@@ -998,7 +1026,7 @@ export const RegisterVersionResponse = new RegisterVersionResponse$Type();
 class GetSchemaVersionRequest$Type extends MessageType<GetSchemaVersionRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.GetSchemaVersionRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
@@ -1099,7 +1127,7 @@ export const GetSchemaVersionResponse = new GetSchemaVersionResponse$Type();
 class DeleteVersionRequest$Type extends MessageType<DeleteVersionRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.DeleteVersionRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
@@ -1209,8 +1237,8 @@ export const DeleteVersionResponse = new DeleteVersionResponse$Type();
 class CheckCompatibilityRequest$Type extends MessageType<CheckCompatibilityRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.CheckCompatibilityRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 3, name: "base_version", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
@@ -1333,7 +1361,7 @@ export const CheckCompatibilityResponse = new CheckCompatibilityResponse$Type();
 class GetDiffRequest$Type extends MessageType<GetDiffRequest> {
     constructor() {
         super("k1s0.system.apiregistry.v1.GetDiffRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "from_version", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ },
             { no: 3, name: "to_version", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);

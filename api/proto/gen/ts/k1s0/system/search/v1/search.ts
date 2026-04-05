@@ -38,6 +38,8 @@ export interface SearchIndex {
  */
 export interface CreateIndexRequest {
     /**
+     * インデックス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
@@ -74,10 +76,14 @@ export interface ListIndicesResponse {
  */
 export interface IndexDocumentRequest {
     /**
+     * インデックス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string index = 1
      */
     index: string;
     /**
+     * ドキュメントIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string document_id = 2
      */
     documentId: string;
@@ -108,10 +114,14 @@ export interface IndexDocumentResponse {
  */
 export interface SearchRequest {
     /**
+     * インデックス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string index = 1
      */
     index: string;
     /**
+     * 検索クエリは1文字以上1024文字以下であること
+     *
      * @generated from protobuf field: string query = 2
      */
     query: string;
@@ -184,10 +194,14 @@ export interface SearchHit {
  */
 export interface DeleteDocumentRequest {
     /**
+     * インデックス名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string index = 1
      */
     index: string;
     /**
+     * ドキュメントIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string document_id = 2
      */
     documentId: string;
@@ -280,7 +294,7 @@ export const SearchIndex = new SearchIndex$Type();
 class CreateIndexRequest$Type extends MessageType<CreateIndexRequest> {
     constructor() {
         super("k1s0.system.search.v1.CreateIndexRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 2, name: "mapping_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
     }
@@ -466,8 +480,8 @@ export const ListIndicesResponse = new ListIndicesResponse$Type();
 class IndexDocumentRequest$Type extends MessageType<IndexDocumentRequest> {
     constructor() {
         super("k1s0.system.search.v1.IndexDocumentRequest", [
-            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "document_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "document_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "document_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
         ]);
     }
@@ -592,8 +606,8 @@ export const IndexDocumentResponse = new IndexDocumentResponse$Type();
 class SearchRequest$Type extends MessageType<SearchRequest> {
     constructor() {
         super("k1s0.system.search.v1.SearchRequest", [
-            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "1024" } } } },
             { no: 3, name: "filters_json", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
             { no: 4, name: "from", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 5, name: "size", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
@@ -887,8 +901,8 @@ export const SearchHit = new SearchHit$Type();
 class DeleteDocumentRequest$Type extends MessageType<DeleteDocumentRequest> {
     constructor() {
         super("k1s0.system.search.v1.DeleteDocumentRequest", [
-            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "document_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "index", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "document_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteDocumentRequest>): DeleteDocumentRequest {

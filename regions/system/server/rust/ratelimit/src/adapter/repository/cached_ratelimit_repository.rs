@@ -53,15 +53,17 @@ impl RateLimitRepository for CachedRateLimitRepository {
         Ok(created)
     }
 
-    /// キャッシュヒット時はDBアクセスをスキップして即返却する。
+    /// CRIT-005 対応: キャッシュヒット時はDBアクセスをスキップして即返却する。
     /// キャッシュミスの場合はDBから取得してキャッシュに格納してから返却する。
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<RateLimitRule> {
-        // キャッシュヒット確認
+    async fn find_by_id(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<RateLimitRule> {
+        // キャッシュヒット確認（テナント ID が一致する場合のみ返却する）
         if let Some(cached) = self.cache.get_by_id(id).await {
-            if let Some(ref m) = self.metrics {
-                m.record_cache_hit("rate_limit_rules");
+            if cached.tenant_id == tenant_id {
+                if let Some(ref m) = self.metrics {
+                    m.record_cache_hit("rate_limit_rules");
+                }
+                return Ok((*cached).clone());
             }
-            return Ok((*cached).clone());
         }
 
         if let Some(ref m) = self.metrics {
@@ -69,7 +71,7 @@ impl RateLimitRepository for CachedRateLimitRepository {
         }
 
         // キャッシュミス: DBから取得
-        let rule = self.inner.find_by_id(id).await?;
+        let rule = self.inner.find_by_id(id, tenant_id).await?;
 
         // キャッシュに格納
         self.cache.insert(&rule).await;
@@ -77,15 +79,21 @@ impl RateLimitRepository for CachedRateLimitRepository {
         Ok(rule)
     }
 
-    /// キャッシュヒット時はDBアクセスをスキップして即返却する。
+    /// CRIT-005 対応: キャッシュヒット時はDBアクセスをスキップして即返却する。
     /// キャッシュミスの場合はDBから取得してキャッシュに格納してから返却する。
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<RateLimitRule>> {
-        // キャッシュヒット確認
+    async fn find_by_name(
+        &self,
+        name: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<RateLimitRule>> {
+        // キャッシュヒット確認（テナント ID が一致する場合のみ返却する）
         if let Some(cached) = self.cache.get_by_name(name).await {
-            if let Some(ref m) = self.metrics {
-                m.record_cache_hit("rate_limit_rules");
+            if cached.tenant_id == tenant_id {
+                if let Some(ref m) = self.metrics {
+                    m.record_cache_hit("rate_limit_rules");
+                }
+                return Ok(Some((*cached).clone()));
             }
-            return Ok(Some((*cached).clone()));
         }
 
         if let Some(ref m) = self.metrics {
@@ -93,7 +101,7 @@ impl RateLimitRepository for CachedRateLimitRepository {
         }
 
         // キャッシュミス: DBから取得
-        let result = self.inner.find_by_name(name).await?;
+        let result = self.inner.find_by_name(name, tenant_id).await?;
 
         // 取得できた場合はキャッシュに格納
         if let Some(ref rule) = result {
@@ -103,40 +111,51 @@ impl RateLimitRepository for CachedRateLimitRepository {
         Ok(result)
     }
 
-    async fn find_by_scope(&self, scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
-        self.inner.find_by_scope(scope).await
+    /// CRIT-005 対応: scope でルールを取得する（キャッシュなしで inner に委譲）。
+    async fn find_by_scope(
+        &self,
+        scope: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Vec<RateLimitRule>> {
+        self.inner.find_by_scope(scope, tenant_id).await
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
-        self.inner.find_all().await
+    /// CRIT-005 対応: 全ルールを取得する（inner に委譲）。
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<RateLimitRule>> {
+        self.inner.find_all(tenant_id).await
     }
 
+    /// CRIT-005 対応: ページネーションでルールを取得する（inner に委譲）。
     async fn find_page(
         &self,
         page: u32,
         page_size: u32,
         scope: Option<String>,
         enabled_only: bool,
+        tenant_id: &str,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         self.inner
-            .find_page(page, page_size, scope, enabled_only)
+            .find_page(page, page_size, scope, enabled_only, tenant_id)
             .await
     }
 
+    /// ルールを更新し、キャッシュも更新する。
     async fn update(&self, rule: &RateLimitRule) -> anyhow::Result<()> {
         self.inner.update(rule).await?;
         self.cache.insert(rule).await;
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
-        let deleted = self.inner.delete(id).await?;
+    /// CRIT-005 対応: ルールを削除し、キャッシュも無効化する。
+    async fn delete(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<bool> {
+        let deleted = self.inner.delete(id, tenant_id).await?;
         if deleted {
             self.cache.invalidate_by_id(id).await;
         }
         Ok(deleted)
     }
 
+    /// PostgreSQL リポジトリではRedis状態のリセットは行わない（state_storeが担当）。
     async fn reset_state(&self, key: &str) -> anyhow::Result<()> {
         self.inner.reset_state(key).await
     }
@@ -160,6 +179,8 @@ mod tests {
             window_seconds: 60,
             algorithm: Algorithm::TokenBucket,
             enabled: true,
+            // CRIT-005 対応: テナント ID を含める。
+            tenant_id: "tenant-a".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -180,7 +201,7 @@ mod tests {
         cache.insert(&rule).await;
 
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache);
-        let result = repo.find_by_name("service").await.unwrap();
+        let result = repo.find_by_name("service", "tenant-a").await.unwrap();
 
         assert!(result.is_some());
         assert_eq!(result.unwrap().scope, "service");
@@ -198,7 +219,7 @@ mod tests {
         cache.insert(&rule).await;
 
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache);
-        let result = repo.find_by_id(&id).await.unwrap();
+        let result = repo.find_by_id(&id, "tenant-a").await.unwrap();
 
         assert_eq!(result.id, id);
         assert_eq!(result.scope, "service");
@@ -212,14 +233,14 @@ mod tests {
 
         let mut mock = MockRateLimitRepository::new();
         mock.expect_find_by_name()
-            .withf(|name| name == "service")
+            .withf(|name, _tenant_id| name == "service")
             .once()
-            .returning(move |_| Ok(Some(rule_clone.clone())));
+            .returning(move |_, _| Ok(Some(rule_clone.clone())));
 
         let cache = make_cache();
         let repo = CachedRateLimitRepository::new(Arc::new(mock), cache.clone());
 
-        let result = repo.find_by_name("service").await.unwrap();
+        let result = repo.find_by_name("service", "tenant-a").await.unwrap();
         assert!(result.is_some());
 
         // キャッシュに格納されていることを確認

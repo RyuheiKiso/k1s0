@@ -14,6 +14,8 @@ pub struct UpdateJobInput {
     pub target_type: String,
     pub target: Option<String>,
     pub payload: serde_json::Value,
+    /// テナント ID: CRIT-005 対応。テナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -40,6 +42,7 @@ impl UpdateJobUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを更新する。
     pub async fn execute(&self, input: &UpdateJobInput) -> Result<SchedulerJob, UpdateJobError> {
         if !SchedulerDomainService::validate_cron_expression(&input.cron_expression) {
             return Err(UpdateJobError::InvalidCron(input.cron_expression.clone()));
@@ -50,7 +53,7 @@ impl UpdateJobUseCase {
 
         let mut job = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.id, &input.tenant_id)
             .await
             .map_err(|e| UpdateJobError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateJobError::NotFound(input.id.clone()))?;
@@ -93,8 +96,8 @@ mod tests {
         let expected_id = job_id.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == expected_id.as_str())
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .withf(move |id, _tenant_id| id == expected_id.as_str())
+            .returning(move |_, _| Ok(Some(return_job.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
@@ -107,6 +110,7 @@ mod tests {
             target_type: "kafka".to_string(),
             target: None,
             payload: serde_json::json!({"task": "updated"}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -120,7 +124,7 @@ mod tests {
     async fn not_found() {
         let mut mock = MockSchedulerJobRepository::new();
         let missing_id = "job_missing".to_string();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateJobUseCase::new(Arc::new(mock));
         let expected_missing_id = missing_id.clone();
@@ -133,6 +137,7 @@ mod tests {
             target_type: "kafka".to_string(),
             target: None,
             payload: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -157,6 +162,7 @@ mod tests {
             target_type: "kafka".to_string(),
             target: None,
             payload: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

@@ -95,9 +95,13 @@ impl SecretStore for SecretStorePostgresRepository {
         }
 
         // 各バージョンを復号化して SecretVersion に変換
+        // CRIT-003 監査対応: シークレットのパスを AAD として渡し、ciphertext swap attack を防止する
+        // レガシーフォールバック付き復号で旧形式（AAD なし）データとの後方互換性を確保する
         let mut versions = Vec::with_capacity(version_rows.len());
         for row in &version_rows {
-            let plaintext = self.master_key.decrypt(&row.encrypted_data, &row.nonce)?;
+            let plaintext = self
+                .master_key
+                .decrypt_with_legacy_fallback(&row.encrypted_data, &row.nonce, path.as_bytes())?;
             let data: HashMap<String, String> = serde_json::from_slice(&plaintext)?;
             versions.push(SecretVersion {
                 version: row.version as i64,
@@ -118,8 +122,9 @@ impl SecretStore for SecretStorePostgresRepository {
 
     async fn set(&self, path: &str, data: HashMap<String, String>) -> anyhow::Result<i64> {
         // データを JSON にシリアライズして暗号化
+        // CRIT-003 監査対応: シークレットのパスを AAD として渡し、ciphertext swap attack を防止する
         let plaintext = serde_json::to_vec(&data)?;
-        let (encrypted_data, nonce) = self.master_key.encrypt(&plaintext)?;
+        let (encrypted_data, nonce) = self.master_key.encrypt(&plaintext, path.as_bytes())?;
 
         let mut tx = self.pool.begin().await?;
 
@@ -258,8 +263,10 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_data_roundtrip() {
-        // MasterKey を使った暗号化/復号化の統合テスト
+        // CRIT-003 監査対応: MasterKey を使った暗号化/復号化の統合テスト
+        // シークレットパスを AAD として渡すことで ciphertext swap attack への耐性を確認する
         let master_key = MasterKey::from_env().unwrap();
+        let path = "test/my-service/db-password";
 
         let data = HashMap::from([
             ("password".to_string(), "s3cret".to_string()),
@@ -267,8 +274,10 @@ mod tests {
         ]);
         let plaintext = serde_json::to_vec(&data).unwrap();
 
-        let (encrypted, nonce) = master_key.encrypt(&plaintext).unwrap();
-        let decrypted = master_key.decrypt(&encrypted, &nonce).unwrap();
+        let (encrypted, nonce) = master_key.encrypt(&plaintext, path.as_bytes()).unwrap();
+        let decrypted = master_key
+            .decrypt_with_legacy_fallback(&encrypted, &nonce, path.as_bytes())
+            .unwrap();
 
         let restored: HashMap<String, String> = serde_json::from_slice(&decrypted).unwrap();
         assert_eq!(restored["password"], "s3cret");

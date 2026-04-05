@@ -11,6 +11,7 @@
 package taskv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -392,11 +393,15 @@ func (x *TaskChecklistItem) GetCreatedAt() *v1.Timestamp {
 }
 
 type CreateTaskRequest struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	ProjectId     string                        `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Title         string                        `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   *string                       `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
-	Priority      *TaskPriority                 `protobuf:"varint,4,opt,name=priority,proto3,enum=k1s0.service.task.v1.TaskPriority,oneof" json:"priority,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// プロジェクト UUID（必須）
+	ProjectId string `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// タスクタイトル（必須、1〜255文字）
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// タスク詳細（省略可、最大4000文字）
+	Description *string       `protobuf:"bytes,3,opt,name=description,proto3,oneof" json:"description,omitempty"`
+	Priority    *TaskPriority `protobuf:"varint,4,opt,name=priority,proto3,enum=k1s0.service.task.v1.TaskPriority,oneof" json:"priority,omitempty"`
+	// 担当者 UUID（省略可）
 	AssigneeId    *string                       `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
 	DueDate       *v1.Timestamp                 `protobuf:"bytes,6,opt,name=due_date,json=dueDate,proto3,oneof" json:"due_date,omitempty"`
 	Labels        []string                      `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty"`
@@ -492,9 +497,10 @@ func (x *CreateTaskRequest) GetChecklist() []*CreateChecklistItemRequest {
 }
 
 type CreateChecklistItemRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	SortOrder     *int32                 `protobuf:"varint,2,opt,name=sort_order,json=sortOrder,proto3,oneof" json:"sort_order,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チェックリスト項目タイトル（必須、1〜255文字）
+	Title         string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	SortOrder     *int32 `protobuf:"varint,2,opt,name=sort_order,json=sortOrder,proto3,oneof" json:"sort_order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -588,8 +594,9 @@ func (x *CreateTaskResponse) GetTask() *Task {
 }
 
 type GetTaskRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスク UUID（必須）
+	TaskId        string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -806,9 +813,11 @@ func (x *ListTasksResponse) GetPagination() *v1.PaginationResult {
 // UpdateTaskStatusRequest はタスクステータス更新リクエスト。
 // expected_version により楽観的ロックを実現し、同時更新による競合を検出する。
 type UpdateTaskStatusRequest struct {
-	state  protoimpl.MessageState `protogen:"open.v1"`
-	TaskId string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Status TaskStatus             `protobuf:"varint,2,opt,name=status,proto3,enum=k1s0.service.task.v1.TaskStatus" json:"status,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスク UUID（必須）
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// 更新後ステータス（UNSPECIFIED 不可）
+	Status TaskStatus `protobuf:"varint,2,opt,name=status,proto3,enum=k1s0.service.task.v1.TaskStatus" json:"status,omitempty"`
 	// 楽観的ロックのバージョン番号。クライアントが保持しているバージョンと一致しない場合はエラーを返す。
 	ExpectedVersion int32 `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
 	unknownFields   protoimpl.UnknownFields
@@ -914,7 +923,7 @@ var File_k1s0_service_task_v1_task_proto protoreflect.FileDescriptor
 
 const file_k1s0_service_task_v1_task_proto_rawDesc = "" +
 	"\n" +
-	"\x1fk1s0/service/task/v1/task.proto\x12\x14k1s0.service.task.v1\x1a!k1s0/system/common/v1/types.proto\"\xef\x05\n" +
+	"\x1fk1s0/service/task/v1/task.proto\x12\x14k1s0.service.task.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xef\x05\n" +
 	"\x04Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -952,14 +961,15 @@ const file_k1s0_service_task_v1_task_proto_rawDesc = "" +
 	"\n" +
 	"sort_order\x18\x05 \x01(\x05R\tsortOrder\x12?\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xbe\x03\n" +
-	"\x11CreateTaskRequest\x12\x1d\n" +
+	"created_at\x18\x06 \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\"\xe8\x03\n" +
+	"\x11CreateTaskRequest\x12'\n" +
 	"\n" +
-	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12%\n" +
-	"\vdescription\x18\x03 \x01(\tH\x00R\vdescription\x88\x01\x01\x12C\n" +
-	"\bpriority\x18\x04 \x01(\x0e2\".k1s0.service.task.v1.TaskPriorityH\x01R\bpriority\x88\x01\x01\x12$\n" +
-	"\vassignee_id\x18\x05 \x01(\tH\x02R\n" +
+	"project_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tprojectId\x12 \n" +
+	"\x05title\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\x05title\x12/\n" +
+	"\vdescription\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xa0\x1fH\x00R\vdescription\x88\x01\x01\x12C\n" +
+	"\bpriority\x18\x04 \x01(\x0e2\".k1s0.service.task.v1.TaskPriorityH\x01R\bpriority\x88\x01\x01\x12.\n" +
+	"\vassignee_id\x18\x05 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01H\x02R\n" +
 	"assigneeId\x88\x01\x01\x12@\n" +
 	"\bdue_date\x18\x06 \x01(\v2 .k1s0.system.common.v1.TimestampH\x03R\adueDate\x88\x01\x01\x12\x16\n" +
 	"\x06labels\x18\a \x03(\tR\x06labels\x12N\n" +
@@ -967,16 +977,17 @@ const file_k1s0_service_task_v1_task_proto_rawDesc = "" +
 	"\f_descriptionB\v\n" +
 	"\t_priorityB\x0e\n" +
 	"\f_assignee_idB\v\n" +
-	"\t_due_date\"e\n" +
-	"\x1aCreateChecklistItemRequest\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\"\n" +
+	"\t_due_date\"q\n" +
+	"\x1aCreateChecklistItemRequest\x12 \n" +
+	"\x05title\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\xff\x01R\x05title\x12\"\n" +
 	"\n" +
 	"sort_order\x18\x02 \x01(\x05H\x00R\tsortOrder\x88\x01\x01B\r\n" +
 	"\v_sort_order\"D\n" +
 	"\x12CreateTaskResponse\x12.\n" +
-	"\x04task\x18\x01 \x01(\v2\x1a.k1s0.service.task.v1.TaskR\x04task\")\n" +
-	"\x0eGetTaskRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\"A\n" +
+	"\x04task\x18\x01 \x01(\v2\x1a.k1s0.service.task.v1.TaskR\x04task\"3\n" +
+	"\x0eGetTaskRequest\x12!\n" +
+	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\"A\n" +
 	"\x0fGetTaskResponse\x12.\n" +
 	"\x04task\x18\x01 \x01(\v2\x1a.k1s0.service.task.v1.TaskR\x04task\"\xda\x02\n" +
 	"\x10ListTasksRequest\x12\"\n" +
@@ -997,11 +1008,11 @@ const file_k1s0_service_task_v1_task_proto_rawDesc = "" +
 	"\x05tasks\x18\x01 \x03(\v2\x1a.k1s0.service.task.v1.TaskR\x05tasks\x12G\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"\x97\x01\n" +
-	"\x17UpdateTaskStatusRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x128\n" +
-	"\x06status\x18\x02 \x01(\x0e2 .k1s0.service.task.v1.TaskStatusR\x06status\x12)\n" +
-	"\x10expected_version\x18\x03 \x01(\x05R\x0fexpectedVersion\"J\n" +
+	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"\xb4\x01\n" +
+	"\x17UpdateTaskStatusRequest\x12!\n" +
+	"\atask_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06taskId\x12B\n" +
+	"\x06status\x18\x02 \x01(\x0e2 .k1s0.service.task.v1.TaskStatusB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06status\x122\n" +
+	"\x10expected_version\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\x0fexpectedVersion\"J\n" +
 	"\x18UpdateTaskStatusResponse\x12.\n" +
 	"\x04task\x18\x01 \x01(\v2\x1a.k1s0.service.task.v1.TaskR\x04task*\xa5\x01\n" +
 	"\n" +

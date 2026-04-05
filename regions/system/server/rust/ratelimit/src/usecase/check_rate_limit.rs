@@ -76,10 +76,10 @@ impl CheckRateLimitUseCase {
         RateLimitDomainService::validate_identifier(identifier)
             .map_err(CheckRateLimitError::ValidationError)?;
 
-        // scope で候補ルールを検索し、identifier 完全一致 -> "*" の順でマッチさせる
+        // CRIT-005 対応: テナント分離しながら scope で候補ルールを検索し、identifier 完全一致 -> "*" の順でマッチさせる
         let rules = self
             .rule_repo
-            .find_by_scope(scope)
+            .find_by_scope(scope, tenant_id)
             .await
             .map_err(|e| CheckRateLimitError::Internal(e.to_string()))?;
 
@@ -217,7 +217,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -240,7 +240,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -267,7 +267,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_no_rule_uses_default() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope().returning(|_, _| Ok(vec![]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -305,7 +305,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -327,7 +327,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -349,7 +349,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -366,7 +366,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_fail_open_on_backend_error() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope().returning(|_, _| Ok(vec![]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -388,7 +388,7 @@ mod tests {
     #[tokio::test]
     async fn test_check_rate_limit_fail_closed_on_backend_error() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope().returning(|_, _| Ok(vec![]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -413,7 +413,7 @@ mod tests {
         let tenant_b = "00000000-0000-0000-0000-000000000002";
 
         let mut repo_a = MockRateLimitRepository::new();
-        repo_a.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo_a.expect_find_by_scope().returning(|_, _| Ok(vec![]));
         let mut state_store_a = MockRateLimitStateStore::new();
         state_store_a
             .expect_check_token_bucket()
@@ -425,7 +425,7 @@ mod tests {
         assert!(result_a.is_ok());
 
         let mut repo_b = MockRateLimitRepository::new();
-        repo_b.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo_b.expect_find_by_scope().returning(|_, _| Ok(vec![]));
         let mut state_store_b = MockRateLimitStateStore::new();
         state_store_b
             .expect_check_token_bucket()

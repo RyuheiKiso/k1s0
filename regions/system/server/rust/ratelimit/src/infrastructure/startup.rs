@@ -357,7 +357,8 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(rule.clone())
     }
 
-    async fn find_by_id(&self, id: &uuid::Uuid) -> anyhow::Result<domain::entity::RateLimitRule> {
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    async fn find_by_id(&self, id: &uuid::Uuid, _tenant_id: &str) -> anyhow::Result<domain::entity::RateLimitRule> {
         let rules = self.rules.read().await;
         rules
             .iter()
@@ -366,33 +367,40 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
             .ok_or_else(|| anyhow::anyhow!("rule not found: {}", id))
     }
 
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
     async fn find_by_name(
         &self,
         name: &str,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.iter().find(|r| r.name == name).cloned())
     }
 
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
     async fn find_by_scope(
         &self,
         scope: &str,
+        _tenant_id: &str,
     ) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.iter().filter(|r| r.scope == scope).cloned().collect())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.clone())
     }
 
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
     async fn find_page(
         &self,
         page: u32,
         page_size: u32,
         scope: Option<String>,
         enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<domain::entity::RateLimitRule>, u64)> {
         let rules = self.rules.read().await;
         let scope = scope.as_deref();
@@ -424,7 +432,8 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &uuid::Uuid) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    async fn delete(&self, id: &uuid::Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut rules = self.rules.write().await;
         let len_before = rules.len();
         rules.retain(|r| r.id != *id);

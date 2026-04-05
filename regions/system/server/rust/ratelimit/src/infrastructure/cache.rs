@@ -79,6 +79,8 @@ mod tests {
             window_seconds: 60,
             algorithm: Algorithm::TokenBucket,
             enabled: true,
+            // CRIT-005 対応: テナント ID を含める。
+            tenant_id: "tenant-a".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

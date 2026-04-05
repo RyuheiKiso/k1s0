@@ -10,6 +10,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use k1s0_auth::Claims;
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::common::v1::{
@@ -151,6 +152,16 @@ fn empty_string_to_none(value: String) -> Option<String> {
     }
 }
 
+/// gRPC リクエストの Extensions から tenant_id を取得する。
+/// CRIT-005 対応: Claims が存在する場合はその tenant_id を返し、存在しない場合は "system" を返す。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
+
 // --- SagaService tonic ラッパー ---
 
 /// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
@@ -170,6 +181,8 @@ impl SagaService for SagaServiceTonic {
         &self,
         request: Request<ProtoStartSagaRequest>,
     ) -> Result<Response<ProtoStartSagaResponse>, Status> {
+        // CRIT-005 対応: Extensions から tenant_id を取得する（ミドルウェアが Claims を挿入している）
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let payload = inner
             .payload
@@ -183,6 +196,7 @@ impl SagaService for SagaServiceTonic {
             payload,
             correlation_id: inner.correlation_id,
             initiated_by: inner.initiated_by,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -199,8 +213,11 @@ impl SagaService for SagaServiceTonic {
         &self,
         request: Request<ProtoGetSagaRequest>,
     ) -> Result<Response<ProtoGetSagaResponse>, Status> {
+        // CRIT-005 対応: Extensions から tenant_id を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let req = GetSagaRequest {
             saga_id: request.into_inner().saga_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -255,6 +272,8 @@ impl SagaService for SagaServiceTonic {
         &self,
         request: Request<ProtoListSagasRequest>,
     ) -> Result<Response<ProtoListSagasResponse>, Status> {
+        // CRIT-005 対応: Extensions から tenant_id を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
@@ -266,6 +285,7 @@ impl SagaService for SagaServiceTonic {
             workflow_name: inner.workflow_name.unwrap_or_default(),
             status: inner.status.unwrap_or_default(),
             correlation_id: inner.correlation_id.unwrap_or_default(),
+            tenant_id,
         };
         let resp = self
             .inner
@@ -312,8 +332,11 @@ impl SagaService for SagaServiceTonic {
         &self,
         request: Request<ProtoCancelSagaRequest>,
     ) -> Result<Response<ProtoCancelSagaResponse>, Status> {
+        // CRIT-005 対応: Extensions から tenant_id を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let req = CancelSagaRequest {
             saga_id: request.into_inner().saga_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -330,8 +353,11 @@ impl SagaService for SagaServiceTonic {
         &self,
         request: Request<ProtoCompensateSagaRequest>,
     ) -> Result<Response<ProtoCompensateSagaResponse>, Status> {
+        // CRIT-005 対応: Extensions から tenant_id を取得する
+        let tenant_id = tenant_id_from_request(&request);
         let req = CompensateSagaRequest {
             saga_id: request.into_inner().saga_id,
+            tenant_id,
         };
         let resp = self
             .inner

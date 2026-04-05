@@ -7,6 +7,7 @@
 package dlqv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -319,8 +320,9 @@ func (x *ListMessagesResponse) GetPagination() *v1.PaginationResult {
 
 // GetMessageRequest はメッセージ取得リクエスト。
 type GetMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// メッセージIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -409,8 +411,9 @@ func (x *GetMessageResponse) GetMessage() *DlqMessage {
 
 // RetryMessageRequest はリトライリクエスト。
 type RetryMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// メッセージIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -499,8 +502,9 @@ func (x *RetryMessageResponse) GetMessage() *DlqMessage {
 
 // DeleteMessageRequest は削除リクエスト。
 type DeleteMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// メッセージIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -689,7 +693,7 @@ var File_k1s0_system_dlq_v1_dlq_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\n" +
-	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\"\x86\x04\n" +
+	"\x1ck1s0/system/dlq/v1/dlq.proto\x12\x12k1s0.system.dlq.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\x86\x04\n" +
 	"\n" +
 	"DlqMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12%\n" +
@@ -719,17 +723,17 @@ const file_k1s0_system_dlq_v1_dlq_proto_rawDesc = "" +
 	"\bmessages\x18\x01 \x03(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\bmessages\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"#\n" +
-	"\x11GetMessageRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"N\n" +
+	"pagination\",\n" +
+	"\x11GetMessageRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"N\n" +
 	"\x12GetMessageResponse\x128\n" +
-	"\amessage\x18\x01 \x01(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\amessage\"%\n" +
-	"\x13RetryMessageRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\amessage\x18\x01 \x01(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\amessage\".\n" +
+	"\x13RetryMessageRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"P\n" +
 	"\x14RetryMessageResponse\x128\n" +
-	"\amessage\x18\x01 \x01(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\amessage\"&\n" +
-	"\x14DeleteMessageRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"'\n" +
+	"\amessage\x18\x01 \x01(\v2\x1e.k1s0.system.dlq.v1.DlqMessageR\amessage\"/\n" +
+	"\x14DeleteMessageRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"'\n" +
 	"\x15DeleteMessageResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"'\n" +
 	"\x0fRetryAllRequest\x12\x14\n" +

@@ -6,6 +6,8 @@ use crate::domain::repository::SearchRepository;
 pub struct DeleteDocumentInput {
     pub index_name: String,
     pub doc_id: String,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -26,10 +28,11 @@ impl DeleteDocumentUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからドキュメントを削除する。
     pub async fn execute(&self, input: &DeleteDocumentInput) -> Result<bool, DeleteDocumentError> {
         let deleted = self
             .repo
-            .delete_document(&input.index_name, &input.doc_id)
+            .delete_document(&input.index_name, &input.doc_id, &input.tenant_id)
             .await
             .map_err(|e| DeleteDocumentError::Internal(e.to_string()))?;
 
@@ -54,13 +57,14 @@ mod tests {
     async fn success() {
         let mut mock = MockSearchRepository::new();
         mock.expect_delete_document()
-            .withf(|index, id| index == "products" && id == "doc-1")
-            .returning(|_, _| Ok(true));
+            .withf(|index, id, _tenant_id| index == "products" && id == "doc-1")
+            .returning(|_, _, _| Ok(true));
 
         let uc = DeleteDocumentUseCase::new(Arc::new(mock));
         let input = DeleteDocumentInput {
             index_name: "products".to_string(),
             doc_id: "doc-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -70,12 +74,13 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_delete_document().returning(|_, _| Ok(false));
+        mock.expect_delete_document().returning(|_, _, _| Ok(false));
 
         let uc = DeleteDocumentUseCase::new(Arc::new(mock));
         let input = DeleteDocumentInput {
             index_name: "products".to_string(),
             doc_id: "nonexistent".to_string(),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

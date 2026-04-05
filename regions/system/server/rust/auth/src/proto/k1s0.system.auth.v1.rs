@@ -25,9 +25,9 @@ pub struct TokenClaims {
     /// Issuer
     #[prost(string, tag = "2")]
     pub iss: ::prost::alloc::string::String,
-    /// Audience
-    #[prost(string, tag = "3")]
-    pub aud: ::prost::alloc::string::String,
+    /// Audience（JWT spec では配列型。複数 audience に対応するため repeated を使用する）
+    #[prost(string, repeated, tag = "3")]
+    pub aud: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     /// 有効期限（Unix epoch）
     #[prost(int64, tag = "4")]
     pub exp: i64,

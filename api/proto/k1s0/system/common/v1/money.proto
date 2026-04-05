@@ -6,14 +6,18 @@ package k1s0.system.common.v1;
 
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1;commonv1";
 
+// MED-024 監査対応: buf.validate によるメッセージレベルバリデーションを追加。
+// currency_code は ISO 4217 準拠の3文字大文字アルファベット（例: JPY, USD）のみ許可する。
+import "buf/validate/validate.proto";
+
 // Money は通貨金額を表す。
 // amount は最小通貨単位（例: 円の場合は1円単位、ドルの場合はセント単位）で表現する。
 message Money {
   // amount は金額（最小通貨単位）。負の値は返金・クレジットを表す。
   int64 amount = 1;
-  // currency_code は ISO 4217 準拠の3文字通貨コード（例: JPY, USD）を指定すること。
-  // 実装側でバリデーションが必要: 空文字・3文字以外・ISO 4217 非準拠コードは拒否すること。
+  // currency_code は ISO 4217 準拠の3文字大文字アルファベット通貨コード（例: JPY, USD）。
+  // buf.validate で長さと形式を強制する。
   // 参考: https://www.iso.org/iso-4217-currency-codes.html
-  // L-24 対応: バリデーション要件をコメントで明示し、実装漏れを防止する。
-  string currency_code = 2;
+  // len: 3 で min_len + max_len の重複を避ける（buf lint 推奨）
+  string currency_code = 2 [(buf.validate.field).string = {len: 3, pattern: "^[A-Z]{3}$"}];
 }

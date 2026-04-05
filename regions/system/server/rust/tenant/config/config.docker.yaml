@@ -19,4 +19,7 @@ keycloak:
   base_url: "http://keycloak:8080"
   realm: "k1s0"
   client_id: "admin-cli"
+  # LOW-021 監査対応（開発専用パスワード）:
+  # このシークレットは Docker ローカル開発環境専用の固定値である。
+  # 本番環境では Vault の dynamic secrets または Kubernetes Secret 経由で注入すること。
   client_secret: ""

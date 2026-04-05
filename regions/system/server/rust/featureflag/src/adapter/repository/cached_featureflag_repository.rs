@@ -11,6 +11,7 @@ use crate::infrastructure::cache::FlagCache;
 /// find_by_key でキャッシュヒット時はDBアクセスをスキップする。
 /// update / delete / create 時はキャッシュを invalidate して整合性を保つ。
 /// STATIC-CRITICAL-001 監査対応: 全メソッドに tenant_id パラメータを追加。
+/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 pub struct CachedFeatureFlagRepository {
     inner: Arc<dyn FeatureFlagRepository>,
     cache: Arc<FlagCache>,
@@ -46,7 +47,7 @@ impl CachedFeatureFlagRepository {
 impl FeatureFlagRepository for CachedFeatureFlagRepository {
     /// キャッシュヒット時はDBアクセスをスキップして即返却する。
     /// キャッシュミスの場合はDBから取得してキャッシュに格納してから返却する。
-    async fn find_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         // テナントスコープでキャッシュヒット確認
         if let Some(cached) = self.cache.get(tenant_id, flag_key).await {
             if let Some(ref m) = self.metrics {
@@ -69,17 +70,17 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
     }
 
     /// find_all はキャッシュを使わず inner に委譲する。
-    async fn find_all(&self, tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         self.inner.find_all(tenant_id).await
     }
 
     /// create は inner に委譲する（新規作成なのでキャッシュ invalidate は不要）。
-    async fn create(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         self.inner.create(tenant_id, flag).await
     }
 
     /// update は inner に委譲し、成功時にキャッシュを invalidate する。
-    async fn update(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         self.inner.update(tenant_id, flag).await?;
 
         // 更新成功時はキャッシュを invalidate して古い値を除去
@@ -90,7 +91,7 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
 
     /// delete は inner に委譲し、成功時はキャッシュ全体を invalidate する。
     /// （ID から flag_key への逆引きがキャッシュにないため invalidate_all を使用）
-    async fn delete(&self, tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         let deleted = self.inner.delete(tenant_id, id).await?;
 
         if deleted {
@@ -102,7 +103,7 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
     }
 
     /// exists_by_key はキャッシュを使わず inner に委譲する。
-    async fn exists_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         // テナントスコープでキャッシュに存在する場合は true を即返却
         if self.cache.get(tenant_id, flag_key).await.is_some() {
             return Ok(true);
@@ -119,15 +120,15 @@ mod tests {
     use chrono::Utc;
     use uuid::Uuid;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> &'static str {
+        "00000000-0000-0000-0000-000000000001"
     }
 
     fn make_flag(flag_key: &str, enabled: bool) -> FeatureFlag {
         FeatureFlag {
             id: Uuid::new_v4(),
-            tenant_id: system_tenant(),
+            tenant_id: system_tenant().to_string(),
             flag_key: flag_key.to_string(),
             description: format!("Test flag: {}", flag_key),
             enabled,

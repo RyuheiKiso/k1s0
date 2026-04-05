@@ -30,7 +30,8 @@ impl RateLimitRepository for StubRateLimitRepository {
         Ok(rule.clone())
     }
 
-    async fn find_by_id(&self, _id: &Uuid) -> anyhow::Result<RateLimitRule> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に固定ルールを返す。
+    async fn find_by_id(&self, _id: &Uuid, _tenant_id: &str) -> anyhow::Result<RateLimitRule> {
         Ok(RateLimitRule::new(
             "stub".to_string(),
             "*".to_string(),
@@ -40,24 +41,37 @@ impl RateLimitRepository for StubRateLimitRepository {
         ))
     }
 
-    async fn find_by_name(&self, _name: &str) -> anyhow::Result<Option<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に None を返す。
+    async fn find_by_name(
+        &self,
+        _name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<RateLimitRule>> {
         Ok(None)
     }
 
-    async fn find_by_scope(&self, _scope: &str) -> anyhow::Result<Vec<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に空リストを返す。
+    async fn find_by_scope(
+        &self,
+        _scope: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Vec<RateLimitRule>> {
         Ok(vec![])
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<RateLimitRule>> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に空リストを返す。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<RateLimitRule>> {
         Ok(vec![])
     }
 
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に空ページを返す。
     async fn find_page(
         &self,
         _page: u32,
         _page_size: u32,
         _scope: Option<String>,
         _enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<RateLimitRule>, u64)> {
         Ok((vec![], 0))
     }
@@ -66,7 +80,8 @@ impl RateLimitRepository for StubRateLimitRepository {
         Ok(())
     }
 
-    async fn delete(&self, _id: &Uuid) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: tenant_id を受け取るが Stub では常に true を返す。
+    async fn delete(&self, _id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(true)
     }
 
@@ -194,18 +209,18 @@ async fn test_healthz_and_readyz() {
     assert_eq!(resp.status(), StatusCode::OK);
 }
 
-// --- テスト: 認証なしモード（auth_state=None）では保護エンドポイントに直接アクセス可能 ---
-// ratelimit サーバーは auth_state=None の場合、認証なしで全 API にアクセスできる仕様。
+// --- テスト: CRIT-005 対応: 認証情報なしで CRUD エンドポイントにアクセスすると 401 が返る ---
+// ratelimit サーバーはテナント ID を必要とするため、JWT Claims がない場合は 401 を返す。
 
 #[tokio::test]
-async fn test_api_accessible_without_auth() {
+async fn test_crud_api_requires_auth() {
     let app = make_test_app();
 
-    // /api/v1/ratelimit/rules への GET が 200 を返す（認証なしモード）
+    // CRIT-005 対応: /api/v1/ratelimit/rules への認証なし GET は 401 を返す
     let req = Request::builder()
         .uri("/api/v1/ratelimit/rules")
         .body(Body::empty())
         .unwrap();
     let resp = app.clone().oneshot(req).await.unwrap();
-    assert_eq!(resp.status(), StatusCode::OK);
+    assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
 }

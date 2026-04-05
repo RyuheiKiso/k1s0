@@ -107,6 +107,8 @@ impl VaultGrpcClient {
                 page: offset.unwrap_or(0) + 1,
                 page_size: limit.unwrap_or(50),
             }),
+            // keyset ページネーション用カーソル（空文字列 = 先頭ページ）
+            after_cursor: String::new(),
         });
 
         let resp = self

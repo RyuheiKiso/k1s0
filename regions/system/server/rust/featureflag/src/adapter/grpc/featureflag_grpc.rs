@@ -14,31 +14,38 @@ use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 use super::watch_stream::WatchFeatureFlagStreamHandler;
 
-/// gRPC リクエストの tenant_id 文字列を Uuid にパースするヘルパー。
+/// gRPC リクエストの tenant_id 文字列を UUID フォーマットで検証して String として返すヘルパー。
 /// ADR-0028 Phase 1: gRPC メタデータ x-tenant-id から取得した文字列を検証する。
-fn parse_tenant_id(tenant_id_str: &str) -> Result<Uuid, GrpcError> {
+/// HIGH-005 対応: 検証後は String 型を返す（ドメイン層は TEXT 型で保持するため）。
+fn parse_tenant_id(tenant_id_str: &str) -> Result<String, GrpcError> {
     Uuid::parse_str(tenant_id_str)
+        .map(|_| tenant_id_str.to_string())
         .map_err(|_| GrpcError::InvalidArgument("tenant_id の形式が不正です".to_string()))
 }
 
-/// SYSTEM_TENANT_ID: テナントIDが未指定の場合のフォールバック値。
-/// ADR-0028 Phase 1: x-tenant-id メタデータが存在しない場合、システムテナントUUIDを使用する。
-/// Phase 2 でメタデータ必須化後にこのフォールバックは廃止予定。
-const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
-
 /// gRPC メタデータから tenant_id を取得するヘルパー。
-/// ADR-0028 Phase 1: x-tenant-id ヘッダーを優先し、存在しない場合はシステムテナントにフォールバックする。
-pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<Uuid, GrpcError> {
+/// HIGH-012 監査対応: "system" テナントへのフォールバックを廃止し、x-tenant-id が未設定の場合は
+/// UNAUTHENTICATED エラーを返す。x-tenant-id は Kong の JWT 検証後に認証ミドルウェアがセットする。
+/// フォールバックが存在すると認証バイパスや別テナントへの不正アクセスが可能になるため廃止した。
+pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<String, GrpcError> {
     let tenant_id_str = metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or(SYSTEM_TENANT_ID);
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| {
+            tracing::error!(
+                "x-tenant-id metadata missing or empty. \
+                Must be set by auth middleware after Kong JWT validation."
+            );
+            GrpcError::Unauthenticated("x-tenant-id header is required".to_string())
+        })?;
     parse_tenant_id(tenant_id_str)
 }
 
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
     pub flag_key: String,
     pub user_id: String,
     pub context_tenant_id: String,
@@ -55,7 +62,8 @@ pub struct EvaluateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetFlagRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
     pub flag_key: String,
 }
 
@@ -88,7 +96,8 @@ pub struct PbFlagRule {
 
 #[derive(Debug, Clone)]
 pub struct ListFlagsRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +107,8 @@ pub struct ListFlagsResponse {
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
@@ -119,7 +129,8 @@ pub struct CreateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
@@ -141,7 +152,8 @@ pub struct UpdateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct DeleteFlagRequest {
-    pub tenant_id: Uuid,
+    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub tenant_id: String,
     pub flag_key: String,
 }
 
@@ -240,7 +252,7 @@ impl FeatureFlagGrpcService {
         req: EvaluateFlagRequest,
     ) -> Result<EvaluateFlagResponse, GrpcError> {
         let input = EvaluateFlagInput {
-            tenant_id: req.tenant_id,
+            tenant_id: req.tenant_id.clone(),
             flag_key: req.flag_key,
             context: EvaluationContext {
                 user_id: if req.user_id.is_empty() {
@@ -273,7 +285,7 @@ impl FeatureFlagGrpcService {
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを取得する。
     pub async fn get_flag(&self, req: GetFlagRequest) -> Result<GetFlagResponse, GrpcError> {
-        match self.get_flag_uc.execute(req.tenant_id, &req.flag_key).await {
+        match self.get_flag_uc.execute(&req.tenant_id, &req.flag_key).await {
             Ok(flag) => Ok(GetFlagResponse {
                 id: flag.id.to_string(),
                 flag_key: flag.flag_key,
@@ -293,7 +305,7 @@ impl FeatureFlagGrpcService {
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープのフィーチャーフラグ一覧を取得する。
     pub async fn list_flags(&self, req: ListFlagsRequest) -> Result<ListFlagsResponse, GrpcError> {
-        let flags = self.list_flags_uc.execute(req.tenant_id).await.map_err(|e| match e {
+        let flags = self.list_flags_uc.execute(&req.tenant_id).await.map_err(|e| match e {
             ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
         })?;
 
@@ -320,7 +332,7 @@ impl FeatureFlagGrpcService {
         req: CreateFlagRequest,
     ) -> Result<CreateFlagResponse, GrpcError> {
         let input = CreateFlagInput {
-            tenant_id: req.tenant_id,
+            tenant_id: req.tenant_id.clone(),
             flag_key: req.flag_key,
             description: req.description,
             enabled: req.enabled,
@@ -360,7 +372,7 @@ impl FeatureFlagGrpcService {
         req: UpdateFlagRequest,
     ) -> Result<UpdateFlagResponse, GrpcError> {
         let input = UpdateFlagInput {
-            tenant_id: req.tenant_id,
+            tenant_id: req.tenant_id.clone(),
             flag_key: req.flag_key,
             enabled: req.enabled,
             description: req.description,
@@ -421,7 +433,7 @@ impl FeatureFlagGrpcService {
     ) -> Result<DeleteFlagResponse, GrpcError> {
         let flag = self
             .get_flag_uc
-            .execute(req.tenant_id, &req.flag_key)
+            .execute(&req.tenant_id, &req.flag_key)
             .await
             .map_err(|e| match e {
                 GetFlagError::NotFound(key) => {
@@ -431,7 +443,7 @@ impl FeatureFlagGrpcService {
             })?;
 
         self.delete_flag_uc
-            .execute(req.tenant_id, &flag.id)
+            .execute(&req.tenant_id, &flag.id)
             .await
             .map_err(|e| match e {
                 DeleteFlagError::NotFound(id) => {
@@ -481,9 +493,9 @@ mod tests {
     use crate::infrastructure::kafka_producer::NoopFlagEventPublisher;
     use std::collections::HashMap;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> String {
+        "00000000-0000-0000-0000-000000000001".to_string()
     }
 
     struct NoopAuditRepo;

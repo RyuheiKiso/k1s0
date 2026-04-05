@@ -14,6 +14,8 @@ pub struct UpdatePolicyInput {
     pub description: Option<String>,
     pub rego_content: Option<String>,
     pub enabled: Option<bool>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -50,9 +52,10 @@ impl UpdatePolicyUseCase {
     }
 
     pub async fn execute(&self, input: &UpdatePolicyInput) -> Result<Policy, UpdatePolicyError> {
+        // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
         let policy = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.id, &input.tenant_id)
             .await
             .map_err(|e| UpdatePolicyError::Internal(e.to_string()))?
             .ok_or(UpdatePolicyError::NotFound(input.id))?;
@@ -100,8 +103,8 @@ mod tests {
         let id_clone = id;
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id()
-            .withf(move |i| *i == id_clone)
-            .returning(move |_| {
+            .withf(move |i, _tenant_id| *i == id_clone)
+            .returning(move |_, _| {
                 Ok(Some(Policy {
                     id,
                     name: "test-policy".to_string(),
@@ -113,6 +116,7 @@ mod tests {
                     enabled: true,
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
+                    tenant_id: "tenant-a".to_string(),
                 }))
             });
         mock.expect_update().returning(|_| Ok(()));
@@ -123,6 +127,7 @@ mod tests {
             description: Some("New description".to_string()),
             rego_content: None,
             enabled: Some(false),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -138,7 +143,7 @@ mod tests {
     async fn not_found() {
         let id = Uuid::new_v4();
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdatePolicyUseCase::new(Arc::new(mock));
         let input = UpdatePolicyInput {
@@ -146,6 +151,7 @@ mod tests {
             description: None,
             rego_content: None,
             enabled: None,
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

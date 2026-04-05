@@ -7,6 +7,7 @@
 package quotav1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -271,14 +272,18 @@ func (x *QuotaUsage) GetResetAt() *v1.Timestamp {
 }
 
 type CreateQuotaPolicyRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Name                  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	SubjectType           string                 `protobuf:"bytes,2,opt,name=subject_type,json=subjectType,proto3" json:"subject_type,omitempty"`
-	SubjectId             string                 `protobuf:"bytes,3,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
-	Limit                 uint64                 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
-	Period                string                 `protobuf:"bytes,5,opt,name=period,proto3" json:"period,omitempty"`
-	Enabled               bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	AlertThresholdPercent *uint32                `protobuf:"varint,7,opt,name=alert_threshold_percent,json=alertThresholdPercent,proto3,oneof" json:"alert_threshold_percent,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシー名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// サブジェクト種別は1文字以上64文字以下であること（例: tenant, user）
+	SubjectType string `protobuf:"bytes,2,opt,name=subject_type,json=subjectType,proto3" json:"subject_type,omitempty"`
+	// サブジェクトIDは1文字以上256文字以下であること
+	SubjectId string `protobuf:"bytes,3,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"`
+	Limit     uint64 `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	// 期間は1文字以上64文字以下であること（例: daily, monthly）
+	Period                string  `protobuf:"bytes,5,opt,name=period,proto3" json:"period,omitempty"`
+	Enabled               bool    `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	AlertThresholdPercent *uint32 `protobuf:"varint,7,opt,name=alert_threshold_percent,json=alertThresholdPercent,proto3,oneof" json:"alert_threshold_percent,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -407,8 +412,9 @@ func (x *CreateQuotaPolicyResponse) GetPolicy() *QuotaPolicy {
 }
 
 type GetQuotaPolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -616,15 +622,16 @@ func (x *ListQuotaPoliciesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type UpdateQuotaPolicyRequest struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Id                    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Enabled               *bool                  `protobuf:"varint,2,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
-	Limit                 *uint64                `protobuf:"varint,3,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
-	Name                  *string                `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	SubjectType           *string                `protobuf:"bytes,5,opt,name=subject_type,json=subjectType,proto3,oneof" json:"subject_type,omitempty"`
-	SubjectId             *string                `protobuf:"bytes,6,opt,name=subject_id,json=subjectId,proto3,oneof" json:"subject_id,omitempty"`
-	Period                *string                `protobuf:"bytes,7,opt,name=period,proto3,oneof" json:"period,omitempty"`
-	AlertThresholdPercent *uint32                `protobuf:"varint,8,opt,name=alert_threshold_percent,json=alertThresholdPercent,proto3,oneof" json:"alert_threshold_percent,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id                    string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Enabled               *bool   `protobuf:"varint,2,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	Limit                 *uint64 `protobuf:"varint,3,opt,name=limit,proto3,oneof" json:"limit,omitempty"`
+	Name                  *string `protobuf:"bytes,4,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	SubjectType           *string `protobuf:"bytes,5,opt,name=subject_type,json=subjectType,proto3,oneof" json:"subject_type,omitempty"`
+	SubjectId             *string `protobuf:"bytes,6,opt,name=subject_id,json=subjectId,proto3,oneof" json:"subject_id,omitempty"`
+	Period                *string `protobuf:"bytes,7,opt,name=period,proto3,oneof" json:"period,omitempty"`
+	AlertThresholdPercent *uint32 `protobuf:"varint,8,opt,name=alert_threshold_percent,json=alertThresholdPercent,proto3,oneof" json:"alert_threshold_percent,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -760,8 +767,9 @@ func (x *UpdateQuotaPolicyResponse) GetPolicy() *QuotaPolicy {
 }
 
 type DeleteQuotaPolicyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ポリシーIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -856,8 +864,9 @@ func (x *DeleteQuotaPolicyResponse) GetDeleted() bool {
 }
 
 type GetQuotaUsageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	QuotaId       string                 `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// クォータIDは1文字以上であること
+	QuotaId       string `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -944,8 +953,9 @@ func (x *GetQuotaUsageResponse) GetUsage() *QuotaUsage {
 }
 
 type CheckQuotaRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	QuotaId       string                 `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// クォータIDは1文字以上であること
+	QuotaId       string `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1032,10 +1042,11 @@ func (x *CheckQuotaResponse) GetUsage() *QuotaUsage {
 }
 
 type IncrementQuotaUsageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	QuotaId       string                 `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
-	Amount        uint64                 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-	RequestId     *string                `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3,oneof" json:"request_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// クォータIDは1文字以上であること
+	QuotaId       string  `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
+	Amount        uint64  `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
+	RequestId     *string `protobuf:"bytes,3,opt,name=request_id,json=requestId,proto3,oneof" json:"request_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1176,10 +1187,11 @@ func (x *IncrementQuotaUsageResponse) GetAllowed() bool {
 }
 
 type ResetQuotaUsageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	QuotaId       string                 `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	ResetBy       string                 `protobuf:"bytes,3,opt,name=reset_by,json=resetBy,proto3" json:"reset_by,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// クォータIDは1文字以上であること
+	QuotaId       string `protobuf:"bytes,1,opt,name=quota_id,json=quotaId,proto3" json:"quota_id,omitempty"`
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	ResetBy       string `protobuf:"bytes,3,opt,name=reset_by,json=resetBy,proto3" json:"reset_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1283,7 +1295,7 @@ var File_k1s0_system_quota_v1_quota_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\n" +
-	" k1s0/system/quota/v1/quota.proto\x12\x14k1s0.system.quota.v1\x1a!k1s0/system/common/v1/types.proto\"\x96\x03\n" +
+	" k1s0/system/quota/v1/quota.proto\x12\x14k1s0.system.quota.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\x96\x03\n" +
 	"\vQuotaPolicy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
@@ -1316,21 +1328,23 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	" \x01(\v2 .k1s0.system.common.v1.TimestampR\vperiodStart\x12?\n" +
 	"\n" +
 	"period_end\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampR\tperiodEnd\x12;\n" +
-	"\breset_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\aresetAt\"\x91\x02\n" +
-	"\x18CreateQuotaPolicyRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fsubject_type\x18\x02 \x01(\tR\vsubjectType\x12\x1d\n" +
+	"\breset_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampR\aresetAt\"\xbf\x02\n" +
+	"\x18CreateQuotaPolicyRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12,\n" +
+	"\fsubject_type\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\vsubjectType\x12)\n" +
 	"\n" +
-	"subject_id\x18\x03 \x01(\tR\tsubjectId\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x04R\x05limit\x12\x16\n" +
-	"\x06period\x18\x05 \x01(\tR\x06period\x12\x18\n" +
+	"subject_id\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tsubjectId\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x04R\x05limit\x12!\n" +
+	"\x06period\x18\x05 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x06period\x12\x18\n" +
 	"\aenabled\x18\x06 \x01(\bR\aenabled\x12;\n" +
 	"\x17alert_threshold_percent\x18\a \x01(\rH\x00R\x15alertThresholdPercent\x88\x01\x01B\x1a\n" +
 	"\x18_alert_threshold_percent\"V\n" +
 	"\x19CreateQuotaPolicyResponse\x129\n" +
-	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"'\n" +
-	"\x15GetQuotaPolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
+	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"0\n" +
+	"\x15GetQuotaPolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"S\n" +
 	"\x16GetQuotaPolicyResponse\x129\n" +
 	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"\x93\x02\n" +
 	"\x18ListQuotaPoliciesRequest\x12A\n" +
@@ -1348,9 +1362,9 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\bpolicies\x18\x01 \x03(\v2!.k1s0.system.quota.v1.QuotaPolicyR\bpolicies\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x89\x03\n" +
-	"\x18UpdateQuotaPolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"pagination\"\x92\x03\n" +
+	"\x18UpdateQuotaPolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x1d\n" +
 	"\aenabled\x18\x02 \x01(\bH\x00R\aenabled\x88\x01\x01\x12\x19\n" +
 	"\x05limit\x18\x03 \x01(\x04H\x01R\x05limit\x88\x01\x01\x12\x17\n" +
 	"\x04name\x18\x04 \x01(\tH\x02R\x04name\x88\x01\x01\x12&\n" +
@@ -1368,22 +1382,22 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\a_periodB\x1a\n" +
 	"\x18_alert_threshold_percent\"V\n" +
 	"\x19UpdateQuotaPolicyResponse\x129\n" +
-	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"*\n" +
-	"\x18DeleteQuotaPolicyRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"E\n" +
+	"\x06policy\x18\x01 \x01(\v2!.k1s0.system.quota.v1.QuotaPolicyR\x06policy\"3\n" +
+	"\x18DeleteQuotaPolicyRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"E\n" +
 	"\x19DeleteQuotaPolicyResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
-	"\adeleted\x18\x02 \x01(\bR\adeleted\"1\n" +
-	"\x14GetQuotaUsageRequest\x12\x19\n" +
-	"\bquota_id\x18\x01 \x01(\tR\aquotaId\"O\n" +
+	"\adeleted\x18\x02 \x01(\bR\adeleted\":\n" +
+	"\x14GetQuotaUsageRequest\x12\"\n" +
+	"\bquota_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aquotaId\"O\n" +
 	"\x15GetQuotaUsageResponse\x126\n" +
-	"\x05usage\x18\x01 \x01(\v2 .k1s0.system.quota.v1.QuotaUsageR\x05usage\".\n" +
-	"\x11CheckQuotaRequest\x12\x19\n" +
-	"\bquota_id\x18\x01 \x01(\tR\aquotaId\"L\n" +
+	"\x05usage\x18\x01 \x01(\v2 .k1s0.system.quota.v1.QuotaUsageR\x05usage\"7\n" +
+	"\x11CheckQuotaRequest\x12\"\n" +
+	"\bquota_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aquotaId\"L\n" +
 	"\x12CheckQuotaResponse\x126\n" +
-	"\x05usage\x18\x01 \x01(\v2 .k1s0.system.quota.v1.QuotaUsageR\x05usage\"\x82\x01\n" +
-	"\x1aIncrementQuotaUsageRequest\x12\x19\n" +
-	"\bquota_id\x18\x01 \x01(\tR\aquotaId\x12\x16\n" +
+	"\x05usage\x18\x01 \x01(\v2 .k1s0.system.quota.v1.QuotaUsageR\x05usage\"\x8b\x01\n" +
+	"\x1aIncrementQuotaUsageRequest\x12\"\n" +
+	"\bquota_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aquotaId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x04R\x06amount\x12\"\n" +
 	"\n" +
 	"request_id\x18\x03 \x01(\tH\x00R\trequestId\x88\x01\x01B\r\n" +
@@ -1394,9 +1408,9 @@ const file_k1s0_system_quota_v1_quota_proto_rawDesc = "" +
 	"\tremaining\x18\x03 \x01(\x04R\tremaining\x12#\n" +
 	"\rusage_percent\x18\x04 \x01(\x01R\fusagePercent\x12\x1a\n" +
 	"\bexceeded\x18\x05 \x01(\bR\bexceeded\x12\x18\n" +
-	"\aallowed\x18\x06 \x01(\bR\aallowed\"f\n" +
-	"\x16ResetQuotaUsageRequest\x12\x19\n" +
-	"\bquota_id\x18\x01 \x01(\tR\aquotaId\x12\x16\n" +
+	"\aallowed\x18\x06 \x01(\bR\aallowed\"o\n" +
+	"\x16ResetQuotaUsageRequest\x12\"\n" +
+	"\bquota_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\aquotaId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x19\n" +
 	"\breset_by\x18\x03 \x01(\tR\aresetBy\"Q\n" +
 	"\x17ResetQuotaUsageResponse\x126\n" +

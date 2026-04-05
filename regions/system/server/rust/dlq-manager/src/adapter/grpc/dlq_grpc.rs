@@ -44,53 +44,54 @@ impl DlqGrpcService {
         }
     }
 
-    /// DLQメッセージ一覧を取得する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
+    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージ一覧を取得する。
     pub async fn list_messages(
         &self,
         topic: &str,
         page: i32,
         page_size: i32,
+        tenant_id: &str,
     ) -> Result<(Vec<DlqMessage>, i64), GrpcError> {
         self.list_messages_uc
-            .execute(topic, page, page_size)
+            .execute(topic, page, page_size, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// DLQメッセージを取得する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
-    pub async fn get_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージを取得する。
+    pub async fn get_message(&self, id: &str, tenant_id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
         self.get_message_uc
-            .execute(uuid)
+            .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// DLQメッセージをリトライする。ドメインエラー型で型ベースにGrpcErrorへ変換する。
-    pub async fn retry_message(&self, id: &str) -> Result<DlqMessage, GrpcError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージをリトライする。
+    pub async fn retry_message(&self, id: &str, tenant_id: &str) -> Result<DlqMessage, GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
         self.retry_message_uc
-            .execute(uuid)
+            .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// DLQメッセージを削除する。ドメインエラー型で型ベースにGrpcErrorへ変換する。
-    pub async fn delete_message(&self, id: &str) -> Result<(), GrpcError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながら DLQ メッセージを削除する。
+    pub async fn delete_message(&self, id: &str, tenant_id: &str) -> Result<(), GrpcError> {
         let uuid = Uuid::parse_str(id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid UUID: {}", id)))?;
         self.delete_message_uc
-            .execute(uuid)
+            .execute(uuid, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }
 
-    /// トピック内の全DLQメッセージをリトライする。
-    pub async fn retry_all(&self, topic: &str) -> Result<i64, GrpcError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS でテナント分離しながらトピック内の全 DLQ メッセージをリトライする。
+    pub async fn retry_all(&self, topic: &str, tenant_id: &str) -> Result<i64, GrpcError> {
         self.retry_all_uc
-            .execute(topic)
+            .execute(topic, tenant_id)
             .await
             .map_err(map_anyhow_to_grpc_error)
     }

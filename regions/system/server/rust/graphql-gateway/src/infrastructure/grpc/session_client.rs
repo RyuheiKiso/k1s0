@@ -234,19 +234,20 @@ impl SessionGrpcClient {
 }
 
 /// proto の SessionStatus 値をドメインモデルの SessionStatus に変換するヘルパー関数。
-/// 生成コードバージョンに依存しない型変換を提供する。
-/// proto v1 (i32): 1 = Active、2 = Revoked
-/// proto v0 (String): "SESSION_STATUS_ACTIVE" = Active、それ以外は Active
-fn proto_status_to_domain_str(v: &str) -> SessionStatus {
+/// proto の SessionStatus i32 値をドメインモデルの SessionStatus に変換する。
+/// buf generate 後の生成コードでは status フィールドは i32 型（enumeration）になる。
+/// proto enum: Unspecified = 0, Active = 1, Revoked = 2
+fn proto_status_to_domain_str(v: &i32) -> SessionStatus {
     match v {
-        "SESSION_STATUS_REVOKED" => SessionStatus::Revoked,
+        // 2 = SESSION_STATUS_REVOKED
+        2 => SessionStatus::Revoked,
+        // 0 = UNSPECIFIED, 1 = ACTIVE, その他は Active とみなす
         _ => SessionStatus::Active,
     }
 }
 
 fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
-    // status フィールドは proto 生成コードのバージョンによって String 型になる場合がある。
-    // SessionStatus enum は文字列表現からドメインモデルに変換する。
+    // buf generate 後の status フィールドは i32 型（enumeration）
     let status = proto_status_to_domain_str(&s.status);
     Session {
         session_id: s.session_id,

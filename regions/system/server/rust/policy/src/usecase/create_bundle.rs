@@ -11,6 +11,8 @@ pub struct CreateBundleInput {
     pub description: Option<String>,
     pub enabled: Option<bool>,
     pub policy_ids: Vec<Uuid>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -28,16 +30,18 @@ impl CreateBundleUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: bundle.tenant_id を設定してから create を呼び出す。
     pub async fn execute(
         &self,
         input: &CreateBundleInput,
     ) -> Result<PolicyBundle, CreateBundleError> {
-        let bundle = PolicyBundle::new(
+        let mut bundle = PolicyBundle::new(
             input.name.clone(),
             input.description.clone(),
             input.enabled.unwrap_or(true),
             input.policy_ids.clone(),
         );
+        bundle.tenant_id = input.tenant_id.clone();
 
         self.repo
             .create(&bundle)
@@ -66,6 +70,7 @@ mod tests {
             description: Some("Security policies".to_string()),
             enabled: Some(true),
             policy_ids: policy_ids.clone(),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -75,6 +80,7 @@ mod tests {
         assert_eq!(bundle.description.as_deref(), Some("Security policies"));
         assert!(bundle.enabled);
         assert_eq!(bundle.policy_ids.len(), 2);
+        assert_eq!(bundle.tenant_id, "tenant-a");
     }
 
     #[tokio::test]
@@ -89,6 +95,7 @@ mod tests {
             description: None,
             enabled: None,
             policy_ids: vec![],
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

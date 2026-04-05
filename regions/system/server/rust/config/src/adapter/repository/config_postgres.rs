@@ -121,7 +121,8 @@ impl ConfigPostgresRepository {
             "#,
         )
         .bind(entry.id)
-        .bind(tenant_id)
+        // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(tenant_id.to_string())
         .bind(&entry.namespace)
         .bind(&entry.key)
         .bind(&value_json_to_store)
@@ -329,7 +330,8 @@ impl ConfigRepository for ConfigPostgresRepository {
             WHERE tenant_id = $1 AND namespace = $2 AND key = $3
             "#,
         )
-        .bind(tenant_id)
+        // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(tenant_id.to_string())
         .bind(namespace)
         .bind(key)
         .fetch_optional(&self.pool)
@@ -379,7 +381,8 @@ impl ConfigRepository for ConfigPostgresRepository {
                 LIMIT $4 OFFSET $5
                 "#,
             )
-            .bind(tenant_id)
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
             .bind(namespace)
             .bind(&pattern)
             .bind(page_size as i64)
@@ -406,7 +409,8 @@ impl ConfigRepository for ConfigPostgresRepository {
             let count_row: (i64,) = sqlx::query_as(
                 "SELECT COUNT(*) FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key LIKE $3 ESCAPE '\\'",
             )
-            .bind(tenant_id)
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
             .bind(namespace)
             .bind(&pattern)
             .fetch_one(&self.pool)
@@ -433,7 +437,8 @@ impl ConfigRepository for ConfigPostgresRepository {
                 LIMIT $3 OFFSET $4
                 "#,
             )
-            .bind(tenant_id)
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
             .bind(namespace)
             .bind(page_size as i64)
             .bind(offset as i64)
@@ -458,7 +463,8 @@ impl ConfigRepository for ConfigPostgresRepository {
             let count_row: (i64,) = sqlx::query_as(
                 "SELECT COUNT(*) FROM config_entries WHERE tenant_id = $1 AND namespace = $2",
             )
-            .bind(tenant_id)
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
             .bind(namespace)
             .fetch_one(&self.pool)
             .await
@@ -528,7 +534,8 @@ impl ConfigRepository for ConfigPostgresRepository {
         .bind(&description)
         .bind(updated_by)
         .bind(now)
-        .bind(tenant_id)
+        // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(tenant_id.to_string())
         .bind(namespace)
         .bind(key)
         .bind(expected_version)
@@ -547,7 +554,8 @@ impl ConfigRepository for ConfigPostgresRepository {
                 let exists: Option<(i32,)> = sqlx::query_as(
                     "SELECT version FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
                 )
-                .bind(tenant_id)
+                // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+                .bind(tenant_id.to_string())
                 .bind(namespace)
                 .bind(key)
                 .fetch_optional(&self.pool)
@@ -581,7 +589,8 @@ impl ConfigRepository for ConfigPostgresRepository {
         let result = sqlx::query(
             "DELETE FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
         )
-        .bind(tenant_id)
+        // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(tenant_id.to_string())
         .bind(namespace)
         .bind(key)
         .execute(&self.pool)
@@ -617,7 +626,8 @@ impl ConfigRepository for ConfigPostgresRepository {
             ORDER BY namespace, key
             "#,
         )
-        .bind(tenant_id)
+        // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(tenant_id.to_string())
         .bind(&pattern)
         .fetch_all(&self.pool)
         .await
@@ -647,7 +657,8 @@ impl ConfigRepository for ConfigPostgresRepository {
                 ORDER BY ce.namespace, ce.key
                 "#,
             )
-            .bind(tenant_id)
+            // ADR-0093 対応: tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+            .bind(tenant_id.to_string())
             .bind(service_name)
             .fetch_all(&self.pool)
             .await
@@ -690,7 +701,8 @@ impl ConfigRepository for ConfigPostgresRepository {
             "#,
         )
         .bind(log.id)
-        .bind(log.tenant_id)
+        // ADR-0093 対応: config_change_logs.tenant_id は TEXT 型（migration 012）のため to_string() で TEXT として渡す
+        .bind(log.tenant_id.to_string())
         .bind(log.config_entry_id)
         .bind(&log.namespace)
         .bind(&log.key)

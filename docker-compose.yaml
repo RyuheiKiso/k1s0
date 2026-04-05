@@ -192,6 +192,18 @@ services:
       # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      # LOW-002 監査対応: JMX を有効化し Prometheus JMX Exporter からメトリクスを収集する。
+      # KAFKA_JMX_HOSTNAME には Docker ネットワーク内のサービス名を指定する（外部ホストではなく）。
+      # 認証・SSL なし設定はローカル開発環境専用。本番環境では TLS + 認証を必ず有効化すること。
+      KAFKA_JMX_HOSTNAME: kafka
+      KAFKA_JMX_PORT: "9999"
+      KAFKA_JMX_OPTS: >-
+        -Djava.rmi.server.hostname=kafka
+        -Dcom.sun.management.jmxremote=true
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-5 監査対応）
       - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
@@ -206,6 +218,35 @@ services:
       timeout: 15s
       retries: 5
       start_period: 60s
+
+  # LOW-002 監査対応: Kafka JMX メトリクスを Prometheus 形式で公開するエクスポーター。
+  # Kafka の JMX ポート 9999 に接続し、ブローカーメトリクス・リクエストレイテンシ等を収集する。
+  # Prometheus は http://kafka-jmx-exporter:9101/metrics をスクレイプする。
+  kafka-jmx-exporter:
+    image: ghcr.io/prometheus/jmx-exporter:1.0.1
+    profiles: [infra]
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.25
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: ["9101", "/etc/jmx-exporter/kafka-jmx.yml"]
+    volumes:
+      - ./infra/local/prometheus/kafka-jmx.yml:/etc/jmx-exporter/kafka-jmx.yml:ro
+    ports:
+      # JMX Exporter のメトリクスポートはホストのループバックにのみバインドする
+      - "127.0.0.1:9101:9101"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9101/metrics > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka-ui:
     # バージョン固定: latest タグを避け再現性を確保する
@@ -363,9 +404,11 @@ services:
     # $$ でCompose変数展開を抑止し、コンテナ内シェルで REDIS_PASSWORD 環境変数を展開させる
     # printf は shell builtin のため別プロセスが生成されずパスワードがプロセスリストに露出しない
     # exec でシェルを redis-server に置き換え PID 1 として動作させる
-    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を allkeys-lru に設定する
-    # セッション用 Redis も同様にメモリ上限を設定し、メモリ枯渇によるサービス停止を防止する（開発環境向け設定）
-    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy allkeys-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
+    # L-008 監査対応: maxmemory を 256mb に制限し、eviction policy を設定する
+    # HIGH-010 監査対応: allkeys-lru から volatile-lru に変更する
+    # volatile-lru は TTL 付きキーのみを削除対象とするため、TTL なしのアクティブセッションが
+    # メモリ逼迫時に意図せず消去されることを防ぐ（アクティブセッションの消失防止）
+    command: ["sh", "-c", "printf 'requirepass %s\\nmaxmemory 256mb\\nmaxmemory-policy volatile-lru\\n' \"$$REDIS_PASSWORD\" > /tmp/redis.conf && exec redis-server /tmp/redis.conf"]
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-4 監査対応）
       - "127.0.0.1:${REDIS_SESSION_HOST_PORT:-6380}:6379"
@@ -1151,9 +1194,10 @@ services:
       notification-rust:
         condition: service_healthy
       workflow-rust:
-        # MEDIUM-005 監査対応: workflow-rust の healthcheck が依存サービス待ちでタイムアウトするため
-        # service_started に緩和して graphql-gateway の起動ブロックを解消する
-        condition: service_started
+        # LOW-001 監査対応: workflow-rust には healthcheck が定義されているため service_healthy に昇格する。
+        # MEDIUM-005 の緩和措置（service_started）は scheduler-rust への依存が解消された現在不要。
+        # workflow-rust が完全に起動した後に graphql-gateway が接続することで接続エラーを防止する。
+        condition: service_healthy
       # MED-20 監査対応: GraphQL スキーマが参照する全バックエンドサービスへの depends_on を追加する。
       # 起動順序依存を宣言しないと graphql-gateway が起動直後に依存サービスへ接続失敗するリスクがある。
       dlq-manager:
@@ -1359,8 +1403,10 @@ services:
     cap_drop:
       - ALL
     read_only: true
+    # MED-012 監査対応: :exec → :noexec に変更。kafka-topics.sh はシェルスクリプトであり、
+    # /tmp 内でバイナリを実行する必要はない。noexec でセキュリティを強化する。
     tmpfs:
-      - /tmp:exec
+      - /tmp:noexec
     depends_on:
       kafka:
         condition: service_healthy
@@ -1376,6 +1422,14 @@ services:
     # トピック作成失敗時にリトライする（Kafka ブローカーの一時的な未準備に対応）
     # HIGH-004 監査対応: --if-not-exists 使用で冪等なため3回で十分（以前の10回は過剰だった）
     restart: "on-failure:3"
+    # MED-008 監査対応: kafka-init は一度完了するとコンテナが終了するため、
+    # ヘルスチェックは常に exit 0 を返してコンテナの存在確認のみ行う。
+    healthcheck:
+      test: ["CMD-SHELL", "exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ============================================================
   # 可観測性
@@ -1429,10 +1483,20 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # LOW-003 監査対応: --web.config.file フラグで Basic 認証設定を読み込む。
+    # web.yml には bcrypt ハッシュ化されたパスワードが含まれる（平文保存なし）。
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.config.file=/etc/prometheus/web.yml"
     volumes:
       - ./infra/docker/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
       - ./infra/docker/prometheus/recording_rules.yaml:/etc/prometheus/recording_rules.yaml:ro
       - ./infra/docker/prometheus/alerting_rules.yaml:/etc/prometheus/alerting_rules.yaml:ro
+      # LOW-003 監査対応: Basic 認証設定（bcrypt ハッシュ済みパスワード）をマウント
+      - ./infra/docker/prometheus/web.yml:/etc/prometheus/web.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
@@ -1575,5 +1639,14 @@ volumes:
   grafana-data:
 
 networks:
+  # LOW-011 ネットワーク設計注記:
+  # 現在は全サービスを k1s0-network（単一ネットワーク）に統一している。
+  # ローカル開発環境では単一ネットワークの方がサービス間通信の設定が簡単なため現状維持とする。
+  # 将来課題: 本番相当の環境ではインフラ層（postgres/kafka/redis/keycloak）と
+  # アプリ層（system サービス群）をネットワーク分離することでセキュリティを向上できる。
+  # 分離案:
+  #   k1s0-infra-network: postgres, kafka, redis, keycloak（DB・メッセージング層）
+  #   k1s0-app-network:   system サービス群（アプリ層）
+  #   各アプリサービスは必要なインフラネットワークに接続する形で networks: を明示する。
   default:
     name: ${COMPOSE_NETWORK_NAME:-k1s0-network}

@@ -227,8 +227,12 @@ message WatchTenantRequest {
 // WatchTenantResponse はテナント変更の監視レスポンス（ストリーミング）。
 message WatchTenantResponse {
   string tenant_id = 1;
-  // CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED
-  string change_type = 2;
+  // Deprecated: change_type_enum を使用すること。文字列型では型安全性がない。
+  // HIGH-019 監査対応: 他サービス（featureflag, config）と同様に enum 型フィールドへ移行する
+  string change_type = 2 [deprecated = true];
   Tenant tenant = 3;
   k1s0.system.common.v1.Timestamp changed_at = 4;
+  // HIGH-019 監査対応: change_type の enum 版（他サービスの change_type_enum と統一）
+  // CREATED, UPDATED, SUSPENDED, ACTIVATED, DELETED は ChangeType enum で表現する
+  k1s0.system.common.v1.ChangeType change_type_enum = 5;
 }

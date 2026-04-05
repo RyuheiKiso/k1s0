@@ -27,10 +27,11 @@ impl CancelSagaUseCase {
     }
 
     /// Sagaをキャンセルする。
-    pub async fn execute(&self, saga_id: Uuid) -> Result<(), CancelSagaError> {
+    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
+    pub async fn execute(&self, saga_id: Uuid, tenant_id: &str) -> Result<(), CancelSagaError> {
         let saga = self
             .saga_repo
-            .find_by_id(saga_id)
+            .find_by_id(saga_id, tenant_id)
             .await
             .map_err(CancelSagaError::Internal)?
             .ok_or(CancelSagaError::NotFound(saga_id))?;
@@ -40,11 +41,11 @@ impl CancelSagaUseCase {
         }
 
         self.saga_repo
-            .update_status(saga_id, &SagaStatus::Cancelled, None)
+            .update_status(saga_id, &SagaStatus::Cancelled, None, tenant_id)
             .await
             .map_err(CancelSagaError::Internal)?;
 
-        tracing::info!(saga_id = %saga_id, "saga cancelled");
+        tracing::info!(saga_id = %saga_id, tenant_id = %tenant_id, "saga cancelled");
         Ok(())
     }
 }
@@ -57,42 +58,42 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_saga_success() {
-        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None);
+        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
 
         let mut mock = MockSagaRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(saga_clone.clone())));
-        mock.expect_update_status().returning(|_, _, _| Ok(()));
+            .returning(move |_, _| Ok(Some(saga_clone.clone())));
+        mock.expect_update_status().returning(|_, _, _, _| Ok(()));
 
         let uc = CancelSagaUseCase::new(Arc::new(mock));
-        assert!(uc.execute(saga_id).await.is_ok());
+        assert!(uc.execute(saga_id, "system").await.is_ok());
     }
 
     #[tokio::test]
     async fn test_cancel_saga_not_found() {
         let mut mock = MockSagaRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = CancelSagaUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute(Uuid::new_v4(), "system").await;
         assert!(matches!(result, Err(CancelSagaError::NotFound(_))));
     }
 
     #[tokio::test]
     async fn test_cancel_saga_already_terminal() {
-        let mut saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None);
+        let mut saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
         saga.complete();
         let saga_id = saga.saga_id;
 
         let mut mock = MockSagaRepository::new();
         let saga_clone = saga.clone();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(saga_clone.clone())));
+            .returning(move |_, _| Ok(Some(saga_clone.clone())));
 
         let uc = CancelSagaUseCase::new(Arc::new(mock));
-        let result = uc.execute(saga_id).await;
+        let result = uc.execute(saga_id, "system").await;
         assert!(matches!(result, Err(CancelSagaError::AlreadyTerminal(_))));
     }
 }

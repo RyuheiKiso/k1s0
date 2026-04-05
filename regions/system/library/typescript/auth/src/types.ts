@@ -41,7 +41,8 @@ export interface TokenSet {
 export interface Claims {
   sub: string;
   iss: string;
-  aud: string;
+  /** JWT spec に従い audience は string または string[]（RFC 7519 Section 4.1.3）CRIT-006 対応 */
+  aud: string | string[];
   exp: number;
   iat: number;
   jti: string;

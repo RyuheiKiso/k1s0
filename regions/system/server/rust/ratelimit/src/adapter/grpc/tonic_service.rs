@@ -6,6 +6,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
 use crate::proto::k1s0::system::ratelimit::v1::{
     rate_limit_service_server::RateLimitService,
@@ -60,6 +62,17 @@ fn algorithm_str_to_enum(s: &str) -> i32 {
 
 // L-10 監査対応: algorithm_opt_to_enum は未使用のため削除
 
+/// CRIT-005 対応: tonic Request の Extensions から Claims を取り出しテナント ID を返すヘルパー。
+/// gRPC は JWT ベアラートークンを持たない場合があるため、Claims が存在しない場合はシステムテナント UUID をフォールバックとして使用する。
+fn tenant_id_from_request<T>(request: &Request<T>) -> String {
+    request
+        .extensions()
+        .get::<Claims>()
+        .map(|c| c.tenant_id().to_string())
+        .filter(|id| !id.is_empty())
+        .unwrap_or_else(|| "00000000-0000-0000-0000-000000000001".to_string())
+}
+
 pub struct RateLimitServiceTonic {
     inner: Arc<RateLimitGrpcService>,
 }
@@ -109,6 +122,8 @@ impl RateLimitService for RateLimitServiceTonic {
         &self,
         request: Request<ProtoCreateRuleRequest>,
     ) -> Result<Response<ProtoCreateRuleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = CreateRuleRequest {
             scope: inner.scope,
@@ -117,6 +132,7 @@ impl RateLimitService for RateLimitServiceTonic {
             window_seconds: inner.window_seconds,
             algorithm: None,
             enabled: inner.enabled,
+            tenant_id,
         };
 
         let resp = self
@@ -150,9 +166,12 @@ impl RateLimitService for RateLimitServiceTonic {
         &self,
         request: Request<ProtoGetRuleRequest>,
     ) -> Result<Response<ProtoGetRuleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = GetRuleRequest {
             rule_id: inner.rule_id,
+            tenant_id,
         };
 
         let resp = self
@@ -220,6 +239,8 @@ impl RateLimitService for RateLimitServiceTonic {
         &self,
         request: Request<ProtoUpdateRuleRequest>,
     ) -> Result<Response<ProtoUpdateRuleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = UpdateRuleRequest {
             rule_id: inner.rule_id,
@@ -229,6 +250,7 @@ impl RateLimitService for RateLimitServiceTonic {
             window_seconds: inner.window_seconds,
             algorithm: None,
             enabled: inner.enabled,
+            tenant_id,
         };
 
         let resp = self
@@ -262,9 +284,12 @@ impl RateLimitService for RateLimitServiceTonic {
         &self,
         request: Request<ProtoDeleteRuleRequest>,
     ) -> Result<Response<ProtoDeleteRuleResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         let req = DeleteRuleRequest {
             rule_id: inner.rule_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -280,6 +305,8 @@ impl RateLimitService for RateLimitServiceTonic {
         &self,
         request: Request<ProtoListRulesRequest>,
     ) -> Result<Response<ProtoListRulesResponse>, Status> {
+        // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
+        let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
@@ -298,6 +325,7 @@ impl RateLimitService for RateLimitServiceTonic {
                 } else {
                     pagination.page_size as u32
                 },
+                tenant_id,
             })
             .await
             .map_err(Into::<Status>::into)?;

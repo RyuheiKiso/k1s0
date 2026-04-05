@@ -31,36 +31,31 @@ pub enum AuditResult {
     Partial,
 }
 
-/// AuditLog.event_type（文字列）から AuditEventType enum へ変換するヘルパー関数。
-/// C-004 監査対応: TOKEN_REFRESH, PERMISSION_CHECK の変換パターンを追加する。
-/// 未知の文字列は None を返す（クライアントは eventTypeEnum が null の場合は eventType 文字列を参照すること）。
-pub fn parse_audit_event_type(s: &str) -> Option<AuditEventType> {
-    match s.to_ascii_uppercase().as_str() {
-        "LOGIN" => Some(AuditEventType::Login),
-        "LOGOUT" => Some(AuditEventType::Logout),
-        // C-004 監査対応: proto の TOKEN_REFRESH / PERMISSION_CHECK に対応
-        "TOKEN_REFRESH" => Some(AuditEventType::TokenRefresh),
-        "PERMISSION_CHECK" => Some(AuditEventType::PermissionCheck),
-        "CREATE" => Some(AuditEventType::Create),
-        "UPDATE" => Some(AuditEventType::Update),
-        "DELETE" => Some(AuditEventType::Delete),
-        "READ" => Some(AuditEventType::Read),
-        "PERMISSION_DENIED" => Some(AuditEventType::PermissionDenied),
-        "API_KEY_CREATED" => Some(AuditEventType::ApiKeyCreated),
-        "API_KEY_REVOKED" => Some(AuditEventType::ApiKeyRevoked),
-        "SECRET_ACCESSED" => Some(AuditEventType::SecretAccessed),
-        "SECRET_ROTATED" => Some(AuditEventType::SecretRotated),
-        _ => None,
+/// AuditEventType enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+pub fn audit_event_type_to_str(e: AuditEventType) -> &'static str {
+    match e {
+        AuditEventType::Login => "LOGIN",
+        AuditEventType::Logout => "LOGOUT",
+        AuditEventType::TokenRefresh => "TOKEN_REFRESH",
+        AuditEventType::PermissionCheck => "PERMISSION_CHECK",
+        AuditEventType::Create => "CREATE",
+        AuditEventType::Update => "UPDATE",
+        AuditEventType::Delete => "DELETE",
+        AuditEventType::Read => "READ",
+        AuditEventType::PermissionDenied => "PERMISSION_DENIED",
+        AuditEventType::ApiKeyCreated => "API_KEY_CREATED",
+        AuditEventType::ApiKeyRevoked => "API_KEY_REVOKED",
+        AuditEventType::SecretAccessed => "SECRET_ACCESSED",
+        AuditEventType::SecretRotated => "SECRET_ROTATED",
     }
 }
 
-/// AuditLog.result（文字列）から AuditResult enum へ変換するヘルパー関数。
-pub fn parse_audit_result(s: &str) -> Option<AuditResult> {
-    match s.to_ascii_uppercase().as_str() {
-        "SUCCESS" => Some(AuditResult::Success),
-        "FAILURE" => Some(AuditResult::Failure),
-        "PARTIAL" => Some(AuditResult::Partial),
-        _ => None,
+/// AuditResult enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
+pub fn audit_result_to_str(e: AuditResult) -> &'static str {
+    match e {
+        AuditResult::Success => "SUCCESS",
+        AuditResult::Failure => "FAILURE",
+        AuditResult::Partial => "PARTIAL",
     }
 }
 

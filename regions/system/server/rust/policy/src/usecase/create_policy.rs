@@ -15,6 +15,8 @@ pub struct CreatePolicyInput {
     pub rego_content: String,
     pub package_path: String,
     pub bundle_id: Option<Uuid>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -59,9 +61,10 @@ impl CreatePolicyUseCase {
         PolicyDomainService::validate_rego_content(&input.rego_content)
             .map_err(CreatePolicyError::Validation)?;
 
+        // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
         let exists = self
             .repo
-            .exists_by_name(&input.name)
+            .exists_by_name(&input.name, &input.tenant_id)
             .await
             .map_err(|e| CreatePolicyError::Internal(e.to_string()))?;
 
@@ -76,6 +79,8 @@ impl CreatePolicyUseCase {
         );
         policy.package_path = PolicyDomainService::normalize_package_path(&input.package_path);
         policy.bundle_id = input.bundle_id;
+        // CRIT-005 対応: リクエストのテナント ID をポリシーに設定する
+        policy.tenant_id = input.tenant_id.clone();
 
         self.repo
             .create(&policy)
@@ -104,8 +109,8 @@ mod tests {
     async fn success() {
         let mut mock = MockPolicyRepository::new();
         mock.expect_exists_by_name()
-            .withf(|name| name == "allow-read")
-            .returning(|_| Ok(false));
+            .withf(|name, _tenant_id| name == "allow-read")
+            .returning(|_, _| Ok(false));
         mock.expect_create().returning(|_| Ok(()));
 
         let uc = CreatePolicyUseCase::new(Arc::new(mock));
@@ -115,6 +120,7 @@ mod tests {
             rego_content: "package authz\ndefault allow = true".to_string(),
             package_path: "k1s0.system.authz".to_string(),
             bundle_id: Some(Uuid::new_v4()),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -131,8 +137,8 @@ mod tests {
     async fn already_exists() {
         let mut mock = MockPolicyRepository::new();
         mock.expect_exists_by_name()
-            .withf(|name| name == "existing-policy")
-            .returning(|_| Ok(true));
+            .withf(|name, _tenant_id| name == "existing-policy")
+            .returning(|_, _| Ok(true));
 
         let uc = CreatePolicyUseCase::new(Arc::new(mock));
         let input = CreatePolicyInput {
@@ -141,6 +147,7 @@ mod tests {
             rego_content: "package authz".to_string(),
             package_path: "k1s0.system.authz".to_string(),
             bundle_id: None,
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

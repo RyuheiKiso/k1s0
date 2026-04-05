@@ -63,7 +63,11 @@ CREATE INDEX IF NOT EXISTS idx_secrets_key_path ON vault.secrets (key_path);
 
 ### secret_versions（シークレットバージョン）
 
-シークレットの暗号化データをバージョンごとに保持する。encrypted_data と nonce で AES-GCM 暗号化を行う。
+シークレットの暗号化データをバージョンごとに保持する。encrypted_data と nonce で AES-256-GCM 暗号化を行う。
+
+> **CRIT-003 監査対応（AAD 追加）**: AES-GCM の Additional Authenticated Data（AAD）として
+> `{key_path}|{version}` をバインドする。これにより暗号文のコピーや入れ替え攻撃（ciphertext swap attack）を防止する。
+> 復号時は同一の AAD を再構成して検証する（ADR-0090 参照）。
 
 ```sql
 CREATE TABLE IF NOT EXISTS vault.secret_versions (
@@ -85,9 +89,12 @@ CREATE INDEX IF NOT EXISTS idx_secret_versions_secret_id ON vault.secret_version
 | id | UUID | PK | 主キー |
 | secret_id | UUID | FK → secrets.id, NOT NULL | シークレット ID |
 | version | INT | UNIQUE(secret_id, version), NOT NULL | バージョン番号 |
-| encrypted_data | BYTEA | NOT NULL | 暗号化データ |
-| nonce | BYTEA | NOT NULL | 暗号化ナンス |
+| encrypted_data | BYTEA | NOT NULL | 暗号化データ（AES-256-GCM 暗号文） |
+| nonce | BYTEA | NOT NULL | 暗号化ナンス（12 バイト、GCM 標準） |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
+
+**AAD 構成**: 暗号化・復号時のコンテキストは `{key_path}|{version}` の形式で AAD として使用する。
+DB には AAD を保存せず、`secrets.key_path` と `secret_versions.version` から復号時に再構成する。
 
 ---
 

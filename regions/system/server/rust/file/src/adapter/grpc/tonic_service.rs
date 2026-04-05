@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::proto::k1s0::system::common::v1::PaginationResult as ProtoPaginationResult;
+use crate::proto::k1s0::system::common::v1::{PaginationResult as ProtoPaginationResult, Timestamp};
 use crate::proto::k1s0::system::file::v1::{
     file_service_server::FileService, CompleteUploadRequest, CompleteUploadResponse,
     DeleteFileRequest, DeleteFileResponse, FileMetadata as ProtoFileMetadata,
@@ -24,6 +24,7 @@ impl FileServiceTonic {
 }
 
 /// C-01 監査対応: domain entity → proto メッセージ変換
+/// CRIT-006 対応: created_at/updated_at を string から Timestamp 型へ変換
 /// proto フィールド名はそのまま（自動生成のため変更不可）、domain のフィールド名は DB に合わせて変更済み
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
@@ -34,8 +35,15 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         tenant_id: String::new(),
         uploaded_by: file.uploaded_by.clone(),
         status: file.status.clone(),
-        created_at: file.created_at.to_rfc3339(),
-        updated_at: file.updated_at.to_rfc3339(),
+        // DateTime<Utc> を Timestamp（seconds/nanos）へ変換
+        created_at: Some(Timestamp {
+            seconds: file.created_at.timestamp(),
+            nanos: file.created_at.timestamp_subsec_nanos() as i32,
+        }),
+        updated_at: Some(Timestamp {
+            seconds: file.updated_at.timestamp(),
+            nanos: file.updated_at.timestamp_subsec_nanos() as i32,
+        }),
         tags: file.tags.clone(),
         storage_key: file.storage_path.clone(),
         checksum_sha256: file.checksum.clone(),

@@ -1,5 +1,7 @@
 use aes_gcm::aead::rand_core::RngCore;
-use aes_gcm::aead::{Aead, KeyInit, OsRng};
+// CRIT-003 監査対応: Payload を追加して AAD（Additional Authenticated Data）を暗号化操作に渡す
+// ciphertext swap attack を防止し NIST SP 800-38D 準拠を達成する
+use aes_gcm::aead::{Aead, KeyInit, OsRng, Payload};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 
 /// MasterKey は vault の暗号化/復号化に使用するマスター鍵を保持する。
@@ -48,25 +50,49 @@ impl MasterKey {
     }
 
     /// 平文データを AES-256-GCM で暗号化し、(暗号文, nonce) を返す。
-    pub fn encrypt(&self, plaintext: &[u8]) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
+    /// CRIT-003 監査対応: aad（Additional Authenticated Data）を Payload に含めることで
+    /// ciphertext swap attack を防止する。aad にはシークレットのパス等の識別子を渡す。
+    pub fn encrypt(&self, plaintext: &[u8], aad: &[u8]) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
         let cipher = Aes256Gcm::new(&self.key);
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
         let nonce = Nonce::from_slice(&nonce_bytes);
+        // CRIT-003 監査対応: AAD を Payload に含めて暗号化し、認証タグがコンテキストを保証する
         let ciphertext = cipher
-            .encrypt(nonce, plaintext)
+            .encrypt(nonce, Payload { msg: plaintext, aad })
             .map_err(|e| anyhow::anyhow!("encryption failed: {}", e))?;
         Ok((ciphertext, nonce_bytes.to_vec()))
     }
 
     /// 暗号文と nonce から平文データを復号化する。
-    pub fn decrypt(&self, ciphertext: &[u8], nonce: &[u8]) -> anyhow::Result<Vec<u8>> {
+    /// CRIT-003 監査対応: aad（Additional Authenticated Data）を Payload に含めることで
+    /// 暗号化時と同一の AAD が指定された場合のみ復号成功となる。
+    /// AAD が異なる場合は認証タグ検証に失敗しエラーを返す。
+    pub fn decrypt(&self, ciphertext: &[u8], nonce: &[u8], aad: &[u8]) -> anyhow::Result<Vec<u8>> {
         let cipher = Aes256Gcm::new(&self.key);
         let nonce = Nonce::from_slice(nonce);
-        let plaintext = cipher
-            .decrypt(nonce, ciphertext)
-            .map_err(|e| anyhow::anyhow!("decryption failed: {}", e))?;
-        Ok(plaintext)
+        // CRIT-003 監査対応: AAD を Payload に含めて復号することでコンテキスト認証を実施する
+        cipher
+            .decrypt(nonce, Payload { msg: ciphertext, aad })
+            .map_err(|e| anyhow::anyhow!("decryption failed: {}", e))
+    }
+
+    /// 暗号文と nonce から平文データを復号化する（レガシーフォールバック付き）。
+    /// CRIT-003 Phase A: AAD あり（新形式）で復号を試み、失敗した場合は
+    /// AAD なし（旧形式）でフォールバックして後方互換性を確保する。
+    /// Phase B（全データを新形式で再暗号化完了後）にこの関数を削除して decrypt に統一すること。
+    pub fn decrypt_with_legacy_fallback(
+        &self,
+        ciphertext: &[u8],
+        nonce: &[u8],
+        aad: &[u8],
+    ) -> anyhow::Result<Vec<u8>> {
+        // まず新形式（AAD あり）で復号を試みる
+        self.decrypt(ciphertext, nonce, aad).or_else(|_| {
+            // CRIT-003 Phase A: 旧形式（AAD なし）のデータへのフォールバック
+            // このパスが実行される場合は Phase B（バッチ再暗号化）が未完了
+            self.decrypt(ciphertext, nonce, b"")
+        })
     }
 }
 
@@ -92,9 +118,10 @@ mod tests {
     fn test_encrypt_decrypt_roundtrip() {
         let master = make_test_key();
         let plaintext = b"secret-password-123";
+        let aad = b"vault/test-path";
 
-        let (ciphertext, nonce) = master.encrypt(plaintext).unwrap();
-        let decrypted = master.decrypt(&ciphertext, &nonce).unwrap();
+        let (ciphertext, nonce) = master.encrypt(plaintext, aad).unwrap();
+        let decrypted = master.decrypt(&ciphertext, &nonce, aad).unwrap();
 
         assert_eq!(decrypted, plaintext);
     }
@@ -103,9 +130,10 @@ mod tests {
     fn test_encrypt_produces_unique_nonces() {
         let master = make_test_key();
         let plaintext = b"same data";
+        let aad = b"vault/test-path";
 
-        let (_, nonce1) = master.encrypt(plaintext).unwrap();
-        let (_, nonce2) = master.encrypt(plaintext).unwrap();
+        let (_, nonce1) = master.encrypt(plaintext, aad).unwrap();
+        let (_, nonce2) = master.encrypt(plaintext, aad).unwrap();
 
         // 異なる nonce が生成されることを確認
         assert_ne!(nonce1, nonce2);
@@ -115,11 +143,12 @@ mod tests {
     fn test_decrypt_with_wrong_nonce_fails() {
         let master = make_test_key();
         let plaintext = b"secret data";
+        let aad = b"vault/test-path";
 
-        let (ciphertext, _) = master.encrypt(plaintext).unwrap();
+        let (ciphertext, _) = master.encrypt(plaintext, aad).unwrap();
         let wrong_nonce = vec![0u8; 12];
 
-        let result = master.decrypt(&ciphertext, &wrong_nonce);
+        let result = master.decrypt(&ciphertext, &wrong_nonce, aad);
         assert!(result.is_err());
     }
 
@@ -127,14 +156,64 @@ mod tests {
     fn test_decrypt_with_tampered_ciphertext_fails() {
         let master = make_test_key();
         let plaintext = b"tamper test";
+        let aad = b"vault/test-path";
 
-        let (mut ciphertext, nonce) = master.encrypt(plaintext).unwrap();
+        let (mut ciphertext, nonce) = master.encrypt(plaintext, aad).unwrap();
         if let Some(last) = ciphertext.last_mut() {
             *last ^= 0xFF;
         }
 
-        let result = master.decrypt(&ciphertext, &nonce);
+        let result = master.decrypt(&ciphertext, &nonce, aad);
         assert!(result.is_err());
+    }
+
+    /// CRIT-003 監査対応: AAD 不一致で復号が失敗することを確認する（ciphertext swap attack 防止）。
+    /// 異なる AAD で暗号化されたデータは、別の AAD を使用しても復号できないことを検証する。
+    #[test]
+    fn test_decrypt_with_wrong_aad_fails() {
+        let master = make_test_key();
+        let plaintext = b"sensitive vault secret";
+        let correct_aad = b"vault/my-service/db-password";
+        let wrong_aad = b"vault/other-service/api-key";
+
+        // 正しい AAD で暗号化する
+        let (ciphertext, nonce) = master.encrypt(plaintext, correct_aad).unwrap();
+
+        // 正しい AAD では復号成功を確認する
+        let decrypted = master.decrypt(&ciphertext, &nonce, correct_aad).unwrap();
+        assert_eq!(decrypted, plaintext);
+
+        // 異なる AAD では復号が失敗することを確認する（認証タグ検証失敗）
+        assert!(master.decrypt(&ciphertext, &nonce, wrong_aad).is_err());
+    }
+
+    /// CRIT-003 Phase A: レガシーフォールバックにより旧形式（AAD なし）データを復号できることを確認する。
+    /// 旧形式データに新形式 AAD を指定しても decrypt_with_legacy_fallback が内部でリトライする。
+    #[test]
+    fn test_legacy_fallback_decrypts_old_format() {
+        let master = make_test_key();
+        let plaintext = b"legacy encrypted secret";
+        // 旧形式: AAD なし（空バイト列）で暗号化する
+        let (ciphertext, nonce) = master.encrypt(plaintext, b"").unwrap();
+        // 新形式 AAD を指定してもフォールバックで復号できることを確認する
+        let decrypted = master
+            .decrypt_with_legacy_fallback(&ciphertext, &nonce, b"vault/my-service/db-password")
+            .unwrap();
+        assert_eq!(decrypted, plaintext);
+    }
+
+    /// CRIT-003 Phase A: 新形式（AAD あり）で暗号化されたデータは
+    /// decrypt_with_legacy_fallback が最初の試行で正常に復号することを確認する。
+    #[test]
+    fn test_legacy_fallback_decrypts_new_format_with_correct_aad() {
+        let master = make_test_key();
+        let plaintext = b"new format encrypted secret";
+        let aad = b"vault/my-service/db-password";
+        let (ciphertext, nonce) = master.encrypt(plaintext, aad).unwrap();
+        let decrypted = master
+            .decrypt_with_legacy_fallback(&ciphertext, &nonce, aad)
+            .unwrap();
+        assert_eq!(decrypted, plaintext);
     }
 
     #[test]
@@ -160,10 +239,11 @@ mod tests {
         let key2 = MasterKey::from_env().unwrap();
         // 鍵の内容が異なることを確認（同一ゼロ鍵が返らないことの検証）
         let pt = b"test";
-        let (ct1, n1) = key1.encrypt(pt).unwrap();
-        let (ct2, n2) = key2.encrypt(pt).unwrap();
+        let aad = b"vault/test";
+        let (ct1, n1) = key1.encrypt(pt, aad).unwrap();
+        let (ct2, n2) = key2.encrypt(pt, aad).unwrap();
         // 異なる鍵で暗号化されたため、一方の鍵で他方を復号できない
-        assert!(key1.decrypt(&ct2, &n2).is_err() || key2.decrypt(&ct1, &n1).is_err());
+        assert!(key1.decrypt(&ct2, &n2, aad).is_err() || key2.decrypt(&ct1, &n1, aad).is_err());
     }
 
     #[test]

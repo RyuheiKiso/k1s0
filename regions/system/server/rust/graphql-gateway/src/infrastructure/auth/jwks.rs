@@ -9,6 +9,40 @@ use tracing::{debug, instrument};
 
 use crate::adapter::middleware::auth_middleware::Claims;
 
+/// LOW-014 監査対応: JWT 検証エラーを種別ごとに区別する型付きエラー。
+/// auth_middleware.rs がこの型でマッチし、クライアントに適切なエラーコードを返す。
+/// - TokenExpired: 期限切れ → SYS_AUTH_TOKEN_EXPIRED
+/// - InvalidSignature: 署名不正 → SYS_AUTH_TOKEN_INVALID_SIGNATURE
+/// - InvalidIssuer/Audience: クレーム不一致 → SYS_AUTH_TOKEN_CLAIMS_INVALID
+/// - JwksFetchFailed: JWKS 取得失敗 → SYS_AUTH_JWKS_UNAVAILABLE
+/// - MalformedToken: その他の不正フォーマット → SYS_AUTH_TOKEN_MALFORMED
+#[derive(Debug, thiserror::Error)]
+pub enum JwtVerifyError {
+    /// トークンの有効期限が切れている（`exp` クレームが現在時刻より過去）
+    #[error("JWTトークンの有効期限が切れています")]
+    TokenExpired,
+
+    /// RSA 署名が JWKS の公開鍵と一致しない（改ざん・偽造の可能性）
+    #[error("JWT署名が無効です")]
+    InvalidSignature,
+
+    /// `iss` クレームが設定値と不一致
+    #[error("JWTのissuerが無効です")]
+    InvalidIssuer,
+
+    /// `aud` クレームが設定値と不一致
+    #[error("JWTのaudienceが無効です")]
+    InvalidAudience,
+
+    /// JWKS エンドポイントへの接続・取得に失敗（認証サービスの一時障害等）
+    #[error("JWKSフェッチ失敗: {0}")]
+    JwksFetchFailed(String),
+
+    /// ヘッダー/クレームのデコード失敗・鍵不一致等、上記以外のトークン不正
+    #[error("JWT形式が不正です: {0}")]
+    MalformedToken(String),
+}
+
 /// JwksVerifier は JWKS エンドポイントから公開鍵を取得し、JWT の署名を検証する。
 /// 公開鍵は内部にキャッシュし、TTL 経過後に再取得する。
 /// issuer/audience が設定されている場合は JWT のクレームを検証し、不一致時はエラーを返す。
@@ -84,31 +118,36 @@ impl JwksVerifier {
         self
     }
 
+    /// JWT を検証し、成功時にクレームを返す。失敗時は種別付きの `JwtVerifyError` を返す。
+    ///
+    /// LOW-014 監査対応: 旧実装は全エラーを `anyhow::Error` に統合し、
+    /// 呼び出し元で種別判定不可能だった。本実装では `JwtVerifyError` で種別を明示し、
+    /// ミドルウェアがクライアントに適切なエラーコードを返せるようにする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
-    pub async fn verify_token(&self, token: &str) -> anyhow::Result<Claims> {
+    pub async fn verify_token(&self, token: &str) -> Result<Claims, JwtVerifyError> {
         let keys = self.get_jwks().await?;
 
-        let header =
-            decode_header(token).map_err(|e| anyhow::anyhow!("invalid JWT header: {}", e))?;
+        let header = decode_header(token)
+            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid JWT header: {}", e)))?;
 
         // kid でマッチする鍵を選択。kid が無い場合は最初の RSA 鍵を使用
         let jwk = match &header.kid {
             Some(kid) => keys.iter().find(|k| k.kid.as_deref() == Some(kid.as_str())),
             None => keys.iter().find(|k| k.kty == "RSA"),
         }
-        .ok_or_else(|| anyhow::anyhow!("no matching JWK found"))?;
+        .ok_or_else(|| JwtVerifyError::MalformedToken("no matching JWK found".to_string()))?;
 
         let n = jwk
             .n
             .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("JWK missing 'n'"))?;
+            .ok_or_else(|| JwtVerifyError::MalformedToken("JWK missing 'n'".to_string()))?;
         let e = jwk
             .e
             .as_deref()
-            .ok_or_else(|| anyhow::anyhow!("JWK missing 'e'"))?;
+            .ok_or_else(|| JwtVerifyError::MalformedToken("JWK missing 'e'".to_string()))?;
 
         let decoding_key = DecodingKey::from_rsa_components(n, e)
-            .map_err(|e| anyhow::anyhow!("invalid RSA key: {}", e))?;
+            .map_err(|e| JwtVerifyError::MalformedToken(format!("invalid RSA key: {}", e)))?;
 
         let mut validation = Validation::new(Algorithm::RS256);
         validation.validate_exp = true;
@@ -128,13 +167,32 @@ impl JwksVerifier {
             validation.validate_aud = false;
         }
 
-        let token_data = decode::<Claims>(token, &decoding_key, &validation)
-            .map_err(|e| anyhow::anyhow!("JWT verification failed: {}", e))?;
+        // LOW-014 監査対応: decode エラーを jsonwebtoken の ErrorKind で種別判定し、
+        // JwtVerifyError の適切なバリアントに変換する。
+        let token_data = decode::<Claims>(token, &decoding_key, &validation).map_err(|e| {
+            use jsonwebtoken::errors::ErrorKind;
+            match e.kind() {
+                // exp クレームが現在時刻より過去 → 期限切れ
+                ErrorKind::ExpiredSignature => JwtVerifyError::TokenExpired,
+                // 署名検証失敗 → 改ざん・偽造の可能性
+                ErrorKind::InvalidSignature => JwtVerifyError::InvalidSignature,
+                // iss クレーム不一致
+                ErrorKind::InvalidIssuer => JwtVerifyError::InvalidIssuer,
+                // aud クレーム不一致
+                ErrorKind::InvalidAudience => JwtVerifyError::InvalidAudience,
+                // nbf（Not Before）クレームが未到達
+                ErrorKind::ImmatureSignature => {
+                    JwtVerifyError::MalformedToken("JWT not yet valid (nbf)".to_string())
+                }
+                // その他（デコードエラー、鍵長不正等）
+                _ => JwtVerifyError::MalformedToken(format!("JWT verification failed: {}", e)),
+            }
+        })?;
 
         Ok(token_data.claims)
     }
 
-    async fn get_jwks(&self) -> anyhow::Result<Vec<Jwk>> {
+    async fn get_jwks(&self) -> Result<Vec<Jwk>, JwtVerifyError> {
         // キャッシュが有効であれば返す
         {
             let cache = self.cache.read().await;
@@ -146,16 +204,19 @@ impl JwksVerifier {
             }
         }
 
-        // キャッシュ期限切れ: 再取得
+        // キャッシュ期限切れ: 再取得。ネットワークエラーは JwksFetchFailed に変換する。
         debug!("fetching JWKS from {}", self.jwks_url);
         let resp: JwksResponse = self
             .http_client
             .get(&self.jwks_url)
             .send()
-            .await?
-            .error_for_status()?
+            .await
+            .map_err(|e| JwtVerifyError::JwksFetchFailed(e.to_string()))?
+            .error_for_status()
+            .map_err(|e| JwtVerifyError::JwksFetchFailed(e.to_string()))?
             .json()
-            .await?;
+            .await
+            .map_err(|e| JwtVerifyError::JwksFetchFailed(e.to_string()))?;
 
         let mut cache = self.cache.write().await;
         *cache = Some(CachedJwks {

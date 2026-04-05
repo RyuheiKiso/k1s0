@@ -10,6 +10,7 @@
 package sessionv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -25,17 +26,71 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// SessionStatus はセッションの状態を表す enum。
+// string 型の代わりに使用することで型安全性を確保する。
+type SessionStatus int32
+
+const (
+	SessionStatus_SESSION_STATUS_UNSPECIFIED SessionStatus = 0
+	SessionStatus_SESSION_STATUS_ACTIVE      SessionStatus = 1
+	SessionStatus_SESSION_STATUS_REVOKED     SessionStatus = 2
+)
+
+// Enum value maps for SessionStatus.
+var (
+	SessionStatus_name = map[int32]string{
+		0: "SESSION_STATUS_UNSPECIFIED",
+		1: "SESSION_STATUS_ACTIVE",
+		2: "SESSION_STATUS_REVOKED",
+	}
+	SessionStatus_value = map[string]int32{
+		"SESSION_STATUS_UNSPECIFIED": 0,
+		"SESSION_STATUS_ACTIVE":      1,
+		"SESSION_STATUS_REVOKED":     2,
+	}
+)
+
+func (x SessionStatus) Enum() *SessionStatus {
+	p := new(SessionStatus)
+	*p = x
+	return p
+}
+
+func (x SessionStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SessionStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_k1s0_system_session_v1_session_proto_enumTypes[0].Descriptor()
+}
+
+func (SessionStatus) Type() protoreflect.EnumType {
+	return &file_k1s0_system_session_v1_session_proto_enumTypes[0]
+}
+
+func (x SessionStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SessionStatus.Descriptor instead.
+func (SessionStatus) EnumDescriptor() ([]byte, []int) {
+	return file_k1s0_system_session_v1_session_proto_rawDescGZIP(), []int{0}
+}
+
+// CreateSessionRequest はセッション作成リクエスト。
 type CreateSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	DeviceName    *string                `protobuf:"bytes,3,opt,name=device_name,json=deviceName,proto3,oneof" json:"device_name,omitempty"`
-	DeviceType    *string                `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
-	UserAgent     *string                `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3,oneof" json:"user_agent,omitempty"`
-	IpAddress     *string                `protobuf:"bytes,6,opt,name=ip_address,json=ipAddress,proto3,oneof" json:"ip_address,omitempty"`
-	TtlSeconds    *uint32                `protobuf:"varint,7,opt,name=ttl_seconds,json=ttlSeconds,proto3,oneof" json:"ttl_seconds,omitempty"`
-	MaxDevices    *int32                 `protobuf:"varint,8,opt,name=max_devices,json=maxDevices,proto3,oneof" json:"max_devices,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（必須）
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// デバイス識別子（1〜256 文字）
+	DeviceId      string            `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	DeviceName    *string           `protobuf:"bytes,3,opt,name=device_name,json=deviceName,proto3,oneof" json:"device_name,omitempty"`
+	DeviceType    *string           `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
+	UserAgent     *string           `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3,oneof" json:"user_agent,omitempty"`
+	IpAddress     *string           `protobuf:"bytes,6,opt,name=ip_address,json=ipAddress,proto3,oneof" json:"ip_address,omitempty"`
+	TtlSeconds    *uint32           `protobuf:"varint,7,opt,name=ttl_seconds,json=ttlSeconds,proto3,oneof" json:"ttl_seconds,omitempty"`
+	MaxDevices    *int32            `protobuf:"varint,8,opt,name=max_devices,json=maxDevices,proto3,oneof" json:"max_devices,omitempty"`
+	Metadata      map[string]string `protobuf:"bytes,9,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -134,19 +189,20 @@ func (x *CreateSessionRequest) GetMetadata() map[string]string {
 }
 
 type CreateSessionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	ExpiresAt     *v1.Timestamp          `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
-	CreatedAt     *v1.Timestamp          `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Token         string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	DeviceName    *string                `protobuf:"bytes,8,opt,name=device_name,json=deviceName,proto3,oneof" json:"device_name,omitempty"`
-	DeviceType    *string                `protobuf:"bytes,9,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
-	UserAgent     *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent,proto3,oneof" json:"user_agent,omitempty"`
-	IpAddress     *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress,proto3,oneof" json:"ip_address,omitempty"`
-	Status        string                 `protobuf:"bytes,12,opt,name=status,proto3" json:"status,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	SessionId  string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId     string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId   string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	ExpiresAt  *v1.Timestamp          `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	CreatedAt  *v1.Timestamp          `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Token      string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	Metadata   map[string]string      `protobuf:"bytes,7,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	DeviceName *string                `protobuf:"bytes,8,opt,name=device_name,json=deviceName,proto3,oneof" json:"device_name,omitempty"`
+	DeviceType *string                `protobuf:"bytes,9,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
+	UserAgent  *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent,proto3,oneof" json:"user_agent,omitempty"`
+	IpAddress  *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress,proto3,oneof" json:"ip_address,omitempty"`
+	// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+	Status        SessionStatus `protobuf:"varint,12,opt,name=status,proto3,enum=k1s0.system.session.v1.SessionStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -258,16 +314,18 @@ func (x *CreateSessionResponse) GetIpAddress() string {
 	return ""
 }
 
-func (x *CreateSessionResponse) GetStatus() string {
+func (x *CreateSessionResponse) GetStatus() SessionStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return SessionStatus_SESSION_STATUS_UNSPECIFIED
 }
 
+// GetSessionRequest はセッション取得リクエスト。
 type GetSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// セッション UUID（必須）
+	SessionId     string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -353,10 +411,12 @@ func (x *GetSessionResponse) GetSession() *Session {
 	return nil
 }
 
+// RefreshSessionRequest はセッション更新リクエスト。
 type RefreshSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	TtlSeconds    *uint32                `protobuf:"varint,2,opt,name=ttl_seconds,json=ttlSeconds,proto3,oneof" json:"ttl_seconds,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// セッション UUID（必須）
+	SessionId     string  `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	TtlSeconds    *uint32 `protobuf:"varint,2,opt,name=ttl_seconds,json=ttlSeconds,proto3,oneof" json:"ttl_seconds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -419,8 +479,8 @@ type RefreshSessionResponse struct {
 	Metadata       map[string]string      `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	CreatedAt      *v1.Timestamp          `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	LastAccessedAt *v1.Timestamp          `protobuf:"bytes,12,opt,name=last_accessed_at,json=lastAccessedAt,proto3,oneof" json:"last_accessed_at,omitempty"`
-	// valid values: "active", "revoked"
-	Status        string `protobuf:"bytes,13,opt,name=status,proto3" json:"status,omitempty"`
+	// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+	Status        SessionStatus `protobuf:"varint,13,opt,name=status,proto3,enum=k1s0.system.session.v1.SessionStatus" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -539,16 +599,18 @@ func (x *RefreshSessionResponse) GetLastAccessedAt() *v1.Timestamp {
 	return nil
 }
 
-func (x *RefreshSessionResponse) GetStatus() string {
+func (x *RefreshSessionResponse) GetStatus() SessionStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return SessionStatus_SESSION_STATUS_UNSPECIFIED
 }
 
+// RevokeSessionRequest はセッション無効化リクエスト。
 type RevokeSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// セッション UUID（必須）
+	SessionId     string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -634,9 +696,11 @@ func (x *RevokeSessionResponse) GetSuccess() bool {
 	return false
 }
 
+// RevokeAllSessionsRequest はユーザーの全セッション無効化リクエスト。
 type RevokeAllSessionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（必須）
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -722,9 +786,11 @@ func (x *RevokeAllSessionsResponse) GetRevokedCount() uint32 {
 	return 0
 }
 
+// ListUserSessionsRequest はユーザーのセッション一覧取得リクエスト。
 type ListUserSessionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// ユーザー UUID（必須）
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -827,8 +893,8 @@ type Session struct {
 	DeviceType *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType,proto3,oneof" json:"device_type,omitempty"`
 	UserAgent  *string                `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3,oneof" json:"user_agent,omitempty"`
 	IpAddress  *string                `protobuf:"bytes,7,opt,name=ip_address,json=ipAddress,proto3,oneof" json:"ip_address,omitempty"`
-	// valid values: "active", "revoked"
-	Status         string        `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	// セッション状態（SESSION_STATUS_ACTIVE / SESSION_STATUS_REVOKED）
+	Status         SessionStatus `protobuf:"varint,8,opt,name=status,proto3,enum=k1s0.system.session.v1.SessionStatus" json:"status,omitempty"`
 	ExpiresAt      *v1.Timestamp `protobuf:"bytes,9,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	CreatedAt      *v1.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	LastAccessedAt *v1.Timestamp `protobuf:"bytes,11,opt,name=last_accessed_at,json=lastAccessedAt,proto3,oneof" json:"last_accessed_at,omitempty"`
@@ -916,11 +982,11 @@ func (x *Session) GetIpAddress() string {
 	return ""
 }
 
-func (x *Session) GetStatus() string {
+func (x *Session) GetStatus() SessionStatus {
 	if x != nil {
 		return x.Status
 	}
-	return ""
+	return SessionStatus_SESSION_STATUS_UNSPECIFIED
 }
 
 func (x *Session) GetExpiresAt() *v1.Timestamp {
@@ -955,10 +1021,11 @@ var File_k1s0_system_session_v1_session_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\n" +
-	"$k1s0/system/session/v1/session.proto\x12\x16k1s0.system.session.v1\x1a!k1s0/system/common/v1/types.proto\"\x9f\x04\n" +
-	"\x14CreateSessionRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
-	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\x12$\n" +
+	"$k1s0/system/session/v1/session.proto\x12\x16k1s0.system.session.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x04\n" +
+	"\x14CreateSessionRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\x12'\n" +
+	"\tdevice_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\bdeviceId\x12$\n" +
 	"\vdevice_name\x18\x03 \x01(\tH\x00R\n" +
 	"deviceName\x88\x01\x01\x12$\n" +
 	"\vdevice_type\x18\x04 \x01(\tH\x01R\n" +
@@ -980,7 +1047,7 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\v_user_agentB\r\n" +
 	"\v_ip_addressB\x0e\n" +
 	"\f_ttl_secondsB\x0e\n" +
-	"\f_max_devices\"\x84\x05\n" +
+	"\f_max_devices\"\xab\x05\n" +
 	"\x15CreateSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
@@ -1000,26 +1067,26 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"user_agent\x18\n" +
 	" \x01(\tH\x02R\tuserAgent\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"ip_address\x18\v \x01(\tH\x03R\tipAddress\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\f \x01(\tR\x06status\x1a;\n" +
+	"ip_address\x18\v \x01(\tH\x03R\tipAddress\x88\x01\x01\x12=\n" +
+	"\x06status\x18\f \x01(\x0e2%.k1s0.system.session.v1.SessionStatusR\x06status\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x0e\n" +
 	"\f_device_nameB\x0e\n" +
 	"\f_device_typeB\r\n" +
 	"\v_user_agentB\r\n" +
-	"\v_ip_address\"2\n" +
-	"\x11GetSessionRequest\x12\x1d\n" +
+	"\v_ip_address\"<\n" +
+	"\x11GetSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"O\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\"O\n" +
 	"\x12GetSessionResponse\x129\n" +
-	"\asession\x18\x01 \x01(\v2\x1f.k1s0.system.session.v1.SessionR\asession\"l\n" +
-	"\x15RefreshSessionRequest\x12\x1d\n" +
+	"\asession\x18\x01 \x01(\v2\x1f.k1s0.system.session.v1.SessionR\asession\"v\n" +
+	"\x15RefreshSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12$\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\x12$\n" +
 	"\vttl_seconds\x18\x02 \x01(\rH\x00R\n" +
 	"ttlSeconds\x88\x01\x01B\x0e\n" +
-	"\f_ttl_seconds\"\xec\x05\n" +
+	"\f_ttl_seconds\"\x93\x06\n" +
 	"\x16RefreshSessionResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12?\n" +
@@ -1040,8 +1107,8 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	" \x03(\v2<.k1s0.system.session.v1.RefreshSessionResponse.MetadataEntryR\bmetadata\x12?\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12O\n" +
-	"\x10last_accessed_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampH\x04R\x0elastAccessedAt\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\r \x01(\tR\x06status\x1a;\n" +
+	"\x10last_accessed_at\x18\f \x01(\v2 .k1s0.system.common.v1.TimestampH\x04R\x0elastAccessedAt\x88\x01\x01\x12=\n" +
+	"\x06status\x18\r \x01(\x0e2%.k1s0.system.session.v1.SessionStatusR\x06status\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x0e\n" +
@@ -1049,22 +1116,22 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\f_device_typeB\r\n" +
 	"\v_user_agentB\r\n" +
 	"\v_ip_addressB\x13\n" +
-	"\x11_last_accessed_at\"5\n" +
-	"\x14RevokeSessionRequest\x12\x1d\n" +
+	"\x11_last_accessed_at\"?\n" +
+	"\x14RevokeSessionRequest\x12'\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"1\n" +
+	"session_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\tsessionId\"1\n" +
 	"\x15RevokeSessionResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"3\n" +
-	"\x18RevokeAllSessionsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"=\n" +
+	"\x18RevokeAllSessionsRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"@\n" +
 	"\x19RevokeAllSessionsResponse\x12#\n" +
-	"\rrevoked_count\x18\x01 \x01(\rR\frevokedCount\"2\n" +
-	"\x17ListUserSessionsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"x\n" +
+	"\rrevoked_count\x18\x01 \x01(\rR\frevokedCount\"<\n" +
+	"\x17ListUserSessionsRequest\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x06userId\"x\n" +
 	"\x18ListUserSessionsResponse\x12;\n" +
 	"\bsessions\x18\x01 \x03(\v2\x1f.k1s0.system.session.v1.SessionR\bsessions\x12\x1f\n" +
 	"\vtotal_count\x18\x02 \x01(\rR\n" +
-	"totalCount\"\xc6\x04\n" +
+	"totalCount\"\xed\x04\n" +
 	"\aSession\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
@@ -1077,8 +1144,8 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"user_agent\x18\x06 \x01(\tH\x02R\tuserAgent\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"ip_address\x18\a \x01(\tH\x03R\tipAddress\x88\x01\x01\x12\x16\n" +
-	"\x06status\x18\b \x01(\tR\x06status\x12?\n" +
+	"ip_address\x18\a \x01(\tH\x03R\tipAddress\x88\x01\x01\x12=\n" +
+	"\x06status\x18\b \x01(\x0e2%.k1s0.system.session.v1.SessionStatusR\x06status\x12?\n" +
 	"\n" +
 	"expires_at\x18\t \x01(\v2 .k1s0.system.common.v1.TimestampR\texpiresAt\x12?\n" +
 	"\n" +
@@ -1090,7 +1157,11 @@ const file_k1s0_system_session_v1_session_proto_rawDesc = "" +
 	"\f_device_typeB\r\n" +
 	"\v_user_agentB\r\n" +
 	"\v_ip_addressB\x13\n" +
-	"\x11_last_accessed_at2\xb3\x05\n" +
+	"\x11_last_accessed_at*f\n" +
+	"\rSessionStatus\x12\x1e\n" +
+	"\x1aSESSION_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15SESSION_STATUS_ACTIVE\x10\x01\x12\x1a\n" +
+	"\x16SESSION_STATUS_REVOKED\x10\x022\xb3\x05\n" +
 	"\x0eSessionService\x12l\n" +
 	"\rCreateSession\x12,.k1s0.system.session.v1.CreateSessionRequest\x1a-.k1s0.system.session.v1.CreateSessionResponse\x12c\n" +
 	"\n" +
@@ -1112,57 +1183,62 @@ func file_k1s0_system_session_v1_session_proto_rawDescGZIP() []byte {
 	return file_k1s0_system_session_v1_session_proto_rawDescData
 }
 
+var file_k1s0_system_session_v1_session_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_k1s0_system_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_k1s0_system_session_v1_session_proto_goTypes = []any{
-	(*CreateSessionRequest)(nil),      // 0: k1s0.system.session.v1.CreateSessionRequest
-	(*CreateSessionResponse)(nil),     // 1: k1s0.system.session.v1.CreateSessionResponse
-	(*GetSessionRequest)(nil),         // 2: k1s0.system.session.v1.GetSessionRequest
-	(*GetSessionResponse)(nil),        // 3: k1s0.system.session.v1.GetSessionResponse
-	(*RefreshSessionRequest)(nil),     // 4: k1s0.system.session.v1.RefreshSessionRequest
-	(*RefreshSessionResponse)(nil),    // 5: k1s0.system.session.v1.RefreshSessionResponse
-	(*RevokeSessionRequest)(nil),      // 6: k1s0.system.session.v1.RevokeSessionRequest
-	(*RevokeSessionResponse)(nil),     // 7: k1s0.system.session.v1.RevokeSessionResponse
-	(*RevokeAllSessionsRequest)(nil),  // 8: k1s0.system.session.v1.RevokeAllSessionsRequest
-	(*RevokeAllSessionsResponse)(nil), // 9: k1s0.system.session.v1.RevokeAllSessionsResponse
-	(*ListUserSessionsRequest)(nil),   // 10: k1s0.system.session.v1.ListUserSessionsRequest
-	(*ListUserSessionsResponse)(nil),  // 11: k1s0.system.session.v1.ListUserSessionsResponse
-	(*Session)(nil),                   // 12: k1s0.system.session.v1.Session
-	nil,                               // 13: k1s0.system.session.v1.CreateSessionRequest.MetadataEntry
-	nil,                               // 14: k1s0.system.session.v1.CreateSessionResponse.MetadataEntry
-	nil,                               // 15: k1s0.system.session.v1.RefreshSessionResponse.MetadataEntry
-	(*v1.Timestamp)(nil),              // 16: k1s0.system.common.v1.Timestamp
+	(SessionStatus)(0),                // 0: k1s0.system.session.v1.SessionStatus
+	(*CreateSessionRequest)(nil),      // 1: k1s0.system.session.v1.CreateSessionRequest
+	(*CreateSessionResponse)(nil),     // 2: k1s0.system.session.v1.CreateSessionResponse
+	(*GetSessionRequest)(nil),         // 3: k1s0.system.session.v1.GetSessionRequest
+	(*GetSessionResponse)(nil),        // 4: k1s0.system.session.v1.GetSessionResponse
+	(*RefreshSessionRequest)(nil),     // 5: k1s0.system.session.v1.RefreshSessionRequest
+	(*RefreshSessionResponse)(nil),    // 6: k1s0.system.session.v1.RefreshSessionResponse
+	(*RevokeSessionRequest)(nil),      // 7: k1s0.system.session.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),     // 8: k1s0.system.session.v1.RevokeSessionResponse
+	(*RevokeAllSessionsRequest)(nil),  // 9: k1s0.system.session.v1.RevokeAllSessionsRequest
+	(*RevokeAllSessionsResponse)(nil), // 10: k1s0.system.session.v1.RevokeAllSessionsResponse
+	(*ListUserSessionsRequest)(nil),   // 11: k1s0.system.session.v1.ListUserSessionsRequest
+	(*ListUserSessionsResponse)(nil),  // 12: k1s0.system.session.v1.ListUserSessionsResponse
+	(*Session)(nil),                   // 13: k1s0.system.session.v1.Session
+	nil,                               // 14: k1s0.system.session.v1.CreateSessionRequest.MetadataEntry
+	nil,                               // 15: k1s0.system.session.v1.CreateSessionResponse.MetadataEntry
+	nil,                               // 16: k1s0.system.session.v1.RefreshSessionResponse.MetadataEntry
+	(*v1.Timestamp)(nil),              // 17: k1s0.system.common.v1.Timestamp
 }
 var file_k1s0_system_session_v1_session_proto_depIdxs = []int32{
-	13, // 0: k1s0.system.session.v1.CreateSessionRequest.metadata:type_name -> k1s0.system.session.v1.CreateSessionRequest.MetadataEntry
-	16, // 1: k1s0.system.session.v1.CreateSessionResponse.expires_at:type_name -> k1s0.system.common.v1.Timestamp
-	16, // 2: k1s0.system.session.v1.CreateSessionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	14, // 3: k1s0.system.session.v1.CreateSessionResponse.metadata:type_name -> k1s0.system.session.v1.CreateSessionResponse.MetadataEntry
-	12, // 4: k1s0.system.session.v1.GetSessionResponse.session:type_name -> k1s0.system.session.v1.Session
-	16, // 5: k1s0.system.session.v1.RefreshSessionResponse.expires_at:type_name -> k1s0.system.common.v1.Timestamp
-	15, // 6: k1s0.system.session.v1.RefreshSessionResponse.metadata:type_name -> k1s0.system.session.v1.RefreshSessionResponse.MetadataEntry
-	16, // 7: k1s0.system.session.v1.RefreshSessionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	16, // 8: k1s0.system.session.v1.RefreshSessionResponse.last_accessed_at:type_name -> k1s0.system.common.v1.Timestamp
-	12, // 9: k1s0.system.session.v1.ListUserSessionsResponse.sessions:type_name -> k1s0.system.session.v1.Session
-	16, // 10: k1s0.system.session.v1.Session.expires_at:type_name -> k1s0.system.common.v1.Timestamp
-	16, // 11: k1s0.system.session.v1.Session.created_at:type_name -> k1s0.system.common.v1.Timestamp
-	16, // 12: k1s0.system.session.v1.Session.last_accessed_at:type_name -> k1s0.system.common.v1.Timestamp
-	0,  // 13: k1s0.system.session.v1.SessionService.CreateSession:input_type -> k1s0.system.session.v1.CreateSessionRequest
-	2,  // 14: k1s0.system.session.v1.SessionService.GetSession:input_type -> k1s0.system.session.v1.GetSessionRequest
-	4,  // 15: k1s0.system.session.v1.SessionService.RefreshSession:input_type -> k1s0.system.session.v1.RefreshSessionRequest
-	6,  // 16: k1s0.system.session.v1.SessionService.RevokeSession:input_type -> k1s0.system.session.v1.RevokeSessionRequest
-	8,  // 17: k1s0.system.session.v1.SessionService.RevokeAllSessions:input_type -> k1s0.system.session.v1.RevokeAllSessionsRequest
-	10, // 18: k1s0.system.session.v1.SessionService.ListUserSessions:input_type -> k1s0.system.session.v1.ListUserSessionsRequest
-	1,  // 19: k1s0.system.session.v1.SessionService.CreateSession:output_type -> k1s0.system.session.v1.CreateSessionResponse
-	3,  // 20: k1s0.system.session.v1.SessionService.GetSession:output_type -> k1s0.system.session.v1.GetSessionResponse
-	5,  // 21: k1s0.system.session.v1.SessionService.RefreshSession:output_type -> k1s0.system.session.v1.RefreshSessionResponse
-	7,  // 22: k1s0.system.session.v1.SessionService.RevokeSession:output_type -> k1s0.system.session.v1.RevokeSessionResponse
-	9,  // 23: k1s0.system.session.v1.SessionService.RevokeAllSessions:output_type -> k1s0.system.session.v1.RevokeAllSessionsResponse
-	11, // 24: k1s0.system.session.v1.SessionService.ListUserSessions:output_type -> k1s0.system.session.v1.ListUserSessionsResponse
-	19, // [19:25] is the sub-list for method output_type
-	13, // [13:19] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	14, // 0: k1s0.system.session.v1.CreateSessionRequest.metadata:type_name -> k1s0.system.session.v1.CreateSessionRequest.MetadataEntry
+	17, // 1: k1s0.system.session.v1.CreateSessionResponse.expires_at:type_name -> k1s0.system.common.v1.Timestamp
+	17, // 2: k1s0.system.session.v1.CreateSessionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	15, // 3: k1s0.system.session.v1.CreateSessionResponse.metadata:type_name -> k1s0.system.session.v1.CreateSessionResponse.MetadataEntry
+	0,  // 4: k1s0.system.session.v1.CreateSessionResponse.status:type_name -> k1s0.system.session.v1.SessionStatus
+	13, // 5: k1s0.system.session.v1.GetSessionResponse.session:type_name -> k1s0.system.session.v1.Session
+	17, // 6: k1s0.system.session.v1.RefreshSessionResponse.expires_at:type_name -> k1s0.system.common.v1.Timestamp
+	16, // 7: k1s0.system.session.v1.RefreshSessionResponse.metadata:type_name -> k1s0.system.session.v1.RefreshSessionResponse.MetadataEntry
+	17, // 8: k1s0.system.session.v1.RefreshSessionResponse.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	17, // 9: k1s0.system.session.v1.RefreshSessionResponse.last_accessed_at:type_name -> k1s0.system.common.v1.Timestamp
+	0,  // 10: k1s0.system.session.v1.RefreshSessionResponse.status:type_name -> k1s0.system.session.v1.SessionStatus
+	13, // 11: k1s0.system.session.v1.ListUserSessionsResponse.sessions:type_name -> k1s0.system.session.v1.Session
+	0,  // 12: k1s0.system.session.v1.Session.status:type_name -> k1s0.system.session.v1.SessionStatus
+	17, // 13: k1s0.system.session.v1.Session.expires_at:type_name -> k1s0.system.common.v1.Timestamp
+	17, // 14: k1s0.system.session.v1.Session.created_at:type_name -> k1s0.system.common.v1.Timestamp
+	17, // 15: k1s0.system.session.v1.Session.last_accessed_at:type_name -> k1s0.system.common.v1.Timestamp
+	1,  // 16: k1s0.system.session.v1.SessionService.CreateSession:input_type -> k1s0.system.session.v1.CreateSessionRequest
+	3,  // 17: k1s0.system.session.v1.SessionService.GetSession:input_type -> k1s0.system.session.v1.GetSessionRequest
+	5,  // 18: k1s0.system.session.v1.SessionService.RefreshSession:input_type -> k1s0.system.session.v1.RefreshSessionRequest
+	7,  // 19: k1s0.system.session.v1.SessionService.RevokeSession:input_type -> k1s0.system.session.v1.RevokeSessionRequest
+	9,  // 20: k1s0.system.session.v1.SessionService.RevokeAllSessions:input_type -> k1s0.system.session.v1.RevokeAllSessionsRequest
+	11, // 21: k1s0.system.session.v1.SessionService.ListUserSessions:input_type -> k1s0.system.session.v1.ListUserSessionsRequest
+	2,  // 22: k1s0.system.session.v1.SessionService.CreateSession:output_type -> k1s0.system.session.v1.CreateSessionResponse
+	4,  // 23: k1s0.system.session.v1.SessionService.GetSession:output_type -> k1s0.system.session.v1.GetSessionResponse
+	6,  // 24: k1s0.system.session.v1.SessionService.RefreshSession:output_type -> k1s0.system.session.v1.RefreshSessionResponse
+	8,  // 25: k1s0.system.session.v1.SessionService.RevokeSession:output_type -> k1s0.system.session.v1.RevokeSessionResponse
+	10, // 26: k1s0.system.session.v1.SessionService.RevokeAllSessions:output_type -> k1s0.system.session.v1.RevokeAllSessionsResponse
+	12, // 27: k1s0.system.session.v1.SessionService.ListUserSessions:output_type -> k1s0.system.session.v1.ListUserSessionsResponse
+	22, // [22:28] is the sub-list for method output_type
+	16, // [16:22] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_k1s0_system_session_v1_session_proto_init() }
@@ -1180,13 +1256,14 @@ func file_k1s0_system_session_v1_session_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_k1s0_system_session_v1_session_proto_rawDesc), len(file_k1s0_system_session_v1_session_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_k1s0_system_session_v1_session_proto_goTypes,
 		DependencyIndexes: file_k1s0_system_session_v1_session_proto_depIdxs,
+		EnumInfos:         file_k1s0_system_session_v1_session_proto_enumTypes,
 		MessageInfos:      file_k1s0_system_session_v1_session_proto_msgTypes,
 	}.Build()
 	File_k1s0_system_session_v1_session_proto = out.File

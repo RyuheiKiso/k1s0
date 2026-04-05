@@ -28,9 +28,9 @@ impl TransactionalAppendAdapter {
 impl TransactionalAppendPort for TransactionalAppendAdapter {
     /// ストリーム作成（新規の場合）・イベント追記・バージョン更新を
     /// 単一の REPEATABLE READ トランザクションで実行する。
-    async fn append_in_transaction(
+    async fn append_in_transaction<'a>(
         &self,
-        stream: Option<&EventStream>,
+        stream: Option<&'a EventStream>,
         stream_id: &str,
         events: Vec<StoredEvent>,
         new_version: i64,

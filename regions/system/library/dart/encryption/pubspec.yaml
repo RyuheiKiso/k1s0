@@ -7,6 +7,11 @@ environment:
 
 dependencies:
   crypto: ^3.0.0
+  # MED-027 監査対応: encrypt と pointycastle の使用目的を明確化。
+  # encrypt: lib/src/aes.dart で AES-GCM 暗号化に使用（pointycastle のラッパー）。
+  # pointycastle: lib/src/rsa.dart で RSA-OAEP 鍵生成・暗号化に直接使用。
+  # 両パッケージはそれぞれ異なるファイルで独立して使用されており、重複依存ではない。
+  # encrypt パッケージが pointycastle に依存しているため、バージョン固定が必要。
   encrypt: ^5.0.3
   hashlib: ^2.3.0
   pointycastle: ^3.9.1

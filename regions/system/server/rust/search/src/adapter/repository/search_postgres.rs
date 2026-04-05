@@ -34,6 +34,7 @@ struct SearchIndexRow {
     created_at: DateTime<Utc>,
     #[allow(dead_code)]
     updated_at: DateTime<Utc>,
+    tenant_id: String,
 }
 
 impl From<SearchIndexRow> for SearchIndex {
@@ -43,6 +44,7 @@ impl From<SearchIndexRow> for SearchIndex {
             name: r.name,
             mapping: r.mapping,
             created_at: r.created_at,
+            tenant_id: r.tenant_id,
         }
     }
 }
@@ -78,41 +80,64 @@ struct FacetRow {
 
 #[async_trait]
 impl SearchRepository for SearchPostgresRepository {
-    /// インデックスを作成する。
-    async fn create_index(&self, index: &SearchIndex) -> anyhow::Result<()> {
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからインデックスを作成する。
+    async fn create_index(&self, index: &SearchIndex, tenant_id: &str) -> anyhow::Result<()> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         sqlx::query(
-            "INSERT INTO search.search_indices (id, name, mapping, created_at) \
-             VALUES ($1, $2, $3, $4)",
+            "INSERT INTO search.search_indices (id, name, mapping, tenant_id, created_at) \
+             VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(index.id)
         .bind(&index.name)
         .bind(&index.mapping)
+        .bind(tenant_id)
         .bind(index.created_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
         Ok(())
     }
 
-    /// インデックスを名前で検索する。
-    async fn find_index(&self, name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからインデックスを名前で検索する。
+    async fn find_index(&self, name: &str, tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let row: Option<SearchIndexRow> = sqlx::query_as(
-            "SELECT id, name, mapping, doc_count, created_at, updated_at \
+            "SELECT id, name, mapping, doc_count, created_at, updated_at, tenant_id \
              FROM search.search_indices WHERE name = $1",
         )
         .bind(name)
-        .fetch_optional(self.pool.as_ref())
+        .fetch_optional(&mut *tx)
         .await?;
+
+        tx.commit().await?;
         Ok(row.map(Into::into))
     }
 
-    /// ドキュメントをインデックスに登録する（UPSERT）。
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからドキュメントを登録する（UPSERT）。
     /// search_vector はトリガーが自動生成するため、INSERT では設定しない。
-    async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
-        // まずインデックスの id を取得
+    async fn index_document(&self, doc: &SearchDocument, tenant_id: &str) -> anyhow::Result<()> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // インデックスの id を取得
         let index_row: Option<(Uuid,)> =
             sqlx::query_as("SELECT id FROM search.search_indices WHERE name = $1")
                 .bind(&doc.index_name)
-                .fetch_optional(self.pool.as_ref())
+                .fetch_optional(&mut *tx)
                 .await?;
 
         let index_id = index_row
@@ -129,7 +154,7 @@ impl SearchRepository for SearchPostgresRepository {
         .bind(index_id)
         .bind(&doc.id)
         .bind(&doc.content)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
 
         // doc_count を更新（実際のドキュメント数をカウント）
@@ -139,17 +164,24 @@ impl SearchRepository for SearchPostgresRepository {
              WHERE id = $1",
         )
         .bind(index_id)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
 
+        tx.commit().await?;
         Ok(())
     }
 
-    /// PostgreSQL 全文検索を使ってドキュメントを検索する。
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してから全文検索を実行する。
     /// - plainto_tsquery で任意のユーザー入力を安全に処理する（tsquery インジェクション防止）
-    /// - query.filters の各キー・バリューを JSONB フィールドフィルタ (content->>'key' = 'val') として適用する
+    /// - query.filters の各キー・バリューを JSONB フィールドフィルタとして適用する
     /// - query.facets で指定されたフィールドの値ごとにドキュメント数を集計して返す
-    async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    async fn search(&self, query: &SearchQuery, tenant_id: &str) -> anyhow::Result<SearchResult> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let has_text_query = !query.query.trim().is_empty();
 
         // --- メインクエリ: QueryBuilder で動的 WHERE 節を構築 ---
@@ -190,8 +222,7 @@ impl SearchRepository for SearchPostgresRepository {
         qb.push(" OFFSET ");
         qb.push_bind(query.from as i64);
 
-        let rows: Vec<SearchDocumentRow> =
-            qb.build_query_as().fetch_all(self.pool.as_ref()).await?;
+        let rows: Vec<SearchDocumentRow> = qb.build_query_as().fetch_all(&mut *tx).await?;
 
         // --- カウントクエリ: メインクエリと同一の WHERE 条件 ---
         let mut count_qb: QueryBuilder<sqlx::Postgres> = QueryBuilder::new(
@@ -214,10 +245,7 @@ impl SearchRepository for SearchPostgresRepository {
             count_qb.push_bind(value);
         }
 
-        let count: (i64,) = count_qb
-            .build_query_as()
-            .fetch_one(self.pool.as_ref())
-            .await?;
+        let count: (i64,) = count_qb.build_query_as().fetch_one(&mut *tx).await?;
 
         let total = count.0.max(0) as u64;
         let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
@@ -257,10 +285,7 @@ impl SearchRepository for SearchPostgresRepository {
             facet_qb.push_bind(facet_field);
             facet_qb.push(" IS NOT NULL GROUP BY 1");
 
-            let facet_rows: Vec<FacetRow> = facet_qb
-                .build_query_as()
-                .fetch_all(self.pool.as_ref())
-                .await?;
+            let facet_rows: Vec<FacetRow> = facet_qb.build_query_as().fetch_all(&mut *tx).await?;
 
             let field_counts: HashMap<String, u64> = facet_rows
                 .into_iter()
@@ -269,6 +294,8 @@ impl SearchRepository for SearchPostgresRepository {
 
             facets.insert(facet_field.clone(), field_counts);
         }
+
+        tx.commit().await?;
 
         Ok(SearchResult {
             total,
@@ -283,18 +310,27 @@ impl SearchRepository for SearchPostgresRepository {
         })
     }
 
-    /// ドキュメントを削除する。
-    async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してからドキュメントを削除する。
+    async fn delete_document(&self, index_name: &str, doc_id: &str, tenant_id: &str) -> anyhow::Result<bool> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         // インデックス id を取得
         let index_row: Option<(Uuid,)> =
             sqlx::query_as("SELECT id FROM search.search_indices WHERE name = $1")
                 .bind(index_name)
-                .fetch_optional(self.pool.as_ref())
+                .fetch_optional(&mut *tx)
                 .await?;
 
         let index_id = match index_row {
             Some(row) => row.0,
-            None => return Ok(false),
+            None => {
+                tx.commit().await?;
+                return Ok(false);
+            }
         };
 
         let result = sqlx::query(
@@ -302,7 +338,7 @@ impl SearchRepository for SearchPostgresRepository {
         )
         .bind(index_id)
         .bind(doc_id)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
 
         if result.rows_affected() > 0 {
@@ -313,23 +349,33 @@ impl SearchRepository for SearchPostgresRepository {
                  WHERE id = $1",
             )
             .bind(index_id)
-            .execute(self.pool.as_ref())
+            .execute(&mut *tx)
             .await?;
 
+            tx.commit().await?;
             Ok(true)
         } else {
+            tx.commit().await?;
             Ok(false)
         }
     }
 
-    /// すべてのインデックスを取得する。
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    /// CRIT-005 対応: トランザクション内で set_config を呼び出してテナント分離してから全インデックスを取得する。
+    async fn list_indices(&self, tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
         let rows: Vec<SearchIndexRow> = sqlx::query_as(
-            "SELECT id, name, mapping, doc_count, created_at, updated_at \
+            "SELECT id, name, mapping, doc_count, created_at, updated_at, tenant_id \
              FROM search.search_indices ORDER BY created_at DESC",
         )
-        .fetch_all(self.pool.as_ref())
+        .fetch_all(&mut *tx)
         .await?;
+
+        tx.commit().await?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 }
@@ -347,10 +393,12 @@ mod tests {
             doc_count: 42,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         };
         let index: SearchIndex = row.into();
         assert_eq!(index.name, "products");
         assert_eq!(index.mapping, serde_json::json!({"fields": ["name"]}));
+        assert_eq!(index.tenant_id, "tenant-a");
     }
 
     #[test]

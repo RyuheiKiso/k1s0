@@ -27,7 +27,7 @@ pub mod policy_service_client {
     }
     impl<T> PolicyServiceClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::Body>,
+        T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -48,13 +48,13 @@ pub mod policy_service_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
+                http::Request<tonic::body::BoxBody>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
+                http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             PolicyServiceClient::new(InterceptedService::new(inner, interceptor))
@@ -105,7 +105,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/EvaluatePolicy",
             );
@@ -134,7 +134,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/GetPolicy",
             );
@@ -160,7 +160,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/ListPolicies",
             );
@@ -189,7 +189,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/CreatePolicy",
             );
@@ -218,7 +218,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/UpdatePolicy",
             );
@@ -247,7 +247,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/DeletePolicy",
             );
@@ -276,7 +276,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/CreateBundle",
             );
@@ -305,7 +305,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/ListBundles",
             );
@@ -331,7 +331,7 @@ pub mod policy_service_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic_prost::ProstCodec::default();
+            let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/k1s0.system.policy.v1.PolicyService/GetBundle",
             );
@@ -486,7 +486,7 @@ pub mod policy_service_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::Body>;
+        type Response = http::Response<tonic::body::BoxBody>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -527,7 +527,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = EvaluatePolicySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -572,7 +572,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetPolicySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -617,7 +617,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListPoliciesSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -662,7 +662,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreatePolicySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -707,7 +707,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdatePolicySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -752,7 +752,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = DeletePolicySvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -797,7 +797,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CreateBundleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -842,7 +842,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ListBundlesSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -887,7 +887,7 @@ pub mod policy_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = GetBundleSvc(inner);
-                        let codec = tonic_prost::ProstCodec::default();
+                        let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -905,7 +905,7 @@ pub mod policy_service_server {
                 _ => {
                     Box::pin(async move {
                         let mut response = http::Response::new(
-                            tonic::body::Body::default(),
+                            tonic::body::BoxBody::default(),
                         );
                         let headers = response.headers_mut();
                         headers

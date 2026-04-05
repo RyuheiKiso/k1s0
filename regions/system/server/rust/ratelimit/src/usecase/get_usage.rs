@@ -62,9 +62,10 @@ impl GetUsageUseCase {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetUsageError::InvalidRuleId(rule_id.to_string()))?;
 
+        // CRIT-005 対応: テナント分離しながら ID でルールを取得する。
         let rule = self
             .rule_repo
-            .find_by_id(&id)
+            .find_by_id(&id, tenant_id)
             .await
             .map_err(|e| GetUsageError::NotFound(e.to_string()))?;
 
@@ -128,7 +129,7 @@ mod tests {
 
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_id()
-            .returning(move |_| Ok(return_rule.clone()));
+            .returning(move |_, _| Ok(return_rule.clone()));
 
         let uc = GetUsageUseCase::new(Arc::new(repo));
         let result = uc.execute(SYSTEM_TENANT, &rule_id.to_string()).await;
@@ -146,7 +147,7 @@ mod tests {
     async fn test_get_usage_not_found() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("not found")));
 
         let uc = GetUsageUseCase::new(Arc::new(repo));
         let result = uc

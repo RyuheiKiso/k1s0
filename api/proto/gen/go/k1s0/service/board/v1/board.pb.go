@@ -11,6 +11,7 @@
 package boardv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -128,10 +129,13 @@ func (x *BoardColumn) GetUpdatedAt() *v1.Timestamp {
 }
 
 type IncrementColumnRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	StatusCode    string                 `protobuf:"bytes,3,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// プロジェクトIDは1文字以上であること
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// ステータスコードは1文字以上64文字以下であること
+	StatusCode    string `protobuf:"bytes,3,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -232,11 +236,14 @@ func (x *IncrementColumnResponse) GetColumn() *BoardColumn {
 }
 
 type DecrementColumnRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TaskId        string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	StatusCode    string                 `protobuf:"bytes,3,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// タスクIDは1文字以上であること
+	TaskId string `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// プロジェクトIDは1文字以上であること
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	// ステータスコードは1文字以上64文字以下であること
+	StatusCode    string `protobuf:"bytes,3,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
+	Reason        string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -344,8 +351,9 @@ func (x *DecrementColumnResponse) GetColumn() *BoardColumn {
 }
 
 type GetBoardColumnRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ColumnId      string                 `protobuf:"bytes,1,opt,name=column_id,json=columnId,proto3" json:"column_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// カラムIDは1文字以上であること
+	ColumnId      string `protobuf:"bytes,1,opt,name=column_id,json=columnId,proto3" json:"column_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,10 +552,11 @@ func (x *ListBoardColumnsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type UpdateWipLimitRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	ColumnId        string                 `protobuf:"bytes,1,opt,name=column_id,json=columnId,proto3" json:"column_id,omitempty"`
-	WipLimit        int32                  `protobuf:"varint,2,opt,name=wip_limit,json=wipLimit,proto3" json:"wip_limit,omitempty"`
-	ExpectedVersion int32                  `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// カラムIDは1文字以上であること
+	ColumnId        string `protobuf:"bytes,1,opt,name=column_id,json=columnId,proto3" json:"column_id,omitempty"`
+	WipLimit        int32  `protobuf:"varint,2,opt,name=wip_limit,json=wipLimit,proto3" json:"wip_limit,omitempty"`
+	ExpectedVersion int32  `protobuf:"varint,3,opt,name=expected_version,json=expectedVersion,proto3" json:"expected_version,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -651,7 +660,7 @@ var File_k1s0_service_board_v1_board_proto protoreflect.FileDescriptor
 
 const file_k1s0_service_board_v1_board_proto_rawDesc = "" +
 	"\n" +
-	"!k1s0/service/board/v1/board.proto\x12\x15k1s0.service.board.v1\x1a!k1s0/system/common/v1/types.proto\"\xb5\x02\n" +
+	"!k1s0/service/board/v1/board.proto\x12\x15k1s0.service.board.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xb5\x02\n" +
 	"\vBoardColumn\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -665,26 +674,26 @@ const file_k1s0_service_board_v1_board_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\a \x01(\v2 .k1s0.system.common.v1.TimestampR\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"q\n" +
-	"\x16IncrementColumnRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1d\n" +
+	"updated_at\x18\b \x01(\v2 .k1s0.system.common.v1.TimestampR\tupdatedAt\"\x8e\x01\n" +
+	"\x16IncrementColumnRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12&\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x1f\n" +
-	"\vstatus_code\x18\x03 \x01(\tR\n" +
+	"project_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tprojectId\x12*\n" +
+	"\vstatus_code\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\n" +
 	"statusCode\"U\n" +
 	"\x17IncrementColumnResponse\x12:\n" +
-	"\x06column\x18\x01 \x01(\v2\".k1s0.service.board.v1.BoardColumnR\x06column\"\x89\x01\n" +
-	"\x16DecrementColumnRequest\x12\x17\n" +
-	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1d\n" +
+	"\x06column\x18\x01 \x01(\v2\".k1s0.service.board.v1.BoardColumnR\x06column\"\xa6\x01\n" +
+	"\x16DecrementColumnRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\x12&\n" +
 	"\n" +
-	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x1f\n" +
-	"\vstatus_code\x18\x03 \x01(\tR\n" +
+	"project_id\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tprojectId\x12*\n" +
+	"\vstatus_code\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\n" +
 	"statusCode\x12\x16\n" +
 	"\x06reason\x18\x04 \x01(\tR\x06reason\"U\n" +
 	"\x17DecrementColumnResponse\x12:\n" +
-	"\x06column\x18\x01 \x01(\v2\".k1s0.service.board.v1.BoardColumnR\x06column\"4\n" +
-	"\x15GetBoardColumnRequest\x12\x1b\n" +
-	"\tcolumn_id\x18\x01 \x01(\tR\bcolumnId\"T\n" +
+	"\x06column\x18\x01 \x01(\v2\".k1s0.service.board.v1.BoardColumnR\x06column\"=\n" +
+	"\x15GetBoardColumnRequest\x12$\n" +
+	"\tcolumn_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bcolumnId\"T\n" +
 	"\x16GetBoardColumnResponse\x12:\n" +
 	"\x06column\x18\x01 \x01(\v2\".k1s0.service.board.v1.BoardColumnR\x06column\"\xc5\x01\n" +
 	"\x17ListBoardColumnsRequest\x12\"\n" +
@@ -701,9 +710,9 @@ const file_k1s0_service_board_v1_board_proto_rawDesc = "" +
 	"\acolumns\x18\x01 \x03(\v2\".k1s0.service.board.v1.BoardColumnR\acolumns\x12G\n" +
 	"\n" +
 	"pagination\x18\x03 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"|\n" +
-	"\x15UpdateWipLimitRequest\x12\x1b\n" +
-	"\tcolumn_id\x18\x01 \x01(\tR\bcolumnId\x12\x1b\n" +
+	"paginationJ\x04\b\x02\x10\x03R\vtotal_count\"\x85\x01\n" +
+	"\x15UpdateWipLimitRequest\x12$\n" +
+	"\tcolumn_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bcolumnId\x12\x1b\n" +
 	"\twip_limit\x18\x02 \x01(\x05R\bwipLimit\x12)\n" +
 	"\x10expected_version\x18\x03 \x01(\x05R\x0fexpectedVersion\"T\n" +
 	"\x16UpdateWipLimitResponse\x12:\n" +

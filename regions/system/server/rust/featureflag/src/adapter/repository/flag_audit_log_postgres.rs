@@ -20,10 +20,11 @@ impl FlagAuditLogPostgresRepository {
 
 /// PostgreSQL の行をマッピングするための内部構造体。
 /// STATIC-CRITICAL-001 監査対応: tenant_id カラムを含む。
+/// HIGH-005 対応: migration 006 で tenant_id が TEXT 型に変更されたため String 型を使用する。
 #[derive(sqlx::FromRow)]
 struct FlagAuditLogRow {
     id: Uuid,
-    tenant_id: Uuid,
+    tenant_id: String,
     flag_id: Uuid,
     flag_key: String,
     action: String,
@@ -60,7 +61,7 @@ impl FlagAuditLogRepository for FlagAuditLogPostgresRepository {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(log.id)
-        .bind(log.tenant_id)
+        .bind(&log.tenant_id)
         .bind(log.flag_id)
         .bind(&log.flag_key)
         .bind(&log.action)

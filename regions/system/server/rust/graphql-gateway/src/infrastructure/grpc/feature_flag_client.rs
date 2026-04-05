@@ -5,7 +5,7 @@ use async_graphql::futures_util::Stream;
 use tonic::transport::Channel;
 use tracing::instrument;
 
-use crate::domain::model::FeatureFlag;
+use crate::domain::model::{FeatureFlag, FlagRule, FlagVariant};
 use crate::domain::port::FeatureFlagPort;
 use crate::infrastructure::config::BackendConfig;
 
@@ -29,10 +29,6 @@ pub mod proto {
 
 use proto::k1s0::system::featureflag::v1::feature_flag_service_client::FeatureFlagServiceClient;
 use proto::k1s0::system::featureflag::v1::FeatureFlag as ProtoFeatureFlag;
-// Operator の文字列表現定数。
-// proto 生成コードのバージョンによって operator フィールドは String または i32 になる。
-// protoc 不在環境では古い生成コード（String 型）が使われるため文字列定数で対応する。
-const OPERATOR_EQ_STR: &str = "OPERATOR_EQ";
 
 pub struct FeatureFlagGrpcClient {
     client: FeatureFlagServiceClient<Channel>,
@@ -43,76 +39,80 @@ pub struct FeatureFlagGrpcClient {
 }
 
 impl FeatureFlagGrpcClient {
-    fn rollout_to_variants(
-        rollout_percentage: Option<i32>,
-    ) -> Vec<proto::k1s0::system::featureflag::v1::FlagVariant> {
-        let Some(rollout) = rollout_percentage else {
-            return vec![];
-        };
-        let on_weight = rollout.clamp(0, 100);
-        let off_weight = 100 - on_weight;
-        vec![
-            proto::k1s0::system::featureflag::v1::FlagVariant {
-                name: "on".to_string(),
-                value: "true".to_string(),
-                weight: on_weight,
-            },
-            proto::k1s0::system::featureflag::v1::FlagVariant {
-                name: "off".to_string(),
-                value: "false".to_string(),
-                weight: off_weight,
-            },
-        ]
+    /// proto Timestamp を RFC3339 形式文字列に変換する。
+    /// proto Timestamp が None の場合はエポック時刻文字列を返す（フィールド必須のため）。
+    fn timestamp_to_string(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
+        match ts {
+            Some(t) => {
+                // proto Timestamp は seconds と nanos で構成される
+                // RFC3339 形式に変換するため chrono を使用する
+                use std::time::{Duration as StdDuration, UNIX_EPOCH};
+                let secs = t.seconds as u64;
+                let nanos = t.nanos as u32;
+                let system_time = UNIX_EPOCH + StdDuration::new(secs, nanos);
+                // chrono の DateTime を使って RFC3339 に変換する
+                let datetime = chrono::DateTime::<chrono::Utc>::from(system_time);
+                datetime.to_rfc3339()
+            }
+            // Timestamp が None の場合はエポック時刻を返す
+            None => "1970-01-01T00:00:00Z".to_string(),
+        }
     }
 
-    fn target_env_to_rules(
-        target_environments: Option<Vec<String>>,
-    ) -> Vec<proto::k1s0::system::featureflag::v1::FlagRule> {
-        target_environments
-            .unwrap_or_default()
+    /// proto Operator i32 値を文字列表現に変換する。
+    /// proto enum Operator { OPERATOR_UNSPECIFIED = 0; OPERATOR_EQ = 1; OPERATOR_NE = 2;
+    ///   OPERATOR_CONTAINS = 3; OPERATOR_GT = 4; OPERATOR_LT = 5; }
+    fn operator_to_string(op: i32) -> String {
+        match op {
+            1 => "EQ".to_string(),
+            2 => "NE".to_string(),
+            3 => "CONTAINS".to_string(),
+            4 => "GT".to_string(),
+            5 => "LT".to_string(),
+            _ => "UNSPECIFIED".to_string(),
+        }
+    }
+
+    /// proto ProtoFeatureFlag をドメインモデル FeatureFlag に変換する。
+    /// CRIT-007 対応: proto に存在しない name/rollout_percentage/target_environments を除去し、
+    /// variants/rules/created_at/updated_at を直接マッピングする。
+    fn to_domain_flag(flag: ProtoFeatureFlag) -> FeatureFlag {
+        // proto FlagVariant をドメイン FlagVariant に変換する
+        let variants = flag
+            .variants
             .into_iter()
-            .filter(|env| !env.trim().is_empty())
-            .map(|env| proto::k1s0::system::featureflag::v1::FlagRule {
-                attribute: "environment".to_string(),
-                // OPERATOR_EQ 文字列を使用する（Operator::Eq に相当、生成コード互換）
-                operator: OPERATOR_EQ_STR.to_string(),
-                value: env,
-                variant: "on".to_string(),
+            .map(|v| FlagVariant {
+                name: v.name,
+                value: v.value,
+                weight: v.weight,
             })
-            .collect()
-    }
-
-    fn to_domain_flag(
-        flag: ProtoFeatureFlag,
-        rollout_hint: Option<i32>,
-        targets_hint: Option<Vec<String>>,
-    ) -> FeatureFlag {
-        let inferred_targets: Vec<String> = flag
-            .rules
-            .iter()
-            .filter(|r| r.attribute == "environment")
-            .map(|r| r.value.clone())
             .collect();
-        let inferred_rollout = if !flag.enabled {
-            0
-        } else {
-            flag.variants
-                .iter()
-                .map(|v| v.weight)
-                .max()
-                .unwrap_or(100)
-                .clamp(0, 100)
-        };
+
+        // proto FlagRule をドメイン FlagRule に変換する（operator は i32 → 文字列変換）
+        let rules = flag
+            .rules
+            .into_iter()
+            .map(|r| FlagRule {
+                attribute: r.attribute,
+                operator: Self::operator_to_string(r.operator),
+                value: r.value,
+                variant: r.variant,
+            })
+            .collect();
 
         FeatureFlag {
-            key: flag.flag_key.clone(),
-            // M-022 監査対応: proto の name フィールドを正しく name に、description を description にマッピングする
-            // proto FeatureFlag には name フィールドが存在しないため、flag_key を name として使用する
-            // description は別途 description フィールドとして保持するべきだが、現在の FeatureFlag 型は name のみ持つ
-            name: flag.flag_key.clone(),
+            id: flag.id,
+            flag_key: flag.flag_key,
+            description: if flag.description.is_empty() {
+                None
+            } else {
+                Some(flag.description)
+            },
             enabled: flag.enabled,
-            rollout_percentage: rollout_hint.unwrap_or(inferred_rollout),
-            target_environments: targets_hint.unwrap_or(inferred_targets),
+            variants,
+            rules,
+            created_at: Self::timestamp_to_string(flag.created_at),
+            updated_at: Self::timestamp_to_string(flag.updated_at),
         }
     }
 
@@ -160,7 +160,7 @@ impl FeatureFlagGrpcClient {
                     Some(f) => f,
                     None => return Ok(None),
                 };
-                Ok(Some(Self::to_domain_flag(flag, None, None)))
+                Ok(Some(Self::to_domain_flag(flag)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!("FeatureFlagService.GetFlag failed: {}", e)),
@@ -184,12 +184,17 @@ impl FeatureFlagGrpcClient {
         let mut flags: Vec<FeatureFlag> = resp
             .flags
             .into_iter()
-            .map(|f| Self::to_domain_flag(f, None, None))
+            .map(Self::to_domain_flag)
             .collect();
 
+        // environment フィルタ: rules の attribute="environment" にマッチするフラグのみ返す
         if let Some(env) = environment {
             flags.retain(|f| {
-                f.target_environments.is_empty() || f.target_environments.iter().any(|e| e == env)
+                // rules が空の場合は全環境対象とみなす
+                f.rules.is_empty()
+                    || f.rules
+                        .iter()
+                        .any(|r| r.attribute == "environment" && r.value == env)
             });
         }
 
@@ -206,25 +211,28 @@ impl FeatureFlagGrpcClient {
         let all_flags = self.list_flags(None).await?;
         Ok(all_flags
             .into_iter()
-            .filter(|f| key_set.contains(f.key.as_str()))
+            .filter(|f| key_set.contains(f.flag_key.as_str()))
             .collect())
     }
 
+    /// フラグを更新する。
+    /// CRIT-007 対応: rollout_percentage/target_environments の抽象化を廃止し、
+    /// proto と整合する variants/rules を直接受け付ける。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn set_flag(
         &self,
         key: &str,
         enabled: bool,
-        rollout_percentage: Option<i32>,
-        target_environments: Option<Vec<String>>,
+        variants: Vec<proto::k1s0::system::featureflag::v1::FlagVariant>,
+        rules: Vec<proto::k1s0::system::featureflag::v1::FlagRule>,
     ) -> anyhow::Result<FeatureFlag> {
         let request =
             tonic::Request::new(proto::k1s0::system::featureflag::v1::UpdateFlagRequest {
                 flag_key: key.to_owned(),
                 enabled: Some(enabled),
                 description: Some(String::new()),
-                rules: Self::target_env_to_rules(target_environments.clone()),
-                variants: Self::rollout_to_variants(rollout_percentage),
+                rules,
+                variants,
             });
 
         let flag = self
@@ -237,11 +245,7 @@ impl FeatureFlagGrpcClient {
             .flag
             .ok_or_else(|| anyhow::anyhow!("empty flag in response"))?;
 
-        Ok(Self::to_domain_flag(
-            flag,
-            rollout_percentage,
-            target_environments,
-        ))
+        Ok(Self::to_domain_flag(flag))
     }
 
     /// WatchFeatureFlag Server-Side Streaming を購読し、変更イベントを FeatureFlag として返す。
@@ -276,7 +280,7 @@ impl FeatureFlagGrpcClient {
                         Ok(Some(resp)) => {
                             // flag フィールドが存在する場合のみドメインモデルに変換して返す
                             if let Some(f) = resp.flag {
-                                return Some((Self::to_domain_flag(f, None, None), stream));
+                                return Some((Self::to_domain_flag(f), stream));
                             }
                             // flag フィールドが None の場合はスキップして次のメッセージを待つ
                             tracing::warn!(

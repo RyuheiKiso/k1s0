@@ -138,16 +138,31 @@ CREATE INDEX IF NOT EXISTS idx_flag_audit_logs_flag_id ON featureflag.flag_audit
 アプリケーションコードは全クエリの冒頭で `SELECT set_config('app.current_tenant_id', $1, true)` を呼び出す必要がある。
 
 ### 006_alter_tenant_id_to_text.up.sql
-**目的**: tenant_id カラムの型を UUID から TEXT に変更し、全サービスで型を統一する（C-004 監査対応・ADR-0093）
+**目的**: tenant_id カラムの型を UUID から TEXT に変更し、全サービスで型を統一する（CRIT-002 監査対応・ADR-0093）
+
+> **CRIT-002 対応**: 型変更前に既存の RLS ポリシーを DROP し、`WITH CHECK` 句付きで再作成する。
+> PostgreSQL は RLS ポリシーが参照するカラムの型変更を禁止するため、DROP → ALTER → RECREATE の順序が必須。
 
 | 変更内容 | 詳細 |
 |---------|------|
+| 既存 RLS ポリシー DROP | 型変更の前提条件として `tenant_isolation` ポリシーを先に削除する |
 | feature_flags.tenant_id 型変更 | `UUID` → `TEXT`（`USING tenant_id::TEXT`）。既存の UUID 値は文字列として透過的に保持される |
 | feature_flags.tenant_id デフォルト変更 | UUID 定数 → `'system'`（他サービスと統一） |
 | flag_audit_logs.tenant_id 型変更 | `UUID` → `TEXT`（`USING tenant_id::TEXT`） |
 | flag_audit_logs.tenant_id デフォルト変更 | UUID 定数 → `'system'`（他サービスと統一） |
+| RLS ポリシー再作成（WITH CHECK 付き） | `USING` + `WITH CHECK` 双方に同一条件を設定し、SELECT 時だけでなく INSERT/UPDATE 時にもテナント検証を行う（MEDIUM-007 対応） |
 
-**C-004 監査対応**: `current_setting('app.current_tenant_id', true)` が `TEXT` を返すため、`tenant_id` も `TEXT` 型に統一することで、RLS ポリシーの `::TEXT` キャストが理論的に不要になる。後方互換性のため `005_add_rls.up.sql` の既存ポリシーのキャストはそのまま残す。
+**再作成後のポリシー**:
+```sql
+-- feature_flags / flag_audit_logs 共通（TEXT 型になったため ::TEXT キャスト不要）
+CREATE POLICY tenant_isolation ON featureflag.feature_flags
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
+
+**CRIT-002 / MEDIUM-007 監査対応**:
+- `WITH CHECK` 句の追加により、INSERT/UPDATE 時も `app.current_tenant_id` と一致するテナントの行のみ書き込み可能になる。
+- `::TEXT` キャストを廃止し、TEXT 型同士の直接比較によるパフォーマンス向上を実現する。
 
 ---
 

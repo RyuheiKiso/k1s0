@@ -28,8 +28,8 @@ class FileMetadata extends $pb.GeneratedMessage {
     $core.String? tenantId,
     $core.String? uploadedBy,
     $core.String? status,
-    $core.String? createdAt,
-    $core.String? updatedAt,
+    $1.Timestamp? createdAt,
+    $1.Timestamp? updatedAt,
     $core.Iterable<$core.MapEntry<$core.String, $core.String>>? tags,
     $core.String? storageKey,
     $core.String? checksumSha256,
@@ -71,8 +71,10 @@ class FileMetadata extends $pb.GeneratedMessage {
     ..aOS(5, _omitFieldNames ? '' : 'tenantId')
     ..aOS(6, _omitFieldNames ? '' : 'uploadedBy')
     ..aOS(7, _omitFieldNames ? '' : 'status')
-    ..aOS(8, _omitFieldNames ? '' : 'createdAt')
-    ..aOS(9, _omitFieldNames ? '' : 'updatedAt')
+    ..aOM<$1.Timestamp>(8, _omitFieldNames ? '' : 'createdAt',
+        subBuilder: $1.Timestamp.create)
+    ..aOM<$1.Timestamp>(9, _omitFieldNames ? '' : 'updatedAt',
+        subBuilder: $1.Timestamp.create)
     ..m<$core.String, $core.String>(10, _omitFieldNames ? '' : 'tags',
         entryClassName: 'FileMetadata.TagsEntry',
         keyFieldType: $pb.PbFieldType.OS,
@@ -164,23 +166,29 @@ class FileMetadata extends $pb.GeneratedMessage {
   @$pb.TagNumber(7)
   void clearStatus() => $_clearField(7);
 
+  /// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
   @$pb.TagNumber(8)
-  $core.String get createdAt => $_getSZ(7);
+  $1.Timestamp get createdAt => $_getN(7);
   @$pb.TagNumber(8)
-  set createdAt($core.String value) => $_setString(7, value);
+  set createdAt($1.Timestamp value) => setField(8, value);
   @$pb.TagNumber(8)
   $core.bool hasCreatedAt() => $_has(7);
   @$pb.TagNumber(8)
   void clearCreatedAt() => $_clearField(8);
+  @$pb.TagNumber(8)
+  $1.Timestamp ensureCreatedAt() => $_ensure(7);
 
+  /// Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
   @$pb.TagNumber(9)
-  $core.String get updatedAt => $_getSZ(8);
+  $1.Timestamp get updatedAt => $_getN(8);
   @$pb.TagNumber(9)
-  set updatedAt($core.String value) => $_setString(8, value);
+  set updatedAt($1.Timestamp value) => setField(9, value);
   @$pb.TagNumber(9)
   $core.bool hasUpdatedAt() => $_has(8);
   @$pb.TagNumber(9)
   void clearUpdatedAt() => $_clearField(9);
+  @$pb.TagNumber(9)
+  $1.Timestamp ensureUpdatedAt() => $_ensure(8);
 
   @$pb.TagNumber(10)
   $pb.PbMap<$core.String, $core.String> get tags => $_getMap(9);

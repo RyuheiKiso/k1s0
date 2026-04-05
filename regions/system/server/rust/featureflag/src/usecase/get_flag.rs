@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::repository::FeatureFlagRepository;
 
@@ -24,7 +22,8 @@ impl GetFlagUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを取得する。
-    pub async fn execute(&self, tenant_id: Uuid, flag_key: &str) -> Result<FeatureFlag, GetFlagError> {
+    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub async fn execute(&self, tenant_id: &str, flag_key: &str) -> Result<FeatureFlag, GetFlagError> {
         self.repo.find_by_key(tenant_id, flag_key).await.map_err(|e| {
             let msg = e.to_string();
             if msg.contains("not found") {
@@ -43,10 +42,11 @@ mod tests {
     use crate::domain::entity::feature_flag::FeatureFlag;
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use chrono::Utc;
+    use uuid::Uuid;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> &'static str {
+        "00000000-0000-0000-0000-000000000001"
     }
 
     #[tokio::test]
@@ -54,7 +54,7 @@ mod tests {
         let mut mock = MockFeatureFlagRepository::new();
         let flag = FeatureFlag {
             id: Uuid::new_v4(),
-            tenant_id: system_tenant(),
+            tenant_id: system_tenant().to_string(),
             flag_key: "dark-mode".to_string(),
             description: "Dark mode".to_string(),
             enabled: true,

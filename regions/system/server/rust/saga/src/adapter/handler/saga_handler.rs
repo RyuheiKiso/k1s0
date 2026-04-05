@@ -1,8 +1,9 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use chrono::Utc;
+use k1s0_auth::Claims;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -207,6 +208,8 @@ pub async fn metrics(State(state): State<AppState>) -> String {
 )]
 pub async fn start_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する（auth middleware が挿入）
+    claims: Option<Extension<Claims>>,
     Json(req): Json<StartSagaRequest>,
 ) -> Result<(StatusCode, Json<StartSagaResponse>), SagaError> {
     if req.workflow_name.is_empty() {
@@ -214,6 +217,12 @@ pub async fn start_saga(
             "workflow_name is required".to_string(),
         ));
     }
+
+    // テナント ID を Claims から取得する。Claims がない場合は "system" を使用する
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
 
     // ドメインエラー（SagaError）をアダプタ層のハンドラーエラー型に型安全に変換する
     let saga_id = state
@@ -223,6 +232,7 @@ pub async fn start_saga(
             req.payload,
             req.correlation_id,
             req.initiated_by,
+            tenant_id,
         )
         .await
         .map_err(|e| {
@@ -263,6 +273,8 @@ pub async fn start_saga(
 )]
 pub async fn list_sagas(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Query(query): Query<ListSagasQuery>,
 ) -> Result<Json<ListSagasResponse>, SagaError> {
     // ステータス文字列をドメイン型に変換する
@@ -272,6 +284,12 @@ pub async fn list_sagas(
         None
     };
 
+    // テナント ID を Claims から取得する
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     // cursor が指定された場合は keyset ページネーション、未指定の場合は OFFSET を使用する
     let params = SagaListParams {
         workflow_name: query.workflow_name.clone(),
@@ -280,6 +298,7 @@ pub async fn list_sagas(
         page: query.page,
         page_size: query.page_size,
         cursor: query.cursor.clone(),
+        tenant_id,
     };
 
     let (sagas, total) = state
@@ -352,14 +371,21 @@ pub async fn list_sagas(
 )]
 pub async fn get_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<SagaDetailResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let (saga, step_logs) = state
         .get_saga_uc
-        .execute(id)
+        .execute(id, &tenant_id)
         .await
         .map_err(|e| SagaError::Internal(e.to_string()))?
         .ok_or_else(|| SagaError::NotFound(format!("saga not found: {}", saga_id)))?;
@@ -411,14 +437,21 @@ pub async fn get_saga(
 )]
 pub async fn cancel_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<CancelSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     state
         .cancel_saga_uc
-        .execute(id)
+        .execute(id, &tenant_id)
         .await
         .map_err(|e| match e {
             CancelSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),
@@ -445,14 +478,21 @@ pub async fn cancel_saga(
 )]
 pub async fn compensate_saga(
     State(state): State<AppState>,
+    // CRIT-005 対応: Claims から tenant_id を取得する
+    claims: Option<Extension<Claims>>,
     Path(saga_id): Path<String>,
 ) -> Result<Json<CompensateSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
 
+    let tenant_id = claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let updated = state
         .execute_saga_uc
-        .trigger_compensate(id)
+        .trigger_compensate(id, &tenant_id)
         .await
         .map_err(|e| match e {
             CompensateSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),

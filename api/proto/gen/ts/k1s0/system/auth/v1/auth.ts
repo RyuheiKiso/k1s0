@@ -15,7 +15,9 @@ import { Struct } from "../../../../google/protobuf/struct";
 import { Timestamp } from "../../common/v1/types";
 import { PaginationResult } from "../../common/v1/types";
 import { Pagination } from "../../common/v1/types";
-// ============================================================// Token Validation// ============================================================
+// ============================================================
+// Token Validation
+// ============================================================
 
 /**
  * ValidateTokenRequest はトークン検証リクエスト。
@@ -24,6 +26,8 @@ import { Pagination } from "../../common/v1/types";
  */
 export interface ValidateTokenRequest {
     /**
+     * JWT Bearer トークン文字列（必須）
+     *
      * @generated from protobuf field: string token = 1
      */
     token: string;
@@ -68,11 +72,11 @@ export interface TokenClaims {
      */
     iss: string;
     /**
-     * Audience
+     * Audience（JWT spec では配列型。複数 audience に対応するため repeated を使用する）
      *
-     * @generated from protobuf field: string aud = 3
+     * @generated from protobuf field: repeated string aud = 3
      */
-    aud: string;
+    aud: string[];
     /**
      * 有効期限（Unix epoch）
      *
@@ -164,7 +168,9 @@ export interface ClientRoles {
      */
     roles: string[];
 }
-// ============================================================// User// ============================================================
+// ============================================================
+// User
+// ============================================================
 
 /**
  * GetUserRequest はユーザー情報取得リクエスト。
@@ -173,6 +179,8 @@ export interface ClientRoles {
  */
 export interface GetUserRequest {
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 1
      */
     userId: string;
@@ -284,7 +292,9 @@ export interface StringList {
      */
     values: string[];
 }
-// ============================================================// Roles// ============================================================
+// ============================================================
+// Roles
+// ============================================================
 
 /**
  * GetUserRolesRequest はユーザーロール取得リクエスト。
@@ -293,6 +303,8 @@ export interface StringList {
  */
 export interface GetUserRolesRequest {
     /**
+     * ユーザー UUID（必須）
+     *
      * @generated from protobuf field: string user_id = 1
      */
     userId: string;
@@ -352,7 +364,9 @@ export interface RoleList {
      */
     roles: Role[];
 }
-// ============================================================// Permission Check// ============================================================
+// ============================================================
+// Permission Check
+// ============================================================
 
 /**
  * CheckPermissionRequest はパーミッション確認リクエスト。
@@ -361,17 +375,19 @@ export interface RoleList {
  */
 export interface CheckPermissionRequest {
     /**
+     * ユーザー UUID（省略可、JWT から自動取得する場合）
+     *
      * @generated from protobuf field: optional string user_id = 1
      */
     userId?: string;
     /**
-     * read, write, delete, admin
+     * 権限種別: read, write, delete, admin（必須）
      *
      * @generated from protobuf field: string permission = 2
      */
     permission: string;
     /**
-     * users, auth_config, audit_logs, etc.
+     * リソース名: users, auth_config, audit_logs 等（必須）
      *
      * @generated from protobuf field: string resource = 3
      */
@@ -402,17 +418,11 @@ export interface CheckPermissionResponse {
 }
 /**
  * RecordAuditLogRequest は監査ログ記録リクエスト。
+ * HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
  *
  * @generated from protobuf message k1s0.system.auth.v1.RecordAuditLogRequest
  */
 export interface RecordAuditLogRequest {
-    /**
-     * LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
-     * Deprecated: event_type_enum を使用すること。
-     *
-     * @generated from protobuf field: string event_type = 1
-     */
-    eventType: string;
     /**
      * @generated from protobuf field: string user_id = 2
      */
@@ -437,13 +447,6 @@ export interface RecordAuditLogRequest {
      * @generated from protobuf field: string action = 6
      */
     action: string;
-    /**
-     * SUCCESS / FAILURE
-     * Deprecated: result_enum を使用すること。
-     *
-     * @generated from protobuf field: string result = 7
-     */
-    result: string;
     /**
      * 操作の詳細情報（client_id, grant_type 等）
      *
@@ -494,6 +497,7 @@ export interface RecordAuditLogResponse {
 }
 /**
  * SearchAuditLogsRequest は監査ログ検索リクエスト。
+ * HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
  *
  * @generated from protobuf message k1s0.system.auth.v1.SearchAuditLogsRequest
  */
@@ -507,12 +511,6 @@ export interface SearchAuditLogsRequest {
      */
     userId: string;
     /**
-     * Deprecated: event_type_enum を使用すること。
-     *
-     * @generated from protobuf field: string event_type = 3
-     */
-    eventType: string;
-    /**
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp from = 4
      */
     from?: Timestamp;
@@ -520,13 +518,6 @@ export interface SearchAuditLogsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Timestamp to = 5
      */
     to?: Timestamp;
-    /**
-     * SUCCESS / FAILURE
-     * Deprecated: result_enum を使用すること。
-     *
-     * @generated from protobuf field: string result = 6
-     */
-    result: string;
     /**
      * 監査イベント種別フィルタ（enum）
      *
@@ -557,6 +548,7 @@ export interface SearchAuditLogsResponse {
 }
 /**
  * AuditLog は監査ログエントリ。
+ * HIGH-014 監査対応: deprecated string フィールド削除・reserved 有効化（全クライアントが enum 移行済み）
  *
  * @generated from protobuf message k1s0.system.auth.v1.AuditLog
  */
@@ -565,12 +557,6 @@ export interface AuditLog {
      * @generated from protobuf field: string id = 1
      */
     id: string;
-    /**
-     * Deprecated: event_type_enum を使用すること。
-     *
-     * @generated from protobuf field: string event_type = 2
-     */
-    eventType: string;
     /**
      * @generated from protobuf field: string user_id = 3
      */
@@ -591,12 +577,6 @@ export interface AuditLog {
      * @generated from protobuf field: string action = 7
      */
     action: string;
-    /**
-     * Deprecated: result_enum を使用すること。
-     *
-     * @generated from protobuf field: string result = 8
-     */
-    result: string;
     /**
      * 操作の詳細情報（変更前後の値等）
      *
@@ -632,10 +612,14 @@ export interface AuditLog {
      */
     resultEnum: AuditResult;
 }
-// ============================================================// Audit Log// ============================================================
+// ============================================================
+// Audit Log
+// ============================================================
 
 /**
  * AuditEventType は監査イベントの種別。
+ * C-004 監査対応: GraphQL スキーマの AuditEventType と双方向整合させる。
+ * GraphQL に存在するが proto に欠落していた CREATE/UPDATE/DELETE/READ/PERMISSION_DENIED/SECRET_ACCESSED/SECRET_ROTATED を追加する。
  *
  * @generated from protobuf enum k1s0.system.auth.v1.AuditEventType
  */
@@ -667,10 +651,43 @@ export enum AuditEventType {
     /**
      * @generated from protobuf enum value: AUDIT_EVENT_TYPE_API_KEY_REVOKED = 6;
      */
-    API_KEY_REVOKED = 6
+    API_KEY_REVOKED = 6,
+    /**
+     * C-004 監査対応: GraphQL スキーマに存在する汎用 CRUD 操作イベント種別を追加
+     *
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_CREATE = 7;
+     */
+    CREATE = 7,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_UPDATE = 8;
+     */
+    UPDATE = 8,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_DELETE = 9;
+     */
+    DELETE = 9,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_READ = 10;
+     */
+    READ = 10,
+    /**
+     * C-004 監査対応: GraphQL スキーマに存在するセキュリティイベント種別を追加
+     *
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_PERMISSION_DENIED = 11;
+     */
+    PERMISSION_DENIED = 11,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_SECRET_ACCESSED = 12;
+     */
+    SECRET_ACCESSED = 12,
+    /**
+     * @generated from protobuf enum value: AUDIT_EVENT_TYPE_SECRET_ROTATED = 13;
+     */
+    SECRET_ROTATED = 13
 }
 /**
  * AuditResult は監査イベントの結果。
+ * C-010 監査対応: GraphQL スキーマの AuditResult.PARTIAL に対応する AUDIT_RESULT_PARTIAL を追加する。
  *
  * @generated from protobuf enum k1s0.system.auth.v1.AuditResult
  */
@@ -686,13 +703,19 @@ export enum AuditResult {
     /**
      * @generated from protobuf enum value: AUDIT_RESULT_FAILURE = 2;
      */
-    FAILURE = 2
+    FAILURE = 2,
+    /**
+     * C-010 監査対応: GraphQL の PARTIAL に対応（部分成功を表す）
+     *
+     * @generated from protobuf enum value: AUDIT_RESULT_PARTIAL = 3;
+     */
+    PARTIAL = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class ValidateTokenRequest$Type extends MessageType<ValidateTokenRequest> {
     constructor() {
         super("k1s0.system.auth.v1.ValidateTokenRequest", [
-            { no: 1, name: "token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "token", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<ValidateTokenRequest>): ValidateTokenRequest {
@@ -803,7 +826,7 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
         super("k1s0.system.auth.v1.TokenClaims", [
             { no: 1, name: "sub", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "iss", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "aud", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "aud", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "exp", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 5, name: "iat", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 6, name: "jti", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -821,7 +844,7 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.sub = "";
         message.iss = "";
-        message.aud = "";
+        message.aud = [];
         message.exp = "0";
         message.iat = "0";
         message.jti = "";
@@ -845,8 +868,8 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
                 case /* string iss */ 2:
                     message.iss = reader.string();
                     break;
-                case /* string aud */ 3:
-                    message.aud = reader.string();
+                case /* repeated string aud */ 3:
+                    message.aud.push(reader.string());
                     break;
                 case /* int64 exp */ 4:
                     message.exp = reader.int64().toString();
@@ -915,9 +938,9 @@ class TokenClaims$Type extends MessageType<TokenClaims> {
         /* string iss = 2; */
         if (message.iss !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.iss);
-        /* string aud = 3; */
-        if (message.aud !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.aud);
+        /* repeated string aud = 3; */
+        for (let i = 0; i < message.aud.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.aud[i]);
         /* int64 exp = 4; */
         if (message.exp !== "0")
             writer.tag(4, WireType.Varint).int64(message.exp);
@@ -1063,7 +1086,7 @@ export const ClientRoles = new ClientRoles$Type();
 class GetUserRequest$Type extends MessageType<GetUserRequest> {
     constructor() {
         super("k1s0.system.auth.v1.GetUserRequest", [
-            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<GetUserRequest>): GetUserRequest {
@@ -1448,7 +1471,7 @@ export const StringList = new StringList$Type();
 class GetUserRolesRequest$Type extends MessageType<GetUserRolesRequest> {
     constructor() {
         super("k1s0.system.auth.v1.GetUserRolesRequest", [
-            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } }
         ]);
     }
     create(value?: PartialMessage<GetUserRolesRequest>): GetUserRolesRequest {
@@ -1688,9 +1711,9 @@ export const RoleList = new RoleList$Type();
 class CheckPermissionRequest$Type extends MessageType<CheckPermissionRequest> {
     constructor() {
         super("k1s0.system.auth.v1.CheckPermissionRequest", [
-            { no: 1, name: "user_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "permission", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "resource", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "user_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { uuid: true } } } },
+            { no: 2, name: "permission", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 3, name: "resource", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
             { no: 4, name: "roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1813,13 +1836,11 @@ export const CheckPermissionResponse = new CheckPermissionResponse$Type();
 class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
     constructor() {
         super("k1s0.system.auth.v1.RecordAuditLogRequest", [
-            { no: 1, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "ip_address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "user_agent", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "resource", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "detail", kind: "message", T: () => Struct },
             { no: 9, name: "resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -1829,13 +1850,11 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
     }
     create(value?: PartialMessage<RecordAuditLogRequest>): RecordAuditLogRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.eventType = "";
         message.userId = "";
         message.ipAddress = "";
         message.userAgent = "";
         message.resource = "";
         message.action = "";
-        message.result = "";
         message.resourceId = "";
         message.traceId = "";
         message.eventTypeEnum = 0;
@@ -1849,9 +1868,6 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string event_type */ 1:
-                    message.eventType = reader.string();
-                    break;
                 case /* string user_id */ 2:
                     message.userId = reader.string();
                     break;
@@ -1866,9 +1882,6 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
                     break;
                 case /* string action */ 6:
                     message.action = reader.string();
-                    break;
-                case /* string result */ 7:
-                    message.result = reader.string();
                     break;
                 case /* google.protobuf.Struct detail */ 8:
                     message.detail = Struct.internalBinaryRead(reader, reader.uint32(), options, message.detail);
@@ -1897,9 +1910,6 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
         return message;
     }
     internalBinaryWrite(message: RecordAuditLogRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string event_type = 1; */
-        if (message.eventType !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.eventType);
         /* string user_id = 2; */
         if (message.userId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.userId);
@@ -1915,9 +1925,6 @@ class RecordAuditLogRequest$Type extends MessageType<RecordAuditLogRequest> {
         /* string action = 6; */
         if (message.action !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.action);
-        /* string result = 7; */
-        if (message.result !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.result);
         /* google.protobuf.Struct detail = 8; */
         if (message.detail)
             Struct.internalBinaryWrite(message.detail, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
@@ -2003,10 +2010,8 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
         super("k1s0.system.auth.v1.SearchAuditLogsRequest", [
             { no: 1, name: "pagination", kind: "message", T: () => Pagination },
             { no: 2, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "from", kind: "message", T: () => Timestamp },
             { no: 5, name: "to", kind: "message", T: () => Timestamp },
-            { no: 6, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "event_type_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditEventType", AuditEventType, "AUDIT_EVENT_TYPE_"] },
             { no: 8, name: "result_enum", kind: "enum", T: () => ["k1s0.system.auth.v1.AuditResult", AuditResult, "AUDIT_RESULT_"] }
         ]);
@@ -2014,8 +2019,6 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
     create(value?: PartialMessage<SearchAuditLogsRequest>): SearchAuditLogsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.userId = "";
-        message.eventType = "";
-        message.result = "";
         message.eventTypeEnum = 0;
         message.resultEnum = 0;
         if (value !== undefined)
@@ -2033,17 +2036,11 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
                 case /* string user_id */ 2:
                     message.userId = reader.string();
                     break;
-                case /* string event_type */ 3:
-                    message.eventType = reader.string();
-                    break;
                 case /* k1s0.system.common.v1.Timestamp from */ 4:
                     message.from = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.from);
                     break;
                 case /* k1s0.system.common.v1.Timestamp to */ 5:
                     message.to = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.to);
-                    break;
-                case /* string result */ 6:
-                    message.result = reader.string();
                     break;
                 case /* k1s0.system.auth.v1.AuditEventType event_type_enum */ 7:
                     message.eventTypeEnum = reader.int32();
@@ -2069,18 +2066,12 @@ class SearchAuditLogsRequest$Type extends MessageType<SearchAuditLogsRequest> {
         /* string user_id = 2; */
         if (message.userId !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.userId);
-        /* string event_type = 3; */
-        if (message.eventType !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.eventType);
         /* k1s0.system.common.v1.Timestamp from = 4; */
         if (message.from)
             Timestamp.internalBinaryWrite(message.from, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* k1s0.system.common.v1.Timestamp to = 5; */
         if (message.to)
             Timestamp.internalBinaryWrite(message.to, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* string result = 6; */
-        if (message.result !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.result);
         /* k1s0.system.auth.v1.AuditEventType event_type_enum = 7; */
         if (message.eventTypeEnum !== 0)
             writer.tag(7, WireType.Varint).int32(message.eventTypeEnum);
@@ -2156,13 +2147,11 @@ class AuditLog$Type extends MessageType<AuditLog> {
     constructor() {
         super("k1s0.system.auth.v1.AuditLog", [
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "event_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "user_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "ip_address", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "user_agent", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "resource", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 7, name: "action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "result", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "detail", kind: "message", T: () => Struct },
             { no: 10, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 11, name: "resource_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -2174,13 +2163,11 @@ class AuditLog$Type extends MessageType<AuditLog> {
     create(value?: PartialMessage<AuditLog>): AuditLog {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.id = "";
-        message.eventType = "";
         message.userId = "";
         message.ipAddress = "";
         message.userAgent = "";
         message.resource = "";
         message.action = "";
-        message.result = "";
         message.resourceId = "";
         message.traceId = "";
         message.eventTypeEnum = 0;
@@ -2197,9 +2184,6 @@ class AuditLog$Type extends MessageType<AuditLog> {
                 case /* string id */ 1:
                     message.id = reader.string();
                     break;
-                case /* string event_type */ 2:
-                    message.eventType = reader.string();
-                    break;
                 case /* string user_id */ 3:
                     message.userId = reader.string();
                     break;
@@ -2214,9 +2198,6 @@ class AuditLog$Type extends MessageType<AuditLog> {
                     break;
                 case /* string action */ 7:
                     message.action = reader.string();
-                    break;
-                case /* string result */ 8:
-                    message.result = reader.string();
                     break;
                 case /* google.protobuf.Struct detail */ 9:
                     message.detail = Struct.internalBinaryRead(reader, reader.uint32(), options, message.detail);
@@ -2251,9 +2232,6 @@ class AuditLog$Type extends MessageType<AuditLog> {
         /* string id = 1; */
         if (message.id !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.id);
-        /* string event_type = 2; */
-        if (message.eventType !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.eventType);
         /* string user_id = 3; */
         if (message.userId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.userId);
@@ -2269,9 +2247,6 @@ class AuditLog$Type extends MessageType<AuditLog> {
         /* string action = 7; */
         if (message.action !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.action);
-        /* string result = 8; */
-        if (message.result !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.result);
         /* google.protobuf.Struct detail = 9; */
         if (message.detail)
             Struct.internalBinaryWrite(message.detail, writer.tag(9, WireType.LengthDelimited).fork(), options).join();

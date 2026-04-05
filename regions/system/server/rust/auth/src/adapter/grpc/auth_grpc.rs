@@ -209,9 +209,9 @@ fn domain_claims_to_proto(c: &Claims) -> TokenClaims {
     TokenClaims {
         sub: c.sub.clone(),
         iss: c.iss.clone(),
-        // proto の TokenClaims.aud は string 型のため、Vec の先頭要素を使用する。
-        // 複数 audience は内部的に Vec<String> で保持されるが、gRPC レスポンスでは先頭値を返す。
-        aud: c.aud.first().cloned().unwrap_or_default(),
+        // proto の TokenClaims.aud は repeated string 型（CRIT-006 対応）。
+        // JWT spec の audience は配列なので Vec<String> をそのまま渡す。
+        aud: c.aud.clone(),
         exp: c.exp,
         iat: c.iat,
         jti: c.jti.clone(),

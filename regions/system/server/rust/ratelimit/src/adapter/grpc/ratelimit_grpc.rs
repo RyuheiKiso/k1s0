@@ -50,6 +50,8 @@ pub struct CreateRuleRequest {
     pub window_seconds: i64,
     pub algorithm: Option<String>,
     pub enabled: bool,
+    /// CRIT-005 対応: JWT Claims または proto フィールドから渡されるテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -59,6 +61,8 @@ pub struct CreateRuleResponse {
 
 pub struct GetRuleRequest {
     pub rule_id: String,
+    /// CRIT-005 対応: JWT Claims または proto フィールドから渡されるテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -93,6 +97,8 @@ pub struct UpdateRuleRequest {
     pub window_seconds: i64,
     pub algorithm: Option<String>,
     pub enabled: bool,
+    /// CRIT-005 対応: JWT Claims または proto フィールドから渡されるテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -102,6 +108,8 @@ pub struct UpdateRuleResponse {
 
 pub struct DeleteRuleRequest {
     pub rule_id: String,
+    /// CRIT-005 対応: JWT Claims または proto フィールドから渡されるテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -114,6 +122,8 @@ pub struct ListRulesRequest {
     pub enabled_only: Option<bool>,
     pub page: u32,
     pub page_size: u32,
+    /// CRIT-005 対応: JWT Claims または proto フィールドから渡されるテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -251,6 +261,7 @@ impl RateLimitGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを作成する。
     pub async fn create_rule(
         &self,
         req: CreateRuleRequest,
@@ -266,6 +277,8 @@ impl RateLimitGrpcService {
             window_seconds,
             algorithm: req.algorithm,
             enabled: req.enabled,
+            // CRIT-005 対応: リクエストから渡されたテナント ID を使用する。
+            tenant_id: req.tenant_id,
         };
 
         let rule = self.create_uc.execute(&input).await.map_err(|e| match e {
@@ -303,6 +316,7 @@ impl RateLimitGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを取得する。
     pub async fn get_rule(&self, req: GetRuleRequest) -> Result<GetRuleResponse, GrpcError> {
         if req.rule_id.is_empty() {
             return Err(GrpcError::InvalidArgument(
@@ -312,7 +326,7 @@ impl RateLimitGrpcService {
 
         let rule = self
             .get_uc
-            .execute(&req.rule_id)
+            .execute(&req.rule_id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 crate::usecase::get_rule::GetRuleError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -384,6 +398,7 @@ impl RateLimitGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを更新する。
     pub async fn update_rule(
         &self,
         req: UpdateRuleRequest,
@@ -400,6 +415,8 @@ impl RateLimitGrpcService {
             window_seconds,
             algorithm: req.algorithm,
             enabled: req.enabled,
+            // CRIT-005 対応: リクエストから渡されたテナント ID を使用する。
+            tenant_id: req.tenant_id,
         };
 
         let rule = self.update_uc.execute(&input).await.map_err(|e| match e {
@@ -435,12 +452,13 @@ impl RateLimitGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを削除する。
     pub async fn delete_rule(
         &self,
         req: DeleteRuleRequest,
     ) -> Result<DeleteRuleResponse, GrpcError> {
         self.delete_uc
-            .execute(&req.rule_id)
+            .execute(&req.rule_id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 crate::usecase::delete_rule::DeleteRuleError::NotFound(msg) => {
@@ -457,6 +475,7 @@ impl RateLimitGrpcService {
         Ok(DeleteRuleResponse { success: true })
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルール一覧を取得する。
     pub async fn list_rules(&self, req: ListRulesRequest) -> Result<ListRulesResponse, GrpcError> {
         let page = if req.page == 0 { 1 } else { req.page };
         let page_size = if req.page_size == 0 {
@@ -475,6 +494,8 @@ impl RateLimitGrpcService {
                     Some(req.scope)
                 },
                 enabled_only: req.enabled_only.unwrap_or(false),
+                // CRIT-005 対応: リクエストから渡されたテナント ID を使用する。
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -603,7 +624,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -617,9 +638,7 @@ mod tests {
         let create_uc = Arc::new(CreateRuleUseCase::new(Arc::new(
             MockRateLimitRepository::new(),
         )));
-        let get_uc = Arc::new(GetRuleUseCase::new(
-            Arc::new(MockRateLimitRepository::new()),
-        ));
+        let get_uc = Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
 
         let svc = make_service_with(check_uc, create_uc, get_uc);
         let result = svc
@@ -648,9 +667,7 @@ mod tests {
             Arc::new(CreateRuleUseCase::new(Arc::new(
                 MockRateLimitRepository::new(),
             ))),
-            Arc::new(GetRuleUseCase::new(
-                Arc::new(MockRateLimitRepository::new()),
-            )),
+            Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
         );
 
         let result = svc

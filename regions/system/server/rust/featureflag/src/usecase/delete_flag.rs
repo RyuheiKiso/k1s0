@@ -12,6 +12,7 @@ pub enum DeleteFlagError {
     #[error("flag not found: {0}")]
     NotFound(Uuid),
 
+    /// HIGH-005 対応: delete メソッドは &str 型の tenant_id を受け取る。
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -46,7 +47,8 @@ impl DeleteFlagUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを削除する。
-    pub async fn execute(&self, tenant_id: Uuid, id: &Uuid) -> Result<(), DeleteFlagError> {
+    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    pub async fn execute(&self, tenant_id: &str, id: &Uuid) -> Result<(), DeleteFlagError> {
         let flags = self
             .repo
             .find_all(tenant_id)
@@ -76,7 +78,7 @@ impl DeleteFlagUseCase {
 
         self.audit_repo
             .create(&FlagAuditLog::new(
-                tenant_id,
+                tenant_id.to_string(),
                 target.id,
                 target.flag_key.clone(),
                 "DELETED".to_string(),
@@ -124,15 +126,15 @@ mod tests {
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
     use chrono::Utc;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> &'static str {
+        "00000000-0000-0000-0000-000000000001"
     }
 
     fn make_flag(id: Uuid) -> FeatureFlag {
         FeatureFlag {
             id,
-            tenant_id: system_tenant(),
+            tenant_id: system_tenant().to_string(),
             flag_key: "feature.delete".to_string(),
             description: "delete target".to_string(),
             enabled: true,

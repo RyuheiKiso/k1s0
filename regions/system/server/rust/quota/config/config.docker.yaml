@@ -5,6 +5,8 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  # LOW-004 監査対応: gRPC サーバーポートを明示する（コンテナ内ポート; ホスト側は docker-compose.yaml で上書き可能）
+  grpc_port: 50051
 
 # クォータDB接続設定
 database:

@@ -9,6 +9,8 @@ pub struct IndexDocumentInput {
     pub id: String,
     pub index_name: String,
     pub content: serde_json::Value,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -36,13 +38,14 @@ impl IndexDocumentUseCase {
         }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからドキュメントを登録する。
     pub async fn execute(
         &self,
         input: &IndexDocumentInput,
     ) -> Result<SearchDocument, IndexDocumentError> {
         let index = self
             .repo
-            .find_index(&input.index_name)
+            .find_index(&input.index_name, &input.tenant_id)
             .await
             .map_err(|e| IndexDocumentError::Internal(e.to_string()))?;
 
@@ -59,7 +62,7 @@ impl IndexDocumentUseCase {
         };
 
         self.repo
-            .index_document(&doc)
+            .index_document(&doc, &input.tenant_id)
             .await
             .map_err(|e| IndexDocumentError::Internal(e.to_string()))?;
 
@@ -98,9 +101,9 @@ mod tests {
         let return_index = index.clone();
 
         mock.expect_find_index()
-            .withf(|name| name == "products")
-            .returning(move |_| Ok(Some(return_index.clone())));
-        mock.expect_index_document().returning(|_| Ok(()));
+            .withf(|name, _tenant_id| name == "products")
+            .returning(move |_, _| Ok(Some(return_index.clone())));
+        mock.expect_index_document().returning(|_, _| Ok(()));
         let mut mock_publisher = MockSearchEventPublisher::new();
         mock_publisher
             .expect_publish_document_indexed()
@@ -111,6 +114,7 @@ mod tests {
             id: "doc-1".to_string(),
             index_name: "products".to_string(),
             content: serde_json::json!({"name": "Widget", "description": "A useful widget"}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -123,7 +127,7 @@ mod tests {
     #[tokio::test]
     async fn index_not_found() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_find_index().returning(|_| Ok(None));
+        mock.expect_find_index().returning(|_, _| Ok(None));
 
         let uc = IndexDocumentUseCase::new(
             Arc::new(mock),
@@ -133,6 +137,7 @@ mod tests {
             id: "doc-1".to_string(),
             index_name: "nonexistent".to_string(),
             content: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

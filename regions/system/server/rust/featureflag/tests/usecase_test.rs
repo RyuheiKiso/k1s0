@@ -61,9 +61,10 @@ impl StubFlagRepository {
 
 /// STATIC-CRITICAL-001 監査対応: StubFlagRepository の全メソッドで tenant_id を受け取る。
 /// インメモリ実装のためテナント分離は行わないが、シグネチャを正しく合わせる。
+/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 #[async_trait]
 impl FeatureFlagRepository for StubFlagRepository {
-    async fn find_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -75,14 +76,14 @@ impl FeatureFlagRepository for StubFlagRepository {
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
-    async fn find_all(&self, _tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
         Ok(self.flags.read().await.clone())
     }
 
-    async fn create(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -90,7 +91,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         Ok(())
     }
 
-    async fn update(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -103,7 +104,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         }
     }
 
-    async fn delete(&self, _tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -113,7 +114,7 @@ impl FeatureFlagRepository for StubFlagRepository {
         Ok(flags.len() < len_before)
     }
 
-    async fn exists_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -230,18 +231,19 @@ impl FlagEventPublisher for StubEventPublisher {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// システムテナントUUID: テスト共通のフォールバックテナントID
-fn system_tenant() -> Uuid {
-    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+/// システムテナント文字列: テスト共通のフォールバックテナントID
+/// HIGH-005 対応: TEXT 型に変更済みのため &str で返す。
+fn system_tenant() -> &'static str {
+    "00000000-0000-0000-0000-000000000001"
 }
 
 /// STATIC-CRITICAL-001 監査対応: テスト用フラグはシステムテナントで作成する。
 fn make_flag(key: &str, enabled: bool) -> FeatureFlag {
-    FeatureFlag::new(system_tenant(), key.to_string(), format!("{} description", key), enabled)
+    FeatureFlag::new(system_tenant().to_string(), key.to_string(), format!("{} description", key), enabled)
 }
 
 fn make_flag_with_id(id: Uuid, key: &str, enabled: bool) -> FeatureFlag {
-    let mut flag = FeatureFlag::new(system_tenant(), key.to_string(), format!("{} description", key), enabled);
+    let mut flag = FeatureFlag::new(system_tenant().to_string(), key.to_string(), format!("{} description", key), enabled);
     flag.id = id;
     flag
 }

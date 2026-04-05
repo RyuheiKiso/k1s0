@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::entity::feature_flag::{FlagRule, FlagVariant};
 use crate::domain::entity::flag_audit_log::FlagAuditLog;
@@ -12,9 +10,10 @@ use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 /// UpdateFlagInput はフィーチャーフラグ更新の入力データ。
 /// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
+/// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
 #[derive(Debug, Clone)]
 pub struct UpdateFlagInput {
-    pub tenant_id: Uuid,
+    pub tenant_id: String,
     pub flag_key: String,
     pub enabled: Option<bool>,
     pub description: Option<String>,
@@ -64,7 +63,7 @@ impl UpdateFlagUseCase {
     pub async fn execute(&self, input: &UpdateFlagInput) -> Result<FeatureFlag, UpdateFlagError> {
         let mut flag = self
             .repo
-            .find_by_key(input.tenant_id, &input.flag_key)
+            .find_by_key(&input.tenant_id, &input.flag_key)
             .await
             .map_err(|e| {
                 let msg = e.to_string();
@@ -99,7 +98,7 @@ impl UpdateFlagUseCase {
         flag.updated_at = chrono::Utc::now();
 
         self.repo
-            .update(input.tenant_id, &flag)
+            .update(&input.tenant_id, &flag)
             .await
             .map_err(|e| UpdateFlagError::Internal(e.to_string()))?;
 
@@ -112,7 +111,7 @@ impl UpdateFlagUseCase {
         });
         self.audit_repo
             .create(&FlagAuditLog::new(
-                input.tenant_id,
+                input.tenant_id.clone(),
                 flag.id,
                 flag.flag_key.clone(),
                 "UPDATED".to_string(),
@@ -150,10 +149,11 @@ mod tests {
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
     use chrono::Utc;
+    use uuid::Uuid;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> String {
+        "00000000-0000-0000-0000-000000000001".to_string()
     }
 
     fn make_flag(flag_key: &str, enabled: bool) -> FeatureFlag {

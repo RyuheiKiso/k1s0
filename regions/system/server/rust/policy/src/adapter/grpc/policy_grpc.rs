@@ -44,10 +44,12 @@ pub struct PolicyBundleData {
     pub updated_at: DateTime<Utc>,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct EvaluatePolicyRequest {
     pub policy_id: String,
     pub input_json: Vec<u8>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -58,9 +60,11 @@ pub struct EvaluatePolicyResponse {
     pub cached: bool,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct GetPolicyRequest {
     pub id: String,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -68,12 +72,14 @@ pub struct GetPolicyResponse {
     pub policy: PolicyData,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct ListPoliciesRequest {
     pub page: i32,
     pub page_size: i32,
     pub bundle_id: Option<String>,
     pub enabled_only: bool,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +91,7 @@ pub struct ListPoliciesResponse {
     pub has_next: bool,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct CreatePolicyRequest {
     pub name: String,
@@ -92,6 +99,7 @@ pub struct CreatePolicyRequest {
     pub rego_content: String,
     pub package_path: String,
     pub bundle_id: Option<String>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -99,12 +107,14 @@ pub struct CreatePolicyResponse {
     pub policy: PolicyData,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct UpdatePolicyRequest {
     pub id: String,
     pub description: Option<String>,
     pub rego_content: Option<String>,
     pub enabled: Option<bool>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -112,9 +122,11 @@ pub struct UpdatePolicyResponse {
     pub policy: PolicyData,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct DeletePolicyRequest {
     pub id: String,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -123,12 +135,14 @@ pub struct DeletePolicyResponse {
     pub message: String,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct CreateBundleRequest {
     pub name: String,
     pub description: Option<String>,
     pub enabled: Option<bool>,
     pub policy_ids: Vec<String>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -136,17 +150,22 @@ pub struct CreateBundleResponse {
     pub bundle: PolicyBundleData,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
-pub struct ListBundlesRequest;
+pub struct ListBundlesRequest {
+    pub tenant_id: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct ListBundlesResponse {
     pub bundles: Vec<PolicyBundleData>,
 }
 
+/// CRIT-005 対応: テナント ID フィールドを追加したリクエスト型。
 #[derive(Debug, Clone)]
 pub struct GetBundleRequest {
     pub id: String,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -210,6 +229,7 @@ impl PolicyGrpcService {
         }
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシー評価を実行する。
     pub async fn evaluate_policy(
         &self,
         req: EvaluatePolicyRequest,
@@ -220,7 +240,7 @@ impl PolicyGrpcService {
 
         let policy = self
             .get_policy_uc
-            .execute(&policy_id)
+            .execute(&policy_id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 GetPolicyError::Internal(msg) => GrpcError::Internal(msg),
@@ -240,6 +260,7 @@ impl PolicyGrpcService {
             policy_id: Some(policy_id),
             package_path: package_path.clone(),
             input: input_json,
+            tenant_id: req.tenant_id,
         };
 
         let output = self
@@ -261,13 +282,14 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを取得する。
     pub async fn get_policy(&self, req: GetPolicyRequest) -> Result<GetPolicyResponse, GrpcError> {
         let id = Uuid::parse_str(&req.id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid policy id: {}", req.id)))?;
 
         let policy = self
             .get_policy_uc
-            .execute(&id)
+            .execute(&id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 GetPolicyError::Internal(msg) => GrpcError::Internal(msg),
@@ -279,6 +301,7 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシー一覧を取得する。
     pub async fn list_policies(
         &self,
         req: ListPoliciesRequest,
@@ -302,6 +325,7 @@ impl PolicyGrpcService {
                     None => None,
                 },
                 enabled_only: req.enabled_only,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -317,6 +341,7 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを作成する。
     pub async fn create_policy(
         &self,
         req: CreatePolicyRequest,
@@ -336,6 +361,7 @@ impl PolicyGrpcService {
                 rego_content: req.rego_content,
                 package_path: req.package_path,
                 bundle_id,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -351,6 +377,7 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを更新する。
     pub async fn update_policy(
         &self,
         req: UpdatePolicyRequest,
@@ -365,6 +392,7 @@ impl PolicyGrpcService {
                 description: req.description,
                 rego_content: req.rego_content,
                 enabled: req.enabled,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -379,6 +407,7 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらポリシーを削除する。
     pub async fn delete_policy(
         &self,
         req: DeletePolicyRequest,
@@ -387,7 +416,7 @@ impl PolicyGrpcService {
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid policy id: {}", req.id)))?;
 
         self.delete_policy_uc
-            .execute(&id)
+            .execute(&id, &req.tenant_id)
             .await
             .map_err(|e| match e {
                 DeletePolicyError::NotFound(id) => {
@@ -402,6 +431,7 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドルを作成する。
     pub async fn create_bundle(
         &self,
         req: CreateBundleRequest,
@@ -421,6 +451,7 @@ impl PolicyGrpcService {
                 description: req.description,
                 enabled: req.enabled,
                 policy_ids,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -432,29 +463,39 @@ impl PolicyGrpcService {
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドル一覧を取得する。
     pub async fn list_bundles(
         &self,
-        _req: ListBundlesRequest,
+        req: ListBundlesRequest,
     ) -> Result<ListBundlesResponse, GrpcError> {
-        let bundles = self.list_bundles_uc.execute().await.map_err(|e| match e {
-            ListBundlesError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let bundles = self
+            .list_bundles_uc
+            .execute(&req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                ListBundlesError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(ListBundlesResponse {
             bundles: bundles.into_iter().map(to_bundle_data).collect(),
         })
     }
 
+    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらバンドルを取得する。
     pub async fn get_bundle(&self, req: GetBundleRequest) -> Result<GetBundleResponse, GrpcError> {
         let id = Uuid::parse_str(&req.id)
             .map_err(|_| GrpcError::InvalidArgument(format!("invalid bundle id: {}", req.id)))?;
 
-        let bundle = self.get_bundle_uc.execute(&id).await.map_err(|e| match e {
-            GetBundleError::NotFound(id) => {
-                GrpcError::NotFound(format!("bundle not found: {}", id))
-            }
-            GetBundleError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let bundle = self
+            .get_bundle_uc
+            .execute(&id, &req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                GetBundleError::NotFound(id) => {
+                    GrpcError::NotFound(format!("bundle not found: {}", id))
+                }
+                GetBundleError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(GetBundleResponse {
             bundle: to_bundle_data(bundle),

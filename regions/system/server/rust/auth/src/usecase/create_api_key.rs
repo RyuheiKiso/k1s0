@@ -86,16 +86,14 @@ impl CreateApiKeyUseCase {
 }
 
 fn generate_random_key() -> String {
+    use rand::{RngCore, rngs::OsRng};
     use std::fmt::Write;
-    let bytes: [u8; 24] = {
-        let mut buf = [0u8; 24];
-        // Use uuid v4 randomness as source
-        let u1 = Uuid::new_v4();
-        let u2 = Uuid::new_v4();
-        buf[..16].copy_from_slice(u1.as_bytes());
-        buf[16..].copy_from_slice(&u2.as_bytes()[..8]);
-        buf
-    };
+    // LOW-012 監査対応: UUID v4 バイトの流用を廃止し OsRng を直接使用する。
+    // UUID v4 はバージョンビット・バリアントビットが固定されるため真の 192bit ランダムではない。
+    // OsRng は OS のエントロピーソース（Linux: getrandom/urandom, macOS: SecRandomCopyBytes）を
+    // 直接使用するため暗号論的に安全な 192bit ランダムキーを生成できる。
+    let mut bytes = [0u8; 24];
+    OsRng.fill_bytes(&mut bytes);
     let mut s = String::with_capacity(48);
     for b in &bytes {
         // String への write!() は常に成功するため失敗しない

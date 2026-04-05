@@ -5,17 +5,35 @@
 # データベース名を参照するためのローカル変数
 locals {
   # サービス名とスキーマ名のマッピング
-  # system tier の主要サービスに対応するスキーマを定義する
+  # MED-029 監査対応: system tier の全サービスを網羅するよう追加。
+  # 不足していたサービス（featureflag/scheduler/file/master_maintenance 等）を追記した。
   service_schemas = {
-    auth         = "auth"
-    config       = "config"
-    saga         = "saga"
-    session      = "session"
-    tenant       = "tenant"
-    workflow     = "workflow"
-    dlq          = "dlq"
-    notification = "notification"
-    vault        = "vault"
+    auth                = "auth"
+    config              = "config"
+    saga                = "saga"
+    session             = "session"
+    tenant              = "tenant"
+    workflow            = "workflow"
+    dlq                 = "dlq"
+    notification        = "notification"
+    vault               = "vault"
+    # MED-029 監査対応: 以下のサービスが不足していたため追加する
+    featureflag         = "featureflag"
+    scheduler           = "scheduler"
+    file                = "file"
+    master_maintenance  = "master_maintenance"
+    search              = "search"
+    api_registry        = "api_registry"
+    ratelimit           = "ratelimit"
+    policy              = "policy"
+    quota               = "quota"
+    service_catalog     = "service_catalog"
+    navigation          = "navigation"
+    event_store         = "event_store"
+    # LOW-009 監査対応: DB を使用するが MED-029 で追加漏れだったサービスを補完する
+    event_monitor       = "event_monitor"
+    app_registry        = "app_registry"
+    rule_engine         = "rule_engine"
   }
 }
 
@@ -61,6 +79,13 @@ resource "postgresql_grant" "service_schema_usage" {
 }
 
 # サービスロールへのテーブル DML 権限
+# MED-029 監査対応: DELETE 権限の方針について
+# 現状は全サービスに一律 DELETE を付与しているが、最小権限原則では以下を推奨する:
+#   - 論理削除（soft delete）のみのサービス: DELETE 不要（UPDATE のみ）
+#   - 物理削除が必要なサービス: DELETE を明示的に付与
+# 今後の改善案: サービスごとに privileges を分けた map を定義し、
+# DELETE が不要なサービス（例: event_store, audit 系）では DELETE を除外すること。
+# 現時点では運用上の安全性を優先して DELETE を含む全 DML を付与する。
 # SELECT/INSERT/UPDATE/DELETE のみ許可し、DDL操作（DROP, ALTER等）は禁止
 resource "postgresql_grant" "service_table_dml" {
   for_each    = local.service_schemas

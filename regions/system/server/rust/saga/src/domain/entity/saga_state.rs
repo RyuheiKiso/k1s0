@@ -54,6 +54,8 @@ pub struct SagaState {
     pub error_message: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 impl SagaState {
@@ -63,6 +65,7 @@ impl SagaState {
         payload: serde_json::Value,
         correlation_id: Option<String>,
         initiated_by: Option<String>,
+        tenant_id: String,
     ) -> Self {
         let now = Utc::now();
         Self {
@@ -76,6 +79,7 @@ impl SagaState {
             error_message: None,
             created_at: now,
             updated_at: now,
+            tenant_id,
         }
     }
 
@@ -135,6 +139,7 @@ mod tests {
             serde_json::json!({"task_id": "123"}),
             Some("corr-001".to_string()),
             Some("user-1".to_string()),
+            "system".to_string(),
         )
     }
 

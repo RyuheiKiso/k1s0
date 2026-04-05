@@ -40,15 +40,16 @@ impl DeletePolicyUseCase {
         }
     }
 
-    pub async fn execute(&self, id: &Uuid) -> Result<(), DeletePolicyError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからポリシーを削除する。
+    pub async fn execute(&self, id: &Uuid, tenant_id: &str) -> Result<(), DeletePolicyError> {
         let before = self
             .repo
-            .find_by_id(id)
+            .find_by_id(id, tenant_id)
             .await
             .map_err(|e| DeletePolicyError::Internal(e.to_string()))?;
         let deleted = self
             .repo
-            .delete(id)
+            .delete(id, tenant_id)
             .await
             .map_err(|e| DeletePolicyError::Internal(e.to_string()))?;
 
@@ -76,10 +77,8 @@ mod tests {
     use super::*;
     use crate::domain::repository::policy_repository::MockPolicyRepository;
 
-    #[tokio::test]
-    async fn success() {
-        let id = Uuid::new_v4();
-        let policy = crate::domain::entity::policy::Policy {
+    fn make_policy(id: Uuid) -> crate::domain::entity::policy::Policy {
+        crate::domain::entity::policy::Policy {
             id,
             name: "test".to_string(),
             description: "test".to_string(),
@@ -90,26 +89,33 @@ mod tests {
             enabled: true,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
-        };
+            tenant_id: "tenant-a".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn success() {
+        let id = Uuid::new_v4();
+        let policy = make_policy(id);
         let mut mock = MockPolicyRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(policy.clone())));
-        mock.expect_delete().returning(|_| Ok(true));
+            .returning(move |_, _| Ok(Some(policy.clone())));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeletePolicyUseCase::new(Arc::new(mock));
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeletePolicyUseCase::new(Arc::new(mock));
         let id = Uuid::new_v4();
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -121,13 +127,13 @@ mod tests {
     #[tokio::test]
     async fn internal_error() {
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
         mock.expect_delete()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = DeletePolicyUseCase::new(Arc::new(mock));
         let id = Uuid::new_v4();
-        let result = uc.execute(&id).await;
+        let result = uc.execute(&id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

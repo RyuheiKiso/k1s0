@@ -9,6 +9,8 @@ use crate::infrastructure::cache::PolicyCache;
 
 /// CachedPolicyRepository は PolicyCache を使ってキャッシュ付きの PolicyRepository を提供する。
 /// 内部の delegate に対して読み取り時にキャッシュを挟み、書き込み時にキャッシュを無効化する。
+/// CRIT-005 対応: tenant_id を delegate に透過的に渡す。キャッシュキーは UUID のみとし、
+/// 同一 UUID のポリシーは 1 テナントにしか属さないという設計前提に基づく。
 pub struct CachedPolicyRepository {
     delegate: Arc<dyn PolicyRepository>,
     cache: Arc<PolicyCache>,
@@ -22,34 +24,37 @@ impl CachedPolicyRepository {
 
 #[async_trait]
 impl PolicyRepository for CachedPolicyRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>> {
+    /// CRIT-005 対応: tenant_id を delegate に渡し RLS を有効にして取得する。
+    async fn find_by_id(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         // キャッシュから取得を試みる
         if let Some(cached) = self.cache.get(id).await {
             return Ok(Some((*cached).clone()));
         }
 
         // キャッシュミス: delegate から取得してキャッシュに保存
-        let result = self.delegate.find_by_id(id).await?;
+        let result = self.delegate.find_by_id(id, tenant_id).await?;
         if let Some(ref policy) = result {
             self.cache.insert(Arc::new(policy.clone())).await;
         }
         Ok(result)
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
-        // find_all はキャッシュを通さない（全件取得はキャッシュ効率が悪いため）
-        self.delegate.find_all().await
+    /// CRIT-005 対応: find_all はキャッシュを通さない（全件取得はキャッシュ効率が悪いため）。
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
+        self.delegate.find_all(tenant_id).await
     }
 
+    /// CRIT-005 対応: tenant_id を delegate に渡しページネーション付き一覧を取得する。
     async fn find_all_paginated(
         &self,
         page: u32,
         page_size: u32,
         bundle_id: Option<Uuid>,
         enabled_only: bool,
+        tenant_id: &str,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         self.delegate
-            .find_all_paginated(page, page_size, bundle_id, enabled_only)
+            .find_all_paginated(page, page_size, bundle_id, enabled_only, tenant_id)
             .await
     }
 
@@ -67,17 +72,18 @@ impl PolicyRepository for CachedPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
-        let deleted = self.delegate.delete(id).await?;
+    /// CRIT-005 対応: tenant_id を delegate に渡して削除する。
+    async fn delete(&self, id: &Uuid, tenant_id: &str) -> anyhow::Result<bool> {
+        let deleted = self.delegate.delete(id, tenant_id).await?;
         if deleted {
             self.cache.invalidate(id).await;
         }
         Ok(deleted)
     }
 
-    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool> {
-        // exists_by_name はキャッシュを通さない（名前ベースの検索は ID キャッシュと合わない）
-        self.delegate.exists_by_name(name).await
+    /// CRIT-005 対応: exists_by_name はキャッシュを通さない（名前ベースの検索は ID キャッシュと合わない）。
+    async fn exists_by_name(&self, name: &str, tenant_id: &str) -> anyhow::Result<bool> {
+        self.delegate.exists_by_name(name, tenant_id).await
     }
 }
 
@@ -101,6 +107,7 @@ mod tests {
             enabled: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         }
     }
 
@@ -113,7 +120,7 @@ mod tests {
         let call_count_clone = call_count.clone();
 
         let mut mock = MockPolicyRepository::new();
-        mock.expect_find_by_id().returning(move |_| {
+        mock.expect_find_by_id().returning(move |_, _| {
             call_count_clone.fetch_add(1, Ordering::SeqCst);
             Ok(Some(make_policy(id)))
         });
@@ -122,12 +129,12 @@ mod tests {
         let cached_repo = CachedPolicyRepository::new(Arc::new(mock), cache);
 
         // 1回目: キャッシュミス → delegate 呼び出し
-        let result = cached_repo.find_by_id(&id).await.unwrap();
+        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap();
         assert!(result.is_some());
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
         // 2回目: キャッシュヒット → delegate 呼び出しなし
-        let result = cached_repo.find_by_id(&id).await.unwrap();
+        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap();
         assert!(result.is_some());
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
@@ -148,7 +155,7 @@ mod tests {
         cached_repo.create(&policy).await.unwrap();
 
         // キャッシュにあるのでdelegate不要
-        let result = cached_repo.find_by_id(&id).await.unwrap();
+        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().name, "test-policy");
     }
@@ -162,8 +169,8 @@ mod tests {
 
         let mut mock = MockPolicyRepository::new();
         mock.expect_create().returning(|_| Ok(()));
-        mock.expect_delete().returning(|_| Ok(true));
-        mock.expect_find_by_id().returning(move |_| {
+        mock.expect_delete().returning(|_, _| Ok(true));
+        mock.expect_find_by_id().returning(move |_, _| {
             call_count_clone.fetch_add(1, Ordering::SeqCst);
             Ok(None)
         });
@@ -175,10 +182,10 @@ mod tests {
         cached_repo.create(&policy).await.unwrap();
 
         // 削除 → キャッシュも無効化
-        cached_repo.delete(&id).await.unwrap();
+        cached_repo.delete(&id, "tenant-a").await.unwrap();
 
         // 次回の find_by_id は delegate を呼ぶ
-        let result = cached_repo.find_by_id(&id).await.unwrap();
+        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap();
         assert!(result.is_none());
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
@@ -203,7 +210,7 @@ mod tests {
         cached_repo.update(&policy).await.unwrap();
 
         // キャッシュからは更新後のデータが取れる
-        let result = cached_repo.find_by_id(&id).await.unwrap().unwrap();
+        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap().unwrap();
         assert_eq!(result.description, "updated");
         assert_eq!(result.version, 2);
     }

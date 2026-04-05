@@ -22,10 +22,11 @@ impl FeatureFlagPostgresRepository {
 
 /// PostgreSQL の行をマッピングするための内部構造体。
 /// STATIC-CRITICAL-001 監査対応: tenant_id カラムを含む。
+/// HIGH-005 対応: migration 006 で tenant_id が TEXT 型に変更されたため String 型を使用する。
 #[derive(sqlx::FromRow)]
 struct FeatureFlagRow {
     id: Uuid,
-    tenant_id: Uuid,
+    tenant_id: String,
     flag_key: String,
     description: String,
     enabled: bool,
@@ -69,12 +70,13 @@ impl From<FeatureFlagRow> for FeatureFlag {
 impl FeatureFlagRepository for FeatureFlagPostgresRepository {
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: tenant_id + flag_key でフラグを取得する。
-    async fn find_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn find_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         // lessons.md: SET LOCAL = $1 は禁止。set_config() を使うこと。
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         let row: Option<FeatureFlagRow> = sqlx::query_as(
@@ -93,11 +95,12 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内の全フラグを取得する。
-    async fn find_all(&self, tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         let rows: Vec<FeatureFlagRow> = sqlx::query_as(
@@ -114,14 +117,15 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフラグを作成する。
-    async fn create(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn create(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
         // テナント分離のため set_config でセッション変数を設定してから INSERT を実行する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         sqlx::query(
@@ -147,14 +151,15 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを更新する。
-    async fn update(&self, tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn update(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
 
         // テナント分離のため set_config でセッション変数を設定してから UPDATE を実行する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         let result = sqlx::query(
@@ -182,11 +187,12 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを削除する。
-    async fn delete(&self, tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn delete(&self, tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         // テナント分離のため set_config でセッション変数を設定してから DELETE を実行する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         let result =
@@ -202,11 +208,12 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 
     /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内でのフラグキー存在確認。
-    async fn exists_by_key(&self, tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    async fn exists_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
-            .bind(tenant_id.to_string())
+            .bind(tenant_id)
             .execute(&mut *tx)
             .await?;
         let count: (i64,) = sqlx::query_as(
@@ -226,9 +233,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
 mod tests {
     use super::*;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> String {
+        "00000000-0000-0000-0000-000000000001".to_string()
     }
 
     #[test]

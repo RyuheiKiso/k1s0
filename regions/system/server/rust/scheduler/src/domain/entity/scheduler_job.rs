@@ -17,6 +17,8 @@ pub struct SchedulerJob {
     pub last_run_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// テナント ID: RLS によるテナント分離のために使用する（CRIT-005 対応）
+    pub tenant_id: String,
 }
 
 impl SchedulerJob {
@@ -36,6 +38,7 @@ impl SchedulerJob {
             last_run_at: None,
             created_at: now,
             updated_at: now,
+            tenant_id: "system".to_string(),
         }
     }
 

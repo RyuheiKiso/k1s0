@@ -20,6 +20,8 @@ pub struct ListRulesInput {
     pub page_size: u32,
     pub scope: Option<String>,
     pub enabled_only: bool,
+    /// CRIT-005 対応: RLS テナント分離用テナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug)]
@@ -36,12 +38,19 @@ impl ListRulesUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルール一覧を取得する。
     pub async fn execute(&self, input: &ListRulesInput) -> Result<ListRulesOutput, ListRulesError> {
         let page = input.page.max(1);
         let page_size = input.page_size.clamp(1, 200);
         let (rules, total_count) = self
             .repo
-            .find_page(page, page_size, input.scope.clone(), input.enabled_only)
+            .find_page(
+                page,
+                page_size,
+                input.scope.clone(),
+                input.enabled_only,
+                &input.tenant_id,
+            )
             .await
             .map_err(|e| ListRulesError::Internal(e.to_string()))?;
         let has_next = (page as u64 * page_size as u64) < total_count;
@@ -65,7 +74,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_rules_success() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_page().returning(|_, _, _, _| {
+        repo.expect_find_page().returning(|_, _, _, _, _| {
             Ok((
                 vec![
                     RateLimitRule::new(
@@ -94,6 +103,7 @@ mod tests {
                 page_size: 20,
                 scope: None,
                 enabled_only: false,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
         assert!(result.is_ok());
@@ -104,7 +114,7 @@ mod tests {
     async fn test_list_rules_empty() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_page()
-            .returning(|_, _, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _, _| Ok((vec![], 0)));
 
         let uc = ListRulesUseCase::new(Arc::new(repo));
         let result = uc
@@ -113,6 +123,7 @@ mod tests {
                 page_size: 20,
                 scope: None,
                 enabled_only: false,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
         assert!(result.is_ok());
@@ -123,7 +134,7 @@ mod tests {
     async fn test_list_rules_internal_error() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_page()
-            .returning(|_, _, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListRulesUseCase::new(Arc::new(repo));
         let result = uc
@@ -132,6 +143,7 @@ mod tests {
                 page_size: 20,
                 scope: None,
                 enabled_only: false,
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
         assert!(result.is_err());

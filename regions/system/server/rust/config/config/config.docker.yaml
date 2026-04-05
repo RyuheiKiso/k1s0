@@ -6,12 +6,18 @@ app:
 server:
   host: "0.0.0.0"
   port: 8080
+  # LOW-004 監査対応: gRPC サーバーポートを明示する（コンテナ内ポート; ホスト側は docker-compose.yaml で上書き可能）
+  grpc_port: 50051
 
 database:
   host: "postgres"
   port: 5432
   name: "config_db"
   user: "dev"
+  # LOW-021 監査対応（開発専用パスワード）:
+  # このパスワードは Docker ローカル開発環境専用の固定値である。
+  # 本番環境では Vault の dynamic secrets または Kubernetes Secret 経由で注入すること。
+  # DB_PASSWORD 環境変数が設定されている場合はそちらが優先される。
   password: "${DB_PASSWORD:-dev}"
   ssl_mode: "disable"
   max_open_conns: 10

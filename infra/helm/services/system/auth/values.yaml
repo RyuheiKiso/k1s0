@@ -122,6 +122,12 @@ config:
           subscribe: []
 
       # Keycloak client_secret は Vault 経由で注入される
+      # LOW-008 監査対応: client_id の設計意図を明確化する。
+      # keycloak.client_id は JWT 検証・トークン取得用の一般クライアント（auth-server）。
+      # keycloak_admin.client_id は Keycloak 管理 API 用の専用クライアント（auth-rust-admin）。
+      # この2つは別クライアントであり混同しないこと。
+      # config.docker.yaml の keycloak.client_id は "auth-rust-admin" になっているが、
+      # それは Docker 環境での開発用設定であり、本番は Client Credentials Grant で auth-server を使用する。
       keycloak:
         base_url: "https://auth.k1s0.internal.example.com"
         realm: "k1s0"

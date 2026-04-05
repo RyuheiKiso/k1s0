@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::{body::Body, extract::State, http::Request, middleware::Next, response::Response};
-use k1s0_auth::JwksVerifier;
+use k1s0_auth::{AuthError, JwksVerifier};
 use tokio::time::timeout;
 
 use crate::ServiceError;
@@ -26,10 +26,28 @@ pub async fn auth_middleware(
     const VERIFY_TIMEOUT: Duration = Duration::from_secs(2);
 
     // verify_token をタイムアウト付きで実行し、応答遅延時は 503 を返す
+    // LOW-014 監査対応: エラー種別に応じてメッセージを分離し、クライアントが原因を特定しやすくする。
     let claims = timeout(VERIFY_TIMEOUT, state.verifier.verify_token(&token))
         .await
         .map_err(|_| ServiceError::service_unavailable("AUTH", "Token verification timed out"))?
-        .map_err(|_| ServiceError::unauthorized("AUTH", "Invalid or expired token"))?;
+        .map_err(|e| match e {
+            // トークン有効期限切れ: クライアントにリフレッシュを促す
+            AuthError::TokenExpired => ServiceError::unauthorized("AUTH", "Token has expired"),
+            // 署名不正: トークン改ざんの可能性
+            AuthError::InvalidToken(ref msg) if msg.contains("signature") || msg.contains("InvalidSignature") => {
+                ServiceError::unauthorized("AUTH", "Invalid token signature")
+            }
+            // クレーム不正（iss/aud/nbf 等の検証失敗）
+            AuthError::InvalidToken(ref msg) if msg.contains("aud") || msg.contains("iss") || msg.contains("nbf") => {
+                ServiceError::unauthorized("AUTH", "Token claims validation failed")
+            }
+            // JWKS 取得失敗: 一時的なサービス障害
+            AuthError::JwksFetchFailed(_) => {
+                ServiceError::service_unavailable("AUTH", "Token verification timed out")
+            }
+            // その他の無効なトークン
+            _ => ServiceError::unauthorized("AUTH", "Invalid or expired token"),
+        })?;
 
     req.extensions_mut().insert(claims);
     Ok(next.run(req).await)

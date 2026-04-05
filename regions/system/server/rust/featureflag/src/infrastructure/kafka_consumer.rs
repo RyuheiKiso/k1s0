@@ -7,8 +7,6 @@ use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
 use rdkafka::Message;
 use serde::Deserialize;
 
-use uuid::Uuid;
-
 use crate::infrastructure::cache::FlagCache;
 use crate::infrastructure::config::KafkaConfig;
 
@@ -55,14 +53,11 @@ pub fn spawn_flag_cache_invalidator(
                         match serde_json::from_slice::<FlagChangedEvent>(payload) {
                             Ok(event) => {
                                 // tenant_id が含まれない場合はシステムテナント UUID にフォールバックする（ADR-0028 Phase 1）
+                                // HIGH-005 対応: &str 型で直接使用する（Uuid::parse_str 不要）
                                 let tenant_id = event
                                     .tenant_id
                                     .as_deref()
-                                    .and_then(|s| Uuid::parse_str(s).ok())
-                                    .unwrap_or_else(|| {
-                                        Uuid::parse_str(SYSTEM_TENANT_ID)
-                                            .expect("SYSTEM_TENANT_ID は有効な UUID である")
-                                    });
+                                    .unwrap_or(SYSTEM_TENANT_ID);
                                 cache.invalidate(tenant_id, &event.flag_key).await;
                             }
                             Err(e) => {

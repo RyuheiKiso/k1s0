@@ -74,10 +74,14 @@ class TokenSet {
 }
 
 /// JWT Claims 構造（認証認可設計.md 準拠）
+/// CRIT-006 対応: JWT spec に従い aud を List<String> に変更。
+/// Keycloak は aud を配列として返すが、単一文字列として返す IdP も存在するため
+/// fromJson では両方のフォーマットを受け付ける。
 class Claims {
   final String sub;
   final String iss;
-  final String aud;
+  /// JWT spec に従い audience は配列型（RFC 7519 Section 4.1.3）
+  final List<String> aud;
   final int exp;
   final int iat;
   final String jti;
@@ -110,7 +114,12 @@ class Claims {
   factory Claims.fromJson(Map<String, dynamic> json) => Claims(
         sub: json['sub'] as String,
         iss: json['iss'] as String,
-        aud: json['aud'] as String,
+        // JWT spec: aud は string または string[] のどちらもあり得る（RFC 7519 Section 4.1.3）
+        aud: switch (json['aud']) {
+          final List<dynamic> list => list.cast<String>(),
+          final String s => [s],
+          _ => const [],
+        },
         exp: json['exp'] as int,
         iat: json['iat'] as int,
         jti: json['jti'] as String,

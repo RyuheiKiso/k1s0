@@ -1,11 +1,22 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::Json;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use k1s0_auth::Claims;
+
 use super::error::DlqError;
 use super::AppState;
+
+/// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
+/// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
+fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+    claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
 
 // --- Request / Response DTOs ---
 
@@ -151,12 +162,16 @@ pub async fn metrics(State(state): State<AppState>) -> String {
 )]
 pub async fn list_messages(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(topic): Path<String>,
     Query(query): Query<ListMessagesQuery>,
 ) -> Result<Json<ListMessagesResponse>, DlqError> {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let (messages, total) = state
         .list_messages_uc
-        .execute(&topic, query.page, query.page_size)
+        .execute(&topic, query.page, query.page_size, &tenant_id)
         .await
         .map_err(|e| DlqError::Internal(e.to_string()))?;
 
@@ -188,18 +203,26 @@ pub async fn list_messages(
 )]
 pub async fn get_message(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> Result<Json<DlqMessageResponse>, DlqError> {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
 
-    let message = state.get_message_uc.execute(uuid).await.map_err(|e| {
-        if e.to_string().contains("not found") {
-            DlqError::NotFound(e.to_string())
-        } else {
-            DlqError::Internal(e.to_string())
-        }
-    })?;
+    let message = state
+        .get_message_uc
+        .execute(uuid, &tenant_id)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("not found") {
+                DlqError::NotFound(e.to_string())
+            } else {
+                DlqError::Internal(e.to_string())
+            }
+        })?;
 
     Ok(Json(to_message_response(&message)))
 }
@@ -217,20 +240,28 @@ pub async fn get_message(
 )]
 pub async fn retry_message(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> Result<Json<RetryMessageResponse>, DlqError> {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
 
-    let message = state.retry_message_uc.execute(uuid).await.map_err(|e| {
-        if e.to_string().contains("not found") {
-            DlqError::NotFound(e.to_string())
-        } else if e.to_string().contains("not retryable") {
-            DlqError::Conflict(e.to_string())
-        } else {
-            DlqError::Internal(e.to_string())
-        }
-    })?;
+    let message = state
+        .retry_message_uc
+        .execute(uuid, &tenant_id)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("not found") {
+                DlqError::NotFound(e.to_string())
+            } else if e.to_string().contains("not retryable") {
+                DlqError::Conflict(e.to_string())
+            } else {
+                DlqError::Internal(e.to_string())
+            }
+        })?;
 
     Ok(Json(RetryMessageResponse {
         message: to_message_response(&message),
@@ -248,14 +279,18 @@ pub async fn retry_message(
 )]
 pub async fn delete_message(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> Result<Json<DeleteMessageResponse>, DlqError> {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
 
     state
         .delete_message_uc
-        .execute(uuid)
+        .execute(uuid, &tenant_id)
         .await
         .map_err(|e| DlqError::Internal(e.to_string()))?;
 
@@ -273,11 +308,15 @@ pub async fn delete_message(
 )]
 pub async fn retry_all(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(topic): Path<String>,
 ) -> Result<Json<RetryAllResponse>, DlqError> {
+    // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
+    let tenant_id = extract_tenant_id(&claims);
+
     let retried = state
         .retry_all_uc
-        .execute(&topic)
+        .execute(&topic, &tenant_id)
         .await
         .map_err(|e| DlqError::Internal(e.to_string()))?;
     let retried_i32 = i32::try_from(retried)
@@ -356,7 +395,7 @@ mod tests {
     async fn test_list_messages() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let app = handler::router(make_test_state(mock));
 
@@ -376,7 +415,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_message_not_found() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let app = handler::router(make_test_state(mock));
         let id = Uuid::new_v4();
@@ -407,7 +446,7 @@ mod tests {
 
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(msg_clone.clone())));
+            .returning(move |_, _| Ok(Some(msg_clone.clone())));
 
         let app = handler::router(make_test_state(mock));
 
@@ -445,7 +484,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_message() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_delete().returning(|_| Ok(()));
+        mock.expect_delete().returning(|_, _| Ok(()));
 
         let app = handler::router(make_test_state(mock));
         let id = Uuid::new_v4();
@@ -467,7 +506,7 @@ mod tests {
     #[tokio::test]
     async fn test_retry_message_not_found() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let app = handler::router(make_test_state(mock));
         let id = Uuid::new_v4();
@@ -491,7 +530,7 @@ mod tests {
     async fn test_retry_all() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_find_by_topic()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let app = handler::router(make_test_state(mock));
 
@@ -515,7 +554,7 @@ mod tests {
         let msg_id = Uuid::new_v4();
 
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_delete().returning(|_| Ok(()));
+        mock.expect_delete().returning(|_, _| Ok(()));
 
         let app = handler::router(make_test_state(mock));
 

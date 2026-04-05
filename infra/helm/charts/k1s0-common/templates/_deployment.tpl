@@ -150,6 +150,10 @@ spec:
               mountPath: {{ if .Values.config }}{{ .Values.config.mountPath | default "/etc/app" }}{{ else }}/etc/app{{ end }}
               readOnly: true
             {{- with .Values.extraVolumeMounts }}
+            {{/* LOW-006 整合性確認済み: extraVolumeMounts と extraVolumes は対称的に実装されている。
+                 片方のみ定義した場合は Kubernetes が "volume not found" または "unused volume" で
+                 Pod 起動失敗となるため、values.yaml で両方セットで定義すること。
+                 例: extraVolumes に name: foo を定義したら extraVolumeMounts にも name: foo を定義する。 */}}
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:

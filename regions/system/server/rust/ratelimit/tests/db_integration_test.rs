@@ -69,8 +69,10 @@ mod testcontainers_db_tests {
             Algorithm::FixedWindow,
         );
 
-        let created = repo.create(&rule).await.unwrap();
-        let found = repo.find_by_id(&created.id).await.unwrap();
+        let mut rule_with_tenant = rule.clone();
+        rule_with_tenant.tenant_id = "system".to_string();
+        let created = repo.create(&rule_with_tenant).await.unwrap();
+        let found = repo.find_by_id(&created.id, "system").await.unwrap();
 
         assert_eq!(found.id, created.id);
         assert_eq!(found.scope, "find-by-id-service");
@@ -91,9 +93,11 @@ mod testcontainers_db_tests {
             Algorithm::SlidingWindow,
         );
 
-        repo.create(&rule).await.unwrap();
+        let mut rule_with_tenant = rule.clone();
+        rule_with_tenant.tenant_id = "system".to_string();
+        repo.create(&rule_with_tenant).await.unwrap();
 
-        let found = repo.find_by_name("named-rule:ip:*").await.unwrap();
+        let found = repo.find_by_name("named-rule:ip:*", "system").await.unwrap();
         assert!(found.is_some());
         let found = found.unwrap();
         assert_eq!(found.name, "named-rule:ip:*");
@@ -108,17 +112,18 @@ mod testcontainers_db_tests {
         let repo = RateLimitPostgresRepository::new(pool);
 
         for i in 0..3 {
-            let rule = RateLimitRule::new(
+            let mut rule = RateLimitRule::new(
                 format!("list-service-{}", i),
                 "global".to_string(),
                 100,
                 60,
                 Algorithm::TokenBucket,
             );
+            rule.tenant_id = "system".to_string();
             repo.create(&rule).await.unwrap();
         }
 
-        let all = repo.find_all().await.unwrap();
+        let all = repo.find_all("system").await.unwrap();
         assert!(all.len() >= 3);
     }
 
@@ -136,13 +141,15 @@ mod testcontainers_db_tests {
             Algorithm::TokenBucket,
         );
 
-        let mut created = repo.create(&rule).await.unwrap();
+        let mut rule_with_tenant = rule.clone();
+        rule_with_tenant.tenant_id = "system".to_string();
+        let mut created = repo.create(&rule_with_tenant).await.unwrap();
         created.limit = 200;
         created.enabled = false;
 
         repo.update(&created).await.unwrap();
 
-        let updated = repo.find_by_id(&created.id).await.unwrap();
+        let updated = repo.find_by_id(&created.id, "system").await.unwrap();
         assert_eq!(updated.limit, 200);
         assert!(!updated.enabled);
     }
@@ -161,11 +168,13 @@ mod testcontainers_db_tests {
             Algorithm::TokenBucket,
         );
 
-        let created = repo.create(&rule).await.unwrap();
-        let deleted = repo.delete(&created.id).await.unwrap();
+        let mut rule_with_tenant = rule.clone();
+        rule_with_tenant.tenant_id = "system".to_string();
+        let created = repo.create(&rule_with_tenant).await.unwrap();
+        let deleted = repo.delete(&created.id, "system").await.unwrap();
         assert!(deleted);
 
-        let not_found = repo.find_by_name("delete-service").await.unwrap();
+        let not_found = repo.find_by_name("delete-service", "system").await.unwrap();
         assert!(not_found.is_none());
     }
 }

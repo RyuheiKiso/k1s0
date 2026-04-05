@@ -351,8 +351,9 @@ fn test_rust_bff_cargo_toml_has_reqwest() {
         content.contains("anyhow"),
         "Rust BFF Cargo.toml should have anyhow dependency"
     );
+    // H-012 監査対応: actix-web から axum 0.8 へ移行済みのため async-graphql-axum を確認する
     assert!(
-        content.contains("async-graphql-actix-web"),
-        "Rust BFF Cargo.toml should have async-graphql-actix-web"
+        content.contains("async-graphql-axum"),
+        "Rust BFF Cargo.toml should have async-graphql-axum dependency"
     );
 }

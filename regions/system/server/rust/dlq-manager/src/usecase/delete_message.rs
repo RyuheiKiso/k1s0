@@ -14,9 +14,9 @@ impl DeleteMessageUseCase {
         Self { repo }
     }
 
-    /// DLQ メッセージを削除する。
-    pub async fn execute(&self, id: Uuid) -> anyhow::Result<()> {
-        self.repo.delete(id).await
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから DLQ メッセージを削除する。
+    pub async fn execute(&self, id: Uuid, tenant_id: &str) -> anyhow::Result<()> {
+        self.repo.delete(id, tenant_id).await
     }
 }
 
@@ -28,20 +28,20 @@ mod tests {
     #[tokio::test]
     async fn test_delete_message_success() {
         let mut mock = MockDlqMessageRepository::new();
-        mock.expect_delete().returning(|_| Ok(()));
+        mock.expect_delete().returning(|_, _| Ok(()));
 
         let uc = DeleteMessageUseCase::new(Arc::new(mock));
-        assert!(uc.execute(Uuid::new_v4()).await.is_ok());
+        assert!(uc.execute(Uuid::new_v4(), "tenant-a").await.is_ok());
     }
 
     #[tokio::test]
     async fn test_delete_message_error() {
         let mut mock = MockDlqMessageRepository::new();
         mock.expect_delete()
-            .returning(|_| Err(anyhow::anyhow!("database error")));
+            .returning(|_, _| Err(anyhow::anyhow!("database error")));
 
         let uc = DeleteMessageUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute(Uuid::new_v4(), "tenant-a").await;
         assert!(result.is_err());
     }
 }

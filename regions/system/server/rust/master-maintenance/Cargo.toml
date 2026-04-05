@@ -93,7 +93,8 @@ db-tests = []
 mockall = {workspace = true}
 tokio-test = {workspace = true}
 tower = {workspace = true}
-testcontainers = "0.24"
+# MED-022 監査対応: testcontainers をワークスペース管理に移行してバージョンを一元管理する
+testcontainers = {workspace = true}
 axum-test = "17"
 
 [lints]

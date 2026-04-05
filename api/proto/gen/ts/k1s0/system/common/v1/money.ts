@@ -24,7 +24,10 @@ export interface Money {
      */
     amount: string;
     /**
-     * currency_code は ISO 4217 通貨コード（例: "JPY", "USD"）。
+     * currency_code は ISO 4217 準拠の3文字大文字アルファベット通貨コード（例: JPY, USD）。
+     * buf.validate で長さと形式を強制する。
+     * 参考: https://www.iso.org/iso-4217-currency-codes.html
+     * len: 3 で min_len + max_len の重複を避ける（buf lint 推奨）
      *
      * @generated from protobuf field: string currency_code = 2
      */
@@ -35,7 +38,7 @@ class Money$Type extends MessageType<Money> {
     constructor() {
         super("k1s0.system.common.v1.Money", [
             { no: 1, name: "amount", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 2, name: "currency_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "currency_code", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { len: "3", pattern: "^[A-Z]{3}$" } } } }
         ]);
     }
     create(value?: PartialMessage<Money>): Money {

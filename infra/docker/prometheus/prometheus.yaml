@@ -319,3 +319,14 @@ scrape_configs:
     static_configs:
       - targets: ["kong:8100"]
     metrics_path: /metrics
+
+  # Kafka メトリクス（JMX Exporter 経由）
+  # LOW-002 監査対応: Kafka ブローカーポート 9092 ではなく JMX Exporter の HTTP ポート 9101 を使用する。
+  # kafka-jmx-exporter サービスが Kafka の JMX ポート 9999 に接続してメトリクスを収集・変換する。
+  - job_name: kafka
+    static_configs:
+      - targets: ["kafka-jmx-exporter:9101"]
+        labels:
+          service: kafka
+          tier: infra
+    metrics_path: /metrics

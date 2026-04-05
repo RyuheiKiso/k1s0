@@ -55,10 +55,11 @@ impl TriggerJobUseCase {
         }
     }
 
-    pub async fn execute(&self, job_id: &str) -> Result<SchedulerExecution, TriggerJobError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを手動実行する。
+    pub async fn execute(&self, job_id: &str, tenant_id: &str) -> Result<SchedulerExecution, TriggerJobError> {
         let mut job = self
             .repo
-            .find_by_id(job_id)
+            .find_by_id(job_id, tenant_id)
             .await
             .map_err(|e| TriggerJobError::Internal(e.to_string()))?
             .ok_or_else(|| TriggerJobError::NotFound(job_id.to_string()))?;
@@ -151,8 +152,8 @@ mod tests {
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| id == expected_id.as_str())
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .withf(move |id, _tenant_id| id == expected_id.as_str())
+            .returning(move |_, _| Ok(Some(return_job.clone())));
         mock_job.expect_update().returning(|_| Ok(()));
 
         mock_exec.expect_create().returning(|_| Ok(()));
@@ -168,7 +169,7 @@ mod tests {
             Arc::new(executor),
             Arc::new(publisher),
         );
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "tenant-a").await;
         assert!(result.is_ok());
 
         let execution = result.unwrap();
@@ -193,11 +194,11 @@ mod tests {
 
         mock_job
             .expect_find_by_id()
-            .withf(move |id| id == expected_id.as_str())
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .withf(move |id, _tenant_id| id == expected_id.as_str())
+            .returning(move |_, _| Ok(Some(return_job.clone())));
 
         let uc = TriggerJobUseCase::new(Arc::new(mock_job), Arc::new(mock_exec));
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "tenant-a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -221,7 +222,7 @@ mod tests {
 
         mock_job
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(return_job.clone())));
+            .returning(move |_, _| Ok(Some(return_job.clone())));
         mock_job.expect_update().returning(|_| Ok(()));
         mock_exec.expect_create().returning(|_| Ok(()));
         mock_exec.expect_update_status().returning(|_, _, _| Ok(()));
@@ -239,7 +240,7 @@ mod tests {
             Arc::new(publisher),
         );
 
-        let result = uc.execute(&job.id).await;
+        let result = uc.execute(&job.id, "tenant-a").await;
         assert!(matches!(result, Err(TriggerJobError::Internal(_))));
     }
 }

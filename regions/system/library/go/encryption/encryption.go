@@ -45,25 +45,48 @@ func GenerateKey() ([]byte, error) {
 }
 
 // Encrypt はAES-256-GCMで暗号化し、Base64エンコードした文字列を返す。
+// AAD（Additional Authenticated Data）なし版。後方互換性のために維持する。
+// 新規コードでは EncryptWithAAD を使用してコンテキスト情報（テナントID等）で
+// 認証付きデータを追加することを推奨する。
 func Encrypt(key, plaintext []byte) (string, error) {
+	return EncryptWithAAD(key, plaintext, nil)
+}
+
+// EncryptWithAAD はAES-256-GCMで暗号化し、Base64エンコードした文字列を返す。
+// LOW-017 監査対応: AAD（Additional Authenticated Data）パラメータを受け付けるよう追加する。
+// aad に nil を渡すと Encrypt と同等の動作になる（後方互換性を維持）。
+// aad にはコンテキスト情報（テナントID、リソースIDなど）を渡すことで、
+// 異なるコンテキストへの暗号文の流用（コピー攻撃）を防止できる。
+// 注意: 復号時には暗号化時と同一の aad を DecryptWithAAD に渡す必要がある。
+func EncryptWithAAD(key, plaintext, aad []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-	aead, err := cipher.NewGCM(block)
+	aeadCipher, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", err
 	}
-	nonce := make([]byte, aead.NonceSize())
+	nonce := make([]byte, aeadCipher.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", err
 	}
-	ciphertext := aead.Seal(nonce, nonce, plaintext, nil)
+	ciphertext := aeadCipher.Seal(nonce, nonce, plaintext, aad)
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
 // Decrypt はBase64デコード後、AES-256-GCMで復号する。
+// AAD（Additional Authenticated Data）なし版。後方互換性のために維持する。
+// EncryptWithAAD で暗号化したデータを復号する場合は DecryptWithAAD を使用すること。
 func Decrypt(key []byte, ciphertext string) ([]byte, error) {
+	return DecryptWithAAD(key, ciphertext, nil)
+}
+
+// DecryptWithAAD はBase64デコード後、AES-256-GCMで復号する。
+// LOW-017 監査対応: AAD（Additional Authenticated Data）パラメータを受け付けるよう追加する。
+// aad に nil を渡すと Decrypt と同等の動作になる（後方互換性を維持）。
+// EncryptWithAAD で暗号化した際と同一の aad を渡すこと。aad が異なると復号失敗となる。
+func DecryptWithAAD(key []byte, ciphertext string, aad []byte) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return nil, err
@@ -72,16 +95,16 @@ func Decrypt(key []byte, ciphertext string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	aead, err := cipher.NewGCM(block)
+	aeadCipher, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, err
 	}
-	nonceSize := aead.NonceSize()
+	nonceSize := aeadCipher.NonceSize()
 	if len(data) < nonceSize {
 		return nil, ErrCiphertextTooShort
 	}
 	nonce, sealed := data[:nonceSize], data[nonceSize:]
-	return aead.Open(nil, nonce, sealed, nil)
+	return aeadCipher.Open(nil, nonce, sealed, aad)
 }
 
 // RSA 鍵サイズ定数: NIST SP 800-57 に基づき 3072bit を推奨とする。

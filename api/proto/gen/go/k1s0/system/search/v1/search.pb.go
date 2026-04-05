@@ -10,6 +10,7 @@
 package searchv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -94,9 +95,10 @@ func (x *SearchIndex) GetCreatedAt() string {
 }
 
 type CreateIndexRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	MappingJson   []byte                 `protobuf:"bytes,2,opt,name=mapping_json,json=mappingJson,proto3" json:"mapping_json,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インデックス名は1文字以上128文字以下であること
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	MappingJson   []byte `protobuf:"bytes,2,opt,name=mapping_json,json=mappingJson,proto3" json:"mapping_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -270,10 +272,12 @@ func (x *ListIndicesResponse) GetIndices() []*SearchIndex {
 }
 
 type IndexDocumentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         string                 `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
-	DocumentId    string                 `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
-	DocumentJson  []byte                 `protobuf:"bytes,3,opt,name=document_json,json=documentJson,proto3" json:"document_json,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インデックス名は1文字以上128文字以下であること
+	Index string `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
+	// ドキュメントIDは1文字以上256文字以下であること
+	DocumentId    string `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	DocumentJson  []byte `protobuf:"bytes,3,opt,name=document_json,json=documentJson,proto3" json:"document_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -390,13 +394,15 @@ func (x *IndexDocumentResponse) GetResult() string {
 }
 
 type SearchRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         string                 `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	FiltersJson   []byte                 `protobuf:"bytes,3,opt,name=filters_json,json=filtersJson,proto3" json:"filters_json,omitempty"`
-	From          uint32                 `protobuf:"varint,4,opt,name=from,proto3" json:"from,omitempty"`
-	Size          uint32                 `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
-	Facets        []string               `protobuf:"bytes,6,rep,name=facets,proto3" json:"facets,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インデックス名は1文字以上128文字以下であること
+	Index string `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
+	// 検索クエリは1文字以上1024文字以下であること
+	Query         string   `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	FiltersJson   []byte   `protobuf:"bytes,3,opt,name=filters_json,json=filtersJson,proto3" json:"filters_json,omitempty"`
+	From          uint32   `protobuf:"varint,4,opt,name=from,proto3" json:"from,omitempty"`
+	Size          uint32   `protobuf:"varint,5,opt,name=size,proto3" json:"size,omitempty"`
+	Facets        []string `protobuf:"bytes,6,rep,name=facets,proto3" json:"facets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -638,9 +644,11 @@ func (x *SearchHit) GetDocumentJson() []byte {
 }
 
 type DeleteDocumentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         string                 `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
-	DocumentId    string                 `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// インデックス名は1文字以上128文字以下であること
+	Index string `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
+	// ドキュメントIDは1文字以上256文字以下であること
+	DocumentId    string `protobuf:"bytes,2,opt,name=document_id,json=documentId,proto3" json:"document_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -745,34 +753,39 @@ var File_k1s0_system_search_v1_search_proto protoreflect.FileDescriptor
 
 const file_k1s0_system_search_v1_search_proto_rawDesc = "" +
 	"\n" +
-	"\"k1s0/system/search/v1/search.proto\x12\x15k1s0.system.search.v1\x1a!k1s0/system/common/v1/types.proto\"s\n" +
+	"\"k1s0/system/search/v1/search.proto\x12\x15k1s0.system.search.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"s\n" +
 	"\vSearchIndex\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12!\n" +
 	"\fmapping_json\x18\x03 \x01(\fR\vmappingJson\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\tR\tcreatedAt\"K\n" +
-	"\x12CreateIndexRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\"W\n" +
+	"\x12CreateIndexRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12!\n" +
 	"\fmapping_json\x18\x02 \x01(\fR\vmappingJson\"O\n" +
 	"\x13CreateIndexResponse\x128\n" +
 	"\x05index\x18\x01 \x01(\v2\".k1s0.system.search.v1.SearchIndexR\x05index\"\x14\n" +
 	"\x12ListIndicesRequest\"S\n" +
 	"\x13ListIndicesResponse\x12<\n" +
-	"\aindices\x18\x01 \x03(\v2\".k1s0.system.search.v1.SearchIndexR\aindices\"r\n" +
-	"\x14IndexDocumentRequest\x12\x14\n" +
-	"\x05index\x18\x01 \x01(\tR\x05index\x12\x1f\n" +
-	"\vdocument_id\x18\x02 \x01(\tR\n" +
+	"\aindices\x18\x01 \x03(\v2\".k1s0.system.search.v1.SearchIndexR\aindices\"\x8a\x01\n" +
+	"\x14IndexDocumentRequest\x12 \n" +
+	"\x05index\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05index\x12+\n" +
+	"\vdocument_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"documentId\x12#\n" +
 	"\rdocument_json\x18\x03 \x01(\fR\fdocumentJson\"f\n" +
 	"\x15IndexDocumentResponse\x12\x1f\n" +
 	"\vdocument_id\x18\x01 \x01(\tR\n" +
 	"documentId\x12\x14\n" +
 	"\x05index\x18\x02 \x01(\tR\x05index\x12\x16\n" +
-	"\x06result\x18\x03 \x01(\tR\x06result\"\x9e\x01\n" +
-	"\rSearchRequest\x12\x14\n" +
-	"\x05index\x18\x01 \x01(\tR\x05index\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\x12!\n" +
+	"\x06result\x18\x03 \x01(\tR\x06result\"\xb6\x01\n" +
+	"\rSearchRequest\x12 \n" +
+	"\x05index\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05index\x12 \n" +
+	"\x05query\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\bR\x05query\x12!\n" +
 	"\ffilters_json\x18\x03 \x01(\fR\vfiltersJson\x12\x12\n" +
 	"\x04from\x18\x04 \x01(\rR\x04from\x12\x12\n" +
 	"\x04size\x18\x05 \x01(\rR\x04size\x12\x16\n" +
@@ -794,10 +807,12 @@ const file_k1s0_system_search_v1_search_proto_rawDesc = "" +
 	"\tSearchHit\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05score\x18\x02 \x01(\x02R\x05score\x12#\n" +
-	"\rdocument_json\x18\x03 \x01(\fR\fdocumentJson\"N\n" +
-	"\x15DeleteDocumentRequest\x12\x14\n" +
-	"\x05index\x18\x01 \x01(\tR\x05index\x12\x1f\n" +
-	"\vdocument_id\x18\x02 \x01(\tR\n" +
+	"\rdocument_json\x18\x03 \x01(\fR\fdocumentJson\"f\n" +
+	"\x15DeleteDocumentRequest\x12 \n" +
+	"\x05index\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x05index\x12+\n" +
+	"\vdocument_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"documentId\"L\n" +
 	"\x16DeleteDocumentResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +

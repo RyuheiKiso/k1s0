@@ -27,14 +27,17 @@ const (
 
 // タスク作成イベント
 type TaskCreatedEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metadata      *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
-	Priority      string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`
-	Checklist     []*TaskChecklistItem   `protobuf:"bytes,7,rep,name=checklist,proto3" json:"checklist,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Metadata *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TaskId   string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// M-026 監査対応: project_id は string 型のまま維持する
+	// DB は migration 008 で UUID 型に変更済みだが、イベントスキーマは後方互換性維持のため string を使用する
+	// consumers はこの string が UUID 形式であることを前提として良い
+	ProjectId     string               `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Title         string               `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	AssigneeId    *string              `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	Priority      string               `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`
+	Checklist     []*TaskChecklistItem `protobuf:"bytes,7,rep,name=checklist,proto3" json:"checklist,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -189,12 +192,13 @@ func (x *TaskChecklistItem) GetSortOrder() int32 {
 
 // タスク更新イベント
 type TaskUpdatedEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metadata      *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
-	AssigneeId    *string                `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Metadata *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TaskId   string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// M-026 監査対応: project_id は string 型のまま維持する（後方互換性維持）
+	ProjectId     string  `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Status        string  `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	AssigneeId    *string `protobuf:"bytes,5,opt,name=assignee_id,json=assigneeId,proto3,oneof" json:"assignee_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -266,11 +270,12 @@ func (x *TaskUpdatedEvent) GetAssigneeId() string {
 
 // タスクキャンセルイベント
 type TaskCancelledEvent struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Metadata      *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	TaskId        string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ProjectId     string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Metadata *v1.EventMetadata      `protobuf:"bytes,1,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	TaskId   string                 `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	// M-026 監査対応: project_id は string 型のまま維持する（後方互換性維持）
+	ProjectId     string `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Reason        string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

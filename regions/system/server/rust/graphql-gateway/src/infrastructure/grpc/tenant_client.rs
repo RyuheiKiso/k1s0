@@ -207,13 +207,35 @@ impl TenantGrpcClient {
         Ok(Self::tenant_from_proto(t))
     }
 
+    /// CRIT-007 対応: display_name と plan を proto UpdateTenantRequest に直接渡す
+    /// status 変更は suspend_tenant/activate_tenant/delete_tenant で対応する
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,
         id: &str,
-        name: Option<&str>,
-        status: Option<&str>,
+        display_name: Option<&str>,
+        plan: Option<&str>,
     ) -> anyhow::Result<Tenant> {
+        // 少なくとも一方が指定されている場合のみ UpdateTenant RPC を呼び出す
+        if display_name.is_none() && plan.is_none() {
+            // 変更なし: 現在のテナント情報をそのまま返す
+            let current = self
+                .client
+                .clone()
+                .get_tenant(tonic::Request::new(
+                    proto::k1s0::system::tenant::v1::GetTenantRequest {
+                        tenant_id: id.to_owned(),
+                    },
+                ))
+                .await
+                .map_err(|e| anyhow::anyhow!("TenantService.GetTenant failed: {}", e))?
+                .into_inner()
+                .tenant
+                .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
+            return Ok(Self::tenant_from_proto(current));
+        }
+
+        // display_name または plan の片方だけ指定された場合は現在値を読んでから更新する
         let current = self
             .client
             .clone()
@@ -228,80 +250,24 @@ impl TenantGrpcClient {
             .tenant
             .ok_or_else(|| anyhow::anyhow!("tenant not found: {}", id))?;
 
-        let mut latest = current;
+        let updated = self
+            .client
+            .clone()
+            .update_tenant(tonic::Request::new(
+                proto::k1s0::system::tenant::v1::UpdateTenantRequest {
+                    tenant_id: id.to_owned(),
+                    // 指定されていなければ現在値を維持する
+                    display_name: display_name.unwrap_or(&current.display_name).to_owned(),
+                    plan: plan.unwrap_or(&current.plan).to_owned(),
+                },
+            ))
+            .await
+            .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
+            .into_inner()
+            .tenant
+            .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
 
-        if let Some(display_name) = name {
-            let updated = self
-                .client
-                .clone()
-                .update_tenant(tonic::Request::new(
-                    proto::k1s0::system::tenant::v1::UpdateTenantRequest {
-                        tenant_id: id.to_owned(),
-                        display_name: display_name.to_owned(),
-                        plan: latest.plan.clone(),
-                    },
-                ))
-                .await
-                .map_err(|e| anyhow::anyhow!("TenantService.UpdateTenant failed: {}", e))?
-                .into_inner()
-                .tenant
-                .ok_or_else(|| anyhow::anyhow!("empty tenant in update response"))?;
-            latest = updated;
-        }
-
-        if let Some(status) = status {
-            let status = status.to_ascii_uppercase();
-            let transitioned = match status.as_str() {
-                "ACTIVE" => Some(
-                    self.client
-                        .clone()
-                        .activate_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::ActivateTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.ActivateTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in activate response"))?,
-                ),
-                "SUSPENDED" => Some(
-                    self.client
-                        .clone()
-                        .suspend_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::SuspendTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.SuspendTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in suspend response"))?,
-                ),
-                "DELETED" => Some(
-                    self.client
-                        .clone()
-                        .delete_tenant(tonic::Request::new(
-                            proto::k1s0::system::tenant::v1::DeleteTenantRequest {
-                                tenant_id: id.to_owned(),
-                            },
-                        ))
-                        .await
-                        .map_err(|e| anyhow::anyhow!("TenantService.DeleteTenant failed: {}", e))?
-                        .into_inner()
-                        .tenant
-                        .ok_or_else(|| anyhow::anyhow!("empty tenant in delete response"))?,
-                ),
-                _ => None,
-            };
-            if let Some(next) = transitioned {
-                latest = next;
-            }
-        }
-
-        Ok(Self::tenant_from_proto(latest))
+        Ok(Self::tenant_from_proto(updated))
     }
 
     /// WatchTenant Server-Side Streaming を購読し、変更イベントを Tenant として返す。

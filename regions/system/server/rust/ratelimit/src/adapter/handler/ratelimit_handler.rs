@@ -133,16 +133,35 @@ pub struct CheckRateLimitResponse {
     pub reason: String,
 }
 
-fn parse_window_secs(window: &Option<String>) -> i64 {
+/// MED-019 監査対応: parse_window_secs を Result 返却に変更。
+/// 以前は unwrap_or(60) でサイレントにデフォルト値を返していたが、
+/// 不正なフォーマット（例: "abc", "60x"）は 400 Bad Request として返すべき。
+/// None の場合はデフォルト値 60 秒を返す（省略可能フィールドのため）。
+fn parse_window_secs(
+    window: &Option<String>,
+) -> Result<i64, (StatusCode, Json<serde_json::Value>)> {
     match window {
         Some(w) => {
-            if let Some(stripped) = w.strip_suffix('s') {
-                stripped.parse::<i64>().unwrap_or(60)
+            let parsed = if let Some(stripped) = w.strip_suffix('s') {
+                stripped.parse::<i64>()
             } else {
-                w.parse::<i64>().unwrap_or(60)
-            }
+                w.parse::<i64>()
+            };
+            parsed.map_err(|_| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "INVALID_WINDOW_FORMAT",
+                        "message": format!(
+                            "window パラメータのフォーマットが無効です: '{}'. 例: '60' または '60s'",
+                            w
+                        )
+                    })),
+                )
+            })
         }
-        None => 60,
+        // window が省略された場合はデフォルト 60 秒を返す
+        None => Ok(60),
     }
 }
 
@@ -164,7 +183,11 @@ pub async fn check_rate_limit(
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    let window_secs = parse_window_secs(&req.window);
+    // MED-019 監査対応: window パースエラーは 400 Bad Request として返す
+    let window_secs = match parse_window_secs(&req.window) {
+        Ok(secs) => secs,
+        Err(err) => return err.into_response(),
+    };
 
     match state
         .check_uc
@@ -317,8 +340,14 @@ fn parse_positive_u32(value: i64, field: &str) -> Result<u32, String> {
 )]
 pub async fn create_rule(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let limit = match parse_positive_u32(req.limit, "limit") {
         Ok(v) => v,
         Err(msg) => {
@@ -341,6 +370,8 @@ pub async fn create_rule(
         window_seconds,
         algorithm: req.algorithm,
         enabled: req.enabled,
+        // CRIT-005 対応: JWT Claims から抽出したテナント ID を渡す。
+        tenant_id,
     };
 
     match state.create_uc.execute(&input).await {
@@ -389,8 +420,17 @@ pub async fn create_rule(
         (status = 404, description = "Rule not found"),
     )
 )]
-pub async fn get_rule(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.get_uc.execute(&id).await {
+pub async fn get_rule(
+    State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
+    match state.get_uc.execute(&id, &tenant_id).await {
         Ok(rule) => (
             StatusCode::OK,
             Json(RuleResponse {
@@ -465,8 +505,14 @@ pub struct ListRulesQuery {
 )]
 pub async fn list_rules(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     axum::extract::Query(query): axum::extract::Query<ListRulesQuery>,
 ) -> impl IntoResponse {
+    // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     match state
         .list_uc
         .execute(&crate::usecase::list_rules::ListRulesInput {
@@ -474,6 +520,8 @@ pub async fn list_rules(
             page_size: query.page_size.unwrap_or(20).max(1),
             scope: query.scope.clone(),
             enabled_only: query.enabled_only.unwrap_or(false),
+            // CRIT-005 対応: JWT Claims から抽出したテナント ID を渡す。
+            tenant_id,
         })
         .await
     {
@@ -528,10 +576,16 @@ pub async fn list_rules(
 )]
 pub async fn update_rule(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateRuleRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput};
+    // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
     let limit = match parse_positive_u32(req.limit, "limit") {
         Ok(v) => v,
         Err(msg) => {
@@ -554,6 +608,8 @@ pub async fn update_rule(
         window_seconds,
         algorithm: req.algorithm,
         enabled: req.enabled,
+        // CRIT-005 対応: JWT Claims から抽出したテナント ID を渡す。
+        tenant_id,
     };
 
     match state.update_uc.execute(&input).await {
@@ -603,11 +659,17 @@ pub async fn update_rule(
 )]
 pub async fn delete_rule(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_rule::DeleteRuleError;
 
-    match state.delete_uc.execute(&id).await {
+    // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
+    let tenant_id = match extract_tenant_id_str(&claims) {
+        Ok(id) => id,
+        Err(err) => return err.into_response(),
+    };
+    match state.delete_uc.execute(&id, &tenant_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteRuleError::NotFound(_)) | Err(DeleteRuleError::InvalidRuleId(_)) => {
             let err = ErrorResponse::new(
@@ -866,7 +928,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -950,7 +1012,7 @@ mod tests {
         let mut repo = MockRateLimitRepository::new();
         let return_rule = rule.clone();
         repo.expect_find_by_scope()
-            .returning(move |_| Ok(vec![return_rule.clone()]));
+            .returning(move |_, _| Ok(vec![return_rule.clone()]));
 
         let mut state_store = MockRateLimitStateStore::new();
         state_store
@@ -1030,7 +1092,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_success() {
         let mut repo = MockRateLimitRepository::new();
-        repo.expect_find_by_scope().returning(|_| Ok(vec![]));
+        repo.expect_find_by_scope().returning(|_, _| Ok(vec![]));
         repo.expect_create().returning(|rule| Ok(rule.clone()));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
@@ -1071,8 +1133,8 @@ mod tests {
             "enabled": true
         });
 
-        // ルール作成リクエストを送信する
-        let req = Request::builder()
+        // CRIT-005 対応: 有効なJWT Claimsを注入してルール作成リクエストを送信する
+        let mut req = Request::builder()
             .method("POST")
             .uri("/api/v1/ratelimit/rules")
             .header("content-type", "application/json")
@@ -1080,6 +1142,7 @@ mod tests {
                 serde_json::to_string(&body).expect("リクエストボディのJSON変換に失敗"),
             ))
             .expect("create ruleリクエストの構築に失敗");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)
@@ -1101,7 +1164,7 @@ mod tests {
     async fn test_get_rule_not_found() {
         let mut repo = MockRateLimitRepository::new();
         repo.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("not found")));
+            .returning(|_, _| Err(anyhow::anyhow!("not found")));
 
         let check_uc = Arc::new(crate::usecase::CheckRateLimitUseCase::new(
             Arc::new(MockRateLimitRepository::new()),
@@ -1133,10 +1196,12 @@ mod tests {
         );
         let app = router(state);
 
-        let req = Request::builder()
+        // CRIT-005 対応: 有効なJWT Claimsを注入してルール取得リクエストを送信する
+        let mut req = Request::builder()
             .uri("/api/v1/ratelimit/rules/550e8400-e29b-41d4-a716-446655440000")
             .body(Body::empty())
             .expect("get rule not_foundリクエストの構築に失敗");
+        req.extensions_mut().insert(make_test_claims());
 
         let resp = app
             .oneshot(req)

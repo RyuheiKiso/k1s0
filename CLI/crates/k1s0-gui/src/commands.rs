@@ -1294,8 +1294,14 @@ pub fn poll_device_authorization(
     }
 }
 
+/// MED-028 監査対応: HTTP クライアントにタイムアウトを設定してハング防止。
+/// 接続タイムアウト 10 秒、リクエストタイムアウト 30 秒を設定する。
 fn http_client() -> Result<Client, String> {
-    Client::builder().build().map_err(|error| error.to_string())
+    Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|error| error.to_string())
 }
 
 fn resolve_workspace_root_path(path: &Path) -> Result<PathBuf, String> {

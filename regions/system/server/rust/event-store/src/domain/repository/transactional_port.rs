@@ -11,6 +11,8 @@ use crate::domain::entity::event::{EventStream, StoredEvent};
 /// トランザクション型イベント追記のドメインポート。
 /// 実装は infrastructure 層に置き、usecase は本トレイトを通じてのみ操作する。
 /// これにより usecase 層から sqlx や PostgreSQL 等の具体型依存を排除する。
+/// mockall の automock は `Option<&EventStream>` の匿名ライフタイムを処理できないため、
+/// テスト時は `for<'a> mockall::automock` を使用してライフタイムを明示的にする。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait TransactionalAppendPort: Send + Sync {
@@ -23,9 +25,9 @@ pub trait TransactionalAppendPort: Send + Sync {
     /// - `stream_id` - 追記対象のストリーム ID
     /// - `events` - 追記するイベント群（バージョンは呼び出し元が設定済み）
     /// - `new_version` - 追記後のストリームバージョン
-    async fn append_in_transaction(
+    async fn append_in_transaction<'a>(
         &self,
-        stream: Option<&EventStream>,
+        stream: Option<&'a EventStream>,
         stream_id: &str,
         events: Vec<StoredEvent>,
         new_version: i64,

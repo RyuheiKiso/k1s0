@@ -215,16 +215,10 @@ pub struct CheckPermissionResponse {
     pub reason: ::prost::alloc::string::String,
 }
 /// RecordAuditLogRequest は監査ログ記録リクエスト。
+/// HIGH-014 監査対応: deprecated string フィールド (tag=1 event_type, tag=7 result) を削除した。
+/// reserved 1, 7 および reserved "event_type", "result" がプロトでは宣言済み。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecordAuditLogRequest {
-    /// LOGIN_SUCCESS, LOGIN_FAILURE, TOKEN_VALIDATE, PERMISSION_DENIED 等
-    /// Deprecated: event_type_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    /// POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを event_type_enum フィールドに移行し、
-    /// このフィールドを削除すること。削除前に全コンシューマーが event_type_enum を使用していることを確認する。
-    #[deprecated]
-    #[prost(string, tag="1")]
-    pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub user_id: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
@@ -237,14 +231,6 @@ pub struct RecordAuditLogRequest {
     /// HTTP メソッドまたは gRPC メソッド名
     #[prost(string, tag="6")]
     pub action: ::prost::alloc::string::String,
-    /// SUCCESS / FAILURE
-    /// Deprecated: result_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    /// POLY-009 監査対応: 移行期限 2026-06 までに全クライアントを result_enum フィールドに移行し、
-    /// このフィールドを削除すること。削除前に全コンシューマーが result_enum を使用していることを確認する。
-    #[deprecated]
-    #[prost(string, tag="7")]
-    pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（client_id, grant_type 等）
     #[prost(message, optional, tag="8")]
     pub detail: ::core::option::Option<super::super::super::super::google::protobuf::Struct>,
@@ -271,27 +257,17 @@ pub struct RecordAuditLogResponse {
     pub created_at: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
 /// SearchAuditLogsRequest は監査ログ検索リクエスト。
+/// HIGH-014 監査対応: deprecated string フィールド (tag=3 event_type, tag=6 result) を削除した。
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SearchAuditLogsRequest {
     #[prost(message, optional, tag="1")]
     pub pagination: ::core::option::Option<super::super::common::v1::Pagination>,
     #[prost(string, tag="2")]
     pub user_id: ::prost::alloc::string::String,
-    /// Deprecated: event_type_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    #[deprecated]
-    #[prost(string, tag="3")]
-    pub event_type: ::prost::alloc::string::String,
     #[prost(message, optional, tag="4")]
     pub from: ::core::option::Option<super::super::common::v1::Timestamp>,
     #[prost(message, optional, tag="5")]
     pub to: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// SUCCESS / FAILURE
-    /// Deprecated: result_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    #[deprecated]
-    #[prost(string, tag="6")]
-    pub result: ::prost::alloc::string::String,
     /// 監査イベント種別フィルタ（enum）
     #[prost(enumeration="AuditEventType", tag="7")]
     pub event_type_enum: i32,
@@ -308,15 +284,11 @@ pub struct SearchAuditLogsResponse {
     pub pagination: ::core::option::Option<super::super::common::v1::PaginationResult>,
 }
 /// AuditLog は監査ログエントリ。
+/// HIGH-014 監査対応: deprecated string フィールド (tag=2 event_type, tag=8 result) を削除した。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditLog {
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
-    /// Deprecated: event_type_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    #[deprecated]
-    #[prost(string, tag="2")]
-    pub event_type: ::prost::alloc::string::String,
     #[prost(string, tag="3")]
     pub user_id: ::prost::alloc::string::String,
     #[prost(string, tag="4")]
@@ -327,11 +299,6 @@ pub struct AuditLog {
     pub resource: ::prost::alloc::string::String,
     #[prost(string, tag="7")]
     pub action: ::prost::alloc::string::String,
-    /// Deprecated: result_enum を使用すること。
-    /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
-    #[deprecated]
-    #[prost(string, tag="8")]
-    pub result: ::prost::alloc::string::String,
     /// 操作の詳細情報（変更前後の値等）
     #[prost(message, optional, tag="9")]
     pub detail: ::core::option::Option<super::super::super::super::google::protobuf::Struct>,

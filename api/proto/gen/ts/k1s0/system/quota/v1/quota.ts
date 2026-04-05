@@ -117,14 +117,20 @@ export interface QuotaUsage {
  */
 export interface CreateQuotaPolicyRequest {
     /**
+     * ポリシー名は1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string name = 1
      */
     name: string;
     /**
+     * サブジェクト種別は1文字以上64文字以下であること（例: tenant, user）
+     *
      * @generated from protobuf field: string subject_type = 2
      */
     subjectType: string;
     /**
+     * サブジェクトIDは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string subject_id = 3
      */
     subjectId: string;
@@ -133,6 +139,8 @@ export interface CreateQuotaPolicyRequest {
      */
     limit: string;
     /**
+     * 期間は1文字以上64文字以下であること（例: daily, monthly）
+     *
      * @generated from protobuf field: string period = 5
      */
     period: string;
@@ -159,6 +167,8 @@ export interface CreateQuotaPolicyResponse {
  */
 export interface GetQuotaPolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -213,6 +223,8 @@ export interface ListQuotaPoliciesResponse {
  */
 export interface UpdateQuotaPolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -259,6 +271,8 @@ export interface UpdateQuotaPolicyResponse {
  */
 export interface DeleteQuotaPolicyRequest {
     /**
+     * ポリシーIDは1文字以上であること
+     *
      * @generated from protobuf field: string id = 1
      */
     id: string;
@@ -281,6 +295,8 @@ export interface DeleteQuotaPolicyResponse {
  */
 export interface GetQuotaUsageRequest {
     /**
+     * クォータIDは1文字以上であること
+     *
      * @generated from protobuf field: string quota_id = 1
      */
     quotaId: string;
@@ -299,6 +315,8 @@ export interface GetQuotaUsageResponse {
  */
 export interface CheckQuotaRequest {
     /**
+     * クォータIDは1文字以上であること
+     *
      * @generated from protobuf field: string quota_id = 1
      */
     quotaId: string;
@@ -317,6 +335,8 @@ export interface CheckQuotaResponse {
  */
 export interface IncrementQuotaUsageRequest {
     /**
+     * クォータIDは1文字以上であること
+     *
      * @generated from protobuf field: string quota_id = 1
      */
     quotaId: string;
@@ -363,6 +383,8 @@ export interface IncrementQuotaUsageResponse {
  */
 export interface ResetQuotaUsageRequest {
     /**
+     * クォータIDは1文字以上であること
+     *
      * @generated from protobuf field: string quota_id = 1
      */
     quotaId: string;
@@ -636,11 +658,11 @@ export const QuotaUsage = new QuotaUsage$Type();
 class CreateQuotaPolicyRequest$Type extends MessageType<CreateQuotaPolicyRequest> {
     constructor() {
         super("k1s0.system.quota.v1.CreateQuotaPolicyRequest", [
-            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "subject_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "subject_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "subject_type", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
+            { no: 3, name: "subject_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 4, name: "limit", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 5, name: "period", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "period", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "64" } } } },
             { no: 6, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "alert_threshold_percent", kind: "scalar", opt: true, T: 13 /*ScalarType.UINT32*/ }
         ]);
@@ -776,7 +798,7 @@ export const CreateQuotaPolicyResponse = new CreateQuotaPolicyResponse$Type();
 class GetQuotaPolicyRequest$Type extends MessageType<GetQuotaPolicyRequest> {
     constructor() {
         super("k1s0.system.quota.v1.GetQuotaPolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetQuotaPolicyRequest>): GetQuotaPolicyRequest {
@@ -990,7 +1012,7 @@ export const ListQuotaPoliciesResponse = new ListQuotaPoliciesResponse$Type();
 class UpdateQuotaPolicyRequest$Type extends MessageType<UpdateQuotaPolicyRequest> {
     constructor() {
         super("k1s0.system.quota.v1.UpdateQuotaPolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "enabled", kind: "scalar", opt: true, T: 8 /*ScalarType.BOOL*/ },
             { no: 3, name: "limit", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
             { no: 4, name: "name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
@@ -1132,7 +1154,7 @@ export const UpdateQuotaPolicyResponse = new UpdateQuotaPolicyResponse$Type();
 class DeleteQuotaPolicyRequest$Type extends MessageType<DeleteQuotaPolicyRequest> {
     constructor() {
         super("k1s0.system.quota.v1.DeleteQuotaPolicyRequest", [
-            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteQuotaPolicyRequest>): DeleteQuotaPolicyRequest {
@@ -1234,7 +1256,7 @@ export const DeleteQuotaPolicyResponse = new DeleteQuotaPolicyResponse$Type();
 class GetQuotaUsageRequest$Type extends MessageType<GetQuotaUsageRequest> {
     constructor() {
         super("k1s0.system.quota.v1.GetQuotaUsageRequest", [
-            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetQuotaUsageRequest>): GetQuotaUsageRequest {
@@ -1327,7 +1349,7 @@ export const GetQuotaUsageResponse = new GetQuotaUsageResponse$Type();
 class CheckQuotaRequest$Type extends MessageType<CheckQuotaRequest> {
     constructor() {
         super("k1s0.system.quota.v1.CheckQuotaRequest", [
-            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<CheckQuotaRequest>): CheckQuotaRequest {
@@ -1420,7 +1442,7 @@ export const CheckQuotaResponse = new CheckQuotaResponse$Type();
 class IncrementQuotaUsageRequest$Type extends MessageType<IncrementQuotaUsageRequest> {
     constructor() {
         super("k1s0.system.quota.v1.IncrementQuotaUsageRequest", [
-            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "amount", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
             { no: 3, name: "request_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1569,7 +1591,7 @@ export const IncrementQuotaUsageResponse = new IncrementQuotaUsageResponse$Type(
 class ResetQuotaUsageRequest$Type extends MessageType<ResetQuotaUsageRequest> {
     constructor() {
         super("k1s0.system.quota.v1.ResetQuotaUsageRequest", [
-            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "quota_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
             { no: 2, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "reset_by", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);

@@ -76,7 +76,17 @@ spec:
         - protocol: TCP
           port: 2181    # ZooKeeper クライアントポート（移行期間中の互換性維持）
     # Prometheus へのメトリクス送信を許可する
+    # HIGH-009 監査対応: observability namespace への egress にポート制限を追加する
+    # ポート指定なしでは observability 内の全サービスへのアクセスが許可されてしまうため、
+    # Loki（3100）と Grafana（3000）のみを明示的に許可する
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090    # Prometheus（scrape エンドポイント）
+        - protocol: TCP
+          port: 3100    # Loki（ログ収集）
+        - protocol: TCP
+          port: 3000    # Grafana（ダッシュボード）

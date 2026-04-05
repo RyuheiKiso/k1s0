@@ -219,16 +219,37 @@ type PageInfo {
 # ===========================================================================
 
 type FeatureFlag {
-  key: String!
-  name: String!
-  # L-011 監査対応: description フィールドを追加する。
-  # フィーチャーフラグの目的・用途を人間が読める形式で記録するために必須のフィールド。
-  # featureflag サービスの DB スキーマ（feature_flags.description カラム）および
-  # Rust 実装（FeatureFlag struct）と整合させる。
+  # CRIT-007 監査対応: proto FeatureFlag と完全整合させる
+  # proto に存在しない rolloutPercentage/targetEnvironments/name を削除し、
+  # proto の variants/rules/createdAt/updatedAt を追加する
+  id: ID!
+  # proto flag_key フィールド（featureflag.feature_flags.flag_key カラム）
+  flagKey: String!
+  # proto FeatureFlag.description フィールド
   description: String
   enabled: Boolean!
-  rolloutPercentage: Int!
-  targetEnvironments: [String!]!
+  # proto FeatureFlag.variants（バリアント一覧）
+  variants: [FlagVariant!]!
+  # proto FeatureFlag.rules（評価ルール一覧）
+  rules: [FlagRule!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# proto FlagVariant と整合するバリアント型
+type FlagVariant {
+  name: String!
+  value: String!
+  weight: Int!
+}
+
+# proto FlagRule と整合するルール型
+type FlagRule {
+  attribute: String!
+  # 比較演算子: EQ / NE / CONTAINS / GT / LT
+  operator: String!
+  value: String!
+  variant: String!
 }
 
 # ===========================================================================
@@ -634,8 +655,10 @@ input CreateTenantInput {
 }
 
 input UpdateTenantInput {
-  name: String
-  status: TenantStatus
+  # CRIT-007 対応: proto UpdateTenantRequest に合わせて displayName と plan に変更
+  # status 変更は suspendTenant/activateTenant 専用ミューテーションを使用すること
+  displayName: String
+  plan: String
 }
 
 type CreateTenantPayload {
@@ -653,9 +676,26 @@ type UpdateTenantPayload {
 # ===========================================================================
 
 input SetFeatureFlagInput {
+  # CRIT-007 監査対応: proto UpdateFlagRequest と整合させ、
+  # rolloutPercentage/targetEnvironments を廃止して variants/rules を直接受け付ける
   enabled: Boolean!
-  rolloutPercentage: Int
-  targetEnvironments: [String!]
+  variants: [FlagVariantInput!]
+  rules: [FlagRuleInput!]
+}
+
+# FlagVariant 入力型（proto FlagVariant と整合）
+input FlagVariantInput {
+  name: String!
+  value: String!
+  weight: Int!
+}
+
+# FlagRule 入力型（proto FlagRule と整合）
+input FlagRuleInput {
+  attribute: String!
+  operator: String!
+  value: String!
+  variant: String!
 }
 
 type SetFeatureFlagPayload {
@@ -708,11 +748,13 @@ type DeleteServicePayload {
 
 # 監査ログ記録用入力型 - セキュリティ上クライアントから提供すべきでないフィールドは除去済み
 # userId: JWT claims から取得、ipAddress/userAgent: リクエストヘッダから取得する
+# MED-026 監査対応: eventType と result を String から AuditEventType/AuditResult enum に変更。
+# 型安全性を向上させ、不正な値の混入を防止する。
 input RecordAuditLogInput {
-  eventType: String!
+  eventType: AuditEventType!
   resource: String!
   action: String!
-  result: String!
+  result: AuditResult!
   resourceId: String
   traceId: String
 }

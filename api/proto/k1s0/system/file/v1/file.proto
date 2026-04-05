@@ -25,8 +25,10 @@ message FileMetadata {
   string tenant_id = 5;
   string uploaded_by = 6;
   string status = 7;
-  string created_at = 8;
-  string updated_at = 9;
+  // Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+  k1s0.system.common.v1.Timestamp created_at = 8;
+  // Timestamp型統一: string から共通 Timestamp 型へ移行（CRIT-006 対応）
+  k1s0.system.common.v1.Timestamp updated_at = 9;
   map<string, string> tags = 10;
   string storage_key = 11;
   optional string checksum_sha256 = 12;

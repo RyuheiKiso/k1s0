@@ -13,6 +13,8 @@ pub struct Policy {
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// テナント ID: CRIT-005 対応。RLS によるテナント分離のために使用する。
+    pub tenant_id: String,
 }
 
 impl Policy {
@@ -29,6 +31,7 @@ impl Policy {
             enabled: true,
             created_at: now,
             updated_at: now,
+            tenant_id: "system".to_string(),
         }
     }
 }

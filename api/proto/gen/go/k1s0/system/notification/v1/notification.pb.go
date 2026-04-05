@@ -10,6 +10,7 @@
 package notificationv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	v1 "github.com/k1s0-platform/api/gen/go/k1s0/system/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -87,15 +88,17 @@ func (NotificationStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type SendNotificationRequest struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId         string                 `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
-	TemplateId        *string                `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3,oneof" json:"template_id,omitempty"`
-	TemplateVariables map[string]string      `protobuf:"bytes,3,rep,name=template_variables,json=templateVariables,proto3" json:"template_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Recipient         string                 `protobuf:"bytes,4,opt,name=recipient,proto3" json:"recipient,omitempty"`
-	Subject           *string                `protobuf:"bytes,5,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
-	Body              *string                `protobuf:"bytes,6,opt,name=body,proto3,oneof" json:"body,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チャンネルIDは1文字以上であること
+	ChannelId         string            `protobuf:"bytes,1,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`
+	TemplateId        *string           `protobuf:"bytes,2,opt,name=template_id,json=templateId,proto3,oneof" json:"template_id,omitempty"`
+	TemplateVariables map[string]string `protobuf:"bytes,3,rep,name=template_variables,json=templateVariables,proto3" json:"template_variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// 受信者は1文字以上256文字以下であること
+	Recipient     string  `protobuf:"bytes,4,opt,name=recipient,proto3" json:"recipient,omitempty"`
+	Subject       *string `protobuf:"bytes,5,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
+	Body          *string `protobuf:"bytes,6,opt,name=body,proto3,oneof" json:"body,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendNotificationRequest) Reset() {
@@ -245,8 +248,9 @@ func (x *SendNotificationResponse) GetCreatedAtTs() *v1.Timestamp {
 }
 
 type GetNotificationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 通知IDは1文字以上であること
+	NotificationId string `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -333,8 +337,9 @@ func (x *GetNotificationResponse) GetNotification() *NotificationLog {
 }
 
 type RetryNotificationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 通知IDは1文字以上であること
+	NotificationId string `protobuf:"bytes,1,opt,name=notification_id,json=notificationId,proto3" json:"notification_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -941,11 +946,13 @@ func (x *ListChannelsResponse) GetPagination() *v1.PaginationResult {
 }
 
 type CreateChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ChannelType   string                 `protobuf:"bytes,2,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
-	ConfigJson    string                 `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
-	Enabled       bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チャンネル名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// チャンネル種別は1文字以上64文字以下であること（例: email, slack）
+	ChannelType   string `protobuf:"bytes,2,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
+	ConfigJson    string `protobuf:"bytes,3,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	Enabled       bool   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1053,8 +1060,9 @@ func (x *CreateChannelResponse) GetChannel() *Channel {
 }
 
 type GetChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チャンネルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1141,11 +1149,12 @@ func (x *GetChannelResponse) GetChannel() *Channel {
 }
 
 type UpdateChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	Enabled       *bool                  `protobuf:"varint,3,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
-	ConfigJson    *string                `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チャンネルIDは1文字以上であること
+	Id            string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          *string `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Enabled       *bool   `protobuf:"varint,3,opt,name=enabled,proto3,oneof" json:"enabled,omitempty"`
+	ConfigJson    *string `protobuf:"bytes,4,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1253,8 +1262,9 @@ func (x *UpdateChannelResponse) GetChannel() *Channel {
 }
 
 type DeleteChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// チャンネルIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1574,13 +1584,16 @@ func (x *ListTemplatesResponse) GetPagination() *v1.PaginationResult {
 }
 
 type CreateTemplateRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ChannelType     string                 `protobuf:"bytes,2,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
-	SubjectTemplate *string                `protobuf:"bytes,3,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
-	BodyTemplate    string                 `protobuf:"bytes,4,opt,name=body_template,json=bodyTemplate,proto3" json:"body_template,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// テンプレート名は1文字以上128文字以下であること
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// チャンネル種別は1文字以上64文字以下であること
+	ChannelType     string  `protobuf:"bytes,2,opt,name=channel_type,json=channelType,proto3" json:"channel_type,omitempty"`
+	SubjectTemplate *string `protobuf:"bytes,3,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
+	// テンプレート本文は1文字以上であること
+	BodyTemplate  string `protobuf:"bytes,4,opt,name=body_template,json=bodyTemplate,proto3" json:"body_template,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateTemplateRequest) Reset() {
@@ -1686,8 +1699,9 @@ func (x *CreateTemplateResponse) GetTemplate() *Template {
 }
 
 type GetTemplateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// テンプレートIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1774,11 +1788,12 @@ func (x *GetTemplateResponse) GetTemplate() *Template {
 }
 
 type UpdateTemplateRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name            *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
-	SubjectTemplate *string                `protobuf:"bytes,3,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
-	BodyTemplate    *string                `protobuf:"bytes,4,opt,name=body_template,json=bodyTemplate,proto3,oneof" json:"body_template,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// テンプレートIDは1文字以上であること
+	Id              string  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            *string `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	SubjectTemplate *string `protobuf:"bytes,3,opt,name=subject_template,json=subjectTemplate,proto3,oneof" json:"subject_template,omitempty"`
+	BodyTemplate    *string `protobuf:"bytes,4,opt,name=body_template,json=bodyTemplate,proto3,oneof" json:"body_template,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -1886,8 +1901,9 @@ func (x *UpdateTemplateResponse) GetTemplate() *Template {
 }
 
 type DeleteTemplateRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// テンプレートIDは1文字以上であること
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1985,14 +2001,15 @@ var File_k1s0_system_notification_v1_notification_proto protoreflect.FileDescrip
 
 const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\n" +
-	".k1s0/system/notification/v1/notification.proto\x12\x1bk1s0.system.notification.v1\x1a!k1s0/system/common/v1/types.proto\"\x9b\x03\n" +
-	"\x17SendNotificationRequest\x12\x1d\n" +
+	".k1s0/system/notification/v1/notification.proto\x12\x1bk1s0.system.notification.v1\x1a!k1s0/system/common/v1/types.proto\x1a\x1bbuf/validate/validate.proto\"\xb0\x03\n" +
+	"\x17SendNotificationRequest\x12&\n" +
 	"\n" +
-	"channel_id\x18\x01 \x01(\tR\tchannelId\x12$\n" +
+	"channel_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\tchannelId\x12$\n" +
 	"\vtemplate_id\x18\x02 \x01(\tH\x00R\n" +
 	"templateId\x88\x01\x01\x12z\n" +
-	"\x12template_variables\x18\x03 \x03(\v2K.k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntryR\x11templateVariables\x12\x1c\n" +
-	"\trecipient\x18\x04 \x01(\tR\trecipient\x12\x1d\n" +
+	"\x12template_variables\x18\x03 \x03(\v2K.k1s0.system.notification.v1.SendNotificationRequest.TemplateVariablesEntryR\x11templateVariables\x12(\n" +
+	"\trecipient\x18\x04 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\trecipient\x12\x1d\n" +
 	"\asubject\x18\x05 \x01(\tH\x01R\asubject\x88\x01\x01\x12\x17\n" +
 	"\x04body\x18\x06 \x01(\tH\x02R\x04body\x88\x01\x01\x1aD\n" +
 	"\x16TemplateVariablesEntry\x12\x10\n" +
@@ -2007,13 +2024,13 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12!\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\tB\x02\x18\x01R\tcreatedAt\x12D\n" +
-	"\rcreated_at_ts\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\"A\n" +
-	"\x16GetNotificationRequest\x12'\n" +
-	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"k\n" +
+	"\rcreated_at_ts\x18\x04 \x01(\v2 .k1s0.system.common.v1.TimestampR\vcreatedAtTs\"J\n" +
+	"\x16GetNotificationRequest\x120\n" +
+	"\x0fnotification_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0enotificationId\"k\n" +
 	"\x17GetNotificationResponse\x12P\n" +
-	"\fnotification\x18\x01 \x01(\v2,.k1s0.system.notification.v1.NotificationLogR\fnotification\"C\n" +
-	"\x18RetryNotificationRequest\x12'\n" +
-	"\x0fnotification_id\x18\x01 \x01(\tR\x0enotificationId\"m\n" +
+	"\fnotification\x18\x01 \x01(\v2,.k1s0.system.notification.v1.NotificationLogR\fnotification\"L\n" +
+	"\x18RetryNotificationRequest\x120\n" +
+	"\x0fnotification_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0enotificationId\"m\n" +
 	"\x19RetryNotificationResponse\x12P\n" +
 	"\fnotification\x18\x01 \x01(\v2,.k1s0.system.notification.v1.NotificationLogR\fnotification\"\xc9\x01\n" +
 	"\x18ListNotificationsRequest\x12\"\n" +
@@ -2084,21 +2101,22 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\bchannels\x18\x01 \x03(\v2$.k1s0.system.notification.v1.ChannelR\bchannels\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\x88\x01\n" +
-	"\x14CreateChannelRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fchannel_type\x18\x02 \x01(\tR\vchannelType\x12\x1f\n" +
+	"pagination\"\x9f\x01\n" +
+	"\x14CreateChannelRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12,\n" +
+	"\fchannel_type\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\vchannelType\x12\x1f\n" +
 	"\vconfig_json\x18\x03 \x01(\tR\n" +
 	"configJson\x12\x18\n" +
 	"\aenabled\x18\x04 \x01(\bR\aenabled\"W\n" +
 	"\x15CreateChannelResponse\x12>\n" +
-	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\"#\n" +
-	"\x11GetChannelRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
+	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\",\n" +
+	"\x11GetChannelRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"T\n" +
 	"\x12GetChannelResponse\x12>\n" +
-	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\"\xa9\x01\n" +
-	"\x14UpdateChannelRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\"\xb2\x01\n" +
+	"\x14UpdateChannelRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1d\n" +
 	"\aenabled\x18\x03 \x01(\bH\x01R\aenabled\x88\x01\x01\x12$\n" +
 	"\vconfig_json\x18\x04 \x01(\tH\x02R\n" +
@@ -2108,9 +2126,9 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\b_enabledB\x0e\n" +
 	"\f_config_json\"W\n" +
 	"\x15UpdateChannelResponse\x12>\n" +
-	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\"&\n" +
-	"\x14DeleteChannelRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
+	"\achannel\x18\x01 \x01(\v2$.k1s0.system.notification.v1.ChannelR\achannel\"/\n" +
+	"\x14DeleteChannelRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"K\n" +
 	"\x15DeleteChannelResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\"\x8d\x03\n" +
@@ -2137,21 +2155,22 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\ttemplates\x18\x01 \x03(\v2%.k1s0.system.notification.v1.TemplateR\ttemplates\x12G\n" +
 	"\n" +
 	"pagination\x18\x02 \x01(\v2'.k1s0.system.common.v1.PaginationResultR\n" +
-	"pagination\"\xb8\x01\n" +
-	"\x15CreateTemplateRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
-	"\fchannel_type\x18\x02 \x01(\tR\vchannelType\x12.\n" +
-	"\x10subject_template\x18\x03 \x01(\tH\x00R\x0fsubjectTemplate\x88\x01\x01\x12#\n" +
-	"\rbody_template\x18\x04 \x01(\tR\fbodyTemplateB\x13\n" +
+	"pagination\"\xd8\x01\n" +
+	"\x15CreateTemplateRequest\x12\x1e\n" +
+	"\x04name\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\x04name\x12,\n" +
+	"\fchannel_type\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\vchannelType\x12.\n" +
+	"\x10subject_template\x18\x03 \x01(\tH\x00R\x0fsubjectTemplate\x88\x01\x01\x12,\n" +
+	"\rbody_template\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fbodyTemplateB\x13\n" +
 	"\x11_subject_template\"[\n" +
 	"\x16CreateTemplateResponse\x12A\n" +
-	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"$\n" +
-	"\x12GetTemplateRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"X\n" +
+	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"-\n" +
+	"\x12GetTemplateRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"X\n" +
 	"\x13GetTemplateResponse\x12A\n" +
-	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"\xca\x01\n" +
-	"\x15UpdateTemplateRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"\xd3\x01\n" +
+	"\x15UpdateTemplateRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12.\n" +
 	"\x10subject_template\x18\x03 \x01(\tH\x01R\x0fsubjectTemplate\x88\x01\x01\x12(\n" +
 	"\rbody_template\x18\x04 \x01(\tH\x02R\fbodyTemplate\x88\x01\x01B\a\n" +
@@ -2159,9 +2178,9 @@ const file_k1s0_system_notification_v1_notification_proto_rawDesc = "" +
 	"\x11_subject_templateB\x10\n" +
 	"\x0e_body_template\"[\n" +
 	"\x16UpdateTemplateResponse\x12A\n" +
-	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"'\n" +
-	"\x15DeleteTemplateRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"L\n" +
+	"\btemplate\x18\x01 \x01(\v2%.k1s0.system.notification.v1.TemplateR\btemplate\"0\n" +
+	"\x15DeleteTemplateRequest\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\"L\n" +
 	"\x16DeleteTemplateResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage*\xba\x01\n" +

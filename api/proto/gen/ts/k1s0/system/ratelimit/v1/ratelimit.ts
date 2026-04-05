@@ -19,10 +19,14 @@ import { Pagination } from "../../common/v1/types";
  */
 export interface CheckRateLimitRequest {
     /**
+     * スコープは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string scope = 1
      */
     scope: string;
     /**
+     * 識別子は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string identifier = 2
      */
     identifier: string;
@@ -77,10 +81,14 @@ export interface CheckRateLimitResponse {
  */
 export interface CreateRuleRequest {
     /**
+     * スコープは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string scope = 1
      */
     scope: string;
     /**
+     * 識別子パターンは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string identifier_pattern = 2
      */
     identifierPattern: string;
@@ -111,6 +119,8 @@ export interface CreateRuleResponse {
  */
 export interface GetRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -129,14 +139,20 @@ export interface GetRuleResponse {
  */
 export interface UpdateRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
     /**
+     * スコープは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string scope = 2
      */
     scope: string;
     /**
+     * 識別子パターンは1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string identifier_pattern = 3
      */
     identifierPattern: string;
@@ -167,6 +183,8 @@ export interface UpdateRuleResponse {
  */
 export interface DeleteRuleRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -238,8 +256,10 @@ export interface RateLimitRule {
     windowSeconds: string;
     /**
      * Deprecated: use algorithm_enum instead.
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string algorithm = 6
+     * @deprecated
+     * @generated from protobuf field: string algorithm = 6 [deprecated = true]
      */
     algorithm: string;
     /**
@@ -270,6 +290,8 @@ export interface RateLimitRule {
  */
 export interface GetUsageRequest {
     /**
+     * ルールIDは1文字以上であること
+     *
      * @generated from protobuf field: string rule_id = 1
      */
     ruleId: string;
@@ -296,8 +318,10 @@ export interface GetUsageResponse {
     windowSeconds: string;
     /**
      * Deprecated: use algorithm_enum instead.
+     * [deprecated = true] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
      *
-     * @generated from protobuf field: string algorithm = 5
+     * @deprecated
+     * @generated from protobuf field: string algorithm = 5 [deprecated = true]
      */
     algorithm: string;
     /**
@@ -328,10 +352,14 @@ export interface GetUsageResponse {
  */
 export interface ResetLimitRequest {
     /**
+     * スコープは1文字以上128文字以下であること
+     *
      * @generated from protobuf field: string scope = 1
      */
     scope: string;
     /**
+     * 識別子は1文字以上256文字以下であること
+     *
      * @generated from protobuf field: string identifier = 2
      */
     identifier: string;
@@ -386,8 +414,8 @@ export enum RateLimitAlgorithm {
 class CheckRateLimitRequest$Type extends MessageType<CheckRateLimitRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.CheckRateLimitRequest", [
-            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "identifier", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "identifier", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "window", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
@@ -560,8 +588,8 @@ export const CheckRateLimitResponse = new CheckRateLimitResponse$Type();
 class CreateRuleRequest$Type extends MessageType<CreateRuleRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.CreateRuleRequest", [
-            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "identifier_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "identifier_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 3, name: "limit", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "window_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 5, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
@@ -685,7 +713,7 @@ export const CreateRuleResponse = new CreateRuleResponse$Type();
 class GetRuleRequest$Type extends MessageType<GetRuleRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.GetRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetRuleRequest>): GetRuleRequest {
@@ -778,9 +806,9 @@ export const GetRuleResponse = new GetRuleResponse$Type();
 class UpdateRuleRequest$Type extends MessageType<UpdateRuleRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.UpdateRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "identifier_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } },
+            { no: 2, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 3, name: "identifier_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } },
             { no: 4, name: "limit", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 5, name: "window_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 6, name: "enabled", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
@@ -911,7 +939,7 @@ export const UpdateRuleResponse = new UpdateRuleResponse$Type();
 class DeleteRuleRequest$Type extends MessageType<DeleteRuleRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.DeleteRuleRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<DeleteRuleRequest>): DeleteRuleRequest {
@@ -1168,7 +1196,7 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
                 case /* int64 window_seconds */ 5:
                     message.windowSeconds = reader.int64().toString();
                     break;
-                case /* string algorithm */ 6:
+                case /* string algorithm = 6 [deprecated = true] */ 6:
                     message.algorithm = reader.string();
                     break;
                 case /* bool enabled */ 7:
@@ -1213,7 +1241,7 @@ class RateLimitRule$Type extends MessageType<RateLimitRule> {
         /* int64 window_seconds = 5; */
         if (message.windowSeconds !== "0")
             writer.tag(5, WireType.Varint).int64(message.windowSeconds);
-        /* string algorithm = 6; */
+        /* string algorithm = 6 [deprecated = true]; */
         if (message.algorithm !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.algorithm);
         /* bool enabled = 7; */
@@ -1245,7 +1273,7 @@ export const RateLimitRule = new RateLimitRule$Type();
 class GetUsageRequest$Type extends MessageType<GetUsageRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.GetUsageRequest", [
-            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "rule_id", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1" } } } }
         ]);
     }
     create(value?: PartialMessage<GetUsageRequest>): GetUsageRequest {
@@ -1334,7 +1362,7 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
                 case /* int64 window_seconds */ 4:
                     message.windowSeconds = reader.int64().toString();
                     break;
-                case /* string algorithm */ 5:
+                case /* string algorithm = 5 [deprecated = true] */ 5:
                     message.algorithm = reader.string();
                     break;
                 case /* bool enabled */ 6:
@@ -1376,7 +1404,7 @@ class GetUsageResponse$Type extends MessageType<GetUsageResponse> {
         /* int64 window_seconds = 4; */
         if (message.windowSeconds !== "0")
             writer.tag(4, WireType.Varint).int64(message.windowSeconds);
-        /* string algorithm = 5; */
+        /* string algorithm = 5 [deprecated = true]; */
         if (message.algorithm !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.algorithm);
         /* bool enabled = 6; */
@@ -1408,8 +1436,8 @@ export const GetUsageResponse = new GetUsageResponse$Type();
 class ResetLimitRequest$Type extends MessageType<ResetLimitRequest> {
     constructor() {
         super("k1s0.system.ratelimit.v1.ResetLimitRequest", [
-            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "identifier", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "scope", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "128" } } } },
+            { no: 2, name: "identifier", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "256" } } } }
         ]);
     }
     create(value?: PartialMessage<ResetLimitRequest>): ResetLimitRequest {

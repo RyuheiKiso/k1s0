@@ -8,6 +8,8 @@ pub struct ListJobsInput {
     pub name_prefix: Option<String>,
     pub page: u32,
     pub page_size: u32,
+    /// テナント ID: CRIT-005 対応。テナントでフィルタリングする。
+    pub tenant_id: String,
 }
 
 pub struct ListJobsOutput {
@@ -27,8 +29,9 @@ impl ListJobsUseCase {
         Self { repo }
     }
 
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブ一覧を取得する。
     pub async fn execute(&self, input: &ListJobsInput) -> anyhow::Result<ListJobsOutput> {
-        let all_jobs = self.repo.find_all().await?;
+        let all_jobs = self.repo.find_all(&input.tenant_id).await?;
         let filtered: Vec<_> = all_jobs
             .into_iter()
             .filter(|j| {
@@ -83,7 +86,7 @@ mod tests {
     #[tokio::test]
     async fn list_all_no_filter() {
         let mut mock = MockSchedulerJobRepository::new();
-        mock.expect_find_all().returning(|| {
+        mock.expect_find_all().returning(|_| {
             Ok(vec![
                 make_job("job-1", "active"),
                 make_job("job-2", "paused"),
@@ -96,6 +99,7 @@ mod tests {
             name_prefix: None,
             page: 1,
             page_size: 20,
+            tenant_id: "tenant-a".to_string(),
         };
         let output = uc.execute(&input).await.unwrap();
         assert_eq!(output.total_count, 2);
@@ -106,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn list_with_status_filter() {
         let mut mock = MockSchedulerJobRepository::new();
-        mock.expect_find_all().returning(|| {
+        mock.expect_find_all().returning(|_| {
             Ok(vec![
                 make_job("job-1", "active"),
                 make_job("job-2", "paused"),
@@ -120,6 +124,7 @@ mod tests {
             name_prefix: None,
             page: 1,
             page_size: 20,
+            tenant_id: "tenant-a".to_string(),
         };
         let output = uc.execute(&input).await.unwrap();
         assert_eq!(output.total_count, 2);
@@ -130,7 +135,7 @@ mod tests {
     #[tokio::test]
     async fn pagination() {
         let mut mock = MockSchedulerJobRepository::new();
-        mock.expect_find_all().returning(|| {
+        mock.expect_find_all().returning(|_| {
             Ok((0..5)
                 .map(|i| make_job(&format!("job-{}", i), "active"))
                 .collect())
@@ -142,6 +147,7 @@ mod tests {
             name_prefix: None,
             page: 1,
             page_size: 3,
+            tenant_id: "tenant-a".to_string(),
         };
         let output = uc.execute(&input).await.unwrap();
         assert_eq!(output.total_count, 5);
@@ -152,7 +158,7 @@ mod tests {
     #[tokio::test]
     async fn list_with_name_prefix_filter() {
         let mut mock = MockSchedulerJobRepository::new();
-        mock.expect_find_all().returning(|| {
+        mock.expect_find_all().returning(|_| {
             Ok(vec![
                 make_job("workflow-overdue-check", "active"),
                 make_job("daily-report", "active"),
@@ -165,6 +171,7 @@ mod tests {
             name_prefix: Some("workflow-".to_string()),
             page: 1,
             page_size: 20,
+            tenant_id: "tenant-a".to_string(),
         };
         let output = uc.execute(&input).await.unwrap();
         assert_eq!(output.total_count, 1);

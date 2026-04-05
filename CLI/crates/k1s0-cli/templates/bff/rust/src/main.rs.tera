@@ -17,7 +17,7 @@ mod client;
 mod handler;
 
 use client::upstream::UpstreamClient;
-use handler::graphql::{{{ service_name_pascal }}BffSchema, build_schema};
+use handler::graphql::{ {{- service_name_pascal }}BffSchema, build_schema};
 
 // アプリケーション共有状態: GraphQL スキーマを Arc で包んで全ルートに共有する
 #[derive(Clone)]

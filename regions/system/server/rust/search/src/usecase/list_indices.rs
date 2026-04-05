@@ -18,9 +18,10 @@ impl ListIndicesUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self) -> Result<Vec<SearchIndex>, ListIndicesError> {
+    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからインデックス一覧を取得する。
+    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<SearchIndex>, ListIndicesError> {
         self.repo
-            .list_indices()
+            .list_indices(tenant_id)
             .await
             .map_err(|e| ListIndicesError::Internal(e.to_string()))
     }
@@ -35,10 +36,10 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockSearchRepository::new();
-        mock.expect_list_indices().returning(|| Ok(vec![]));
+        mock.expect_list_indices().returning(|_| Ok(vec![]));
 
         let uc = ListIndicesUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("tenant-a").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -47,10 +48,10 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockSearchRepository::new();
         mock.expect_list_indices()
-            .returning(|| Err(anyhow::anyhow!("db error")));
+            .returning(|_| Err(anyhow::anyhow!("db error")));
 
         let uc = ListIndicesUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("tenant-a").await;
         assert!(result.is_err());
     }
 }

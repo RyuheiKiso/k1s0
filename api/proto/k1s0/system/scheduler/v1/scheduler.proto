@@ -12,6 +12,36 @@ import "google/protobuf/struct.proto";
 // M-22 監査対応（ADR-0022 Phase 2）: buf validate によるメッセージレベルバリデーション
 import "buf/validate/validate.proto";
 
+// ==========================================================================
+// MED-025 監査対応: string status → enum 型フィールドへの移行
+// 後方互換性のため deprecated string フィールドは削除せず enum フィールドを追加する。
+// 全コンシューマーが enum フィールドに移行完了後に string フィールドを削除する。
+// ==========================================================================
+
+// JobStatus はジョブのステータス。
+enum JobStatus {
+  // JOB_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+  JOB_STATUS_UNSPECIFIED = 0;
+  // JOB_STATUS_ACTIVE はジョブが有効で次回実行を待機中。
+  JOB_STATUS_ACTIVE = 1;
+  // JOB_STATUS_PAUSED はジョブが一時停止中。
+  JOB_STATUS_PAUSED = 2;
+  // JOB_STATUS_DISABLED はジョブが無効化されている。
+  JOB_STATUS_DISABLED = 3;
+}
+
+// JobExecutionStatus はジョブ実行のステータス。
+enum JobExecutionStatus {
+  // JOB_EXECUTION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+  JOB_EXECUTION_STATUS_UNSPECIFIED = 0;
+  // JOB_EXECUTION_STATUS_RUNNING は実行中。
+  JOB_EXECUTION_STATUS_RUNNING = 1;
+  // JOB_EXECUTION_STATUS_SUCCEEDED は成功完了。
+  JOB_EXECUTION_STATUS_SUCCEEDED = 2;
+  // JOB_EXECUTION_STATUS_FAILED は失敗。
+  JOB_EXECUTION_STATUS_FAILED = 3;
+}
+
 service SchedulerService {
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
   rpc GetJob(GetJobRequest) returns (GetJobResponse);
@@ -34,11 +64,14 @@ message Job {
   string target_type = 6;
   string target = 7;
   google.protobuf.Struct payload = 8;
-  string status = 9;
+  // Deprecated: use status_enum instead. 後方互換性のため削除しない。
+  string status = 9 [deprecated = true];
   optional k1s0.system.common.v1.Timestamp next_run_at = 10;
   optional k1s0.system.common.v1.Timestamp last_run_at = 11;
   k1s0.system.common.v1.Timestamp created_at = 12;
   k1s0.system.common.v1.Timestamp updated_at = 13;
+  // MED-025 監査対応: ジョブステータスの enum 版（status の型付き版）。
+  JobStatus status_enum = 14;
 }
 
 message CreateJobRequest {
@@ -70,8 +103,11 @@ message GetJobResponse {
 }
 
 message ListJobsRequest {
-  string status = 1;
+  // Deprecated: use status_enum instead. 後方互換性のため削除しない。
+  string status = 1 [deprecated = true];
   k1s0.system.common.v1.Pagination pagination = 2;
+  // MED-025 監査対応: enum 型フィルター（status の型付き版）。
+  optional JobStatus status_enum = 3;
 }
 
 message ListJobsResponse {
@@ -162,8 +198,9 @@ message ListExecutionsResponse {
 message JobExecution {
   string id = 1;
   string job_id = 2;
+  // Deprecated: use status_enum instead. 後方互換性のため削除しない。
   // 実行状態（running / succeeded / failed）
-  string status = 3;
+  string status = 3 [deprecated = true];
   // 実行トリガー（scheduler / manual）
   string triggered_by = 4;
   k1s0.system.common.v1.Timestamp started_at = 5;
@@ -171,5 +208,7 @@ message JobExecution {
   // 実行時間（ミリ秒）
   optional uint64 duration_ms = 7;
   optional string error_message = 8;
+  // MED-025 監査対応: 実行ステータスの enum 版（status の型付き版）。
+  JobExecutionStatus status_enum = 9;
 }
 

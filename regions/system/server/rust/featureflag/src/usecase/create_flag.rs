@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use uuid::Uuid;
-
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagVariant};
 use crate::domain::entity::flag_audit_log::FlagAuditLog;
 use crate::domain::repository::{FeatureFlagRepository, FlagAuditLogRepository};
@@ -11,9 +9,10 @@ use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 /// CreateFlagInput はフィーチャーフラグ作成の入力データ。
 /// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
+/// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
-    pub tenant_id: Uuid,
+    pub tenant_id: String,
     pub flag_key: String,
     pub description: String,
     pub enabled: bool,
@@ -67,7 +66,7 @@ impl CreateFlagUseCase {
 
         let exists = self
             .repo
-            .exists_by_key(input.tenant_id, &input.flag_key)
+            .exists_by_key(&input.tenant_id, &input.flag_key)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
@@ -76,7 +75,7 @@ impl CreateFlagUseCase {
         }
 
         let mut flag = FeatureFlag::new(
-            input.tenant_id,
+            input.tenant_id.clone(),
             input.flag_key.clone(),
             input.description.clone(),
             input.enabled,
@@ -84,7 +83,7 @@ impl CreateFlagUseCase {
         flag.variants = input.variants.clone();
 
         self.repo
-            .create(input.tenant_id, &flag)
+            .create(&input.tenant_id, &flag)
             .await
             .map_err(|e| CreateFlagError::Internal(e.to_string()))?;
 
@@ -97,7 +96,7 @@ impl CreateFlagUseCase {
         });
         self.audit_repo
             .create(&FlagAuditLog::new(
-                input.tenant_id,
+                input.tenant_id.clone(),
                 flag.id,
                 flag.flag_key.clone(),
                 "CREATED".to_string(),
@@ -134,9 +133,9 @@ mod tests {
     use crate::domain::repository::flag_repository::MockFeatureFlagRepository;
     use crate::infrastructure::kafka_producer::MockFlagEventPublisher;
 
-    /// システムテナントUUID: テスト共通
-    fn system_tenant() -> Uuid {
-        Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+    /// システムテナント文字列: テスト共通（HIGH-005 対応: TEXT 型）
+    fn system_tenant() -> String {
+        "00000000-0000-0000-0000-000000000001".to_string()
     }
 
     #[tokio::test]

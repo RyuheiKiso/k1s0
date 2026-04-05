@@ -54,6 +54,7 @@ resource "vault_kubernetes_auth_backend_config" "k8s" {
 # 共有ロールでは1サービス侵害で同ティア全シークレットが漏洩するリスクがあるため廃止する。
 
 # AI ゲートウェイサービス（ai-gateway）個別 Vault ロール（MED-005 監査対応）
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、ai-gateway 専用ポリシーのみを付与する
 # ai-gateway の Helm values.yaml の vault.role が "ai-gateway" と一致させる
 resource "vault_kubernetes_auth_backend_role" "ai_gateway" {
   backend                          = vault_auth_backend.kubernetes.path
@@ -62,10 +63,11 @@ resource "vault_kubernetes_auth_backend_role" "ai_gateway" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "ai-gateway"]
+  token_policies                   = ["ai-gateway"]
 }
 
 # AI エージェントサービス（ai-agent）個別 Vault ロール（MED-005 監査対応）
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、ai-agent 専用ポリシーのみを付与する
 # ai-agent の Helm values.yaml の vault.role が "ai-agent" と一致させる
 resource "vault_kubernetes_auth_backend_role" "ai_agent" {
   backend                          = vault_auth_backend.kubernetes.path
@@ -74,18 +76,19 @@ resource "vault_kubernetes_auth_backend_role" "ai_agent" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "ai-agent"]
+  token_policies                   = ["ai-agent"]
 }
 
 # project-master-rust 個別 Vault ロール（business ティア）
 # ADR-0077: 旧共有ロール "business" を廃止し、project-master 専用ロールに移行する
+# HIGH-006 監査対応: 共通ポリシー "business" を削除し、project-master 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "project_master_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "project-master-rust"
   bound_service_account_names      = ["project-master-rust"]
   bound_service_account_namespaces = ["k1s0-business"]
-  # business 共通ポリシーと project-master 専用ポリシーを付与する
-  token_policies                   = ["business", "project-master"]
+  # project-master 専用ポリシーのみを付与する（ADR-0045 / ADR-0077 準拠）
+  token_policies                   = ["project-master"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400
@@ -93,13 +96,14 @@ resource "vault_kubernetes_auth_backend_role" "project_master_rust" {
 
 # task-rust 個別 Vault ロール（service ティア）
 # ADR-0077: 旧共有ロール "service" を廃止し、task 専用ロールに移行する
+# HIGH-006 監査対応: 共通ポリシー "service" を削除し、task 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "task_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "task-rust"
   bound_service_account_names      = ["task-rust"]
   bound_service_account_namespaces = ["k1s0-service"]
-  # service 共通ポリシーと task 専用ポリシーを付与する
-  token_policies                   = ["service", "task"]
+  # task 専用ポリシーのみを付与する（ADR-0045 / ADR-0077 準拠）
+  token_policies                   = ["task"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400
@@ -107,13 +111,14 @@ resource "vault_kubernetes_auth_backend_role" "task_rust" {
 
 # board-rust 個別 Vault ロール（service ティア）
 # ADR-0077: 旧共有ロール "service" を廃止し、board 専用ロールに移行する
+# HIGH-006 監査対応: 共通ポリシー "service" を削除し、board 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "board_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "board-rust"
   bound_service_account_names      = ["board-rust"]
   bound_service_account_namespaces = ["k1s0-service"]
-  # service 共通ポリシーと board 専用ポリシーを付与する
-  token_policies                   = ["service", "board"]
+  # board 専用ポリシーのみを付与する（ADR-0045 / ADR-0077 準拠）
+  token_policies                   = ["board"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400
@@ -121,13 +126,14 @@ resource "vault_kubernetes_auth_backend_role" "board_rust" {
 
 # activity-rust 個別 Vault ロール（service ティア）
 # ADR-0077: 旧共有ロール "service" を廃止し、activity 専用ロールに移行する
+# HIGH-006 監査対応: 共通ポリシー "service" を削除し、activity 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "activity_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "activity-rust"
   bound_service_account_names      = ["activity-rust"]
   bound_service_account_namespaces = ["k1s0-service"]
-  # service 共通ポリシーと activity 専用ポリシーを付与する
-  token_policies                   = ["service", "activity"]
+  # activity 専用ポリシーのみを付与する（ADR-0045 / ADR-0077 準拠）
+  token_policies                   = ["activity"]
   token_ttl                        = 3600
   # M-18 監査対応: token_max_ttl を 24h(86400)から 4h(14400)に短縮してセッション乗っ取りリスクを低減する
   token_max_ttl                    = 14400
@@ -156,6 +162,7 @@ resource "vault_kubernetes_auth_backend_role" "auth_rust" {
 }
 
 # BFF プロキシサービス（bff-proxy-sa）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、bff-proxy 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "bff_proxy" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "bff-proxy"
@@ -163,10 +170,11 @@ resource "vault_kubernetes_auth_backend_role" "bff_proxy" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "bff-proxy"]
+  token_policies                   = ["bff-proxy"]
 }
 
 # 設定サービス（config-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、config-server 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "config_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "config-rust"
@@ -174,10 +182,11 @@ resource "vault_kubernetes_auth_backend_role" "config_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "config-server"]
+  token_policies                   = ["config-server"]
 }
 
 # DLQ マネージャーサービス（dlq-manager）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、dlq-manager 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "dlq_manager" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "dlq-manager"
@@ -185,10 +194,11 @@ resource "vault_kubernetes_auth_backend_role" "dlq_manager" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "dlq-manager"]
+  token_policies                   = ["dlq-manager"]
 }
 
 # イベントストアサービス（event-store-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、event-store 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "event_store_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "event-store-rust"
@@ -196,7 +206,7 @@ resource "vault_kubernetes_auth_backend_role" "event_store_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "event-store"]
+  token_policies                   = ["event-store"]
 }
 
 # フィーチャーフラグサービス（featureflag-rust）個別 Vault ロール
@@ -239,6 +249,7 @@ resource "vault_kubernetes_auth_backend_role" "graphql_gateway" {
 }
 
 # マスターメンテナンスサービス（master-maintenance）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、master-maintenance 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "master_maintenance" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "master-maintenance"
@@ -246,10 +257,11 @@ resource "vault_kubernetes_auth_backend_role" "master_maintenance" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "master-maintenance"]
+  token_policies                   = ["master-maintenance"]
 }
 
 # ナビゲーションサービス（navigation-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、navigation 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "navigation_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "navigation-rust"
@@ -257,7 +269,7 @@ resource "vault_kubernetes_auth_backend_role" "navigation_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "navigation"]
+  token_policies                   = ["navigation"]
 }
 
 # 通知サービス（notification-rust）個別 Vault ロール
@@ -326,6 +338,7 @@ resource "vault_kubernetes_auth_backend_role" "rule_engine_rust" {
 }
 
 # Saga オーケストレーションサービス（saga-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、saga-server 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "saga_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "saga-rust"
@@ -333,7 +346,7 @@ resource "vault_kubernetes_auth_backend_role" "saga_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "saga-server"]
+  token_policies                   = ["saga-server"]
 }
 
 # スケジューラーサービス（scheduler-rust）個別 Vault ロール
@@ -350,6 +363,7 @@ resource "vault_kubernetes_auth_backend_role" "scheduler_rust" {
 }
 
 # 検索サービス（search-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、search 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "search_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "search-rust"
@@ -357,7 +371,7 @@ resource "vault_kubernetes_auth_backend_role" "search_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "search"]
+  token_policies                   = ["search"]
 }
 
 # サービスカタログサービス（service-catalog）個別 Vault ロール
@@ -400,6 +414,7 @@ resource "vault_kubernetes_auth_backend_role" "tenant_rust" {
 }
 
 # Vault シークレット管理サービス（vault-rust）個別 Vault ロール
+# HIGH-006 監査対応: 共通ポリシー "system" を削除し、vault-server 専用ポリシーのみを付与する
 resource "vault_kubernetes_auth_backend_role" "vault_rust" {
   backend                          = vault_auth_backend.kubernetes.path
   role_name                        = "vault-rust"
@@ -407,7 +422,7 @@ resource "vault_kubernetes_auth_backend_role" "vault_rust" {
   bound_service_account_namespaces = [var.k8s_namespace]
   token_ttl                        = 3600
   token_max_ttl                    = 14400
-  token_policies                   = ["system", "vault-server"]
+  token_policies                   = ["vault-server"]
 }
 
 # ワークフローサービス（workflow-rust）個別 Vault ロール

@@ -64,7 +64,9 @@ impl SagaRepository for InMemorySagaRepository {
         saga_id: uuid::Uuid,
         status: &SagaStatus,
         error_message: Option<String>,
+        _tenant_id: &str,
     ) -> anyhow::Result<()> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let mut states = self.states.write().await;
         if let Some(s) = states.iter_mut().find(|s| s.saga_id == saga_id) {
             s.status = status.clone();
@@ -74,12 +76,14 @@ impl SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, saga_id: uuid::Uuid) -> anyhow::Result<Option<SagaState>> {
+    async fn find_by_id(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Option<SagaState>> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let states = self.states.read().await;
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
-    async fn find_step_logs(&self, saga_id: uuid::Uuid) -> anyhow::Result<Vec<SagaStepLog>> {
+    async fn find_step_logs(&self, saga_id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>> {
+        // CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（テスト用途）
         let logs = self.step_logs.read().await;
         Ok(logs
             .iter()

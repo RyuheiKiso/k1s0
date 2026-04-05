@@ -1,4 +1,6 @@
-use crate::domain::model::auth::{parse_audit_event_type, parse_audit_result};
+use crate::domain::model::auth::{
+    audit_event_type_to_str, audit_result_to_str, AuditEventType, AuditResult,
+};
 use crate::domain::model::{AuditLog, RecordAuditLogPayload, UserError};
 use crate::infrastructure::grpc::AuthGrpcClient;
 use std::sync::Arc;
@@ -17,13 +19,13 @@ impl AuthMutationResolver {
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn record_audit_log(
         &self,
-        event_type: &str,
+        event_type: AuditEventType,
         user_id: &str,
         ip_address: &str,
         user_agent: &str,
         resource: &str,
         action: &str,
-        result: &str,
+        result: AuditResult,
         resource_id: Option<&str>,
         trace_id: Option<&str>,
     ) -> RecordAuditLogPayload {
@@ -45,19 +47,19 @@ impl AuthMutationResolver {
             Ok((id, created_at)) => RecordAuditLogPayload {
                 audit_log: Some(AuditLog {
                     id,
-                    event_type: event_type.to_string(),
+                    // HIGH-014 監査対応: GraphQL deprecated string フィールドは enum から逆変換して提供する
+                    event_type: audit_event_type_to_str(event_type).to_string(),
                     user_id: user_id.to_string(),
                     ip_address: ip_address.to_string(),
                     user_agent: user_agent.to_string(),
                     resource: resource.to_string(),
                     action: action.to_string(),
-                    result: result.to_string(),
+                    result: audit_result_to_str(result).to_string(),
                     resource_id: resource_id.unwrap_or("").to_string(),
                     trace_id: trace_id.unwrap_or("").to_string(),
                     created_at,
-                    // C-9 監査対応: 記録時も enum フィールドを同時設定する
-                    event_type_enum: parse_audit_event_type(event_type),
-                    result_enum: parse_audit_result(result),
+                    event_type_enum: Some(event_type),
+                    result_enum: Some(result),
                 }),
                 errors: vec![],
             },

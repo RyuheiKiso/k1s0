@@ -79,21 +79,17 @@ func CSRFMiddleware(store session.Store, headerName string, sessionCookie string
 			return
 		}
 
-		// CSRF トークンの有効期間（30分 TTL）を検証する（H-12 監査対応）。
-		// M-003 監査対応: CSRFTokenCreatedAt = 0 の旧形式セッションは CSRF TTL チェックをバイパスできる。
-		// 旧セッションが確実に期限切れになる 2026-Q3（2026-07-01以降）にこのフォールバックを削除すること。
-		// 削除タスク: https://github.com/[owner]/k1s0/issues/[issue-number] （Issue 作成を推奨）
-		// 削除予定日: 2026-07-01
-		if sess.CSRFTokenCreatedAt > 0 {
-			csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
-			if csrfAge > CSRFTokenTTL {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error":      "BFF_CSRF_EXPIRED",
-					"message":    "CSRF token expired",
-					"request_id": GetRequestID(c),
-				})
-				return
-			}
+		// MED-013 監査対応: 旧セッション互換バイパス条件（CSRFTokenCreatedAt > 0）を削除した。
+		// 2026-07-01 の削除期限が到来したため、TTL チェックを全セッションに対して常に行う。
+		// CSRFTokenCreatedAt = 0 の古いセッションは TTL 超過とみなされ再認証が要求される。
+		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
+		if csrfAge > CSRFTokenTTL {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error":      "BFF_CSRF_EXPIRED",
+				"message":    "CSRF token expired",
+				"request_id": GetRequestID(c),
+			})
+			return
 		}
 
 		c.Next()

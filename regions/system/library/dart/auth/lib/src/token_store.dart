@@ -43,7 +43,9 @@ abstract class TokenStore {
   String? getState();
 
   /// state を保存する
-  void setState(String state);
+  /// MED-016 監査対応: Future<void> に変更し、呼び出し元で await 可能にする。
+  /// fire-and-forget を廃止して永続化完了を保証する。
+  Future<void> setState(String state);
 
   /// state を削除する
   void clearState();
@@ -191,19 +193,21 @@ class SecureTokenStore implements TokenStore {
   String? getState() => _state;
 
   @override
-  void setState(String state) {
+  // MED-016 監査対応: Future<void> に変更し、セキュアストレージへの書き込みを await 可能にする。
+  // fire-and-forget を廃止し、書き込み失敗を上位に伝播させることで PKCE state 保存の信頼性を向上する。
+  Future<void> setState(String state) async {
     _state = state;
-    // fire-and-forget でセキュアストレージに永続化する。失敗時はログ出力（M-30 監査対応）
-    unawaited(_storage
-        .write(key: '$_prefix$_kState', value: state)
-        .catchError((Object e, StackTrace st) {
+    try {
+      await _storage.write(key: '$_prefix$_kState', value: state);
+    } catch (e, st) {
       developer.log(
         'SecureTokenStore: state の書き込みに失敗しました',
         error: e,
         stackTrace: st,
         name: 'SecureTokenStore',
       );
-    }));
+      rethrow;
+    }
   }
 
   @override
@@ -276,7 +280,8 @@ class MemoryTokenStore implements TokenStore {
   String? getState() => _state;
 
   @override
-  void setState(String state) => _state = state;
+  // MED-016 監査対応: Future<void> に変更（インターフェースに合わせる）。即座に完了する。
+  Future<void> setState(String state) async => _state = state;
 
   @override
   void clearState() => _state = null;

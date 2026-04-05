@@ -17,15 +17,17 @@ impl GetSagaUseCase {
     }
 
     /// SagaとステップログをIDで取得する。
+    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
     pub async fn execute(
         &self,
         saga_id: Uuid,
+        tenant_id: &str,
     ) -> anyhow::Result<Option<(SagaState, Vec<SagaStepLog>)>> {
-        let state = self.saga_repo.find_by_id(saga_id).await?;
+        let state = self.saga_repo.find_by_id(saga_id, tenant_id).await?;
 
         match state {
             Some(saga) => {
-                let step_logs = self.saga_repo.find_step_logs(saga_id).await?;
+                let step_logs = self.saga_repo.find_step_logs(saga_id, tenant_id).await?;
                 Ok(Some((saga, step_logs)))
             }
             None => Ok(None),
@@ -42,17 +44,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_saga_found() {
-        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None);
+        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
 
         let mut mock = MockSagaRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(saga_clone.clone())));
-        mock.expect_find_step_logs().returning(|_| Ok(vec![]));
+            .returning(move |_, _| Ok(Some(saga_clone.clone())));
+        mock.expect_find_step_logs().returning(|_, _| Ok(vec![]));
 
         let uc = GetSagaUseCase::new(Arc::new(mock));
-        let result = uc.execute(saga_id).await.unwrap();
+        let result = uc.execute(saga_id, "system").await.unwrap();
         assert!(result.is_some());
         let (state, logs) = result.unwrap();
         assert_eq!(state.saga_id, saga_id);
@@ -62,10 +64,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_saga_not_found() {
         let mut mock = MockSagaRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetSagaUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await.unwrap();
+        let result = uc.execute(Uuid::new_v4(), "system").await.unwrap();
         assert!(result.is_none());
     }
 }

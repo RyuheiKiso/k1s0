@@ -5,6 +5,11 @@
 # 戻り値: 問題なし=0, 実装漏れ検出=1
 set -euo pipefail
 
+# Windows/CI 環境での Python UTF-8 出力を保証する（MED-004 監査対応）。
+# PYTHONUTF8=1 は Python 3.7+ でUTF-8モードを強制し、日本語を含む出力の文字化けを防ぐ。
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MODULES_YAML="$REPO_ROOT/modules.yaml"

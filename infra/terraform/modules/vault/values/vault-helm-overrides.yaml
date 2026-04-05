@@ -34,6 +34,13 @@ server:
   # あるいは audit sink の type を syslog に変更して外部ログ収集に委ねることを検討する
 
   # Kubernetes probe の設定（audit log マウント後も正常に動作するよう確認済み）
+  # LOW-005 監査対応（本番環境セキュリティ注意）:
+  # `-tls-skip-verify` はローカル/開発環境の自己署名証明書向け設定である。
+  # 本番環境では -tls-skip-verify を除去し、正規の CA 証明書を以下のいずれかで設定すること:
+  #   1. VAULT_CACERT 環境変数: CA 証明書ファイルのパスを指定する
+  #   2. VAULT_CAPATH 環境変数: CA 証明書ディレクトリのパスを指定する
+  #   3. cert-manager で発行した証明書を ConfigMap/Secret 経由でマウントする
+  # 参照: https://developer.hashicorp.com/vault/docs/configuration/listener/tcp#tls_cert_file
   readinessProbe:
     exec:
       command:

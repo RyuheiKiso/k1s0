@@ -2759,6 +2759,7 @@ dependencies = [
  "moka",
  "prost",
  "prost-types",
+ "rand 0.8.5",
  "rdkafka",
  "reqwest",
  "secrecy",

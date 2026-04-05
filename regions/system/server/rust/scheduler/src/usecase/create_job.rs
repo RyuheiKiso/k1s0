@@ -15,6 +15,8 @@ pub struct CreateJobInput {
     pub target_type: String,
     pub target: Option<String>,
     pub payload: serde_json::Value,
+    /// テナント ID: CRIT-005 対応。ジョブを作成するテナントを識別する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -62,6 +64,8 @@ impl CreateJobUseCase {
         job.timezone = input.timezone.clone();
         job.target_type = input.target_type.clone();
         job.target = input.target.clone();
+        // CRIT-005 対応: リクエストのテナント ID をジョブに設定する
+        job.tenant_id = input.tenant_id.clone();
         job.next_run_at = job.next_run_at();
 
         self.repo
@@ -100,6 +104,7 @@ mod tests {
             target_type: "kafka".to_string(),
             target: None,
             payload: serde_json::json!({"task": "backup"}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -108,6 +113,7 @@ mod tests {
         assert_eq!(job.name, "daily-backup");
         assert_eq!(job.status, "active");
         assert!(job.next_run_at.is_some());
+        assert_eq!(job.tenant_id, "tenant-a");
     }
 
     #[tokio::test]
@@ -124,6 +130,7 @@ mod tests {
             target_type: "kafka".to_string(),
             target: None,
             payload: serde_json::json!({}),
+            tenant_id: "tenant-a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -153,6 +160,7 @@ mod tests {
                 target_type: "kafka".to_string(),
                 target: Some("topic".to_string()),
                 payload: serde_json::json!({"task": "backup"}),
+                tenant_id: "tenant-a".to_string(),
             })
             .await;
 

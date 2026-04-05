@@ -19,6 +19,8 @@ import { Timestamp } from "../../common/v1/types";
  */
 export interface GetSecretRequest {
     /**
+     * シークレットパスは1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string path = 1
      */
     path: string;
@@ -59,6 +61,8 @@ export interface GetSecretResponse {
  */
 export interface SetSecretRequest {
     /**
+     * シークレットパスは1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string path = 1
      */
     path: string;
@@ -91,6 +95,8 @@ export interface SetSecretResponse {
  */
 export interface RotateSecretRequest {
     /**
+     * シークレットパスは1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string path = 1
      */
     path: string;
@@ -123,6 +129,8 @@ export interface RotateSecretResponse {
  */
 export interface DeleteSecretRequest {
     /**
+     * シークレットパスは1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string path = 1
      */
     path: string;
@@ -145,6 +153,8 @@ export interface DeleteSecretResponse {
  */
 export interface GetSecretMetadataRequest {
     /**
+     * シークレットパスは1文字以上512文字以下であること
+     *
      * @generated from protobuf field: string path = 1
      */
     path: string;
@@ -214,6 +224,13 @@ export interface ListAuditLogsRequest {
      * @generated from protobuf field: k1s0.system.common.v1.Pagination pagination = 3
      */
     pagination?: Pagination;
+    /**
+     * LOW-12 監査対応: keyset ページネーション用カーソル（前ページの最後のアイテムの UUID 文字列）。
+     * 省略または空文字の場合は先頭ページを返す。
+     *
+     * @generated from protobuf field: string after_cursor = 4
+     */
+    afterCursor: string;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.ListAuditLogsResponse
@@ -229,6 +246,12 @@ export interface ListAuditLogsResponse {
      * @generated from protobuf field: k1s0.system.common.v1.PaginationResult pagination = 2
      */
     pagination?: PaginationResult;
+    /**
+     * LOW-12 監査対応: 次ページカーソル（最後のアイテムの UUID 文字列）。空文字なら最終ページ。
+     *
+     * @generated from protobuf field: string next_cursor = 3
+     */
+    nextCursor: string;
 }
 /**
  * @generated from protobuf message k1s0.system.vault.v1.AuditLogEntry
@@ -271,7 +294,7 @@ export interface AuditLogEntry {
 class GetSecretRequest$Type extends MessageType<GetSecretRequest> {
     constructor() {
         super("k1s0.system.vault.v1.GetSecretRequest", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 2, name: "version", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
@@ -419,7 +442,7 @@ export const GetSecretResponse = new GetSecretResponse$Type();
 class SetSecretRequest$Type extends MessageType<SetSecretRequest> {
     constructor() {
         super("k1s0.system.vault.v1.SetSecretRequest", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 2, name: "data", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -552,7 +575,7 @@ export const SetSecretResponse = new SetSecretResponse$Type();
 class RotateSecretRequest$Type extends MessageType<RotateSecretRequest> {
     constructor() {
         super("k1s0.system.vault.v1.RotateSecretRequest", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 2, name: "data", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } }
         ]);
     }
@@ -686,7 +709,7 @@ export const RotateSecretResponse = new RotateSecretResponse$Type();
 class DeleteSecretRequest$Type extends MessageType<DeleteSecretRequest> {
     constructor() {
         super("k1s0.system.vault.v1.DeleteSecretRequest", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } },
             { no: 2, name: "versions", kind: "scalar", repeat: 1 /*RepeatType.PACKED*/, T: 3 /*ScalarType.INT64*/ }
         ]);
     }
@@ -796,7 +819,7 @@ export const DeleteSecretResponse = new DeleteSecretResponse$Type();
 class GetSecretMetadataRequest$Type extends MessageType<GetSecretMetadataRequest> {
     constructor() {
         super("k1s0.system.vault.v1.GetSecretMetadataRequest", [
-            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/, options: { "buf.validate.field": { string: { minLen: "1", maxLen: "512" } } } }
         ]);
     }
     create(value?: PartialMessage<GetSecretMetadataRequest>): GetSecretMetadataRequest {
@@ -1028,11 +1051,13 @@ export const ListSecretsResponse = new ListSecretsResponse$Type();
 class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
     constructor() {
         super("k1s0.system.vault.v1.ListAuditLogsRequest", [
-            { no: 3, name: "pagination", kind: "message", T: () => Pagination }
+            { no: 3, name: "pagination", kind: "message", T: () => Pagination },
+            { no: 4, name: "after_cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListAuditLogsRequest>): ListAuditLogsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.afterCursor = "";
         if (value !== undefined)
             reflectionMergePartial<ListAuditLogsRequest>(this, message, value);
         return message;
@@ -1044,6 +1069,9 @@ class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
             switch (fieldNo) {
                 case /* k1s0.system.common.v1.Pagination pagination */ 3:
                     message.pagination = Pagination.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* string after_cursor */ 4:
+                    message.afterCursor = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1060,6 +1088,9 @@ class ListAuditLogsRequest$Type extends MessageType<ListAuditLogsRequest> {
         /* k1s0.system.common.v1.Pagination pagination = 3; */
         if (message.pagination)
             Pagination.internalBinaryWrite(message.pagination, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* string after_cursor = 4; */
+        if (message.afterCursor !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.afterCursor);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1075,12 +1106,14 @@ class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
     constructor() {
         super("k1s0.system.vault.v1.ListAuditLogsResponse", [
             { no: 1, name: "logs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AuditLogEntry },
-            { no: 2, name: "pagination", kind: "message", T: () => PaginationResult }
+            { no: 2, name: "pagination", kind: "message", T: () => PaginationResult },
+            { no: 3, name: "next_cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListAuditLogsResponse>): ListAuditLogsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.logs = [];
+        message.nextCursor = "";
         if (value !== undefined)
             reflectionMergePartial<ListAuditLogsResponse>(this, message, value);
         return message;
@@ -1095,6 +1128,9 @@ class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
                     break;
                 case /* k1s0.system.common.v1.PaginationResult pagination */ 2:
                     message.pagination = PaginationResult.internalBinaryRead(reader, reader.uint32(), options, message.pagination);
+                    break;
+                case /* string next_cursor */ 3:
+                    message.nextCursor = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1114,6 +1150,9 @@ class ListAuditLogsResponse$Type extends MessageType<ListAuditLogsResponse> {
         /* k1s0.system.common.v1.PaginationResult pagination = 2; */
         if (message.pagination)
             PaginationResult.internalBinaryWrite(message.pagination, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* string next_cursor = 3; */
+        if (message.nextCursor !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.nextCursor);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

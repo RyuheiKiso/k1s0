@@ -425,9 +425,10 @@ impl InMemoryFeatureFlagRepository {
 /// STATIC-CRITICAL-001 監査対応: InMemoryFeatureFlagRepository は全メソッドで
 /// tenant_id を受け取るが、インメモリ実装ではフラグキーのみでアクセスする。
 /// 本実装はローカル開発・テスト用のフォールバックであり、本番では PostgreSQL 実装を使用する。
+/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 #[async_trait::async_trait]
 impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
-    async fn find_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<FeatureFlag> {
+    async fn find_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         let flags = self.flags.read().await;
         flags
             .get(flag_key)
@@ -435,24 +436,24 @@ impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
             .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
     }
 
-    async fn find_all(&self, _tenant_id: Uuid) -> anyhow::Result<Vec<FeatureFlag>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         let flags = self.flags.read().await;
         Ok(flags.values().cloned().collect())
     }
 
-    async fn create(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn create(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let mut flags = self.flags.write().await;
         flags.insert(flag.flag_key.clone(), flag.clone());
         Ok(())
     }
 
-    async fn update(&self, _tenant_id: Uuid, flag: &FeatureFlag) -> anyhow::Result<()> {
+    async fn update(&self, _tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let mut flags = self.flags.write().await;
         flags.insert(flag.flag_key.clone(), flag.clone());
         Ok(())
     }
 
-    async fn delete(&self, _tenant_id: Uuid, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         let mut flags = self.flags.write().await;
         let key = flags
             .iter()
@@ -466,7 +467,7 @@ impl FeatureFlagRepository for InMemoryFeatureFlagRepository {
         }
     }
 
-    async fn exists_by_key(&self, _tenant_id: Uuid, flag_key: &str) -> anyhow::Result<bool> {
+    async fn exists_by_key(&self, _tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         let flags = self.flags.read().await;
         Ok(flags.contains_key(flag_key))
     }

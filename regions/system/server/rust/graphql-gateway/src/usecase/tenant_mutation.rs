@@ -39,14 +39,16 @@ impl TenantMutationResolver {
         }
     }
 
+    /// CRIT-007 対応: UpdateTenantInput を proto UpdateTenantRequest に整合させる
+    /// display_name と plan を直接渡す（status は suspend/activate 専用ミューテーションで変更する）
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn update_tenant(
         &self,
         id: &str,
-        name: Option<&str>,
-        status: Option<&str>,
+        display_name: Option<&str>,
+        plan: Option<&str>,
     ) -> UpdateTenantPayload {
-        match self.client.update_tenant(id, name, status).await {
+        match self.client.update_tenant(id, display_name, plan).await {
             Ok(tenant) => UpdateTenantPayload {
                 tenant: Some(tenant),
                 errors: vec![],

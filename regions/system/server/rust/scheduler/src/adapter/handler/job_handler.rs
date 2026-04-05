@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -10,18 +10,32 @@ use super::AppState;
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::usecase::create_job::CreateJobError;
 use crate::usecase::create_job::CreateJobInput;
+use k1s0_auth::Claims;
+
+/// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
+/// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
+fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+    claims
+        .as_ref()
+        .map(|ext| ext.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
 
 /// GET /api/v1/jobs
 pub async fn list_jobs(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(params): Query<ListJobsParams>,
 ) -> impl IntoResponse {
     use crate::usecase::list_jobs::ListJobsInput;
+    // CRIT-005 対応: テナント ID を ListJobsInput に設定してテナントでフィルタリングする
+    let tenant_id = extract_tenant_id(&claims);
     let input = ListJobsInput {
         status: params.status,
         name_prefix: params.name_prefix,
         page: params.page.unwrap_or(1),
         page_size: params.page_size.unwrap_or(20),
+        tenant_id,
     };
     match state.list_jobs_uc.execute(&input).await {
         Ok(output) => (
@@ -45,8 +59,14 @@ pub async fn list_jobs(
 }
 
 /// GET /api/v1/jobs/:id
-pub async fn get_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.get_job_uc.execute(&id).await {
+pub async fn get_job(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: テナント ID を渡して RLS セッション変数を設定する
+    let tenant_id = extract_tenant_id(&claims);
+    match state.get_job_uc.execute(&id, &tenant_id).await {
         Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
@@ -64,6 +84,7 @@ pub async fn get_job(State(state): State<AppState>, Path(id): Path<String>) -> i
 /// POST /api/v1/jobs
 pub async fn create_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreateJobRequest>,
 ) -> impl IntoResponse {
     if req.target_type.trim().is_empty() {
@@ -75,6 +96,8 @@ pub async fn create_job(
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
+    // CRIT-005 対応: テナント ID を CreateJobInput に設定する
+    let tenant_id = extract_tenant_id(&claims);
     let input = CreateJobInput {
         name: req.name,
         description: req.description,
@@ -83,6 +106,7 @@ pub async fn create_job(
         target_type: req.target_type,
         target: req.target,
         payload: req.payload,
+        tenant_id,
     };
 
     match state.create_job_uc.execute(&input).await {
@@ -116,11 +140,14 @@ pub async fn create_job(
 /// DELETE /api/v1/jobs/:id
 pub async fn delete_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::delete_job::DeleteJobError;
 
-    match state.delete_job_uc.execute(&id).await {
+    // CRIT-005 対応: テナント ID を渡してテナント分離を行う
+    let tenant_id = extract_tenant_id(&claims);
+    match state.delete_job_uc.execute(&id, &tenant_id).await {
         Ok(()) => (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -148,8 +175,14 @@ pub async fn delete_job(
 }
 
 /// PUT /api/v1/jobs/:id/pause
-pub async fn pause_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.pause_job_uc.execute(&id).await {
+pub async fn pause_job(
+    State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    // CRIT-005 対応: テナント ID を渡してテナント分離を行う
+    let tenant_id = extract_tenant_id(&claims);
+    match state.pause_job_uc.execute(&id, &tenant_id).await {
         Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
@@ -167,9 +200,12 @@ pub async fn pause_job(State(state): State<AppState>, Path(id): Path<String>) ->
 /// PUT /api/v1/jobs/:id/resume
 pub async fn resume_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.resume_job_uc.execute(&id).await {
+    // CRIT-005 対応: テナント ID を渡してテナント分離を行う
+    let tenant_id = extract_tenant_id(&claims);
+    match state.resume_job_uc.execute(&id, &tenant_id).await {
         Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(e) => {
             let msg = e.to_string();
@@ -187,6 +223,7 @@ pub async fn resume_job(
 /// PUT /api/v1/jobs/:id
 pub async fn update_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateJobRequest>,
 ) -> impl IntoResponse {
@@ -201,6 +238,8 @@ pub async fn update_job(
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
+    // CRIT-005 対応: テナント ID を UpdateJobInput に設定してテナント分離を行う
+    let tenant_id = extract_tenant_id(&claims);
     let input = UpdateJobInput {
         id,
         name: req.name,
@@ -210,6 +249,7 @@ pub async fn update_job(
         target_type: req.target_type,
         target: req.target,
         payload: req.payload,
+        tenant_id,
     };
 
     match state.update_job_uc.execute(&input).await {
@@ -242,11 +282,14 @@ pub async fn update_job(
 /// POST /api/v1/jobs/:id/trigger
 pub async fn trigger_job(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::trigger_job::TriggerJobError;
 
-    match state.trigger_job_uc.execute(&id).await {
+    // CRIT-005 対応: テナント ID を渡してテナント分離を行う
+    let tenant_id = extract_tenant_id(&claims);
+    match state.trigger_job_uc.execute(&id, &tenant_id).await {
         Ok(execution) => (StatusCode::CREATED, Json(execution)).into_response(),
         Err(TriggerJobError::NotFound(id)) => {
             let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));

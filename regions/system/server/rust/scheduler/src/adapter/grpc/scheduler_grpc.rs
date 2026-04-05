@@ -53,6 +53,8 @@ pub struct CreateJobRequest {
     pub target_type: String,
     pub target: String,
     pub payload: Vec<u8>,
+    /// テナント ID: CRIT-005 対応。RLS セッション変数に設定するテナント識別子。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +65,8 @@ pub struct CreateJobResponse {
 #[derive(Debug, Clone)]
 pub struct GetJobRequest {
     pub job_id: String,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +79,8 @@ pub struct ListJobsRequest {
     pub status: String,
     pub page: i32,
     pub page_size: i32,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +102,8 @@ pub struct UpdateJobRequest {
     pub target_type: String,
     pub target: String,
     pub payload: Vec<u8>,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -106,6 +114,8 @@ pub struct UpdateJobResponse {
 #[derive(Debug, Clone)]
 pub struct DeleteJobRequest {
     pub job_id: String,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -117,6 +127,8 @@ pub struct DeleteJobResponse {
 #[derive(Debug, Clone)]
 pub struct PauseJobRequest {
     pub job_id: String,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -127,6 +139,8 @@ pub struct PauseJobResponse {
 #[derive(Debug, Clone)]
 pub struct ResumeJobRequest {
     pub job_id: String,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -137,6 +151,8 @@ pub struct ResumeJobResponse {
 #[derive(Debug, Clone)]
 pub struct TriggerJobRequest {
     pub job_id: String,
+    /// テナント ID: CRIT-005 対応。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -243,6 +259,7 @@ impl SchedulerGrpcService {
 
     pub async fn create_job(&self, req: CreateJobRequest) -> Result<CreateJobResponse, GrpcError> {
         let payload = parse_payload(&req.payload)?;
+        // CRIT-005 対応: リクエストの tenant_id を CreateJobInput に設定する
         let created = self
             .create_job_uc
             .execute(&CreateJobInput {
@@ -269,6 +286,7 @@ impl SchedulerGrpcService {
                     Some(req.target)
                 },
                 payload,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -294,7 +312,8 @@ impl SchedulerGrpcService {
 
     pub async fn get_job(&self, req: GetJobRequest) -> Result<GetJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        let job = self.get_job_uc.execute(&id).await.map_err(|e| match e {
+        // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
+        let job = self.get_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
             GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             GetJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -311,6 +330,7 @@ impl SchedulerGrpcService {
         } else {
             req.page_size as u32
         };
+        // CRIT-005 対応: tenant_id を ListJobsInput に設定してテナントでフィルタリングする
         let output = self
             .list_jobs_uc
             .execute(&ListJobsInput {
@@ -322,6 +342,7 @@ impl SchedulerGrpcService {
                 name_prefix: None,
                 page,
                 page_size,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
@@ -339,6 +360,7 @@ impl SchedulerGrpcService {
         let id = parse_uuid(&req.job_id, "job_id")?;
         let payload = parse_payload(&req.payload)?;
 
+        // CRIT-005 対応: tenant_id を UpdateJobInput に設定してテナント分離を行う
         let updated = self
             .update_job_uc
             .execute(&UpdateJobInput {
@@ -366,6 +388,7 @@ impl SchedulerGrpcService {
                     Some(req.target)
                 },
                 payload,
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -388,7 +411,8 @@ impl SchedulerGrpcService {
 
     pub async fn delete_job(&self, req: DeleteJobRequest) -> Result<DeleteJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        self.delete_job_uc.execute(&id).await.map_err(|e| match e {
+        // CRIT-005 対応: tenant_id を渡してテナント分離を行う
+        self.delete_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
             DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             DeleteJobError::JobRunning(id) => {
                 GrpcError::Aborted(format!("job is currently running: {}", id))
@@ -404,7 +428,8 @@ impl SchedulerGrpcService {
 
     pub async fn pause_job(&self, req: PauseJobRequest) -> Result<PauseJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        let job = self.pause_job_uc.execute(&id).await.map_err(|e| match e {
+        // CRIT-005 対応: tenant_id を渡してテナント分離を行う
+        let job = self.pause_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
             PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             PauseJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -415,7 +440,8 @@ impl SchedulerGrpcService {
 
     pub async fn resume_job(&self, req: ResumeJobRequest) -> Result<ResumeJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
-        let job = self.resume_job_uc.execute(&id).await.map_err(|e| match e {
+        // CRIT-005 対応: tenant_id を渡してテナント分離を行う
+        let job = self.resume_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
             ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
             ResumeJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -430,7 +456,8 @@ impl SchedulerGrpcService {
     ) -> Result<TriggerJobResponse, GrpcError> {
         let job_id = parse_uuid(&req.job_id, "job_id")?;
 
-        match self.trigger_job_uc.execute(&job_id).await {
+        // CRIT-005 対応: tenant_id を渡してテナント分離を行う
+        match self.trigger_job_uc.execute(&job_id, &req.tenant_id).await {
             Ok(execution) => Ok(TriggerJobResponse {
                 execution_id: execution.id.to_string(),
                 job_id: execution.job_id.to_string(),

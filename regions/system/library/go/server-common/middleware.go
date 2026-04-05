@@ -37,12 +37,22 @@ func RequestIDMiddleware(next http.Handler) http.Handler {
 
 // CORSMiddleware は CORS ヘッダーを付与するミドルウェア。
 // OPTIONS プリフライトリクエストは即座に 204 を返す。
+//
+// LOW-016 監査対応: CORSMiddleware はリクエストの Origin ヘッダーが allowedOrigins リストに
+// 含まれる場合のみ Access-Control-Allow-Origin を設定する。
+// ワイルドカード "*" は任意オリジンを許可する CSRF リスクがあるため明示的に拒否する。
+// 本番環境では許可するオリジンを明示的に列挙すること（例: ["https://app.k1s0.io"]）。
 func CORSMiddleware(allowedOrigins []string) MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
 			for _, allowed := range allowedOrigins {
-				if allowed == "*" || allowed == origin {
+				// LOW-016 監査対応: ワイルドカード "*" は任意オリジンを許可するため
+				// CSRF 攻撃のリスクが生じる。セキュリティ設定ミスを防ぐため明示的に拒否する。
+				if allowed == "*" {
+					continue
+				}
+				if allowed == origin {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 					break
 				}
