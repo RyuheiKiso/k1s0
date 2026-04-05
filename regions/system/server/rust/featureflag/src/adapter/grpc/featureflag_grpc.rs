@@ -163,6 +163,7 @@ pub struct DeleteFlagResponse {
     pub message: String,
 }
 
+/// gRPCエラー種別: tonic::Status への変換に使用する。Unauthenticated はテナントID取得失敗時に返す。
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
@@ -176,6 +177,10 @@ pub enum GrpcError {
 
     #[error("internal: {0}")]
     Internal(String),
+
+    /// 未認証エラー（テナントIDが取得できない場合）
+    #[error("unauthenticated: {0}")]
+    Unauthenticated(String),
 }
 
 pub struct FeatureFlagGrpcService {

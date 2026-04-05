@@ -119,6 +119,30 @@
 - [ ] config.config_entries: tenant_id カラム追加 + RLS（namespace 標準化後）
 - [ ] vault.secrets: key_path 検証の強化（prefix 必須化）
 
+#### フェーズ3 詳細: vault key_path prefix 必須化
+
+MED-011 監査対応として、vault の key_path ベースのテナント分離をより堅牢にするための実装計画を定義する。
+
+**目的:**
+- `vault.access_logs.tenant_id` カラムへのテナント ID 記録（監査追跡性の向上）
+- key_path が `/tenants/{tenant_id}/` プレフィックスを持つことを強制する API 層バリデーション
+
+**実装方針:**
+
+1. **access_log への tenant_id 記録（部分対応済み）**
+   - `GetSecretInput.tenant_id` フィールドを追加（実装済み）
+   - vault handler が JWT Claims から `tenant_id` クレームを抽出して `GetSecretInput` に渡す（将来実装）
+   - gRPC 経由のリクエストは gRPC メタデータから tenant_id を抽出する（将来実装）
+
+2. **key_path プレフィックス必須化**
+   - usecase 層（または adapter 層）で key_path が `/tenants/{tenant_id}/` で始まることを検証する
+   - 検証失敗時は `GetSecretError::PermissionDenied` を返す
+   - システム管理者（`tenant_id = "system"`）は全パスへのアクセスを許可する
+
+3. **migration（将来）**
+   - `vault.access_logs` テーブルに `tenant_id TEXT` カラムを追加する
+   - 既存データに対してはバックフィル処理を実施する（key_path から tenant_id を抽出）
+
 ## 理由
 
 | テーブル | 判断 | 主な根拠 |
@@ -160,3 +184,4 @@
 | 日付 | 変更内容 | 変更者 |
 |------|---------|--------|
 | 2026-03-29 | 初版作成。H-012 監査対応として各テーブルの設計判断を明確化 | @team |
+| 2026-04-05 | フェーズ3詳細追記: vault key_path prefix 必須化の実装計画（MED-011 監査対応） | @team |

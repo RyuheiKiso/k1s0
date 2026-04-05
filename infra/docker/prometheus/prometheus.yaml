@@ -320,6 +320,24 @@ scrape_configs:
       - targets: ["kong:8100"]
     metrics_path: /metrics
 
+  # PostgreSQL エクスポーター（各DBのメトリクス収集）
+  # HIGH-012 監査対応: postgres-exporter サービスから DB 接続数・クエリ統計等を収集する
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: postgres
+          tier: infra
+
+  # Redis エクスポーター（キャッシュ・セッション用 Redis のメトリクス収集）
+  # HIGH-012 監査対応: redis-exporter サービスからメモリ使用量・コマンド統計等を収集する
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: redis
+          tier: infra
+
   # Kafka メトリクス（JMX Exporter 経由）
   # LOW-002 監査対応: Kafka ブローカーポート 9092 ではなく JMX Exporter の HTTP ポート 9101 を使用する。
   # kafka-jmx-exporter サービスが Kafka の JMX ポート 9999 に接続してメトリクスを収集・変換する。

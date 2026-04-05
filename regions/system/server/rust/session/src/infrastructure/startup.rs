@@ -21,6 +21,27 @@ use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 
+/// HIGH-002 対応: jti チェッカー構築ヘルパー。
+/// Redis に接続済みの場合は jti 失効確認コールバックを返す。
+/// コールバックは同期 Fn であるため、tokio の block_in_place を使って非同期処理をブロッキングで実行する。
+/// auth ライブラリが同期コールバックを要求しているため、この変換が必要となる。
+fn build_jti_checker(
+    redis_repo: Arc<RedisSessionRepository>,
+) -> k1s0_auth::JtiRevokedChecker {
+    Arc::new(move |jti: &str| {
+        let repo = Arc::clone(&redis_repo);
+        let jti = jti.to_string();
+        // tokio::runtime::Handle::current() で現在のランタイムを取得し、
+        // block_on で非同期の is_jti_revoked を同期的に実行する。
+        // block_in_place を使い tokio スレッドプールをブロックしないようにする。
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async move {
+                repo.is_jti_revoked(&jti).await
+            })
+        })
+    })
+}
+
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -48,6 +69,10 @@ pub async fn run() -> anyhow::Result<()> {
     info!(port = cfg.server.port, "starting session server");
 
     // --- Session Repository: Redis or InMemory fallback ---
+    // HIGH-002 対応: Redis 実装の場合は Arc<RedisSessionRepository> を保持し、
+    // JWKS 検証器の jti チェッカーに渡せるようにする。
+    let mut redis_repo_for_jti: Option<Arc<RedisSessionRepository>> = None;
+
     let repo: Arc<dyn SessionRepository> = if let Some(ref redis_cfg) = cfg.redis {
         info!(url = %redis_cfg.url, "connecting to Redis");
         let client = redis::Client::open(redis_cfg.url.as_str())
@@ -56,7 +81,10 @@ pub async fn run() -> anyhow::Result<()> {
             .await
             .map_err(|e| anyhow::anyhow!("failed to connect to Redis: {}", e))?;
         info!("Redis connection established");
-        Arc::new(RedisSessionRepository::new(conn))
+        let redis_repo = Arc::new(RedisSessionRepository::new(conn));
+        // jti チェッカー用に Arc<RedisSessionRepository> を保持する（Arc::clone で参照カウントのみ増加）
+        redis_repo_for_jti = Some(Arc::clone(&redis_repo));
+        redis_repo
     } else {
         // infra_guard: stable サービスでは Redis 設定を必須化（dev/test 以外はエラー）
         k1s0_server_common::require_infra(
@@ -167,15 +195,27 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("auth.jwks configuration is required"))?;
                 info!(jwks_url = %jwks.url, "initializing JWKS verifier for session-server");
-                let jwks_verifier = Arc::new(
-                    k1s0_auth::JwksVerifier::new(
-                        &jwks.url,
-                        &auth_cfg.jwt.issuer,
-                        &auth_cfg.jwt.audience,
-                        std::time::Duration::from_secs(jwks.cache_ttl_secs),
-                    )
-                    .context("JWKS 検証器の作成に失敗")?,
-                );
+                let base_verifier = k1s0_auth::JwksVerifier::new(
+                    &jwks.url,
+                    &auth_cfg.jwt.issuer,
+                    &auth_cfg.jwt.audience,
+                    std::time::Duration::from_secs(jwks.cache_ttl_secs),
+                )
+                .context("JWKS 検証器の作成に失敗")?;
+
+                // HIGH-002 対応: Redis が構成されている場合は jti チェッカーを有効化する。
+                // ログアウト後のJWT再利用防止のために Redis の失効リストを参照する。
+                // Redis が構成されていない場合（dev/test）は jti チェックを無効にする（後方互換）。
+                // Phase 2: 他サービスで jti チェックを有効化する際は
+                // session サービスの Redis lookup パターン（build_jti_checker）を参考にすること。
+                let jwks_verifier = if let Some(ref redis_repo) = redis_repo_for_jti {
+                    info!("jti ブラックリスト有効: Redis が構成されているため jti チェッカーを JWKS 検証器に設定します");
+                    Arc::new(base_verifier.with_jti_checker(build_jti_checker(Arc::clone(redis_repo))))
+                } else {
+                    info!("jti ブラックリスト無効: Redis が構成されていないため jti チェックをスキップします（dev/test）");
+                    Arc::new(base_verifier)
+                };
+
                 Ok(crate::adapter::middleware::auth::AuthState {
                     verifier: jwks_verifier,
                 })

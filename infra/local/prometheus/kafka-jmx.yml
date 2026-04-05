@@ -14,6 +14,12 @@
 # JMX 接続先（docker-compose ネットワーク内のサービス名で解決）
 hostPort: kafka:9999
 
+# CRIT-009 対応: JMX 認証有効化に伴い認証情報を追加する。
+# jmx_monitor ユーザーは readonly 権限でメトリクス取得のみ許可される。
+# 本番環境では Vault やシークレットマネージャーでパスワードを管理すること。
+username: jmx_monitor
+password: monitorpassword
+
 # 出力名を小文字に統一する（Prometheus 命名規約に準拠）
 lowercaseOutputName: true
 lowercaseOutputLabelNames: true

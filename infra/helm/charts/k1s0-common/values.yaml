@@ -146,12 +146,13 @@ config:
   data: {}                             # ConfigMap として作成
 
 # Vault Agent Injector
-# MED-004 監査対応: vault.role の共通デフォルト値は "service"。
-# 各サービス固有のポリシーがある場合は、個別の values.yaml で role を上書きすること。
-# ADR-0045 参照: per-service Vault ロール分離設計。
+# LOW-011 対応: vault.role のデフォルト値を汎用的な "service" から "" (空文字列) に変更する。
+# 空文字列のまま helm install/upgrade を実行した場合、_vault.tpl の required 制約でエラーになり
+# 各サービスで明示的なロール名設定を強制する。ADR-0045 参照: per-service Vault ロール分離設計。
+# 各サービスの values.yaml には必ず role: "<service-name>" を設定すること。
 vault:
   enabled: true
-  role: "service"
+  role: ""
   secrets:
     - path: "secret/data/k1s0/service/app/database"
       key: "password"

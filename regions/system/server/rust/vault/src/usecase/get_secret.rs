@@ -9,6 +9,9 @@ use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublishe
 pub struct GetSecretInput {
     pub path: String,
     pub version: Option<i64>,
+    /// MED-011 監査対応: JWT クレームから伝播したテナント ID
+    /// None の場合はシステム全体スコープとして扱う（key_path による論理分離: ADR-0056 参照）
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,7 +47,9 @@ impl GetSecretUseCase {
 
         match &result {
             Ok(_) => {
-                let log = SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, true);
+                // MED-011 監査対応: tenant_id を access_log に設定して監査ログのテナント分離を実現する
+                let mut log = SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, true);
+                log.tenant_id = input.tenant_id.clone();
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -59,8 +64,10 @@ impl GetSecretUseCase {
                     .await;
             }
             Err(e) => {
+                // MED-011 監査対応: エラー時の access_log にも tenant_id を設定する
                 let mut log =
                     SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, false);
+                log.tenant_id = input.tenant_id.clone();
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self
@@ -121,6 +128,7 @@ mod tests {
         let input = GetSecretInput {
             path: "app/db/password".to_string(),
             version: None,
+            tenant_id: None,
         };
 
         let result = uc.execute(&input).await;
@@ -150,6 +158,7 @@ mod tests {
         let input = GetSecretInput {
             path: "nonexistent".to_string(),
             version: None,
+            tenant_id: None,
         };
 
         let result = uc.execute(&input).await;

@@ -106,6 +106,14 @@
 | [ADR-0098](./0098-graphql-proto-alignment-policy.md) | GraphQL スキーマと Protocol Buffers の整合方針 | 承認済み |
 | [ADR-0099](./0099-proto-field-type-migration-policy.md) | Protocol Buffers フィールド型移行方針（aud repeated・Timestamp 統一・reserved 宣言） | 承認済み |
 | [ADR-0100](./0100-vault-audit-log-rotation.md) | Vault 監査ログローテーション管理方針 | 承認済み |
+| [ADR-0101](./0101-graphql-pagination-relay-cursor.md) | GraphQL ページネーション統一方針（Relay Cursor ベース） | 承認済み |
+| [ADR-0102](./0102-graphql-handler-split-deferred.md) | graphql_handler.rs の分割延期方針 | 承認済み |
+| [ADR-0103](./0103-kafka-init-tmpfs-java-tmpdir.md) | kafka-init の /tmp:noexec 維持と JAVA_TOOL_OPTIONS による JVM 展開先変更 | 承認済み |
+| [ADR-0104](./0104-aes-gcm-legacy-fallback-removal.md) | AES-GCM レガシーフォールバック削除 | 承認済み |
+| [ADR-0105](./0105-registry-services-global-design.md) | レジストリサービスのシステムグローバル設計 | 承認済み |
+| [ADR-0106](./0106-event-store-tenant-isolation.md) | event-store テナント分離実装 | 承認済み |
+| [ADR-0107](./0107-s2s-jwt-rs256-migration.md) | サービス間 JWT の RS256 非対称鍵への移行 | 承認済み |
+| [ADR-0108](./0108-vault-auth-terraform-single-source.md) | Vault 認証設定の Terraform 一元管理（ConfigMap 廃止） | 承認済み |
 
 ## ADR の追加方法
 

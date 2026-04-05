@@ -69,7 +69,11 @@ impl StubEventStreamRepository {
 
 #[async_trait]
 impl EventStreamRepository for StubEventStreamRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<EventStream>> {
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<EventStream>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -77,7 +81,12 @@ impl EventStreamRepository for StubEventStreamRepository {
         Ok(streams.iter().find(|s| s.id == id).cloned())
     }
 
-    async fn list_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<EventStream>, u64)> {
+    async fn list_all(
+        &self,
+        _tenant_id: &str,
+        page: u32,
+        page_size: u32,
+    ) -> anyhow::Result<(Vec<EventStream>, u64)> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -102,7 +111,12 @@ impl EventStreamRepository for StubEventStreamRepository {
         Ok(())
     }
 
-    async fn update_version(&self, id: &str, new_version: i64) -> anyhow::Result<()> {
+    async fn update_version(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+        new_version: i64,
+    ) -> anyhow::Result<()> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -116,7 +130,7 @@ impl EventStreamRepository for StubEventStreamRepository {
         }
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, id: &str) -> anyhow::Result<bool> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -168,6 +182,7 @@ impl StubEventRepository {
 impl EventRepository for StubEventRepository {
     async fn append(
         &self,
+        _tenant_id: &str,
         stream_id: &str,
         events: Vec<StoredEvent>,
     ) -> anyhow::Result<Vec<StoredEvent>> {
@@ -189,6 +204,7 @@ impl EventRepository for StubEventRepository {
 
     async fn find_by_stream(
         &self,
+        _tenant_id: &str,
         stream_id: &str,
         from_version: i64,
         to_version: Option<i64>,
@@ -221,6 +237,7 @@ impl EventRepository for StubEventRepository {
 
     async fn find_all(
         &self,
+        _tenant_id: &str,
         event_type: Option<String>,
         page: u32,
         page_size: u32,
@@ -247,6 +264,7 @@ impl EventRepository for StubEventRepository {
 
     async fn find_by_sequence(
         &self,
+        _tenant_id: &str,
         stream_id: &str,
         sequence: u64,
     ) -> anyhow::Result<Option<StoredEvent>> {
@@ -260,7 +278,7 @@ impl EventRepository for StubEventRepository {
             .cloned())
     }
 
-    async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
+    async fn delete_by_stream(&self, _tenant_id: &str, stream_id: &str) -> anyhow::Result<u64> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -307,7 +325,11 @@ impl SnapshotRepository for StubSnapshotRepository {
         Ok(())
     }
 
-    async fn find_latest(&self, stream_id: &str) -> anyhow::Result<Option<Snapshot>> {
+    async fn find_latest(
+        &self,
+        _tenant_id: &str,
+        stream_id: &str,
+    ) -> anyhow::Result<Option<Snapshot>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -319,7 +341,11 @@ impl SnapshotRepository for StubSnapshotRepository {
             .cloned())
     }
 
-    async fn delete_by_stream(&self, stream_id: &str) -> anyhow::Result<u64> {
+    async fn delete_by_stream(
+        &self,
+        _tenant_id: &str,
+        stream_id: &str,
+    ) -> anyhow::Result<u64> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -338,6 +364,7 @@ fn make_stream(id: &str, aggregate_type: &str, version: i64) -> EventStream {
     let now = chrono::Utc::now();
     EventStream {
         id: id.to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: aggregate_type.to_string(),
         current_version: version,
         created_at: now,
@@ -348,6 +375,7 @@ fn make_stream(id: &str, aggregate_type: &str, version: i64) -> EventStream {
 fn make_event(stream_id: &str, sequence: u64, version: i64, event_type: &str) -> StoredEvent {
     StoredEvent::new(
         stream_id.to_string(),
+        "tenant-test".to_string(),
         sequence,
         event_type.to_string(),
         version,
@@ -368,6 +396,7 @@ fn make_snapshot(stream_id: &str, version: i64) -> Snapshot {
     Snapshot::new(
         format!("snap_{}", version),
         stream_id.to_string(),
+        "tenant-test".to_string(),
         version,
         "Order".to_string(),
         serde_json::json!({"status": "active"}),
@@ -387,6 +416,7 @@ async fn test_append_events_creates_new_stream() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: -1,
@@ -418,6 +448,7 @@ async fn test_append_events_to_existing_stream() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![
             make_event_data("OrderShipped"),
@@ -448,6 +479,7 @@ async fn test_append_events_version_conflict() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: 2,
@@ -479,6 +511,7 @@ async fn test_append_events_stream_not_found() {
 
     let input = AppendEventsInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: 0,
@@ -502,6 +535,7 @@ async fn test_append_events_stream_already_exists() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: -1,
@@ -524,6 +558,7 @@ async fn test_append_events_validation_empty_events() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![],
         expected_version: -1,
@@ -546,6 +581,7 @@ async fn test_append_events_internal_error() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: 0,
@@ -570,6 +606,7 @@ async fn test_append_multiple_events_increments_versions_correctly() {
 
     let input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![
             make_event_data("OrderPlaced"),
@@ -609,6 +646,7 @@ async fn test_read_events_success() {
 
     let input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -644,6 +682,7 @@ async fn test_read_events_with_version_range() {
 
     let input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 2,
         to_version: Some(4),
         event_type: None,
@@ -675,6 +714,7 @@ async fn test_read_events_with_event_type_filter() {
 
     let input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: Some("OrderPlaced".to_string()),
@@ -699,6 +739,7 @@ async fn test_read_events_stream_not_found() {
 
     let input = ReadEventsInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -723,6 +764,7 @@ async fn test_read_events_internal_error() {
 
     let input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -753,6 +795,7 @@ async fn test_read_events_pagination_has_next() {
 
     let input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -787,6 +830,7 @@ async fn test_read_event_by_sequence_success() {
 
     let input = ReadEventBySequenceInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         sequence: 1,
     };
 
@@ -808,6 +852,7 @@ async fn test_read_event_by_sequence_stream_not_found() {
 
     let input = ReadEventBySequenceInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
         sequence: 1,
     };
 
@@ -829,6 +874,7 @@ async fn test_read_event_by_sequence_event_not_found() {
 
     let input = ReadEventBySequenceInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         sequence: 999,
     };
 
@@ -849,6 +895,7 @@ async fn test_read_event_by_sequence_internal_error() {
 
     let input = ReadEventBySequenceInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         sequence: 1,
     };
 
@@ -876,6 +923,7 @@ async fn test_create_snapshot_success() {
 
     let input = CreateSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 3,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({"status": "shipped"}),
@@ -904,6 +952,7 @@ async fn test_create_snapshot_stream_not_found() {
 
     let input = CreateSnapshotInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 1,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({}),
@@ -927,6 +976,7 @@ async fn test_create_snapshot_version_exceeds_current() {
 
     let input = CreateSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 10,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({}),
@@ -951,6 +1001,7 @@ async fn test_create_snapshot_internal_error() {
 
     let input = CreateSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 1,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({}),
@@ -976,6 +1027,7 @@ async fn test_create_snapshot_at_current_version() {
 
     let input = CreateSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 5,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({"status": "latest"}),
@@ -1001,6 +1053,7 @@ async fn test_get_latest_snapshot_success() {
 
     let input = GetLatestSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1020,6 +1073,7 @@ async fn test_get_latest_snapshot_stream_not_found() {
 
     let input = GetLatestSnapshotInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1040,6 +1094,7 @@ async fn test_get_latest_snapshot_no_snapshot_exists() {
 
     let input = GetLatestSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1059,6 +1114,7 @@ async fn test_get_latest_snapshot_internal_error() {
 
     let input = GetLatestSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1087,6 +1143,7 @@ async fn test_list_events_success() {
     let uc = ListEventsUseCase::new(event_repo);
 
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: None,
         page: 1,
         page_size: 50,
@@ -1113,6 +1170,7 @@ async fn test_list_events_with_type_filter() {
     let uc = ListEventsUseCase::new(event_repo);
 
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: Some("OrderPlaced".to_string()),
         page: 1,
         page_size: 50,
@@ -1137,6 +1195,7 @@ async fn test_list_events_pagination() {
 
     // First page
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: None,
         page: 1,
         page_size: 2,
@@ -1149,6 +1208,7 @@ async fn test_list_events_pagination() {
 
     // Last page
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: None,
         page: 3,
         page_size: 2,
@@ -1167,6 +1227,7 @@ async fn test_list_events_empty() {
     let uc = ListEventsUseCase::new(event_repo);
 
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: None,
         page: 1,
         page_size: 50,
@@ -1184,6 +1245,7 @@ async fn test_list_events_internal_error() {
     let uc = ListEventsUseCase::new(event_repo);
 
     let input = ListEventsInput {
+        tenant_id: "tenant-test".to_string(),
         event_type: None,
         page: 1,
         page_size: 50,
@@ -1214,6 +1276,7 @@ async fn test_list_streams_success() {
     let uc = ListStreamsUseCase::new(stream_repo);
 
     let input = ListStreamsInput {
+        tenant_id: "tenant-test".to_string(),
         page: 1,
         page_size: 50,
     };
@@ -1237,6 +1300,7 @@ async fn test_list_streams_pagination() {
     let uc = ListStreamsUseCase::new(stream_repo);
 
     let input = ListStreamsInput {
+        tenant_id: "tenant-test".to_string(),
         page: 1,
         page_size: 2,
     };
@@ -1257,6 +1321,7 @@ async fn test_list_streams_empty() {
     let uc = ListStreamsUseCase::new(stream_repo);
 
     let input = ListStreamsInput {
+        tenant_id: "tenant-test".to_string(),
         page: 1,
         page_size: 50,
     };
@@ -1273,6 +1338,7 @@ async fn test_list_streams_internal_error() {
     let uc = ListStreamsUseCase::new(stream_repo);
 
     let input = ListStreamsInput {
+        tenant_id: "tenant-test".to_string(),
         page: 1,
         page_size: 50,
     };
@@ -1310,6 +1376,7 @@ async fn test_delete_stream_success() {
 
     let input = DeleteStreamInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1340,6 +1407,7 @@ async fn test_delete_stream_not_found() {
 
     let input = DeleteStreamInput {
         stream_id: "nonexistent".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1360,6 +1428,7 @@ async fn test_delete_stream_internal_error() {
 
     let input = DeleteStreamInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1390,6 +1459,7 @@ async fn test_delete_stream_preserves_other_streams() {
 
     let input = DeleteStreamInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
 
     let result = uc.execute(&input).await;
@@ -1420,6 +1490,7 @@ async fn test_append_then_read_events_roundtrip() {
     // Append events to new stream
     let append_input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![
             make_event_data("OrderPlaced"),
@@ -1433,6 +1504,7 @@ async fn test_append_then_read_events_roundtrip() {
     // Read events back
     let read_input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -1462,6 +1534,7 @@ async fn test_append_create_snapshot_then_get_snapshot() {
     // Create stream with events
     let append_input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![
             make_event_data("OrderPlaced"),
@@ -1475,6 +1548,7 @@ async fn test_append_create_snapshot_then_get_snapshot() {
     // Create snapshot at version 2
     let snap_input = CreateSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         snapshot_version: 2,
         aggregate_type: "Order".to_string(),
         state: serde_json::json!({"status": "confirmed"}),
@@ -1484,6 +1558,7 @@ async fn test_append_create_snapshot_then_get_snapshot() {
     // Get latest snapshot
     let get_input = GetLatestSnapshotInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
     let result = get_snap_uc.execute(&get_input).await;
     assert!(result.is_ok());
@@ -1510,6 +1585,7 @@ async fn test_append_then_delete_then_read_fails() {
     // Append
     let append_input = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: -1,
@@ -1519,12 +1595,14 @@ async fn test_append_then_delete_then_read_fails() {
     // Delete
     let delete_input = DeleteStreamInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
     };
     assert!(delete_uc.execute(&delete_input).await.is_ok());
 
     // Read should fail
     let read_input = ReadEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         from_version: 1,
         to_version: None,
         event_type: None,
@@ -1550,6 +1628,7 @@ async fn test_list_streams_after_multiple_appends() {
     for name in &["order-001", "order-002", "payment-001"] {
         let input = AppendEventsInput {
             stream_id: name.to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: Some("Order".to_string()),
             events: vec![make_event_data("Created")],
             expected_version: -1,
@@ -1559,6 +1638,7 @@ async fn test_list_streams_after_multiple_appends() {
 
     let result = list_uc
         .execute(&ListStreamsInput {
+            tenant_id: "tenant-test".to_string(),
             page: 1,
             page_size: 50,
         })
@@ -1577,6 +1657,7 @@ async fn test_optimistic_concurrency_sequential_appends() {
     // Create stream
     let input1 = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: Some("Order".to_string()),
         events: vec![make_event_data("OrderPlaced")],
         expected_version: -1,
@@ -1588,6 +1669,7 @@ async fn test_optimistic_concurrency_sequential_appends() {
     // Append at version 1
     let input2 = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: None,
         events: vec![make_event_data("OrderConfirmed")],
         expected_version: 1,
@@ -1599,6 +1681,7 @@ async fn test_optimistic_concurrency_sequential_appends() {
     // Stale version should fail
     let input3 = AppendEventsInput {
         stream_id: "order-001".to_string(),
+        tenant_id: "tenant-test".to_string(),
         aggregate_type: None,
         events: vec![make_event_data("OrderShipped")],
         expected_version: 1,

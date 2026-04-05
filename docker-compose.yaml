@@ -23,6 +23,41 @@
 #   docker-compose.dev.yaml の environment セクションはコンテナ変数であり interpolation を解決できません。
 #
 # `docker compose up` のデフォルト動作では認証バイパスは無効かつ必須変数が未設定でエラーになります。
+#
+# ============================================================
+# MED-003 監査対応: Docker Compose プロファイル制約について
+# ============================================================
+# このファイルのサービスは以下のプロファイルで構成されています:
+#   - infra:       postgres/redis/redis-session/kafka/keycloak/vault/kong
+#   - system:      auth-rust, bff-proxy など全システムサービス
+#   - observability: jaeger/prometheus/loki/promtail/grafana
+#
+# ⚠️ プロファイル単独指定の制約:
+#   --profile system のみ指定すると、system サービスが depends_on する infra サービスが
+#   起動されず、DB 接続エラーや依存解決失敗が発生します。
+#   必ず以下のように複数プロファイルを同時に指定してください:
+#
+#   正しい例:
+#     docker compose --profile infra --profile system up -d
+#     docker compose --profile infra --profile system --profile observability up -d
+#
+#   誤った例（system サービスが infra なしで起動できない）:
+#     docker compose --profile system up -d   ← NG
+#
+#   推奨: `just local-up` コマンドは正しいプロファイル組み合わせを自動適用します。
+#
+# ============================================================
+# LOW-004 対応: Docker Desktop 30+ 並列ビルド API 500 リスク
+# ============================================================
+# Docker Desktop 30 以降（BuildKit バックエンド）でのデフォルト並列ビルドは、
+# 大規模モノリポ（本リポジトリは 30+ サービス）で API 500 エラーや OOM クラッシュを引き起こすことがある。
+#
+# ⚠️ `docker compose build` を直接実行しないこと。以下を使用すること:
+#   - just docker-build-safe  ← --parallel 2 で安全にビルド（推奨）
+#   - docker compose build --parallel 2  ← 並列数を制限
+#
+# COMPOSE_PARALLEL_LIMIT 環境変数（.env.dev で COMPOSE_PARALLEL_LIMIT=4 に設定）は
+# `up` コマンドにのみ効果があり `build` には効果がない点に注意すること（HIGH-02 監査対応）。
 
 x-app-service: &app-service-defaults
   # アプリケーションサービス共通設定: 全アプリサービスで共有するセキュリティ・リソース・再起動ポリシー
@@ -192,9 +227,11 @@ services:
       # 開発環境向けJVMヒープ制限: 未設定だとJVMがシステムRAMの1/4〜1/2を確保しようとするため、
       # 開発用途に十分な512mに制限してメモリ過剰消費を防止する。
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
-      # LOW-002 監査対応: JMX を有効化し Prometheus JMX Exporter からメトリクスを収集する。
-      # KAFKA_JMX_HOSTNAME には Docker ネットワーク内のサービス名を指定する（外部ホストではなく）。
-      # 認証・SSL なし設定はローカル開発環境専用。本番環境では TLS + 認証を必ず有効化すること。
+      # CRIT-009 監査対応: JMX 認証を有効化し、パスワードファイルによる認証を要求する。
+      # jmxremote.password は JMX が要求する 0400 パーミッション（所有者読み取り専用）が必要。
+      # Kafka の起動スクリプト（kafka-run-class.sh）はパスワードファイルに対して chmod 400 を自動適用する。
+      # JMX Exporter（jmx_monitor ユーザー）は readonly 権限でメトリクスを取得する。
+      # SSL は開発環境のため無効。本番環境では必ず SSL + 強固なパスワードを設定すること。
       KAFKA_JMX_HOSTNAME: kafka
       KAFKA_JMX_PORT: "9999"
       KAFKA_JMX_OPTS: >-
@@ -202,13 +239,17 @@ services:
         -Dcom.sun.management.jmxremote=true
         -Dcom.sun.management.jmxremote.port=9999
         -Dcom.sun.management.jmxremote.rmi.port=9999
-        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.authenticate=true
         -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.password.file=/etc/kafka/jmx/jmxremote.password
+        -Dcom.sun.management.jmxremote.access.file=/etc/kafka/jmx/jmxremote.access
     ports:
       # ホストのループバックインターフェースのみにバインドし、外部ネットワークからのアクセスを防止する（MED-5 監査対応）
       - "127.0.0.1:${KAFKA_HOST_PORT:-9092}:9092"
     volumes:
       - kafka-data:/var/lib/kafka
+      # CRIT-009 対応: JMX 認証ファイルをコンテナにマウントする（読み取り専用）
+      - ./infra/docker/kafka/jmx:/etc/kafka/jmx:ro
     healthcheck:
       # DOCKER-003 監査対応: タイムアウトを 5s → 15s に延長し、起動待機期間を追加する。
       # Kafka ブローカーはリーダー選出に時間がかかるため、起動直後のヘルスチェックが
@@ -264,6 +305,13 @@ services:
       # -Xmx256m ではメタスペース・スレッドスタック等の非ヒープ領域を加えると 512m で OOM の可能性あり
       # -Xmx192m に削減して非ヒープ領域に 320MB 以上の余裕を確保する
       JAVA_TOOL_OPTIONS: "-Xms96m -Xmx192m"
+      # LOW-005 監査対応: kafka-ui に Basic Auth（LOGIN_FORM 形式）を追加する。
+      # 認証なしでは Kafka トピック・コンシューマーグループ情報が誰でも閲覧・操作可能になる。
+      # KAFKA_UI_PASSWORD が未設定の場合は開発用デフォルトパスワードを使用する。
+      # 本番環境では強固なパスワードを環境変数で設定すること。
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: "admin"
+      SPRING_SECURITY_USER_PASSWORD: "${KAFKA_UI_PASSWORD:-kafka_ui_dev_password}"
     ports:
       - "127.0.0.1:${KAFKA_UI_HOST_PORT:-8090}:8080"
     # ヘルスチェック: Kafka UI の actuator エンドポイントで起動完了を確認する（M-4 対応）
@@ -457,6 +505,12 @@ services:
       VAULT_ADDR: "http://127.0.0.1:8200"
       # no-new-privileges + CAP_DROP:ALL 環境での setcap 失敗を回避する
       SKIP_SETCAP: "true"
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
+    # Vault dev モードはインメモリストレージを使用するためファイル書き込み不要
+    # /tmp は tmpfs で一時ストレージを確保する
+    read_only: true
+    tmpfs:
+      - /tmp
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
@@ -511,6 +565,12 @@ services:
       # Kong のデフォルト sandbox モードでは require が制限されているが、
       # ngx.decode_base64 + cjson.safe による JWT payload デコードは安全な操作であるため許可する
       KONG_UNTRUSTED_LUA_SANDBOX_REQUIRES: "cjson.safe"
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にしてホストへの書き込みを防止する
+    # Kong は設定ファイル（:ro マウント）のみを参照し、ログは stdout/stderr に出力するため書き込み不要
+    # Kong のワーカー一時ファイル（/tmp）は tmpfs でカバーする
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
@@ -1467,6 +1527,12 @@ services:
       - ALL
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
+    # Jaeger all-in-one はデフォルトでインメモリストレージを使用するため永続書き込みは不要
+    # /tmp は tmpfs で一時ストレージを確保する
+    read_only: true
+    tmpfs:
+      - /tmp
     ports:
       - "127.0.0.1:${JAEGER_UI_HOST_PORT:-16686}:16686"          # UI
       - "127.0.0.1:${JAEGER_OTLP_GRPC_HOST_PORT:-4317}:4317"    # OTLP gRPC
@@ -1492,6 +1558,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
+    # prometheus は設定ファイルを :ro でマウントし、データは prometheus-data ボリューム（rw）に書き込む
+    # /tmp は tmpfs で一時ストレージを確保する
+    read_only: true
+    tmpfs:
+      - /tmp
     # LOW-003 監査対応: --web.config.file フラグで Basic 認証設定を読み込む。
     # web.yml には bcrypt ハッシュ化されたパスワードが含まれる（平文保存なし）。
     command:
@@ -1513,10 +1585,10 @@ services:
     ports:
       - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     # ヘルスチェック: Prometheus の ready エンドポイントで起動完了を確認する（M-4 対応）
-    # CRIT-004 対応: Basic Auth が /-/healthy を含む全エンドポイントに適用されるため認証情報を付与する。
+    # CRIT-001 対応: BusyBox の wget は --user/--password フラグを実装していないため URL 埋め込み形式に変更する。
     # $$PROMETHEUS_ADMIN_PASSWORD は Docker Compose の変数展開を回避し、コンテナシェルが展開する。
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --user=prometheus_admin --password=$$PROMETHEUS_ADMIN_PASSWORD http://localhost:9090/-/healthy || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://prometheus_admin:$$PROMETHEUS_ADMIN_PASSWORD@localhost:9090/-/healthy || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1535,6 +1607,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
+    # loki は設定ファイルを :ro でマウントし、データは loki-data ボリューム（rw）に書き込む
+    # /tmp は tmpfs で一時ストレージを確保する
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - ./infra/docker/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
       - loki-data:/loki
@@ -1620,6 +1698,12 @@ services:
       #   GF_DATABASE_SSL_MODE: require
       # Helm values での設定先: infra/helm/services/system/grafana/values-prod.yaml（または values.yaml）
       # 移行手順: https://grafana.com/docs/grafana/latest/setup-grafana/set-up-grafana-monitoring/
+    # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にする
+    # grafana はデータを grafana-data ボリューム（rw）に書き込むため read_only: true でも動作する
+    # /tmp は tmpfs で一時ストレージを確保する
+    read_only: true
+    tmpfs:
+      - /tmp
     ports:
       - "127.0.0.1:${GRAFANA_HOST_PORT:-3200}:3000"   # ホストポート 3200 を使用（3000 はフロントエンド開発サーバー等とのポート競合を回避するため）
     volumes:
@@ -1643,6 +1727,56 @@ services:
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
+
+  # ============================================================
+  # HIGH-012 監査対応: インフラエクスポーター（Prometheus メトリクス収集用）
+  # ============================================================
+
+  # PostgreSQL エクスポーター: DB 接続数・クエリ統計・レプリケーションラグ等を Prometheus に公開する
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.1
+    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      # postgres への接続文字列（開発環境はホスト名 postgres、ポート 5432 を使用する）
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres?sslmode=disable"
+    ports:
+      # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
+      - "127.0.0.1:9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Redis エクスポーター: メモリ使用量・コマンド統計・キー数等を Prometheus に公開する
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    profiles: [observability]
+    # 再起動ポリシー: クラッシュ時に自動復旧する
+    restart: unless-stopped
+    mem_limit: 64m
+    cpus: 0.1
+    # セキュリティ強化: 権限昇格を禁止し、全Linuxケーパビリティを削除
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      # Redis キャッシュサービスの接続先（セッション用 redis-session は別途追加が必要な場合参照）
+      REDIS_ADDR: "redis:6379"
+      REDIS_PASSWORD: "${REDIS_PASSWORD:-dev}"
+    ports:
+      # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
+      - "127.0.0.1:9121:9121"
+    depends_on:
+      - redis
 
 volumes:
   postgres-data:

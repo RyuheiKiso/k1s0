@@ -7,6 +7,8 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
+use k1s0_auth::Claims;
+
 use crate::proto::k1s0::system::vault::v1::{
     vault_service_server::VaultService, AuditLogEntry as ProtoAuditLogEntry,
     DeleteSecretRequest as ProtoDeleteSecretRequest,
@@ -68,6 +70,12 @@ impl VaultService for VaultServiceTonic {
         &self,
         request: Request<ProtoGetSecretRequest>,
     ) -> Result<Response<ProtoGetSecretResponse>, Status> {
+        // MED-011 対応: gRPC ミドルウェアが挿入した Claims から tenant_id を抽出する。
+        // GrpcAuthLayer が `req.extensions_mut().insert(claims)` で設定する。
+        let tenant_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|c| c.tenant_id().to_string());
         let inner = request.into_inner();
         let version = if inner.version > 0 {
             Some(inner.version)
@@ -77,6 +85,7 @@ impl VaultService for VaultServiceTonic {
         let req = GetSecretRequest {
             path: inner.path,
             version,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -97,10 +106,16 @@ impl VaultService for VaultServiceTonic {
         &self,
         request: Request<ProtoSetSecretRequest>,
     ) -> Result<Response<ProtoSetSecretResponse>, Status> {
+        // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+        let tenant_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|c| c.tenant_id().to_string());
         let inner = request.into_inner();
         let req = SetSecretRequest {
             path: inner.path,
             data: inner.data,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -119,10 +134,16 @@ impl VaultService for VaultServiceTonic {
         &self,
         request: Request<ProtoRotateSecretRequest>,
     ) -> Result<Response<ProtoRotateSecretResponse>, Status> {
+        // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+        let tenant_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|c| c.tenant_id().to_string());
         let inner = request.into_inner();
         let req = RotateSecretRequest {
             path: inner.path,
             data: inner.data,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -141,10 +162,16 @@ impl VaultService for VaultServiceTonic {
         &self,
         request: Request<ProtoDeleteSecretRequest>,
     ) -> Result<Response<ProtoDeleteSecretResponse>, Status> {
+        // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+        let tenant_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|c| c.tenant_id().to_string());
         let inner = request.into_inner();
         let req = DeleteSecretRequest {
             path: inner.path,
             versions: inner.versions,
+            tenant_id,
         };
         self.inner
             .delete_secret(req)
@@ -178,8 +205,14 @@ impl VaultService for VaultServiceTonic {
         &self,
         request: Request<ProtoGetSecretMetadataRequest>,
     ) -> Result<Response<ProtoGetSecretMetadataResponse>, Status> {
+        // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+        let tenant_id = request
+            .extensions()
+            .get::<Claims>()
+            .map(|c| c.tenant_id().to_string());
         let req = GetSecretMetadataRequest {
             path: request.into_inner().path,
+            tenant_id,
         };
         let resp = self
             .inner

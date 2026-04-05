@@ -22,8 +22,8 @@ impl FileMetadataPostgresRepository {
         })
     }
 
-    /// C-01 監査対応: DB カラム名を正として Rust コードを DB 定義に合わせる
-    /// DB カラム: filename, content_type, storage_path, checksum, uploaded_by
+    /// migration 003 で追加した tenant_id カラムを含む行マッピング
+    /// DB カラム: id, tenant_id, filename, content_type, storage_path, checksum, uploaded_by
     fn map_row(row: PgRow) -> anyhow::Result<FileMetadata> {
         let tags_json: serde_json::Value = row.try_get("tags")?;
         let tags = serde_json::from_value::<HashMap<String, String>>(tags_json).unwrap_or_default();
@@ -34,6 +34,8 @@ impl FileMetadataPostgresRepository {
 
         Ok(FileMetadata {
             id: row.try_get("id")?,
+            // テナント分離: migration 003 で追加した tenant_id カラムを読み取る
+            tenant_id: row.try_get("tenant_id")?,
             filename: row.try_get("filename")?,
             size_bytes,
             content_type: row.try_get("content_type")?,
@@ -51,9 +53,9 @@ impl FileMetadataPostgresRepository {
 #[async_trait]
 impl FileMetadataRepository for FileMetadataPostgresRepository {
     async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<FileMetadata>> {
-        // C-01 監査対応: DB カラム名に合わせて SELECT 句を修正
+        // tenant_id カラムを SELECT に含める（migration 003 対応）
         let sql = format!(
-            "SELECT id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE id = $1",
+            "SELECT id, tenant_id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE id = $1",
             self.table_name
         );
         let row = sqlx::query(&sql)
@@ -76,6 +78,13 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         let page_size = page_size.clamp(1, 200);
         let offset = i64::from((page - 1) * page_size);
 
+        // RLS テナント境界を設定する。tenant_id が None の場合は空文字列で設定し RLS が全行を拒否する
+        let tid = tenant_id.as_deref().unwrap_or("");
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tid)
+            .execute(&self.pool)
+            .await?;
+
         let mut count_qb = QueryBuilder::<Postgres>::new(format!(
             "SELECT COUNT(*) FROM {} WHERE 1=1",
             self.table_name
@@ -86,9 +95,9 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             .fetch_one(&self.pool)
             .await?;
 
-        // C-01 監査対応: DB カラム名に合わせて SELECT 句を修正
+        // tenant_id カラムを SELECT に含める（migration 003 対応）
         let mut qb = QueryBuilder::<Postgres>::new(format!(
-            "SELECT id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE 1=1",
+            "SELECT id, tenant_id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at FROM {} WHERE 1=1",
             self.table_name
         ));
         apply_filters(&mut qb, &tenant_id, &uploaded_by, &content_type, &tag);
@@ -107,9 +116,15 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     }
 
     async fn create(&self, file: &FileMetadata) -> anyhow::Result<()> {
-        // C-01 監査対応: DB カラム名に合わせて INSERT 句を修正（tenant_id 削除）
+        // RLS テナント境界を設定してから INSERT する（migration 003 の tenant_isolation ポリシーを通過させる）
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&file.tenant_id)
+            .execute(&self.pool)
+            .await?;
+
+        // tenant_id カラムを INSERT 句に追加（migration 003 対応）
         let sql = format!(
-            "INSERT INTO {} (id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+            "INSERT INTO {} (id, tenant_id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
             self.table_name
         );
         let size_bytes = i64::try_from(file.size_bytes)
@@ -118,6 +133,7 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
 
         sqlx::query(&sql)
             .bind(&file.id)
+            .bind(&file.tenant_id)
             .bind(&file.filename)
             .bind(size_bytes)
             .bind(&file.content_type)
@@ -134,7 +150,13 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     }
 
     async fn update(&self, file: &FileMetadata) -> anyhow::Result<()> {
-        // C-01 監査対応: DB カラム名に合わせて UPDATE 句を修正（tenant_id 削除）
+        // RLS テナント境界を設定してから UPDATE する（tenant_isolation ポリシーを通過させる）
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&file.tenant_id)
+            .execute(&self.pool)
+            .await?;
+
+        // tenant_id は変更不可のため UPDATE 句には含めない（不変の識別子として扱う）
         let sql = format!(
             "UPDATE {} SET filename = $2, size_bytes = $3, content_type = $4, uploaded_by = $5, tags = $6, storage_path = $7, checksum = $8, status = $9, updated_at = $10 WHERE id = $1",
             self.table_name
@@ -165,9 +187,8 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// CRIT-01 監査対応: テナントIDと所有者IDを DELETE 条件に追加してアトミックな認可チェックを実現する。
-    /// storage_path が tenant_id_prefix で始まる行のみ削除することで、
-    /// 認可チェックと削除の間に生じる TOCTOU 競合を防ぐ。
+    /// テナント分離対応: tenant_id カラムによる明示的なフィルタを追加（migration 003 対応）
+    /// RLS set_config + storage_path LIKE + tenant_id = で三重のテナント境界を確保する。
     /// expected_uploader が Some の場合は uploaded_by カラムも条件に追加する。
     async fn delete_with_tenant_check(
         &self,
@@ -175,27 +196,37 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         tenant_id_prefix: String,
         expected_uploader: Option<String>,
     ) -> anyhow::Result<bool> {
+        // RLS テナント境界を設定してから DELETE する（tenant_isolation ポリシーを通過させる）
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&tenant_id_prefix)
+            .execute(&self.pool)
+            .await?;
+
         // RUST-001 監査対応: LIKE パターンの特殊文字（%・_・\）をエスケープし、
         // 意図しないパターンマッチングを防ぐ。ESCAPE '\\' 句で明示的にエスケープ文字を指定する。
         let escaped_prefix = escape_like_pattern(&tenant_id_prefix);
         let result = if let Some(ref uploader) = expected_uploader {
+            // tenant_id カラムによる明示的なフィルタを追加（RLS との二重防衛）
             let sql = format!(
-                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 ESCAPE '\\\\' AND uploaded_by = $3",
+                "DELETE FROM {} WHERE id = $1 AND tenant_id = $2 AND storage_path LIKE $3 ESCAPE '\\\\' AND uploaded_by = $4",
                 self.table_name
             );
             sqlx::query(&sql)
                 .bind(&id)
+                .bind(&tenant_id_prefix)
                 .bind(format!("{}%", escaped_prefix))
                 .bind(uploader)
                 .execute(&self.pool)
                 .await?
         } else {
+            // tenant_id カラムによる明示的なフィルタを追加（RLS との二重防衛）
             let sql = format!(
-                "DELETE FROM {} WHERE id = $1 AND storage_path LIKE $2 ESCAPE '\\\\'",
+                "DELETE FROM {} WHERE id = $1 AND tenant_id = $2 AND storage_path LIKE $3 ESCAPE '\\\\'",
                 self.table_name
             );
             sqlx::query(&sql)
                 .bind(&id)
+                .bind(&tenant_id_prefix)
                 .bind(format!("{}%", escaped_prefix))
                 .execute(&self.pool)
                 .await?
@@ -220,23 +251,30 @@ fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {
     Ok(schema)
 }
 
-/// C-01 監査対応: フィルタ条件のカラム名を DB 定義に合わせる
-/// DB にはtenant_idカラムが存在しないため、uploaded_by でフィルタする
+/// migration 003 で tenant_id カラムが追加されたためフィルタを有効化する
+/// RLS の set_config と組み合わせることで二重のテナント境界を実現する
 fn apply_filters(
     qb: &mut QueryBuilder<'_, Postgres>,
-    _tenant_id: &Option<String>,
+    tenant_id: &Option<String>,
     uploaded_by: &Option<String>,
     content_type: &Option<String>,
     tag: &Option<(String, String)>,
 ) {
-    // tenant_id は DB に存在しないためフィルタを適用しない（将来的にカラム追加時に対応可能）
+    // tenant_id カラムが存在するため明示的なフィルタを追加する（RLS との二重防衛）
+    if let Some(ref tid) = tenant_id {
+        qb.push(" AND tenant_id = ");
+        qb.push_bind(tid.clone());
+    }
     if let Some(uploaded_by) = uploaded_by {
         qb.push(" AND uploaded_by = ");
         qb.push_bind(uploaded_by.clone());
     }
+    // LIKE 検索のエスケープ: ユーザー入力の % _ \ をエスケープしてパターンマッチの意図しない
+    // 拡張（SQLインジェクション様のパターンマッチ）を防ぐ。ESCAPE '\\' で明示的なエスケープ文字を指定する
     if let Some(content_type) = content_type {
         qb.push(" AND content_type LIKE ");
-        qb.push_bind(format!("{}%", content_type));
+        qb.push_bind(format!("{}%", escape_like_pattern(content_type)));
+        qb.push(" ESCAPE '\\\\'");
     }
     if let Some((tag_key, tag_value)) = tag {
         qb.push(" AND tags ->> ");

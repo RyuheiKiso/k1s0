@@ -1505,6 +1505,54 @@ services:
 
 `ci.yaml` の `lint-ts` / `test-ts` ジョブで `actions/setup-node@v4` に `cache: 'npm'` を設定済みであることを確認。npm のグローバルキャッシュを活用し、依存関係のインストール時間を短縮している。キャッシュ戦略テーブル（本ドキュメント「キャッシュ戦略」セクション）にも反映済み。
 
+### MED-002 対応: K8s マニフェスト kubeconform 静的検証
+
+`ci.yaml` に kubeconform による Kubernetes マニフェスト静的検証ジョブを追加する。
+`helm template` で生成されたマニフェストを kubeconform に渡し、API バージョン互換性と
+スキーマ妥当性を PR マージ前に自動検証する。
+
+```yaml
+# ci.yaml の kubeconform 検証ジョブ（MED-002 対応）
+kubeconform:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: azure/setup-helm@v4
+      with:
+        version: "3.16"
+    - name: kubeconform インストール
+      run: |
+        curl -sSLo kubeconform.tar.gz \
+          https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+        tar xzf kubeconform.tar.gz && sudo mv kubeconform /usr/local/bin/
+    - name: Helm テンプレート生成 → kubeconform 検証
+      run: |
+        for chart in infra/helm/services/*/* infra/helm/services/*/*/*; do
+          if [ -f "$chart/Chart.yaml" ]; then
+            helm dependency update "$chart" 2>/dev/null || continue
+            VALUES_FLAG=""
+            [ -f "$chart/values-dev.yaml" ] && VALUES_FLAG="--values $chart/values-dev.yaml"
+            helm template "test-$(basename $chart)" "$chart" $VALUES_FLAG 2>/dev/null \
+              | kubeconform -strict -summary -kubernetes-version 1.31.0 -
+          fi
+        done
+```
+
+### MED-010 対応: PR マージ条件（Rust 品質ゲート）
+
+以下の CI ステップを PR マージのブロック条件として設定する。
+いずれかが失敗した場合、PR はマージ不可となる（Branch Protection Rules で設定）。
+
+| ステップ | コマンド | 目的 |
+|---------|---------|------|
+| フォーマットチェック | `cargo fmt --all -- --check` | コードスタイル統一 |
+| Clippy 静的解析 | `cargo clippy --all-targets -- -D warnings` | 警告ゼロ強制 |
+| ワークスペースチェック | `cargo check --workspace` | コンパイルエラー検出 |
+| 依存関係監査 | `cargo deny check` | 脆弱性・ライセンス・未承認クレート検出 |
+
+上記はすべて `ci.yaml` の `lint-rust` ジョブで実行されており、
+GitHub の Branch Protection Rules で `lint-rust` を required status check として設定すること。
+
 ### KAFKA_CLUSTER_ID 共通化（integration-test.yaml）
 
 `integration-test.yaml` で Kafka サービスコンテナの `CLUSTER_ID` をワークフローレベルの `env` に定義し、DRY 化した。複数ジョブ間で同一の値を使い回す場合に定義が分散しないようにする。

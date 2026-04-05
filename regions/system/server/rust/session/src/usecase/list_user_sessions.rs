@@ -44,6 +44,7 @@ mod tests {
         Session {
             id: id.to_string(),
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: format!("device-{}", id),
             device_name: Some("device".to_string()),
             device_type: Some("desktop".to_string()),

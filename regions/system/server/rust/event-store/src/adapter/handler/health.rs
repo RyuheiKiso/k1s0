@@ -11,7 +11,8 @@ pub async fn healthz() -> impl IntoResponse {
 
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // MED-001 対応: .is_ok() でエラーを握り潰さず tracing::error! で詳細を記録する
-    let db_ok = match state.stream_repo.list_all(1, 1).await {
+    // ヘルスチェックはテナント分離不要のため "system" テナントで DB 疎通確認を行う
+    let db_ok = match state.stream_repo.list_all("system", 1, 1).await {
         Ok(_) => true,
         Err(e) => {
             tracing::error!(error = %e, "readyz: DB health check failed");

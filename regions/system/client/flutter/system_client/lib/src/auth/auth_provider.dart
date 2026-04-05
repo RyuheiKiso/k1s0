@@ -130,9 +130,22 @@ class AuthNotifier extends Notifier<AuthState> {
         _csrfToken = data['csrf_token'] as String?;
         state = AuthAuthenticated(userId: data['id'] as String);
       }
-    } catch (_) {
+    } catch (e) {
       // 非同期操作完了後、プロバイダーが既に破棄されていれば何もしない
       if (!ref.mounted) return;
+      // HIGH-019対応: 5xxエラーとネットワークエラーを区別する
+      // 401/403はセッション失効として未認証状態に遷移する
+      // 5xxサーバーエラーやネットワークエラーの場合は現在の認証状態を維持する
+      if (e is DioException) {
+        final statusCode = e.response?.statusCode;
+        if (statusCode == 401 || statusCode == 403) {
+          // セッション失効・認証エラーの場合は未認証状態に遷移する
+          state = const AuthUnauthenticated();
+        }
+        // 5xxエラーやネットワークエラー（statusCode == null を含む）の場合は状態を維持する
+        return;
+      }
+      // DioException 以外の予期しない例外は未認証状態として扱う
       state = const AuthUnauthenticated();
     }
   }

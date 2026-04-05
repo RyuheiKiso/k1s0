@@ -4,6 +4,9 @@ syntax = "proto3";
 
 package k1s0.system.navigation.v1;
 
+// MED-007 対応: buf.validate によるフィールドバリデーションルールを追加する。
+import "buf/validate/validate.proto";
+
 option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/system/navigation/v1;navigationv1";
 option java_package = "io.k1s0.system.navigation.v1";
 
@@ -15,8 +18,11 @@ service NavigationService {
 
 // GetNavigationRequest はナビゲーション設定取得リクエスト。
 message GetNavigationRequest {
-  // 省略時は公開ルートのみ返す
-  string bearer_token = 1;
+  // HIGH-015対応: bearer_token フィールドを削除し reserved で保護する
+  // Bearer トークンは gRPC メタデータ（Authorization ヘッダー）経由で送信すること
+  // フィールド番号 1 を reserved にして将来の再利用による互換性問題を防ぐ
+  reserved 1;
+  reserved "bearer_token";
 }
 
 // GetNavigationResponse はナビゲーション設定取得レスポンス。
@@ -27,8 +33,10 @@ message GetNavigationResponse {
 
 // Route はルーティング定義。
 message Route {
-  string          id           = 1;
-  string          path         = 2;
+  // id: ルートを一意に識別する文字列。空文字列は不可。
+  string          id           = 1 [(buf.validate.field).string.min_len = 1];
+  // path: URL パス。空文字列は不可。
+  string          path         = 2 [(buf.validate.field).string.min_len = 1];
   optional string component_id = 3;
   repeated string guard_ids    = 4;
   repeated Route  children     = 5;
@@ -39,7 +47,8 @@ message Route {
 
 // Guard はルートガード定義。
 message Guard {
-  string          id          = 1;
+  // id: ガードを一意に識別する文字列。空文字列は不可。
+  string          id          = 1 [(buf.validate.field).string.min_len = 1];
   GuardType       type        = 2;
   string          redirect_to = 3;
   repeated string roles       = 4;
@@ -47,7 +56,8 @@ message Guard {
 
 // Param はルートパラメータ定義。
 message Param {
-  string    name = 1;
+  // name: パラメータ名。空文字列は不可。
+  string    name = 1 [(buf.validate.field).string.min_len = 1];
   ParamType type = 2;
 }
 

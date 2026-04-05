@@ -37,11 +37,17 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 # cook ステージ: 依存のみビルド（キャッシュ層）
 # api/proto/gen/rust のみを COPY する（proto ソースは不要）
+# CARGO_FEATURES: フィーチャーフラグを cook ステージに渡す（dev-auth-bypass 等のフィーチャーをキャッシュに反映するため）
 FROM chef AS cook
+ARG CARGO_FEATURES=""
 COPY api/proto/gen/rust api/proto/gen/rust
 COPY --from=planner /app/regions/system/recipe.json regions/system/recipe.json
 WORKDIR /app/regions/system
-RUN cargo chef cook --release --recipe-path recipe.json -p k1s0-graphql-gateway-server
+RUN if [ -n "${CARGO_FEATURES}" ]; then \
+        cargo chef cook --release --features "${CARGO_FEATURES}" --recipe-path recipe.json -p k1s0-graphql-gateway-server; \
+    else \
+        cargo chef cook --release --recipe-path recipe.json -p k1s0-graphql-gateway-server; \
+    fi
 
 # builder ステージ: ソースコードのビルド
 # WORKDIR は cook から /app/regions/system を継承しているため、

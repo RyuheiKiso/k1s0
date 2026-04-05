@@ -175,6 +175,13 @@ impl AuthErrorResponse {
             },
             AuthError::PermissionDenied => Self::forbidden("この操作を実行する権限がありません"),
             AuthError::TierAccessDenied => Self::tier_forbidden(),
+            // HIGH-002 対応: ログアウト済みトークン（jti ブラックリスト）は 401 で返す。
+            // 再ログインを促すため TokenExpired と同じ UNAUTHORIZED を使用する。
+            AuthError::TokenRevoked => Self {
+                status: StatusCode::UNAUTHORIZED,
+                code: "SYS_AUTH_TOKEN_REVOKED".into(),
+                message: "トークンは失効しています。再ログインが必要です".into(),
+            },
         }
     }
 

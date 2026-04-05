@@ -5,8 +5,6 @@ package usecase
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"log/slog"
 	"time"
 
@@ -16,6 +14,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	// MED-013 監査対応: generateProxyRandomHex を util.GenerateRandomHex に移行して重複実装を解消する
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
@@ -139,7 +138,8 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 
 		// H-10 監査対応: トークンリフレッシュ後に CSRF トークンを再生成する。
 		// 長期間同一の CSRF トークンが使われ続けるリスクを軽減する。
-		newCSRFToken, csrfErr := generateProxyRandomHex(32)
+		// MED-013 監査対応: 重複実装を util.GenerateRandomHex に一元化する
+		newCSRFToken, csrfErr := util.GenerateRandomHex(32)
 		if csrfErr != nil {
 			// CSRF 再生成に失敗しても既存トークンを継続使用し、処理は続行する
 			if uc.logger != nil {
@@ -196,16 +196,6 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 	return &PrepareProxyOutput{
 		AccessToken: sess.AccessToken,
 	}, nil
-}
-
-// generateProxyRandomHex はバイト長 n のランダムな hex エンコード文字列を生成する（H-10 監査対応）。
-// CSRF トークン再生成に使用する。proxy_usecase パッケージ内でのみ使用する。
-func generateProxyRandomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
 
 // ProxyUseCaseError は ProxyUseCase が返すエラー型。

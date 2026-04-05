@@ -4,10 +4,13 @@ use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::{AccessLogRepository, SecretStore};
 use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
+/// MED-011 対応: tenant_id をアクセスログに記録するために追加。
 #[derive(Debug, Clone)]
 pub struct DeleteSecretInput {
     pub path: String,
     pub versions: Vec<i64>,
+    /// gRPC 層で Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -43,8 +46,10 @@ impl DeleteSecretUseCase {
 
         match &result {
             Ok(()) => {
-                let log =
+                // MED-011 対応: アクセスログに tenant_id を設定する。
+                let mut log =
                     SecretAccessLog::new(input.path.clone(), AccessAction::Delete, None, true);
+                log.tenant_id = input.tenant_id.clone();
                 let _ = self.audit.record(&log).await;
                 let _ = self
                     .event_publisher
@@ -59,8 +64,10 @@ impl DeleteSecretUseCase {
                     .await;
             }
             Err(e) => {
+                // MED-011 対応: エラー時のアクセスログにも tenant_id を設定する。
                 let mut log =
                     SecretAccessLog::new(input.path.clone(), AccessAction::Delete, None, false);
+                log.tenant_id = input.tenant_id.clone();
                 log.error_msg = Some(e.to_string());
                 let _ = self.audit.record(&log).await;
                 let _ = self
@@ -116,6 +123,7 @@ mod tests {
         let input = DeleteSecretInput {
             path: "app/db/password".to_string(),
             versions: vec![1],
+            tenant_id: Some("test-tenant".to_string()),
         };
 
         let result = uc.execute(&input).await;
@@ -141,6 +149,7 @@ mod tests {
         let input = DeleteSecretInput {
             path: "nonexistent".to_string(),
             versions: vec![],
+            tenant_id: None,
         };
 
         let result = uc.execute(&input).await;

@@ -256,6 +256,7 @@ mod tests {
         Session {
             id: "sess-1".to_string(),
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("device".to_string()),
             device_type: Some("desktop".to_string()),

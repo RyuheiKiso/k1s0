@@ -6,8 +6,6 @@ package usecase
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"log/slog"
 	"net/url"
 	"time"
@@ -16,6 +14,7 @@ import (
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/oauth"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/port"
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/session"
+	// MED-013 監査対応: generateRandomHex を util.GenerateRandomHex に移行して重複実装を解消する
 	"github.com/k1s0-platform/system-server-go-bff-proxy/internal/util"
 )
 
@@ -192,7 +191,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, input LoginInput) (*LoginOutpu
 	}
 
 	// CSRF 攻撃防止のためのランダム state を生成する
-	state, err := generateRandomHex(32)
+	state, err := util.GenerateRandomHex(32)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_STATE_ERROR", Err: err}
 	}
@@ -302,7 +301,7 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 	}
 
 	// セッションに紐づく CSRF トークンを生成する
-	csrfToken, err := generateRandomHex(32)
+	csrfToken, err := util.GenerateRandomHex(32)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
 	}
@@ -430,7 +429,7 @@ func (uc *AuthUseCase) CheckSession(ctx context.Context, input SessionCheckInput
 		csrfAge := time.Since(time.Unix(sess.CSRFTokenCreatedAt, 0))
 		if csrfAge > csrfRefreshThreshold {
 			// 新しい CSRF トークンを生成してセッションを更新する
-			newCSRFToken, err := generateRandomHex(32)
+			newCSRFToken, err := util.GenerateRandomHex(32)
 			if err != nil {
 				return nil, &AuthUseCaseError{Code: "BFF_AUTH_CSRF_ERROR", Err: err}
 			}
@@ -535,15 +534,6 @@ func (e *AuthUseCaseError) Error() string {
 // Unwrap は元のエラーを返す（errors.Is/As で辿れるようにする）。
 func (e *AuthUseCaseError) Unwrap() error {
 	return e.Err
-}
-
-// generateRandomHex はバイト長 n のランダムな hex エンコード文字列を生成する。
-func generateRandomHex(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }
 
 // isAllowedRedirectScheme はモバイルリダイレクト先 URL のスキームを検証する。

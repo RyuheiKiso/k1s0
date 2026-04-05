@@ -41,8 +41,8 @@ impl CreateIndexUseCase {
             return Err(CreateIndexError::AlreadyExists(input.name.clone()));
         }
 
-        let mut index = SearchIndex::new(input.name.clone(), input.mapping.clone());
-        index.tenant_id = input.tenant_id.clone();
+        // CRIT-002 対応: SearchIndex::new() に tenant_id を渡し、ハードコードを排除する
+        let index = SearchIndex::new(input.name.clone(), input.mapping.clone(), input.tenant_id.clone());
 
         self.repo
             .create_index(&index, &input.tenant_id)
@@ -84,7 +84,8 @@ mod tests {
     #[tokio::test]
     async fn already_exists() {
         let mut mock = MockSearchRepository::new();
-        let existing = SearchIndex::new("products".to_string(), serde_json::json!({}));
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
+        let existing = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
         let return_index = existing.clone();
         mock.expect_find_index()
             .withf(|name, _tenant_id| name == "products")

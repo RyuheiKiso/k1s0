@@ -804,6 +804,16 @@ plugins:
   # HIGH-008 監査対応確認: allow リストは ${KONG_ADMIN_ALLOWED_IPS:-127.0.0.1} で環境変数化済み。
   # デフォルトは 127.0.0.1 のみ。本番では KONG_ADMIN_ALLOWED_IPS に適切な CIDR を設定すること。
   # envsubst（CI/CD パイプライン）により実行時に展開されるため、設定ファイルへのハードコードは不要。
+  #
+  # LOW-013 監査対応: 本番環境での ip-restriction グローバル適用に関する警告
+  # ⚠️ WARNING: ip-restriction プラグインをグローバル（plugins: の直下）に適用すると、
+  # allow リストに含まれない全 IP からのアクセスが Kong Proxy 経由でブロックされる。
+  # 本番環境での設定前に以下を必ず確認すること:
+  #   1. KONG_ADMIN_ALLOWED_IPS に、全正当クライアントの IP/CIDR が網羅されているか確認する
+  #   2. ロードバランサー経由の場合、実クライアント IP が X-Forwarded-For で正しく伝達されるか確認する
+  #   3. Kubernetes Pod の CIDR（例: 10.244.0.0/16）を許可しない場合、クラスタ内サービス間通信がブロックされる
+  #   4. 変更適用前に staging 環境で十分な動作確認を行うこと
+  #   5. deny リストと allow リストは同時に設定しないこと（allow が優先されるが混在は危険）
   - name: ip-restriction
     config:
       # HIGH-005 監査対応: Kong Admin API へのアクセスを localhost のみに制限する。
@@ -832,8 +842,10 @@ consumers:
   # サービス間認証専用 Consumer（saga-v1 / dlq-manager-v1 用）
   # key_claim_name: sub によりサービスアカウントの subject クレームで認証する。
   # グローバル JWT プラグインの iss ベース認証と衝突しないよう Consumer を分離する。
+  # HIGH-013 監査対応: key を予測困難な UUID に変更する。
+  # 旧値 "service-to-service" は文字列として推測・ブルートフォースされるリスクがあるため UUID に置換する。
   - username: service-to-service
     jwt_secrets:
       - algorithm: HS256
-        key: "service-to-service"
+        key: "7f4e2b9a-3c8d-4f51-a6e7-2b9d8c5f4e73"
         secret: "${KONG_S2S_JWT_SECRET}"

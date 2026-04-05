@@ -361,7 +361,8 @@ mod tests {
     #[tokio::test]
     async fn test_index_document_success() {
         let mut mock = MockSearchRepository::new();
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
+        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
         let return_index = index.clone();
 
         mock.expect_find_index()
@@ -386,7 +387,8 @@ mod tests {
     #[tokio::test]
     async fn test_search_success() {
         let mut mock = MockSearchRepository::new();
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}));
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
+        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
         let return_index = index.clone();
 
         mock.expect_find_index()

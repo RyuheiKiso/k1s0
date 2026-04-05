@@ -53,13 +53,25 @@ impl SessionServiceTonic {
 
 #[async_trait::async_trait]
 impl SessionService for SessionServiceTonic {
+    /// gRPC CreateSession ハンドラー。
+    /// tonic Request Extensions から Claims を取得し、tenant_id を CreateSessionRequest に設定する。
+    /// gRPC 認証レイヤー（GrpcAuthLayer）が Claims を Extensions に注入しているため、
+    /// 認証済みリクエストでは必ず Claims が存在する。未認証時は "system" フォールバックを使用する。
     async fn create_session(
         &self,
         request: Request<ProtoCreateSessionRequest>,
     ) -> Result<Response<ProtoCreateSessionResponse>, Status> {
+        // gRPC Extensions から Claims を取得して tenant_id を抽出する
+        let tenant_id = request
+            .extensions()
+            .get::<k1s0_auth::Claims>()
+            .map(|c| c.tenant_id().to_string())
+            .unwrap_or_else(|| "system".to_string());
+
         let inner = request.into_inner();
         let req = CreateSessionRequest {
             user_id: inner.user_id,
+            tenant_id,
             device_id: inner.device_id,
             device_name: inner.device_name,
             device_type: inner.device_type,

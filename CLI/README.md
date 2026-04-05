@@ -351,6 +351,27 @@ Tauri v2 デスクトップ GUI。React フロントエンドから `#[tauri::co
 | terraform | インフラ（Terraform） |
 | service-mesh | サービスメッシュ |
 
+## CI/CD 環境での使用制限（LOW-009）
+
+<!-- LOW-009 監査対応: --non-interactive フラグの未対応状況を明記する -->
+
+現在のバージョンでは `--non-interactive` フラグは**未対応**。
+
+CI/CD 環境（TTY なし）で `k1s0 generate`・`k1s0 migrate` 等の対話的コマンドを実行すると
+`K1S0_NON_INTERACTIVE が設定されているか TTY が割り当てられていません` エラーが返される。
+
+**CI/CD 環境での推奨代替手段:**
+
+```bash
+# doctor.sh を直接実行（非 TTY 対応）
+bash scripts/doctor.sh
+
+# migrate は sqlx-cli を直接使用
+sqlx migrate run --database-url "${DATABASE_URL}"
+```
+
+詳細は [docs/cli/README.md](../docs/cli/README.md) のコマンド別対応状況テーブルを参照すること。
+
 ## 関連ドキュメント
 
 - [CLIフロー](../docs/cli/flow/CLIフロー.md) — CLI の対話フロー

@@ -27,19 +27,20 @@ struct StubSearchRepository;
 
 #[async_trait]
 impl SearchRepository for StubSearchRepository {
-    async fn create_index(&self, _index: &SearchIndex) -> anyhow::Result<()> {
+    // テナント分離対応: 各メソッドのシグネチャに _tenant_id を追加する
+    async fn create_index(&self, _index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn find_index(&self, _name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    async fn find_index(&self, _name: &str, _tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
         Ok(None)
     }
 
-    async fn index_document(&self, _doc: &SearchDocument) -> anyhow::Result<()> {
+    async fn index_document(&self, _doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn search(&self, _query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    async fn search(&self, _query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         Ok(SearchResult {
             total: 0,
             hits: vec![],
@@ -53,11 +54,11 @@ impl SearchRepository for StubSearchRepository {
         })
     }
 
-    async fn delete_document(&self, _index_name: &str, _doc_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(&self, _index_name: &str, _doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    async fn list_indices(&self, _tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         Ok(vec![])
     }
 }
@@ -79,6 +80,8 @@ fn make_test_app() -> axum::Router {
             "k1s0-search-server-test",
         )),
         auth_state: None,
+        // テスト時は DB プールなし（readyz の DB チェックをスキップ）
+        db_pool: None,
     };
 
     // startup.rs と同じ構成: public_routes + api_routes (auth_state=None)

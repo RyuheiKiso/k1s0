@@ -17,6 +17,9 @@ dependencies:
   yaml: ^3.1.2
   # セッション ID を AES-GCM 暗号化ストレージで安全に管理するために使用する
   flutter_secure_storage: ^9.2.2
+  # ADR-0096: OAuth デバイスコードフロー用 Web 認証
+  # デバイスコードフローでブラウザを開いて認証完了後のリダイレクトを処理するために使用する
+  flutter_web_auth_2: ^4.0.0
 
 dev_dependencies:
   flutter_test:

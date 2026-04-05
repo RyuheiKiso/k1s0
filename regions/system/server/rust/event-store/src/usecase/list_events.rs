@@ -5,6 +5,8 @@ use crate::domain::repository::EventRepository;
 
 #[derive(Debug, Clone)]
 pub struct ListEventsInput {
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub event_type: Option<String>,
     pub page: u32,
     pub page_size: u32,
@@ -38,9 +40,10 @@ impl ListEventsUseCase {
         let page = input.page.max(1);
         let page_size = input.page_size.clamp(1, 200);
 
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let (events, total_count) = self
             .event_repo
-            .find_all(input.event_type.clone(), page, page_size)
+            .find_all(&input.tenant_id, input.event_type.clone(), page, page_size)
             .await
             .map_err(|e| ListEventsError::Internal(e.to_string()))?;
 
@@ -68,6 +71,7 @@ mod tests {
     fn make_event(seq: u64) -> StoredEvent {
         StoredEvent::new(
             "order-001".to_string(),
+            "tenant-test".to_string(),
             seq,
             "OrderPlaced".to_string(),
             seq as i64,
@@ -81,10 +85,11 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
+            .returning(|_, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
 
         let uc = ListEventsUseCase::new(Arc::new(event_repo));
         let input = ListEventsInput {
+            tenant_id: "tenant-test".to_string(),
             event_type: None,
             page: 1,
             page_size: 50,
@@ -102,11 +107,12 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         event_repo
             .expect_find_all()
-            .withf(|et, _, _| et.as_deref() == Some("OrderPlaced"))
-            .returning(|_, _, _| Ok((vec![make_event(1)], 1)));
+            .withf(|_, et, _, _| et.as_deref() == Some("OrderPlaced"))
+            .returning(|_, _, _, _| Ok((vec![make_event(1)], 1)));
 
         let uc = ListEventsUseCase::new(Arc::new(event_repo));
         let input = ListEventsInput {
+            tenant_id: "tenant-test".to_string(),
             event_type: Some("OrderPlaced".to_string()),
             page: 1,
             page_size: 50,
@@ -121,10 +127,11 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![make_event(1)], 3)));
+            .returning(|_, _, _, _| Ok((vec![make_event(1)], 3)));
 
         let uc = ListEventsUseCase::new(Arc::new(event_repo));
         let input = ListEventsInput {
+            tenant_id: "tenant-test".to_string(),
             event_type: None,
             page: 1,
             page_size: 1,
@@ -139,10 +146,11 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListEventsUseCase::new(Arc::new(event_repo));
         let input = ListEventsInput {
+            tenant_id: "tenant-test".to_string(),
             event_type: None,
             page: 1,
             page_size: 50,

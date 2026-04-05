@@ -14,12 +14,24 @@ static NAME_RE: OnceLock<regex::Regex> = OnceLock::new();
 ///
 /// 名前バリデーション用の静的正規表現の初期化に失敗した場合にパニックする。
 /// 正規表現はコンパイル時に検証済みのため、通常はパニックしない。
+// MED-005 対応: OnceLock::get_or_init 内の .expect() は静的正規表現の初期化失敗時にのみ発生し、
+// コンパイル時に検証済みであるため unwrap_used の許可が必要。
+#[allow(clippy::unwrap_used)]
 pub fn validate_name(name: &str) -> Result<(), String> {
     // LOW-CLI-002 対応: バリデーション違反の理由を具体的に示すエラーメッセージに改善する
 
     // 空文字チェック
     if name.is_empty() {
         return Err("名前を入力してください。".into());
+    }
+
+    // 最大長チェック: OS のパス長制限を考慮し 64 文字を上限とする
+    // プロジェクト名はディレクトリ名として使用されるため、OS パス長の余裕を確保する
+    if name.len() > 64 {
+        return Err(format!(
+            "名前は64文字以内で入力してください（現在 {} 文字）。",
+            name.len()
+        ));
     }
 
     // 先頭・末尾のハイフンチェック（正規表現より先に判定して具体的なメッセージを返す）
@@ -68,6 +80,19 @@ mod tests {
         assert!(validate_name("dot.name").is_err());
         assert!(validate_name("-").is_err());
         assert!(validate_name("--").is_err());
+        // MED-006 対応: 64文字超過はエラー
+        assert!(validate_name(&"a".repeat(65)).is_err());
+    }
+
+    /// MED-006 対応: 64文字制限のバリデーションを確認する
+    #[test]
+    fn test_validate_name_max_length() {
+        // 64文字はOK
+        assert!(validate_name(&"a".repeat(64)).is_ok());
+        // 65文字はエラー
+        let err = validate_name(&"a".repeat(65)).unwrap_err();
+        assert!(err.contains("64文字以内"));
+        assert!(err.contains("65 文字"));
     }
 
     /// LOW-CLI-002 対応: エラーメッセージが具体的な違反理由を示すことを確認する

@@ -19,14 +19,17 @@ pub trait TransactionalAppendPort: Send + Sync {
     /// 新規ストリームの場合はストリームを作成し、イベントを追記してバージョンを更新する。
     /// 既存ストリームの場合はイベントを追記してバージョンを更新する。
     /// 全操作は単一のデータベーストランザクション（REPEATABLE READ）内で実行される。
+    /// テナント分離のため、トランザクション開始時に set_config でテナント ID を設定する（ADR-0106）。
     ///
     /// # Arguments
+    /// - `tenant_id` - 操作対象のテナント ID（RLS の set_config に使用）
     /// - `stream` - 新規作成する場合のストリーム（None なら既存ストリームへの追記）
     /// - `stream_id` - 追記対象のストリーム ID
     /// - `events` - 追記するイベント群（バージョンは呼び出し元が設定済み）
     /// - `new_version` - 追記後のストリームバージョン
     async fn append_in_transaction<'a>(
         &self,
+        tenant_id: &str,
         stream: Option<&'a EventStream>,
         stream_id: &str,
         events: Vec<StoredEvent>,

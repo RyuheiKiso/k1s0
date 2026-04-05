@@ -27,11 +27,12 @@ struct StubStreamRepo;
 
 #[async_trait]
 impl EventStreamRepository for StubStreamRepo {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<EventStream>> {
+    async fn find_by_id(&self, _tenant_id: &str, _id: &str) -> anyhow::Result<Option<EventStream>> {
         Ok(None)
     }
     async fn list_all(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
     ) -> anyhow::Result<(Vec<EventStream>, u64)> {
@@ -40,10 +41,15 @@ impl EventStreamRepository for StubStreamRepo {
     async fn create(&self, _stream: &EventStream) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn update_version(&self, _id: &str, _new_version: i64) -> anyhow::Result<()> {
+    async fn update_version(
+        &self,
+        _tenant_id: &str,
+        _id: &str,
+        _new_version: i64,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, _id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }
@@ -57,6 +63,7 @@ struct StubEventRepo;
 impl EventRepository for StubEventRepo {
     async fn append(
         &self,
+        _tenant_id: &str,
         _stream_id: &str,
         _events: Vec<StoredEvent>,
     ) -> anyhow::Result<Vec<StoredEvent>> {
@@ -64,6 +71,7 @@ impl EventRepository for StubEventRepo {
     }
     async fn find_by_stream(
         &self,
+        _tenant_id: &str,
         _stream_id: &str,
         _from_version: i64,
         _to_version: Option<i64>,
@@ -75,6 +83,7 @@ impl EventRepository for StubEventRepo {
     }
     async fn find_all(
         &self,
+        _tenant_id: &str,
         _event_type: Option<String>,
         _page: u32,
         _page_size: u32,
@@ -83,12 +92,13 @@ impl EventRepository for StubEventRepo {
     }
     async fn find_by_sequence(
         &self,
+        _tenant_id: &str,
         _stream_id: &str,
         _sequence: u64,
     ) -> anyhow::Result<Option<StoredEvent>> {
         Ok(None)
     }
-    async fn delete_by_stream(&self, _stream_id: &str) -> anyhow::Result<u64> {
+    async fn delete_by_stream(&self, _tenant_id: &str, _stream_id: &str) -> anyhow::Result<u64> {
         Ok(0)
     }
 }
@@ -103,10 +113,18 @@ impl SnapshotRepository for StubSnapshotRepo {
     async fn create(&self, _snapshot: &Snapshot) -> anyhow::Result<()> {
         Ok(())
     }
-    async fn find_latest(&self, _stream_id: &str) -> anyhow::Result<Option<Snapshot>> {
+    async fn find_latest(
+        &self,
+        _tenant_id: &str,
+        _stream_id: &str,
+    ) -> anyhow::Result<Option<Snapshot>> {
         Ok(None)
     }
-    async fn delete_by_stream(&self, _stream_id: &str) -> anyhow::Result<u64> {
+    async fn delete_by_stream(
+        &self,
+        _tenant_id: &str,
+        _stream_id: &str,
+    ) -> anyhow::Result<u64> {
         Ok(0)
     }
 }

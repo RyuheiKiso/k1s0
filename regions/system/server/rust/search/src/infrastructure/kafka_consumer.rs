@@ -5,6 +5,8 @@ use crate::usecase::delete_document::{DeleteDocumentInput, DeleteDocumentUseCase
 use crate::usecase::index_document::{IndexDocumentInput, IndexDocumentUseCase};
 
 /// IndexRequestEvent は Kafka から受信するインデックス登録リクエストイベント。
+/// CRIT-002 対応: tenant_id フィールドを追加し、送信元サービスから正しいテナントを受け取れるようにする。
+/// tenant_id が省略されている古いメッセージとの後方互換性のため serde(default) を使用する。
 #[derive(Debug, serde::Deserialize)]
 #[allow(dead_code)]
 pub struct IndexRequestEvent {
@@ -22,6 +24,11 @@ pub struct IndexRequestEvent {
     pub timestamp: Option<String>,
     #[serde(default)]
     pub actor_service: Option<String>,
+    /// イベント送信元サービスのテナント ID。
+    /// 省略された場合（古いメッセージ）は "system" にフォールバックする。
+    /// フォールバックは後方互換性のためだけに使用し、新規メッセージでは必ず含めること。
+    #[serde(default)]
+    pub tenant_id: Option<String>,
 }
 
 /// SearchKafkaConsumer はインデックス登録リクエストトピックを購読してメッセージを処理する。
@@ -114,9 +121,20 @@ impl SearchKafkaConsumer {
                         .to_ascii_uppercase();
 
                     if operation == "DELETE" {
+                        // CRIT-002 対応: Kafkaイベントの tenant_id フィールドを使用する。
+                        // tenant_id が省略されている古いメッセージは "system" にフォールバックし、後方互換性を保つ。
+                        // 新規メッセージでは送信元サービスが必ず tenant_id を含めること。
+                        let tenant_id = event.tenant_id.clone().unwrap_or_else(|| {
+                            tracing::warn!(
+                                index = %event.index,
+                                "Kafka DELETE イベントに tenant_id が含まれていません。\"system\" にフォールバックします"
+                            );
+                            "system".to_string()
+                        });
                         let input = DeleteDocumentInput {
                             index_name: event.index,
                             doc_id: event.document_id,
+                            tenant_id,
                         };
                         match self.delete_use_case.execute(&input).await {
                             Ok(_) => {
@@ -141,10 +159,21 @@ impl SearchKafkaConsumer {
                         continue;
                     };
 
+                    // CRIT-002 対応: Kafkaイベントの tenant_id フィールドを使用する。
+                    // tenant_id が省略されている古いメッセージは "system" にフォールバックし、後方互換性を保つ。
+                    // 新規メッセージでは送信元サービスが必ず tenant_id を含めること。
+                    let tenant_id = event.tenant_id.unwrap_or_else(|| {
+                        tracing::warn!(
+                            index = %event.index,
+                            "Kafka INDEX イベントに tenant_id が含まれていません。\"system\" にフォールバックします"
+                        );
+                        "system".to_string()
+                    });
                     let input = IndexDocumentInput {
                         id: event.document_id,
                         index_name: event.index,
                         content: document,
+                        tenant_id,
                     };
 
                     match self.index_use_case.execute(&input).await {

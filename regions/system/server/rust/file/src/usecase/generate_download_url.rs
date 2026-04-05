@@ -86,9 +86,10 @@ mod tests {
     use std::collections::HashMap;
 
     fn available_file() -> FileMetadata {
-        // C-01 監査対応: tenant_id 引数削除
+        // テナント分離対応: tenant_id 引数を追加
         let mut file = FileMetadata::new(
             "file_001".to_string(),
+            "tenant-abc".to_string(),
             "report.pdf".to_string(),
             2048,
             "application/pdf".to_string(),
@@ -156,9 +157,10 @@ mod tests {
         let mut metadata_mock = MockFileMetadataRepository::new();
         let storage_mock = MockFileStorageRepository::new();
 
-        // C-01 監査対応: tenant_id 引数削除
+        // テナント分離対応: tenant_id 引数を追加
         let file = FileMetadata::new(
             "file_002".to_string(),
+            "tenant-abc".to_string(),
             "pending.pdf".to_string(),
             1024,
             "application/pdf".to_string(),

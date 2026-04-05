@@ -23,16 +23,16 @@ impl FileServiceTonic {
     }
 }
 
-/// C-01 監査対応: domain entity → proto メッセージ変換
-/// CRIT-006 対応: created_at/updated_at を string から Timestamp 型へ変換
-/// proto フィールド名はそのまま（自動生成のため変更不可）、domain のフィールド名は DB に合わせて変更済み
+/// テナント分離対応: domain entity → proto メッセージ変換
+/// migration 003 で追加した tenant_id フィールドを proto メッセージに含める
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
         id: file.id.clone(),
         filename: file.filename.clone(),
         content_type: file.content_type.clone(),
         size_bytes: file.size_bytes as i64,
-        tenant_id: String::new(),
+        // テナント分離: エンティティの tenant_id フィールドを proto に渡す
+        tenant_id: file.tenant_id.clone(),
         uploaded_by: file.uploaded_by.clone(),
         status: file.status.clone(),
         // DateTime<Utc> を Timestamp（seconds/nanos）へ変換

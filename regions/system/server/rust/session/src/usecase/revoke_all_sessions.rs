@@ -42,11 +42,16 @@ impl RevokeAllSessionsUseCase {
                 session.revoke();
                 self.repo.save(&session).await?;
 
-                // セッションの無効化をメタデータに反映する
+                // セッションの無効化をメタデータに反映する。
+                // tenant_id をセッションエンティティから取得して mark_revoked に渡し、RLS を正しく適用する。
                 // メタデータ更新は補助的な処理のため、失敗してもセッション処理は継続する。
                 // ただしサイレント無視は監査ログの欠落を検知できないため、警告ログを記録する。
                 if let Ok(session_uuid) = uuid::Uuid::parse_str(&session.id) {
-                    if let Err(e) = self.metadata_repo.mark_revoked(session_uuid).await {
+                    if let Err(e) = self
+                        .metadata_repo
+                        .mark_revoked(session_uuid, &session.tenant_id)
+                        .await
+                    {
                         tracing::warn!(
                             error = %e,
                             "セッションメタデータの保存に失敗しました。監査ログが欠落する可能性があります"
@@ -76,6 +81,7 @@ mod tests {
         Session {
             id: id.to_string(),
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: format!("device-{}", id),
             device_name: Some("device".to_string()),
             device_type: Some("desktop".to_string()),
@@ -123,11 +129,11 @@ mod tests {
             .returning(|_| Ok(vec![make_session("s1", false), make_session("s2", false)]));
         mock.expect_save().returning(|_| Ok(()));
 
-        // mark_revoked が常にエラーを返すモックを設定する
+        // mark_revoked が常にエラーを返すモックを設定する（session_id と tenant_id の2引数）
         let mut mock_meta = MockSessionMetadataRepository::new();
         mock_meta
             .expect_mark_revoked()
-            .returning(|_| Err(anyhow::anyhow!("db connection error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db connection error")));
 
         let uc = RevokeAllSessionsUseCase::new(Arc::new(mock), Arc::new(mock_meta));
         // メタデータ更新失敗でもユースケース全体は成功し、対象セッション数が返る

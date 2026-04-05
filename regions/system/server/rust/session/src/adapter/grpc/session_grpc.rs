@@ -11,9 +11,13 @@ use crate::usecase::revoke_session::{RevokeSessionInput, RevokeSessionUseCase};
 
 // --- gRPC Request/Response Types ---
 
+/// gRPC CreateSession リクエスト型。
+/// tenant_id は gRPC メタデータ（JWT Claims）から取得し、呼び出し元が設定する。
 #[derive(Debug, Clone)]
 pub struct CreateSessionRequest {
     pub user_id: String,
+    /// テナント識別子。JWT Claims の tenant_id から取得して渡す。
+    pub tenant_id: String,
     pub device_id: String,
     pub device_name: Option<String>,
     pub device_type: Option<String>,
@@ -167,12 +171,15 @@ impl SessionGrpcService {
         }
     }
 
+    /// セッション作成 gRPC ハンドラー。
+    /// リクエストに含まれる tenant_id を CreateSessionInput に伝播させてテナント分離を保証する。
     pub async fn create_session(
         &self,
         req: CreateSessionRequest,
     ) -> Result<CreateSessionResponse, GrpcError> {
         let input = CreateSessionInput {
             user_id: req.user_id,
+            tenant_id: req.tenant_id,
             device_id: req.device_id.clone(),
             device_name: req.device_name,
             device_type: req.device_type,
@@ -293,7 +300,13 @@ impl SessionGrpcService {
         &self,
         req: RevokeSessionRequest,
     ) -> Result<RevokeSessionResponse, GrpcError> {
-        let input = RevokeSessionInput { id: req.session_id };
+        // gRPC 経由のセッション失効では JWT Claims を直接取得できないため jti チェックをスキップする。
+        // jti ブラックリスト登録は REST ハンドラー（revoke_session）で行われる（Claims が利用可能なため）。
+        let input = RevokeSessionInput {
+            id: req.session_id,
+            jwt_jti: None,
+            jwt_remaining_secs: None,
+        };
 
         match self.revoke_uc.execute(&input).await {
             Ok(()) => Ok(RevokeSessionResponse { success: true }),
@@ -377,6 +390,7 @@ mod tests {
         Session {
             id: id.to_string(),
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("my device".to_string()),
             device_type: Some("desktop".to_string()),
@@ -426,6 +440,7 @@ mod tests {
         let svc = make_service(mock);
         let req = CreateSessionRequest {
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("My Phone".to_string()),
             device_type: Some("mobile".to_string()),

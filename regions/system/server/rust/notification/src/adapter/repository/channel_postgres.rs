@@ -8,8 +8,8 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
 /// C-005 監査対応: AES-256-GCM 暗号化・復号化関数をインポートする
-/// C-001 Phase A: 後方互換フォールバック付き復号関数を追加する（aes_decrypt は直接使用しない）
-use k1s0_encryption::aes::{aes_decrypt_with_legacy_fallback, aes_encrypt};
+/// ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみを使用する
+use k1s0_encryption::aes::{aes_decrypt, aes_encrypt};
 
 /// チャンネルの PostgreSQL リポジトリ実装
 /// C-005: channels.config を AES-256-GCM で暗号化して保存する
@@ -63,14 +63,12 @@ impl ChannelPostgresRepository {
     }
 
     /// 暗号化済み設定を復号化して serde_json::Value に変換する。
-    /// C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-    /// 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-    /// Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
+    /// ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで AAD 付き復号を行う。
     fn decrypt_config(&self, channel_id: &str, encrypted: &str) -> anyhow::Result<serde_json::Value> {
         match &self.encryption_key {
             Some(key) => {
-                // C-001 Phase A: AAD にチャンネル ID を指定して新形式で復号を試み、失敗時は旧形式にフォールバックする
-                let plaintext = aes_decrypt_with_legacy_fallback(key, encrypted, channel_id.as_bytes())
+                // ADR-0104: AAD にチャンネル ID を指定して復号する（旧形式フォールバックなし）
+                let plaintext = aes_decrypt(key, encrypted, channel_id.as_bytes())
                     .map_err(|e| anyhow::anyhow!("設定の AES-256-GCM 復号化に失敗: {}", e))?;
                 serde_json::from_slice(&plaintext)
                     .map_err(|e| anyhow::anyhow!("復号化済み設定の JSON 解析に失敗: {}", e))

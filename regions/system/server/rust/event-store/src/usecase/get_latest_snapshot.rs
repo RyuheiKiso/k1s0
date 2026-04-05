@@ -6,6 +6,8 @@ use crate::domain::repository::{EventStreamRepository, SnapshotRepository};
 #[derive(Debug, Clone)]
 pub struct GetLatestSnapshotInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -38,9 +40,10 @@ impl GetLatestSnapshotUseCase {
         &self,
         input: &GetLatestSnapshotInput,
     ) -> Result<Snapshot, GetLatestSnapshotError> {
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| GetLatestSnapshotError::Internal(e.to_string()))?;
 
@@ -50,9 +53,10 @@ impl GetLatestSnapshotUseCase {
             ));
         }
 
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let snapshot = self
             .snapshot_repo
-            .find_latest(&input.stream_id)
+            .find_latest(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| GetLatestSnapshotError::Internal(e.to_string()))?;
 
@@ -72,6 +76,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 5,
             created_at: chrono::Utc::now(),
@@ -83,6 +88,7 @@ mod tests {
         Snapshot::new(
             "snap_001".to_string(),
             "order-001".to_string(),
+            "tenant-test".to_string(),
             3,
             "Order".to_string(),
             serde_json::json!({"status": "shipped"}),
@@ -96,14 +102,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         snapshot_repo
             .expect_find_latest()
-            .returning(|_| Ok(Some(make_snapshot())));
+            .returning(|_, _| Ok(Some(make_snapshot())));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -117,11 +124,12 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {
             stream_id: "order-999".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -138,12 +146,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
-        snapshot_repo.expect_find_latest().returning(|_| Ok(None));
+            .returning(|_, _| Ok(Some(make_stream())));
+        snapshot_repo
+            .expect_find_latest()
+            .returning(|_, _| Ok(None));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -160,11 +171,12 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = GetLatestSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let input = GetLatestSnapshotInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

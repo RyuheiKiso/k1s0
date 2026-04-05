@@ -90,6 +90,8 @@ impl From<GrpcError> for Status {
             GrpcError::AlreadyExists(msg) => Status::already_exists(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
+            // 未認証エラー: テナントIDが取得できない場合に unauthenticated を返す。
+            GrpcError::Unauthenticated(msg) => Status::unauthenticated(msg),
         }
     }
 }

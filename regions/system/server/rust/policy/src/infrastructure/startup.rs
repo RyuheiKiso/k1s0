@@ -296,22 +296,26 @@ impl InMemoryPolicyRepository {
 
 #[async_trait::async_trait]
 impl PolicyRepository for InMemoryPolicyRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         let policies = self.policies.read().await;
         Ok(policies.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
         let policies = self.policies.read().await;
         Ok(policies.values().cloned().collect())
     }
 
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_all_paginated(
         &self,
         page: u32,
         page_size: u32,
         bundle_id: Option<Uuid>,
         enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         let policies = self.policies.read().await;
         let mut filtered: Vec<Policy> = policies
@@ -352,12 +356,14 @@ impl PolicyRepository for InMemoryPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut policies = self.policies.write().await;
         Ok(policies.remove(id).is_some())
     }
 
-    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn exists_by_name(&self, name: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let policies = self.policies.read().await;
         Ok(policies.values().any(|p| p.name == name))
     }
@@ -379,23 +385,27 @@ impl InMemoryPolicyBundleRepository {
 
 #[async_trait::async_trait]
 impl PolicyBundleRepository for InMemoryPolicyBundleRepository {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<PolicyBundle>> {
         let bundles = self.bundles.read().await;
         Ok(bundles.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<PolicyBundle>> {
         let bundles = self.bundles.read().await;
         Ok(bundles.values().cloned().collect())
     }
 
+    /// InMemory実装: バンドルを作成する。
     async fn create(&self, bundle: &PolicyBundle) -> anyhow::Result<()> {
         let mut bundles = self.bundles.write().await;
         bundles.insert(bundle.id, bundle.clone());
         Ok(())
     }
 
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut bundles = self.bundles.write().await;
         Ok(bundles.remove(id).is_some())
     }

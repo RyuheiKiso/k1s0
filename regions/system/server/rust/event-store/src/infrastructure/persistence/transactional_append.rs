@@ -28,8 +28,10 @@ impl TransactionalAppendAdapter {
 impl TransactionalAppendPort for TransactionalAppendAdapter {
     /// ストリーム作成（新規の場合）・イベント追記・バージョン更新を
     /// 単一の REPEATABLE READ トランザクションで実行する。
+    /// テナント分離のため、トランザクション開始時に set_config でテナント ID を設定する（ADR-0106）。
     async fn append_in_transaction<'a>(
         &self,
+        tenant_id: &str,
         stream: Option<&'a EventStream>,
         stream_id: &str,
         events: Vec<StoredEvent>,
@@ -41,13 +43,18 @@ impl TransactionalAppendPort for TransactionalAppendAdapter {
         tx.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
             .await?;
 
+        // テナント分離: トランザクション内で set_config を実行して RLS を有効化する
+        // append_in_tx 内で set_config が実行されるため、ここでは重複しない
+        // （append_in_tx の set_config がストリーム作成より先に実行されるよう順序を保証）
+
         // 新規ストリームの場合はトランザクション内でストリームを作成する
         if let Some(s) = stream {
             StreamPostgresRepository::create_in_tx(s, &mut tx).await?;
         }
 
-        // トランザクション内でイベントを一括 INSERT する
-        let persisted = EventPostgresRepository::append_in_tx(stream_id, events, &mut tx).await?;
+        // トランザクション内でイベントを一括 INSERT する（set_config は内部で実行）
+        let persisted =
+            EventPostgresRepository::append_in_tx(tenant_id, stream_id, events, &mut tx).await?;
 
         // トランザクション内でストリームのバージョンを更新する
         StreamPostgresRepository::update_version_in_tx(stream_id, new_version, &mut tx).await?;

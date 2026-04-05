@@ -10,10 +10,13 @@ use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
 // --- gRPC Request/Response Types (手動定義) ---
 
+/// MED-011 対応: tenant_id を gRPC 層から use case 層（アクセスログ記録）へ伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretRequest {
     pub path: String,
     pub version: Option<i64>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,10 +28,13 @@ pub struct GetSecretResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct SetSecretRequest {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,10 +44,13 @@ pub struct SetSecretResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct RotateSecretRequest {
     pub path: String,
     pub data: HashMap<String, String>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -51,10 +60,13 @@ pub struct RotateSecretResponse {
     pub rotated: bool,
 }
 
+/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct DeleteSecretRequest {
     pub path: String,
     pub versions: Vec<i64>,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,9 +82,12 @@ pub struct ListSecretsResponse {
     pub keys: Vec<String>,
 }
 
+/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretMetadataRequest {
     pub path: String,
+    /// gRPC ミドルウェアの Claims から抽出したテナント ID。アクセスログに記録する。
+    pub tenant_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -162,9 +177,11 @@ impl VaultGrpcService {
         if req.path.trim().is_empty() {
             return Err(GrpcError::InvalidArgument("path is required".to_string()));
         }
+        // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let input = GetSecretInput {
             path: req.path.clone(),
             version: req.version,
+            tenant_id: req.tenant_id.clone(),
         };
 
         match self.get_secret_uc.execute(&input).await {
@@ -192,6 +209,8 @@ impl VaultGrpcService {
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
+            // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+            tenant_id: req.tenant_id,
         };
 
         match self.set_secret_uc.execute(&input).await {
@@ -213,6 +232,8 @@ impl VaultGrpcService {
             .execute(&RotateSecretInput {
                 path: req.path,
                 data: req.data,
+                // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+                tenant_id: req.tenant_id,
             })
             .await
             .map_err(|e| match e {
@@ -234,6 +255,8 @@ impl VaultGrpcService {
         let input = DeleteSecretInput {
             path: req.path,
             versions: req.versions,
+            // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
+            tenant_id: req.tenant_id,
         };
 
         match self.delete_secret_uc.execute(&input).await {
@@ -257,11 +280,13 @@ impl VaultGrpcService {
         &self,
         req: GetSecretMetadataRequest,
     ) -> Result<GetSecretMetadataResponse, GrpcError> {
+        // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let secret = self
             .get_secret_uc
             .execute(&GetSecretInput {
                 path: req.path.clone(),
                 version: None,
+                tenant_id: req.tenant_id.clone(),
             })
             .await
             .map_err(|e| match e {
@@ -392,6 +417,7 @@ mod tests {
             .get_secret(GetSecretRequest {
                 path: "app/db".to_string(),
                 version: None,
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await
             .unwrap();
@@ -413,6 +439,7 @@ mod tests {
             .get_secret(GetSecretRequest {
                 path: "nonexistent".to_string(),
                 version: None,
+                tenant_id: None,
             })
             .await;
 
@@ -446,6 +473,7 @@ mod tests {
             .set_secret(SetSecretRequest {
                 path: "app/db".to_string(),
                 data: HashMap::from([("password".to_string(), "new".to_string())]),
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await
             .unwrap();
@@ -464,6 +492,7 @@ mod tests {
             .delete_secret(DeleteSecretRequest {
                 path: "app/db".to_string(),
                 versions: vec![1],
+                tenant_id: Some("test-tenant".to_string()),
             })
             .await;
 
@@ -482,6 +511,7 @@ mod tests {
             .delete_secret(DeleteSecretRequest {
                 path: "nonexistent".to_string(),
                 versions: vec![],
+                tenant_id: None,
             })
             .await;
 

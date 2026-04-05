@@ -82,7 +82,8 @@ impl SearchOpenSearchRepository {
 
 #[async_trait]
 impl SearchRepository for SearchOpenSearchRepository {
-    async fn create_index(&self, index: &SearchIndex) -> anyhow::Result<()> {
+    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn create_index(&self, index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&index.name);
         let response = self
             .client
@@ -99,7 +100,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         Ok(())
     }
 
-    async fn find_index(&self, name: &str) -> anyhow::Result<Option<SearchIndex>> {
+    /// OpenSearch実装: tenant_id をレスポンスの SearchIndex に付与する。
+    async fn find_index(&self, name: &str, tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
         let idx_name = self.index_name(name);
         let response = self
             .client
@@ -109,18 +111,21 @@ impl SearchRepository for SearchOpenSearchRepository {
             .await?;
 
         if response.status_code().is_success() {
+            // OpenSearchから取得したインデックス情報にテナント IDを付与して返す。
             Ok(Some(SearchIndex {
                 id: Uuid::new_v4(),
                 name: name.to_string(),
                 mapping: json!({}),
                 created_at: Utc::now(),
+                tenant_id: tenant_id.to_string(),
             }))
         } else {
             Ok(None)
         }
     }
 
-    async fn index_document(&self, doc: &SearchDocument) -> anyhow::Result<()> {
+    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn index_document(&self, doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&doc.index_name);
         let response = self
             .client
@@ -141,7 +146,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         Ok(())
     }
 
-    async fn search(&self, query: &SearchQuery) -> anyhow::Result<SearchResult> {
+    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn search(&self, query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         let idx_name = self.index_name(&query.index_name);
 
         let mut body = if query.query.is_empty() {
@@ -268,7 +274,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         })
     }
 
-    async fn delete_document(&self, index_name: &str, doc_id: &str) -> anyhow::Result<bool> {
+    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    async fn delete_document(&self, index_name: &str, doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let idx_name = self.index_name(index_name);
         let response = self
             .client
@@ -284,7 +291,8 @@ impl SearchRepository for SearchOpenSearchRepository {
         }
     }
 
-    async fn list_indices(&self) -> anyhow::Result<Vec<SearchIndex>> {
+    /// OpenSearch実装: tenant_id を使用してレスポンスの SearchIndex に付与する。
+    async fn list_indices(&self, tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         let pattern = format!("{}*", self.prefix);
         let response = self
             .client
@@ -309,11 +317,13 @@ impl SearchRepository for SearchOpenSearchRepository {
                             .strip_prefix(&self.prefix)
                             .unwrap_or(full_name)
                             .to_string();
+                        // OpenSearchから取得したインデックス情報にテナント IDを付与して返す。
                         SearchIndex {
                             id: Uuid::new_v4(),
                             name,
                             mapping: json!({}),
                             created_at: Utc::now(),
+                            tenant_id: tenant_id.to_string(),
                         }
                     })
                     .collect()

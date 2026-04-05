@@ -14,7 +14,24 @@
 #   - deny.toml に変更を加える場合は必ずこのファイルも同期すること
 #   - cargo-audit.sh はこのファイルを動的に読み込む
 
+# RUSTSEC-2023-0071: rsa クレートの Marvin Attack（タイミング攻撃）
+# HIGH-018対応: 公式アドバイザリは「修正版なし（No fixed upgrade is available）」
+# 対応方針: RSA 復号は本番環境では使用しない設計を維持する
+# 参照: https://rustsec.org/advisories/RUSTSEC-2023-0071
+RUSTSEC-2023-0071
+
 # RUSTSEC-2025-0111: tokio-tar（testcontainers 経由の間接依存、テスト専用、本番影響なし）
 # 解消目標: 2026-06-30（四半期レビューで再評価、testcontainers アップデートで解消予定）
 # 追跡: https://rustsec.org/advisories/RUSTSEC-2025-0111.html
 RUSTSEC-2025-0111
+
+# HIGH-020: RUSTSEC-2026-0002 lru 0.12.x の Stacked Borrows 違反（未定義動作）
+# 修正版なし。rule-engine-server のキャッシュのみで使用。代替クレート評価中
+# 解消目標: 2026-09-30 または修正版リリース時
+RUSTSEC-2026-0002
+
+# HIGH-021: RUSTSEC-2026-0049 rustls-webpki の証明書検証脆弱性
+# CLI の rustls-webpki を 0.103.10+ にアップデートすることで解消予定
+# cargo update rustls-webpki を実施すること（現在は依存関係グラフ上の制約あり）
+# 解消目標: 2026-06-30 または次回 cargo update 実施時
+RUSTSEC-2026-0049

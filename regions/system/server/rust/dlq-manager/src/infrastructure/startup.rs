@@ -285,19 +285,23 @@ impl InMemoryDlqMessageRepository {
 
 #[async_trait::async_trait]
 impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepository {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_id(
         &self,
         id: uuid::Uuid,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<crate::domain::entity::DlqMessage>> {
         let messages = self.messages.read().await;
         Ok(messages.iter().find(|m| m.id == id).cloned())
     }
 
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_topic(
         &self,
         topic: &str,
         page: i32,
         page_size: i32,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<crate::domain::entity::DlqMessage>, i64)> {
         let messages = self.messages.read().await;
         let filtered: Vec<_> = messages
@@ -329,13 +333,15 @@ impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepos
         Ok(())
     }
 
-    async fn delete(&self, id: uuid::Uuid) -> anyhow::Result<()> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn delete(&self, id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<()> {
         let mut messages = self.messages.write().await;
         messages.retain(|m| m.id != id);
         Ok(())
     }
 
-    async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64> {
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    async fn count_by_topic(&self, topic: &str, _tenant_id: &str) -> anyhow::Result<i64> {
         let messages = self.messages.read().await;
         let count = messages
             .iter()

@@ -1,6 +1,7 @@
 #![allow(clippy::unwrap_used)]
+// ADR-0104: aes_decrypt_with_legacy_fallback は Phase B 完了後に削除済みのためインポートしない
 use k1s0_encryption::{
-    aes_decrypt, aes_decrypt_with_legacy_fallback, aes_encrypt, generate_aes_key,
+    aes_decrypt, aes_encrypt, generate_aes_key,
     generate_rsa_key_pair, hash_password, rsa_decrypt, rsa_encrypt, verify_password,
     EncryptionError,
 };
@@ -113,29 +114,6 @@ fn aes_different_keys_are_unique() {
     let k1 = generate_aes_key();
     let k2 = generate_aes_key();
     assert_ne!(k1, k2);
-}
-
-// C-001 Phase A: 旧形式（AAD なし）で暗号化されたデータが aes_decrypt_with_legacy_fallback で復号できることを確認する。
-#[test]
-fn aes_legacy_fallback_decrypts_old_format() {
-    let key = generate_aes_key();
-    let plaintext = b"legacy encrypted data";
-    // 旧形式: AAD なしで暗号化する
-    let encrypted = aes_encrypt(&key, plaintext, b"").unwrap();
-    // 新形式 AAD を指定してもフォールバックで復号できることを確認する
-    let decrypted = aes_decrypt_with_legacy_fallback(&key, &encrypted, b"some-new-aad").unwrap();
-    assert_eq!(decrypted, plaintext);
-}
-
-// C-001 Phase A: 新形式（AAD あり）で暗号化されたデータが aes_decrypt_with_legacy_fallback で正常に復号できることを確認する。
-#[test]
-fn aes_legacy_fallback_decrypts_new_format_with_correct_aad() {
-    let key = generate_aes_key();
-    let plaintext = b"new encrypted data";
-    let aad = b"system.auth.namespace";
-    let encrypted = aes_encrypt(&key, plaintext, aad).unwrap();
-    let decrypted = aes_decrypt_with_legacy_fallback(&key, &encrypted, aad).unwrap();
-    assert_eq!(decrypted, plaintext);
 }
 
 // ─── RSA ────────────────────────────────────────────────────────────────────

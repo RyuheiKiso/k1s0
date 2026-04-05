@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use k1s0_auth::JwksVerifier;
+use k1s0_auth::{Claims, JwksVerifier};
 use tonic::{Request, Response, Status};
 
 use crate::proto::k1s0::system::eventstore::v1::{
@@ -50,9 +50,16 @@ impl EventStoreServiceTonic {
         Self { inner, auth_state }
     }
 
-    async fn authorize<T>(&self, request: &Request<T>, action: &str) -> Result<(), Status> {
+    /// リクエストの認証・認可を行い、Claims から tenant_id を取得して返す。
+    /// 認証が設定されていない場合は "system" を返す（開発環境用フォールバック）。
+    async fn authorize_with_tenant<T>(
+        &self,
+        request: &Request<T>,
+        action: &str,
+    ) -> Result<String, Status> {
         let Some(auth_state) = &self.auth_state else {
-            return Ok(());
+            // 認証なし（開発環境）: フォールバックのテナント ID を返す
+            return Ok("system".to_string());
         };
 
         let auth_header = request
@@ -72,14 +79,15 @@ impl EventStoreServiceTonic {
         }
         let token = &auth_header[BEARER_PREFIX_LEN..];
 
-        let claims = auth_state
+        let claims: Claims = auth_state
             .verifier
             .verify_token(token)
             .await
             .map_err(|_| Status::unauthenticated("token validation failed"))?;
 
         if check_system_permission(claims.realm_roles(), action) {
-            Ok(())
+            // テナント ID を Claims から取得して返す
+            Ok(claims.tenant_id().to_string())
         } else {
             Err(Status::permission_denied(format!(
                 "insufficient permissions for action '{}': required role mapping not satisfied",
@@ -115,10 +123,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoListStreamsRequest>,
     ) -> Result<Response<ProtoListStreamsResponse>, Status> {
-        self.authorize(&request, "read").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "read").await?;
         let resp = self
             .inner
-            .list_streams(request.into_inner())
+            .list_streams(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -128,10 +137,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoAppendEventsRequest>,
     ) -> Result<Response<ProtoAppendEventsResponse>, Status> {
-        self.authorize(&request, "write").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "write").await?;
         let resp = self
             .inner
-            .append_events(request.into_inner())
+            .append_events(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -141,10 +151,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoReadEventsRequest>,
     ) -> Result<Response<ProtoReadEventsResponse>, Status> {
-        self.authorize(&request, "read").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "read").await?;
         let resp = self
             .inner
-            .read_events(request.into_inner())
+            .read_events(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -154,10 +165,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoReadEventBySequenceRequest>,
     ) -> Result<Response<ProtoReadEventBySequenceResponse>, Status> {
-        self.authorize(&request, "read").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "read").await?;
         let resp = self
             .inner
-            .read_event_by_sequence(request.into_inner())
+            .read_event_by_sequence(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -167,10 +179,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoCreateSnapshotRequest>,
     ) -> Result<Response<ProtoCreateSnapshotResponse>, Status> {
-        self.authorize(&request, "write").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "write").await?;
         let resp = self
             .inner
-            .create_snapshot(request.into_inner())
+            .create_snapshot(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -180,10 +193,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoGetLatestSnapshotRequest>,
     ) -> Result<Response<ProtoGetLatestSnapshotResponse>, Status> {
-        self.authorize(&request, "read").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "read").await?;
         let resp = self
             .inner
-            .get_latest_snapshot(request.into_inner())
+            .get_latest_snapshot(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))
@@ -193,10 +207,11 @@ impl EventStoreService for EventStoreServiceTonic {
         &self,
         request: Request<ProtoDeleteStreamRequest>,
     ) -> Result<Response<ProtoDeleteStreamResponse>, Status> {
-        self.authorize(&request, "admin").await?;
+        // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+        let tenant_id = self.authorize_with_tenant(&request, "admin").await?;
         let resp = self
             .inner
-            .delete_stream(request.into_inner())
+            .delete_stream(request.into_inner(), &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(resp))

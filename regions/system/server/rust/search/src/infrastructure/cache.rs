@@ -60,11 +60,13 @@ mod tests {
     use uuid::Uuid;
 
     fn make_index(name: &str) -> Arc<SearchIndex> {
+        // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
         Arc::new(SearchIndex {
             id: Uuid::new_v4(),
             name: name.to_string(),
             mapping: serde_json::json!({}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         })
     }
 
@@ -121,11 +123,13 @@ mod tests {
     async fn test_insert_overwrites_existing_entry() {
         let cache = IndexCache::new(100, 60);
 
+        // テスト用の v1/v2 インデックス（テナント IDは "tenant-a" を使用する）
         let idx_v1 = Arc::new(SearchIndex {
             id: Uuid::new_v4(),
             name: "products".to_string(),
             mapping: serde_json::json!({"version": 1}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         });
 
         let idx_v2 = Arc::new(SearchIndex {
@@ -133,6 +137,7 @@ mod tests {
             name: "products".to_string(),
             mapping: serde_json::json!({"version": 2}),
             created_at: chrono::Utc::now(),
+            tenant_id: "tenant-a".to_string(),
         });
 
         cache.insert(idx_v1).await;

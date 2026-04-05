@@ -31,10 +31,12 @@ pub fn run() -> Result<()> {
             // CLI-MED-002 監査対応: canonicalize でパストラバーサル攻撃を防止する。
             let canonical = std::path::Path::new(&path)
                 .canonicalize()
-                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {}: {}", path, e))?;
+                // uninlined_format_args 対応: 変数を直接フォーマット文字列に埋め込む
+                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {path}: {e}"))?;
             let canonical_str = canonical
                 .to_str()
-                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {:?}", canonical))?;
+                // unnecessary_debug_formatting 対応: PathBuf は Display が実装されているため {} を使用する
+                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display()))?;
             let errors =
                 k1s0_core::commands::validate::config_schema::validate_config_schema(canonical_str)
                     .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -52,10 +54,12 @@ pub fn run() -> Result<()> {
             // CLI-MED-002 監査対応: canonicalize でパストラバーサル攻撃を防止する。
             let canonical = std::path::Path::new(&path)
                 .canonicalize()
-                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {}: {}", path, e))?;
+                // uninlined_format_args 対応: 変数を直接フォーマット文字列に埋め込む
+                .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {path}: {e}"))?;
             let canonical_str = canonical
                 .to_str()
-                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {:?}", canonical))?;
+                // unnecessary_debug_formatting 対応: PathBuf は Display が実装されているため {} を使用する
+                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display()))?;
             let errors = k1s0_core::commands::validate::navigation::validate_navigation(canonical_str)
                 .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {

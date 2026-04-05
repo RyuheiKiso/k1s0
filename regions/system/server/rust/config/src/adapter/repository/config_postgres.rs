@@ -241,10 +241,8 @@ fn row_to_config_entry(
     let value_json = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
-                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
+                // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes()).map_err(|e| {
                     anyhow::anyhow!("設定値の復号に失敗: {}", e)
                 })?;
                 serde_json::from_slice(&plaintext).map_err(|e| {
@@ -287,10 +285,8 @@ fn row_to_service_config_entry(
     let value = if is_encrypted {
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
-                // C-001 Phase A: まず AAD あり（新形式）で復号を試みる。
-                // 旧形式（AAD なし）で暗号化されたデータはフォールバックで復号する。
-                // Phase B（バッチ再暗号化完了後）に aes_decrypt（AAD のみ）に変更すること。
-                let plaintext = k1s0_encryption::aes_decrypt_with_legacy_fallback(key, ciphertext, namespace.as_bytes()).map_err(|e| {
+                // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes()).map_err(|e| {
                     anyhow::anyhow!("サービス設定値の復号に失敗: {}", e)
                 })?;
                 serde_json::from_slice(&plaintext).map_err(|e| {

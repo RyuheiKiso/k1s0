@@ -69,12 +69,20 @@ impl NavigationGrpcClient {
         Ok(())
     }
 
+    /// ナビゲーション設定を取得する。
+    /// HIGH-015対応: bearer_token フィールドはプロトメッセージから削除済みのため、
+    /// Authorization メタデータヘッダーにトークンを設定して送信する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_navigation(&self, bearer_token: &str) -> anyhow::Result<Navigation> {
-        let request =
-            tonic::Request::new(proto::k1s0::system::navigation::v1::GetNavigationRequest {
-                bearer_token: bearer_token.to_owned(),
-            });
+        let mut request =
+            tonic::Request::new(proto::k1s0::system::navigation::v1::GetNavigationRequest {});
+        // Bearer トークンをメタデータヘッダーに設定する（空文字列の場合は設定しない）
+        if !bearer_token.is_empty() {
+            let header_value = format!("Bearer {}", bearer_token)
+                .parse()
+                .map_err(|e| anyhow::anyhow!("Authorization ヘッダーの設定に失敗: {}", e))?;
+            request.metadata_mut().insert("authorization", header_value);
+        }
 
         let resp = self
             .client

@@ -122,10 +122,12 @@ impl SessionEventPublisher for StubSessionEventPublisher {
 // ---------------------------------------------------------------------------
 // Helper: build a Session
 // ---------------------------------------------------------------------------
+/// テスト用セッション生成ヘルパー。tenant_id は "tenant-a" 固定。
 fn make_session(id: &str, user_id: &str, revoked: bool) -> Session {
     Session {
         id: id.to_string(),
         user_id: user_id.to_string(),
+        tenant_id: "tenant-a".to_string(),
         device_id: format!("device-{}", id),
         device_name: Some("Test Device".to_string()),
         device_type: Some("desktop".to_string()),
@@ -140,10 +142,12 @@ fn make_session(id: &str, user_id: &str, revoked: bool) -> Session {
     }
 }
 
+/// テスト用期限切れセッション生成ヘルパー。tenant_id は "tenant-a" 固定。
 fn make_expired_session(id: &str, user_id: &str) -> Session {
     Session {
         id: id.to_string(),
         user_id: user_id.to_string(),
+        tenant_id: "tenant-a".to_string(),
         device_id: format!("device-{}", id),
         device_name: Some("Test Device".to_string()),
         device_type: Some("desktop".to_string()),
@@ -178,6 +182,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("My Laptop".to_string()),
             device_type: Some("desktop".to_string()),
@@ -220,6 +225,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-2".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-2".to_string(),
             device_name: None,
             device_type: None,
@@ -250,6 +256,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-3".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-3".to_string(),
             device_name: None,
             device_type: None,
@@ -278,6 +285,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-4".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "  ".to_string(), // blank
             device_name: None,
             device_type: None,
@@ -312,6 +320,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-busy".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-new".to_string(),
             device_name: None,
             device_type: None,
@@ -350,6 +359,7 @@ mod create_session {
 
         let input = CreateSessionInput {
             user_id: "user-x".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-new".to_string(),
             device_name: None,
             device_type: None,
@@ -609,6 +619,8 @@ mod revoke_session {
         let result = uc
             .execute(&RevokeSessionInput {
                 id: "sess-1".to_string(),
+                jwt_jti: None,
+                jwt_remaining_secs: None,
             })
             .await;
         assert!(result.is_ok());
@@ -633,6 +645,8 @@ mod revoke_session {
         let result = uc
             .execute(&RevokeSessionInput {
                 id: "missing".to_string(),
+                jwt_jti: None,
+                jwt_remaining_secs: None,
             })
             .await;
         assert!(matches!(result, Err(SessionError::NotFound(_))));
@@ -649,6 +663,8 @@ mod revoke_session {
         let result = uc
             .execute(&RevokeSessionInput {
                 id: "sess-1".to_string(),
+                jwt_jti: None,
+                jwt_remaining_secs: None,
             })
             .await;
         assert!(matches!(result, Err(SessionError::AlreadyRevoked(_))));
@@ -808,6 +824,7 @@ mod lifecycle {
         let create_result = create_uc
             .execute(&CreateSessionInput {
                 user_id: "user-lifecycle".to_string(),
+                tenant_id: "tenant-a".to_string(),
                 device_id: "device-1".to_string(),
                 device_name: Some("Laptop".to_string()),
                 device_type: Some("desktop".to_string()),
@@ -874,6 +891,8 @@ mod lifecycle {
         revoke_uc
             .execute(&RevokeSessionInput {
                 id: session_id.clone(),
+                jwt_jti: None,
+                jwt_remaining_secs: None,
             })
             .await
             .unwrap();
@@ -893,6 +912,8 @@ mod lifecycle {
         let revoke_result = revoke_uc
             .execute(&RevokeSessionInput {
                 id: session_id.clone(),
+                jwt_jti: None,
+                jwt_remaining_secs: None,
             })
             .await;
         assert!(matches!(
@@ -931,6 +952,7 @@ mod lifecycle {
             create_uc
                 .execute(&CreateSessionInput {
                     user_id: "user-bulk".to_string(),
+                    tenant_id: "tenant-a".to_string(),
                     device_id: format!("device-{}", i),
                     device_name: None,
                     device_type: None,
@@ -959,6 +981,7 @@ mod lifecycle {
         let new_result = create_uc
             .execute(&CreateSessionInput {
                 user_id: "user-bulk".to_string(),
+                tenant_id: "tenant-a".to_string(),
                 device_id: "device-new".to_string(),
                 device_name: None,
                 device_type: None,

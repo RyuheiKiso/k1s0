@@ -15,9 +15,13 @@ use crate::domain::service::SessionDomainService;
 use crate::error::SessionError;
 use crate::infrastructure::kafka_producer::SessionEventPublisher;
 
+/// セッション作成ユースケースの入力パラメータ。
+/// tenant_id は RLS ポリシー適用とエンティティへの埋め込みに必須となる。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateSessionInput {
     pub user_id: String,
+    /// テナント識別子。JWT Claims の tenant_id から取得して渡す。
+    pub tenant_id: String,
     pub device_id: String,
     pub device_name: Option<String>,
     pub device_type: Option<String>,
@@ -91,9 +95,12 @@ impl CreateSessionUseCase {
         let session_token = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(token_bytes);
 
         let now = Utc::now();
+        // tenant_id をエンティティに埋め込む。Redis の JSON にも保存されるため
+        // 後続の read 処理でテナント情報を再取得できる
         let session = Session {
             id: Uuid::new_v4().to_string(),
             user_id: input.user_id.clone(),
+            tenant_id: input.tenant_id.clone(),
             device_id: input.device_id.clone(),
             device_name: input.device_name.clone(),
             device_type: input.device_type.clone(),
@@ -116,12 +123,14 @@ impl CreateSessionUseCase {
             .await
             .map_err(|e| SessionError::Internal(e.to_string()))?;
 
-        // 監査ログ・セッション一覧用のメタデータを保存する
+        // 監査ログ・セッション一覧用のメタデータを PostgreSQL に保存する。
+        // tenant_id を SaveSessionMetadataInput に渡し、RLS ポリシーと INSERT カラム両方に適用する
         if let Ok(user_uuid) = Uuid::parse_str(&session.user_id) {
             if let Ok(session_uuid) = Uuid::parse_str(&session.id) {
                 let meta_input = SaveSessionMetadataInput {
                     session_id: session_uuid,
                     user_id: user_uuid,
+                    tenant_id: session.tenant_id.clone(),
                     device_id: Some(input.device_id.clone()),
                     device_name: input.device_name.clone(),
                     device_type: input.device_type.clone(),
@@ -171,6 +180,7 @@ mod tests {
         );
         let input = CreateSessionInput {
             user_id: "user-1".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-1".to_string(),
             device_name: Some("my device".to_string()),
             device_type: Some("desktop".to_string()),
@@ -182,6 +192,7 @@ mod tests {
         };
         let result = uc.execute(&input).await.unwrap();
         assert_eq!(result.session.user_id, "user-1");
+        assert_eq!(result.session.tenant_id, "tenant-a");
         assert!(!result.session.id.is_empty());
         assert!(!result.session.token.is_empty());
         assert!(!result.session.revoked);
@@ -203,6 +214,7 @@ mod tests {
         );
         let input = CreateSessionInput {
             user_id: "user-2".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-2".to_string(),
             device_name: None,
             device_type: None,
@@ -228,6 +240,7 @@ mod tests {
         );
         let input = CreateSessionInput {
             user_id: "user-3".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-3".to_string(),
             device_name: None,
             device_type: None,
@@ -257,6 +270,7 @@ mod tests {
         );
         let input = CreateSessionInput {
             user_id: "user-4".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-4".to_string(),
             device_name: None,
             device_type: None,
@@ -299,6 +313,7 @@ mod tests {
         let input = CreateSessionInput {
             // user_id は UUID 形式でなければメタデータ保存パスに入らないため UUID を使用する
             user_id: "00000000-0000-0000-0000-000000000001".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-meta-err".to_string(),
             device_name: Some("test device".to_string()),
             device_type: Some("desktop".to_string()),
@@ -317,10 +332,12 @@ mod tests {
     async fn too_many_sessions() {
         let mut mock = MockSessionRepository::new();
         mock.expect_find_by_user_id().returning(|_| {
+            // テスト用にデバイス上限（10台）分のセッションを生成する
             let sessions: Vec<Session> = (0..10)
                 .map(|i| Session {
                     id: format!("sess-{}", i),
                     user_id: "user-busy".to_string(),
+                    tenant_id: "tenant-a".to_string(),
                     device_id: format!("device-{}", i),
                     device_name: None,
                     device_type: None,
@@ -347,6 +364,7 @@ mod tests {
         );
         let input = CreateSessionInput {
             user_id: "user-busy".to_string(),
+            tenant_id: "tenant-a".to_string(),
             device_id: "device-new".to_string(),
             device_name: None,
             device_type: None,

@@ -31,6 +31,7 @@ use crate::usecase::delete_stream::{DeleteStreamError, DeleteStreamInput, Delete
 use crate::usecase::get_latest_snapshot::{
     GetLatestSnapshotError, GetLatestSnapshotInput, GetLatestSnapshotUseCase,
 };
+use crate::usecase::list_streams::ListStreamsInput;
 use crate::usecase::read_event_by_sequence::{
     ReadEventBySequenceError, ReadEventBySequenceInput, ReadEventBySequenceUseCase,
 };
@@ -91,9 +92,11 @@ impl EventStoreGrpcService {
         }
     }
 
+    /// テナント分離のため、全メソッドに tenant_id を引数として受け取る（ADR-0106）。
     pub async fn list_streams(
         &self,
         req: ProtoListStreamsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoListStreamsResponse, GrpcError> {
         let pagination = req.pagination.unwrap_or_default();
         let page = if pagination.page <= 0 {
@@ -107,9 +110,17 @@ impl EventStoreGrpcService {
             pagination.page_size as u32
         };
 
+        // テナント分離のため ListStreamsUseCase を使用して tenant_id を渡す（ADR-0106）
+        let input = ListStreamsInput {
+            tenant_id: tenant_id.to_string(),
+            page,
+            page_size,
+        };
+        // stream_repo を直接使用せず、usecase 経由で tenant_id を渡す
+        // usecase が list_all を呼ぶ際に tenant_id が渡される
         let (streams, total_count) = self
             .stream_repo
-            .list_all(page, page_size)
+            .list_all(tenant_id, input.page, input.page_size)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         let has_next = (page as u64) * (page_size as u64) < total_count;
@@ -137,6 +148,7 @@ impl EventStoreGrpcService {
     pub async fn append_events(
         &self,
         req: ProtoAppendEventsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoAppendEventsResponse, GrpcError> {
         // JSONデシリアライズ失敗をサイレントに無視せず、INVALID_ARGUMENTとして伝播する
         let events: Vec<EventData> = req
@@ -162,8 +174,10 @@ impl EventStoreGrpcService {
             })
             .collect::<Result<Vec<EventData>, GrpcError>>()?;
 
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = AppendEventsInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             aggregate_type: if req.aggregate_type.trim().is_empty() {
                 None
             } else {
@@ -216,6 +230,7 @@ impl EventStoreGrpcService {
     pub async fn read_events(
         &self,
         req: ProtoReadEventsRequest,
+        tenant_id: &str,
     ) -> Result<ProtoReadEventsResponse, GrpcError> {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = req.pagination.unwrap_or_default();
@@ -229,8 +244,10 @@ impl EventStoreGrpcService {
         } else {
             pagination.page_size as u32
         };
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = ReadEventsInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             from_version: req.from_version,
             to_version: req.to_version,
             event_type: req.event_type,
@@ -268,9 +285,12 @@ impl EventStoreGrpcService {
     pub async fn read_event_by_sequence(
         &self,
         req: ProtoReadEventBySequenceRequest,
+        tenant_id: &str,
     ) -> Result<ProtoReadEventBySequenceResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = ReadEventBySequenceInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             sequence: req.sequence,
         };
 
@@ -298,6 +318,7 @@ impl EventStoreGrpcService {
     pub async fn create_snapshot(
         &self,
         req: ProtoCreateSnapshotRequest,
+        tenant_id: &str,
     ) -> Result<ProtoCreateSnapshotResponse, GrpcError> {
         // スナップショット状態のJSONデシリアライズ失敗をINVALID_ARGUMENTとして伝播する
         let state = serde_json::from_slice(&req.state).map_err(|err| {
@@ -307,8 +328,10 @@ impl EventStoreGrpcService {
             ))
         })?;
 
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = CreateSnapshotInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
             snapshot_version: req.snapshot_version,
             aggregate_type: req.aggregate_type,
             state,
@@ -333,9 +356,12 @@ impl EventStoreGrpcService {
     pub async fn get_latest_snapshot(
         &self,
         req: ProtoGetLatestSnapshotRequest,
+        tenant_id: &str,
     ) -> Result<ProtoGetLatestSnapshotResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = GetLatestSnapshotInput {
             stream_id: req.stream_id,
+            tenant_id: tenant_id.to_string(),
         };
 
         match self.get_latest_snapshot_uc.execute(&input).await {
@@ -372,11 +398,14 @@ impl EventStoreGrpcService {
     pub async fn delete_stream(
         &self,
         req: ProtoDeleteStreamRequest,
+        tenant_id: &str,
     ) -> Result<ProtoDeleteStreamResponse, GrpcError> {
+        // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let out = self
             .delete_stream_uc
             .execute(&DeleteStreamInput {
                 stream_id: req.stream_id,
+                tenant_id: tenant_id.to_string(),
             })
             .await
             .map_err(|e| match e {
@@ -515,7 +544,7 @@ mod tests {
             ],
         };
 
-        let result = svc.append_events(req).await;
+        let result = svc.append_events(req, "tenant-test").await;
         assert!(result.is_err(), "不正なJSONペイロードはエラーを返すべき");
         match result.unwrap_err() {
             GrpcError::InvalidArgument(msg) => {
@@ -542,7 +571,7 @@ mod tests {
             state: b"not-valid-json{{{".to_vec(),
         };
 
-        let result = svc.create_snapshot(req).await;
+        let result = svc.create_snapshot(req, "tenant-test").await;
         assert!(result.is_err(), "不正なJSONスナップショット状態はエラーを返すべき");
         match result.unwrap_err() {
             GrpcError::InvalidArgument(msg) => {
@@ -566,7 +595,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
+            .returning(|_, _| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
         let stream_repo = Arc::new(stream_repo);
 
         let event_repo = Arc::new(MockEventRepository::new());
@@ -623,7 +652,7 @@ mod tests {
             ],
         };
 
-        let result = svc.append_events(req).await;
+        let result = svc.append_events(req, "tenant-test").await;
         // ストリームが存在しないため StreamNotFound エラーが返るが、
         // InvalidArgument（JSONパースエラー）は返ってはいけない
         assert!(result.is_err(), "ストリームが存在しないためエラーが返るべき");

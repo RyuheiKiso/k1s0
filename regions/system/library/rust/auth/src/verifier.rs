@@ -7,6 +7,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
 
+/// JWT jti（JWT ID）失効確認コールバック型の定義。
+/// auth ライブラリはRedisに直接依存しないコールバック方式を採用し、
+/// 各サービスが自身のRedis接続を使ってjtiの失効状態を確認できるようにする。
+/// HIGH-002 対応: ログアウト後もJWTが exp まで有効な問題を修正するための拡張ポイント。
+pub type JtiRevokedChecker = Arc<dyn Fn(&str) -> bool + Send + Sync>;
+
 /// AuthError は認証・認可エラーを表す。
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
@@ -30,6 +36,11 @@ pub enum AuthError {
 
     #[error("tier access denied")]
     TierAccessDenied,
+
+    /// HIGH-002 対応: ログアウト時に jti ブラックリストに登録されたトークンのエラー。
+    /// Redis の失効リストに jti が存在する場合に返す。
+    #[error("token has been revoked")]
+    TokenRevoked,
 }
 
 /// JWKS レスポンスの構造体。
@@ -128,16 +139,20 @@ pub struct JwksVerifier {
     cache_ttl: Duration,
     /// JWKS 取得失敗時に stale キャッシュを使用できる最大期間。
     /// この期間を超えると stale キャッシュを返さずエラーを伝播する。
-    /// デフォルト: 1時間。
+    /// LOW-008 対応: デフォルトを 1時間から 15分に短縮した。
     max_stale_duration: Duration,
     cache: Arc<RwLock<Option<JwksCache>>>,
     fetcher: Arc<dyn JwksFetcher>,
+    /// HIGH-002 対応: jti 失効確認コールバック。
+    /// 設定されている場合、トークン検証後に jti が失効リストに存在するか確認する。
+    /// None の場合はチェックをスキップし、従来通りの動作となる（後方互換）。
+    jti_checker: Option<JtiRevokedChecker>,
 }
 
 impl JwksVerifier {
     /// 新しい JwksVerifier を生成する。
     /// DefaultJwksFetcher の HTTP クライアント構築に失敗した場合はエラーを返す。
-    /// max_stale_duration: JWKS 取得失敗時に stale キャッシュを許容する最大期間（デフォルト: 1時間）。
+    /// LOW-008 対応: max_stale_duration のデフォルトを 1時間から 15分に短縮。
     pub fn new(
         jwks_url: &str,
         issuer: &str,
@@ -149,10 +164,14 @@ impl JwksVerifier {
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
-            // stale キャッシュは最大 1時間まで許容する
-            max_stale_duration: Duration::from_secs(3600),
+            // LOW-008 対応: JWKS のキャッシュ stale 許容時間を 1時間から 15分に短縮してセキュリティを向上させる。
+            // 鍵漏洩時に古い公開鍵を使い続けるリスクを低減する（15分 = 900秒）。
+            max_stale_duration: Duration::from_secs(900),
             cache: Arc::new(RwLock::new(None)),
             fetcher: Arc::new(DefaultJwksFetcher::new()?),
+            // jti チェッカーはデフォルトで無効（後方互換）。
+            // with_jti_checker() で設定することで HIGH-002 対応が有効になる。
+            jti_checker: None,
         })
     }
 
@@ -169,10 +188,30 @@ impl JwksVerifier {
             issuer: issuer.to_string(),
             audience: audience.to_string(),
             cache_ttl,
-            max_stale_duration: Duration::from_secs(3600),
+            // LOW-008 対応: new() と同じく 15分に統一する
+            max_stale_duration: Duration::from_secs(900),
             cache: Arc::new(RwLock::new(None)),
             fetcher,
+            // jti チェッカーはデフォルトで無効（後方互換）。
+            jti_checker: None,
         }
+    }
+
+    /// jti 失効確認コールバックを設定するビルダーメソッド。
+    /// HIGH-002 対応: ログアウト後のJWT再利用防止のために jti ブラックリストを有効化する。
+    /// session サービスの Redis lookup パターンを参照して実装すること。
+    ///
+    /// # 使い方
+    /// ```ignore
+    /// let verifier = JwksVerifier::new(...)?
+    ///     .with_jti_checker(Arc::new(|jti| redis_is_revoked(jti)));
+    /// ```
+    ///
+    /// Phase 2: 全サービスで jti チェックを有効化する際は
+    /// session サービスの Redis lookup パターンを参考にすること。
+    pub fn with_jti_checker(mut self, checker: JtiRevokedChecker) -> Self {
+        self.jti_checker = Some(checker);
+        self
     }
 
     /// max_stale_duration を上書きする（テスト用ビルダー）。
@@ -184,6 +223,7 @@ impl JwksVerifier {
     }
 
     /// JWT トークン文字列を検証し、Claims を返す。
+    /// HIGH-002 対応: jti チェッカーが設定されている場合、失効リストを確認する。
     pub async fn verify_token(&self, token: &str) -> Result<Claims, AuthError> {
         let keys = self.get_keys().await?;
 
@@ -209,7 +249,19 @@ impl JwksVerifier {
         let data = decode::<Claims>(token, &key, &validation)
             .map_err(|e| AuthError::InvalidToken(e.to_string()))?;
 
-        Ok(data.claims)
+        let claims = data.claims;
+
+        // jti チェッカーが設定されている場合、失効リストを確認する。
+        // 署名検証・有効期限チェック後に実行し、正当なトークンのみを対象とする。
+        if let Some(ref checker) = self.jti_checker {
+            if let Some(ref jti) = claims.jti {
+                if checker(jti) {
+                    return Err(AuthError::TokenRevoked);
+                }
+            }
+        }
+
+        Ok(claims)
     }
 
     /// キャッシュから鍵を取得する。TTL を超えている場合は再取得する。

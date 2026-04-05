@@ -90,32 +90,34 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/component: grafana
-    # Prometheus が各 Tier からメトリクスを scrape するために許可する
+    # CRIT-010 対応: Prometheus が各 Tier からメトリクスを scrape するために許可する。
+    # アプリケーションサービスは HTTP ポート 8080 の /metrics エンドポイントでメトリクスを公開するため、
+    # scrape ポートを 9090（Prometheus 自身のポート）から 8080（アプリ HTTP ポート）に修正する。
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-system
       ports:
         - protocol: TCP
-          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
+          port: 8080    # CRIT-010 対応: アプリの /metrics は 8080 ポートで公開
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-business
       ports:
         - protocol: TCP
-          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
+          port: 8080    # CRIT-010 対応: アプリの /metrics は 8080 ポートで公開
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: k1s0-service
       ports:
         - protocol: TCP
-          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
+          port: 8080    # CRIT-010 対応: アプリの /metrics は 8080 ポートで公開
     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: messaging
       ports:
         - protocol: TCP
-          port: 9090    # M-03 対応: Prometheus メトリクス scrape ポートのみ許可
+          port: 8080    # CRIT-010 対応: アプリの /metrics は 8080 ポートで公開

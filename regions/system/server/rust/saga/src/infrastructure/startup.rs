@@ -386,11 +386,13 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn update_status(
         &self,
         saga_id: uuid::Uuid,
         status: &domain::entity::saga_state::SagaStatus,
         error_message: Option<String>,
+        _tenant_id: &str,
     ) -> anyhow::Result<()> {
         let mut states = self.states.write().await;
         if let Some(s) = states.iter_mut().find(|s| s.saga_id == saga_id) {
@@ -401,17 +403,21 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_id(
         &self,
         saga_id: uuid::Uuid,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<domain::entity::saga_state::SagaState>> {
         let states = self.states.read().await;
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
+    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_step_logs(
         &self,
         saga_id: uuid::Uuid,
+        _tenant_id: &str,
     ) -> anyhow::Result<Vec<domain::entity::saga_step_log::SagaStepLog>> {
         let logs = self.step_logs.read().await;
         Ok(logs

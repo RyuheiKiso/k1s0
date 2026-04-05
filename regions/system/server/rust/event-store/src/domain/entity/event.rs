@@ -25,6 +25,8 @@ impl EventMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventStream {
     pub id: String,
+    /// テナント分離のためのテナントID（ADR-0106 承認済み設計）
+    pub tenant_id: String,
     pub aggregate_type: String,
     pub current_version: i64,
     pub created_at: DateTime<Utc>,
@@ -32,10 +34,12 @@ pub struct EventStream {
 }
 
 impl EventStream {
-    pub fn new(id: String, aggregate_type: String) -> Self {
+    /// テナントIDを含む新規ストリームを生成する。
+    pub fn new(id: String, aggregate_type: String, tenant_id: String) -> Self {
         let now = Utc::now();
         Self {
             id,
+            tenant_id,
             aggregate_type,
             current_version: 0,
             created_at: now,
@@ -47,6 +51,8 @@ impl EventStream {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoredEvent {
     pub stream_id: String,
+    /// テナント分離のためのテナントID（ADR-0106 承認済み設計）
+    pub tenant_id: String,
     pub sequence: u64,
     pub event_type: String,
     pub version: i64,
@@ -57,8 +63,10 @@ pub struct StoredEvent {
 }
 
 impl StoredEvent {
+    /// テナントIDを含む新規イベントを生成する。
     pub fn new(
         stream_id: String,
+        tenant_id: String,
         sequence: u64,
         event_type: String,
         version: i64,
@@ -68,6 +76,7 @@ impl StoredEvent {
         let now = Utc::now();
         Self {
             stream_id,
+            tenant_id,
             sequence,
             event_type,
             version,
@@ -83,6 +92,8 @@ impl StoredEvent {
 pub struct Snapshot {
     pub id: String,
     pub stream_id: String,
+    /// テナント分離のためのテナントID（ADR-0106 承認済み設計）
+    pub tenant_id: String,
     pub snapshot_version: i64,
     pub aggregate_type: String,
     pub state: serde_json::Value,
@@ -90,9 +101,11 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+    /// テナントIDを含む新規スナップショットを生成する。
     pub fn new(
         id: String,
         stream_id: String,
+        tenant_id: String,
         snapshot_version: i64,
         aggregate_type: String,
         state: serde_json::Value,
@@ -100,6 +113,7 @@ impl Snapshot {
         Self {
             id,
             stream_id,
+            tenant_id,
             snapshot_version,
             aggregate_type,
             state,
@@ -176,9 +190,11 @@ mod tests {
 
     #[test]
     fn event_stream_new() {
-        let stream = EventStream::new("task-001".to_string(), "Task".to_string());
+        let stream =
+            EventStream::new("task-001".to_string(), "Task".to_string(), "t1".to_string());
         assert_eq!(stream.id, "task-001");
         assert_eq!(stream.aggregate_type, "Task");
+        assert_eq!(stream.tenant_id, "t1");
         assert_eq!(stream.current_version, 0);
         assert!(stream.created_at <= Utc::now());
     }
@@ -188,6 +204,7 @@ mod tests {
         let meta = EventMetadata::new(Some("user-001".to_string()), None, None);
         let event = StoredEvent::new(
             "task-001".to_string(),
+            "t1".to_string(),
             1,
             "TaskCreated".to_string(),
             1,
@@ -195,6 +212,7 @@ mod tests {
             meta,
         );
         assert_eq!(event.stream_id, "task-001");
+        assert_eq!(event.tenant_id, "t1");
         assert_eq!(event.sequence, 1);
         assert_eq!(event.event_type, "TaskCreated");
         assert_eq!(event.version, 1);
@@ -206,12 +224,14 @@ mod tests {
         let snap = Snapshot::new(
             "snap-001".to_string(),
             "task-001".to_string(),
+            "t1".to_string(),
             5,
             "Task".to_string(),
             serde_json::json!({"status": "completed"}),
         );
         assert_eq!(snap.id, "snap-001");
         assert_eq!(snap.stream_id, "task-001");
+        assert_eq!(snap.tenant_id, "t1");
         assert_eq!(snap.snapshot_version, 5);
         assert_eq!(snap.aggregate_type, "Task");
         assert_eq!(snap.state["status"], "completed");
@@ -251,6 +271,7 @@ mod tests {
         let meta = EventMetadata::new(Some("user-001".to_string()), None, None);
         let event = StoredEvent::new(
             "task-001".to_string(),
+            "t1".to_string(),
             1,
             "TaskCreated".to_string(),
             1,
@@ -268,6 +289,7 @@ mod tests {
         let meta = EventMetadata::new(None, None, None);
         let event = StoredEvent::new(
             "s-1".to_string(),
+            "t1".to_string(),
             1,
             "Test".to_string(),
             5,

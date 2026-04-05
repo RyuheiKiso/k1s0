@@ -6,6 +6,8 @@ use crate::domain::repository::{EventStreamRepository, SnapshotRepository};
 #[derive(Debug, Clone)]
 pub struct CreateSnapshotInput {
     pub stream_id: String,
+    /// テナント分離のためのテナント ID（Claims から取得して設定する）
+    pub tenant_id: String,
     pub snapshot_version: i64,
     pub aggregate_type: String,
     pub state: serde_json::Value,
@@ -50,9 +52,10 @@ impl CreateSnapshotUseCase {
         &self,
         input: &CreateSnapshotInput,
     ) -> Result<CreateSnapshotOutput, CreateSnapshotError> {
+        // テナント分離のため tenant_id を渡して RLS を有効化する（ADR-0106）
         let stream = self
             .stream_repo
-            .find_by_id(&input.stream_id)
+            .find_by_id(&input.tenant_id, &input.stream_id)
             .await
             .map_err(|e| CreateSnapshotError::Internal(e.to_string()))?;
 
@@ -66,10 +69,12 @@ impl CreateSnapshotUseCase {
             )));
         }
 
+        // テナント ID を含むスナップショットエンティティを生成する（ADR-0106）
         let snap_id = format!("snap_{}", uuid::Uuid::new_v4().simple());
         let snapshot = Snapshot::new(
             snap_id.clone(),
             input.stream_id.clone(),
+            input.tenant_id.clone(),
             input.snapshot_version,
             input.aggregate_type.clone(),
             input.state.clone(),
@@ -101,6 +106,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 5,
             created_at: chrono::Utc::now(),
@@ -111,6 +117,7 @@ mod tests {
     fn make_input() -> CreateSnapshotInput {
         CreateSnapshotInput {
             stream_id: "order-001".to_string(),
+            tenant_id: "tenant-test".to_string(),
             snapshot_version: 3,
             aggregate_type: "Order".to_string(),
             state: serde_json::json!({"status": "shipped"}),
@@ -124,7 +131,7 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         snapshot_repo.expect_create().returning(|_| Ok(()));
 
         let uc = CreateSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
@@ -141,7 +148,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = CreateSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let result = uc.execute(&make_input()).await;
@@ -159,7 +166,7 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
 
         let uc = CreateSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let mut input = make_input();
@@ -179,7 +186,7 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = CreateSnapshotUseCase::new(Arc::new(stream_repo), Arc::new(snapshot_repo));
         let result = uc.execute(&make_input()).await;

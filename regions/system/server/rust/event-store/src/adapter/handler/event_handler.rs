@@ -1,4 +1,4 @@
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::Json;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -15,6 +15,15 @@ use crate::usecase::list_events::{ListEventsError, ListEventsInput};
 use crate::usecase::list_streams::{ListStreamsError, ListStreamsInput};
 use crate::usecase::read_event_by_sequence::{ReadEventBySequenceError, ReadEventBySequenceInput};
 use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
+
+/// JWT クレームからテナント ID を抽出するヘルパー。
+/// クレームが存在しない場合（開発環境など）はフォールバック値 "system" を返す。
+fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
+    claims
+        .as_ref()
+        .map(|ext| ext.0.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string())
+}
 
 // --- Request / Response DTOs ---
 
@@ -272,8 +281,12 @@ fn to_stream_response(stream: &crate::domain::entity::event::EventStream) -> Str
 )]
 pub async fn append_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<AppendEventsRequest>,
 ) -> Result<(axum::http::StatusCode, Json<AppendEventsResponse>), EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let events: Vec<EventData> = req
         .events
         .into_iter()
@@ -290,6 +303,7 @@ pub async fn append_events(
 
     let input = AppendEventsInput {
         stream_id: req.stream_id,
+        tenant_id,
         aggregate_type: req.aggregate_type,
         events,
         expected_version: req.expected_version,
@@ -356,11 +370,16 @@ pub async fn append_events(
 )]
 pub async fn read_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
     Query(query): Query<ReadEventsQuery>,
 ) -> Result<Json<ReadEventsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = ReadEventsInput {
         stream_id,
+        tenant_id,
         from_version: query.from_version,
         to_version: query.to_version,
         event_type: query.event_type,
@@ -410,10 +429,15 @@ pub async fn read_events(
 )]
 pub async fn read_event_by_sequence(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path((stream_id, sequence)): Path<(String, u64)>,
 ) -> Result<Json<StoredEventResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = ReadEventBySequenceInput {
         stream_id,
+        tenant_id,
         sequence,
     };
 
@@ -453,9 +477,14 @@ pub async fn read_event_by_sequence(
 )]
 pub async fn list_events(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Query(query): Query<ListEventsQuery>,
 ) -> Result<Json<ListEventsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = ListEventsInput {
+        tenant_id,
         event_type: query.event_type,
         page: query.page,
         page_size: query.page_size,
@@ -497,9 +526,14 @@ pub async fn list_events(
 )]
 pub async fn list_streams(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Query(query): Query<ListStreamsQuery>,
 ) -> Result<Json<ListStreamsResponse>, EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let input = ListStreamsInput {
+        tenant_id,
         page: query.page,
         page_size: query.page_size,
     };
@@ -538,9 +572,16 @@ pub async fn list_streams(
 )]
 pub async fn get_snapshot(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
 ) -> Result<Json<SnapshotResponse>, EventStoreError> {
-    let input = GetLatestSnapshotInput { stream_id };
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
+    let input = GetLatestSnapshotInput {
+        stream_id,
+        tenant_id,
+    };
 
     let snapshot = state
         .get_latest_snapshot_uc
@@ -580,12 +621,17 @@ pub async fn get_snapshot(
 )]
 pub async fn create_snapshot(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
     Json(req): Json<CreateSnapshotRequest>,
 ) -> Result<(axum::http::StatusCode, Json<SnapshotResponse>), EventStoreError> {
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
     let response_state = req.state.clone();
     let input = CreateSnapshotInput {
         stream_id,
+        tenant_id,
         snapshot_version: req.snapshot_version,
         aggregate_type: req.aggregate_type,
         state: req.state,
@@ -628,9 +674,16 @@ pub async fn create_snapshot(
 )]
 pub async fn delete_stream(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Path(stream_id): Path<String>,
 ) -> Result<impl axum::response::IntoResponse, EventStoreError> {
-    let input = DeleteStreamInput { stream_id };
+    // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
+    let tenant_id = extract_tenant_id(&claims);
+
+    let input = DeleteStreamInput {
+        stream_id,
+        tenant_id,
+    };
 
     state
         .delete_stream_uc
@@ -715,6 +768,7 @@ mod tests {
     fn make_stream() -> EventStream {
         EventStream {
             id: "order-001".to_string(),
+            tenant_id: "system".to_string(),
             aggregate_type: "Order".to_string(),
             current_version: 3,
             created_at: chrono::Utc::now(),
@@ -725,6 +779,7 @@ mod tests {
     fn make_event(seq: u64) -> StoredEvent {
         StoredEvent::new(
             "order-001".to_string(),
+            "system".to_string(),
             seq,
             "OrderPlaced".to_string(),
             seq as i64,
@@ -760,7 +815,7 @@ mod tests {
         let mut stream_repo = MockEventStreamRepository::new();
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         let state = make_test_state(
             stream_repo,
             MockEventRepository::new(),
@@ -787,13 +842,15 @@ mod tests {
         let mut event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo.expect_create().returning(|_| Ok(()));
-        stream_repo.expect_update_version().returning(|_, _| Ok(()));
+        stream_repo
+            .expect_update_version()
+            .returning(|_, _, _| Ok(()));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        event_repo.expect_append().returning(|sid, events| {
+            .returning(|_, _, _| Ok((vec![], 0)));
+        event_repo.expect_append().returning(|_, sid, events| {
             Ok(events
                 .into_iter()
                 .enumerate()
@@ -806,7 +863,7 @@ mod tests {
         });
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -847,16 +904,16 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         event_repo
             .expect_find_by_stream()
-            .returning(|_, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
+            .returning(|_, _, _, _, _, _, _| Ok((vec![make_event(1), make_event(2)], 2)));
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![], 0)));
+            .returning(|_, _, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -880,10 +937,10 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -909,7 +966,7 @@ mod tests {
 
         event_repo
             .expect_find_all()
-            .returning(|_, _, _| Ok((vec![make_event(1)], 1)));
+            .returning(|_, _, _, _| Ok((vec![make_event(1)], 1)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -935,7 +992,7 @@ mod tests {
 
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![make_stream()], 1)));
+            .returning(|_, _, _| Ok((vec![make_stream()], 1)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -961,14 +1018,15 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        snapshot_repo.expect_find_latest().returning(|_| {
+            .returning(|_, _, _| Ok((vec![], 0)));
+        snapshot_repo.expect_find_latest().returning(|_, _| {
             Ok(Some(Snapshot::new(
                 "snap_001".to_string(),
                 "order-001".to_string(),
+                "system".to_string(),
                 3,
                 "Order".to_string(),
                 serde_json::json!({"status": "shipped"}),
@@ -999,11 +1057,13 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
-        snapshot_repo.expect_find_latest().returning(|_| Ok(None));
+            .returning(|_, _, _| Ok((vec![], 0)));
+        snapshot_repo
+            .expect_find_latest()
+            .returning(|_, _| Ok(None));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);
@@ -1029,10 +1089,10 @@ mod tests {
 
         stream_repo
             .expect_find_by_id()
-            .returning(|_| Ok(Some(make_stream())));
+            .returning(|_, _| Ok(Some(make_stream())));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
         snapshot_repo.expect_create().returning(|_| Ok(()));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
@@ -1068,10 +1128,10 @@ mod tests {
         let event_repo = MockEventRepository::new();
         let snapshot_repo = MockSnapshotRepository::new();
 
-        stream_repo.expect_find_by_id().returning(|_| Ok(None));
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None));
         stream_repo
             .expect_list_all()
-            .returning(|_, _| Ok((vec![], 0)));
+            .returning(|_, _, _| Ok((vec![], 0)));
 
         let state = make_test_state(stream_repo, event_repo, snapshot_repo);
         let app = handler::router(state);

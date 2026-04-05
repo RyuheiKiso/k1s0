@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Extension, Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
@@ -164,11 +164,15 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
 /// POST /api/v1/secrets
 pub async fn create_secret(
     State(state): State<AppState>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<SetSecretRequest>,
 ) -> impl IntoResponse {
+    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: req.path.clone(),
         data: req.data,
+        tenant_id,
     };
 
     match state.set_secret_uc.execute(&input).await {
@@ -190,9 +194,13 @@ pub async fn get_secret(
     Path(key): Path<String>,
     Query(query): Query<SecretVersionQuery>,
 ) -> impl IntoResponse {
+    // MED-011 監査対応: tenant_id を access_log に伝播する
+    // 現在 vault は key_path による論理分離（ADR-0056）を採用しており、tenant_id は None で許容する
+    // 将来フェーズ3（key_path prefix 必須化）対応時に JWT Claims からの tenant_id 抽出を追加する
     let input = GetSecretInput {
         path: key.clone(),
         version: query.version,
+        tenant_id: None,
     };
 
     match state.get_secret_uc.execute(&input).await {
@@ -225,11 +233,15 @@ pub async fn get_secret(
 pub async fn update_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<UpdateSecretRequest>,
 ) -> impl IntoResponse {
+    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: key.clone(),
         data: req.data,
+        tenant_id,
     };
 
     match state.set_secret_uc.execute(&input).await {
@@ -249,10 +261,14 @@ pub async fn update_secret(
 pub async fn delete_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
+    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
     let input = DeleteSecretInput {
         path: key.clone(),
         versions: vec![], // delete all versions
+        tenant_id,
     };
 
     match state.delete_secret_uc.execute(&input).await {
@@ -291,9 +307,11 @@ pub async fn get_secret_metadata(
     State(state): State<AppState>,
     Path(key): Path<String>,
 ) -> impl IntoResponse {
+    // MED-011 監査対応: tenant_id を access_log に伝播する（将来フェーズ3で JWT Claims 抽出予定）
     let input = GetSecretInput {
         path: key.clone(),
         version: None,
+        tenant_id: None,
     };
 
     match state.get_secret_uc.execute(&input).await {
@@ -375,11 +393,15 @@ pub async fn list_audit_logs(
 pub async fn rotate_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
+    claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
+    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
     let input = RotateSecretInput {
         path: key.clone(),
         data: req,
+        tenant_id,
     };
 
     match state.rotate_secret_uc.execute(&input).await {

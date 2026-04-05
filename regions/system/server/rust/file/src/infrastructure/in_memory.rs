@@ -30,7 +30,7 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
 
     async fn find_all(
         &self,
-        _tenant_id: Option<String>,
+        tenant_id: Option<String>,
         uploaded_by: Option<String>,
         content_type: Option<String>,
         tag: Option<(String, String)>,
@@ -38,10 +38,16 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         page_size: u32,
     ) -> anyhow::Result<(Vec<FileMetadata>, u64)> {
         let files = self.files.read().await;
-        // C-01 監査対応: tenant_id は DB に存在しないためフィルタを適用しない
+        // migration 003 対応: tenant_id フィールドによるフィルタを有効化する
         let mut filtered: Vec<FileMetadata> = files
             .values()
             .filter(|f| {
+                // テナント境界を強制する（tenant_id が Some の場合のみフィルタ）
+                if let Some(ref tid) = tenant_id {
+                    if f.tenant_id != *tid {
+                        return false;
+                    }
+                }
                 if let Some(ref uploaded_by) = uploaded_by {
                     if f.uploaded_by != *uploaded_by {
                         return false;
@@ -89,8 +95,8 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         Ok(files.remove(id).is_some())
     }
 
-    /// CRIT-01 監査対応: テナントIDと所有者IDの条件を追加してアトミックな認可チェックを実現する（インメモリ実装）。
-    /// storage_path のプレフィックスと uploaded_by を確認してから削除する。
+    /// テナント分離対応: tenant_id フィールドと storage_path の両方でテナント境界を確認する（migration 003 対応）
+    /// expected_uploader が Some の場合は uploaded_by も確認してアトミックな認可チェックを実現する。
     async fn delete_with_tenant_check(
         &self,
         id: String,
@@ -98,12 +104,11 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         expected_uploader: Option<String>,
     ) -> anyhow::Result<bool> {
         let mut files = self.files.write().await;
-        // 対象ファイルのテナントID・所有者IDが条件に一致するか確認する
-        // map_or(false, ...) よりも is_some_and が意図を明確に表現する（clippy::map_or 対応）
+        // tenant_id フィールドと storage_path プレフィックスの両方でテナント境界を確認する（二重防衛）
         let matches = files.get(&id).is_some_and(|f| {
-            let tenant_ok = f.storage_path.starts_with(&tenant_id_prefix);
+            let tenant_ok = f.tenant_id == tenant_id_prefix
+                && f.storage_path.starts_with(&tenant_id_prefix);
             // expected_uploader が None の場合は所有者チェックをスキップし、Some の場合のみ一致検証する
-            // map_or(true, ...) は None のとき true を返すため、is_none_or で意図を明確に表現する
             let uploader_ok = expected_uploader
                 .as_deref()
                 .is_none_or(|uploader| f.uploaded_by == uploader);

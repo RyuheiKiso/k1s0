@@ -300,14 +300,21 @@ impl SagaRepository for SagaPostgresRepository {
     }
 
     /// 未完了Sagaを検索する。一度に大量のSagaをロードしないようLIMITで件数を制限する。
-    /// CRIT-005 注意: このメソッドは起動時リカバリ目的のため全テナント横断で実行する。
-    /// tenant_id セッション変数を設定しないので RLS は NULL 比較になり全行がフィルタされる。
-    /// 将来的には管理者ロール（RLS バイパス）の DB 接続を使用する実装に移行すること。
+    ///
+    /// HIGH-008 / ADR-0106 対応: このメソッドは起動時リカバリ目的のため全テナント横断で実行する。
+    /// 設計上の意図:
+    ///   - `set_config('app.current_tenant_id', ...)` は呼び出さない。これは意図的な設計である。
+    ///   - RLS を通過するため、このメソッドを呼び出す DB ロールは
+    ///     `BYPASS ROW LEVEL SECURITY` 権限を持つ管理者専用ロールでなければならない。
+    ///   - 接続プール（self.pool）は起動時に管理者ロールの認証情報で構成すること。
+    ///     通常のサービスロール（RLS 適用済み）で呼び出した場合は全行がフィルタされ
+    ///     リカバリが機能しないため、Helm / Secret の設定で必ず管理者ロールを使用すること。
+    ///   - 将来的には ADR-0106 の方針に従い、管理者専用 DB コネクションプールを
+    ///     別途構築してこのメソッドに渡す実装に移行する。
     async fn find_incomplete(&self) -> anyhow::Result<Vec<SagaState>> {
-        // 全テナント横断アクセスのため一時的に RLS をセッション変数で回避する
-        // app.current_tenant_id を空文字列に設定すると NULL 比較となりフィルタされるため、
-        // 代わりに FORCE RLS を無効化したサービスロールを使用する想定だが
-        // 現実装では pool 接続ユーザーが既に RLS バイパス権限を持つ DB ロールを使用していることを前提とする
+        // 全テナント横断アクセスのため set_config は呼ばない（意図的設計）
+        // 接続ユーザーが BYPASS ROW LEVEL SECURITY 権限を持つ管理者ロールを使用することを前提とする
+        // （通常のサービスロールで呼び出した場合は全行フィルタされリカバリが機能しないため注意）
         let rows = sqlx::query_as::<_, SagaStateRow>(
             r#"
             SELECT id, workflow_name, current_step, status, payload, correlation_id, initiated_by, error_message, tenant_id, created_at, updated_at

@@ -44,6 +44,10 @@ pub fn merge_standard_routes(
     }
 }
 
+// MED-001 対応: healthz エンドポイントは常に {"status": "ok"} を返す。
+// ADR-0068 準拠: /healthz は liveness probe（プロセス死活確認）として使用する。
+// readyz エンドポイントは CompositeHealthChecker による依存サービス確認を行い、
+// HealthResponse 構造体（k1s0_health クレート）を返す。
 async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }

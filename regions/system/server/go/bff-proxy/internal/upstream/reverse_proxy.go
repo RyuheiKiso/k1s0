@@ -102,6 +102,12 @@ func (p *ReverseProxy) ssrfSafeDialContext(ctx context.Context, network, addr st
 		return nil, fmt.Errorf("SSRF防御: DNS解決エラー (%s): %w", host, err)
 	}
 
+	// LOW-007 対応: DNS 解決結果が 0 件の場合のインデックス境界外アクセス（パニック）を防ぐ。
+	// LookupHost はエラーなしで空スライスを返すことがあるため、明示的に長さを確認する。
+	if len(addrs) == 0 {
+		return nil, fmt.Errorf("DNS解決失敗: %s のアドレスが見つかりません", host)
+	}
+
 	// 解決されたすべての IP を検証する（DNS リバインディング対策を含む）
 	for _, resolvedAddr := range addrs {
 		ip := net.ParseIP(resolvedAddr)
@@ -123,7 +129,7 @@ func (p *ReverseProxy) ssrfSafeDialContext(ctx context.Context, network, addr st
 		}
 	}
 
-	// 検証済みの IP:port で接続する
+	// 検証済みの IP:port で接続する（addrs[0] は上記の長さチェックにより安全）
 	baseDialer := &net.Dialer{Timeout: 30 * time.Second}
 	return baseDialer.DialContext(ctx, network, net.JoinHostPort(addrs[0], port))
 }
