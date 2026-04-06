@@ -647,6 +647,18 @@
   "adminEventsDetailsEnabled": true,
   "users": [
     {
+      "username": "service-account-auth-rust-admin",
+      "enabled": true,
+      "serviceAccountClientId": "auth-rust-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "manage-clients"
+        ]
+      }
+    },
+    {
       "username": "dev-admin",
       "email": "dev-admin@k1s0.dev",
       "emailVerified": true,

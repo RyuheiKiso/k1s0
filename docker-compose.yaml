@@ -280,13 +280,16 @@ services:
       - ALL
     command: ["9101", "/etc/jmx-exporter/kafka-jmx.yml"]
     volumes:
-      - ./infra/local/prometheus/kafka-jmx.yml:/etc/jmx-exporter/kafka-jmx.yml:ro
+      # MED-012 監査対応: kafka-jmx.yml を infra/docker/prometheus/ に統合した
+      - ./infra/docker/prometheus/kafka-jmx.yml:/etc/jmx-exporter/kafka-jmx.yml:ro
     ports:
       # JMX Exporter のメトリクスポートはホストのループバックにのみバインドする
       - "127.0.0.1:9101:9101"
     healthcheck:
-      # HIGH-001 対応: JMX Exporter イメージ（JRE ベース）に wget が含まれないため curl に変更する
-      test: ["CMD-SHELL", "curl -sf http://localhost:9101/metrics > /dev/null || exit 1"]
+      # HIGH-002 監査対応: JMX Exporter イメージ（JRE ベース）に curl/wget が含まれないため
+      # bash の組み込み TCP 接続チェック（/dev/tcp）を使用する。
+      # curl/wget ともに存在しない JRE slim イメージでも動作する。
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/9101' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -867,8 +870,9 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${EVENT_MONITOR_REST_HOST_PORT:-8095}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${EVENT_MONITOR_GRPC_HOST_PORT:-50200}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      # .env.dev で上書き可。排除範囲確認: netsh int ipv4 show excludedportrange protocol=tcp
+      - "127.0.0.1:${EVENT_MONITOR_GRPC_HOST_PORT:-50400}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -943,8 +947,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50201}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      - "127.0.0.1:${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50401}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -969,8 +973,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${NAVIGATION_REST_HOST_PORT:-8099}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${NAVIGATION_GRPC_HOST_PORT:-50202}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      - "127.0.0.1:${NAVIGATION_GRPC_HOST_PORT:-50402}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1022,8 +1026,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${POLICY_REST_HOST_PORT:-8101}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${POLICY_GRPC_HOST_PORT:-50203}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      - "127.0.0.1:${POLICY_GRPC_HOST_PORT:-50403}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1074,8 +1078,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${RULE_ENGINE_REST_HOST_PORT:-8103}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${RULE_ENGINE_GRPC_HOST_PORT:-50204}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      - "127.0.0.1:${RULE_ENGINE_GRPC_HOST_PORT:-50404}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1177,8 +1181,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${SESSION_REST_HOST_PORT:-8106}:8080"
-      # Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040, HIGH-1 監査対応）
-      - "127.0.0.1:${SESSION_GRPC_HOST_PORT:-50205}:50051"
+      # CRIT-002 監査対応: Hyper-V 動的除外範囲（50174-50273 / 50279-50378）を回避するため 50400 帯に変更
+      - "127.0.0.1:${SESSION_GRPC_HOST_PORT:-50405}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1557,7 +1561,18 @@ services:
       start_period: 30s
 
   # ============================================================
-  # 可観測性
+  # 可観測性 (profiles: [observability])
+  # MED-003 監査対応: observability プロファイルは infra プロファイルとの
+  # 同時起動が必須。Prometheus は Kafka JMX Exporter など infra サービスを
+  # スクレイプするため、infra サービスが起動していないと targets が DOWN となる。
+  #
+  #   正しい例:
+  #     docker compose --profile infra --profile observability up -d
+  #     just local-up  （推奨: .env.dev + 全プロファイルを自動適用）
+  #
+  #   誤った例:
+  #     docker compose --profile observability up -d  ← infra サービスなしでは不完全
+  #
   # NOTE: ローカル開発環境では Promtail を省略している。
   # Kubernetes 環境では Promtail（DaemonSet）がログを収集し Loki に転送するが、
   # ローカルでは各コンテナの stdout を直接 docker compose logs で確認する。

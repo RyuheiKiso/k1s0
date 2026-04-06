@@ -114,6 +114,13 @@
 | [ADR-0106](./0106-event-store-tenant-isolation.md) | event-store テナント分離実装 | 承認済み |
 | [ADR-0107](./0107-s2s-jwt-rs256-migration.md) | サービス間 JWT の RS256 非対称鍵への移行 | 承認済み |
 | [ADR-0108](./0108-vault-auth-terraform-single-source.md) | Vault 認証設定の Terraform 一元管理（ConfigMap 廃止） | 承認済み |
+| [ADR-0109](./0109-vault-eventmonitor-maintenance-tenant-isolation.md) | vault-db / event-monitor-db / master-maintenance-db のテナント分離除外設計 | 承認済み |
+| [ADR-0110](./0110-outbox-bypassrls-publisher-role.md) | outbox_events テーブルの BYPASSRLS ロール移行ロードマップ | 承認済み（実装は将来フェーズ） |
+| [ADR-0111](./0111-flutter-certificate-pinning.md) | Flutter モバイルクライアントの証明書ピンニング実装方針 | 承認済み |
+| [ADR-0112](./0112-external-audit-remediation-2026-04-06.md) | 外部技術監査対応（2026-04-06） | 承認済み |
+| [ADR-0113](./0113-tauri-csp-unsafe-inline.md) | Tauri GUI の CSP に `unsafe-inline` を許可する | 承認済み |
+| [ADR-0114](./0114-grpc-port-binding-strategy.md) | gRPC ポートバインド戦略（Windows Hyper-V 動的排除範囲への対応） | 承認済み |
+| [ADR-0115](./0115-migration-execution-strategy.md) | DB マイグレーション実行戦略（外部実行 vs 起動時自動実行） | 承認済み |
 
 ## ADR の追加方法
 

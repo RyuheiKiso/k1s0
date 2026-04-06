@@ -1,0 +1,85 @@
+# Kafka JMX Exporter 設定ファイル（ローカル開発環境用）
+#
+# LOW-002 監査対応: JMX Exporter スタンドアロンモードで Kafka の JMX メトリクスを
+# Prometheus 互換のフォーマットで公開する。
+# 接続先: kafka コンテナの JMX ポート 9999
+#
+# 使用方法:
+#   docker-compose.yaml の kafka-jmx-exporter サービスにマウントして使用。
+#   ポート 9101 で HTTP サーバーが起動し /metrics を公開する。
+#
+# 参照: https://github.com/prometheus/jmx_exporter
+
+---
+# JMX 接続先（docker-compose ネットワーク内のサービス名で解決）
+hostPort: kafka:9999
+
+# CRIT-009 対応: JMX 認証有効化に伴い認証情報を追加する。
+# jmx_monitor ユーザーは readonly 権限でメトリクス取得のみ許可される。
+# 本番環境では Vault やシークレットマネージャーでパスワードを管理すること。
+username: jmx_monitor
+password: monitorpassword
+
+# 出力名を小文字に統一する（Prometheus 命名規約に準拠）
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+
+# 起動遅延: Kafka が完全に起動するまでの待機秒数
+startDelaySeconds: 30
+
+rules:
+  # Kafka ブローカーメトリクス: メッセージレートとバイトレート
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(MessagesInPerSec|BytesInPerSec|BytesOutPerSec|FailedProduceRequestsPerSec|FailedFetchRequestsPerSec), topic=(.+)><>OneMinuteRate'
+    name: kafka_server_broker_topic_metrics_$1_1min_rate
+    type: GAUGE
+    labels:
+      topic: "$2"
+
+  # Kafka ブローカー全体のメッセージレート
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=(MessagesInPerSec|BytesInPerSec|BytesOutPerSec)><>OneMinuteRate'
+    name: kafka_server_broker_topic_metrics_$1_1min_rate_total
+    type: GAUGE
+
+  # リクエストメトリクス: プロデューサー/コンシューマーリクエストのレイテンシ
+  - pattern: 'kafka.network<type=RequestMetrics, name=(TotalTimeMs|RequestQueueTimeMs|LocalTimeMs|RemoteTimeMs|ResponseQueueTimeMs|ResponseSendTimeMs), request=(.+)><>(50thPercentile|75thPercentile|95thPercentile|99thPercentile|999thPercentile|Mean)'
+    name: kafka_network_request_metrics_$1_$3
+    type: GAUGE
+    labels:
+      request: "$2"
+
+  # ログオフセット: パーティションのオフセット情報
+  - pattern: 'kafka.log<type=LogEndOffsetLag, name=LogEndOffsetLag, topic=(.+), partition=(.+)><>Value'
+    name: kafka_log_log_end_offset_lag
+    type: GAUGE
+    labels:
+      topic: "$1"
+      partition: "$2"
+
+  # コントローラーメトリクス: アクティブなコントローラー数
+  - pattern: 'kafka.controller<type=KafkaController, name=(ActiveControllerCount|OfflinePartitionsCount|PreferredReplicaImbalanceCount)><>Value'
+    name: kafka_controller_$1
+    type: GAUGE
+
+  # ReplicaFetcherManager: レプリカ同期の遅れ
+  - pattern: 'kafka.server<type=ReplicaFetcherManager, name=MaxLag, clientId=(.+)><>Value'
+    name: kafka_server_replica_fetcher_manager_max_lag
+    type: GAUGE
+    labels:
+      client_id: "$1"
+
+  # パーティション数
+  - pattern: 'kafka.server<type=ReplicaManager, name=(PartitionCount|LeaderCount|UnderReplicatedPartitions|IsrShrinksPerSec|IsrExpandsPerSec)><>(Value|OneMinuteRate)'
+    name: kafka_server_replica_manager_$1
+    type: GAUGE
+
+  # JVM メモリ使用量
+  - pattern: 'java.lang<type=Memory><(HeapMemoryUsage|NonHeapMemoryUsage)>(\w+)'
+    name: jvm_memory_$1_$2
+    type: GAUGE
+
+  # JVM ガーベージコレクション
+  - pattern: 'java.lang<type=GarbageCollector, name=(.+)><>(CollectionCount|CollectionTime)'
+    name: jvm_gc_$2
+    type: COUNTER
+    labels:
+      gc: "$1"

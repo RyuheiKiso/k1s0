@@ -56,9 +56,30 @@ PrometheusRule は各サービスのアラートルールを定義します。
 | `infra/observability/prometheus/alerts/slo-burn-rate-alerts.yaml` | SLO バーンレートアラート |
 | `infra/observability/prometheus/alerts/slo-recording-rules.yaml` | SLO 記録ルール |
 
+## Prometheus UP と readyz の乖離に関する注意（LOW-001 対応）
+
+Prometheus の `up` メトリクス（スクレイプ成功）とサービスの `/readyz` エンドポイントは独立した確認手段であり、**乖離が発生しうる**ことに注意すること。
+
+| 状態 | `up` | `/readyz` | 説明 |
+|------|------|-----------|------|
+| 正常 | 1 | 200 healthy | 完全に正常 |
+| スクレイプ失敗のみ | 0 | 200 healthy | ネットワーク問題または `/metrics` エンドポイント障害。サービス自体は稼働中 |
+| readyz のみ失敗 | 1 | 503 unhealthy | DB 接続障害等。メトリクスは取得できるが K8s が Pod を再起動中 |
+| degraded | 1 | 200 degraded | 補助機能（cron等）障害。スクレイプは正常、readyz は 200 だが Prometheus アラートで通知 |
+
+**推奨アラート設計**:
+- `up == 0` が 5 分継続: スクレイプ失敗アラート
+- readyz の `status == "degraded"` を Prometheus で収集してアラート化（cron 停止の検知）
+- `up == 1` でも Pod が頻繁に再起動している場合は `kube_pod_container_status_restarts_total` で確認
+
+**`/readyz` の直接監視**: Prometheus の `probe` (`blackbox-exporter`) を使って `/readyz` のレスポンスボディをチェックし、`status: "healthy"` / `"degraded"` / `"unhealthy"` を区別することを推奨する。
+
+---
+
 ## 変更履歴
 
 | 日付 | 対応内容 |
 |---|---|
 | 2026-03-24 | 外部監査 H-02 対応: session, tenant, workflow, notification, vault の ServiceMonitor を追加 |
 | 2026-03-24 | 外部監査 H-02 対応: session, saga, bff-proxy, tenant, workflow, dlq-manager, notification の PrometheusRule を追加 |
+| 2026-04-06 | LOW-001 対応: Prometheus UP と readyz 乖離のパターンと推奨アラート設計を追記 |

@@ -186,6 +186,8 @@ Uint8List rsaDecrypt(String privateKeyPem, Uint8List ciphertext);
 
 > Dart 実装の `hashPassword` / `verifyPassword` は同期関数である点に注意。TypeScript 版は非同期（`Promise`）だが、Dart 版は `Future` を返さない。
 
+> **HIGH-010 監査対応**: Dart 実装の RSA 鍵長は **3072-bit** に統一済み（NIST SP 800-131A 準拠）。`RSAKeyGeneratorParameters(BigInt.from(65537), 3072, 64)` として実装されていること（`regions/system/library/dart/encryption/lib/src/rsa.dart` 参照）。TypeScript 実装も 3072-bit で統一されており、クロスプラットフォームでの鍵長一貫性が保たれている。2048-bit は使用禁止。
+
 **使用例**:
 
 ```dart

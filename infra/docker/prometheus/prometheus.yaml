@@ -7,8 +7,13 @@ rule_files:
   - /etc/prometheus/alerting_rules.yaml
 
 scrape_configs:
-  # Prometheus 自身
+  # Prometheus 自身のメトリクス
+  # HIGH-003 監査対応: web.yml で Basic Auth が有効化されているため、
+  # セルフスクレイプにも basic_auth を設定して 401 エラーを防止する。
   - job_name: prometheus
+    basic_auth:
+      username: prometheus_admin
+      password: prometheus_admin
     static_configs:
       - targets: ["localhost:9090"]
 
@@ -53,9 +58,11 @@ scrape_configs:
     metrics_path: /metrics
 
   # bff-proxy (Go)
+  # MED-001 監査対応: bff-proxy は /metrics を公開ポート(8080)ではなく
+  # 内部ポート(9090)で提供する（HIGH-GO-001 対応済み）。Prometheus はポート 9090 をスクレイプすること。
   - job_name: bff-proxy-go
     static_configs:
-      - targets: ["bff-proxy:8080"]
+      - targets: ["bff-proxy:9090"]
         labels:
           service: bff-proxy
           tier: system

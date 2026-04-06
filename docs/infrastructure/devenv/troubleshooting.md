@@ -184,7 +184,72 @@ cp .env.example .env
 
 ---
 
-## 5. Docker グループ権限
+## 5. Windows Hyper-V によるポート排除（gRPC ポート競合）
+
+### 症状
+
+- `docker compose up` で gRPC サービス（event-monitor/master-maintenance/navigation/policy/rule-engine/session）のポートが `bind: address already in use` になる
+- Windows の Hyper-V が特定ポート帯を動的に予約しているため、50174-50273 や 50279-50378 のポートが使用できない
+
+### 原因
+
+Windows 上で Hyper-V または WSL2 が動作していると、Hyper-V の動的ポート予約メカニズムがランダムなポート帯を排除リストに登録する。この排除リストに k1s0 の gRPC ポートが含まれると `bind` に失敗する。
+
+CRIT-002 監査対応: 元々 50300-50305 を使用していたが、Hyper-V の排除範囲 50279-50378 と重複するため、50400-50405 に移動した。
+
+### 確認方法
+
+```powershell
+# Hyper-V の動的ポート排除範囲を確認する（PowerShell で実行）
+netsh int ipv4 show excludedportrange protocol=tcp
+```
+
+出力例（排除範囲が 50279-50378 を含む場合）:
+```
+プロトコル tcp の除外ポート範囲
+
+開始ポート    終了ポート
+----------    ----------
+...
+50174         50273
+50279         50378        ← このため 50300-50305 は使用不可
+...
+```
+
+### 対処
+
+k1s0 はすでに CRIT-002 対応として gRPC ポートを 50400-50405 に移動済み。
+排除範囲が 50400 以上まで拡張した場合は `.env.dev` の以下の変数を変更すること:
+
+```bash
+EVENT_MONITOR_GRPC_HOST_PORT=50400    # 変更が必要な場合は別ポートへ
+MASTER_MAINTENANCE_GRPC_HOST_PORT=50401
+NAVIGATION_GRPC_HOST_PORT=50402
+POLICY_GRPC_HOST_PORT=50403
+RULE_ENGINE_GRPC_HOST_PORT=50404
+SESSION_GRPC_HOST_PORT=50405
+```
+
+### CRIT-003: K8s API サーバーポート競合（Windows Hyper-V）
+
+Hyper-V の排除範囲が kubectl 通信ポート（6443）や K8s API サーバーポートと重複することがある。
+
+```powershell
+# K8s 関連ポートが排除されているか確認する
+netsh int ipv4 show excludedportrange protocol=tcp | findstr /r "6443\|6440\|6450"
+```
+
+排除されている場合は以下を試みる:
+
+```powershell
+# Hyper-V を一時停止してポート排除をリセットする（管理者権限で実行）
+net stop winnat
+net start winnat
+```
+
+---
+
+## 6. Docker グループ権限
 
 ### 症状
 
@@ -487,7 +552,10 @@ wsl --shutdown  → Docker Desktop を手動で起動
 
 ---
 
-## 11. Windows Hyper-V 動的ポート除外による gRPC 起動失敗（HIGH-1 監査対応）
+## 11. Windows Hyper-V 動的ポート除外による gRPC 起動失敗（HIGH-1 / CRIT-002 監査対応）
+
+> **最新情報**: 「5. Windows Hyper-V によるポート排除（gRPC ポート競合）」も参照すること。
+> CRIT-002 監査対応で gRPC ポートは 50300 帯から **50400-50405** 帯に移動済み（2026-04-06）。
 
 ### 症状
 
@@ -507,7 +575,7 @@ An attempt was made to access a socket in a way forbidden by its access permissi
 
 ### 原因
 
-Windows の Hyper-V は起動時に TCP ポートを動的に予約・除外する。この範囲には一般的に 50060-50159 が含まれる。以前のデフォルト gRPC ポート（50060-50065）がこの範囲と重複していた。
+Windows の Hyper-V は起動時に TCP ポートを動的に予約・除外する。確認された排除範囲: 50174-50273 / 50279-50378。
 
 除外範囲を確認するには:
 
@@ -517,18 +585,18 @@ netsh int ipv4 show excludedportrange protocol=tcp
 
 ### 対処
 
-**現行バージョン（ADR-0040 対応済み）**: デフォルト gRPC ポートは 50200-50205 に変更済みのため、通常は発生しない。
+**現行バージョン（ADR-0040 + CRIT-002 対応済み）**: デフォルト gRPC ポートは 50400-50405 に変更済みのため、通常は発生しない。
 
-ただし、古い `.env` ファイルや環境変数オーバーライドで 50060-50159 の値を指定している場合は、以下のように 50200 帯に変更する:
+古い `.env` ファイルや環境変数オーバーライドで旧ポート（50200-50205 または 50300-50305）を指定している場合は、`.env.dev` を最新版に更新すること:
 
 ```bash
-# .env.dev または環境変数で明示的に設定する場合
-export EVENT_MONITOR_GRPC_HOST_PORT=50200
-export MASTER_MAINTENANCE_GRPC_HOST_PORT=50201
-export NAVIGATION_GRPC_HOST_PORT=50202
-export POLICY_GRPC_HOST_PORT=50203
-export RULE_ENGINE_GRPC_HOST_PORT=50204
-export SESSION_GRPC_HOST_PORT=50205
+# .env.dev の現行設定（CRIT-002 対応後）
+EVENT_MONITOR_GRPC_HOST_PORT=50400
+MASTER_MAINTENANCE_GRPC_HOST_PORT=50401
+NAVIGATION_GRPC_HOST_PORT=50402
+POLICY_GRPC_HOST_PORT=50403
+RULE_ENGINE_GRPC_HOST_PORT=50404
+SESSION_GRPC_HOST_PORT=50405
 ```
 
 ---

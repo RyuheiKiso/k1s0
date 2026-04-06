@@ -201,16 +201,16 @@ dlq-manager:
 | config-rust | `${CONFIG_REST_HOST_PORT:-8084}` | `${CONFIG_GRPC_HOST_PORT:-50054}` | Rust 版 config-server |
 | saga-rust | `${SAGA_REST_HOST_PORT:-8085}` | `${SAGA_GRPC_HOST_PORT:-50055}` | Rust 版 saga-server |
 | dlq-manager | `${DLQ_REST_HOST_PORT:-8086}` | - | DLQ 管理サーバー（gRPC なし） |
-| event-monitor-rust | `${EVENT_MONITOR_REST_HOST_PORT:-8095}` | `${EVENT_MONITOR_GRPC_HOST_PORT:-50200}` | ※50200 は Hyper-V 除外範囲回避（ADR-0040） |
-| master-maintenance-rust | `${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}` | `${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50201}` | ※50201 は Hyper-V 除外範囲回避（ADR-0040） |
+| event-monitor-rust | `${EVENT_MONITOR_REST_HOST_PORT:-8095}` | `${EVENT_MONITOR_GRPC_HOST_PORT:-50400}` | ※CRIT-002 / ADR-0114: Hyper-V 動的排除範囲（50279-50378）回避のため 50400 帯へ変更 |
+| master-maintenance-rust | `${MASTER_MAINTENANCE_REST_HOST_PORT:-8098}` | `${MASTER_MAINTENANCE_GRPC_HOST_PORT:-50401}` | ※CRIT-002 / ADR-0114 |
 
 > **設計注記**: master-maintenance は `k1s0_system` DB（`master_maintenance` スキーマ）を使用する。
 > 他サービスは `<service>_db` 形式だが、master-maintenance は複数マスターテーブルを共有スキーマで管理する設計のため。
 
-| navigation-rust | `${NAVIGATION_REST_HOST_PORT:-8099}` | `${NAVIGATION_GRPC_HOST_PORT:-50202}` | ※50202 は Hyper-V 除外範囲回避（ADR-0040） |
-| policy-rust | `${POLICY_REST_HOST_PORT:-8101}` | `${POLICY_GRPC_HOST_PORT:-50203}` | ※50203 は Hyper-V 除外範囲回避（ADR-0040） |
-| rule-engine-rust | `${RULE_ENGINE_REST_HOST_PORT:-8103}` | `${RULE_ENGINE_GRPC_HOST_PORT:-50204}` | ※50204 は Hyper-V 除外範囲回避（ADR-0040） |
-| session-rust | `${SESSION_REST_HOST_PORT:-8106}` | `${SESSION_GRPC_HOST_PORT:-50205}` | ※50205 は Hyper-V 除外範囲回避（ADR-0040） |
+| navigation-rust | `${NAVIGATION_REST_HOST_PORT:-8099}` | `${NAVIGATION_GRPC_HOST_PORT:-50402}` | ※CRIT-002 / ADR-0114 |
+| policy-rust | `${POLICY_REST_HOST_PORT:-8101}` | `${POLICY_GRPC_HOST_PORT:-50403}` | ※CRIT-002 / ADR-0114 |
+| rule-engine-rust | `${RULE_ENGINE_REST_HOST_PORT:-8103}` | `${RULE_ENGINE_GRPC_HOST_PORT:-50404}` | ※CRIT-002 / ADR-0114 |
+| session-rust | `${SESSION_REST_HOST_PORT:-8106}` | `${SESSION_GRPC_HOST_PORT:-50405}` | ※CRIT-002 / ADR-0114 |
 | workflow-rust | `${WORKFLOW_REST_HOST_PORT:-8107}` | - | CRIT-2 監査対応: depends_on に scheduler-rust を追加 |
 
 ## アプリケーションサービスの追加

@@ -61,7 +61,21 @@ enum Commands {
     /// バリデーションを実行する
     Validate,
     /// 依存関係マップを表示する
-    Deps,
+    /// MED-008/HIGH-008 監査対応: --non-interactive 時はフラグで対話プロンプトをスキップできる。
+    Deps {
+        /// 解析スコープ: "all"（デフォルト）| "tier" | "services"
+        #[arg(long, value_name = "SCOPE")]
+        scope: Option<String>,
+        /// Tier 指定（--scope tier 時に必須）: "system" | "business" | "service"
+        #[arg(long, value_name = "TIER")]
+        tier: Option<String>,
+        /// 出力形式: "terminal"（デフォルト）| "mermaid" | "both"
+        #[arg(long, value_name = "OUTPUT")]
+        output: Option<String>,
+        /// Mermaid 出力先ファイルパス（--output mermaid / both 時に必須）
+        #[arg(long, value_name = "PATH")]
+        output_path: Option<std::path::PathBuf>,
+    },
     /// テンプレートマイグレーションを実行する
     TemplateMigrate,
     /// 開発環境を診断する
@@ -164,7 +178,15 @@ fn main() {
             Commands::Navigation => commands::generate_navigation::run(),
             Commands::Events => commands::generate_events::run(),
             Commands::Validate => commands::validate::run(),
-            Commands::Deps => commands::deps::run(),
+            // MED-008/HIGH-008 監査対応: --scope 等のフラグが指定された場合、または非インタラクティブモードの場合は
+            // 対話プロンプトをスキップして直接実行する。フラグなし TTY 環境では従来の対話フローを使用する。
+            Commands::Deps { scope, tier, output, output_path } => {
+                if non_interactive || scope.is_some() || output.is_some() {
+                    commands::deps::run_non_interactive(scope, tier, output, output_path)
+                } else {
+                    commands::deps::run()
+                }
+            }
             Commands::TemplateMigrate => commands::template_migrate::run(),
             Commands::Doctor => {
                 // 開発環境診断スクリプトを実行する

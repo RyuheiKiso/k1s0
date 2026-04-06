@@ -611,6 +611,22 @@ volumes:
   - ./infra/docker/kafka/jmx:/etc/kafka/jmx    # :ro は付けない（chmod 0400 が必要なため）
 ```
 
+### kafka-jmx-exporter ヘルスチェック（HIGH-002 対応）
+
+`kafka-jmx-exporter` サービス（`ghcr.io/prometheus/jmx-exporter:1.0.1`）は JRE-slim ベースのイメージのため `curl` や `wget` が含まれていない。ヘルスチェックには bash の TCP ソケット機能（`/dev/tcp`）を使用する。
+
+```yaml
+# HIGH-002 監査対応: JRE-slim に curl/wget がないため /dev/tcp で TCP 接続を確認する
+healthcheck:
+  test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/9101' || exit 1"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+```
+
+**注意**: `curl` や `wget` を使用した場合、`exec: "curl": executable file not found in $PATH` エラーが発生してコンテナが永続的に `unhealthy` になる。JRE/JDK ベースのイメージでは `/dev/tcp` パターンを使用すること。
+
 ### Vault tmpfs 設計
 
 Vault dev モードコンテナは `/tmp` と `/home/vault` の両方を tmpfs としてマウントする（CRIT-002 対応）。

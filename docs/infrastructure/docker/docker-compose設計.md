@@ -499,6 +499,29 @@ docker compose --profile infra --profile observability --profile system down -v
 | パフォーマンス測定 | infra + observability + system | `docker compose --profile infra --profile observability --profile system up -d` |
 | DB マイグレーション確認 | infra | `docker compose --profile infra up -d` |
 
+## マイグレーション実行フロー（CRIT-004 対応）
+
+`just local-up-dev` はデータベースマイグレーションを自動実行するが、以下の条件を満たす必要がある:
+
+1. **sqlx-cli の事前インストールが必須**: `cargo install sqlx-cli --features postgres` で導入すること。未インストールの場合、`local-up-dev` はエラー終了する（CRIT-004 対応で WARN+続行から ERROR+終了に変更済み）。
+
+2. **postgres の起動を待ってから実行**: `local-up-dev` は Phase 1 で infra を起動し、healthcheck 通過を確認してから Phase 2 でマイグレーションを実行する。
+
+3. **自動マイグレーション対象サービス（8件）**: saga, workflow, scheduler, master-maintenance, project-master, task, board, activity の各データベース。
+
+4. **マイグレーション失敗はハードエラー**: 1件でも失敗すると後続マイグレーションは実行されず、エラーを報告して終了する。
+
+```bash
+# マイグレーションのみ個別に実行する場合
+just migrate-all
+
+# 特定サービスのみ実行する場合（例: task）
+sqlx migrate run --database-url "postgres://dev:dev@localhost:5432/k1s0_service" \
+    --source regions/service/task/database/postgres/migrations
+```
+
+> **注意**: マイグレーションが未実行の場合、サービスは起動直後に DB スキーマ不整合でクラッシュする（`relation "xxx" does not exist` エラー）。
+
 ## 設計上の補足
 
 - ローカル開発用のクレデンシャルはすべて `${VAR:-default}` パターンで環境変数化する。デフォルト値は `dev` で統一し、`.env` で上書き可能とする（本番シークレットとの混同を防ぎつつ、共用サーバー等での個別設定にも対応）
@@ -632,29 +655,29 @@ echo "COMPOSE_PROJECT_NAME=$(whoami)" >> .env
 | `API_REGISTRY_REST_HOST_PORT` | 8093 | api-registry-rust | API Registry（REST） |
 | `APP_REGISTRY_REST_HOST_PORT` | 8094 | app-registry-rust | App Registry（REST） |
 | `EVENT_MONITOR_REST_HOST_PORT` | 8095 | event-monitor-rust | Event Monitor（REST） |
-| `EVENT_MONITOR_GRPC_HOST_PORT` | 50200 | event-monitor-rust | Event Monitor（gRPC） |
+| `EVENT_MONITOR_GRPC_HOST_PORT` | 50400 | event-monitor-rust | Event Monitor（gRPC）※CRIT-002 監査対応: Hyper-V 動的排除範囲回避のため 50200 帯から 50400 帯へ変更 |
 | `EVENT_STORE_REST_HOST_PORT` | 8096 | event-store-rust | Event Store（REST） |
 | `FILE_REST_HOST_PORT` | 8097 | file-rust | File Service（REST） |
 | `MASTER_MAINTENANCE_REST_HOST_PORT` | 8098 | master-maintenance-rust | Master Maintenance（REST） |
-| `MASTER_MAINTENANCE_GRPC_HOST_PORT` | 50201 | master-maintenance-rust | Master Maintenance（gRPC） |
+| `MASTER_MAINTENANCE_GRPC_HOST_PORT` | 50401 | master-maintenance-rust | Master Maintenance（gRPC）※CRIT-002 監査対応 |
 | `NAVIGATION_REST_HOST_PORT` | 8099 | navigation-rust | Navigation（REST） |
-| `NAVIGATION_GRPC_HOST_PORT` | 50202 | navigation-rust | Navigation（gRPC） |
+| `NAVIGATION_GRPC_HOST_PORT` | 50402 | navigation-rust | Navigation（gRPC）※CRIT-002 監査対応 |
 | `NOTIFICATION_REST_HOST_PORT` | 8100 | notification-rust | Notification（REST） |
 | `POLICY_REST_HOST_PORT` | 8101 | policy-rust | Policy（REST） |
-| `POLICY_GRPC_HOST_PORT` | 50203 | policy-rust | Policy（gRPC） |
+| `POLICY_GRPC_HOST_PORT` | 50403 | policy-rust | Policy（gRPC）※CRIT-002 監査対応 |
 | `QUOTA_REST_HOST_PORT` | 8102 | quota-rust | Quota（REST） |
 | `RULE_ENGINE_REST_HOST_PORT` | 8103 | rule-engine-rust | Rule Engine（REST） |
-| `RULE_ENGINE_GRPC_HOST_PORT` | 50204 | rule-engine-rust | Rule Engine（gRPC） |
+| `RULE_ENGINE_GRPC_HOST_PORT` | 50404 | rule-engine-rust | Rule Engine（gRPC）※CRIT-002 監査対応 |
 | `SCHEDULER_REST_HOST_PORT` | 8104 | scheduler-rust | Scheduler（REST） |
 | `SEARCH_REST_HOST_PORT` | 8105 | search-rust | Search（REST） |
 | `SESSION_REST_HOST_PORT` | 8106 | session-rust | Session（REST） |
-| `SESSION_GRPC_HOST_PORT` | 50205 | session-rust | Session（gRPC） |
+| `SESSION_GRPC_HOST_PORT` | 50405 | session-rust | Session（gRPC）※CRIT-002 監査対応 |
 | `WORKFLOW_REST_HOST_PORT` | 8107 | workflow-rust | Workflow（REST） |
 | `SERVICE_CATALOG_REST_HOST_PORT` | 8108 | service-catalog-rust | Service Catalog（REST） |
 | `AI_GATEWAY_REST_HOST_PORT` | 8120 | ai-gateway-rust | AI Gateway（REST） |
-| `AI_GATEWAY_GRPC_HOST_PORT` | 50071 | ai-gateway-rust | AI Gateway（gRPC） |
+| `AI_GATEWAY_GRPC_HOST_PORT` | 50206 | ai-gateway-rust | AI Gateway（gRPC） |
 | `AI_AGENT_REST_HOST_PORT` | 8121 | ai-agent-rust | AI Agent（REST） |
-| `AI_AGENT_GRPC_HOST_PORT` | 50072 | ai-agent-rust | AI Agent（gRPC） |
+| `AI_AGENT_GRPC_HOST_PORT` | 50207 | ai-agent-rust | AI Agent（gRPC） |
 
 ### Business サービス
 

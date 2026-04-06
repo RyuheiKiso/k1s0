@@ -901,6 +901,27 @@ tail -f /var/log/kubernetes/audit.log
 
 ---
 
+## infra/kubernetes/verify/ ディレクトリの同期に関する注意（LOW-007 対応）
+
+`infra/kubernetes/verify/` 配下のファイル（`auth-values.yaml`、`config-values.yaml` 等）は、K8s 統合テスト用の簡略 Helm values である。
+
+**乖離リスク**: `infra/helm/services/*/values.yaml` および `values-dev.yaml` を更新した際に `verify/` を更新しないと、CI の K8s 統合テストが旧設定で動作し、本番環境との挙動差異が検出できなくなる。
+
+**更新ルール**:
+1. `values.yaml` に新しいフィールドを追加した場合 → `verify/` の対応ファイルにも追加（または必要なデフォルト値を確認）
+2. ConfigMap のフィールド名（`config.data` 内の YAML キー）を変更した場合 → `verify/*.yaml` の `config.data` も必ず同期する
+3. `server.port` / `grpc_port` 等のポート変更 → `verify/*.yaml` と `infra/kubernetes/network-policies/` の両方を更新する
+
+**確認コマンド（例）**:
+```bash
+# verify/ values と helm values の config.data 差分を確認（auth の例）
+diff \
+  <(yq '.config.data."config.yaml"' infra/kubernetes/verify/auth-values.yaml) \
+  <(yq '.config.data."config.yaml"' infra/helm/services/system/auth/values-dev.yaml)
+```
+
+---
+
 ## 関連ドキュメント
 
 - [tier-architecture](../../architecture/overview/tier-architecture.md)

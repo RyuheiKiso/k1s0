@@ -71,11 +71,10 @@ impl Default for CompositeHealthChecker {
     }
 }
 
+/// ARCH-004 監査対応: ADR-0068 に準拠して UTC タイムスタンプを ISO 8601 形式（RFC 3339）で返す。
+/// 旧実装は UNIX エポック秒（整数）を返しており、クライアントが解釈しにくかった。
 fn chrono_now() -> String {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs().to_string())
-        .unwrap_or_default()
+    chrono::Utc::now().to_rfc3339()
 }
 
 #[cfg(test)]

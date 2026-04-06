@@ -20,7 +20,12 @@ rule_files:
 
 scrape_configs:
   # Prometheus 自身
+  # HIGH-003 監査対応: web.yml で Basic Auth が有効化されているため、
+  # セルフスクレイプにも basic_auth を設定して 401 エラーを防止する。
   - job_name: prometheus
+    basic_auth:
+      username: prometheus_admin
+      password: prometheus_admin
     static_configs:
       - targets: ["localhost:9090"]
 
@@ -65,9 +70,11 @@ scrape_configs:
     metrics_path: /metrics
 
   # bff-proxy (Go)
+  # MED-001 監査対応: bff-proxy は /metrics を公開ポート(8080)ではなく
+  # 内部ポート(9090)で提供する（server.internal_port: 9090）。
   - job_name: bff-proxy-go
     static_configs:
-      - targets: ["bff-proxy:8080"]
+      - targets: ["bff-proxy:9090"]
         labels:
           service: bff-proxy
           tier: system
@@ -307,6 +314,55 @@ otel:
 | 共用サーバー | サーバー | サーバー | `http://jaeger:4317` |
 
 詳細は [共用開発サーバー設計](../devenv/共用開発サーバー設計.md) を参照。
+
+---
+
+---
+
+## Grafana アクセスポートに関する注意（MED-002 対応）
+
+Grafana のホストポートは **3200**（デフォルト）であり、一般的な 3000 ではない。
+
+```
+http://localhost:3200  ← 正しいアクセス先
+http://localhost:3000  ← 誤り（フロントエンド開発サーバーと競合するため 3200 を使用）
+```
+
+**理由**: ポート 3000 は React / Next.js / Vite 等のフロントエンド開発サーバーが標準で使用する。同一マシンで両者を起動するとポート競合が発生するため、Grafana のホストポートを 3200 に設定している。
+
+**変更方法**: `.env` に `GRAFANA_HOST_PORT=3000` を追記すればポート 3000 に変更できる（ただしフロントエンド開発サーバーとのポート競合に注意）。
+
+```bash
+# .env（任意）
+GRAFANA_HOST_PORT=3000
+```
+
+ヘルスチェックコマンド（`http://localhost:3000/api/health`）はコンテナ**内部**のポート 3000 を参照するため変更不要。
+
+---
+
+## Alertmanager の未デプロイについて（LOW-005 対応）
+
+現在のローカル開発環境では **Alertmanager はデプロイされていない**。
+
+- `infra/docker/prometheus/alerting_rules.yaml` にアラートルールは定義されているが、発火しても通知先がない状態
+- Prometheus コンソール（`http://localhost:9090/alerts`）でアラート状態の確認は可能
+- 通知（メール・Slack・PagerDuty 等）は届かない
+
+**本番環境（K8s）での対応**:
+- Prometheus Operator を使用する場合: `AlertmanagerConfig` リソースで受信者を定義する
+- 開発環境で通知テストが必要な場合: `docker compose` に Alertmanager を追加し `prometheus.yaml` の `alerting.alertmanagers` で接続設定を行う
+
+```yaml
+# prometheus.yaml への Alertmanager 接続追加例（必要な場合のみ）
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+      basic_auth:
+        username: prometheus_admin
+        password: prometheus_admin
+```
 
 ---
 

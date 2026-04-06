@@ -408,17 +408,18 @@ async fn run_reset_cron(
     list_uc: Arc<usecase::ListQuotaPoliciesUseCase>,
     cron_healthy: Arc<std::sync::atomic::AtomicBool>,
 ) {
-    use std::str::FromStr;
     use std::sync::atomic::Ordering;
 
-    // croner v2 形式（6フィールド: 秒 分 時 日 月 曜日）でスケジュールを登録する
-    // パース失敗したスケジュールはスキップし、有効なものだけ使用する
+    // HIGH-004 監査対応: croner v2 は with_seconds_required() を明示しないと 5 フィールドモードで動作する。
+    // Cron::from_str() や "...".parse() はデフォルト 5 フィールドのため、
+    // 6 フィールド式（"0 0 0 * * *"）を渡すと find_next_occurrence が常に Err を返す。
+    // Cron::new(expr).with_seconds_required().parse() に変更して 6 フィールドモードを明示する。
     let schedules: Vec<(&str, croner::Cron)> = [
         ("daily", daily_expr.as_str()),
         ("monthly", monthly_expr.as_str()),
     ]
     .into_iter()
-    .filter_map(|(label, expr)| match croner::Cron::from_str(expr) {
+    .filter_map(|(label, expr)| match croner::Cron::new(expr).with_seconds_required().parse() {
         Ok(cron) => {
             info!(
                 schedule = label,

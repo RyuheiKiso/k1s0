@@ -1,0 +1,132 @@
+# MED-006 監査対応: system Namespace の最重要サービスに対するサービス個別 NetworkPolicy
+#
+# 現状の system.yaml は namespace レベルのポリシー（全 Pod に同一ルールを適用）であり、
+# namespace 内の横方向通信（lateral movement）を制限できていない。
+# 本ファイルでは auth / vault / config の 3 サービスに対して、
+# 通信元 Pod を明示的に限定する ingress ポリシーを追加する。
+#
+# ※ 30+ サービス全てへのサービス個別ポリシー適用は Istio AuthorizationPolicy での対応を推奨する。
+#    Istio 導入前の暫定対策として、セキュリティ上最も重要なサービスのみに本ポリシーを適用する。
+#
+# ラベル形式: app.kubernetes.io/name: <chart名>（k1s0-common の selectorLabels に準拠）
+
+---
+# auth-server への Ingress 制限
+# auth-server は BFF proxy と graphql-gateway からのみ直接アクセスを受け付ける。
+# その他のサービスは Keycloak JWKS エンドポイントで JWT を直接検証するため auth-server を呼ばない。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-auth-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: auth
+  policyTypes:
+    - Ingress
+  ingress:
+    # bff-proxy: ログイン・ログアウト API 呼び出し
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bff-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # graphql-gateway: RBAC ロール・パーミッション同期
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ（observability namespace から）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# config-server への Ingress 制限
+# config-server は全 system サービスからアクセスを受け付ける（共通設定配信）が、
+# business/service tier のサービスは config-server を直接呼ばない設計とする。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-config-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: config
+  policyTypes:
+    - Ingress
+  ingress:
+    # system tier 内の全サービスからの設定取得を許可
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# vault-server（k1s0-vault-rust）への Ingress 制限
+# Vault は全サービスからシークレット取得が必要なため、system/business/service 全 tier から許可する。
+# ただし管理ポートへのアクセスは制限する。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-vault-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+  policyTypes:
+    - Ingress
+  ingress:
+    # 全 tier からのシークレット取得 API アクセスを許可
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
+              tier: service
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090

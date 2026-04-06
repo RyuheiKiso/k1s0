@@ -687,6 +687,51 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
 
 startup.rs での `AppState` 構築時に `db_pool: db_pool.clone()` を追加すること。
 
+### degraded パターン（補助機能障害時の 200 応答）（MED-011 対応）
+
+cron スケジューラー等の**補助機能**が障害した場合はサービス全体を停止すべきでない。K8s は 503 を受信すると Pod を再起動するため、cron 障害で Pod が再起動すると問題が再発する。
+
+**3段階ステータスモデル**（ADR-0068 準拠）:
+
+| 状態 | DB | 補助機能 | HTTP | status |
+|------|----|----------|------|--------|
+| healthy | OK | OK | 200 | `"healthy"` |
+| degraded | OK | 障害 | 200 | `"degraded"` |
+| unhealthy | 障害 | - | 503 | `"unhealthy"` |
+
+```rust
+// ADR-0068 準拠: UTC タイムスタンプを ISO 8601 形式で返す
+let timestamp = chrono::Utc::now().to_rfc3339();
+
+let cron_ok = state.cron_healthy.load(Ordering::Relaxed);
+let db_ok = sqlx::query("SELECT 1").execute(&state.db_pool).await.is_ok();
+
+// DB 障害のみが真の unhealthy（K8s が Pod を再起動）
+// cron 停止は 200 + degraded（Prometheus アラートで監視する）
+let (status_code, status_str) = match (db_ok, cron_ok) {
+    (true, true)  => (StatusCode::OK, "healthy"),
+    (true, false) => (StatusCode::OK, "degraded"),
+    (false, _)    => (StatusCode::SERVICE_UNAVAILABLE, "unhealthy"),
+};
+```
+
+**ルール**: DB 接続が正常な限り readyz は 200 を返すこと。補助機能（cron/外部 API）の障害は `degraded` フィールドで通知し、Prometheus アラートで監視すること。
+
+### タイムスタンプ形式（ARCH-004 / ADR-0068 対応）
+
+readyz・run_all のレスポンスに含まれる `timestamp` フィールドは **ISO 8601 / RFC 3339 形式（UTC）** で返すこと。UNIX エポック秒（整数）は非推奨。
+
+```rust
+// OK: chrono を使って ISO 8601 形式で返す
+let timestamp = chrono::Utc::now().to_rfc3339();
+// → "2026-04-06T12:34:56.789012300+00:00"
+
+// NG: UNIX エポック秒（クライアントが解釈しにくい）
+// std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs().to_string())
+```
+
+`k1s0-health` ライブラリの `CompositeHealthChecker` は ARCH-004 対応済み（`chrono::Utc::now().to_rfc3339()` を使用）。
+
 ---
 
 ## config.docker.yaml の注意事項（serde_yaml の制約） {#config-docker-yaml}

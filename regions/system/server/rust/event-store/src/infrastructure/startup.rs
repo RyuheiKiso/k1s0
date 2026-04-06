@@ -228,6 +228,7 @@ pub async fn run() -> anyhow::Result<()> {
     let list_streams_uc = Arc::new(usecase::ListStreamsUseCase::new(stream_repo.clone()));
 
     // REST AppState
+    // MED-013 監査対応: readyz で SELECT 1 ping を使えるよう db_pool を渡す
     let mut state = AppState {
         append_events_uc,
         read_events_uc,
@@ -241,6 +242,7 @@ pub async fn run() -> anyhow::Result<()> {
         event_publisher,
         metrics: metrics.clone(),
         auth_state: None,
+        db_pool: db_pool.clone(),
     };
     if let Some(auth_st) = auth_state {
         state = state.with_auth(auth_st);

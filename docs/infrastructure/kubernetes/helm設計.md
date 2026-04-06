@@ -1055,6 +1055,23 @@ helm upgrade --install auth-server infra/helm/services/system/auth/ \
 `image.tag` を省略すると空文字列になり、`latest` ではなくイメージプルエラーになる可能性がある。
 必ず Git SHA またはセマンティックバージョンを指定すること。
 
+## docker-compose との設定乖離に関する注意（LOW-004 対応）
+
+開発環境の設定は `docker-compose.dev.yaml`（ローカル）と `infra/helm/services/*/values-dev.yaml`（K8s dev）の2箇所で管理されている。設定変更時は**両方を同時に更新する**こと。
+
+| 設定項目 | docker-compose 側 | Helm 側 |
+|---------|-------------------|----|
+| ポート番号 | `docker-compose.yaml` の ports / `.env.dev` の HOST_PORT 変数 | `values-dev.yaml` の `service.port` / `container.port` |
+| 環境変数 | `docker-compose.dev.yaml` の environment | `values-dev.yaml` の `env` セクション |
+| リソース制限 | `deploy.resources` | `values.yaml` の `resources` |
+| ConfigMap | ボリュームマウント（`config/config.dev.yaml`） | `values-dev.yaml` の config 内容 |
+
+**乖離が発生しやすいシナリオ**:
+1. `docker-compose.yaml` でポートを変更したが `values-dev.yaml` は旧ポートのまま → K8s dev 環境でルーティング失敗
+2. Helm values に新しい設定キーを追加したが docker-compose の config.yaml に反映していない → 起動時のデフォルト値で動作する
+
+**推奨**: docker-compose とHelmのいずれかに設定変更を加えた場合は、PR レビュー時に両方のファイルが更新されていることを確認すること。
+
 ## 関連ドキュメント
 
 - [kubernetes設計](kubernetes設計.md)

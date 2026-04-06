@@ -495,20 +495,22 @@ local-up-dev: _check-env
     else
       echo "[WARN] Vault 初期化が失敗しました。手動で 'bash infra/docker/vault/init-vault.sh' を実行してください" >&2
     fi
-    echo "--- Phase 1.5: データベースマイグレーション実行 (HIGH-003 監査対応) ---"
-    # sqlx-cli がインストール済みの場合はマイグレーションを自動実行する
-    # 未インストールの場合は WARN を出力して続行する（just doctor で sqlx の確認を推奨）
-    if command -v sqlx &>/dev/null; then
-        if just migrate-all; then
-            echo "--- Phase 1.5: マイグレーション完了 ---"
-        else
-            echo "[WARN] マイグレーションが失敗しました。サービス起動に影響する可能性があります。" >&2
-            echo "  手動でのマイグレーション: just migrate-all" >&2
-        fi
-    else
-        echo "[WARN] sqlx-cli が未インストールのためマイグレーションをスキップします。" >&2
+    echo "--- Phase 1.5: データベースマイグレーション実行 (CRIT-004 / HIGH-003 監査対応) ---"
+    # CRIT-004 監査対応: sqlx-cli が未インストールの場合はハード失敗する。
+    # マイグレーションなしでサービスを起動すると、テーブル未存在でサービスが全滅するリスクがある。
+    # 代替手段: just migrate-all-docker（sqlx-cli 不要の Docker 経由マイグレーション）を使用すること。
+    if ! command -v sqlx &>/dev/null; then
+        echo "[ERROR] sqlx-cli が未インストールのため local-up-dev を中断します。" >&2
         echo "  インストール: cargo install sqlx-cli --no-default-features --features postgres" >&2
-        echo "  その後手動実行: just migrate-all" >&2
+        echo "  または Docker 経由: just migrate-all-docker" >&2
+        exit 1
+    fi
+    if just migrate-all; then
+        echo "--- Phase 1.5: マイグレーション完了 ---"
+    else
+        echo "[ERROR] マイグレーションが失敗しました。サービス起動を中断します。" >&2
+        echo "  手動でのマイグレーション: just migrate-all" >&2
+        exit 1
     fi
     echo "--- Phase 2: システム/ビジネス/サービス層の起動 ---"
     # CRIT-002 監査対応: --build フラグでスタレイメージを防止する（Phase 1 と同様）
@@ -692,12 +694,13 @@ migrate-all:
 #
 #   通常のセットアップには just migrate-all（sqlx-cli 必要）を使用すること。
 #
-# MED-004 監査対応: 起動時自動マイグレーションの対象は限定的である点に注意。
-#   自動マイグレーションを実行するのは以下の4サービス（sqlx::migrate!() 実装済み）のみ:
-#     saga, workflow, scheduler, master-maintenance
-#   残りの19サービスは事前に `just migrate-all` または `just migrate-all-docker` の実行が必要。
-#   `just local-up-dev` はこれらの事前マイグレーションを自動実行しないため、
-#   初回セットアップ時は Phase 1（infra 起動）完了後に `just migrate-all` を手動実行すること。
+# MED-004 / MED-007 監査対応: 起動時自動マイグレーションの対象は限定的である点に注意。
+#   sqlx::migrate!() を実装し起動時に自動マイグレーションを実行するサービス（8サービス）:
+#     system 層: saga, workflow, scheduler, master-maintenance
+#     business 層: project-master
+#     service 層: task, board, activity
+#   残りの約19サービスは事前に `just migrate-all` または `just migrate-all-docker` の実行が必要。
+#   `just local-up-dev` は Phase 1.5 で migrate-all を自動実行する（sqlx-cli 必須）。
 migrate-all-docker:
     #!/usr/bin/env bash
     set -euo pipefail

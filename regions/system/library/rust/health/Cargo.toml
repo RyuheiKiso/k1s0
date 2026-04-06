@@ -14,6 +14,8 @@ full = ["postgres", "redis", "http", "kafka"]
 
 [dependencies]
 async-trait = {workspace = true}
+# ARCH-004 監査対応: readyz/run_all のタイムスタンプを ISO 8601 形式で返すために追加
+chrono = {workspace = true}
 thiserror = {workspace = true}
 tokio = {workspace = true}
 serde = {workspace = true}
