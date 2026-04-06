@@ -50,8 +50,9 @@ export async function fetchDownloadUrl(
   platform?: AppVersion['platform'],
   arch?: string,
 ): Promise<DownloadUrlResponse> {
+  // CRITICAL-FE-002 対応: appId を URL エンコードする（他の関数と同様のパターン）
   const { data } = await api.get<DownloadUrlResponse>(
-    `/apps/${appId}/versions/${encodeURIComponent(version)}/download`,
+    `/apps/${encodeURIComponent(appId)}/versions/${encodeURIComponent(version)}/download`,
     {
       params: {
         platform,

@@ -129,6 +129,26 @@ CREATE INDEX IF NOT EXISTS idx_job_executions_started_at ON scheduler.job_execut
 | `005_align_job_executions_status_and_triggered_by.down.sql` | カラム・値変更復元 |
 | `006_convert_prefixed_ids.up.sql` | UUID → プレフィックス付き VARCHAR(64) ID に変換 |
 | `006_convert_prefixed_ids.down.sql` | ID 変換復元 |
+| `007_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加 |
+| `008_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `009_alter_tenant_id_to_text.up.sql` | `tenant_id` を TEXT 型に変更、UNIQUE(name) → UNIQUE(tenant_id, name)（CRITICAL-DB-002 + HIGH-DB-007 対応） |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002 / HIGH-DB-007）
+
+`scheduler_jobs` / `job_executions` の `tenant_id` を TEXT 型に統一（migration 009）。
+
+- `scheduler_jobs`: UNIQUE(name) を UNIQUE(tenant_id, name) に変更
+
+```sql
+ALTER TABLE scheduler.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scheduler.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON scheduler.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

@@ -140,10 +140,18 @@ impl RuleEngineService for RuleEngineServiceTonic {
         &self,
         request: Request<ProtoCreateRuleRequest>,
     ) -> Result<Response<ProtoCreateRuleResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let data = self
             .inner
             .create_rule(
+                tenant_id,
                 inner.name,
                 inner.description,
                 inner.priority,
@@ -238,10 +246,18 @@ impl RuleEngineService for RuleEngineServiceTonic {
         &self,
         request: Request<ProtoCreateRuleSetRequest>,
     ) -> Result<Response<ProtoCreateRuleSetResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let data = self
             .inner
             .create_rule_set(
+                tenant_id,
                 inner.name,
                 inner.description,
                 inner.domain,
@@ -334,10 +350,17 @@ impl RuleEngineService for RuleEngineServiceTonic {
         &self,
         request: Request<ProtoEvaluateRequest>,
     ) -> Result<Response<ProtoEvaluateResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let output = self
             .inner
-            .evaluate(inner.rule_set, inner.input_json, inner.context_json, false)
+            .evaluate(tenant_id, inner.rule_set, inner.input_json, inner.context_json, false)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(to_proto_evaluate_response(output)))
@@ -347,10 +370,17 @@ impl RuleEngineService for RuleEngineServiceTonic {
         &self,
         request: Request<ProtoEvaluateDryRunRequest>,
     ) -> Result<Response<ProtoEvaluateDryRunResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let output = self
             .inner
-            .evaluate(inner.rule_set, inner.input_json, inner.context_json, true)
+            .evaluate(tenant_id, inner.rule_set, inner.input_json, inner.context_json, true)
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(to_proto_evaluate_dry_run_response(output)))

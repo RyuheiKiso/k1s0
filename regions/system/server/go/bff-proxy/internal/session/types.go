@@ -35,6 +35,11 @@ type SessionData struct {
 	// AbsoluteExpiry はセッションの絶対有効期限（Unix タイムスタンプ）（M-17 監査対応）。
 	// スライディングウィンドウで TTL が延長されても、この時刻を超えたセッションは無効化される。
 	AbsoluteExpiry int64 `json:"absolute_expiry,omitempty"`
+
+	// TenantID は JWT クレームから取得したテナント識別子（MEDIUM-GO-001 監査対応）。
+	// セッション作成時（Callback）に ID トークンの tenant_id クレームから取得してセッションに格納する。
+	// アップストリームへのリクエスト時に X-Tenant-ID ヘッダーとして転送し、テナント分離を実現する。
+	TenantID string `json:"tenant_id,omitempty"`
 }
 
 // IsExpired returns true when the access token has expired.

@@ -86,6 +86,25 @@ CREATE INDEX IF NOT EXISTS idx_ratelimit_rules_scope_identifier ON ratelimit.rat
 | `003_add_scope_and_identifier_pattern.down.sql` | カラム削除 |
 | `004_add_leaky_bucket_algorithm.up.sql` | algorithm チェック制約に leaky_bucket 追加 |
 | `004_add_leaky_bucket_algorithm.down.sql` | チェック制約復元 |
+| `005_seed_default_rules.up.sql` | デフォルトレート制限ルール投入 |
+| `006_add_tenant_id_rls.up.sql` | `rate_limit_rules` に `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加 |
+| `007_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `008_alter_tenant_id_to_text.up.sql` | `tenant_id` を TEXT 型に変更、UNIQUE(name) → UNIQUE(tenant_id, name)（CRITICAL-DB-002 + HIGH-DB-007 対応） |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002 / HIGH-DB-007）
+
+`rate_limit_rules` の `tenant_id` を TEXT 型に統一、UNIQUE(name) → UNIQUE(tenant_id, name)（migration 008）。
+
+```sql
+ALTER TABLE ratelimit.rate_limit_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ratelimit.rate_limit_rules FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON ratelimit.rate_limit_rules
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

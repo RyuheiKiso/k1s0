@@ -1,10 +1,13 @@
 // ステータス定義 REST ハンドラ。
+// CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する。
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
+    Extension,
     Json,
 };
+use k1s0_auth::Claims;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -92,9 +95,13 @@ pub async fn get_status_definition(
 
 pub async fn create_status_definition(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する
+    claims: Option<Extension<Claims>>,
     Path(project_type_id): Path<Uuid>,
     Json(body): Json<CreateStatusDefinitionRequest>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // JWT の preferred_username > email > sub の優先順位でアクター ID を解決する
+    let actor = k1s0_auth::claims::actor_from_claims(claims.as_ref().map(|c| &c.0));
     let input = CreateStatusDefinition {
         project_type_id,
         code: body.code,
@@ -108,7 +115,7 @@ pub async fn create_status_definition(
     };
     state
         .manage_status_definitions_uc
-        .create(&input, "system")
+        .create(&input, &actor)
         .await
         .map(|s| (StatusCode::CREATED, Json(StatusDefinitionResponse::from(s))))
         .map_err(map_domain_error)
@@ -116,9 +123,13 @@ pub async fn create_status_definition(
 
 pub async fn update_status_definition(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する
+    claims: Option<Extension<Claims>>,
     Path((_project_type_id, status_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // JWT の preferred_username > email > sub の優先順位でアクター ID を解決する
+    let actor = k1s0_auth::claims::actor_from_claims(claims.as_ref().map(|c| &c.0));
     let input = UpdateStatusDefinition {
         display_name: body.get("display_name").and_then(|v| v.as_str()).map(String::from),
         description: body.get("description").and_then(|v| v.as_str()).map(String::from),
@@ -134,7 +145,7 @@ pub async fn update_status_definition(
     };
     state
         .manage_status_definitions_uc
-        .update(status_id, &input, "system")
+        .update(status_id, &input, &actor)
         .await
         .map(|s| Json(StatusDefinitionResponse::from(s)))
         .map_err(map_domain_error)

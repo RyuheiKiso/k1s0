@@ -110,8 +110,16 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoCreateQuotaPolicyRequest>,
     ) -> Result<Response<ProtoCreateQuotaPolicyResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let req = CreatePolicyRequest {
+            tenant_id,
             name: inner.name,
             subject_type: inner.subject_type,
             subject_id: inner.subject_id,
@@ -135,10 +143,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoGetQuotaPolicyRequest>,
     ) -> Result<Response<ProtoGetQuotaPolicyResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let policy = self
             .inner
-            .get_policy(&inner.id)
+            .get_policy(&inner.id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -151,6 +166,13 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoListQuotaPoliciesRequest>,
     ) -> Result<Response<ProtoListQuotaPoliciesResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
@@ -168,6 +190,7 @@ impl QuotaService for QuotaServiceTonic {
             subject_type: inner.subject_type,
             subject_id: inner.subject_id,
             enabled_only: inner.enabled_only,
+            tenant_id,
         };
         let result = self
             .inner
@@ -192,6 +215,13 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoUpdateQuotaPolicyRequest>,
     ) -> Result<Response<ProtoUpdateQuotaPolicyResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         // alert_threshold_percentをu8に変換（範囲外の場合はgRPCエラーを返す）
         let alert_threshold_percent =
@@ -213,7 +243,7 @@ impl QuotaService for QuotaServiceTonic {
         };
         let policy = self
             .inner
-            .update_policy(req)
+            .update_policy(req, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -226,10 +256,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoDeleteQuotaPolicyRequest>,
     ) -> Result<Response<ProtoDeleteQuotaPolicyResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let id = inner.id.clone();
         self.inner
-            .delete_policy(&id)
+            .delete_policy(&id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -243,10 +280,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoGetQuotaUsageRequest>,
     ) -> Result<Response<ProtoGetQuotaUsageResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let usage = self
             .inner
-            .get_usage(&inner.quota_id)
+            .get_usage(&inner.quota_id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -259,10 +303,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoCheckQuotaRequest>,
     ) -> Result<Response<ProtoCheckQuotaResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let usage = self
             .inner
-            .check_quota(&inner.quota_id)
+            .check_quota(&inner.quota_id, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -275,10 +326,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoIncrementQuotaUsageRequest>,
     ) -> Result<Response<ProtoIncrementQuotaUsageResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let result = self
             .inner
-            .increment_usage(inner.quota_id, inner.amount, inner.request_id)
+            .increment_usage(inner.quota_id, inner.amount, inner.request_id, tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -296,10 +354,17 @@ impl QuotaService for QuotaServiceTonic {
         &self,
         request: Request<ProtoResetQuotaUsageRequest>,
     ) -> Result<Response<ProtoResetQuotaUsageResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: gRPC メタデータから x-tenant-id を取得して RLS に使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
         let inner = request.into_inner();
         let usage = self
             .inner
-            .reset_usage(inner.quota_id, inner.reason, inner.reset_by)
+            .reset_usage(inner.quota_id, inner.reason, inner.reset_by, tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
 
@@ -435,7 +500,7 @@ mod tests {
     async fn test_get_quota_policy_not_found() {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
-        policy_mock.expect_find_by_id().returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoGetQuotaPolicyRequest {
@@ -456,8 +521,8 @@ mod tests {
         let return_policy = policy.clone();
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoGetQuotaPolicyRequest {
@@ -477,7 +542,7 @@ mod tests {
         let return_policies = policies.clone();
         policy_mock
             .expect_find_all()
-            .returning(move |_, _| Ok((return_policies.clone(), 1)));
+            .returning(move |_, _, _| Ok((return_policies.clone(), 1)));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoListQuotaPoliciesRequest {
@@ -502,8 +567,8 @@ mod tests {
         let usage_mock = MockQuotaUsageRepository::new();
         policy_mock
             .expect_delete()
-            .withf(|id| id == "quota-1")
-            .returning(|_| Ok(true));
+            .withf(|id, _tenant_id| id == "quota-1")
+            .returning(|_, _| Ok(true));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoDeleteQuotaPolicyRequest {
@@ -519,7 +584,7 @@ mod tests {
     async fn test_delete_quota_policy_not_found() {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
-        policy_mock.expect_delete().returning(|_| Ok(false));
+        policy_mock.expect_delete().returning(|_, _| Ok(false));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoDeleteQuotaPolicyRequest {
@@ -539,9 +604,11 @@ mod tests {
         let return_policy = policy.clone();
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
-        usage_mock.expect_get_usage().returning(|_| Ok(Some(500)));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
+        usage_mock
+            .expect_get_usage()
+            .returning(|_, _| Ok(Some(500)));
 
         let tonic_svc = make_tonic_service(policy_mock, usage_mock);
         let req = Request::new(ProtoGetQuotaUsageRequest {
@@ -567,11 +634,11 @@ mod tests {
         let return_policy = policy.clone();
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
         usage_mock
             .expect_check_and_increment()
-            .returning(|_, _, _| {
+            .returning(|_, _, _, _| {
                 Ok(CheckAndIncrementResult {
                     used: 100,
                     allowed: true,

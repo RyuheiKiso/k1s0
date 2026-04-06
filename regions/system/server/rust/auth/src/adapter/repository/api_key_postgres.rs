@@ -37,6 +37,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         let start = std::time::Instant::now();
         let scopes_json = serde_json::to_value(&api_key.scopes)?;
 
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&api_key.tenant_id)
+            .execute(&self.pool)
+            .await?;
+
         sqlx::query(
             r#"
             INSERT INTO auth.api_keys (
@@ -68,12 +75,15 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<ApiKey>> {
         let start = std::time::Instant::now();
 
+        // CRITICAL-RUST-001 監査対応: auth.api_key_find_by_id は SECURITY DEFINER 関数（migration 022）。
+        // FORCE ROW LEVEL SECURITY が有効な auth.api_keys テーブルに対して
+        // 管理操作（テナント ID 不明の内部 API）では RLS バイパスが必要なため
+        // 関数オーナー（DB オーナー）権限で実行する。
         let row = sqlx::query_as::<_, ApiKeyRow>(
             r#"
             SELECT id, tenant_id, name, key_hash, prefix, scopes,
                    expires_at, revoked, created_at, updated_at
-            FROM auth.api_keys
-            WHERE id = $1
+            FROM auth.api_key_find_by_id($1)
             "#,
         )
         .bind(id)
@@ -89,12 +99,14 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
     async fn find_by_prefix(&self, prefix: &str) -> anyhow::Result<Option<ApiKey>> {
         let start = std::time::Instant::now();
 
+        // CRITICAL-RUST-001 監査対応: auth.api_key_find_by_prefix は SECURITY DEFINER 関数（migration 022）。
+        // 認証ブートストラップフロー（テナント ID 不明の API キー検証）では
+        // FORCE ROW LEVEL SECURITY を持つテーブルに対して RLS バイパスが必要。
         let row = sqlx::query_as::<_, ApiKeyRow>(
             r#"
             SELECT id, tenant_id, name, key_hash, prefix, scopes,
                    expires_at, revoked, created_at, updated_at
-            FROM auth.api_keys
-            WHERE prefix = $1
+            FROM auth.api_key_find_by_prefix($1)
             "#,
         )
         .bind(prefix)
@@ -109,6 +121,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
 
     async fn list_by_tenant(&self, tenant_id: &str) -> anyhow::Result<Vec<ApiKey>> {
         let start = std::time::Instant::now();
+
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // list_by_tenant は tenant_id フィルタも SQL に含まれるが、RLS との二重防衛として設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&self.pool)
+            .await?;
 
         let rows = sqlx::query_as::<_, ApiKeyRow>(
             r#"
@@ -132,22 +151,21 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
     async fn revoke(&self, id: Uuid) -> anyhow::Result<()> {
         let start = std::time::Instant::now();
 
-        let result = sqlx::query(
-            r#"
-            UPDATE auth.api_keys
-            SET revoked = true, updated_at = NOW()
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .execute(&self.pool)
-        .await?;
+        // CRITICAL-RUST-001 監査対応: auth.api_key_revoke は SECURITY DEFINER 関数（migration 022）。
+        // FORCE ROW LEVEL SECURITY が有効なため直接 UPDATE では RLS に遮断される。
+        // 関数がオーナー権限で実行されることで RLS をバイパスして失効処理を実行する。
+        // 更新された行の id を返す: 0 行 → キーが存在しない（NotFound）。
+        let updated_id: Option<Uuid> =
+            sqlx::query_scalar("SELECT id FROM auth.api_key_revoke($1)")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("revoke", "api_keys", start.elapsed().as_secs_f64());
         }
 
-        if result.rows_affected() == 0 {
+        if updated_id.is_none() {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
             return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
         }
@@ -157,16 +175,20 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
     async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
         let start = std::time::Instant::now();
 
-        let result = sqlx::query("DELETE FROM auth.api_keys WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
-            .await?;
+        // CRITICAL-RUST-001 監査対応: auth.api_key_delete は SECURITY DEFINER 関数（migration 022）。
+        // FORCE ROW LEVEL SECURITY が有効なため直接 DELETE では RLS に遮断される。
+        // 削除された行の id を返す: 0 行 → キーが存在しない（NotFound）。
+        let deleted_id: Option<Uuid> =
+            sqlx::query_scalar("SELECT id FROM auth.api_key_delete($1)")
+                .bind(id)
+                .fetch_optional(&self.pool)
+                .await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("delete", "api_keys", start.elapsed().as_secs_f64());
         }
 
-        if result.rows_affected() == 0 {
+        if deleted_id.is_none() {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
             return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
         }

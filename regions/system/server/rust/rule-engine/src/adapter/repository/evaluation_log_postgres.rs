@@ -21,6 +21,13 @@ impl EvaluationLogPostgresRepository {
 #[async_trait]
 impl EvaluationLogRepository for EvaluationLogPostgresRepository {
     async fn create(&self, log: &EvaluationLog) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&log.tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         // We need a rule_set_id for the FK. Look up by name.
         let rule_set_id: Option<(Uuid,)> = sqlx::query_as(
             "SELECT id FROM rule_engine.rule_sets WHERE name = $1 LIMIT 1",
@@ -36,12 +43,14 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
         let matched = log.matched_rule_id.is_some();
         let input = serde_json::json!({ "hash": &log.input_hash });
 
+        // tenant_id カラムを INSERT に追加（migration 003 対応）
         sqlx::query(
             "INSERT INTO rule_engine.evaluation_logs \
-             (id, rule_set_id, rule_id, input, output, matched, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+             (id, tenant_id, rule_set_id, rule_id, input, output, matched, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
         .bind(log.id)
+        .bind(&log.tenant_id)
         .bind(rule_set_id)
         .bind(log.matched_rule_id)
         .bind(&input)
@@ -105,7 +114,7 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
         };
 
         let query_sql = format!(
-            "SELECT el.id, el.rule_set_id, el.rule_id, el.input, el.output, \
+            "SELECT el.id, el.tenant_id, el.rule_set_id, el.rule_id, el.input, el.output, \
                     el.matched, el.execution_time_ms, el.error_message, el.created_at, \
                     rs.name AS rule_set_name \
              FROM rule_engine.evaluation_logs el \
@@ -125,6 +134,7 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
         #[derive(sqlx::FromRow)]
         struct EvalLogJoinedRow {
             id: Uuid,
+            tenant_id: String,
             #[allow(dead_code)]
             rule_set_id: Uuid,
             rule_id: Option<Uuid>,
@@ -173,6 +183,7 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
                 };
                 EvaluationLog {
                     id: r.id,
+                    tenant_id: r.tenant_id,
                     rule_set_name: r.rule_set_name,
                     rule_set_version: 0,
                     matched_rule_id: r.rule_id,

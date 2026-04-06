@@ -95,6 +95,7 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),
@@ -114,7 +115,7 @@ mod tests {
     }
 
     fn make_instance(flow_id: Uuid, status: FlowInstanceStatus) -> FlowInstance {
-        let mut inst = FlowInstance::new(flow_id, format!("corr-{}", Uuid::new_v4()));
+        let mut inst = FlowInstance::new("system".to_string(), flow_id, format!("corr-{}", Uuid::new_v4()));
         inst.status = status.clone();
         if status == FlowInstanceStatus::Completed || status == FlowInstanceStatus::Failed {
             inst.completed_at = Some(Utc::now());

@@ -51,9 +51,8 @@ pub fn run_non_interactive(name: Option<String>) -> Result<()> {
     // Path::new(".") はプロセスの cwd に解決されるため、ここで事前に表示する
     let output_dir = std::env::current_dir()
         .map(|d| d.join(&project_name))
-        .map(|p| p.display().to_string())
-        .unwrap_or_else(|_| project_name.clone());
-    println!("プロジェクトを '{}' に作成します...", output_dir);
+        .map_or_else(|_| project_name.clone(), |p| p.display().to_string());
+    println!("プロジェクトを '{output_dir}' に作成します...");
 
     // 非インタラクティブモードのデフォルト設定: git_init=false, sparse_checkout=false, 全Tier
     let config = InitConfig {
@@ -242,8 +241,7 @@ fn print_confirmation(config: &InitConfig) {
     // MED-007 監査対応: 作成先の絶対パスを確認画面に表示してどこに生成されるかを明示する
     let output_dir = std::env::current_dir()
         .map(|d| d.join(&config.project_name))
-        .map(|p| p.display().to_string())
-        .unwrap_or_else(|_| config.project_name.clone());
+        .map_or_else(|_| config.project_name.clone(), |p| p.display().to_string());
     println!("\n[確認] 以下の内容で初期化します。よろしいですか？");
     println!("    プロジェクト名: {}", config.project_name);
     println!("    作成先パス:     {output_dir}");

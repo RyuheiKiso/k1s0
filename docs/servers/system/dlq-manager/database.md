@@ -79,6 +79,17 @@ dlq_messages と同一スキーマを持つアーカイブテーブル。RESOLVE
 | 001 | create_schema | pgcrypto 拡張・dlq スキーマ・`update_updated_at()` 関数の作成 |
 | 002 | create_dlq_messages | dlq_messages テーブル・インデックス・updated_at トリガー |
 | 003 | add_partition_management | dlq_messages_archive テーブル作成・バッチ対応アーカイブプロシージャ |
+| 004 | add_tenant_id_rls | dlq_messages に `tenant_id VARCHAR(255) NOT NULL` と RLS ポリシー追加（CRIT-005 対応） |
+| 005 | add_rls_with_check | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| 006 | alter_tenant_id_to_text | `tenant_id` を TEXT 型に変更、RLS ポリシー再作成（CRITICAL-DB-002 対応） |
+| 007 | add_archive_tenant_rls | `dlq_messages_archive` に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（HIGH-DB-005 対応） |
+
+---
+
+## マルチテナント対応
+
+- `dlq_messages`: `tenant_id TEXT NOT NULL`、RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）
+- `dlq_messages_archive`: `tenant_id TEXT NOT NULL`、RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）
 
 ---
 

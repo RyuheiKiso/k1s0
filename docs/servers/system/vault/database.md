@@ -175,6 +175,53 @@ CREATE INDEX IF NOT EXISTS idx_access_policies_path ON vault.access_policies (se
 | `004_create_access_logs.down.sql` | テーブル削除 |
 | `005_create_access_policies.up.sql` | access_policies テーブル作成 |
 | `005_create_access_policies.down.sql` | テーブル削除 |
+| `006_add_updated_at_to_access_policies.up.sql` | access_policies に updated_at カラムと自動更新トリガー追加（M-014 監査対応） |
+| `007_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id TEXT NOT NULL` と RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）追加、secrets の UNIQUE(key_path) → UNIQUE(tenant_id, key_path)（CRITICAL-DB-001 対応） |
+| `007_add_tenant_id_rls.down.sql` | `tenant_id` カラムと RLS ポリシー削除、UNIQUE 制約を復元 |
+| `008_add_bypass_functions.up.sql` | 管理・監査用 SECURITY DEFINER 関数を作成（`vault.list_access_logs_all_tenants`）。RLS FORCE 環境で全テナント横断の監査ログ一覧取得を提供する |
+| `008_add_bypass_functions.down.sql` | SECURITY DEFINER 関数削除 |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-001）
+
+全テーブル（`secrets` / `secret_versions` / `access_logs` / `access_policies`）に `tenant_id TEXT NOT NULL` カラムと RLS ポリシーを追加（migration 007）。
+
+- `secrets` テーブル: UNIQUE(key_path) を UNIQUE(tenant_id, key_path) に変更（テナント間の同一パスを許可）
+
+```sql
+ALTER TABLE vault.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vault.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON vault.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
+
+### RLS バイパス設計（SECURITY DEFINER 関数）
+
+RLS FORCE が有効なテーブルに対して、テナント ID 不明または全テナント横断のアクセスが必要な操作は
+SECURITY DEFINER 関数を使用して DB レベルで制御する。
+
+| 関数 | 目的 | 対象操作 |
+| --- | --- | --- |
+| `vault.list_access_logs_all_tenants(after_id, limit)` | 全テナントの監査ログを keyset ページネーションで取得 | 管理・運用 |
+
+### RLS コンテキスト設定（Rust サービス側）
+
+各 DB 操作前に key_path の先頭セグメントからテナント ID を抽出して `set_config` を呼ぶ。
+
+```rust
+let tenant_id = path.split('/').next().unwrap_or("system");
+sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+    .bind(tenant_id)
+    .execute(pool).await?;
+```
+
+### Phase B: 旧形式シークレットの一括再暗号化
+
+`cargo run --bin migrate-secrets` を実行して全シークレットを AAD 付き形式に移行する。
+`BYPASSRLS` 権限を持つ DB ロールで実行すること。
 
 ---
 

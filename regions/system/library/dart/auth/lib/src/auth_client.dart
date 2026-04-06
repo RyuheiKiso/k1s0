@@ -4,6 +4,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
 
 import 'pkce.dart';
@@ -196,11 +197,10 @@ class AuthClient {
           DateTime.now().add(Duration(seconds: data['expires_in'] as int)),
     );
 
-    // MED-015 監査対応: id_token の JWKS 署名検証が未実装。
-    // TODO: JWKS エンドポイント（discoveryUrl の jwks_uri）を使った RSA 署名検証を実装する必要がある。
-    // 具体的には: 1) discovery.jwksUri から公開鍵を取得、2) dart_jsonwebtoken 等のライブラリで検証、
-    // 3) iss/aud/exp クレームを検証してなりすましを防止する。
-    // 参考: ADR-0100、https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
+    // CRITICAL-FE-001 対応: トークン格納前に id_token の RS256 署名を JWKS 公開鍵で検証する。
+    // 改ざんされた id_token や中間者攻撃を早期に検知するため、保存前に必ず検証する。
+    // 参考: ADR-0100、OIDC Core §3.1.3.7
+    await _verifyIdToken(tokenSet.idToken, discovery);
     await _tokenStore.setTokenSet(tokenSet); // POLY-007 監査対応: await で永続化完了を保証
     _tokenStore.clearCodeVerifier();
     _tokenStore.clearState();
@@ -327,6 +327,90 @@ class AuthClient {
   void _notifyListeners(bool authenticated) {
     for (final cb in _listeners) {
       cb(authenticated);
+    }
+  }
+
+  /// JWKS エンドポイントから公開鍵を取得して id_token の RS256 署名を検証する。
+  /// CRITICAL-FE-001 対応: Keycloak から受け取ったトークンの改ざん検知を実装する。
+  /// issuer と audience を検証することで OIDC Core 仕様 §3.1.3.7 に準拠する。
+  /// kid（Key ID）でマッチする JWK を検索し、RS256 公開鍵で署名検証を行う。
+  Future<void> _verifyIdToken(String idToken, OIDCDiscovery discovery) async {
+    // JWKS エンドポイントから公開鍵セットを取得する
+    final jwksResp = await _httpGet(Uri.parse(discovery.jwksUri));
+    if (jwksResp.statusCode != 200) {
+      throw AuthError('JWKS fetch failed: ${jwksResp.statusCode}');
+    }
+    final jwksData = jsonDecode(jwksResp.body) as Map<String, dynamic>;
+    final keys = jwksData['keys'] as List<dynamic>;
+
+    // id_token のヘッダーから kid を取得する（検証前にヘッダーのみデコードする）
+    final parts = idToken.split('.');
+    if (parts.length != 3) {
+      throw AuthError('Invalid id_token format');
+    }
+    // Base64URL パディングを補完してヘッダーをデコードする
+    final headerPadded = base64Url.normalize(parts[0]);
+    final headerJson = jsonDecode(utf8.decode(base64Url.decode(headerPadded))) as Map<String, dynamic>;
+    final tokenKid = headerJson['kid'] as String?;
+    final tokenAlg = headerJson['alg'] as String? ?? 'RS256';
+
+    // アルゴリズムが RS256 であることを確認する（それ以外のアルゴリズムは拒否する）
+    if (tokenAlg != 'RS256') {
+      throw AuthError('Unsupported algorithm: $tokenAlg. Only RS256 is accepted.');
+    }
+
+    // kid でマッチする JWK を検索する（kid がない場合は最初の RSA 鍵を使用する）
+    Map<String, dynamic>? matchedKey;
+    for (final key in keys) {
+      final k = key as Map<String, dynamic>;
+      if (k['kty'] == 'RSA') {
+        if (tokenKid == null || k['kid'] == tokenKid) {
+          matchedKey = k;
+          break;
+        }
+      }
+    }
+
+    if (matchedKey == null) {
+      throw AuthError('No matching JWK found for kid: $tokenKid');
+    }
+
+    // JWK の n/e コンポーネントから RSA 公開鍵を構築して署名を検証する
+    final n = matchedKey['n'] as String;
+    final e = matchedKey['e'] as String;
+    try {
+      final publicKey = RSAPublicKey.fromComponents(n, e);
+      final jwt = JWT.verify(
+        idToken,
+        publicKey,
+        // 指数バックオフを考慮して30秒の時刻ずれを許容する（サーバー時刻差吸収）
+        checkHeaderType: false,
+      );
+      // iss クレームを検証する（発行者の偽装を防ぐ）
+      final payload = jwt.payload as Map<String, dynamic>;
+      final iss = payload['iss'] as String?;
+      if (iss == null || iss != discovery.issuer) {
+        throw AuthError('Invalid issuer: expected ${discovery.issuer}, got $iss');
+      }
+      // aud クレームを検証する（このクライアント宛てのトークンであることを確認する）
+      final aud = payload['aud'];
+      final audList = switch (aud) {
+        final List<dynamic> list => list.cast<String>(),
+        final String s => [s],
+        _ => <String>[],
+      };
+      if (!audList.contains(_config.clientId)) {
+        throw AuthError('Invalid audience: clientId ${_config.clientId} not in $audList');
+      }
+      // exp クレームを検証する（期限切れトークンを拒否する）
+      final exp = payload['exp'] as int?;
+      if (exp == null || DateTime.fromMillisecondsSinceEpoch(exp * 1000).isBefore(DateTime.now())) {
+        throw AuthError('Token has expired');
+      }
+    } on JWTExpiredException {
+      throw AuthError('Token has expired');
+    } on JWTException catch (e) {
+      throw AuthError('JWT verification failed: ${e.message}');
     }
   }
 

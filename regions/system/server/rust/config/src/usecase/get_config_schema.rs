@@ -23,10 +23,15 @@ impl GetConfigSchemaUseCase {
         Self { schema_repo }
     }
 
-    /// service_name で設定スキーマを取得する。
-    pub async fn execute(&self, service_name: &str) -> Result<ConfigSchema, GetConfigSchemaError> {
+    /// service_name とテナントIDで設定スキーマを取得する。
+    // CRITICAL-RUST-001 監査対応: テナント分離のために tenant_id 引数を追加する。
+    pub async fn execute(
+        &self,
+        service_name: &str,
+        tenant_id: &str,
+    ) -> Result<ConfigSchema, GetConfigSchemaError> {
         self.schema_repo
-            .find_by_service_name(service_name)
+            .find_by_service_name(service_name, tenant_id)
             .await
             .map_err(|e| GetConfigSchemaError::Internal(e.to_string()))?
             .ok_or_else(|| GetConfigSchemaError::NotFound(service_name.to_string()))
@@ -46,6 +51,7 @@ mod tests {
         let mut mock = MockConfigSchemaRepository::new();
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "auth-server".to_string(),
             namespace_prefix: "system.auth".to_string(),
             schema_json: serde_json::json!({"categories": []}),
@@ -56,11 +62,11 @@ mod tests {
         let expected = schema.clone();
 
         mock.expect_find_by_service_name()
-            .withf(|name| name == "auth-server")
-            .returning(move |_| Ok(Some(schema.clone())));
+            .withf(|name, _tenant| name == "auth-server")
+            .returning(move |_, _| Ok(Some(schema.clone())));
 
         let uc = GetConfigSchemaUseCase::new(Arc::new(mock));
-        let result = uc.execute("auth-server").await;
+        let result = uc.execute("auth-server", "test-tenant").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, expected.id);
     }
@@ -68,10 +74,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_config_schema_not_found() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_find_by_service_name().returning(|_| Ok(None));
+        mock.expect_find_by_service_name().returning(|_, _| Ok(None));
 
         let uc = GetConfigSchemaUseCase::new(Arc::new(mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {
@@ -84,10 +90,10 @@ mod tests {
     async fn test_get_config_schema_internal_error() {
         let mut mock = MockConfigSchemaRepository::new();
         mock.expect_find_by_service_name()
-            .returning(|_| Err(anyhow::anyhow!("connection refused")));
+            .returning(|_, _| Err(anyhow::anyhow!("connection refused")));
 
         let uc = GetConfigSchemaUseCase::new(Arc::new(mock));
-        let result = uc.execute("auth-server").await;
+        let result = uc.execute("auth-server", "test-tenant").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

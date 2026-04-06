@@ -654,9 +654,11 @@ impl InMemoryConfigSchemaRepository {
 
 #[async_trait::async_trait]
 impl crate::domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaRepository {
+    // CRITICAL-RUST-001 監査対応: InMemory 実装はシグネチャを合わせるため _tenant_id を受け取る（RLS 不要）。
     async fn find_by_service_name(
         &self,
         service_name: &str,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<ConfigSchema>> {
         let schemas = self.schemas.read().await;
         Ok(schemas
@@ -665,7 +667,12 @@ impl crate::domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaR
             .cloned())
     }
 
-    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: InMemory 実装はシグネチャを合わせるため _tenant_id を受け取る（RLS 不要）。
+    async fn find_by_namespace(
+        &self,
+        namespace: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
         let schemas = self.schemas.read().await;
         Ok(schemas
             .iter()
@@ -673,7 +680,8 @@ impl crate::domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaR
             .cloned())
     }
 
-    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: InMemory 実装はシグネチャを合わせるため _tenant_id を受け取る（RLS 不要）。
+    async fn list_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>> {
         let schemas = self.schemas.read().await;
         Ok(schemas.clone())
     }

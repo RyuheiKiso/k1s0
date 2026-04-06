@@ -2,6 +2,7 @@
 // 各メソッドで proto Request をドメイン入力型に変換し、UseCase を呼び出して proto Response を返す。
 // RLS テナント分離のため gRPC メタデータから x-tenant-id を取得する。
 // CRIT-006 対応: x-tenant-id が未設定の場合は UNAUTHENTICATED エラーを返す（フェイルクローズ設計）。
+// HIGH-BIZ-003 対応: actor_id は gRPC メタデータの x-actor-id または "grpc" フォールバックで取得する。
 use crate::domain::entity::activity::{
     ActivityFilter, ActivityStatus, ActivityType, CreateActivity,
 };
@@ -110,6 +111,24 @@ fn tenant_id_from_metadata<T>(req: &Request<T>) -> Result<String, Status> {
         })
 }
 
+/// gRPC メタデータから x-actor-id を取得する。
+/// HIGH-BIZ-003 対応: "grpc" ハードコードを排除し、メタデータから実際のアクターIDを取得する。
+/// x-actor-id が設定されていない場合は "grpc" をフォールバックとして使用する。
+/// （認証ゲートウェイが x-actor-id を設定しない場合でも互換性を維持するため）
+fn actor_id_from_metadata<T>(req: &Request<T>) -> String {
+    req.metadata()
+        .get("x-actor-id")
+        .and_then(|v| v.to_str().ok())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            tracing::debug!(
+                "x-actor-id metadata が設定されていません。フォールバックとして 'grpc' を使用します。"
+            );
+            "grpc".to_string()
+        })
+}
+
 pub struct ActivityGrpcService {
     pub create_activity_uc: Arc<usecase::create_activity::CreateActivityUseCase>,
     pub get_activity_uc: Arc<usecase::get_activity::GetActivityUseCase>,
@@ -138,6 +157,9 @@ impl ActivityService for ActivityGrpcService {
     async fn create_activity(&self, req: Request<CreateActivityRequest>) -> Result<Response<CreateActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
         let tenant_id = tenant_id_from_metadata(&req)?;
+        // HIGH-BIZ-003 対応: x-actor-id メタデータからアクターIDを取得する。
+        // "grpc" ハードコードを排除して実際のリクエスト元を追跡可能にする。
+        let actor_id = actor_id_from_metadata(&req);
         let r = req.into_inner();
         let task_id = Uuid::parse_str(&r.task_id)
             .map_err(|_| Status::invalid_argument("invalid task_id"))?;
@@ -150,7 +172,7 @@ impl ActivityService for ActivityGrpcService {
             idempotency_key: r.idempotency_key,
         };
 
-        match self.create_activity_uc.execute(&tenant_id, &input, "grpc").await {
+        match self.create_activity_uc.execute(&tenant_id, &input, &actor_id).await {
             Ok(activity) => Ok(Response::new(CreateActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -244,11 +266,13 @@ impl ActivityService for ActivityGrpcService {
     async fn submit_activity(&self, req: Request<SubmitActivityRequest>) -> Result<Response<SubmitActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
         let tenant_id = tenant_id_from_metadata(&req)?;
+        // HIGH-BIZ-003 対応: x-actor-id メタデータからアクターIDを取得する
+        let actor_id = actor_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.submit_activity_uc.execute(&tenant_id, id, "grpc").await {
+        match self.submit_activity_uc.execute(&tenant_id, id, &actor_id).await {
             Ok(activity) => Ok(Response::new(SubmitActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -260,11 +284,13 @@ impl ActivityService for ActivityGrpcService {
     async fn approve_activity(&self, req: Request<ApproveActivityRequest>) -> Result<Response<ApproveActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
         let tenant_id = tenant_id_from_metadata(&req)?;
+        // HIGH-BIZ-003 対応: x-actor-id メタデータからアクターIDを取得する
+        let actor_id = actor_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.approve_activity_uc.execute(&tenant_id, id, "grpc").await {
+        match self.approve_activity_uc.execute(&tenant_id, id, &actor_id).await {
             Ok(activity) => Ok(Response::new(ApproveActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),
@@ -276,11 +302,13 @@ impl ActivityService for ActivityGrpcService {
     async fn reject_activity(&self, req: Request<RejectActivityRequest>) -> Result<Response<RejectActivityResponse>, Status> {
         // メタデータから tenant_id を取得する
         let tenant_id = tenant_id_from_metadata(&req)?;
+        // HIGH-BIZ-003 対応: x-actor-id メタデータからアクターIDを取得する
+        let actor_id = actor_id_from_metadata(&req);
         let r = req.into_inner();
         let id = Uuid::parse_str(&r.activity_id)
             .map_err(|_| Status::invalid_argument("invalid activity_id"))?;
 
-        match self.reject_activity_uc.execute(&tenant_id, id, "grpc", &r.reason).await {
+        match self.reject_activity_uc.execute(&tenant_id, id, &actor_id, &r.reason).await {
             Ok(activity) => Ok(Response::new(RejectActivityResponse {
                 activity: Some(domain_activity_to_proto(activity)),
             })),

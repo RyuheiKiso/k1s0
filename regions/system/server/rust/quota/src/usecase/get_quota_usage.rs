@@ -30,17 +30,22 @@ impl GetQuotaUsageUseCase {
         }
     }
 
-    pub async fn execute(&self, quota_id: &str) -> Result<QuotaUsage, GetQuotaUsageError> {
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り各リポジトリに渡して RLS を有効にする。
+    pub async fn execute(
+        &self,
+        quota_id: &str,
+        tenant_id: &str,
+    ) -> Result<QuotaUsage, GetQuotaUsageError> {
         let policy = self
             .policy_repo
-            .find_by_id(quota_id)
+            .find_by_id(quota_id, tenant_id)
             .await
             .map_err(|e| GetQuotaUsageError::Internal(e.to_string()))?
             .ok_or_else(|| GetQuotaUsageError::NotFound(quota_id.to_string()))?;
 
         let used = self
             .usage_repo
-            .get_usage(quota_id)
+            .get_usage(quota_id, tenant_id)
             .await
             .map_err(|e| GetQuotaUsageError::Internal(e.to_string()))?
             .unwrap_or(0);
@@ -129,13 +134,15 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
-        usage_mock.expect_get_usage().returning(|_| Ok(Some(7500)));
+        usage_mock
+            .expect_get_usage()
+            .returning(|_, _| Ok(Some(7500)));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "tenant-1").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();
@@ -149,10 +156,10 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock.expect_find_by_id().returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaUsageError::NotFound(id) => assert_eq!(id, "nonexistent"),
@@ -167,10 +174,10 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "tenant-1").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaUsageError::Internal(msg) => assert!(msg.contains("db error")),
@@ -189,13 +196,13 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
-        usage_mock.expect_get_usage().returning(|_| Ok(None));
+        usage_mock.expect_get_usage().returning(|_, _| Ok(None));
 
         let uc = GetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "tenant-1").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();

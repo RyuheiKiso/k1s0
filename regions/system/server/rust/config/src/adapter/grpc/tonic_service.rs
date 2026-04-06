@@ -130,9 +130,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::GetConfigSchemaRequest>,
     ) -> Result<Response<pb::GetConfigSchemaResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .get_config_schema(request.into_inner())
+            .get_config_schema(&tenant_id.to_string(), request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -142,9 +144,11 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
         &self,
         request: Request<pb::UpsertConfigSchemaRequest>,
     ) -> Result<Response<pb::UpsertConfigSchemaResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .upsert_config_schema(request.into_inner())
+            .upsert_config_schema(&tenant_id.to_string(), request.into_inner())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))
@@ -152,11 +156,13 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
 
     async fn list_config_schemas(
         &self,
-        _request: Request<pb::ListConfigSchemasRequest>,
+        request: Request<pb::ListConfigSchemasRequest>,
     ) -> Result<Response<pb::ListConfigSchemasResponse>, Status> {
+        // CRITICAL-RUST-001 監査対応: テナントIDをリクエスト extensions から抽出する
+        let tenant_id = extract_tenant_id(&request);
         let resp = self
             .inner
-            .list_config_schemas()
+            .list_config_schemas(&tenant_id.to_string())
             .await
             .map_err(Status::from)?;
         Ok(Response::new(resp))

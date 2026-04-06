@@ -146,6 +146,7 @@ mod tests {
 
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -157,6 +158,7 @@ mod tests {
 
     fn make_flow_with_steps(flow_id: Uuid) -> FlowDefinition {
         let mut flow = FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),
@@ -196,7 +198,7 @@ mod tests {
     #[tokio::test]
     async fn with_flow() {
         let flow_id = Uuid::new_v4();
-        let instance = FlowInstance::new(flow_id, "corr-123".to_string());
+        let instance = FlowInstance::new("system".to_string(), flow_id, "corr-123".to_string());
         // instance is InProgress at step 0, so steps 1 and 2 are pending
 
         let mut event_mock = MockEventRecordRepository::new();

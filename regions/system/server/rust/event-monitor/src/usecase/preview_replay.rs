@@ -147,6 +147,7 @@ mod tests {
 
     fn make_event_with_flow(corr_id: &str, flow_id: Uuid, step_index: i32) -> EventRecord {
         let mut event = EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -161,6 +162,7 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "test".to_string(),
             "service.task".to_string(),

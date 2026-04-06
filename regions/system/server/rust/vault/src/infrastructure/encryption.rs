@@ -76,24 +76,6 @@ impl MasterKey {
             .decrypt(nonce, Payload { msg: ciphertext, aad })
             .map_err(|e| anyhow::anyhow!("decryption failed: {}", e))
     }
-
-    /// 暗号文と nonce から平文データを復号化する（レガシーフォールバック付き）。
-    /// CRIT-003 Phase A: AAD あり（新形式）で復号を試み、失敗した場合は
-    /// AAD なし（旧形式）でフォールバックして後方互換性を確保する。
-    /// Phase B（全データを新形式で再暗号化完了後）にこの関数を削除して decrypt に統一すること。
-    pub fn decrypt_with_legacy_fallback(
-        &self,
-        ciphertext: &[u8],
-        nonce: &[u8],
-        aad: &[u8],
-    ) -> anyhow::Result<Vec<u8>> {
-        // まず新形式（AAD あり）で復号を試みる
-        self.decrypt(ciphertext, nonce, aad).or_else(|_| {
-            // CRIT-003 Phase A: 旧形式（AAD なし）のデータへのフォールバック
-            // このパスが実行される場合は Phase B（バッチ再暗号化）が未完了
-            self.decrypt(ciphertext, nonce, b"")
-        })
-    }
 }
 
 #[cfg(test)]
@@ -185,35 +167,6 @@ mod tests {
 
         // 異なる AAD では復号が失敗することを確認する（認証タグ検証失敗）
         assert!(master.decrypt(&ciphertext, &nonce, wrong_aad).is_err());
-    }
-
-    /// CRIT-003 Phase A: レガシーフォールバックにより旧形式（AAD なし）データを復号できることを確認する。
-    /// 旧形式データに新形式 AAD を指定しても decrypt_with_legacy_fallback が内部でリトライする。
-    #[test]
-    fn test_legacy_fallback_decrypts_old_format() {
-        let master = make_test_key();
-        let plaintext = b"legacy encrypted secret";
-        // 旧形式: AAD なし（空バイト列）で暗号化する
-        let (ciphertext, nonce) = master.encrypt(plaintext, b"").unwrap();
-        // 新形式 AAD を指定してもフォールバックで復号できることを確認する
-        let decrypted = master
-            .decrypt_with_legacy_fallback(&ciphertext, &nonce, b"vault/my-service/db-password")
-            .unwrap();
-        assert_eq!(decrypted, plaintext);
-    }
-
-    /// CRIT-003 Phase A: 新形式（AAD あり）で暗号化されたデータは
-    /// decrypt_with_legacy_fallback が最初の試行で正常に復号することを確認する。
-    #[test]
-    fn test_legacy_fallback_decrypts_new_format_with_correct_aad() {
-        let master = make_test_key();
-        let plaintext = b"new format encrypted secret";
-        let aad = b"vault/my-service/db-password";
-        let (ciphertext, nonce) = master.encrypt(plaintext, aad).unwrap();
-        let decrypted = master
-            .decrypt_with_legacy_fallback(&ciphertext, &nonce, aad)
-            .unwrap();
-        assert_eq!(decrypted, plaintext);
     }
 
     #[test]

@@ -38,6 +38,7 @@ project_types 1──* tenant_project_extensions
 ### project_types（プロジェクトタイプ定義）
 
 プロジェクトの分類を定義する。`version` フィールドにより楽観的ロックを実現する。
+CRITICAL-BIZ-002 対応: `tenant_id` カラムと RLS ポリシーを追加。`'system'` テナントの行はすべてのテナントが参照可能。
 
 ```sql
 CREATE TABLE project_master.project_types (
@@ -48,6 +49,7 @@ CREATE TABLE project_master.project_types (
     is_active    BOOLEAN NOT NULL DEFAULT true,
     sort_order   INTEGER NOT NULL DEFAULT 0,
     version      INTEGER NOT NULL DEFAULT 1,
+    tenant_id    TEXT NOT NULL DEFAULT 'system',
     created_by   VARCHAR(255) NOT NULL,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -55,6 +57,7 @@ CREATE TABLE project_master.project_types (
 
 CREATE INDEX idx_project_types_code ON project_master.project_types(code);
 CREATE INDEX idx_project_types_active ON project_master.project_types(is_active);
+CREATE INDEX idx_project_types_tenant_id ON project_master.project_types(tenant_id);
 ```
 
 | カラム | 型 | 制約 | 説明 |
@@ -66,9 +69,28 @@ CREATE INDEX idx_project_types_active ON project_master.project_types(is_active)
 | is_active | BOOLEAN | NOT NULL, DEFAULT true | 有効フラグ |
 | sort_order | INTEGER | NOT NULL, DEFAULT 0 | 表示順 |
 | version | INTEGER | NOT NULL, DEFAULT 1 | 楽観的ロック用バージョン番号 |
+| tenant_id | TEXT | NOT NULL, DEFAULT 'system' | テナント ID（'system' = 全テナント共通） |
 | created_by | VARCHAR(255) | NOT NULL | 作成者 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | 更新日時 |
+
+#### RLS（Row Level Security）
+
+```sql
+ALTER TABLE project_master.project_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_master.project_types FORCE ROW LEVEL SECURITY;
+
+-- 自テナントの行または 'system' 共通行にアクセスを許可する
+CREATE POLICY tenant_isolation ON project_master.project_types
+    USING (
+        tenant_id = current_setting('app.current_tenant_id', true)::TEXT
+        OR tenant_id = 'system'
+    )
+    WITH CHECK (
+        tenant_id = current_setting('app.current_tenant_id', true)::TEXT
+        OR tenant_id = 'system'
+    );
+```
 
 ---
 
@@ -117,13 +139,23 @@ CREATE INDEX idx_status_definitions_active_sort ON project_master.status_definit
 
 #### RLS（Row Level Security）
 
-テナント別ステータス定義は RLS ポリシーにより、`tenant_id` が一致するレコードまたは `tenant_id IS NULL`（共通定義）のみアクセスを許可する。
+CRITICAL-BIZ-002 対応: `status_definitions` テーブルにも RLS ポリシーを追加。
+自テナントの行または `'system'` 共通行のみアクセスを許可する。
 
 ```sql
 ALTER TABLE project_master.status_definitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_master.status_definitions FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY status_definitions_tenant_policy ON project_master.status_definitions
-    USING (tenant_id IS NULL OR tenant_id = current_setting('app.tenant_id', true));
+-- 自テナントの行または 'system' 共通行にアクセスを許可する
+CREATE POLICY tenant_isolation ON project_master.status_definitions
+    USING (
+        tenant_id = current_setting('app.current_tenant_id', true)::TEXT
+        OR tenant_id = 'system'
+    )
+    WITH CHECK (
+        tenant_id = current_setting('app.current_tenant_id', true)::TEXT
+        OR tenant_id = 'system'
+    );
 ```
 
 ---
@@ -197,9 +229,11 @@ CREATE INDEX idx_tenant_project_extensions_type ON project_master.tenant_project
 
 ```sql
 ALTER TABLE project_master.tenant_project_extensions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_master.tenant_project_extensions FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY tenant_project_extensions_tenant_policy ON project_master.tenant_project_extensions
-    USING (tenant_id = current_setting('app.tenant_id', true));
+CREATE POLICY tenant_isolation ON project_master.tenant_project_extensions
+    USING (tenant_id = current_setting('app.current_tenant_id', true)::TEXT)
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true)::TEXT);
 ```
 
 ---
@@ -214,8 +248,10 @@ CREATE POLICY tenant_project_extensions_tenant_policy ON project_master.tenant_p
 | `001_create_schema.down.sql` | スキーマ削除 |
 | `002_create_project_master_tables.up.sql` | 全テーブル（project_types, status_definitions, status_definition_versions, tenant_project_extensions）・インデックス・制約の作成 |
 | `002_create_project_master_tables.down.sql` | 全テーブル削除 |
-| `003_add_rls_policies.up.sql` | RLS ポリシー設定（status_definitions, tenant_project_extensions） |
-| `003_add_rls_policies.down.sql` | RLS ポリシー削除 |
+| `003_add_tenant_project_extensions_rls.up.sql` | tenant_project_extensions テーブルへの RLS ポリシー追加 |
+| `003_add_tenant_project_extensions_rls.down.sql` | RLS ポリシー削除 |
+| `004_add_rls_project_types_status_definitions.up.sql` | CRITICAL-BIZ-002: project_types/status_definitions への tenant_id カラム追加・RLS ポリシー設定 |
+| `004_add_rls_project_types_status_definitions.down.sql` | tenant_id カラム・RLS ポリシー削除 |
 
 ---
 

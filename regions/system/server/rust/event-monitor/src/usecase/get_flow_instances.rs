@@ -72,8 +72,8 @@ mod tests {
             .returning(move |_, _, _| {
                 Ok((
                     vec![
-                        FlowInstance::new(flow_id, "corr-1".to_string()),
-                        FlowInstance::new(flow_id, "corr-2".to_string()),
+                        FlowInstance::new("system".to_string(), flow_id, "corr-1".to_string()),
+                        FlowInstance::new("system".to_string(), flow_id, "corr-2".to_string()),
                     ],
                     5,
                 ))

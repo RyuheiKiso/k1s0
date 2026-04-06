@@ -30,9 +30,12 @@ impl FlowInstanceStatus {
     }
 }
 
+/// フローインスタンスドメインエンティティ。テナント分離のため tenant_id を保持する。
 #[derive(Debug, Clone)]
 pub struct FlowInstance {
     pub id: Uuid,
+    /// テナント識別子（RLS による行レベルセキュリティのキーとなる）
+    pub tenant_id: String,
     pub flow_id: Uuid,
     pub correlation_id: String,
     pub status: FlowInstanceStatus,
@@ -43,9 +46,12 @@ pub struct FlowInstance {
 }
 
 impl FlowInstance {
-    pub fn new(flow_id: Uuid, correlation_id: String) -> Self {
+    /// 新しいフローインスタンスを生成する。
+    /// tenant_id はイベントと同じテナントに属するため、Kafka ヘッダーから伝播した値を使用する。
+    pub fn new(tenant_id: String, flow_id: Uuid, correlation_id: String) -> Self {
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             flow_id,
             correlation_id,
             status: FlowInstanceStatus::InProgress,

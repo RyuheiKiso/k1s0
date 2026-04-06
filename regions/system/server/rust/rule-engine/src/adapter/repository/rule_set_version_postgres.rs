@@ -18,10 +18,14 @@ impl RuleSetVersionPostgresRepository {
     }
 }
 
+/// CRITICAL-RUST-001 監査対応: tenant_id カラムを含む row 構造体（migration 003 対応）。
 #[derive(sqlx::FromRow)]
 struct RuleSetVersionRow {
     id: Uuid,
     rule_set_id: Uuid,
+    // migration 003 で追加した tenant_id カラム
+    #[allow(dead_code)]
+    tenant_id: String,
     version: i32,
     rules: serde_json::Value,
     #[allow(dead_code)]
@@ -56,8 +60,9 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
         rule_set_id: &Uuid,
         version: u32,
     ) -> anyhow::Result<Option<RuleSetVersion>> {
+        // CRITICAL-RUST-001 監査対応: tenant_id カラムを SELECT に含める（migration 003 対応）。
         let row: Option<RuleSetVersionRow> = sqlx::query_as(
-            "SELECT id, rule_set_id, version, rules, status, published_at, \
+            "SELECT id, rule_set_id, tenant_id, version, rules, status, published_at, \
                     created_at, updated_at \
              FROM rule_engine.rule_set_versions \
              WHERE rule_set_id = $1 AND version = $2",
@@ -74,8 +79,9 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
         &self,
         rule_set_id: &Uuid,
     ) -> anyhow::Result<Option<RuleSetVersion>> {
+        // CRITICAL-RUST-001 監査対応: tenant_id カラムを SELECT に含める（migration 003 対応）。
         let row: Option<RuleSetVersionRow> = sqlx::query_as(
-            "SELECT id, rule_set_id, version, rules, status, published_at, \
+            "SELECT id, rule_set_id, tenant_id, version, rules, status, published_at, \
                     created_at, updated_at \
              FROM rule_engine.rule_set_versions \
              WHERE rule_set_id = $1 \
@@ -91,13 +97,33 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
     async fn create(&self, version: &RuleSetVersion) -> anyhow::Result<()> {
         let rules_json = serde_json::to_value(&version.rule_ids_snapshot)?;
 
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // rule_set から tenant_id を取得するため、rule_set_id で引いて取得する。
+        let rule_set_tenant: Option<(String,)> = sqlx::query_as(
+            "SELECT tenant_id FROM rule_engine.rule_sets WHERE id = $1",
+        )
+        .bind(version.rule_set_id)
+        .fetch_optional(self.pool.as_ref())
+        .await?;
+
+        let tenant_id = rule_set_tenant
+            .map(|(tid,)| tid)
+            .unwrap_or_else(|| "system".to_string());
+
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
+        // tenant_id カラムを INSERT に追加（migration 003 対応）
         sqlx::query(
             "INSERT INTO rule_engine.rule_set_versions \
-             (id, rule_set_id, version, rules, status, published_at, created_at) \
-             VALUES ($1, $2, $3, $4, 'published', $5, $6)",
+             (id, rule_set_id, tenant_id, version, rules, status, published_at, created_at) \
+             VALUES ($1, $2, $3, $4, $5, 'published', $6, $7)",
         )
         .bind(version.id)
         .bind(version.rule_set_id)
+        .bind(&tenant_id)
         .bind(version.version as i32)
         .bind(&rules_json)
         .bind(version.published_at)

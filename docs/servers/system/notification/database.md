@@ -160,8 +160,29 @@ CREATE INDEX IF NOT EXISTS idx_notification_logs_created_at ON notification.noti
 | `008_convert_prefixed_ids.down.sql` | ID 変換復元 |
 | `009_add_template_fk_on_delete.up.sql` | template_id FK に ON DELETE 設定追加 |
 | `009_add_template_fk_on_delete.down.sql` | FK 制約復元 |
+| `010_add_composite_indexes.up.sql` | 複合インデックス追加 |
+| `011_encrypt_channel_config.up.sql` | channels.config 暗号化 |
+| `012_add_tenant_id_rls.up.sql` | channels に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（H-012 / H-010 対応） |
+| `013_fix_tenant_id_rls_cast.up.sql` | channels の RLS ポリシーに ::TEXT キャスト追加 |
+| `014_add_rls_with_check.up.sql` | channels の RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `015_add_templates_logs_tenant_rls.up.sql` | templates / notification_logs に `tenant_id TEXT NOT NULL` と RLS ポリシー追加（HIGH-DB-001 対応） |
 
 > **注記**: マイグレーション番号は C-2（重複番号修正）により 005 以降を再番号付けした（2026-03-19）。旧 005_add_template_id_index → 006、以降連番で繰り上げ。
+
+---
+
+## マルチテナント対応（HIGH-DB-001）
+
+`templates` / `notification_logs` に `tenant_id TEXT NOT NULL` カラムと RLS ポリシーを追加（migration 015）。
+
+```sql
+ALTER TABLE notification.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON notification.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

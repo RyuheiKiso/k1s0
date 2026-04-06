@@ -51,6 +51,16 @@ impl GetNavigationUseCase {
         Self { loader, verifier }
     }
 
+    /// MEDIUM-RUST-002 監査対応: readyz エンドポイント用の設定ファイルロード確認メソッド。
+    /// navigation.yaml が正常にロードできるかを検証し、サービスの準備完了状態を返す。
+    /// DB を持たないサービスのため、YAML 設定ファイルの可読性をレディネスチェックとして使用する。
+    pub fn check_config_loadable(&self) -> Result<(), NavigationError> {
+        self.loader
+            .load()
+            .map(|_| ())
+            .map_err(|e| NavigationError::ConfigLoad(e.to_string()))
+    }
+
     pub async fn execute(&self, bearer_token: &str) -> Result<FilteredNavigation, NavigationError> {
         let config = self
             .loader

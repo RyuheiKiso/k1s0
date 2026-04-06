@@ -88,8 +88,9 @@ k1s0-circuit-breaker = { path = "../../../library/rust/circuit-breaker" }
 k1s0-telemetry = { path = "../../../library/rust/telemetry", features = ["full"] }
 k1s0-correlation = { path = "../../../library/rust/correlation", features = ["tower-layer"] }
 
-# Server common (error codes)
-k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "utoipa", "shutdown"] }
+# Server common (error codes, middleware, gRPC 認証レイヤー)
+# HIGH-RUST-006 監査対応: grpc-auth feature を追加して GrpcAuthLayer / middleware::rbac::Tier を有効化する
+k1s0-server-common = { path = "../../../library/rust/server-common", features = ["axum", "utoipa", "shutdown", "grpc-auth"] }
 
 # OpenAPI
 utoipa = {workspace = true}

@@ -4,9 +4,15 @@ use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::send_notification::{SendNotificationInput, SendNotificationUseCase};
 
 /// NotificationRequestEvent は Kafka から受信する通知リクエストイベント。
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してテナント分離を有効化する。
+/// Kafka プロデューサーはイベント発行時に tenant_id を含める必要がある。
+/// 後方互換のため serde(default) で未設定時は "system" にフォールバックする。
 #[derive(Debug, serde::Deserialize)]
 pub struct NotificationRequestEvent {
     pub channel_id: String,
+    /// 通知を発行したテナントの ID。未指定の場合は "system" にフォールバックする。
+    #[serde(default = "default_system_tenant")]
+    pub tenant_id: String,
     #[serde(default)]
     pub template_id: Option<String>,
     pub recipient: String,
@@ -16,6 +22,12 @@ pub struct NotificationRequestEvent {
     pub body: Option<String>,
     #[serde(default)]
     pub template_variables: Option<std::collections::HashMap<String, String>>,
+}
+
+/// MEDIUM-RUST-001 監査対応: tenant_id が未指定の場合のデフォルト値。
+/// 既存の Kafka プロデューサーとの後方互換性を保つためのフォールバック。
+fn default_system_tenant() -> String {
+    "system".to_string()
 }
 
 /// NotificationKafkaConsumer は通知リクエストトピックを購読してメッセージを処理する。
@@ -103,8 +115,10 @@ impl NotificationKafkaConsumer {
                         continue;
                     }
 
+                    // MEDIUM-RUST-001 監査対応: event.tenant_id を伝播してテナント分離を有効化する
                     let input = SendNotificationInput {
                         channel_id: event.channel_id,
+                        tenant_id: event.tenant_id,
                         template_id: event.template_id,
                         recipient: event.recipient,
                         subject: event.subject,

@@ -220,6 +220,23 @@ migrations/
 | 004 | add_updated_by | `updated_by` カラム追加 |
 | 005 | add_outbox_rls | `outbox_events` テーブルへの RLS ポリシー設定 |
 | 006 | fix_task_id_type | `task_id` カラムを TEXT → UUID 型に変換（不正値は NULL に変換）— **データロスリスクあり（後述）** |
+| 007 | fix_rls_force_restrictive | `activities` に FORCE ROW LEVEL SECURITY、AS RESTRICTIVE、WITH CHECK を追加（HIGH-BIZ-002 対応） |
+
+---
+
+## マルチテナント対応（HIGH-BIZ-002）
+
+`activities` に FORCE / AS RESTRICTIVE / WITH CHECK を追加（migration 007）。
+
+```sql
+ALTER TABLE activity_service.activities FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON activity_service.activities
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
+
+---
 
 ### migration 006: task_id TEXT → UUID 変換のデータロスリスク（H-015 監査対応）
 

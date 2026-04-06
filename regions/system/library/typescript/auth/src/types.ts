@@ -71,7 +71,12 @@ export type AuthStateCallback = (authenticated: boolean) => void;
 /** トークンストアのインターフェース */
 export interface TokenStore {
   getTokenSet(): TokenSet | null;
-  setTokenSet(tokenSet: TokenSet): void;
+  /**
+   * HIGH-FE-001 対応: setTokenSet を Promise<void> に変更する。
+   * SecureTokenStore は非同期 BFF 通信を行うため、呼び出し元が await できるよう
+   * インターフェースを非同期化する。MemoryTokenStore は同期的に完了する。
+   */
+  setTokenSet(tokenSet: TokenSet): Promise<void>;
   clearTokenSet(): void;
   getCodeVerifier(): string | null;
   setCodeVerifier(verifier: string): void;

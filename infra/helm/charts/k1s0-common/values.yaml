@@ -74,9 +74,10 @@ probes:
   # liveness/readiness より先に評価され、起動完了前に liveness が誤って失敗するのを防ぐ。
   # initialDelaySeconds: 10 — Vault Agent Injector の init コンテナ完了を待つための猶予時間（L-11 監査対応）。
   # failureThreshold × periodSeconds = 50秒の猶予期間を与える（合計最大60秒）。
+  # MEDIUM-INFRA-003 監査対応: /healthz から /readyz に変更し DB・依存サービス確認済みの状態を保証する
   startup:
     httpGet:
-      path: /healthz
+      path: /readyz
       port: http
     initialDelaySeconds: 10
     failureThreshold: 10

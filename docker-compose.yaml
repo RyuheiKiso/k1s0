@@ -512,10 +512,11 @@ services:
     # Vault dev モードはインメモリストレージを使用するためファイル書き込み不要
     # /tmp は tmpfs で一時ストレージを確保する
     # /home/vault は Vault dev モードが .vault-token.tmp 等を書き込むために必要（CRIT-002 対応）
+    # uid=100 は Vault プロセスが切り替わる vault ユーザーの UID であり、tmpfs の所有者を vault に設定する
     read_only: true
     tmpfs:
       - /tmp
-      - /home/vault
+      - /home/vault:uid=100,gid=1000
     # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
     ports:
       - "127.0.0.1:${VAULT_HOST_PORT:-8200}:8200"
@@ -573,10 +574,12 @@ services:
     # HIGH-016 監査対応: コンテナのルートファイルシステムを読み取り専用にしてホストへの書き込みを防止する
     # Kong は設定ファイル（:ro マウント）のみを参照し、ログは stdout/stderr に出力するため書き込み不要
     # Kong のワーカーソケット（/usr/local/kong/sockets）と一時ファイル（/tmp）は tmpfs でカバーする（CRIT-003 対応）
+    # 修正: /usr/local/kong 全体ではなく /usr/local/kong/sockets のみを tmpfs にする。
+    # /usr/local/kong 全体を tmpfs にすると bin/lib 等のイメージ内ファイルが消えて起動失敗する。
     read_only: true
     tmpfs:
       - /tmp
-      - /usr/local/kong
+      - /usr/local/kong/sockets
     volumes:
       - ./infra/kong/kong.dev.yaml:/etc/kong/kong.yaml:ro
     ports:
@@ -694,6 +697,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -720,6 +726,9 @@ services:
       # H-014 監査対応: featureflag は k1s0.system.featureflag.changed.v1 トピックを使用するため kafka 依存を追加
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -743,6 +752,9 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
@@ -865,6 +877,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -886,6 +901,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -906,6 +924,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
@@ -956,6 +977,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -980,6 +1004,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1003,6 +1030,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1025,6 +1055,9 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
@@ -1052,6 +1085,9 @@ services:
       # H-014 監査対応: rule-engine は Kafka でイベントを発行するため kafka 依存を追加
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1075,6 +1111,9 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1095,6 +1134,9 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       postgres:
+        condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
         condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
@@ -1147,6 +1189,9 @@ services:
       # bff-proxy も redis-session を使用しており、session-rust も同じインスタンスに統一する
       redis-session:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1174,6 +1219,9 @@ services:
       # scheduler-rust が未起動の場合は DNS エラーでクラッシュするため依存を明示する（CRIT-2 監査対応）。
       scheduler-rust:
         condition: service_healthy
+      # HIGH-INFRA-002 監査対応: JWT 検証に Keycloak JWKS を参照するため起動順序を保証する
+      keycloak:
+        condition: service_healthy
       # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop でのヘルスチェックタイムアウト問題を避けるため service_started を使用
       jaeger:
         condition: service_started
@@ -1190,7 +1238,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${AI_GATEWAY_REST_HOST_PORT:-8120}:8080"
-      - "127.0.0.1:${AI_GATEWAY_GRPC_HOST_PORT:-50071}:50051"
+      # CRITICAL-ARCH-002 監査対応: Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040）
+      - "127.0.0.1:${AI_GATEWAY_GRPC_HOST_PORT:-50206}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1213,7 +1262,8 @@ services:
     <<: *app-service-defaults
     ports:
       - "127.0.0.1:${AI_AGENT_REST_HOST_PORT:-8121}:8080"
-      - "127.0.0.1:${AI_AGENT_GRPC_HOST_PORT:-50072}:50051"
+      # CRITICAL-ARCH-002 監査対応: Hyper-V 動的除外範囲 (50060-50159) を回避するため 50200 帯に変更（ADR-0040）
+      - "127.0.0.1:${AI_AGENT_GRPC_HOST_PORT:-50207}:50051"
     environment:
       - CONFIG_PATH=/app/config/config.docker.yaml
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
@@ -1740,7 +1790,8 @@ services:
 
   # PostgreSQL エクスポーター: DB 接続数・クエリ統計・レプリケーションラグ等を Prometheus に公開する
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:latest
+    # HIGH-INFRA-003 監査対応: latest タグを廃止し安定版バージョンを固定する（予期しない動作変更を防止）
+    image: prometheuscommunity/postgres-exporter:v0.16.0
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する
     restart: unless-stopped
@@ -1753,7 +1804,8 @@ services:
       - ALL
     environment:
       # postgres への接続文字列（開発環境はホスト名 postgres、ポート 5432 を使用する）
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres?sslmode=disable"
+      # CRITICAL-INFRA-001 監査対応: デフォルト認証情報を開発環境標準 "dev" に変更しデフォルト "postgres" を排除する
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-dev}:${POSTGRES_PASSWORD:-dev}@postgres:5432/postgres?sslmode=disable"
     ports:
       # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
       - "127.0.0.1:9187:9187"
@@ -1763,7 +1815,8 @@ services:
 
   # Redis エクスポーター: メモリ使用量・コマンド統計・キー数等を Prometheus に公開する
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    # HIGH-INFRA-004 監査対応: latest タグを廃止し安定版バージョンを固定する（予期しない動作変更を防止）
+    image: oliver006/redis_exporter:v1.67.0
     profiles: [observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する
     restart: unless-stopped
@@ -1781,8 +1834,10 @@ services:
     ports:
       # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
       - "127.0.0.1:9121:9121"
+    # LOW-INFRA-002 監査対応: short syntax から long syntax に変更し条件付き依存を明示する
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres-data:

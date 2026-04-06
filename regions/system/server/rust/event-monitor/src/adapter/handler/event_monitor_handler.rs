@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -236,9 +236,18 @@ pub struct CreateFlowRequest {
 
 pub async fn create_flow(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateFlowRequest>,
 ) -> impl IntoResponse {
+    // HTTP ヘッダーから tenant_id を取得する。未設定の場合は "system" を使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
+
     let input = CreateFlowInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         domain: req.domain,

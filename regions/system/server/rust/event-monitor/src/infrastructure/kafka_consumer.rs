@@ -108,9 +108,11 @@ impl EventKafkaConsumer {
             .unwrap_or("unknown")
             .to_string();
 
-        // Extract headers
+        // Kafka ヘッダーからメタデータを抽出する。
+        // x-tenant-id はテナント分離 RLS のキーとなるため、必ず取得する。
         let mut correlation_id = String::new();
         let mut trace_id = String::new();
+        let mut tenant_id = "system".to_string();
         if let Some(headers) = msg.headers() {
             use rdkafka::message::Headers;
             for header in headers.iter() {
@@ -123,6 +125,15 @@ impl EventKafkaConsumer {
                     "trace_id" => {
                         if let Some(v) = header.value {
                             trace_id = std::str::from_utf8(v).unwrap_or_default().to_string();
+                        }
+                    }
+                    // テナント識別子をヘッダーから取得する（存在しない場合は "system" を使用）
+                    "x-tenant-id" => {
+                        if let Some(v) = header.value {
+                            let extracted = std::str::from_utf8(v).unwrap_or("system").to_string();
+                            if !extracted.is_empty() {
+                                tenant_id = extracted;
+                            }
                         }
                     }
                     _ => {}
@@ -140,7 +151,9 @@ impl EventKafkaConsumer {
             "unknown".to_string()
         };
 
+        // tenant_id を第1引数として渡し、RLS set_config に使用できるようにする
         let mut event = EventRecord::new(
+            tenant_id.clone(),
             correlation_id.clone(),
             event_type.clone(),
             source,
@@ -191,7 +204,8 @@ impl EventKafkaConsumer {
 
                 self.flow_inst_repo.update(&instance).await?;
             } else if step_index == 0 {
-                let instance = FlowInstance::new(flow_id, correlation_id);
+                // フローインスタンス新規作成時に tenant_id を伝播する
+                let instance = FlowInstance::new(tenant_id.clone(), flow_id, correlation_id);
                 self.flow_inst_repo.create(&instance).await?;
             }
         }

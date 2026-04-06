@@ -46,20 +46,23 @@ impl StubChannelRepo {
     }
 }
 
+/// MEDIUM-RUST-001 監査対応: StubChannelRepo もトレイト変更に追従する。
+/// _tenant_id 引数はスタブ実装ではフィルタリングに使用しない（テスト環境向け）。
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.iter().find(|c| c.id == id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.clone())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -112,7 +115,7 @@ impl NotificationChannelRepository for StubChannelRepo {
         }
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         if self.fail_on_write {
             return Err(anyhow::anyhow!("db write error"));
         }
@@ -552,7 +555,7 @@ mod get_channel {
         let repo = Arc::new(StubChannelRepo::with_channels(vec![channel.clone()]));
         let uc = GetChannelUseCase::new(repo);
 
-        let result = uc.execute(&channel_id).await;
+        let result = uc.execute(&channel_id, "tenant_test").await;
         assert!(result.is_ok());
         let found = result.unwrap();
         assert_eq!(found.id, channel_id);
@@ -564,7 +567,7 @@ mod get_channel {
         let repo = Arc::new(StubChannelRepo::new());
         let uc = GetChannelUseCase::new(repo);
 
-        let result = uc.execute("ch_nonexistent").await;
+        let result = uc.execute("ch_nonexistent", "tenant_test").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetChannelError::NotFound(id) => assert_eq!(id, "ch_nonexistent"),
@@ -584,7 +587,7 @@ mod list_channels {
         let repo = Arc::new(StubChannelRepo::new());
         let uc = ListChannelsUseCase::new(repo);
 
-        let result = uc.execute().await;
+        let result = uc.execute("tenant_test").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -599,7 +602,7 @@ mod list_channels {
         let repo = Arc::new(StubChannelRepo::with_channels(channels));
         let uc = ListChannelsUseCase::new(repo);
 
-        let result = uc.execute().await;
+        let result = uc.execute("tenant_test").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 3);
     }
@@ -615,7 +618,7 @@ mod list_channels {
         let uc = ListChannelsUseCase::new(repo);
 
         let result = uc
-            .execute_paginated(1, 10, Some("email".to_string()), false)
+            .execute_paginated("tenant_test", 1, 10, Some("email".to_string()), false)
             .await;
         assert!(result.is_ok());
         let (items, total) = result.unwrap();
@@ -634,7 +637,7 @@ mod list_channels {
         let repo = Arc::new(StubChannelRepo::with_channels(channels));
         let uc = ListChannelsUseCase::new(repo);
 
-        let result = uc.execute_paginated(1, 10, None, true).await;
+        let result = uc.execute_paginated("tenant_test", 1, 10, None, true).await;
         assert!(result.is_ok());
         let (items, total) = result.unwrap();
         assert_eq!(total, 2);
@@ -652,12 +655,12 @@ mod list_channels {
         let uc = ListChannelsUseCase::new(repo);
 
         // Page 1, size 2
-        let (items, total) = uc.execute_paginated(1, 2, None, false).await.unwrap();
+        let (items, total) = uc.execute_paginated("tenant_test", 1, 2, None, false).await.unwrap();
         assert_eq!(total, 3);
         assert_eq!(items.len(), 2);
 
         // Page 2, size 2
-        let (items, _) = uc.execute_paginated(2, 2, None, false).await.unwrap();
+        let (items, _) = uc.execute_paginated("tenant_test", 2, 2, None, false).await.unwrap();
         assert_eq!(items.len(), 1);
     }
 }
@@ -681,6 +684,7 @@ mod update_channel {
 
         let input = UpdateChannelInput {
             id: channel_id.clone(),
+            tenant_id: "tenant_test".to_string(),
             name: Some("new-name".to_string()),
             enabled: Some(false),
             config: None,
@@ -708,6 +712,7 @@ mod update_channel {
         let new_config = serde_json::json!({"smtp_host": "new-host", "port": 587});
         let input = UpdateChannelInput {
             id: channel_id.clone(),
+            tenant_id: "tenant_test".to_string(),
             name: None,
             enabled: None,
             config: Some(new_config.clone()),
@@ -731,6 +736,7 @@ mod update_channel {
 
         let input = UpdateChannelInput {
             id: channel_id,
+            tenant_id: "tenant_test".to_string(),
             name: Some("renamed".to_string()),
             enabled: None,
             config: None,
@@ -747,6 +753,7 @@ mod update_channel {
 
         let input = UpdateChannelInput {
             id: "ch_nonexistent".to_string(),
+            tenant_id: "tenant_test".to_string(),
             name: Some("x".to_string()),
             enabled: None,
             config: None,
@@ -776,7 +783,7 @@ mod delete_channel {
         let repo = Arc::new(StubChannelRepo::with_channels(vec![channel]));
         let uc = DeleteChannelUseCase::new(repo.clone());
 
-        let result = uc.execute(&channel_id).await;
+        let result = uc.execute(&channel_id, "tenant_test").await;
         assert!(result.is_ok());
 
         // Verify removed from repo
@@ -789,7 +796,7 @@ mod delete_channel {
         let repo = Arc::new(StubChannelRepo::new());
         let uc = DeleteChannelUseCase::new(repo);
 
-        let result = uc.execute("ch_nonexistent").await;
+        let result = uc.execute("ch_nonexistent", "tenant_test").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteChannelError::NotFound(id) => assert_eq!(id, "ch_nonexistent"),
@@ -802,7 +809,7 @@ mod delete_channel {
         let repo = Arc::new(StubChannelRepo::failing());
         let uc = DeleteChannelUseCase::new(repo);
 
-        let result = uc.execute("ch_any").await;
+        let result = uc.execute("ch_any", "tenant_test").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteChannelError::Internal(msg) => assert!(msg.contains("db write error")),
@@ -1187,6 +1194,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::new(channel_repo, log_repo.clone());
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Test Subject".to_string()),
@@ -1225,6 +1233,7 @@ mod send_notification {
         );
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: Some(template_id),
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1256,6 +1265,7 @@ mod send_notification {
 
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "alice@example.com".to_string(),
             subject: Some("Order {{order_id}} Confirmation".to_string()),
@@ -1279,6 +1289,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::new(channel_repo, log_repo);
         let input = SendNotificationInput {
             channel_id: "ch_missing".to_string(),
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1304,6 +1315,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::new(channel_repo, log_repo);
         let input = SendNotificationInput {
             channel_id: channel_id.clone(),
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1330,6 +1342,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::with_template_repo(channel_repo, log_repo, template_repo);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: Some("tpl_missing".to_string()),
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1359,6 +1372,7 @@ mod send_notification {
             SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: Some("Hello".to_string()),
@@ -1389,6 +1403,7 @@ mod send_notification {
             SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "#general".to_string(),
             subject: None,
@@ -1425,6 +1440,7 @@ mod send_notification {
             SendNotificationUseCase::with_delivery_clients(channel_repo, log_repo.clone(), clients);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "+1234567890".to_string(),
             subject: None,
@@ -1454,6 +1470,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::new(channel_repo, log_repo);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1480,6 +1497,7 @@ mod send_notification {
         let uc = SendNotificationUseCase::new(channel_repo, log_repo);
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: Some("tpl_123".to_string()),
             recipient: "user@example.com".to_string(),
             subject: None,
@@ -1525,6 +1543,7 @@ mod send_notification {
 
         let input = SendNotificationInput {
             channel_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: Some(template_id.clone()),
             recipient: "bob@example.com".to_string(),
             subject: None,
@@ -1566,6 +1585,7 @@ mod retry_notification {
         let uc = RetryNotificationUseCase::new(log_repo.clone(), channel_repo);
         let input = RetryNotificationInput {
             notification_id: log_id.clone(),
+            tenant_id: "tenant_test".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -1590,6 +1610,7 @@ mod retry_notification {
         let uc = RetryNotificationUseCase::new(log_repo, channel_repo);
         let input = RetryNotificationInput {
             notification_id: "notif_nonexistent".to_string(),
+            tenant_id: "tenant_test".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -1614,6 +1635,7 @@ mod retry_notification {
         let uc = RetryNotificationUseCase::new(log_repo, channel_repo);
         let input = RetryNotificationInput {
             notification_id: log_id.clone(),
+            tenant_id: "tenant_test".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -1636,6 +1658,7 @@ mod retry_notification {
         let uc = RetryNotificationUseCase::new(log_repo, channel_repo);
         let input = RetryNotificationInput {
             notification_id: log_id,
+            tenant_id: "tenant_test".to_string(),
         };
 
         let result = uc.execute(&input).await;
@@ -1660,6 +1683,7 @@ mod retry_notification {
         let uc = RetryNotificationUseCase::new(log_repo, channel_repo);
         let input = RetryNotificationInput {
             notification_id: log_id,
+            tenant_id: "tenant_test".to_string(),
         };
 
         let result = uc.execute(&input).await;

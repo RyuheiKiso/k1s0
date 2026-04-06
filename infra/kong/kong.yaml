@@ -758,6 +758,12 @@ plugins:
             end
             kong.service.request.set_header("X-User-Roles", roles)
             kong.service.request.set_header("X-User-Email", jwt.claims.email or "")
+            -- HIGH-INFRA-001 監査対応: JWT claims から tenant_id を抽出して X-Tenant-ID ヘッダーとしてバックエンドに伝播する
+            -- テナント識別に使用する
+            local tenant_id_claim = jwt.claims and jwt.claims.tenant_id
+            if tenant_id_claim and tenant_id_claim ~= "" then
+              kong.service.request.set_header("X-Tenant-ID", tenant_id_claim)
+            end
           end
 
   # Prometheus - メトリクス収集

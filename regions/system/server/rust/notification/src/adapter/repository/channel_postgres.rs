@@ -124,12 +124,12 @@ struct ChannelRow {
 
 #[async_trait]
 impl NotificationChannelRepository for ChannelPostgresRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取り RLS セッション変数を設定する。
+    /// "system" ハードコードを廃止し、ユースケース層から渡されたテナント ID を使用する。
+    async fn find_by_id(&self, id: &str, tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         // H-010: トランザクション内で RLS セッション変数を設定する
-        // NOTE: 現時点ではシステムチャンネル（tenant_id='system'）をデフォルトとして使用する
-        //       JWT クレームからのテナント伝播は ADR-0056 に記載の実装ロードマップで対応する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let row: Option<ChannelRow> = sqlx::query_as(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
@@ -143,10 +143,11 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         row.map(|r| self.row_to_channel(r)).transpose()
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取り RLS セッション変数を設定する。
+    async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         let mut tx = self.pool.begin().await?;
         // H-010: RLS セッション変数を設定してテナント分離を強制する
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let rows: Vec<ChannelRow> = sqlx::query_as(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
@@ -159,8 +160,10 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         rows.into_iter().map(|r| self.row_to_channel(r)).collect()
     }
 
+    /// MEDIUM-RUST-001 監査対応: tenant_id を最初のパラメータとして受け取り RLS セッション変数を設定する。
     async fn find_all_paginated(
         &self,
+        tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -200,7 +203,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
 
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
         if let Some(ref v) = channel_type {
@@ -287,10 +290,12 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取り RLS セッション変数を設定する。
+    /// 他テナントのチャンネルを削除できないよう RLS ポリシーで保護する。
+    async fn delete(&self, id: &str, tenant_id: &str) -> anyhow::Result<bool> {
         // H-010: RLS セッション変数を設定してテナント分離を強制する
         let mut tx = self.pool.begin().await?;
-        Self::set_tenant_context(&mut tx, "system").await?;
+        Self::set_tenant_context(&mut tx, tenant_id).await?;
 
         let result = sqlx::query("DELETE FROM notification.channels WHERE id = $1")
             .bind(id)

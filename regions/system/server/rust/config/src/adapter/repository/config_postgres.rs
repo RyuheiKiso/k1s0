@@ -317,6 +317,14 @@ impl ConfigRepository for ConfigPostgresRepository {
         namespace: &str,
         key: &str,
     ) -> Result<Option<ConfigEntry>, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
@@ -360,6 +368,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         page_size: i32,
         search: Option<String>,
     ) -> Result<ConfigListResult, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let offset = (page - 1) * page_size;
         let encryption_key = self.encryption_key.as_ref();
 
@@ -501,6 +516,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         description: Option<String>,
         updated_by: &str,
     ) -> Result<ConfigEntry, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let now = chrono::Utc::now();
         let new_version = expected_version + 1;
 
@@ -581,6 +603,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         namespace: &str,
         key: &str,
     ) -> Result<bool, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         let result = sqlx::query(
             "DELETE FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",
@@ -606,6 +635,13 @@ impl ConfigRepository for ConfigPostgresRepository {
         tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         // サービス名に紐づく namespace パターンで検索
         // 例: "auth-server" → "system.auth.%" のような namespace にマッチ
         // M-02 監査対応: ハイフンをドットに置換した後に残る特殊文字（\, %, _）をエスケープする
@@ -686,6 +722,13 @@ impl ConfigRepository for ConfigPostgresRepository {
 
     /// 設定変更ログを記録する（tenant_id を含む）。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(log.tenant_id.to_string())
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ConfigRepositoryError::Infrastructure(e.into()))?;
+
         let start = std::time::Instant::now();
         sqlx::query(
             r#"

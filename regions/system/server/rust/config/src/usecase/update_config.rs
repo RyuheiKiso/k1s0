@@ -119,8 +119,9 @@ impl UpdateConfigUseCase {
         }
 
         // スキーマ検証（設定済みの場合のみ）
+        // CRITICAL-RUST-001 監査対応: tenant_id を渡して RLS テナント分離を保証する。
         if let Some(ref schema_repo) = self.config_schema_repo {
-            if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace).await {
+            if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace, &input.tenant_id.to_string()).await {
                 validate_value_against_schema(&input.key, &input.value, &schema.schema_json)?;
             }
         }

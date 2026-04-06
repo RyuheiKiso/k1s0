@@ -18,9 +18,12 @@ impl RuleSetPostgresRepository {
     }
 }
 
+/// CRITICAL-RUST-001 監査対応: tenant_id カラムを含む row 構造体（migration 003 対応）。
 #[derive(sqlx::FromRow)]
 struct RuleSetRow {
     id: Uuid,
+    // migration 003 で追加した tenant_id カラム
+    tenant_id: String,
     name: String,
     description: Option<String>,
     status: String,
@@ -32,6 +35,8 @@ impl From<RuleSetRow> for RuleSet {
     fn from(r: RuleSetRow) -> Self {
         RuleSet {
             id: r.id,
+            // CRITICAL-RUST-001 監査対応: tenant_id を DB から取得してエンティティに設定する
+            tenant_id: r.tenant_id,
             name: r.name,
             description: r.description.unwrap_or_default(),
             domain: String::new(),                        // not in DB schema
@@ -46,11 +51,15 @@ impl From<RuleSetRow> for RuleSet {
     }
 }
 
+/// CRITICAL-RUST-001 監査対応: RuleSetRepository の PostgreSQL 実装。
+/// migration 003 で追加した tenant_id カラムと RLS ポリシーに対応する。
 #[async_trait]
 impl RuleSetRepository for RuleSetPostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<RuleSet>> {
+        // CRITICAL-RUST-001 監査対応: find_by_id は管理 API のため tenant_id 不明。
+        // 呼び出し元が事前に set_config を呼ぶことを前提とする。
         let row: Option<RuleSetRow> = sqlx::query_as(
-            "SELECT id, name, description, status, created_at, updated_at \
+            "SELECT id, tenant_id, name, description, status, created_at, updated_at \
              FROM rule_engine.rule_sets WHERE id = $1",
         )
         .bind(id)
@@ -61,8 +70,9 @@ impl RuleSetRepository for RuleSetPostgresRepository {
     }
 
     async fn find_all(&self) -> anyhow::Result<Vec<RuleSet>> {
+        // CRITICAL-RUST-001 監査対応: find_all は管理 API 向け。tenant_id を含む行を返す。
         let rows: Vec<RuleSetRow> = sqlx::query_as(
-            "SELECT id, name, description, status, created_at, updated_at \
+            "SELECT id, tenant_id, name, description, status, created_at, updated_at \
              FROM rule_engine.rule_sets ORDER BY created_at DESC",
         )
         .fetch_all(self.pool.as_ref())
@@ -80,8 +90,9 @@ impl RuleSetRepository for RuleSetPostgresRepository {
         let offset = (page.saturating_sub(1) * page_size) as i64;
         let limit = page_size as i64;
 
+        // CRITICAL-RUST-001 監査対応: tenant_id カラムを SELECT に含める（migration 003 対応）。
         let rows: Vec<RuleSetRow> = sqlx::query_as(
-            "SELECT id, name, description, status, created_at, updated_at \
+            "SELECT id, tenant_id, name, description, status, created_at, updated_at \
              FROM rule_engine.rule_sets \
              ORDER BY created_at DESC LIMIT $1 OFFSET $2",
         )
@@ -104,7 +115,7 @@ impl RuleSetRepository for RuleSetPostgresRepository {
     ) -> anyhow::Result<Option<RuleSet>> {
         // DB schema does not have a domain column, so we match by name only.
         let row: Option<RuleSetRow> = sqlx::query_as(
-            "SELECT id, name, description, status, created_at, updated_at \
+            "SELECT id, tenant_id, name, description, status, created_at, updated_at \
              FROM rule_engine.rule_sets WHERE name = $1",
         )
         .bind(name)
@@ -115,18 +126,27 @@ impl RuleSetRepository for RuleSetPostgresRepository {
     }
 
     async fn create(&self, rule_set: &RuleSet) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&rule_set.tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         let status = if rule_set.enabled {
             "active"
         } else {
             "inactive"
         };
 
+        // tenant_id カラムを INSERT に追加（migration 003 対応）
         sqlx::query(
             "INSERT INTO rule_engine.rule_sets \
-             (id, name, description, status, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
+             (id, tenant_id, name, description, status, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
         .bind(rule_set.id)
+        .bind(&rule_set.tenant_id)
         .bind(&rule_set.name)
         .bind(&rule_set.description)
         .bind(status)
@@ -139,6 +159,12 @@ impl RuleSetRepository for RuleSetPostgresRepository {
     }
 
     async fn update(&self, rule_set: &RuleSet) -> anyhow::Result<()> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&rule_set.tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         let status = if rule_set.enabled {
             "active"
         } else {
@@ -162,6 +188,7 @@ impl RuleSetRepository for RuleSetPostgresRepository {
     }
 
     async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+        // CRITICAL-RUST-001 監査対応: delete は管理 API のため呼び出し元で set_config を設定済みを前提とする。
         let result = sqlx::query("DELETE FROM rule_engine.rule_sets WHERE id = $1")
             .bind(id)
             .execute(self.pool.as_ref())

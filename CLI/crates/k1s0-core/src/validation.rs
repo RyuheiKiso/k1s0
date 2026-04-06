@@ -90,7 +90,8 @@ mod tests {
         // 64文字はOK
         assert!(validate_name(&"a".repeat(64)).is_ok());
         // 65文字はエラー
-        let err = validate_name(&"a".repeat(65)).unwrap_err();
+        let err = validate_name(&"a".repeat(65))
+            .expect_err("65文字の名前はエラーになるべき");
         assert!(err.contains("64文字以内"));
         assert!(err.contains("65 文字"));
     }
@@ -99,23 +100,23 @@ mod tests {
     #[test]
     fn test_validate_name_error_messages() {
         // 空文字
-        let err = validate_name("").unwrap_err();
+        let err = validate_name("").expect_err("空文字はエラーになるべき");
         assert_eq!(err, "名前を入力してください。");
 
         // 先頭ハイフン
-        let err = validate_name("-task").unwrap_err();
+        let err = validate_name("-task").expect_err("先頭ハイフンはエラーになるべき");
         assert_eq!(err, "名前の先頭と末尾にハイフンは使用できません。");
 
         // 末尾ハイフン
-        let err = validate_name("task-").unwrap_err();
+        let err = validate_name("task-").expect_err("末尾ハイフンはエラーになるべき");
         assert_eq!(err, "名前の先頭と末尾にハイフンは使用できません。");
 
         // 使用不可文字（大文字）
-        let err = validate_name("Task").unwrap_err();
+        let err = validate_name("Task").expect_err("大文字を含む名前はエラーになるべき");
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
 
         // 使用不可文字（アンダースコア）
-        let err = validate_name("task_api").unwrap_err();
+        let err = validate_name("task_api").expect_err("アンダースコアを含む名前はエラーになるべき");
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
     }
 }

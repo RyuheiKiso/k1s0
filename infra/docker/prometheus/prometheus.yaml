@@ -348,3 +348,27 @@ scrape_configs:
           service: kafka
           tier: infra
     metrics_path: /metrics
+
+  # HashiCorp Vault インフラのメトリクス収集 (HIGH-INFRA-005 監査対応)
+  # /v1/sys/metrics エンドポイントから Prometheus 形式でメトリクスを取得する
+  # telemetry.prometheus_retention_time を Vault 設定で有効化する必要がある
+  - job_name: hashicorp-vault
+    metrics_path: /v1/sys/metrics
+    params:
+      format: ['prometheus']
+    static_configs:
+      - targets: ['vault:8200']
+        labels:
+          service: hashicorp-vault
+          tier: infra
+
+  # AI ゲートウェイ・エージェントのメトリクス収集 (HIGH-INFRA-006 監査対応)
+  # experimental-ai プロファイルで起動している場合のみ有効
+  # ai-gateway-rust と ai-agent-rust は REST ポート 8080 で /metrics を公開する
+  - job_name: ai-services
+    static_configs:
+      - targets: ['ai-gateway-rust:8080', 'ai-agent-rust:8080']
+        labels:
+          tier: system
+          lang: rust
+    metrics_path: /metrics

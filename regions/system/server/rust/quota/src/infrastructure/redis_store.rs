@@ -25,14 +25,16 @@ impl RedisQuotaUsageRepository {
 
 #[async_trait]
 impl QuotaUsageRepository for RedisQuotaUsageRepository {
-    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+    /// Redis 実装では tenant_id は使用しない（テナント分離は PostgreSQL RLS で行う）。
+    /// ただし trait の signature に合わせるためパラメータを受け取る。
+    async fn get_usage(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();
         let result: Option<u64> = redis::cmd("GET").arg(&key).query_async(&mut conn).await?;
         Ok(result)
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+    async fn increment(&self, quota_id: &str, amount: u64, _tenant_id: &str) -> anyhow::Result<u64> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();
         let new_total: u64 = redis::cmd("INCRBY")
@@ -43,7 +45,7 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
         Ok(new_total)
     }
 
-    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+    async fn reset(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<()> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();
         redis::cmd("DEL")
@@ -58,6 +60,7 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
         quota_id: &str,
         amount: u64,
         limit: u64,
+        _tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();

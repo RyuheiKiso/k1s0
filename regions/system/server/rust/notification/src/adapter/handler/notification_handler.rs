@@ -2,19 +2,22 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 
 use super::AppState;
 use crate::usecase::send_notification::SendNotificationError;
 use crate::usecase::send_notification::SendNotificationInput;
+use k1s0_auth::Claims;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
 /// POST /api/v1/notifications - Send a notification
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得して RLS を有効化する。
 pub async fn send_notification(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<SendNotificationRequest>,
 ) -> impl IntoResponse {
     if req.channel_id.trim().is_empty() {
@@ -25,11 +28,18 @@ pub async fn send_notification(
         );
     }
 
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    // 認証なし環境（開発・テスト）では "system" にフォールバックする。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let channel_id = req.channel_id;
     let template_id = req.template_id;
 
     let input = SendNotificationInput {
         channel_id,
+        tenant_id,
         template_id,
         recipient: req.recipient,
         subject: req.subject,
@@ -111,13 +121,21 @@ pub async fn list_notifications(
 }
 
 /// GET /api/v1/notifications/:id - Get a single notification log
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得して RLS を有効化する。
 pub async fn get_notification(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    // チャンネル情報取得時にテナント分離を強制するために使用する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     match state.log_repo.find_by_id(&id).await {
         Ok(Some(log)) => {
-            let channel_type = match state.get_channel_uc.execute(&log.channel_id).await {
+            let channel_type = match state.get_channel_uc.execute(&log.channel_id, &tenant_id).await {
                 Ok(channel) => Some(channel.channel_type),
                 Err(_) => None,
             };
@@ -155,14 +173,22 @@ pub async fn get_notification(
 }
 
 /// POST /api/v1/notifications/:id/retry
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得して RLS を有効化する。
 pub async fn retry_notification(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     use crate::usecase::retry_notification::RetryNotificationInput;
 
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let input = RetryNotificationInput {
         notification_id: id,
+        tenant_id,
     };
 
     match state.retry_notification_uc.execute(&input).await {
@@ -201,8 +227,11 @@ pub async fn retry_notification(
 }
 
 /// POST /api/v1/channels
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得してチャンネルのテナント分離を実現する。
+/// 認証済みリクエストでは Claims の tenant_id クレームを使用し、未認証時は "system" にフォールバックする。
 pub async fn create_channel(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Json(req): Json<CreateChannelRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::create_channel::CreateChannelInput;
@@ -218,14 +247,19 @@ pub async fn create_channel(
         );
     }
 
-    // H-012 監査対応: tenant_id を指定してチャンネルを作成する
-    // TODO: JWT クレームからテナント ID を取得する（ADR-0056 ロードマップ参照）
-    // 現時点ではシステム共通チャンネル（tenant_id='system'）として作成する
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    // 認証ミドルウェアが Claims を Extension として挿入するため、
+    // Option<Extension<Claims>> で取得し、存在すれば Claims の tenant_id() メソッドを使用する。
+    // 認証なし環境（開発・テスト）では "system" にフォールバックする。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let input = CreateChannelInput {
         name: req.name,
         channel_type: req.channel_type,
         config: req.config,
-        tenant_id: "system".to_string(),
+        tenant_id,
         enabled: req.enabled,
     };
 
@@ -257,8 +291,10 @@ pub async fn create_channel(
 }
 
 /// GET /api/v1/channels
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得してテナント固有チャンネルのみ返す。
 pub async fn list_channels(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Query(params): Query<ListChannelsParams>,
 ) -> impl IntoResponse {
     let page = params.page.unwrap_or(1).max(1);
@@ -266,9 +302,14 @@ pub async fn list_channels(
     let page_size = params.page_size.unwrap_or(20).clamp(1, 200);
     let enabled_only = params.enabled_only.unwrap_or(false);
 
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     match state
         .list_channels_uc
-        .execute_paginated(page, page_size, params.channel_type, enabled_only)
+        .execute_paginated(&tenant_id, page, page_size, params.channel_type, enabled_only)
         .await
     {
         Ok((channels, total_count)) => {
@@ -308,11 +349,18 @@ pub async fn list_channels(
 }
 
 /// GET /api/v1/channels/:id
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得してテナント固有チャンネルのみ返す。
 pub async fn get_channel(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_channel_uc.execute(&id).await {
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
+    match state.get_channel_uc.execute(&id, &tenant_id).await {
         Ok(channel) => (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -346,15 +394,23 @@ pub async fn get_channel(
 }
 
 /// PUT /api/v1/channels/:id
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得して RLS を有効化する。
 pub async fn update_channel(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
     Json(req): Json<UpdateChannelRequest>,
 ) -> impl IntoResponse {
     use crate::usecase::update_channel::UpdateChannelInput;
 
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
     let input = UpdateChannelInput {
         id,
+        tenant_id,
         name: req.name,
         enabled: req.enabled,
         config: req.config,
@@ -392,11 +448,18 @@ pub async fn update_channel(
 }
 
 /// DELETE /api/v1/channels/:id
+/// MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得して RLS を有効化する。
 pub async fn delete_channel(
     State(state): State<AppState>,
+    claims: Option<Extension<Claims>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.delete_channel_uc.execute(&id).await {
+    // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
+    let tenant_id = claims
+        .map(|Extension(c)| c.tenant_id().to_string())
+        .unwrap_or_else(|| "system".to_string());
+
+    match state.delete_channel_uc.execute(&id, &tenant_id).await {
         Ok(()) => (
             StatusCode::OK,
             Json(

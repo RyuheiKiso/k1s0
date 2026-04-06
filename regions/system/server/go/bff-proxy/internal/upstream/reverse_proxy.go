@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -167,6 +169,33 @@ func NewReverseProxy(upstreamURL string, timeout time.Duration, allowedHosts map
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = transport
+
+	// HIGH-GO-002 監査対応: バックエンドエラー詳細を隠蔽し、内部ネットワーク情報の漏洩を防止する。
+	// デフォルトの ErrorHandler はバックエンドのエラーメッセージをそのままクライアントに返す可能性があるため、
+	// 502 Bad Gateway のみを返すよう上書きする。
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		slog.Warn("アップストリームサービスへの接続に失敗しました",
+			slog.String("error", err.Error()),
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+		)
+		w.WriteHeader(http.StatusBadGateway)
+	}
+
+	// HIGH-GO-002 監査対応: バックエンドのレスポンスヘッダーから内部情報を含むヘッダーを除去する。
+	// X-Internal- プレフィックスのヘッダーやバックエンドサーバー情報をクライアントに返さないようにする。
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		// X-Internal- プレフィックスを持つヘッダーをすべて削除する
+		for key := range resp.Header {
+			if strings.HasPrefix(strings.ToLower(key), "x-internal-") {
+				resp.Header.Del(key)
+			}
+		}
+		// バックエンドサーバー情報を隠蔽する（Apache/nginx/tonic 等のバージョン漏洩を防ぐ）
+		resp.Header.Del("Server")
+		return nil
+	}
+
 	rp.proxy = proxy
 
 	return rp, nil

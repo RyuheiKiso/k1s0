@@ -171,6 +171,7 @@ impl RuleEngineGrpcService {
 
     pub async fn create_rule(
         &self,
+        tenant_id: String,
         name: String,
         description: String,
         priority: i32,
@@ -193,6 +194,7 @@ impl RuleEngineGrpcService {
         let rule = self
             .create_rule_uc
             .execute(&CreateRuleInput {
+                tenant_id,
                 name,
                 description,
                 priority,
@@ -325,6 +327,7 @@ impl RuleEngineGrpcService {
 
     pub async fn create_rule_set(
         &self,
+        tenant_id: String,
         name: String,
         description: String,
         domain: String,
@@ -348,6 +351,7 @@ impl RuleEngineGrpcService {
         let rs = self
             .create_rule_set_uc
             .execute(&CreateRuleSetInput {
+                tenant_id,
                 name,
                 description,
                 domain,
@@ -495,6 +499,7 @@ impl RuleEngineGrpcService {
 
     pub async fn evaluate(
         &self,
+        tenant_id: String,
         rule_set: String,
         input_json: Vec<u8>,
         context_json: Vec<u8>,
@@ -515,6 +520,7 @@ impl RuleEngineGrpcService {
 
         self.evaluate_uc
             .execute(&EvaluateInput {
+                tenant_id,
                 rule_set,
                 input,
                 context,

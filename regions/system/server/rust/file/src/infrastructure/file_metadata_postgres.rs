@@ -182,6 +182,14 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
     }
 
     async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+        // HIGH-RUST-002 監査対応: delete() でも RLS テナント分離のためセッション変数を設定する。
+        // この delete はテナント ID なしで呼ばれる場合があるため空文字列を設定して
+        // RLS ポリシーがすべての行をブロックするよう設計する。
+        // テナント検証が必要な場合は delete_with_tenant_check を使用すること。
+        sqlx::query("SELECT set_config('app.current_tenant_id', '', true)")
+            .execute(&self.pool)
+            .await?;
+
         let sql = format!("DELETE FROM {} WHERE id = $1", self.table_name);
         let result = sqlx::query(&sql).bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)

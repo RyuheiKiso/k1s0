@@ -49,9 +49,25 @@ struct SecretVersionRow {
     created_at: DateTime<Utc>,
 }
 
+/// ADR-0109 対応: key_path の先頭セグメントからテナント ID を抽出する。
+/// key_path は "{tenant_id}/..." の形式であること。
+/// 先頭セグメントが取れない場合はフォールバックとして "system" を返す。
+fn extract_tenant_id(path: &str) -> &str {
+    path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
+}
+
 #[async_trait]
 impl SecretStore for SecretStorePostgresRepository {
     async fn get(&self, path: &str, version: Option<i64>) -> anyhow::Result<Secret> {
+        let tenant_id = extract_tenant_id(path);
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault.secrets は RLS FORCE が有効（migration 007）。
+        // クエリ前にセッション変数を設定してテナント分離を有効にする。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         // secrets テーブルからメタデータを取得
         let secret_row: SecretRow = sqlx::query_as(
             "SELECT id, key_path, current_version, metadata, created_at, updated_at \
@@ -94,14 +110,13 @@ impl SecretStore for SecretStorePostgresRepository {
             }
         }
 
-        // 各バージョンを復号化して SecretVersion に変換
         // CRIT-003 監査対応: シークレットのパスを AAD として渡し、ciphertext swap attack を防止する
-        // レガシーフォールバック付き復号で旧形式（AAD なし）データとの後方互換性を確保する
+        // HIGH-RUST-001 Phase B 完了: decrypt_with_legacy_fallback を削除し decrypt に統一した
         let mut versions = Vec::with_capacity(version_rows.len());
         for row in &version_rows {
             let plaintext = self
                 .master_key
-                .decrypt_with_legacy_fallback(&row.encrypted_data, &row.nonce, path.as_bytes())?;
+                .decrypt(&row.encrypted_data, &row.nonce, path.as_bytes())?;
             let data: HashMap<String, String> = serde_json::from_slice(&plaintext)?;
             versions.push(SecretVersion {
                 version: row.version as i64,
@@ -121,12 +136,21 @@ impl SecretStore for SecretStorePostgresRepository {
     }
 
     async fn set(&self, path: &str, data: HashMap<String, String>) -> anyhow::Result<i64> {
+        let tenant_id = extract_tenant_id(path);
+
         // データを JSON にシリアライズして暗号化
         // CRIT-003 監査対応: シークレットのパスを AAD として渡し、ciphertext swap attack を防止する
         let plaintext = serde_json::to_vec(&data)?;
         let (encrypted_data, nonce) = self.master_key.encrypt(&plaintext, path.as_bytes())?;
 
         let mut tx = self.pool.begin().await?;
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault テーブルは RLS FORCE が有効（migration 007）。
+        // トランザクション内でセッション変数を設定して全操作にテナント分離を適用する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
 
         // secrets テーブルに UPSERT
         let row: Option<(uuid::Uuid, i32)> = sqlx::query_as(
@@ -138,27 +162,32 @@ impl SecretStore for SecretStorePostgresRepository {
 
         let (secret_id, new_version) = if let Some((id, current)) = row {
             let new_ver = current + 1;
-            sqlx::query("UPDATE vault.secrets SET current_version = $2 WHERE id = $1")
+            sqlx::query("UPDATE vault.secrets SET current_version = $2, updated_at = NOW() WHERE id = $1")
                 .bind(id)
                 .bind(new_ver)
                 .execute(&mut *tx)
                 .await?;
             (id, new_ver)
         } else {
+            // migration 007 で tenant_id NOT NULL DEFAULT 削除済み: INSERT に明示指定が必要
             let id: (uuid::Uuid,) = sqlx::query_as(
-                "INSERT INTO vault.secrets (key_path, current_version) VALUES ($1, 1) RETURNING id",
+                "INSERT INTO vault.secrets (tenant_id, key_path, current_version) \
+                 VALUES ($1, $2, 1) RETURNING id",
             )
+            .bind(tenant_id)
             .bind(path)
             .fetch_one(&mut *tx)
             .await?;
             (id.0, 1)
         };
 
-        // secret_versions テーブルに暗号化データを挿入
+        // migration 007 で tenant_id NOT NULL DEFAULT 削除済み: INSERT に明示指定が必要
         sqlx::query(
-            "INSERT INTO vault.secret_versions (secret_id, version, encrypted_data, nonce) \
-             VALUES ($1, $2, $3, $4)",
+            "INSERT INTO vault.secret_versions \
+             (tenant_id, secret_id, version, encrypted_data, nonce) \
+             VALUES ($1, $2, $3, $4, $5)",
         )
+        .bind(tenant_id)
         .bind(secret_id)
         .bind(new_version)
         .bind(&encrypted_data)
@@ -172,6 +201,14 @@ impl SecretStore for SecretStorePostgresRepository {
     }
 
     async fn delete(&self, path: &str, versions: Vec<i64>) -> anyhow::Result<()> {
+        let tenant_id = extract_tenant_id(path);
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault テーブルは RLS FORCE が有効（migration 007）。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         let secret_row: Option<(uuid::Uuid,)> =
             sqlx::query_as("SELECT id FROM vault.secrets WHERE key_path = $1")
                 .bind(path)
@@ -204,10 +241,19 @@ impl SecretStore for SecretStorePostgresRepository {
     }
 
     async fn list(&self, path_prefix: &str) -> anyhow::Result<Vec<String>> {
+        let tenant_id = extract_tenant_id(path_prefix);
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault テーブルは RLS FORCE が有効（migration 007）。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         // HIGH-003 監査対応: LIKE 検索のワイルドカード特殊文字をエスケープし、ESCAPE '\' を指定する
         let like_pattern = format!("{}%", escape_like_pattern(path_prefix));
         let rows: Vec<(String,)> = sqlx::query_as(
-            "SELECT key_path FROM vault.secrets WHERE key_path LIKE $1 ESCAPE '\\' ORDER BY key_path",
+            "SELECT key_path FROM vault.secrets \
+             WHERE key_path LIKE $1 ESCAPE '\\' ORDER BY key_path",
         )
         .bind(&like_pattern)
         .fetch_all(self.pool.as_ref())
@@ -217,6 +263,14 @@ impl SecretStore for SecretStorePostgresRepository {
     }
 
     async fn exists(&self, path: &str) -> anyhow::Result<bool> {
+        let tenant_id = extract_tenant_id(path);
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault テーブルは RLS FORCE が有効（migration 007）。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
         let row: Option<(i64,)> =
             sqlx::query_as("SELECT 1::BIGINT FROM vault.secrets WHERE key_path = $1")
                 .bind(path)
@@ -262,6 +316,16 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_tenant_id() {
+        // ADR-0109 パス形式 "{tenant_id}/..." からの抽出を検証する
+        assert_eq!(extract_tenant_id("tenant-1/app/db"), "tenant-1");
+        assert_eq!(extract_tenant_id("system/config/key"), "system");
+        assert_eq!(extract_tenant_id("single"), "single");
+        // 空パスのフォールバックを検証する
+        assert_eq!(extract_tenant_id(""), "system");
+    }
+
+    #[test]
     fn test_encrypt_decrypt_data_roundtrip() {
         // CRIT-003 監査対応: MasterKey を使った暗号化/復号化の統合テスト
         // シークレットパスを AAD として渡すことで ciphertext swap attack への耐性を確認する
@@ -276,7 +340,7 @@ mod tests {
 
         let (encrypted, nonce) = master_key.encrypt(&plaintext, path.as_bytes()).unwrap();
         let decrypted = master_key
-            .decrypt_with_legacy_fallback(&encrypted, &nonce, path.as_bytes())
+            .decrypt(&encrypted, &nonce, path.as_bytes())
             .unwrap();
 
         let restored: HashMap<String, String> = serde_json::from_slice(&decrypted).unwrap();

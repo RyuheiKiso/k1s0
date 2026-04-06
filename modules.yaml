@@ -67,7 +67,6 @@ library_parity:
     - distributed-lock
     - dlq-client
     - encryption
-    - event-bus
     - eventstore
     - featureflag
     - file-client

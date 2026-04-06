@@ -139,9 +139,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoSendNotificationRequest>,
     ) -> Result<Response<ProtoSendNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        // 未設定の場合は UNAUTHENTICATED エラーを返す（フェイルクローズ設計）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = SendNotificationRequest {
             channel_id: inner.channel_id,
+            tenant_id,
             template_id: inner.template_id,
             template_variables: inner.template_variables,
             recipient: inner.recipient,
@@ -167,9 +171,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetNotificationRequest>,
     ) -> Result<Response<ProtoGetNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = GetNotificationRequest {
             notification_id: inner.notification_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -204,9 +211,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoRetryNotificationRequest>,
     ) -> Result<Response<ProtoRetryNotificationResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = RetryNotificationRequest {
             notification_id: inner.notification_id,
+            tenant_id,
         };
         let resp = self
             .inner
@@ -299,10 +309,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListChannelsRequest>,
     ) -> Result<Response<ProtoListChannelsResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListChannelsRequest {
+            tenant_id,
             channel_type: inner.channel_type,
             enabled_only: inner.enabled_only,
             page: if pagination.page <= 0 {
@@ -365,8 +378,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetChannelRequest>,
     ) -> Result<Response<ProtoGetChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = GetChannelRequest { id: inner.id };
+        let req = GetChannelRequest {
+            id: inner.id,
+            tenant_id,
+        };
         let resp = self
             .inner
             .get_channel(req)
@@ -381,9 +399,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoUpdateChannelRequest>,
     ) -> Result<Response<ProtoUpdateChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = UpdateChannelRequest {
             id: inner.id,
+            tenant_id,
             name: inner.name,
             enabled: inner.enabled,
             config_json: inner.config_json,
@@ -402,8 +423,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoDeleteChannelRequest>,
     ) -> Result<Response<ProtoDeleteChannelResponse>, Status> {
+        // MEDIUM-RUST-001 監査対応: x-tenant-id メタデータからテナント ID を取得する（ADR-0028）。
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = DeleteChannelRequest { id: inner.id };
+        let req = DeleteChannelRequest {
+            id: inner.id,
+            tenant_id,
+        };
         let resp = self
             .inner
             .delete_channel(req)

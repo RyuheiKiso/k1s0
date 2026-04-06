@@ -90,10 +90,15 @@ impl RateLimitService for RateLimitServiceTonic {
         request: Request<ProtoCheckRateLimitRequest>,
     ) -> Result<Response<ProtoCheckRateLimitResponse>, Status> {
         let inner = request.into_inner();
-        // STATIC-CRITICAL-001: proto の CheckRateLimitRequest に tenant_id フィールドがないため None を渡す。
-        // ratelimit_grpc.rs 内でシステムテナントUUID へフォールバックする。
+        // CRITICAL-ARCH-001 監査対応: proto の tenant_id フィールドから取得する。
+        // 空文字列の場合は None として扱い、ratelimit_grpc.rs でフォールバックする。
+        let tenant_id = if inner.tenant_id.is_empty() {
+            None
+        } else {
+            Some(inner.tenant_id.clone())
+        };
         let req = CheckRateLimitRequest {
-            tenant_id: None,
+            tenant_id,
             scope: inner.scope,
             identifier: inner.identifier,
             window: inner.window,
@@ -206,10 +211,14 @@ impl RateLimitService for RateLimitServiceTonic {
         request: Request<ProtoGetUsageRequest>,
     ) -> Result<Response<ProtoGetUsageResponse>, Status> {
         let inner = request.into_inner();
-        // STATIC-CRITICAL-001: proto の GetUsageRequest に tenant_id フィールドがないため None を渡す。
-        // ratelimit_grpc.rs 内でシステムテナントUUID へフォールバックする。
+        // CRITICAL-ARCH-001 監査対応: proto の tenant_id フィールドから取得する。
+        let tenant_id = if inner.tenant_id.is_empty() {
+            None
+        } else {
+            Some(inner.tenant_id.clone())
+        };
         let req = GetUsageRequest {
-            tenant_id: None,
+            tenant_id,
             rule_id: inner.rule_id,
         };
 
@@ -366,10 +375,14 @@ impl RateLimitService for RateLimitServiceTonic {
         request: Request<ProtoResetLimitRequest>,
     ) -> Result<Response<ProtoResetLimitResponse>, Status> {
         let inner = request.into_inner();
-        // STATIC-CRITICAL-001: proto の ResetLimitRequest に tenant_id フィールドがないため None を渡す。
-        // ratelimit_grpc.rs 内でシステムテナントUUID へフォールバックする。
+        // CRITICAL-ARCH-001 監査対応: proto の tenant_id フィールドから取得する。
+        let tenant_id = if inner.tenant_id.is_empty() {
+            None
+        } else {
+            Some(inner.tenant_id.clone())
+        };
         let req = ResetLimitRequest {
-            tenant_id: None,
+            tenant_id,
             scope: inner.scope,
             identifier: inner.identifier,
         };

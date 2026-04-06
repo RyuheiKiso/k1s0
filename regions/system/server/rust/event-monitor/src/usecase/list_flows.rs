@@ -62,6 +62,7 @@ mod tests {
 
     fn make_flow(name: &str) -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             name.to_string(),
             "test".to_string(),
             "service.task".to_string(),

@@ -448,20 +448,23 @@ impl InMemoryNotificationChannelRepository {
     }
 }
 
+/// MEDIUM-RUST-001 監査対応: InMemory 実装もトレイトシグネチャ変更に追従する。
+/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.values().cloned().collect())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -506,7 +509,7 @@ impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut channels = self.channels.write().await;
         Ok(channels.remove(id).is_some())
     }

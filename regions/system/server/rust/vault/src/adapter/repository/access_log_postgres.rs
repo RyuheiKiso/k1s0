@@ -39,15 +39,38 @@ fn action_from_str(s: &str) -> AccessAction {
     }
 }
 
+/// ADR-0109 対応: key_path の先頭セグメントからテナント ID を抽出する。
+/// key_path は "{tenant_id}/..." の形式であること。
+fn extract_tenant_id_from_path(path: &str) -> &str {
+    path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
+}
+
 #[async_trait]
 impl AccessLogRepository for AccessLogPostgresRepository {
     async fn record(&self, log: &SecretAccessLog) -> anyhow::Result<()> {
+        // ADR-0109: tenant_id が明示指定されていればそれを使用し、
+        // なければ key_path の先頭セグメントから抽出する
+        let tenant_id = log
+            .tenant_id
+            .as_deref()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| extract_tenant_id_from_path(&log.path));
+
+        // CRITICAL-DB-001 / CRITICAL-RUST-001 監査対応: vault.access_logs は RLS FORCE が有効（migration 007）。
+        // INSERT 前にセッション変数を設定してテナント分離ポリシーを満たす。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(self.pool.as_ref())
+            .await?;
+
+        // migration 007 で tenant_id NOT NULL DEFAULT 削除済み: INSERT に明示指定が必要
         sqlx::query(
             "INSERT INTO vault.access_logs \
-             (id, key_path, action, actor_id, ip_address, success, error_msg, created_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+             (id, tenant_id, key_path, action, actor_id, ip_address, success, error_msg, created_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(log.id)
+        .bind(tenant_id)
         .bind(&log.path)
         .bind(log.action.as_str())
         .bind(log.subject.as_deref().unwrap_or(""))
@@ -62,9 +85,9 @@ impl AccessLogRepository for AccessLogPostgresRepository {
     }
 
     /// LOW-12 監査対応: keyset ページネーションで OFFSET を廃止する。
-    /// after_id が Some の場合、そのレコードの (created_at, id) より小さい行のみを取得する
-    /// row value 比較を使用し、full table scan を回避する。
-    /// after_id が None の場合は先頭ページを返す。
+    /// CRITICAL-DB-001 監査対応: vault.access_logs は RLS FORCE が有効（migration 007）。
+    /// 監査ログ一覧は管理・運用目的で全テナントを横断するため
+    /// vault.list_access_logs_all_tenants（SECURITY DEFINER 関数、migration 008）を使用する。
     async fn list(
         &self,
         after_id: Option<Uuid>,
@@ -72,33 +95,18 @@ impl AccessLogRepository for AccessLogPostgresRepository {
     ) -> anyhow::Result<(Vec<SecretAccessLog>, Option<Uuid>)> {
         // limit+1 件取得して次ページの存在を確認し、カーソルを生成する
         let fetch_limit = limit as i64 + 1;
-        let rows = if let Some(cursor_id) = after_id {
-            // カーソルより古い（降順で後続の）レコードを keyset で取得する
-            sqlx::query(
-                "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
-                 FROM vault.access_logs \
-                 WHERE (created_at, id) < ( \
-                     SELECT created_at, id FROM vault.access_logs WHERE id = $1 \
-                 ) \
-                 ORDER BY created_at DESC, id DESC \
-                 LIMIT $2",
-            )
-            .bind(cursor_id)
-            .bind(fetch_limit)
-            .fetch_all(self.pool.as_ref())
-            .await?
-        } else {
-            // 先頭ページ: created_at 降順で最新から取得する
-            sqlx::query(
-                "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
-                 FROM vault.access_logs \
-                 ORDER BY created_at DESC, id DESC \
-                 LIMIT $1",
-            )
-            .bind(fetch_limit)
-            .fetch_all(self.pool.as_ref())
-            .await?
-        };
+
+        // vault.list_access_logs_all_tenants は SECURITY DEFINER 関数（migration 008）。
+        // FORCE ROW LEVEL SECURITY を持つ access_logs テーブルに対して
+        // 全テナント横断の管理クエリを関数オーナー（DB オーナー）権限で実行する。
+        let rows = sqlx::query(
+            "SELECT id, key_path, action, actor_id, ip_address, success, error_msg, created_at \
+             FROM vault.list_access_logs_all_tenants($1, $2)",
+        )
+        .bind(after_id)
+        .bind(fetch_limit)
+        .fetch_all(self.pool.as_ref())
+        .await?;
 
         let mut logs: Vec<SecretAccessLog> = rows
             .into_iter()
@@ -160,5 +168,14 @@ mod tests {
         assert_eq!(log.action.as_str(), "read");
         assert_eq!(log.subject, Some("user-1".to_string()));
         assert!(log.success);
+    }
+
+    #[test]
+    fn test_extract_tenant_id_from_path() {
+        // ADR-0109 パス形式からのテナント ID 抽出を検証する
+        assert_eq!(extract_tenant_id_from_path("tenant-1/app/db"), "tenant-1");
+        assert_eq!(extract_tenant_id_from_path("system/config"), "system");
+        // 空パスのフォールバックを検証する
+        assert_eq!(extract_tenant_id_from_path(""), "system");
     }
 }

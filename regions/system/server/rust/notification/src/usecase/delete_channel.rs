@@ -20,10 +20,11 @@ impl DeleteChannelUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<(), DeleteChannelError> {
+    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取りリポジトリに伝播して RLS を有効化する。
+    pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteChannelError> {
         let deleted = self
             .repo
-            .delete(id)
+            .delete(id, tenant_id)
             .await
             .map_err(|e| DeleteChannelError::Internal(e.to_string()))?;
 
@@ -44,20 +45,20 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockNotificationChannelRepository::new();
-        mock.expect_delete().returning(|_| Ok(true));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteChannelUseCase::new(Arc::new(mock));
-        let result = uc.execute("ch_any").await;
+        let result = uc.execute("ch_any", "tenant_a").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockNotificationChannelRepository::new();
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteChannelUseCase::new(Arc::new(mock));
-        let result = uc.execute("ch_missing").await;
+        let result = uc.execute("ch_missing", "tenant_a").await;
         assert!(result.is_err());
 
         match result.unwrap_err() {

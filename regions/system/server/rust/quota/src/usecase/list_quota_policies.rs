@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::QuotaPolicyRepository;
 
+/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct ListQuotaPoliciesInput {
     pub page: u32,
@@ -10,6 +11,7 @@ pub struct ListQuotaPoliciesInput {
     pub subject_type: Option<String>,
     pub subject_id: Option<String>,
     pub enabled_only: Option<bool>,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +49,7 @@ impl ListQuotaPoliciesUseCase {
         if !has_filters {
             let (quotas, total_count) = self
                 .repo
-                .find_all(input.page, input.page_size)
+                .find_all(input.page, input.page_size, &input.tenant_id)
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
 
@@ -70,7 +72,7 @@ impl ListQuotaPoliciesUseCase {
         loop {
             let (items, total_count) = self
                 .repo
-                .find_all(fetch_page, fetch_page_size)
+                .find_all(fetch_page, fetch_page_size, &input.tenant_id)
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
             fetched += items.len() as u64;
@@ -143,8 +145,8 @@ mod tests {
         let return_policies = policies.clone();
 
         mock.expect_find_all()
-            .withf(|page, page_size| *page == 1 && *page_size == 20)
-            .returning(move |_, _| Ok((return_policies.clone(), 2)));
+            .withf(|page, page_size, _tenant_id| *page == 1 && *page_size == 20)
+            .returning(move |_, _, _| Ok((return_policies.clone(), 2)));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -153,6 +155,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -170,7 +173,7 @@ mod tests {
         let return_policies = policies.clone();
 
         mock.expect_find_all()
-            .returning(move |_, _| Ok((return_policies.clone(), 25)));
+            .returning(move |_, _, _| Ok((return_policies.clone(), 25)));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -179,6 +182,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -191,7 +195,7 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_find_all()
-            .returning(|_, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListQuotaPoliciesUseCase::new(Arc::new(mock));
         let input = ListQuotaPoliciesInput {
@@ -200,6 +204,7 @@ mod tests {
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

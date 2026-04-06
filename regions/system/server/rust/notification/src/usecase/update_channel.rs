@@ -3,9 +3,11 @@ use std::sync::Arc;
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
+/// MEDIUM-RUST-001 監査対応: tenant_id フィールドを追加してテナント分離を有効化する。
 #[derive(Debug, Clone)]
 pub struct UpdateChannelInput {
     pub id: String,
+    pub tenant_id: String,
     pub name: Option<String>,
     pub enabled: Option<bool>,
     pub config: Option<serde_json::Value>,
@@ -29,13 +31,14 @@ impl UpdateChannelUseCase {
         Self { repo }
     }
 
+    /// MEDIUM-RUST-001 監査対応: input.tenant_id をリポジトリに伝播して RLS を有効化する。
     pub async fn execute(
         &self,
         input: &UpdateChannelInput,
     ) -> Result<NotificationChannel, UpdateChannelError> {
         let mut channel = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.id, &input.tenant_id)
             .await
             .map_err(|e| UpdateChannelError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateChannelError::NotFound(input.id.clone()))?;
@@ -83,14 +86,15 @@ mod tests {
         mock.expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateChannelUseCase::new(Arc::new(mock));
         let input = UpdateChannelInput {
             id: channel_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             name: Some("updated-channel".to_string()),
             enabled: Some(false),
             config: None,
@@ -107,11 +111,12 @@ mod tests {
     async fn not_found() {
         let mut mock = MockNotificationChannelRepository::new();
         let missing_id = "ch_missing".to_string();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateChannelUseCase::new(Arc::new(mock));
         let input = UpdateChannelInput {
             id: missing_id.clone(),
+            tenant_id: "tenant_a".to_string(),
             name: None,
             enabled: Some(true),
             config: None,

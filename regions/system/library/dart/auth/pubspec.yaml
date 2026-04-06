@@ -8,6 +8,9 @@ environment:
 dependencies:
   http: ^1.2.0
   crypto: ^3.0.0
+  # CRITICAL-FE-001 対応: JWT RS256 署名検証のために dart_jsonwebtoken を追加する。
+  # JWKS エンドポイントから取得した RSA 公開鍵で id_token の署名を検証するために使用する。
+  dart_jsonwebtoken: ^2.14.0
   # H-010 監査対応: flutter_secure_storage は直接依存から外し、TokenStorage 抽象インターフェース経由で使用する。
   # Flutter アプリでは FlutterTokenStorage を SecureTokenStore に注入すること。
   # Pure Dart 環境（CLI・テスト）では MemoryTokenStore を使用すること。

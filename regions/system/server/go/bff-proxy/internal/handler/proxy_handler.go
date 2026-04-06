@@ -92,6 +92,13 @@ func (h *ProxyHandler) Handle(c *gin.Context) {
 	// アップストリーム向けに Authorization ヘッダーを付加する
 	c.Request.Header.Set("Authorization", "Bearer "+out.AccessToken)
 
+	// MEDIUM-GO-001 監査対応: セッションから tenant_id を取得し、X-Tenant-ID ヘッダーとして上流に転送する。
+	// テナント分離を実現するため、各マイクロサービスはこのヘッダーを使用してリクエストをフィルタリングする。
+	// TenantID が空の場合（Keycloak に tenant_id クレームが未設定の場合）はヘッダーを設定しない。
+	if sess.TenantID != "" {
+		c.Request.Header.Set("X-Tenant-ID", sess.TenantID)
+	}
+
 	// H-10 監査対応: トークンリフレッシュが発生した場合、新しい CSRF トークンをレスポンスヘッダーに設定する。
 	// クライアントはこのヘッダーを検出して保持している CSRF トークンを更新する必要がある。
 	if out.TokenRefreshed && out.CSRFToken != "" {

@@ -44,6 +44,7 @@ mod tests {
         let now = Utc::now();
         FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: name.to_string(),
             description: String::new(),
             domain: "service.task".to_string(),
@@ -70,6 +71,7 @@ mod tests {
 
     fn make_event(event_type: &str, source: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             "corr-1".to_string(),
             event_type.to_string(),
             source.to_string(),
@@ -136,6 +138,7 @@ mod tests {
         );
         // Event with different domain
         let event = EventRecord::new(
+            "system".to_string(),
             "corr-1".to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),
@@ -152,6 +155,7 @@ mod tests {
         let now = Utc::now();
         let flow = FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: "any_source_flow".to_string(),
             description: String::new(),
             domain: "service.task".to_string(),

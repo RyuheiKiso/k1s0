@@ -44,10 +44,24 @@ pub async fn list_activities(
         .ok_or_else(|| ServiceError::unauthorized("ACTIVITY", "認証が必要です"))?;
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = claims_inner.0.tenant_id();
+    // HIGH-BIZ-001 対応: status パースエラーを 400 Bad Request として返す。
+    // .ok() でエラーを無視するのではなく、不正な status 値はクライアントに通知する。
+    let status = if let Some(s) = q.status.as_deref() {
+        Some(
+            s.parse::<crate::domain::entity::activity::ActivityStatus>()
+                .map_err(|e| ServiceError::BadRequest {
+                    code: k1s0_server_common::ErrorCode::new("SVC_ACTIVITY_INVALID_STATUS"),
+                    message: format!("Invalid status value '{}': {}", s, e),
+                    details: vec![],
+                })?,
+        )
+    } else {
+        None
+    };
     let filter = ActivityFilter {
         task_id: q.task_id,
         actor_id: q.actor_id,
-        status: q.status.as_deref().and_then(|s| s.parse().ok()),
+        status,
         limit: q.limit,
         offset: q.offset,
     };

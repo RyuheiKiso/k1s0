@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
 };
@@ -92,9 +92,17 @@ pub async fn get_rule(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
 
 pub async fn create_rule(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = CreateRuleInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         priority: req.priority,
@@ -257,8 +265,15 @@ pub async fn get_rule_set(
 
 pub async fn create_rule_set(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<CreateRuleSetRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let rule_ids: Result<Vec<Uuid>, _> = req.rule_ids.iter().map(|s| Uuid::parse_str(s)).collect();
     let rule_ids = match rule_ids {
         Ok(ids) => ids,
@@ -269,6 +284,7 @@ pub async fn create_rule_set(
     };
 
     let input = CreateRuleSetInput {
+        tenant_id,
         name: req.name,
         description: req.description,
         domain: req.domain,
@@ -452,9 +468,17 @@ pub async fn rollback_rule_set(
 
 pub async fn evaluate(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<EvaluateRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = EvaluateInput {
+        tenant_id,
         rule_set: req.rule_set,
         input: req.input,
         context: req.context.unwrap_or(serde_json::json!({})),
@@ -465,9 +489,17 @@ pub async fn evaluate(
 
 pub async fn evaluate_dry_run(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<EvaluateRequestBody>,
 ) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: X-Tenant-ID ヘッダーからテナント ID を取得して RLS に使用する。
+    let tenant_id = headers
+        .get("x-tenant-id")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("system")
+        .to_string();
     let input = EvaluateInput {
+        tenant_id,
         rule_set: req.rule_set,
         input: req.input,
         context: req.context.unwrap_or(serde_json::json!({})),

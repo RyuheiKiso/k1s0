@@ -97,6 +97,7 @@ mod tests {
         let now = Utc::now();
         FlowDefinition {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             name: "test_flow".to_string(),
             description: String::new(),
             domain: "service.task".to_string(),
@@ -124,6 +125,7 @@ mod tests {
     fn make_instance(flow_id: Uuid, step_index: i32, started_ago_secs: i64) -> FlowInstance {
         FlowInstance {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             flow_id,
             correlation_id: format!("corr-{}", Uuid::new_v4()),
             status: FlowInstanceStatus::InProgress,

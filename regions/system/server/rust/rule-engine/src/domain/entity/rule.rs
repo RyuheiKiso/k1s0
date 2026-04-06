@@ -5,6 +5,9 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct Rule {
     pub id: Uuid,
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子。
+    /// RLS ポリシーの app.current_tenant_id セッション変数と対応する（migration 003 対応）。
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub priority: i32,
@@ -18,6 +21,7 @@ pub struct Rule {
 
 impl Rule {
     pub fn new(
+        tenant_id: String,
         name: String,
         description: String,
         priority: i32,
@@ -27,6 +31,7 @@ impl Rule {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             name,
             description,
             priority,
@@ -43,6 +48,8 @@ impl Rule {
 #[derive(Debug, Clone)]
 pub struct RuleSet {
     pub id: Uuid,
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子（migration 003 対応）。
+    pub tenant_id: String,
     pub name: String,
     pub description: String,
     pub domain: String,
@@ -57,6 +64,7 @@ pub struct RuleSet {
 
 impl RuleSet {
     pub fn new(
+        tenant_id: String,
         name: String,
         description: String,
         domain: String,
@@ -67,6 +75,7 @@ impl RuleSet {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
+            tenant_id,
             name,
             description,
             domain,
@@ -147,12 +156,14 @@ mod tests {
     #[test]
     fn rule_new_defaults() {
         let rule = Rule::new(
+            "tenant-1".to_string(),
             "my-rule".to_string(),
             "description".to_string(),
             50,
             serde_json::json!({"field": "x", "operator": "eq", "value": "y"}),
             serde_json::json!({"action": "allow"}),
         );
+        assert_eq!(rule.tenant_id, "tenant-1");
         assert_eq!(rule.name, "my-rule");
         assert_eq!(rule.priority, 50);
         assert!(rule.enabled);
@@ -163,6 +174,7 @@ mod tests {
     #[test]
     fn rule_set_new_defaults() {
         let rs = RuleSet::new(
+            "tenant-1".to_string(),
             "pricing".to_string(),
             "Pricing rules".to_string(),
             "sales".to_string(),
@@ -170,6 +182,7 @@ mod tests {
             serde_json::json!({}),
             vec![],
         );
+        assert_eq!(rs.tenant_id, "tenant-1");
         assert_eq!(rs.name, "pricing");
         assert_eq!(rs.domain, "sales");
         assert_eq!(rs.current_version, 0);
@@ -218,6 +231,8 @@ mod tests {
 #[derive(Debug, Clone)]
 pub struct EvaluationLog {
     pub id: Uuid,
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子（migration 003 対応）。
+    pub tenant_id: String,
     pub rule_set_name: String,
     pub rule_set_version: u32,
     pub matched_rule_id: Option<Uuid>,

@@ -8,6 +8,8 @@ use crate::domain::service::condition_parser::ConditionParser;
 
 #[derive(Debug, Clone)]
 pub struct EvaluateInput {
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加。JWT/ヘッダーから抽出したテナント ID を渡す。
+    pub tenant_id: String,
     pub rule_set: String, // "{domain}.{name}" format
     pub input: serde_json::Value,
     pub context: serde_json::Value,
@@ -105,6 +107,7 @@ impl EvaluateUseCase {
             let input_hash = Self::hash_input(&input.input);
             let log = EvaluationLog {
                 id: evaluation_id,
+                tenant_id: input.tenant_id.clone(),
                 rule_set_name: input.rule_set.clone(),
                 rule_set_version: rule_set.current_version,
                 matched_rule_id: matched_rules.first().map(|m| m.id),
@@ -220,6 +223,7 @@ mod tests {
 
     fn make_rule_set(mode: EvaluationMode) -> RuleSet {
         let mut rs = RuleSet::new(
+            "system".to_string(),
             "discount".to_string(),
             "Discount rules".to_string(),
             "sales".to_string(),
@@ -238,6 +242,7 @@ mod tests {
         result: serde_json::Value,
     ) -> Rule {
         Rule::new(
+            "system".to_string(),
             name.to_string(),
             "desc".to_string(),
             priority,
@@ -268,6 +273,7 @@ mod tests {
         );
         let result = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "no-dot-here".to_string(),
                 input: serde_json::json!({}),
                 context: serde_json::json!({}),
@@ -291,6 +297,7 @@ mod tests {
         );
         let result = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({}),
                 context: serde_json::json!({}),
@@ -329,6 +336,7 @@ mod tests {
         let uc = make_uc(rs_mock, r_mock, log_mock);
         let output = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({"amount": 150}),
                 context: serde_json::json!({}),
@@ -368,6 +376,7 @@ mod tests {
         let uc = make_uc(rs_mock, r_mock, MockEvaluationLogRepository::new());
         let output = uc
             .execute(&EvaluateInput {
+                tenant_id: "system".to_string(),
                 rule_set: "sales.discount".to_string(),
                 input: serde_json::json!({"amount": 50}), // 100未満なのでマッチしない
                 context: serde_json::json!({}),

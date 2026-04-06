@@ -102,6 +102,8 @@ impl From<ResetQuotaUsageError> for GrpcError {
 
 /// CreatePolicyRequest は CreateQuotaPolicy gRPC リクエストの内部表現。
 pub struct CreatePolicyRequest {
+    /// CRITICAL-RUST-001 監査対応: gRPC メタデータから抽出したテナント ID。
+    pub tenant_id: String,
     pub name: String,
     pub subject_type: String,
     pub subject_id: String,
@@ -124,12 +126,14 @@ pub struct UpdatePolicyRequest {
 }
 
 /// ListPoliciesRequest は ListQuotaPolicies gRPC リクエストの内部表現。
+/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
 pub struct ListPoliciesRequest {
     pub page: u32,
     pub page_size: u32,
     pub subject_type: Option<String>,
     pub subject_id: Option<String>,
     pub enabled_only: Option<bool>,
+    pub tenant_id: String,
 }
 
 /// ListPoliciesResult は ListQuotaPolicies の結果。
@@ -183,6 +187,7 @@ impl QuotaGrpcService {
 
     pub async fn create_policy(&self, req: CreatePolicyRequest) -> Result<QuotaPolicy, GrpcError> {
         let input = CreateQuotaPolicyInput {
+            tenant_id: req.tenant_id,
             name: req.name,
             subject_type: req.subject_type,
             subject_id: req.subject_id,
@@ -197,13 +202,15 @@ impl QuotaGrpcService {
             .map_err(GrpcError::from)
     }
 
-    pub async fn get_policy(&self, id: &str) -> Result<QuotaPolicy, GrpcError> {
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
+    pub async fn get_policy(&self, id: &str, tenant_id: &str) -> Result<QuotaPolicy, GrpcError> {
         self.get_policy_uc
-            .execute(id)
+            .execute(id, tenant_id)
             .await
             .map_err(GrpcError::from)
     }
 
+    /// CRITICAL-RUST-001 監査対応: ListPoliciesRequest に tenant_id を含める。
     pub async fn list_policies(
         &self,
         req: ListPoliciesRequest,
@@ -214,6 +221,7 @@ impl QuotaGrpcService {
             subject_type: req.subject_type,
             subject_id: req.subject_id,
             enabled_only: req.enabled_only,
+            tenant_id: req.tenant_id,
         };
         let output = self
             .list_policies_uc
@@ -231,11 +239,16 @@ impl QuotaGrpcService {
         })
     }
 
-    pub async fn update_policy(&self, req: UpdatePolicyRequest) -> Result<QuotaPolicy, GrpcError> {
-        // 部分更新: まず現在のポリシーを取得してから更新
+    /// CRITICAL-RUST-001 監査対応: UpdatePolicyRequest に tenant_id を含める。
+    pub async fn update_policy(
+        &self,
+        req: UpdatePolicyRequest,
+        tenant_id: &str,
+    ) -> Result<QuotaPolicy, GrpcError> {
+        // 部分更新: まず現在のポリシーを取得してから更新（RLS のため tenant_id を渡す）
         let current = self
             .get_policy_uc
-            .execute(&req.id)
+            .execute(&req.id, tenant_id)
             .await
             .map_err(GrpcError::from)?;
 
@@ -249,6 +262,7 @@ impl QuotaGrpcService {
 
         let input = UpdateQuotaPolicyInput {
             id: req.id,
+            tenant_id: tenant_id.to_string(),
             name: req.name.unwrap_or(current_name),
             subject_type: req.subject_type.unwrap_or(current_subject_type),
             subject_id: req.subject_id.unwrap_or(current_subject_id),
@@ -265,34 +279,40 @@ impl QuotaGrpcService {
             .map_err(GrpcError::from)
     }
 
-    pub async fn delete_policy(&self, id: &str) -> Result<(), GrpcError> {
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
+    pub async fn delete_policy(&self, id: &str, tenant_id: &str) -> Result<(), GrpcError> {
         self.delete_policy_uc
-            .execute(id)
+            .execute(id, tenant_id)
             .await
             .map_err(GrpcError::from)
     }
 
-    pub async fn get_usage(&self, quota_id: &str) -> Result<QuotaUsage, GrpcError> {
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
+    pub async fn get_usage(&self, quota_id: &str, tenant_id: &str) -> Result<QuotaUsage, GrpcError> {
         self.get_usage_uc
-            .execute(quota_id)
+            .execute(quota_id, tenant_id)
             .await
             .map_err(GrpcError::from)
     }
 
-    pub async fn check_quota(&self, quota_id: &str) -> Result<QuotaUsage, GrpcError> {
-        self.get_usage(quota_id).await
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
+    pub async fn check_quota(&self, quota_id: &str, tenant_id: &str) -> Result<QuotaUsage, GrpcError> {
+        self.get_usage(quota_id, tenant_id).await
     }
 
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
     pub async fn increment_usage(
         &self,
         quota_id: String,
         amount: u64,
         request_id: Option<String>,
+        tenant_id: String,
     ) -> Result<IncrementResult, GrpcError> {
         let input = IncrementQuotaUsageInput {
             quota_id,
             amount,
             request_id,
+            tenant_id,
         };
         self.increment_usage_uc
             .execute(&input)
@@ -300,22 +320,25 @@ impl QuotaGrpcService {
             .map_err(GrpcError::from)
     }
 
+    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り RLS テナント分離を有効にする。
     pub async fn reset_usage(
         &self,
         quota_id: String,
         reason: String,
         reset_by: String,
+        tenant_id: String,
     ) -> Result<QuotaUsage, GrpcError> {
         let input = ResetQuotaUsageInput {
             quota_id: quota_id.clone(),
             reason,
             reset_by,
+            tenant_id: tenant_id.clone(),
         };
         self.reset_usage_uc
             .execute(&input)
             .await
             .map_err(GrpcError::from)?;
-        self.get_usage(&quota_id).await
+        self.get_usage(&quota_id, &tenant_id).await
     }
 }
 

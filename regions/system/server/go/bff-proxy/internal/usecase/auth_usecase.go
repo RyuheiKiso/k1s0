@@ -38,6 +38,10 @@ type AuthOAuthClient interface {
 	// ExtractClaims は JWKS 署名検証済みの ID トークンから subject と realm roles を返す。
 	ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error)
 
+	// ExtractFullClaims は JWKS 署名検証済みの ID トークンから全クレームを返す。
+	// MEDIUM-GO-001 監査対応: tenant_id を含む全クレームを取得してテナント分離を実現する。
+	ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
+
 	// LogoutURL は IdP のエンドセッションエンドポイント URL を返す。
 	LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error)
 
@@ -294,8 +298,9 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_TOKEN_EXCHANGE_FAILED", Err: err}
 	}
 
-	// JWKS 署名検証付きで ID トークンから subject と realm roles を取得する
-	subject, roles, err := uc.oauthClient.ExtractClaims(ctx, tokenResp.IDToken)
+	// MEDIUM-GO-001 監査対応: JWKS 署名検証付きで ID トークンから全クレームを取得する。
+	// tenant_id クレームを含む全クレームを一括取得し、セッションに格納してテナント分離を実現する。
+	idTokenClaims, err := uc.oauthClient.ExtractFullClaims(ctx, tokenResp.IDToken)
 	if err != nil {
 		return nil, &AuthUseCaseError{Code: "BFF_AUTH_ID_TOKEN_INVALID", Err: err}
 	}
@@ -315,8 +320,11 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 		ExpiresAt:          now.Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix(),
 		CSRFToken:          csrfToken,
 		CSRFTokenCreatedAt: now.Unix(), // H-12 監査対応: CSRF トークンの TTL 検証用に生成時刻を記録する
-		Subject:            subject,
-		Roles:              roles,
+		Subject:            idTokenClaims.Subject,
+		Roles:              idTokenClaims.Roles,
+		// MEDIUM-GO-001 監査対応: tenant_id クレームをセッションに格納する。
+		// プロキシハンドラーが X-Tenant-ID ヘッダーとして上流に転送し、テナント分離を実現する。
+		TenantID:           idTokenClaims.TenantID,
 	}
 	// M-17 監査対応: セッションの絶対有効期限を設定する。
 	// スライディングウィンドウで TTL が延長されても、この期限を超えたセッションは無効化される。

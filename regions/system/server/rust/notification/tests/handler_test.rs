@@ -37,9 +37,10 @@ impl StubChannelRepo {
     }
 }
 
+/// MEDIUM-RUST-001 監査対応: StubChannelRepo もトレイト変更に追従する。
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
         Ok(self
             .channels
             .read()
@@ -48,11 +49,12 @@ impl NotificationChannelRepository for StubChannelRepo {
             .find(|c| c.id == id)
             .cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationChannel>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {
         Ok(self.channels.read().await.clone())
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -73,7 +75,7 @@ impl NotificationChannelRepository for StubChannelRepo {
         }
         Ok(())
     }
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut channels = self.channels.write().await;
         let before = channels.len();
         channels.retain(|c| c.id != id);
@@ -226,6 +228,7 @@ fn build_state() -> AppState {
         delete_template_uc: Arc::new(DeleteTemplateUseCase::new(template_repo.clone())),
         metrics,
         auth_state: None,
+        db_pool: None,
     }
 }
 

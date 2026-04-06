@@ -257,8 +257,10 @@ impl ConfigGrpcService {
         }
     }
 
+    // CRITICAL-RUST-001 監査対応: tenant_id を受け取り、テナントスコープで設定スキーマを取得する。
     pub async fn get_config_schema(
         &self,
+        tenant_id: &str,
         req: pb::GetConfigSchemaRequest,
     ) -> Result<pb::GetConfigSchemaResponse, GrpcError> {
         let uc = self.get_config_schema_uc.as_ref().ok_or_else(|| {
@@ -270,7 +272,7 @@ impl ConfigGrpcService {
             ));
         }
 
-        match uc.execute(&req.service_name).await {
+        match uc.execute(&req.service_name, tenant_id).await {
             Ok(schema) => Ok(pb::GetConfigSchemaResponse {
                 schema: Some(domain_schema_to_pb(&schema)),
             }),
@@ -282,8 +284,10 @@ impl ConfigGrpcService {
         }
     }
 
+    // CRITICAL-RUST-001 監査対応: tenant_id を受け取り、テナントスコープで設定スキーマを upsert する。
     pub async fn upsert_config_schema(
         &self,
+        tenant_id: &str,
         req: pb::UpsertConfigSchemaRequest,
     ) -> Result<pb::UpsertConfigSchemaResponse, GrpcError> {
         let uc = self.upsert_config_schema_uc.as_ref().ok_or_else(|| {
@@ -305,6 +309,7 @@ impl ConfigGrpcService {
 
         let schema_json = pb_schema_to_json(&schema);
         let input = UpsertConfigSchemaInput {
+            tenant_id: tenant_id.to_string(),
             service_name: schema.service_name,
             namespace_prefix: schema.namespace_prefix,
             schema_json,
@@ -324,12 +329,16 @@ impl ConfigGrpcService {
         })
     }
 
-    pub async fn list_config_schemas(&self) -> Result<pb::ListConfigSchemasResponse, GrpcError> {
+    // CRITICAL-RUST-001 監査対応: tenant_id を受け取り、テナントスコープでスキーマ一覧を取得する。
+    pub async fn list_config_schemas(
+        &self,
+        tenant_id: &str,
+    ) -> Result<pb::ListConfigSchemasResponse, GrpcError> {
         let uc = self.list_config_schemas_uc.as_ref().ok_or_else(|| {
             GrpcError::Internal("list_config_schemas usecase is not configured".to_string())
         })?;
 
-        match uc.execute().await {
+        match uc.execute(tenant_id).await {
             Ok(schemas) => Ok(pb::ListConfigSchemasResponse {
                 schemas: schemas.iter().map(domain_schema_to_pb).collect(),
             }),

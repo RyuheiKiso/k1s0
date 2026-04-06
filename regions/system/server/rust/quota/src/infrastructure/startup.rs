@@ -529,12 +529,15 @@ async fn reset_all_policies(
     let mut total_reset = 0u64;
 
     loop {
+        // CRITICAL-RUST-001 監査対応: スケジューラは全テナントを対象とするため
+        // system テナントとして実行する（RLS bypass 権限を持つロールが望ましい）。
         let input = usecase::list_quota_policies::ListQuotaPoliciesInput {
             page,
             page_size,
             subject_type: None,
             subject_id: None,
             enabled_only: None,
+            tenant_id: "system".to_string(),
         };
         match list_uc.execute(&input).await {
             Ok(output) => {
@@ -543,6 +546,7 @@ async fn reset_all_policies(
                         quota_id: policy.id.clone(),
                         reason: format!("scheduled {} reset", schedule_label),
                         reset_by: "system-cron".to_string(),
+                        tenant_id: policy.tenant_id.clone(),
                     };
                     if let Err(e) = reset_uc.execute(&reset_input).await {
                         tracing::warn!(
@@ -593,12 +597,18 @@ impl InMemoryQuotaPolicyRepository {
 
 #[async_trait::async_trait]
 impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
+    /// InMemory 実装では tenant_id によるフィルタリングは行わない（テスト・開発用）。
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
         let policies = self.policies.read().await;
         Ok(policies.get(id).cloned())
     }
 
-    async fn find_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
+    async fn find_all(
+        &self,
+        page: u32,
+        page_size: u32,
+        _tenant_id: &str,
+    ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         let policies = self.policies.read().await;
         let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
         let total = all.len() as u64;
@@ -623,7 +633,7 @@ impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut policies = self.policies.write().await;
         Ok(policies.remove(id).is_some())
     }
@@ -643,19 +653,20 @@ impl InMemoryQuotaUsageRepository {
 
 #[async_trait::async_trait]
 impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
-    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+    /// InMemory 実装では tenant_id によるフィルタリングは行わない（テスト・開発用）。
+    async fn get_usage(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         let counters = self.counters.read().await;
         Ok(counters.get(quota_id).cloned())
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+    async fn increment(&self, quota_id: &str, amount: u64, _tenant_id: &str) -> anyhow::Result<u64> {
         let mut counters = self.counters.write().await;
         let counter = counters.entry(quota_id.to_string()).or_insert(0);
         *counter += amount;
         Ok(*counter)
     }
 
-    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+    async fn reset(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<()> {
         let mut counters = self.counters.write().await;
         counters.insert(quota_id.to_string(), 0);
         Ok(())
@@ -666,6 +677,7 @@ impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
         quota_id: &str,
         amount: u64,
         limit: u64,
+        _tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
         let mut counters = self.counters.write().await;
         let current = counters.entry(quota_id.to_string()).or_insert(0);

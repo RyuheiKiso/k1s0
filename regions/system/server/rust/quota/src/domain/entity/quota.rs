@@ -55,6 +55,9 @@ impl Period {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuotaPolicy {
     pub id: String,
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子。
+    /// RLS ポリシーの app.current_tenant_id セッション変数と対応する。
+    pub tenant_id: String,
     pub name: String,
     pub subject_type: SubjectType,
     pub subject_id: String,
@@ -68,6 +71,7 @@ pub struct QuotaPolicy {
 
 impl QuotaPolicy {
     pub fn new(
+        tenant_id: String,
         name: String,
         subject_type: SubjectType,
         subject_id: String,
@@ -79,6 +83,7 @@ impl QuotaPolicy {
         let now = Utc::now();
         Self {
             id: format!("quota_{}", uuid::Uuid::new_v4().simple()),
+            tenant_id,
             name,
             subject_type,
             subject_id,
@@ -179,6 +184,7 @@ mod tests {
     #[test]
     fn test_quota_policy_new() {
         let policy = QuotaPolicy::new(
+            "tenant-abc".to_string(),
             "test-policy".to_string(),
             SubjectType::Tenant,
             "tenant-abc".to_string(),
@@ -188,6 +194,7 @@ mod tests {
             Some(80),
         );
         assert!(policy.id.starts_with("quota_"));
+        assert_eq!(policy.tenant_id, "tenant-abc");
         assert_eq!(policy.name, "test-policy");
         assert_eq!(policy.subject_type, SubjectType::Tenant);
         assert_eq!(policy.subject_id, "tenant-abc");
@@ -200,6 +207,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_under_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::User,
             "user-1".to_string(),
@@ -219,6 +227,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_at_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),
@@ -237,6 +246,7 @@ mod tests {
     #[test]
     fn test_quota_usage_new_over_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::ApiKey,
             "key-1".to_string(),
@@ -254,6 +264,7 @@ mod tests {
     #[test]
     fn test_quota_usage_zero_limit() {
         let policy = QuotaPolicy::new(
+            "tenant-1".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

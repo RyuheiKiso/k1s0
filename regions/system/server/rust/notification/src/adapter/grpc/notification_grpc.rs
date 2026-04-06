@@ -21,9 +21,13 @@ use crate::usecase::update_template::{UpdateTemplateInput, UpdateTemplateUseCase
 
 // --- gRPC Request/Response Types ---
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してテナント分離を有効化する。
+/// gRPC メタデータ x-tenant-id から取得したテナント ID を伝播する（ADR-0028）。
 #[derive(Debug, Clone)]
 pub struct SendNotificationRequest {
     pub channel_id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。未指定時は "system" にフォールバック。
+    pub tenant_id: String,
     pub template_id: Option<String>,
     pub template_variables: std::collections::HashMap<String, String>,
     pub recipient: String,
@@ -38,9 +42,12 @@ pub struct SendNotificationResponse {
     pub created_at: String,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してチャンネル取得時のテナント分離を有効化する。
 #[derive(Debug, Clone)]
 pub struct GetNotificationRequest {
     pub notification_id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -64,9 +71,12 @@ pub struct GetNotificationResponse {
     pub notification: PbNotificationLog,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してチャンネル確認時のテナント分離を有効化する。
 #[derive(Debug, Clone)]
 pub struct RetryNotificationRequest {
     pub notification_id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -102,8 +112,11 @@ pub struct PbChannel {
     pub updated_at: String,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してテナント固有チャンネルのみ返す。
 #[derive(Debug, Clone)]
 pub struct ListChannelsRequest {
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub channel_type: Option<String>,
     pub enabled_only: bool,
     pub page: u32,
@@ -135,9 +148,12 @@ pub struct CreateChannelResponse {
     pub channel: PbChannel,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してテナント固有チャンネルのみ返す。
 #[derive(Debug, Clone)]
 pub struct GetChannelRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -145,9 +161,12 @@ pub struct GetChannelResponse {
     pub channel: PbChannel,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加して RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct UpdateChannelRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub name: Option<String>,
     pub enabled: Option<bool>,
     pub config_json: Option<String>,
@@ -158,9 +177,12 @@ pub struct UpdateChannelResponse {
     pub channel: PbChannel,
 }
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加して RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct DeleteChannelRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -386,8 +408,10 @@ impl NotificationGrpcService {
             Some(req.template_variables)
         };
 
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let input = SendNotificationInput {
             channel_id: req.channel_id,
+            tenant_id: req.tenant_id,
             template_id: req.template_id,
             recipient: req.recipient,
             subject: req.subject,
@@ -427,9 +451,10 @@ impl NotificationGrpcService {
                 GrpcError::NotFound(format!("notification not found: {}", req.notification_id))
             })?;
 
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let channel_type = match self
             .channel_repo
-            .find_by_id(&log.channel_id)
+            .find_by_id(&log.channel_id, &req.tenant_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
         {
@@ -448,9 +473,11 @@ impl NotificationGrpcService {
     ) -> Result<RetryNotificationResponse, GrpcError> {
         let uc = Self::require(&self.retry_notification_uc, "retry_notification")?;
 
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let log = uc
             .execute(&RetryNotificationInput {
                 notification_id: req.notification_id,
+                tenant_id: req.tenant_id.clone(),
             })
             .await
             .map_err(|e| match e {
@@ -466,9 +493,10 @@ impl NotificationGrpcService {
                 RetryNotificationError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let channel_type = self
             .channel_repo
-            .find_by_id(&log.channel_id)
+            .find_by_id(&log.channel_id, &req.tenant_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
             .map(|ch| ch.channel_type)
@@ -496,11 +524,14 @@ impl NotificationGrpcService {
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
 
+        // MEDIUM-RUST-001 監査対応: list_notifications は通知ログの取得であり、
+        // チャンネル情報は補完的に取得する。req にテナント ID がないため "system" を使用する。
+        // 通知ログ API はテナントスコープ外（ログは全テナント管理者向け）として設計されている。
         let mut notifications = Vec::with_capacity(logs.len());
         for log in logs {
             let channel_type = self
                 .channel_repo
-                .find_by_id(&log.channel_id)
+                .find_by_id(&log.channel_id, "system")
                 .await
                 .map_err(|e| GrpcError::Internal(e.to_string()))?
                 .map(|ch| ch.channel_type)
@@ -529,8 +560,9 @@ impl NotificationGrpcService {
         } else {
             req.page_size
         };
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播してテナント固有チャンネルのみ返す
         let (channels, total) = uc
-            .execute_paginated(page, page_size, req.channel_type, req.enabled_only)
+            .execute_paginated(&req.tenant_id, page, page_size, req.channel_type, req.enabled_only)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         Ok(ListChannelsResponse {
@@ -572,12 +604,14 @@ impl NotificationGrpcService {
     }
 
     /// チャンネルを取得する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
+    /// MEDIUM-RUST-001 監査対応: req.tenant_id を伝播してテナント固有チャンネルのみ返す。
     pub async fn get_channel(
         &self,
         req: GetChannelRequest,
     ) -> Result<GetChannelResponse, GrpcError> {
         let uc = Self::require(&self.get_channel_uc, "get_channel")?;
-        let channel = uc.execute(&req.id).await.map_err(|e| {
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
+        let channel = uc.execute(&req.id, &req.tenant_id).await.map_err(|e| {
             use crate::usecase::get_channel::GetChannelError;
             match e {
                 GetChannelError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -601,8 +635,10 @@ impl NotificationGrpcService {
                 )?),
                 None => None,
             };
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let input = UpdateChannelInput {
             id: req.id,
+            tenant_id: req.tenant_id,
             name: req.name,
             enabled: req.enabled,
             config,
@@ -621,12 +657,14 @@ impl NotificationGrpcService {
     }
 
     /// チャンネルを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
+    /// MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する。
     pub async fn delete_channel(
         &self,
         req: DeleteChannelRequest,
     ) -> Result<DeleteChannelResponse, GrpcError> {
         let uc = Self::require(&self.delete_channel_uc, "delete_channel")?;
-        uc.execute(&req.id).await.map_err(|e| {
+        // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
+        uc.execute(&req.id, &req.tenant_id).await.map_err(|e| {
             use crate::usecase::delete_channel::DeleteChannelError;
             match e {
                 DeleteChannelError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -821,9 +859,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| *id == channel_id
+                move |id, _tenant_id| *id == channel_id
             })
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
         log_mock.expect_create().returning(|_| Ok(()));
 
         let log_repo_for_svc: Arc<dyn NotificationLogRepository> =
@@ -841,6 +879,7 @@ mod tests {
 
         let req = SendNotificationRequest {
             channel_id: channel_id.to_string(),
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
@@ -872,6 +911,7 @@ mod tests {
 
         let req = SendNotificationRequest {
             channel_id: "".to_string(),
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
@@ -895,7 +935,7 @@ mod tests {
         let channel_repo: Arc<dyn NotificationChannelRepository> =
             Arc::new(MockNotificationChannelRepository::new());
 
-        channel_mock.expect_find_by_id().returning(|_| Ok(None));
+        channel_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let missing_id = "ch_missing".to_string();
         let svc = NotificationGrpcService::new(
@@ -909,6 +949,7 @@ mod tests {
 
         let req = SendNotificationRequest {
             channel_id: missing_id,
+            tenant_id: "tenant_test".to_string(),
             template_id: None,
             template_variables: std::collections::HashMap::new(),
             recipient: "user@example.com".to_string(),
@@ -952,9 +993,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let channel_id = channel_id.clone();
-                move |id| id == channel_id.as_str()
+                move |id, _tenant_id| id == channel_id.as_str()
             })
-            .returning(|_| {
+            .returning(|_, _| {
                 Ok(Some(NotificationChannel::new(
                     "test".to_string(),
                     "email".to_string(),
@@ -975,6 +1016,7 @@ mod tests {
 
         let req = GetNotificationRequest {
             notification_id: log_id.clone(),
+            tenant_id: "tenant_test".to_string(),
         };
         let resp = svc.get_notification(req).await.unwrap();
         assert_eq!(resp.notification.id, log_id);
@@ -1004,6 +1046,7 @@ mod tests {
 
         let req = GetNotificationRequest {
             notification_id: "notif_missing".to_string(),
+            tenant_id: "tenant_test".to_string(),
         };
         let result = svc.get_notification(req).await;
         assert!(result.is_err());

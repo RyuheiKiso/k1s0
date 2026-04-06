@@ -89,6 +89,7 @@ mod tests {
     fn make_instance(status: FlowInstanceStatus, duration_ms: Option<i64>) -> FlowInstance {
         FlowInstance {
             id: Uuid::new_v4(),
+            tenant_id: "system".to_string(),
             flow_id: Uuid::new_v4(),
             correlation_id: "corr".to_string(),
             status,

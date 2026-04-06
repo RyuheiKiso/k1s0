@@ -46,6 +46,11 @@ type AppConfig struct {
 type ServerConfig struct {
 	Host            string `yaml:"host" validate:"required"`
 	Port            int    `yaml:"port" validate:"required,min=1,max=65535"`
+	// HIGH-GO-001 監査対応: /metrics エンドポイントをクラスター内部専用ポートに分離する。
+	// 公開ルーターに /metrics を露出させると認証なしで内部メトリクスが取得可能になるリスクがある。
+	// デフォルト 9090 ポートで内部サーバーを起動し、Prometheus スクレイプ専用にする。
+	// 0 または未設定の場合は 9090 をデフォルト値として使用する。
+	InternalPort    int    `yaml:"internal_port"`
 	ReadTimeout     string `yaml:"read_timeout"`
 	WriteTimeout    string `yaml:"write_timeout"`
 	ShutdownTimeout string `yaml:"shutdown_timeout"`

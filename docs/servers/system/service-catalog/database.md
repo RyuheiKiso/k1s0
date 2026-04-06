@@ -277,6 +277,25 @@ CREATE INDEX IF NOT EXISTS idx_service_scorecards_overall ON service_catalog.ser
 | `007_create_service_scorecards.down.sql` | テーブル削除 |
 | `008_add_uuid_defaults.up.sql` | services・teams・service_docs の PK に DEFAULT gen_random_uuid() 追加（H-011 監査対応） |
 | `008_add_uuid_defaults.down.sql` | UUID デフォルト値削除 |
+| `009_add_tenant_id_rls.up.sql` | 全テーブルに `tenant_id TEXT NOT NULL` と RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）追加、teams の UNIQUE(name) → UNIQUE(tenant_id, name)（CRITICAL-DB-001 対応） |
+| `009_add_tenant_id_rls.down.sql` | `tenant_id` カラムと RLS ポリシー削除、UNIQUE 制約を復元 |
+
+---
+
+## マルチテナント対応（CRITICAL-DB-001）
+
+全テーブル（`teams` / `services` / `dependencies` / `health_status` / `service_docs` / `scorecards`）に `tenant_id TEXT NOT NULL` カラムと RLS ポリシーを追加（migration 009）。
+
+- `teams` テーブル: UNIQUE(name) を UNIQUE(tenant_id, name) に変更（テナント間の同名チームを許可）
+
+```sql
+ALTER TABLE service_catalog.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_catalog.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON service_catalog.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 

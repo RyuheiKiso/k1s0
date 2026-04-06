@@ -259,8 +259,17 @@ impl EventMonitorService for EventMonitorServiceTonic {
         &self,
         request: Request<ProtoCreateFlowRequest>,
     ) -> Result<Response<ProtoCreateFlowResponse>, Status> {
+        // gRPC メタデータから tenant_id を取得する。未設定の場合は "system" を使用する。
+        let tenant_id = request
+            .metadata()
+            .get("x-tenant-id")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("system")
+            .to_string();
+
         let inner = request.into_inner();
         let input = crate::usecase::create_flow::CreateFlowInput {
+            tenant_id,
             name: inner.name,
             description: inner.description,
             domain: inner.domain,

@@ -267,7 +267,10 @@ func (c *Client) tokenRequest(ctx context.Context, endpoint string, data url.Val
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("トークンエンドポイントがステータス %d を返しました: %s", resp.StatusCode, string(body))
+		// HIGH-GO-003 監査対応: トークンエラーレスポンスボディにはクライアントシークレットや
+		// エラー詳細が含まれる可能性があるため、ログやエラーメッセージからボディを除外する。
+		// ステータスコードのみを返し、詳細はサーバーログで追跡可能にする。
+		return nil, fmt.Errorf("トークンエンドポイントがステータス %d を返しました", resp.StatusCode)
 	}
 
 	var tokenResp TokenResponse
@@ -312,42 +315,73 @@ func (c *Client) ExtractSubject(ctx context.Context, idToken string) (string, er
 	return subject, err
 }
 
-// keycloakIDTokenClaims は Keycloak ID トークンから subject と roles を取得するための claims 構造体。
+// keycloakIDTokenClaims は Keycloak ID トークンから subject と roles と tenant_id を取得するための claims 構造体。
 // JWKS 署名検証済みのトークンに対して使用する。
 type keycloakIDTokenClaims struct {
 	// RealmAccess は Keycloak realm レベルのロール情報を保持する。
 	RealmAccess struct {
 		Roles []string `json:"roles"`
 	} `json:"realm_access"`
+	// TenantID は Keycloak カスタムクレームとして設定されるテナント識別子（MEDIUM-GO-001 監査対応）。
+	// マルチテナント分離のため、セッション作成時にこの値をセッションデータに格納し、
+	// 上流 API への X-Tenant-ID ヘッダー転送に使用する。
+	TenantID string `json:"tenant_id"`
 }
 
-// ExtractClaims は ID トークンを JWKS で署名検証し、subject と realm roles を返す。
+// IDTokenClaims は ExtractClaims が返す署名検証済みの ID トークンクレームを保持する。
+// MEDIUM-GO-001 監査対応: TenantID フィールドを追加してテナント分離を実現する。
+type IDTokenClaims struct {
+	// Subject は OIDC sub クレーム（ユーザー識別子）。
+	Subject string
+	// Roles は Keycloak realm roles。
+	Roles []string
+	// TenantID は Keycloak カスタムクレームのテナント識別子。
+	TenantID string
+}
+
+// ExtractClaims は ID トークンを JWKS で署名検証し、subject と realm roles と tenant_id を返す。
 // アクセストークンの署名未検証によるロール改ざんリスクを排除するため、
 // 必ず JWKS 検証済みの ID トークンから roles を取得する。
 // 解析に失敗した場合は空スライスを返す（roles 取得失敗でログインを妨げない）。
 func (c *Client) ExtractClaims(ctx context.Context, idToken string) (subject string, roles []string, err error) {
+	claims, extractErr := c.ExtractFullClaims(ctx, idToken)
+	if extractErr != nil {
+		return "", []string{}, extractErr
+	}
+	return claims.Subject, claims.Roles, nil
+}
+
+// ExtractFullClaims は ID トークンを JWKS で署名検証し、IDTokenClaims 全体を返す。
+// MEDIUM-GO-001 監査対応: tenant_id クレームを含む全クレームを返すことで
+// テナント分離に必要な情報を一括取得できるようにする。
+func (c *Client) ExtractFullClaims(ctx context.Context, idToken string) (*IDTokenClaims, error) {
 	v, err := c.ensureVerifier()
 	if err != nil {
-		return "", []string{}, err
+		return nil, err
 	}
 
 	// JWKS による署名検証を行う
 	token, err := v.Verify(ctx, idToken)
 	if err != nil {
-		return "", []string{}, fmt.Errorf("ID トークンの署名検証に失敗しました: %w", err)
+		return nil, fmt.Errorf("ID トークンの署名検証に失敗しました: %w", err)
 	}
 
-	// 署名検証済みトークンの claims から roles を取得する
-	var claims keycloakIDTokenClaims
-	if claimsErr := token.Claims(&claims); claimsErr != nil {
-		// claims の取得に失敗しても subject は返す（roles は空スライス）
-		return token.Subject, []string{}, nil
+	// 署名検証済みトークンの claims から roles と tenant_id を取得する
+	var rawClaims keycloakIDTokenClaims
+	if claimsErr := token.Claims(&rawClaims); claimsErr != nil {
+		// claims の取得に失敗しても subject は返す（roles/tenant_id は空）
+		return &IDTokenClaims{Subject: token.Subject, Roles: []string{}}, nil
 	}
 
-	if claims.RealmAccess.Roles == nil {
-		return token.Subject, []string{}, nil
+	roles := rawClaims.RealmAccess.Roles
+	if roles == nil {
+		roles = []string{}
 	}
-	return token.Subject, claims.RealmAccess.Roles, nil
+	return &IDTokenClaims{
+		Subject:  token.Subject,
+		Roles:    roles,
+		TenantID: rawClaims.TenantID,
+	}, nil
 }
 
 

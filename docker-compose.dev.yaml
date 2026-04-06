@@ -67,6 +67,48 @@ x-dev-auth-bypass: &dev-auth-bypass
 
 services:
   # ============================================================
+  # Kafka — Windows ホストマウント JMX パーミッション問題の回避
+  # Windows の NTFS/DrvFS ファイルシステムでは、コンテナ内から chmod 0400 を
+  # ホストマウントファイルに適用できないため、JDK の JMX パスワードファイル
+  # パーミッション検証が失敗する。
+  # 開発環境では entrypoint をラップして /tmp にコピー後 chmod を適用する。
+  # ============================================================
+  kafka:
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        # JMX パスワードファイルを /tmp にコピーして 0400 を適用する（Windows マウント対応）
+        mkdir -p /tmp/kafka-jmx
+        cp /etc/kafka/jmx/jmxremote.password /tmp/kafka-jmx/jmxremote.password
+        cp /etc/kafka/jmx/jmxremote.access /tmp/kafka-jmx/jmxremote.access
+        chmod 0400 /tmp/kafka-jmx/jmxremote.password
+        chmod 0444 /tmp/kafka-jmx/jmxremote.access
+        exec /etc/kafka/docker/run
+    environment:
+      # /tmp の書き込み可能なコピーを参照するよう JMX パス設定を上書きする
+      KAFKA_JMX_OPTS: >-
+        -Djava.rmi.server.hostname=kafka
+        -Dcom.sun.management.jmxremote=true
+        -Dcom.sun.management.jmxremote.port=9999
+        -Dcom.sun.management.jmxremote.rmi.port=9999
+        -Dcom.sun.management.jmxremote.authenticate=true
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.password.file=/tmp/kafka-jmx/jmxremote.password
+        -Dcom.sun.management.jmxremote.access.file=/tmp/kafka-jmx/jmxremote.access
+
+  # ============================================================
+  # kafka-init — 開発環境での zstd-jni ネイティブライブラリロード問題の回避
+  # cap_drop: ALL + no-new-privileges 環境では、JVM が /var/tmp に zstd-jni の
+  # .so ファイルを展開・ロードする際に Operation not permitted が発生する。
+  # 開発環境では security_opt を緩和して kafka-topics.sh によるトピック作成を可能にする。
+  # ============================================================
+  kafka-init:
+    security_opt: []
+    cap_drop: []
+    read_only: false
+
+  # ============================================================
   # API Gateway — Admin API をループバックインターフェースのみに制限
   # C-04監査対応: 開発環境でも Admin API を 0.0.0.0（全NIC）に公開せず、
   # 127.0.0.1（ループバック）にバインドすることで、同一マシン外からの
@@ -77,6 +119,12 @@ services:
     # 0.0.0.0 では Docker ネットワーク内の全コンテナから Admin API への到達が可能になるため、
     # 127.0.0.1 に制限してコンテナ外（同一ネットワーク内の他コンテナを含む）からのアクセスを遮断する。
     # ホストからのアクセスは ports セクションの 127.0.0.1:8001:8001 バインドで引き続き可能。
+    #
+    # 開発環境 read_only 回避: Kong は /usr/local/kong/sockets・logs 等の複数ディレクトリに書き込む。
+    # 本番は read_only: true + tmpfs で対応するが、開発環境では read_only を無効にして
+    # 起動の安定性を優先する（CRIT-003 監査対応は本番環境向けの設定）。
+    read_only: false
+    tmpfs: []
     environment:
       - KONG_ADMIN_LISTEN=127.0.0.1:8001
     ports:

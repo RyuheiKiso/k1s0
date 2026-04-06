@@ -22,9 +22,11 @@ impl ConfigSchemaPostgresRepository {
 }
 
 /// PostgreSQL の行から ConfigSchema を構築するヘルパー。
+/// CRITICAL-RUST-001 監査対応: tenant_id を SELECT カラムから取得してマッピングする。
 fn row_to_config_schema(row: sqlx::postgres::PgRow) -> Result<ConfigSchema, sqlx::Error> {
     Ok(ConfigSchema {
         id: row.try_get("id")?,
+        tenant_id: row.try_get("tenant_id")?,
         service_name: row.try_get("service_name")?,
         namespace_prefix: row.try_get("namespace_prefix")?,
         schema_json: row.try_get("schema_json")?,
@@ -36,14 +38,23 @@ fn row_to_config_schema(row: sqlx::postgres::PgRow) -> Result<ConfigSchema, sqlx
 
 #[async_trait]
 impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
+    // CRITICAL-RUST-001 監査対応: SELECT 前に set_config でテナントIDをセッション変数に設定し、
+    // FORCE ROW LEVEL SECURITY が有効な config_schemas テーブルで正しくフィルタリングされるようにする。
     async fn find_by_service_name(
         &self,
         service_name: &str,
+        tenant_id: &str,
     ) -> anyhow::Result<Option<ConfigSchema>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&self.pool)
+            .await?;
+
         let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
-            SELECT id, service_name, namespace_prefix, schema_json,
+            SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             WHERE service_name = $1
@@ -66,11 +77,22 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         }
     }
 
-    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: SELECT 前に set_config でテナントIDをセッション変数に設定する。
+    async fn find_by_namespace(
+        &self,
+        namespace: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&self.pool)
+            .await?;
+
         let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
-            SELECT id, service_name, namespace_prefix, schema_json,
+            SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             WHERE $1 LIKE namespace_prefix || '%'
@@ -95,11 +117,18 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
         }
     }
 
-    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: SELECT 前に set_config でテナントIDをセッション変数に設定する。
+    async fn list_all(&self, tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&self.pool)
+            .await?;
+
         let start = std::time::Instant::now();
         let rows = sqlx::query(
             r#"
-            SELECT id, service_name, namespace_prefix, schema_json,
+            SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             ORDER BY service_name ASC
@@ -116,21 +145,30 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
             .collect()
     }
 
+    // CRITICAL-RUST-001 監査対応: INSERT 前に set_config でテナントIDをセッション変数に設定し、
+    // tenant_id カラムを INSERT に含めて NOT NULL 制約違反を防ぐ。
     async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema> {
+        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(&schema.tenant_id)
+            .execute(&self.pool)
+            .await?;
+
         let start = std::time::Instant::now();
         let row = sqlx::query(
             r#"
-            INSERT INTO config.config_schemas (id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO config.config_schemas (id, tenant_id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (service_name) DO UPDATE
             SET namespace_prefix = EXCLUDED.namespace_prefix,
                 schema_json = EXCLUDED.schema_json,
                 updated_by = EXCLUDED.updated_by,
                 updated_at = EXCLUDED.updated_at
-            RETURNING id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at
+            RETURNING id, tenant_id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at
             "#,
         )
         .bind(schema.id)
+        .bind(&schema.tenant_id)
         .bind(&schema.service_name)
         .bind(&schema.namespace_prefix)
         .bind(&schema.schema_json)

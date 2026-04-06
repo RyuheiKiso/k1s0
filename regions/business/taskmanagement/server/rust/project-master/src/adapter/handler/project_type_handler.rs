@@ -1,10 +1,13 @@
 // プロジェクトタイプ REST ハンドラ。
+// CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する。
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
+    Extension,
     Json,
 };
+use k1s0_auth::Claims;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -51,7 +54,10 @@ impl From<ProjectType> for ProjectTypeResponse {
 /// プロジェクトタイプ一覧を取得する
 pub async fn list_project_types(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims を取得してアクター情報を使用する（認証なしモードでは None）
+    claims: Option<Extension<Claims>>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    let _ = claims; // 一覧取得では actor は不要だが、将来の監査ログ用に受け取る
     use crate::domain::entity::project_type::ProjectTypeFilter;
     let filter = ProjectTypeFilter::default();
     state
@@ -68,8 +74,11 @@ pub async fn list_project_types(
 /// プロジェクトタイプを取得する
 pub async fn get_project_type(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims を取得する（認証なしモードでは None）
+    claims: Option<Extension<Claims>>,
     Path(project_type_id): Path<Uuid>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    let _ = claims; // 取得では actor は不要だが、将来の監査ログ用に受け取る
     state
         .manage_project_types_uc
         .get(project_type_id)
@@ -82,8 +91,13 @@ pub async fn get_project_type(
 /// プロジェクトタイプを作成する
 pub async fn create_project_type(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する
+    claims: Option<Extension<Claims>>,
     Json(body): Json<CreateProjectTypeRequest>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // JWT の preferred_username > email > sub の優先順位でアクター ID を解決する
+    // 認証なしモード（dev/test）では "system" をデフォルト値として使用する
+    let actor = k1s0_auth::claims::actor_from_claims(claims.as_ref().map(|c| &c.0));
     let input = CreateProjectType {
         code: body.code,
         display_name: body.display_name,
@@ -94,7 +108,7 @@ pub async fn create_project_type(
     };
     state
         .manage_project_types_uc
-        .create(&input, "system")
+        .create(&input, &actor)
         .await
         .map(|pt| (StatusCode::CREATED, Json(ProjectTypeResponse::from(pt))))
         .map_err(map_domain_error)
@@ -103,9 +117,13 @@ pub async fn create_project_type(
 /// プロジェクトタイプを更新する
 pub async fn update_project_type(
     State(state): State<AppState>,
+    // CRITICAL-BIZ-003 対応: Claims から actor_id を取得して "system" ハードコードを排除する
+    claims: Option<Extension<Claims>>,
     Path(project_type_id): Path<Uuid>,
     Json(body): Json<serde_json::Value>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
+    // JWT の preferred_username > email > sub の優先順位でアクター ID を解決する
+    let actor = k1s0_auth::claims::actor_from_claims(claims.as_ref().map(|c| &c.0));
     let input = UpdateProjectType {
         display_name: body.get("display_name").and_then(|v| v.as_str()).map(String::from),
         description: body.get("description").and_then(|v| v.as_str()).map(String::from),
@@ -115,7 +133,7 @@ pub async fn update_project_type(
     };
     state
         .manage_project_types_uc
-        .update(project_type_id, &input, "system")
+        .update(project_type_id, &input, &actor)
         .await
         .map(|pt| Json(ProjectTypeResponse::from(pt)))
         .map_err(map_domain_error)

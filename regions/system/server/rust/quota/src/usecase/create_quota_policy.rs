@@ -6,6 +6,8 @@ use crate::domain::service::QuotaDomainService;
 
 #[derive(Debug, Clone)]
 pub struct CreateQuotaPolicyInput {
+    /// CRITICAL-RUST-001 監査対応: テナント分離のために追加。JWT/ヘッダーから抽出したテナント ID を渡す。
+    pub tenant_id: String,
     pub name: String,
     pub subject_type: String,
     pub subject_id: String,
@@ -47,6 +49,7 @@ impl CreateQuotaPolicyUseCase {
             .map_err(CreateQuotaPolicyError::Validation)?;
 
         let policy = QuotaPolicy::new(
+            input.tenant_id.clone(),
             input.name.clone(),
             subject_type,
             input.subject_id.clone(),
@@ -79,6 +82,7 @@ mod tests {
 
         let uc = CreateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = CreateQuotaPolicyInput {
+            tenant_id: "tenant-abc".to_string(),
             name: "Standard Plan".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "tenant-abc".to_string(),
@@ -104,6 +108,7 @@ mod tests {
         let mock = MockQuotaPolicyRepository::new();
         let uc = CreateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = CreateQuotaPolicyInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             subject_type: "invalid".to_string(),
             subject_id: "id".to_string(),
@@ -127,6 +132,7 @@ mod tests {
         let mock = MockQuotaPolicyRepository::new();
         let uc = CreateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = CreateQuotaPolicyInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -150,6 +156,7 @@ mod tests {
         let mock = MockQuotaPolicyRepository::new();
         let uc = CreateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = CreateQuotaPolicyInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -176,6 +183,7 @@ mod tests {
 
         let uc = CreateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = CreateQuotaPolicyInput {
+            tenant_id: "system".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),

@@ -75,6 +75,7 @@ mod tests {
 
     fn make_flow() -> FlowDefinition {
         FlowDefinition::new(
+            "system".to_string(),
             "task_flow".to_string(),
             "original description".to_string(),
             "service.task".to_string(),

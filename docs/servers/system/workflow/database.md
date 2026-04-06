@@ -195,10 +195,12 @@ CREATE POLICY tenant_isolation ON workflow.workflow_tasks
 | `004_create_workflow_tasks.down.sql` | テーブル削除 |
 | `008_add_tenant_id_and_rls.up.sql` | 全3テーブルに tenant_id カラム追加・インデックス・RLS ポリシー設定（RUST-CRIT-001 対応） |
 | `008_add_tenant_id_and_rls.down.sql` | RLS・インデックス・tenant_id カラム削除 |
+| `009_add_rls_with_check.up.sql` | RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加 |
+| `010_add_force_rls_and_unique.up.sql` | 全テーブルに FORCE ROW LEVEL SECURITY 追加、UNIQUE(name) → UNIQUE(tenant_id, name)（HIGH-DB-002 + HIGH-DB-007 対応） |
 
 ---
 
-## テナント分離（RUST-CRIT-001）
+## テナント分離（RUST-CRIT-001 / HIGH-DB-002）
 
 マルチテナント環境でのデータ漏洩を防ぐため、以下の仕組みを組み合わせて実装する。
 

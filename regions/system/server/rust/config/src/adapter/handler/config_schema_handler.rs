@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
@@ -10,6 +10,33 @@ use crate::adapter::presentation::{
     ConfigEditorSchemaDto, ConfigFieldType, UpsertConfigSchemaRequestDto,
 };
 
+/// X-Tenant-ID ヘッダーまたは JWT Claims からテナントIDを抽出するヘルパー。
+/// Claims に tenant_id がある場合はそちらを優先し、なければヘッダーを使用する。
+/// どちらもなければシステムテナントにフォールバックする。
+const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
+
+/// CRITICAL-RUST-001 監査対応: HTTP リクエストから tenant_id を取得する。
+fn extract_tenant_id_http(
+    claims: &Option<Extension<k1s0_auth::Claims>>,
+    headers: &HeaderMap,
+) -> String {
+    // Claims の tenant_id を優先する
+    if let Some(Extension(c)) = claims {
+        if !c.tenant_id.is_empty() {
+            return c.tenant_id.clone();
+        }
+    }
+    // X-Tenant-ID ヘッダーにフォールバックする
+    if let Some(val) = headers.get("x-tenant-id") {
+        if let Ok(s) = val.to_str() {
+            if !s.is_empty() {
+                return s.to_string();
+            }
+        }
+    }
+    SYSTEM_TENANT_ID.to_string()
+}
+
 #[utoipa::path(
     get,
     path = "/api/v1/config-schema",
@@ -17,8 +44,14 @@ use crate::adapter::presentation::{
         (status = 200, description = "All config schemas", body = Vec<ConfigEditorSchemaDto>),
     )
 )]
-pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResponse {
-    match state.list_config_schemas_uc.execute().await {
+pub async fn list_config_schemas(
+    State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
+    let tenant_id = extract_tenant_id_http(&claims, &headers);
+    match state.list_config_schemas_uc.execute(&tenant_id).await {
         Ok(schemas) => match schemas
             .iter()
             .map(ConfigEditorSchemaDto::try_from)
@@ -49,9 +82,13 @@ pub async fn list_config_schemas(State(state): State<AppState>) -> impl IntoResp
 )]
 pub async fn get_config_schema(
     State(state): State<AppState>,
+    claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
     Path(service_name): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_config_schema_uc.execute(&service_name).await {
+    // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
+    let tenant_id = extract_tenant_id_http(&claims, &headers);
+    match state.get_config_schema_uc.execute(&service_name, &tenant_id).await {
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
             Ok(response) => (StatusCode::OK, Json(response)).into_response(),
             Err(err) => (
@@ -81,6 +118,7 @@ pub async fn get_config_schema(
 pub async fn upsert_config_schema(
     State(state): State<AppState>,
     claims: Option<Extension<k1s0_auth::Claims>>,
+    headers: HeaderMap,
     Path(service_name): Path<String>,
     Json(req): Json<UpsertConfigSchemaRequestDto>,
 ) -> impl IntoResponse {
@@ -94,12 +132,16 @@ pub async fn upsert_config_schema(
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
 
+    // CRITICAL-RUST-001 監査対応: テナントIDと更新者を Claims から取得する。
+    let tenant_id = extract_tenant_id_http(&claims, &headers);
     let updated_by = claims
+        .as_ref()
         .and_then(|Extension(c)| c.preferred_username.clone())
         .unwrap_or_else(|| "api-user".to_string());
 
     let schema_json = req.clone().into_schema_json();
     let input = crate::usecase::upsert_config_schema::UpsertConfigSchemaInput {
+        tenant_id,
         service_name,
         namespace_prefix: req.namespace_prefix,
         schema_json,
@@ -228,6 +270,7 @@ mod tests {
     fn make_schema() -> ConfigSchema {
         ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "task-server".to_string(),
             namespace_prefix: "service.task".to_string(),
             schema_json: serde_json::json!({
@@ -256,8 +299,8 @@ mod tests {
         let schema = make_schema();
         schema_repo
             .expect_find_by_service_name()
-            .withf(|service| service == "task-server")
-            .return_once(move |_| Ok(Some(schema)));
+            .withf(|service, _tenant| service == "task-server")
+            .return_once(move |_, _| Ok(Some(schema)));
 
         let app = router(AppState::new(config_repo, Arc::new(schema_repo)));
         let response = app

@@ -58,8 +58,20 @@ CREATE INDEX IF NOT EXISTS idx_apps_created_at ON app_registry.apps (created_at)
 | description | TEXT | | 説明 |
 | category | VARCHAR(100) | | カテゴリ |
 | icon_url | TEXT | | アイコン URL |
+| tenant_id | TEXT | NOT NULL | テナント識別子（ADR-0093 準拠） |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 作成日時 |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 更新日時 |
+
+**Row Level Security:**
+
+```sql
+ALTER TABLE app_registry.apps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_registry.apps FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON app_registry.apps
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
+```
 
 ---
 
@@ -165,6 +177,8 @@ CREATE INDEX IF NOT EXISTS idx_download_stats_user_id ON app_registry.download_s
 | `006_rename_s3_key_to_storage_key.down.sql` | `storage_key` → `s3_key` ロールバック |
 | `007_add_cosign_signature.up.sql` | `app_versions` に `cosign_signature TEXT` カラム追加（STATIC-CRITICAL-002） |
 | `007_add_cosign_signature.down.sql` | `cosign_signature` カラム削除 |
+| `008_add_tenant_id_rls.up.sql` | `apps` / `app_versions` / `download_stats` に `tenant_id TEXT NOT NULL` と RLS ポリシー（FORCE / AS RESTRICTIVE / WITH CHECK）を追加（CRITICAL-DB-001 対応） |
+| `008_add_tenant_id_rls.down.sql` | `tenant_id` カラムと RLS ポリシー削除 |
 
 ---
 

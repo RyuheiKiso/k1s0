@@ -10,6 +10,9 @@ use uuid::Uuid;
 pub struct ConfigSchema {
     /// スキーマの一意識別子
     pub id: Uuid,
+    // CRITICAL-RUST-001 監査対応: テナント分離のために追加
+    /// スキーマが属するテナント識別子
+    pub tenant_id: String,
     /// スキーマを所有するサービス名（例: `auth-server`）
     pub service_name: String,
     /// このスキーマが対象とする名前空間のプレフィックス（例: `system.auth`）
@@ -33,6 +36,7 @@ mod tests {
     fn test_config_schema_creation() {
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "auth-server".to_string(),
             namespace_prefix: "system.auth".to_string(),
             schema_json: serde_json::json!({
@@ -51,6 +55,7 @@ mod tests {
     fn test_config_schema_serialization_roundtrip() {
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
+            tenant_id: "test-tenant".to_string(),
             service_name: "config-server".to_string(),
             namespace_prefix: "system.config".to_string(),
             schema_json: serde_json::json!({

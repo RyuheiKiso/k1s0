@@ -5,9 +5,12 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::service::NotificationDomainService;
 
+/// MEDIUM-RUST-001 監査対応: tenant_id を追加してチャンネル検索時の RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct RetryNotificationInput {
     pub notification_id: String,
+    /// JWT クレームから取得したテナント ID。チャンネル存在確認の RLS に使用する。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -41,6 +44,7 @@ impl RetryNotificationUseCase {
         }
     }
 
+    /// MEDIUM-RUST-001 監査対応: tenant_id を input から受け取りチャンネル検索時の RLS を有効化する。
     pub async fn execute(
         &self,
         input: &RetryNotificationInput,
@@ -58,9 +62,10 @@ impl RetryNotificationUseCase {
             ));
         }
 
-        // Verify channel still exists
+        // MEDIUM-RUST-001 監査対応: チャンネル確認時に tenant_id を伝播して RLS を有効化する
+        // 通知ログの channel_id からチャンネルを検索する際、呼び出し元テナントの権限で検索する
         self.channel_repo
-            .find_by_id(&log.channel_id)
+            .find_by_id(&log.channel_id, &input.tenant_id)
             .await
             .map_err(|e| RetryNotificationError::Internal(e.to_string()))?
             .ok_or_else(|| RetryNotificationError::ChannelNotFound(log.channel_id.clone()))?;
@@ -126,11 +131,12 @@ mod tests {
         return_channel.id = channel_id.clone();
         channel_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(return_channel.clone())));
+            .returning(move |_, _| Ok(Some(return_channel.clone())));
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
             notification_id: log_id.clone(),
+            tenant_id: "tenant_a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -150,6 +156,7 @@ mod tests {
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
             notification_id: "notif_missing".to_string(),
+            tenant_id: "tenant_a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -177,6 +184,7 @@ mod tests {
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
             notification_id: log_id.clone(),
+            tenant_id: "tenant_a".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

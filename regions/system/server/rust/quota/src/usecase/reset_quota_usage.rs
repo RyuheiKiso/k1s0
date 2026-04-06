@@ -4,11 +4,13 @@ use chrono::Utc;
 
 use crate::domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
 
+/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct ResetQuotaUsageInput {
     pub quota_id: String,
     pub reason: String,
     pub reset_by: String,
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -57,15 +59,16 @@ impl ResetQuotaUsageUseCase {
             ));
         }
 
+        // CRITICAL-RUST-001 監査対応: tenant_id を渡して RLS テナント分離を有効にする
         let _policy = self
             .policy_repo
-            .find_by_id(&input.quota_id)
+            .find_by_id(&input.quota_id, &input.tenant_id)
             .await
             .map_err(|e| ResetQuotaUsageError::Internal(e.to_string()))?
             .ok_or_else(|| ResetQuotaUsageError::NotFound(input.quota_id.clone()))?;
 
         self.usage_repo
-            .reset(&input.quota_id)
+            .reset(&input.quota_id, &input.tenant_id)
             .await
             .map_err(|e| ResetQuotaUsageError::Internal(e.to_string()))?;
 
@@ -110,16 +113,17 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
 
-        usage_mock.expect_reset().returning(|_| Ok(()));
+        usage_mock.expect_reset().returning(|_, _| Ok(()));
 
         let uc = ResetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let input = ResetQuotaUsageInput {
             quota_id: policy.id.clone(),
             reason: "plan change".to_string(),
             reset_by: "admin@example.com".to_string(),
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_ok());
@@ -134,13 +138,14 @@ mod tests {
         let mut policy_mock = MockQuotaPolicyRepository::new();
         let usage_mock = MockQuotaUsageRepository::new();
 
-        policy_mock.expect_find_by_id().returning(|_| Ok(None));
+        policy_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = ResetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let input = ResetQuotaUsageInput {
             quota_id: "nonexistent".to_string(),
             reason: "test".to_string(),
             reset_by: "admin".to_string(),
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -160,6 +165,7 @@ mod tests {
             quota_id: "some-id".to_string(),
             reason: "".to_string(),
             reset_by: "admin".to_string(),
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());
@@ -176,13 +182,14 @@ mod tests {
 
         policy_mock
             .expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ResetQuotaUsageUseCase::new(Arc::new(policy_mock), Arc::new(usage_mock));
         let input = ResetQuotaUsageInput {
             quota_id: "some-id".to_string(),
             reason: "test".to_string(),
             reset_by: "admin".to_string(),
+            tenant_id: "tenant-1".to_string(),
         };
         let result = uc.execute(&input).await;
         assert!(result.is_err());

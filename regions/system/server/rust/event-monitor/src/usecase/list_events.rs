@@ -81,6 +81,7 @@ mod tests {
 
     fn make_event(corr_id: &str) -> EventRecord {
         EventRecord::new(
+            "system".to_string(),
             corr_id.to_string(),
             "TaskCreated".to_string(),
             "task-server".to_string(),

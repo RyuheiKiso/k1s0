@@ -140,7 +140,29 @@ migrations/
 ├── 007_align_workflow_definitions_schema.up.sql  # workflow_definitions スキーマ統一（version, enabled, updated_at 追加）
 ├── 007_align_workflow_definitions_schema.down.sql
 ├── 008_add_tenant_id_rls.up.sql                  # saga_states/saga_step_logs に tenant_id 追加 + RLS テナント分離
-└── 008_add_tenant_id_rls.down.sql
+├── 008_add_tenant_id_rls.down.sql
+├── 009_add_rls_with_check.up.sql                 # RLS ポリシーに AS RESTRICTIVE + WITH CHECK 追加
+├── 009_add_rls_with_check.down.sql
+├── 010_alter_tenant_id_to_text.up.sql            # tenant_id を TEXT 型に変更（CRITICAL-DB-002 対応）
+├── 010_alter_tenant_id_to_text.down.sql
+├── 011_add_workflow_definitions_tenant_rls.up.sql  # workflow_definitions に tenant_id + RLS 追加（HIGH-DB-001 対応）
+└── 011_add_workflow_definitions_tenant_rls.down.sql
+```
+
+---
+
+## マルチテナント対応（CRITICAL-DB-002 / HIGH-DB-001）
+
+- `saga_states` / `saga_step_logs`: `tenant_id` を TEXT 型に統一（migration 010）
+- `workflow_definitions`: `tenant_id TEXT NOT NULL` + RLS ポリシー追加（migration 011）
+
+```sql
+ALTER TABLE saga.{table} ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saga.{table} FORCE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON saga.{table}
+    AS RESTRICTIVE
+    USING (tenant_id = current_setting('app.current_tenant_id', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant_id', true));
 ```
 
 ### マイグレーション SQL

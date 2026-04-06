@@ -346,13 +346,9 @@ func initRouter(
 
 	router.GET("/healthz", healthHandler.Healthz)
 	router.GET("/readyz", healthHandler.Readyz)
-	if cfg.Observability.Metrics.Enabled {
-		metricsPath := cfg.Observability.Metrics.Path
-		if metricsPath == "" {
-			metricsPath = "/metrics"
-		}
-		router.GET(metricsPath, gin.WrapH(promhttp.Handler()))
-	}
+	// HIGH-GO-001 監査対応: /metrics エンドポイントは内部専用サーバー（9090 ポート）に移動する。
+	// 公開ルーターへの登録を廃止し、クラスター外部からのメトリクス取得を防止する。
+	// 実際の登録は startServer 内の内部サーバーで行う。
 	router.GET("/auth/login", authHandler.Login)
 	router.GET("/auth/callback", authHandler.Callback)
 	router.GET("/auth/session", authHandler.Session)
@@ -396,6 +392,7 @@ func initRouter(
 // startServer は HTTP サーバーを起動し、シグナルを待機してグレースフルにシャットダウンする。
 // G-01 対応: ReadTimeout=60s（大きなリクエストボディ対応）、WriteTimeout=120s（上流応答時間バッファ）。
 // H-16 対応: ReadHeaderTimeout=10s を設定し Slowloris 攻撃（ヘッダーを断片的に送信する遅延攻撃）を防止する。
+// HIGH-GO-001 監査対応: /metrics を内部専用サーバー（InternalPort）で起動し、公開ルーターから分離する。
 func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine, logger *slog.Logger, oidcWg *sync.WaitGroup) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
@@ -406,6 +403,39 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 		// ReadHeaderTimeout はリクエストヘッダー全体を受信するまでの最大時間を制限する（H-16 対応）
 		// 未設定の場合 Slowloris 攻撃によりサーバーリソースが枯渇するリスクがある
 		ReadHeaderTimeout: 10 * time.Second,
+	}
+
+	// HIGH-GO-001 監査対応: Prometheus メトリクスを内部専用ポートで公開する。
+	// クラスター内の Prometheus のみがスクレイプできるよう、公開ルーターとは別サーバーを起動する。
+	// InternalPort が 0 の場合はデフォルト 9090 を使用する。
+	internalPort := cfg.Server.InternalPort
+	if internalPort == 0 {
+		internalPort = 9090
+	}
+	var internalSrv *http.Server
+	if cfg.Observability.Metrics.Enabled {
+		metricsPath := cfg.Observability.Metrics.Path
+		if metricsPath == "" {
+			metricsPath = "/metrics"
+		}
+		// 内部サーバーは localhost にバインドし、クラスター外部からのアクセスを防止する
+		internalMux := http.NewServeMux()
+		// メトリクスエンドポイントのみを内部サーバーに登録する
+		internalMux.Handle(metricsPath, promhttp.Handler())
+		internalAddr := fmt.Sprintf("127.0.0.1:%d", internalPort)
+		internalSrv = &http.Server{
+			Addr:              internalAddr,
+			Handler:           internalMux,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		go func() {
+			logger.Info("内部メトリクスサーバーを起動します", slog.String("addr", internalAddr), slog.String("path", metricsPath))
+			if err := internalSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("内部メトリクスサーバーがエラーで終了しました", slog.String("error", err.Error()))
+			}
+		}()
 	}
 
 	errCh := make(chan error, 1)
@@ -428,6 +458,15 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("server shutdown error: %w", err)
+	}
+
+	// HIGH-GO-001 監査対応: 内部メトリクスサーバーも graceful shutdown する。
+	if internalSrv != nil {
+		internalShutdownCtx, internalCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer internalCancel()
+		if err := internalSrv.Shutdown(internalShutdownCtx); err != nil {
+			logger.Warn("内部メトリクスサーバーのシャットダウンに失敗しました", slog.String("error", err.Error()))
+		}
 	}
 
 	// OIDC リトライゴルーチンの完了を待機する（コンテキストキャンセル済みのため速やかに終了する）

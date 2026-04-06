@@ -6,9 +6,11 @@ use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::QuotaPolicyRepository;
 use crate::domain::service::QuotaDomainService;
 
+/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct UpdateQuotaPolicyInput {
     pub id: String,
+    pub tenant_id: String,
     pub name: String,
     pub subject_type: String,
     pub subject_id: String,
@@ -52,9 +54,10 @@ impl UpdateQuotaPolicyUseCase {
         QuotaDomainService::validate_alert_threshold(input.alert_threshold_percent)
             .map_err(UpdateQuotaPolicyError::Validation)?;
 
+        // CRITICAL-RUST-001 監査対応: tenant_id を渡して RLS テナント分離を有効にする
         let mut policy = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(&input.id, &input.tenant_id)
             .await
             .map_err(|e| UpdateQuotaPolicyError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateQuotaPolicyError::NotFound(input.id.clone()))?;
@@ -104,13 +107,14 @@ mod tests {
         let return_policy = policy.clone();
 
         mock.expect_find_by_id()
-            .withf(move |id| id == policy_id)
-            .returning(move |_| Ok(Some(return_policy.clone())));
+            .withf(move |id, _tenant_id| id == policy_id)
+            .returning(move |_, _| Ok(Some(return_policy.clone())));
         mock.expect_update().returning(|_| Ok(()));
 
         let uc = UpdateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = UpdateQuotaPolicyInput {
             id: policy.id.clone(),
+            tenant_id: "tenant-1".to_string(),
             name: "updated".to_string(),
             subject_type: "user".to_string(),
             subject_id: "user-1".to_string(),
@@ -133,11 +137,12 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut mock = MockQuotaPolicyRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = UpdateQuotaPolicyInput {
             id: "nonexistent".to_string(),
+            tenant_id: "tenant-1".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -160,6 +165,7 @@ mod tests {
         let uc = UpdateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = UpdateQuotaPolicyInput {
             id: "some-id".to_string(),
+            tenant_id: "tenant-1".to_string(),
             name: "test".to_string(),
             subject_type: "invalid".to_string(),
             subject_id: "id".to_string(),
@@ -180,11 +186,12 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockQuotaPolicyRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = UpdateQuotaPolicyUseCase::new(Arc::new(mock));
         let input = UpdateQuotaPolicyInput {
             id: "some-id".to_string(),
+            tenant_id: "tenant-1".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),

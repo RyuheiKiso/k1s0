@@ -12,6 +12,12 @@ name = "k1s0-vault-server"
 path = "src/main.rs"
 test = false
 
+# HIGH-RUST-001 Phase B: 旧形式（AAD なし）シークレットを新形式（AAD あり）に一括再暗号化する管理用バイナリ
+[[bin]]
+name = "migrate-secrets"
+path = "src/bin/migrate_secrets.rs"
+test = false
+
 [dependencies]
 tonic = {workspace = true}
 # gRPC Health Check Protocol サービスの実装に使用する
