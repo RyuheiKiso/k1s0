@@ -1,9 +1,11 @@
 # SecretProviderClass 未作成サービス一覧
 
 INFRA-003 監査対応（2026-03-31）: ai-agent-secrets.yaml / ai-gateway-secrets.yaml を作成。
-全27サービスの SecretProviderClass が揃った。
+K8S-HIGH-003 対応（2026-04-06）: activity / board / task / project-master の SPC を作成。
+K8S-HIGH-002 対応（2026-04-06）: kong の SPC を作成。
+全32サービスの SecretProviderClass が揃った。
 
-## 対応済み（27サービス）
+## 対応済み（32サービス）
 
 | サービス | ファイル | 対応日 |
 |---------|---------|--------|
@@ -34,6 +36,11 @@ INFRA-003 監査対応（2026-03-31）: ai-agent-secrets.yaml / ai-gateway-secre
 | service-catalog | service-catalog-secrets.yaml | 2026-03-29 |
 | ai-agent | ai-agent-secrets.yaml | 2026-03-31 |
 | ai-gateway | ai-gateway-secrets.yaml | 2026-03-31 |
+| activity | activity-secrets.yaml | 2026-04-06 |
+| board | board-secrets.yaml | 2026-04-06 |
+| task | task-secrets.yaml | 2026-04-06 |
+| project-master | project-master-secrets.yaml | 2026-04-06 |
+| kong | kong-secrets.yaml | 2026-04-06 |
 
 ## 未作成（0サービス）
 

@@ -352,4 +352,214 @@ mod tests {
         let err = TaskError::ValidationFailed("title is required".to_string());
         assert!(err.to_string().contains("title is required"));
     }
+
+    // Task::transition_to() が有効な遷移で成功することを確認する
+    #[test]
+    fn test_task_transition_to_valid() {
+        use chrono::Utc;
+        let task = Task {
+            id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
+            title: "test".to_string(),
+            description: None,
+            status: TaskStatus::Open,
+            priority: TaskPriority::Medium,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: vec![],
+            created_by: "u1".to_string(),
+            updated_by: None,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        // Open → InProgress は有効
+        let result = task.transition_to(TaskStatus::InProgress);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), TaskStatus::InProgress);
+    }
+
+    // Task::transition_to() が無効な遷移でエラーを返すことを確認する
+    #[test]
+    fn test_task_transition_to_invalid() {
+        use chrono::Utc;
+        let task = Task {
+            id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
+            title: "test".to_string(),
+            description: None,
+            status: TaskStatus::Done,
+            priority: TaskPriority::High,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: vec![],
+            created_by: "u1".to_string(),
+            updated_by: None,
+            version: 3,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        // Done → Open は無効（終端状態）
+        let result = task.transition_to(TaskStatus::Open);
+        assert!(result.is_err());
+        if let Err(TaskError::InvalidStatusTransition { from, to }) = result {
+            assert_eq!(from, "done");
+            assert_eq!(to, "open");
+        } else {
+            panic!("expected InvalidStatusTransition");
+        }
+    }
+
+    // TaskStatus の全状態で as_str() が正しい文字列を返すことを確認する
+    #[test]
+    fn test_task_status_as_str_all_variants() {
+        assert_eq!(TaskStatus::Open.as_str(), "open");
+        assert_eq!(TaskStatus::InProgress.as_str(), "in_progress");
+        assert_eq!(TaskStatus::Review.as_str(), "review");
+        assert_eq!(TaskStatus::Done.as_str(), "done");
+        assert_eq!(TaskStatus::Cancelled.as_str(), "cancelled");
+    }
+
+    // TaskStatus::Display が as_str() と同じ結果を返すことを確認する
+    #[test]
+    fn test_task_status_display_matches_as_str() {
+        for status in &[
+            TaskStatus::Open,
+            TaskStatus::InProgress,
+            TaskStatus::Review,
+            TaskStatus::Done,
+            TaskStatus::Cancelled,
+        ] {
+            assert_eq!(format!("{status}"), status.as_str());
+        }
+    }
+
+    // 無効な文字列から TaskStatus への変換がエラーを返すことを確認する
+    #[test]
+    fn test_task_status_invalid_input() {
+        let result: Result<TaskStatus, _> = "OPEN".parse();
+        assert!(result.is_err());
+        let result: Result<TaskStatus, _> = "".parse();
+        assert!(result.is_err());
+        let result: Result<TaskStatus, _> = "InProgress".parse();
+        assert!(result.is_err());
+        let result: Result<TaskStatus, _> = "pending".parse();
+        assert!(result.is_err());
+    }
+
+    // TaskPriority の全状態で as_str() が正しい文字列を返すことを確認する
+    #[test]
+    fn test_task_priority_as_str_all_variants() {
+        assert_eq!(TaskPriority::Low.as_str(), "low");
+        assert_eq!(TaskPriority::Medium.as_str(), "medium");
+        assert_eq!(TaskPriority::High.as_str(), "high");
+        assert_eq!(TaskPriority::Critical.as_str(), "critical");
+    }
+
+    // CreateTask の labels フィールドが最大 20 件の境界値を正しく処理することを確認する
+    #[test]
+    fn test_create_task_labels_boundary() {
+        use validator::Validate;
+        // 20 件は有効
+        let ct_ok = CreateTask {
+            project_id: Uuid::new_v4(),
+            title: "t".to_string(),
+            description: None,
+            priority: TaskPriority::Low,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: (0..20).map(|i| format!("label-{i}")).collect(),
+            checklist: vec![],
+        };
+        assert!(ct_ok.validate().is_ok());
+
+        // 21 件は無効
+        let ct_err = CreateTask {
+            project_id: Uuid::new_v4(),
+            title: "t".to_string(),
+            description: None,
+            priority: TaskPriority::Low,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: (0..21).map(|i| format!("label-{i}")).collect(),
+            checklist: vec![],
+        };
+        assert!(ct_err.validate().is_err());
+    }
+
+    // CreateTask のタイトル文字列長境界値テスト
+    #[test]
+    fn test_create_task_title_boundary() {
+        use validator::Validate;
+        // 500 文字は有効
+        let ct_ok = CreateTask {
+            project_id: Uuid::new_v4(),
+            title: "a".repeat(500),
+            description: None,
+            priority: TaskPriority::Low,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: vec![],
+            checklist: vec![],
+        };
+        assert!(ct_ok.validate().is_ok());
+
+        // 501 文字は無効
+        let ct_err = CreateTask {
+            project_id: Uuid::new_v4(),
+            title: "a".repeat(501),
+            description: None,
+            priority: TaskPriority::Low,
+            assignee_id: None,
+            reporter_id: None,
+            due_date: None,
+            labels: vec![],
+            checklist: vec![],
+        };
+        assert!(ct_err.validate().is_err());
+    }
+
+    // UpdateTask のバリデーションが None フィールドをスキップすることを確認する
+    #[test]
+    fn test_update_task_all_none_is_valid() {
+        use validator::Validate;
+        let ut = UpdateTask {
+            title: None,
+            description: None,
+            priority: None,
+            assignee_id: None,
+            due_date: None,
+            labels: None,
+            expected_version: 1,
+        };
+        assert!(ut.validate().is_ok());
+    }
+
+    // TaskStatus が InProgress から Cancelled に遷移できることを確認する（ARCH-HIGH-001 状態機械網羅）
+    #[test]
+    fn test_task_status_in_progress_to_cancelled() {
+        assert!(TaskStatus::InProgress.can_transition_to(&TaskStatus::Cancelled));
+    }
+
+    // Review から InProgress への差し戻し（ARCH-HIGH-001 状態機械網羅）
+    #[test]
+    fn test_task_status_review_to_in_progress() {
+        assert!(TaskStatus::Review.can_transition_to(&TaskStatus::InProgress));
+    }
+
+    // TaskFilter の default が全フィールド None であることを確認する
+    #[test]
+    fn test_task_filter_default() {
+        let filter = TaskFilter::default();
+        assert!(filter.project_id.is_none());
+        assert!(filter.assignee_id.is_none());
+        assert!(filter.status.is_none());
+        assert!(filter.limit.is_none());
+        assert!(filter.offset.is_none());
+    }
 }

@@ -58,13 +58,13 @@ pub struct CompleteOutput {
 /// 補完ユースケースのエラー
 #[derive(Debug, thiserror::Error)]
 pub enum CompleteError {
-    #[error("ガードレール違反: {0}")]
+    #[error("Guardrail violation: {0}")]
     GuardrailViolation(String),
-    #[error("モデルが見つかりません: {0}")]
+    #[error("Model not found: {0}")]
     ModelNotFound(String),
-    #[error("LLMリクエストエラー: {0}")]
+    #[error("LLM request error: {0}")]
     LlmError(String),
-    #[error("内部エラー: {0}")]
+    #[error("An internal error occurred: {0}")]
     #[allow(dead_code)]
     Internal(String),
 }

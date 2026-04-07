@@ -28,7 +28,7 @@ pub struct EmbedOutput {
 /// エンベディングユースケースのエラー
 #[derive(Debug, thiserror::Error)]
 pub enum EmbedError {
-    #[error("LLMリクエストエラー: {0}")]
+    #[error("LLM request error: {0}")]
     LlmError(String),
 }
 

@@ -309,4 +309,195 @@ mod tests {
         let err = ActivityError::DuplicateIdempotencyKey("key-xyz".to_string());
         assert!(err.to_string().contains("key-xyz"));
     }
+
+    // Activity::transition_to() が有効な遷移で成功することを確認する
+    #[test]
+    fn test_activity_transition_to_valid() {
+        use chrono::Utc;
+        let activity = Activity {
+            id: Uuid::new_v4(),
+            task_id: Uuid::new_v4(),
+            actor_id: "user1".to_string(),
+            activity_type: ActivityType::Comment,
+            content: Some("work log".to_string()),
+            duration_minutes: None,
+            status: ActivityStatus::Active,
+            idempotency_key: None,
+            version: 1,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        // Active → Submitted は有効
+        let result = activity.transition_to(ActivityStatus::Submitted);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), ActivityStatus::Submitted);
+    }
+
+    // Activity::transition_to() が無効な遷移でエラーを返すことを確認する
+    #[test]
+    fn test_activity_transition_to_invalid() {
+        use chrono::Utc;
+        let activity = Activity {
+            id: Uuid::new_v4(),
+            task_id: Uuid::new_v4(),
+            actor_id: "user1".to_string(),
+            activity_type: ActivityType::StatusChange,
+            content: None,
+            duration_minutes: None,
+            status: ActivityStatus::Approved,
+            idempotency_key: None,
+            version: 2,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+        // Approved → Active は無効（終端状態）
+        let result = activity.transition_to(ActivityStatus::Active);
+        assert!(result.is_err());
+        if let Err(ActivityError::InvalidStatusTransition { from, to }) = result {
+            assert_eq!(from, "approved");
+            assert_eq!(to, "active");
+        } else {
+            panic!("expected InvalidStatusTransition");
+        }
+    }
+
+    // content の長さが境界値 10000 文字で有効であることを確認する
+    #[test]
+    fn test_create_activity_content_exactly_10000_chars() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::Comment,
+            content: Some("x".repeat(10000)),
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+    }
+
+    // content の長さが 10001 文字の場合はバリデーションエラーになることを確認する
+    #[test]
+    fn test_create_activity_content_exceeds_10000_chars() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::Comment,
+            content: Some("x".repeat(10001)),
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_err());
+    }
+
+    // TimeEntry の duration_minutes が Some の場合はバリデーション成功することを確認する
+    #[test]
+    fn test_create_activity_time_entry_with_duration() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::TimeEntry,
+            content: Some("dev work".to_string()),
+            duration_minutes: Some(60),
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+    }
+
+    // StatusChange タイプで content なし・duration なしでも有効であることを確認する
+    #[test]
+    fn test_create_activity_status_change_no_content() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::StatusChange,
+            content: None,
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+    }
+
+    // Assignment タイプで content なし・duration なしでも有効であることを確認する
+    #[test]
+    fn test_create_activity_assignment_no_content() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::Assignment,
+            content: None,
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+    }
+
+    // ActivityStatus の全状態で as_str() が正しい文字列を返すことを確認する
+    #[test]
+    fn test_activity_status_as_str_all_variants() {
+        assert_eq!(ActivityStatus::Active.as_str(), "active");
+        assert_eq!(ActivityStatus::Submitted.as_str(), "submitted");
+        assert_eq!(ActivityStatus::Approved.as_str(), "approved");
+        assert_eq!(ActivityStatus::Rejected.as_str(), "rejected");
+    }
+
+    // ActivityStatus の Display が as_str() と一致することを確認する
+    #[test]
+    fn test_activity_status_display_matches_as_str() {
+        for status in &[
+            ActivityStatus::Active,
+            ActivityStatus::Submitted,
+            ActivityStatus::Approved,
+            ActivityStatus::Rejected,
+        ] {
+            assert_eq!(format!("{status}"), status.as_str());
+        }
+    }
+
+    // ActivityType の全状態で as_str() が正しい文字列を返すことを確認する
+    #[test]
+    fn test_activity_type_as_str_all_variants() {
+        assert_eq!(ActivityType::Comment.as_str(), "comment");
+        assert_eq!(ActivityType::TimeEntry.as_str(), "time_entry");
+        assert_eq!(ActivityType::StatusChange.as_str(), "status_change");
+        assert_eq!(ActivityType::Assignment.as_str(), "assignment");
+    }
+
+    // ActivityFilter の default が全フィールド None であることを確認する
+    #[test]
+    fn test_activity_filter_default() {
+        let filter = ActivityFilter::default();
+        assert!(filter.task_id.is_none());
+        assert!(filter.actor_id.is_none());
+        assert!(filter.status.is_none());
+        assert!(filter.limit.is_none());
+        assert!(filter.offset.is_none());
+    }
+
+    // Rejected → Active への差し戻し遷移が有効であることを確認する（ARCH-HIGH-001）
+    #[test]
+    fn test_rejected_can_return_to_active() {
+        assert!(ActivityStatus::Rejected.can_transition_to(&ActivityStatus::Active));
+    }
+
+    // idempotency_key が None の CreateActivity も有効であることを確認する
+    #[test]
+    fn test_create_activity_without_idempotency_key() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::Comment,
+            content: Some("test comment".to_string()),
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+        assert!(input.idempotency_key.is_none());
+    }
+
+    // content が None の場合は長さバリデーションをスキップすることを確認する
+    #[test]
+    fn test_create_activity_null_content_is_valid() {
+        let input = CreateActivity {
+            task_id: Uuid::new_v4(),
+            activity_type: ActivityType::Comment,
+            content: None,
+            duration_minutes: None,
+            idempotency_key: None,
+        };
+        assert!(input.validate().is_ok());
+    }
 }

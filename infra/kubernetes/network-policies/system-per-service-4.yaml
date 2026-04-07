@@ -1,0 +1,242 @@
+# K8S-MED-001 監査対応: system Namespace の残りサービスに対する個別 NetworkPolicy (Part 4)
+# 本ファイルは file / search / api-registry / app-registry / navigation / master-maintenance を対象とする。
+#
+# ラベル形式: app.kubernetes.io/name: <chart名>（k1s0-common の selectorLabels に準拠）
+
+---
+# file-server への Ingress 制限
+# file は bff-proxy（直接ファイルアップロード）と graphql-gateway（メタデータ管理）から呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-file-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: file
+  policyTypes:
+    - Ingress
+  ingress:
+    # bff-proxy: ファイルアップロード・ダウンロード（REST）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bff-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
+    # graphql-gateway: ファイルメタデータ参照・削除（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# search-server への Ingress 制限
+# search は graphql-gateway（検索クエリ）からのみ直接アクセスを受け付ける。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-search-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: search
+  policyTypes:
+    - Ingress
+  ingress:
+    # graphql-gateway: 全文検索クエリ・インデックス更新（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# api-registry への Ingress 制限
+# api-registry は Kong プラグイン（動的ルーティング）と graphql-gateway（API 登録管理）から呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-api-registry
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: api-registry
+  policyTypes:
+    - Ingress
+  ingress:
+    # Kong: 動的ルーティング情報取得（REST）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kong
+      ports:
+        - protocol: TCP
+          port: 8080
+    # graphql-gateway: API 登録・更新・削除（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# app-registry への Ingress 制限
+# app-registry は navigation（アプリ定義取得）と graphql-gateway（管理）から呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-app-registry
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: app-registry
+  policyTypes:
+    - Ingress
+  ingress:
+    # navigation: アプリ定義・メニュー構造の取得（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: navigation
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # graphql-gateway: アプリ登録・更新（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# navigation-server への Ingress 制限
+# navigation は bff-proxy（ナビゲーション構造取得）と graphql-gateway（設定管理）から呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-navigation-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: navigation
+  policyTypes:
+    - Ingress
+  ingress:
+    # bff-proxy: ナビゲーションメニュー構造の取得（REST）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bff-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
+    # graphql-gateway: ナビゲーション設定管理（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# master-maintenance への Ingress 制限
+# master-maintenance は graphql-gateway（マスターデータ管理）からのみ呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-master-maintenance
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: master-maintenance
+  policyTypes:
+    - Ingress
+  ingress:
+    # graphql-gateway: マスターデータ CRUD・バルクインポート（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090

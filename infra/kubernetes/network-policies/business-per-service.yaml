@@ -1,0 +1,56 @@
+# K8S-MED-001 監査対応: business Namespace の各サービスに対する個別 NetworkPolicy
+#
+# namespace レベルのデフォルト拒否ポリシー（business.yaml）に加え、
+# サービスごとに通信元 Pod を明示的に限定することで L4 横方向通信（lateral movement）を制御する。
+#
+# 通信パターン:
+#   graphql-gateway → project-master (REST 8080 / gRPC 50051)
+#   task/board/activity → project-master (gRPC 50051: プロジェクト情報参照)
+#
+# ラベル形式: app.kubernetes.io/name: <chart名>（k1s0-common の selectorLabels に準拠）
+
+---
+# project-master への Ingress 制限
+# project-master は graphql-gateway と service tier 各サービスからアクセスを受け付ける。
+# service tier のサービスはプロジェクト情報参照のために gRPC 経由で呼び出す。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-project-master
+  namespace: k1s0-business
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: project-master
+  policyTypes:
+    - Ingress
+  ingress:
+    # graphql-gateway: プロジェクト CRUD / 一覧照会
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # task/board/activity: プロジェクト情報参照（gRPC のみ）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: service
+      ports:
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ（observability namespace から）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090

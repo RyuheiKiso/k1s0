@@ -19,27 +19,27 @@ use crate::adapter::middleware::auth_middleware::Claims;
 #[derive(Debug, thiserror::Error)]
 pub enum JwtVerifyError {
     /// トークンの有効期限が切れている（`exp` クレームが現在時刻より過去）
-    #[error("JWTトークンの有効期限が切れています")]
+    #[error("Token has expired")]
     TokenExpired,
 
     /// RSA 署名が JWKS の公開鍵と一致しない（改ざん・偽造の可能性）
-    #[error("JWT署名が無効です")]
+    #[error("Invalid JWT signature")]
     InvalidSignature,
 
     /// `iss` クレームが設定値と不一致
-    #[error("JWTのissuerが無効です")]
+    #[error("Invalid JWT issuer")]
     InvalidIssuer,
 
     /// `aud` クレームが設定値と不一致
-    #[error("JWTのaudienceが無効です")]
+    #[error("Invalid JWT audience")]
     InvalidAudience,
 
     /// JWKS エンドポイントへの接続・取得に失敗（認証サービスの一時障害等）
-    #[error("JWKSフェッチ失敗: {0}")]
+    #[error("JWKS fetch failed: {0}")]
     JwksFetchFailed(String),
 
     /// ヘッダー/クレームのデコード失敗・鍵不一致等、上記以外のトークン不正
-    #[error("JWT形式が不正です: {0}")]
+    #[error("Malformed JWT: {0}")]
     MalformedToken(String),
 }
 

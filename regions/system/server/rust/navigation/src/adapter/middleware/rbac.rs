@@ -85,7 +85,7 @@ fn unauthenticated_response() -> Response {
         StatusCode::UNAUTHORIZED,
         Json(json!({
             "error": "SYS_AUTH_UNAUTHENTICATED",
-            "message": "認証が必要です"
+            "message": "Authentication required"
         })),
     )
         .into_response()

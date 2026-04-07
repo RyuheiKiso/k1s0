@@ -1,0 +1,237 @@
+# K8S-MED-001 監査対応: system Namespace の残りサービスに対する個別 NetworkPolicy (Part 2)
+# auth / config / vault の 3 サービスは system-per-service.yaml に定義済み。
+# 本ファイルは bff-proxy / graphql-gateway / session / featureflag / tenant / notification を対象とする。
+#
+# ラベル形式: app.kubernetes.io/name: <chart名>（k1s0-common の selectorLabels に準拠）
+
+---
+# bff-proxy への Ingress 制限
+# bff-proxy は Kong ゲートウェイからのみ直接トラフィックを受け付ける。
+# フロントエンドからの直接アクセスは Kong 経由になるため直接 ingress は不要。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-bff-proxy
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: bff-proxy
+  policyTypes:
+    - Ingress
+  ingress:
+    # Kong: リバースプロキシ経由の全リクエスト（HTTP REST）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kong
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# graphql-gateway への Ingress 制限
+# graphql-gateway は Kong（外部 API リクエスト）と bff-proxy（セッション同期）から呼ばれる。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-graphql-gateway
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: graphql-gateway
+  policyTypes:
+    - Ingress
+  ingress:
+    # Kong: 外部クライアントからの GraphQL リクエスト
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kong
+      ports:
+        - protocol: TCP
+          port: 8080
+    # bff-proxy: 認証後のセッションチェック・内部 API 呼び出し
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bff-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# session-server への Ingress 制限
+# session は bff-proxy と auth からのみアクセスを受け付ける。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-session-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: session
+  policyTypes:
+    - Ingress
+  ingress:
+    # bff-proxy: セッション作成・取得・削除（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: bff-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # auth: セッション検証・失効処理（gRPC のみ）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: auth
+      ports:
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# featureflag-server への Ingress 制限
+# featureflag は graphql-gateway と全 tier サービスから参照される共有機能。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-featureflag-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: featureflag
+  policyTypes:
+    - Ingress
+  ingress:
+    # 全 tier のサービスからのフラグ参照を許可（機能フラグは横断的な関心事）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              tier: system
+        - namespaceSelector:
+            matchLabels:
+              tier: business
+        - namespaceSelector:
+            matchLabels:
+              tier: service
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# tenant-server への Ingress 制限
+# tenant は auth と graphql-gateway からのみテナント情報を参照される。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-tenant-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tenant
+  policyTypes:
+    - Ingress
+  ingress:
+    # auth: テナント存在確認・テナント設定取得（gRPC のみ）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: auth
+      ports:
+        - protocol: TCP
+          port: 50051
+    # graphql-gateway: テナント CRUD / 一覧管理（REST + gRPC）
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090
+
+---
+# notification-server への Ingress 制限
+# notification は graphql-gateway（設定管理）から REST API で呼ばれる。
+# イベント駆動の通知送信は Kafka Consumer として動作するため直接 ingress は少ない。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-to-notification-server
+  namespace: k1s0-system
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: notification
+  policyTypes:
+    - Ingress
+  ingress:
+    # graphql-gateway: 通知設定管理・手動送信トリガー
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: graphql-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Prometheus: メトリクスのスクレイプ
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+      ports:
+        - protocol: TCP
+          port: 9090

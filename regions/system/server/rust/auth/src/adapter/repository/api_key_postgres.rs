@@ -37,11 +37,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         let start = std::time::Instant::now();
         let scopes_json = serde_json::to_value(&api_key.scopes)?;
 
-        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
-        // set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        // SEC-CRIT-002 修正: set_config の第3引数 true は SET LOCAL（トランザクションスコープのみ有効）を意味する。
+        // トランザクション外で実行すると接続プール返却時に即座に無効化され RLS バイパスが発生するため、
+        // pool.begin() でトランザクションを開始し &mut *tx に対して set_config と INSERT を実行する。
+        let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(&api_key.tenant_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
 
         sqlx::query(
@@ -63,8 +65,9 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         .bind(api_key.revoked)
         .bind(api_key.created_at)
         .bind(api_key.updated_at)
-        .execute(&self.pool)
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("create", "api_keys", start.elapsed().as_secs_f64());
@@ -122,11 +125,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
     async fn list_by_tenant(&self, tenant_id: &str) -> anyhow::Result<Vec<ApiKey>> {
         let start = std::time::Instant::now();
 
-        // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
-        // list_by_tenant は tenant_id フィルタも SQL に含まれるが、RLS との二重防衛として設定する。
+        // SEC-CRIT-002 修正: set_config の SET LOCAL はトランザクション外では即座に無効化されるため、
+        // トランザクション内で set_config と SELECT を実行して RLS が正しく機能することを保証する。
+        // list_by_tenant は WHERE 句でも tenant_id フィルタを行うが、RLS との二重防衛として設定する。
+        let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await?;
 
         let rows = sqlx::query_as::<_, ApiKeyRow>(
@@ -139,8 +144,9 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
             "#,
         )
         .bind(tenant_id)
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("list_by_tenant", "api_keys", start.elapsed().as_secs_f64());

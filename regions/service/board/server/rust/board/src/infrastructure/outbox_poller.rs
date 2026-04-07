@@ -1,8 +1,10 @@
 // Outbox ポーラー。未送信イベントを定期的に Kafka へ発行する。
-// FOR UPDATE SKIP LOCKED により複数インスタンスが同一レコードを重複処理しないようにする。
-// Kafka 送信失敗時はログを記録してスキップし、他のイベントの処理を継続する。
+// ARCH-HIGH-003 対応: 逐次送信から並行送信（buffer_unordered）へ改善。
+// Kafka 送信失敗時は outbox_dead_letter テーブルへ退避し、
+// outbox_events.published_at を更新して再ポーリングを防止する。
 // BSL-CRIT-001 監査対応: CancellationToken による graceful shutdown を追加する
 use crate::infrastructure::kafka::board_producer::BoardKafkaProducer;
+use futures::StreamExt as _;
 use sqlx::PgPool;
 use std::sync::Arc;
 use std::time::Duration;
@@ -39,55 +41,98 @@ impl OutboxPoller {
         }
     }
 
-    /// 未送信イベントを取得してKafkaへ発行し、published_at を現在時刻に更新する。
-    /// SELECT と UPDATE を同一トランザクション内で実行する。
-    /// FOR UPDATE SKIP LOCKED により複数インスタンスの重複処理を防止する。
+    /// 未送信イベントを取得してKafkaへ並行発行し、結果に応じて published_at 更新または DLQ 退避を行う。
+    /// Phase 1: SELECT + SKIP LOCKED でイベントを取得（ロックはコミットまで保持）。
+    /// Phase 2: buffer_unordered によって最大 10 件を並行して Kafka へ送信する。
+    /// Phase 3: 成功イベントは published_at を更新、失敗イベントは DLQ へ INSERT して再ポーリングを防止する。
     async fn poll_once(&self) -> anyhow::Result<()> {
-        // トランザクションを開始して SELECT と UPDATE を原子的に実行する
+        // Phase 1: トランザクション開始、未送信イベントを取得してロックを保持する
         let mut tx = self.pool.begin().await?;
-
-        // published_at IS NULL で未送信レコードのみを対象とし、他インスタンスが処理中のレコードをスキップする
         let rows: Vec<(Uuid, String, serde_json::Value)> = sqlx::query_as(
             "SELECT id, event_type, payload FROM board_service.outbox_events WHERE published_at IS NULL ORDER BY created_at LIMIT 100 FOR UPDATE SKIP LOCKED",
         )
         .fetch_all(&mut *tx)
         .await?;
 
-        for (id, event_type, payload) in rows {
-            // ペイロードをバイト列にシリアライズしてKafkaへ送信する
-            let bytes = match serde_json::to_vec(&payload) {
-                Ok(b) => b,
-                Err(e) => {
-                    // シリアライズ失敗時はログを記録して次のイベントへ継続する
-                    tracing::error!(error = %e, event_id = %id, "failed to serialize outbox payload, skipping");
-                    continue;
-                }
-            };
-
-            // ペイロードから column_id を取得してパーティションキーとして使用する。
-            // column_id が取得できない場合は board_id を試み、それも取得できない場合はイベント ID をフォールバックキーとして使用する。
-            // 同一カラム/ボードのイベントを同一パーティションへ送信することで順序保証と負荷分散を両立する。
-            let partition_key_str = payload
-                .get("column_id")
-                .and_then(|v| v.as_str())
-                .or_else(|| payload.get("board_id").and_then(|v| v.as_str()))
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| id.to_string());
-
-            // Kafka 送信失敗時はログを記録して残りのイベント処理を継続する
-            if let Err(e) = self.producer.publish(&event_type, &bytes, &partition_key_str).await {
-                tracing::error!(error = %e, event_id = %id, event_type = %event_type, "failed to publish outbox event to kafka, skipping");
-                continue;
-            }
-
-            // 送信成功したイベントのみ published_at を現在時刻に更新する
-            sqlx::query("UPDATE board_service.outbox_events SET published_at = NOW() WHERE id = $1")
-                .bind(id)
-                .execute(&mut *tx)
-                .await?;
+        if rows.is_empty() {
+            // ロックを解放してトランザクションを終了する
+            tx.commit().await?;
+            return Ok(());
         }
 
-        // 全処理完了後にトランザクションをコミットする
+        // Phase 2: ロックを保持したまま Kafka へ並行送信する（最大 10 件同時）。
+        // tx は DB 接続を保持するが Kafka 送信には使用しないため並行実行が可能。
+        let producer = Arc::clone(&self.producer);
+        let send_results: Vec<(Uuid, Result<(), String>)> =
+            futures::stream::iter(rows.into_iter())
+                .map(|(id, event_type, payload)| {
+                    let producer = Arc::clone(&producer);
+                    async move {
+                        // ペイロードをバイト列にシリアライズしてKafkaへ送信する
+                        let bytes = match serde_json::to_vec(&payload) {
+                            Ok(b) => b,
+                            Err(e) => {
+                                return (id, Err(format!("serialize error: {e}")));
+                            }
+                        };
+                        // column_id → board_id → id の優先順位でパーティションキーを決定する
+                        let partition_key = payload
+                            .get("column_id")
+                            .and_then(|v| v.as_str())
+                            .or_else(|| payload.get("board_id").and_then(|v| v.as_str()))
+                            .map(|s| s.to_string())
+                            .unwrap_or_else(|| id.to_string());
+                        match producer.publish(&event_type, &bytes, &partition_key).await {
+                            Ok(()) => (id, Ok(())),
+                            Err(e) => (id, Err(format!("kafka publish error: {e}"))),
+                        }
+                    }
+                })
+                .buffer_unordered(10)
+                .collect()
+                .await;
+
+        // Phase 3: 送信結果に応じて DB を更新する
+        for (id, result) in send_results {
+            match result {
+                Ok(()) => {
+                    // 送信成功: published_at を現在時刻に更新して次回ポーリング対象から除外する
+                    sqlx::query(
+                        "UPDATE board_service.outbox_events SET published_at = NOW() WHERE id = $1",
+                    )
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                Err(error_message) => {
+                    // 送信失敗: DLQ テーブルへ退避し、outbox_events を完了済みとしてマークする。
+                    // published_at を設定することで無限リトライを防止する。
+                    // 運用担当者は outbox_dead_letter を確認して手動再送またはスキップを判断する。
+                    tracing::error!(
+                        event_id = %id,
+                        error = %error_message,
+                        "outbox event failed to publish, moving to dead letter queue"
+                    );
+                    sqlx::query(
+                        "INSERT INTO board_service.outbox_dead_letter (original_id, event_type, payload, error_message) \
+                         SELECT id, event_type, payload, $2 FROM board_service.outbox_events WHERE id = $1",
+                    )
+                    .bind(id)
+                    .bind(&error_message)
+                    .execute(&mut *tx)
+                    .await?;
+                    // DLQ 退避後に outbox_events を完了済みとしてマークする
+                    sqlx::query(
+                        "UPDATE board_service.outbox_events SET published_at = NOW() WHERE id = $1",
+                    )
+                    .bind(id)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            }
+        }
+
+        // 全処理完了後にトランザクションをコミットしてロックを解放する
         tx.commit().await?;
         Ok(())
     }

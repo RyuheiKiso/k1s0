@@ -68,9 +68,11 @@ pub async fn search_audit_logs(
         Err(e) => {
             // M-016 監査対応: 内部エラーの詳細をクライアントに返さず、ログに記録するのみとする
             // e.to_string() はデータベースエラーの詳細・接続文字列・スタックトレースを含む可能性がある
+            // ARCH-HIGH-002 修正: ADR-0005 に従いエラーメッセージを英語に統一する
+            // RUST-006 修正: 内部エラーには BAD_REQUEST(400) でなく INTERNAL_SERVER_ERROR(500) を返す
             tracing::error!(error = %e, "内部エラーが発生しました");
-            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "内部エラーが発生しました");
-            (StatusCode::BAD_REQUEST, Json(err)).into_response()
+            let err = ErrorResponse::new("SYS_AUTH_INTERNAL_ERROR", "An internal error occurred");
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(err)).into_response()
         }
     }
 }

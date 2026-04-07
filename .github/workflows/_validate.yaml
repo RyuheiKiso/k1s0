@@ -470,37 +470,79 @@ jobs:
 
           echo "Vault-Terraform 同期検証: 完了"
 
-  # H-024 監査対応: GraphQL スキーマの構文バリデーションを CI に追加する
-  # api/graphql/schema.graphql は手動管理のため、構文エラーを早期検知することが目的である。
-  # schema-gen バイナリが実装された際は、このジョブを実装との差分検出に切り替えること（MED-014 参照）。
+  # ARCH-CRIT-001: GraphQL スキーマの自動生成差分検出を CI に追加する
+  # schema-gen バイナリが実装コードから SDL を生成し、api/graphql/schema.graphql との差分を検出する。
+  # 差分がある場合は CI が失敗し、schema.graphql の更新が必要であることを通知する。
   validate-graphql-schema:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - name: Node.js セットアップ（graphql パッケージによるスキーマ構文検証）
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+      - uses: dtolnay/rust-toolchain@086dfa4efe372cfb6b375460a56e26a62a873d2e # 1.93
+      - name: Rust キャッシュ
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d2 # v2
         with:
-          node-version: "20"
-      - name: GraphQL スキーマ構文バリデーション（H-024 監査対応）
+          workspaces: regions/system
+      - name: schema-gen バイナリをビルドする
         shell: bash
         run: |
-          # graphql パッケージを一時インストールしてスキーマの構文を検証する
-          # スキーマが手動管理のため、構文エラーを CI で早期検知することが目的である
-          npm install --no-save graphql 2>/dev/null
-          node --input-type=module << 'EOF'
-          import { buildSchema } from 'graphql';
-          import { readFileSync } from 'fs';
-          try {
-            const schema = readFileSync('api/graphql/schema.graphql', 'utf8');
-            buildSchema(schema);
-            console.log('GraphQL schema syntax validation: OK');
-          } catch (e) {
-            console.error('GraphQL schema syntax error:', e.message);
-            process.exit(1);
-          }
-          EOF
+          cargo build --manifest-path regions/system/Cargo.toml \
+            -p k1s0-graphql-gateway-server --bin schema-gen
+      - name: 実装から SDL を生成して schema.graphql と差分検出する（ARCH-CRIT-001）
+        shell: bash
+        run: |
+          # schema-gen バイナリで実装コードから SDL を生成する
+          regions/system/target/debug/schema-gen > /tmp/generated.graphql
+          # api/graphql/schema.graphql と差分を比較する
+          if ! diff -u api/graphql/schema.graphql /tmp/generated.graphql; then
+            echo ""
+            echo "ERROR: api/graphql/schema.graphql が実装コードと乖離しています。"
+            echo "以下のコマンドで schema.graphql を更新してください:"
+            echo "  cargo run --manifest-path regions/system/Cargo.toml --bin schema-gen > api/graphql/schema.graphql"
+            exit 1
+          fi
+          echo "GraphQL schema validation: OK (実装との差分なし)"
+
+  # ARCH-HIGH-002 対応: HTTP レスポンスに日本語文字列が混入していないことを CI で自動検出する。
+  # ADR-0005 では全 REST API エラーメッセージを英語で返すことが必須。
+  # 対象: adapter/handler/ と adapter/middleware/ 配下の *.rs ファイル。
+  # ログメッセージ（tracing::warn!/error!/info!）と test モジュールは対象外。
+  validate-no-japanese-in-error-responses:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: HTTP レスポンスに日本語文字列が含まれないことを検証する（ADR-0005 / ARCH-HIGH-002）
+        shell: bash
+        run: |
+          set -euo pipefail
+          # adapter/handler/ と adapter/middleware/ 配下の *.rs から日本語文字列を検出する。
+          # tracing::warn!/error!/info!/debug! ログ行と // コメント行は除外する。
+          # #[cfg(test)] ブロック内のテストコードは除外する。
+          VIOLATIONS=$(grep -rn --include="*.rs" \
+            'ServiceError::\|bad_request\|unauthorized\|ErrorResponse::new\|Json(json' \
+            regions/system/server/rust regions/service \
+            2>/dev/null | \
+            python3 -c "
+          import sys, re
+          count = 0
+          for line in sys.stdin:
+              parts = line.split(':', 2)
+              if len(parts) < 3:
+                  continue
+              code = parts[2]
+              # ログ行・コメント行・テストコードをスキップ
+              if re.search(r'tracing::|warn!|info!|debug!|error!|// |#\[test\]|test_|assert|sample_', code):
+                  continue
+              # 日本語文字（ひらがな・カタカナ・漢字）が含まれる行を検出
+              if re.search(r'[\u3040-\u30FF\u4E00-\u9FAF]', code):
+                  print(line.rstrip())
+                  count += 1
+          sys.exit(1 if count > 0 else 0)
+          ") || { echo ""; echo "ERROR: ADR-0005 違反 — HTTP レスポンス内に日本語文字列が検出されました。英語に修正してください。"; exit 1; }
+          echo "Japanese character check in HTTP responses: OK"
 
   # --- 実験系 ai-* クレート（continue-on-error で可視性を維持） ---
   check-ai-experimental:

@@ -60,7 +60,7 @@ pub fn require_role(
 
             if !rbac::has_role(claims, role) {
                 return Err(AuthErrorResponse::forbidden(
-                    "この操作を実行する権限がありません",
+                    "You do not have permission to perform this action",
                 ));
             }
 
@@ -84,7 +84,7 @@ pub fn require_permission(
 
             if !rbac::check_permission(claims, resource, action) {
                 return Err(AuthErrorResponse::forbidden(
-                    "この操作を実行する権限がありません",
+                    "You do not have permission to perform this action",
                 ));
             }
 
@@ -156,31 +156,31 @@ impl AuthErrorResponse {
             AuthError::MissingToken | AuthError::InvalidAuthHeader => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_UNAUTHENTICATED".into(),
-                message: "認証が必要です".into(),
+                message: "Authentication required".into(),
             },
             AuthError::TokenExpired => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_TOKEN_EXPIRED".into(),
-                message: "トークンの有効期限が切れています".into(),
+                message: "Token has expired".into(),
             },
             AuthError::InvalidToken(_) => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_INVALID_TOKEN".into(),
-                message: "トークンが無効です".into(),
+                message: "Invalid token".into(),
             },
             AuthError::JwksFetchFailed(_) => Self {
                 status: StatusCode::INTERNAL_SERVER_ERROR,
                 code: "SYS_AUTH_JWKS_ERROR".into(),
-                message: "認証サービスへの接続に失敗しました".into(),
+                message: "Failed to connect to authentication service".into(),
             },
-            AuthError::PermissionDenied => Self::forbidden("この操作を実行する権限がありません"),
+            AuthError::PermissionDenied => Self::forbidden("You do not have permission to perform this action"),
             AuthError::TierAccessDenied => Self::tier_forbidden(),
             // HIGH-002 対応: ログアウト済みトークン（jti ブラックリスト）は 401 で返す。
             // 再ログインを促すため TokenExpired と同じ UNAUTHORIZED を使用する。
             AuthError::TokenRevoked => Self {
                 status: StatusCode::UNAUTHORIZED,
                 code: "SYS_AUTH_TOKEN_REVOKED".into(),
-                message: "トークンは失効しています。再ログインが必要です".into(),
+                message: "Token has been revoked. Please log in again.".into(),
             },
         }
     }
@@ -189,7 +189,7 @@ impl AuthErrorResponse {
         Self {
             status: StatusCode::UNAUTHORIZED,
             code: "SYS_AUTH_UNAUTHENTICATED".into(),
-            message: "認証が必要です".into(),
+            message: "Authentication required".into(),
         }
     }
 
@@ -205,7 +205,7 @@ impl AuthErrorResponse {
         Self {
             status: StatusCode::FORBIDDEN,
             code: "SYS_AUTH_TIER_FORBIDDEN".into(),
-            message: "このTierへのアクセス権がありません".into(),
+            message: "You do not have access to this tier".into(),
         }
     }
 }

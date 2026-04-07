@@ -59,9 +59,15 @@ enum Commands {
     /// イベントコードを生成する
     Events,
     /// バリデーションを実行する
-    Validate,
+    Validate {
+        /// バリデーション対象ファイルのパス（省略時はインタラクティブモード）
+        #[arg(long, value_name = "FILE")]
+        file: Option<std::path::PathBuf>,
+        /// バリデーション種別: "config-schema" | "navigation"（--file と併用時に必須）
+        #[arg(long = "type", value_name = "TYPE")]
+        validate_type: Option<String>,
+    },
     /// 依存関係マップを表示する
-    /// MED-008/HIGH-008 監査対応: --non-interactive 時はフラグで対話プロンプトをスキップできる。
     Deps {
         /// 解析スコープ: "all"（デフォルト）| "tier" | "services"
         #[arg(long, value_name = "SCOPE")]
@@ -177,7 +183,9 @@ fn main() {
             Commands::ConfigTypes => commands::generate_config_types::run(),
             Commands::Navigation => commands::generate_navigation::run(),
             Commands::Events => commands::generate_events::run(),
-            Commands::Validate => commands::validate::run(),
+            Commands::Validate { file, validate_type } => {
+                commands::validate::run_with_args(file, validate_type)
+            }
             // MED-008/HIGH-008 監査対応: --scope 等のフラグが指定された場合、または非インタラクティブモードの場合は
             // 対話プロンプトをスキップして直接実行する。フラグなし TTY 環境では従来の対話フローを使用する。
             Commands::Deps { scope, tier, output, output_path } => {

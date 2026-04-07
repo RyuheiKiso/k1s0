@@ -2345,3 +2345,68 @@ mod tests {
         assert!(extract_bearer_token_from_connection_init(&payload).is_none());
     }
 }
+
+/// ARCH-CRIT-001: schema-gen バイナリ用。
+/// ダミー gRPC クライアント（connect_lazy）でスキーマを構築し SDL 文字列を返す。
+/// SDL 生成は async-graphql の型メタデータのみを使用するため、実際のネットワーク接続は確立しない。
+/// CI での使用例: `cargo run --bin schema-gen > /tmp/gen.graphql && diff api/graphql/schema.graphql /tmp/gen.graphql`
+pub fn build_sdl() -> anyhow::Result<String> {
+    use crate::infrastructure::config::BackendConfig;
+
+    // ダミー設定（connect_lazy のため接続は確立しない）
+    let dummy_cfg = BackendConfig {
+        address: "http://localhost:1".to_string(),
+        timeout_ms: 1,
+    };
+
+    // 各 gRPC クライアントをダミー設定で生成する（後で複数箇所で共有するため Arc でラップ済み）
+    let tenant_client = Arc::new(TenantGrpcClient::new(&dummy_cfg)?);
+    let feature_flag_client = Arc::new(FeatureFlagGrpcClient::new(&dummy_cfg)?);
+    let config_client = Arc::new(ConfigGrpcClient::new(&dummy_cfg)?);
+    let navigation_client = Arc::new(NavigationGrpcClient::new(&dummy_cfg)?);
+    let service_catalog_client = Arc::new(ServiceCatalogHttpClient::new(&dummy_cfg)?);
+    let auth_client = Arc::new(AuthGrpcClient::new(&dummy_cfg)?);
+    let session_client = Arc::new(SessionGrpcClient::new(&dummy_cfg)?);
+    let vault_client = Arc::new(VaultGrpcClient::new(&dummy_cfg)?);
+    let scheduler_client = Arc::new(SchedulerGrpcClient::new(&dummy_cfg)?);
+    let notification_client = Arc::new(NotificationGrpcClient::new(&dummy_cfg)?);
+    let workflow_client = Arc::new(WorkflowGrpcClient::new(&dummy_cfg)?);
+
+    // SDL 生成のためにスキーマを構築する（resolve は行わないため実際には使われない）
+    let schema = Schema::build(
+        QueryRoot {
+            tenant_query: Arc::new(TenantQueryResolver::new(tenant_client.clone())),
+            feature_flag_query: Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone())),
+            config_query: Arc::new(ConfigQueryResolver::new(config_client.clone())),
+            navigation_query: Arc::new(NavigationQueryResolver::new(navigation_client.clone())),
+            service_catalog_query: Arc::new(ServiceCatalogQueryResolver::new(service_catalog_client.clone())),
+            auth_query: Arc::new(AuthQueryResolver::new(auth_client.clone())),
+            session_query: Arc::new(SessionQueryResolver::new(session_client.clone())),
+            vault_query: Arc::new(VaultQueryResolver::new(vault_client.clone())),
+            scheduler_query: Arc::new(SchedulerQueryResolver::new(scheduler_client.clone())),
+            notification_query: Arc::new(NotificationQueryResolver::new(notification_client.clone())),
+            workflow_query: Arc::new(WorkflowQueryResolver::new(workflow_client.clone())),
+        },
+        MutationRoot {
+            tenant_mutation: Arc::new(TenantMutationResolver::new(tenant_client.clone())),
+            feature_flag_client: feature_flag_client.clone(),
+            service_catalog_mutation: Arc::new(ServiceCatalogMutationResolver::new(service_catalog_client)),
+            auth_mutation: Arc::new(AuthMutationResolver::new(auth_client)),
+            session_mutation: Arc::new(SessionMutationResolver::new(session_client)),
+            vault_mutation: Arc::new(VaultMutationResolver::new(vault_client)),
+            scheduler_mutation: Arc::new(SchedulerMutationResolver::new(scheduler_client)),
+            notification_mutation: Arc::new(NotificationMutationResolver::new(notification_client)),
+            workflow_mutation: Arc::new(WorkflowMutationResolver::new(workflow_client)),
+        },
+        SubscriptionRoot {
+            subscription: Arc::new(SubscriptionResolver::new(
+                config_client,
+                tenant_client,
+                feature_flag_client,
+            )),
+        },
+    )
+    .finish();
+
+    Ok(schema.sdl())
+}

@@ -343,6 +343,458 @@ async fn test_create_time_entry_requires_duration() {
     assert_ne!(resp.status(), StatusCode::CREATED);
 }
 
+/// アクティビティ作成レスポンスに task_id が含まれることを確認する
+#[tokio::test]
+async fn test_create_activity_has_task_id() {
+    let app = make_test_app();
+
+    let task_id = uuid::Uuid::new_v4();
+    let body = serde_json::json!({
+        "task_id": task_id,
+        "activity_type": "comment",
+        "content": "task_id 確認テスト"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["task_id"], task_id.to_string());
+}
+
+/// アクティビティ取得レスポンスに actor_id フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_activity_has_actor_id() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/activities/{}", activity_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["actor_id"].is_string());
+}
+
+/// アクティビティ一覧の total フィールドが件数と一致することを確認する
+#[tokio::test]
+async fn test_list_activities_total_count() {
+    let activities = vec![sample_activity(), sample_activity()];
+    let repo = Arc::new(StubActivityRepository::with_activities(activities));
+    let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("activity-test"));
+    let state = AppState {
+        create_activity_uc: Arc::new(k1s0_activity_server::usecase::create_activity::CreateActivityUseCase::new(repo.clone())),
+        get_activity_uc: Arc::new(k1s0_activity_server::usecase::get_activity::GetActivityUseCase::new(repo.clone())),
+        list_activities_uc: Arc::new(k1s0_activity_server::usecase::list_activities::ListActivitiesUseCase::new(repo.clone())),
+        submit_activity_uc: Arc::new(k1s0_activity_server::usecase::submit_activity::SubmitActivityUseCase::new(repo.clone())),
+        approve_activity_uc: Arc::new(k1s0_activity_server::usecase::approve_activity::ApproveActivityUseCase::new(repo.clone())),
+        reject_activity_uc: Arc::new(k1s0_activity_server::usecase::reject_activity::RejectActivityUseCase::new(repo.clone())),
+        metrics,
+        auth_state: None,
+        db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test").expect("テスト用 lazy pool の作成に失敗しました"),
+    };
+    let app = k1s0_activity_server::adapter::handler::router(state);
+
+    let req = Request::builder()
+        .uri("/api/v1/activities")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let arr = json["activities"].as_array().expect("activities フィールドが配列でない");
+    assert_eq!(arr.len(), 2);
+    assert_eq!(json["total"], 2);
+}
+
+/// アクティビティ作成で idempotency_key を指定できることを確認する
+#[tokio::test]
+async fn test_create_activity_with_idempotency_key() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "activity_type": "comment",
+        "content": "べき等キー付き",
+        "idempotency_key": "unique-key-001"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["id"].is_string());
+}
+
+/// アクティビティ作成で task_id が欠如した場合にエラーを返すことを確認する
+#[tokio::test]
+async fn test_create_activity_missing_task_id() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "activity_type": "comment",
+        "content": "タスクIDなし"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::CREATED);
+}
+
+/// アクティビティ作成で activity_type が欠如した場合にエラーを返すことを確認する
+#[tokio::test]
+async fn test_create_activity_missing_activity_type() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "content": "タイプなし"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::CREATED);
+}
+
+/// submit エンドポイント（PUT /api/v1/activities/{id}/submit）が 200 を返すことを確認する
+#[tokio::test]
+async fn test_submit_activity() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/submit", activity_id))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// approve エンドポイント（PUT /api/v1/activities/{id}/approve）が 200 を返すことを確認する
+#[tokio::test]
+async fn test_approve_activity() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/approve", activity_id))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// reject エンドポイント（PUT /api/v1/activities/{id}/reject）が 200 を返すことを確認する
+#[tokio::test]
+async fn test_reject_activity() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/reject", activity_id))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// submit エンドポイントが存在しない ID に対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_submit_activity_not_found() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/submit", uuid::Uuid::new_v4()))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// approve エンドポイントが存在しない ID に対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_approve_activity_not_found() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/approve", uuid::Uuid::new_v4()))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// reject エンドポイントが存在しない ID に対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_reject_activity_not_found() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .method("PUT")
+        .uri(format!("/api/v1/activities/{}/reject", uuid::Uuid::new_v4()))
+        .header("content-type", "application/json")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// アクティビティ取得レスポンスに version フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_activity_has_version() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/activities/{}", activity_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["version"].is_number());
+}
+
+/// アクティビティ取得レスポンスに created_at フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_get_activity_has_created_at() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/activities/{}", activity_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["created_at"].is_string());
+}
+
+/// アクティビティ作成時の初期 status が active であることを確認する
+#[tokio::test]
+async fn test_create_activity_initial_status_is_active() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "activity_type": "comment",
+        "content": "ステータス確認"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["status"], "active");
+}
+
+/// アクティビティ一覧に query parameter を付けても 200 を返すことを確認する
+#[tokio::test]
+async fn test_list_activities_with_query_params() {
+    let activity = sample_activity();
+    let task_id = activity.task_id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/activities?task_id={}&limit=10&offset=0", task_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+}
+
+/// time_entry タイプで duration_minutes が反映されることを確認する
+#[tokio::test]
+async fn test_create_time_entry_with_duration() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "activity_type": "time_entry",
+        "duration_minutes": 60
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["duration_minutes"], 60);
+}
+
+/// アクティビティ一覧レスポンスの各アイテムに activity_type が含まれることを確認する
+#[tokio::test]
+async fn test_list_activities_items_have_activity_type() {
+    let activity = sample_activity();
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri("/api/v1/activities")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let arr = json["activities"].as_array().expect("activities フィールドが配列でない");
+    assert!(arr[0]["activity_type"].is_string());
+}
+
+/// アクティビティ取得レスポンスの id が UUID 文字列であることを確認する
+#[tokio::test]
+async fn test_get_activity_id_is_uuid_string() {
+    let activity = sample_activity();
+    let activity_id = activity.id;
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri(format!("/api/v1/activities/{}", activity_id))
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let id_str = json["id"].as_str().expect("id フィールドが文字列でない");
+    assert!(uuid::Uuid::parse_str(id_str).is_ok());
+}
+
+/// アクティビティ一覧レスポンスに activities と total の両フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_list_activities_response_structure() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .uri("/api/v1/activities")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert!(json["activities"].is_array());
+    assert!(json["total"].is_number());
+}
+
+/// GET /api/v1/activities/{id} で不正な UUID フォーマットに対してエラーを返すことを確認する
+#[tokio::test]
+async fn test_get_activity_invalid_uuid() {
+    let app = make_test_app();
+
+    let req = Request::builder()
+        .uri("/api/v1/activities/not-a-valid-uuid")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_ne!(resp.status(), StatusCode::OK);
+}
+
+/// アクティビティ一覧レスポンスの各アイテムに status フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_list_activities_items_have_status() {
+    let activity = sample_activity();
+    let app = make_test_app_with_activity(activity);
+
+    let req = Request::builder()
+        .uri("/api/v1/activities")
+        .body(Body::empty())
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let arr = json["activities"].as_array().expect("activities フィールドが配列でない");
+    assert!(arr[0]["status"].is_string());
+}
+
+/// status_change タイプのアクティビティ作成が 201 を返すことを確認する
+#[tokio::test]
+async fn test_create_activity_status_change_type() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "activity_type": "status_change",
+        "content": "open -> in_progress"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    assert_eq!(resp.status(), StatusCode::CREATED);
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    assert_eq!(json["activity_type"], "status_change");
+}
+
+/// アクティビティ作成レスポンスに id フィールドが含まれることを確認する
+#[tokio::test]
+async fn test_create_activity_returns_id() {
+    let app = make_test_app();
+
+    let body = serde_json::json!({
+        "task_id": uuid::Uuid::new_v4(),
+        "activity_type": "comment",
+        "content": "ID確認テスト"
+    });
+    let req = Request::builder()
+        .method("POST")
+        .uri("/api/v1/activities")
+        .header("content-type", "application/json")
+        .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
+        .expect("リクエストの構築に失敗");
+    let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
+    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
+    let id_str = json["id"].as_str().expect("id フィールドが文字列でない");
+    assert!(uuid::Uuid::parse_str(id_str).is_ok());
+}
+
 // --- 実 DB を使ったテスト（db-tests feature が有効な場合のみ実行）---
 // 現時点では #[cfg(feature = "db-tests")] で区分けし、CI の db-tests ジョブで有効化する
 

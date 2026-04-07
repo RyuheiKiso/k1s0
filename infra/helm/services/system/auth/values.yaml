@@ -17,6 +17,16 @@ container:
 service:
   grpcPort: 50051
 
+# K8S-MED-002 対応: k1s0-common は library chart のためデフォルト値が親チャートに引き継がれない。
+# resources を明示的に設定しないと Kubernetes の CPU/メモリ制限が無制限になる。
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
 # L-10 監査対応: gRPC サービスのヘルスチェックを有効化する。
 # gRPC サービスは HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用すること。
 # Kubernetes の livenessProbe/readinessProbe が gRPC 経由でコンテナの健全性を確認する。

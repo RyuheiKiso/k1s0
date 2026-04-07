@@ -34,7 +34,13 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       // 本番環境ではエラー詳細（スタックトレース等）を隠蔽してセキュリティを確保する
-      const isDev = import.meta.env?.DEV ?? false;
+      // DOCS-MED-003 監査対応: バンドラー非依存の開発環境判定。
+      // Vite: import.meta.env.DEV (boolean) / webpack 等: process.env.NODE_ENV で判定する。
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isDev =
+        (typeof (globalThis as any).process !== 'undefined' &&
+          (globalThis as any).process?.env?.NODE_ENV === 'development') ||
+        Boolean(import.meta.env?.MODE === 'development');
 
       return (
         <div role="alert">

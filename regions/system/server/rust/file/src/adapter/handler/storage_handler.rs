@@ -26,7 +26,7 @@ pub async fn serve_internal_storage(
         None => {
             return (
                 StatusCode::NOT_IMPLEMENTED,
-                "ローカルストレージが設定されていません",
+                "Local storage is not configured",
             )
                 .into_response();
         }
@@ -42,7 +42,7 @@ pub async fn serve_internal_storage(
             )
         })
     {
-        return (StatusCode::BAD_REQUEST, "不正なストレージキー").into_response();
+        return (StatusCode::BAD_REQUEST, "Invalid storage key").into_response();
     }
 
     let full_path = root.join(&key_path);
@@ -50,7 +50,7 @@ pub async fn serve_internal_storage(
     // ファイルバイト列を読み込む（存在しない場合は 404）
     let bytes = match tokio::fs::read(&full_path).await {
         Ok(b) => b,
-        Err(_) => return (StatusCode::NOT_FOUND, "ファイルが存在しません").into_response(),
+        Err(_) => return (StatusCode::NOT_FOUND, "File not found").into_response(),
     };
 
     // infer によるマジックバイト検出でコンテンツタイプを決定する。
@@ -89,14 +89,14 @@ pub async fn serve_internal_storage(
                 );
                 return (
                     StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    "ファイルの実際の種別が宣言されたコンテンツタイプと一致しません",
+                    "File content type does not match the declared type",
                 )
                     .into_response();
             }
             // マジックバイト検出結果が許可リストにない場合は拒否する
             if !FileDomainService::is_allowed_content_type(detected) {
                 tracing::warn!(key = %key, detected = %detected, "許可リスト外のコンテンツタイプを拒否");
-                return (StatusCode::FORBIDDEN, "このコンテンツタイプは許可されていません")
+                return (StatusCode::FORBIDDEN, "This content type is not allowed")
                     .into_response();
             }
             detected.clone()

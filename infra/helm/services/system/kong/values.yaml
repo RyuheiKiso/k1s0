@@ -21,11 +21,8 @@ env:
     value: kong
   - name: KONG_PG_DATABASE
     value: kong
-  - name: KONG_PG_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: kong-db-secret
-        key: password
+  # K8S-HIGH-002 修正: KONG_PG_PASSWORD は Vault Agent Injector が /vault/secrets/kong-pg-password に
+  # 注入するため、container.command で env ファイルとして source する（kong-db-secret は廃止）。
   # HIGH-003 監査対応: readOnlyRootFilesystem: true に対応するため KONG_PREFIX を emptyDir に変更
   # Kong は起動時に KONG_PREFIX 配下に nginx.pid/nginx.conf/ssl/ 等の実行時ファイルを生成する。
   # デフォルトの /usr/local/kong はルートファイルシステムの一部であるため、
@@ -94,6 +91,49 @@ probes:
     timeoutSeconds: 3
     failureThreshold: 3
 
+# K8S-HIGH-002 対応: Vault Agent Injector を使用して kong-db-secret を廃止し、
+# Vault から KONG_PG_PASSWORD を取得する。
+# vault.secrets の template で env ファイルを生成し、container.command で source する。
+vault:
+  enabled: true
+  role: "kong"
+  secrets:
+    - name: "kong-pg-password"
+      path: "secret/data/k1s0/system/kong/database"
+      template: |
+        {{- with secret "secret/data/k1s0/system/kong/database" -}}
+        KONG_PG_PASSWORD={{ .Data.data.password }}
+        {{- end -}}
+
+# Vault kubernetes auth role の bound_service_account_names と一致させるため明示的に指定
+serviceAccount:
+  create: true
+  name: "kong"
+
+# K8S-HIGH-002 対応: Vault Agent が注入した env ファイルを起動前に source し
+# KONG_PG_PASSWORD 環境変数を展開してから Kong を起動する。
+# K8S-HIGH-001 対応: プロキシポートを 8000 として明示する。
+container:
+  port: 8000
+  command:
+    - /bin/sh
+    - -c
+    - "set -a && . /vault/secrets/kong-pg-password && set +a && exec kong docker-start"
+
+# K8S-HIGH-001 対応: Kong の可用性確保のため HPA と PDB を設定する。
+# メモリ使用率スケーリングを加えることでリクエスト急増時のメモリ圧迫に対応する。
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 70
+
+pdb:
+  enabled: true
+  # ローリングアップデート中も最低 1 レプリカを維持して可用性を保証する
+  minAvailable: 1
+
 replicaCount: 2
 
 resources:
@@ -134,3 +174,7 @@ extraVolumes:
 extraVolumeMounts:
   - name: kong-tmp
     mountPath: /tmp
+
+# k1s0-common テンプレートが .Values.redis.enabled を参照するため明示的に無効化する（nil pointer 防止）
+redis:
+  enabled: false

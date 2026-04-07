@@ -3351,6 +3351,7 @@ name = "k1s0-health"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "deadpool-redis",
  "mockall",
  "rdkafka",

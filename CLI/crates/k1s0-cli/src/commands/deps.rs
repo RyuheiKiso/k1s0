@@ -305,6 +305,16 @@ fn execute_command(config: &DepsConfig) -> Result<()> {
 
     let result = execute_deps(config)?;
 
+    // CLI-003 監査対応: サービスが 0 件の場合はリポジトリルート以外から実行している可能性がある。
+    // 原因が不明なまま「0 件」と報告するのではなく、明示的なエラー案内を表示する。
+    if result.services.is_empty() {
+        eprintln!(
+            "\n警告: サービスが検出されませんでした。\n\
+             リポジトリルート（CLAUDE.md が存在するディレクトリ）から実行してください。\n\
+             または K1S0_ROOT 環境変数でリポジトリルートを明示的に指定してください。"
+        );
+    }
+
     match &config.output {
         DepsOutputFormat::Terminal => {
             output::print_terminal(&result);

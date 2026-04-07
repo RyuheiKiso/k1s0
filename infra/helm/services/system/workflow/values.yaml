@@ -18,6 +18,15 @@ container:
 service:
   grpcPort: 50051
 
+# K8S-MED-002 対応: k1s0-common は library chart のためデフォルト値が親チャートに引き継がれない。
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
 # H-005 監査対応: gRPC サービスのヘルスチェックプローブを有効化する
 # workflow は gRPC サービス（grpcPort: 50051）のため HTTP /healthz ではなく gRPC ヘルスチェックプロトコルを使用する
 # grpcHealthCheck.enabled: true により k1s0-common テンプレートが liveness/readiness/startup に gRPC プローブを生成する

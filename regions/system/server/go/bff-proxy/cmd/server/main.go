@@ -418,11 +418,13 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 		if metricsPath == "" {
 			metricsPath = "/metrics"
 		}
-		// 内部サーバーは localhost にバインドし、クラスター外部からのアクセスを防止する
+		// DY-003 修正: Prometheus が同一 Pod 内のサイドカーではなく別 Pod からスクレイプするため、
+		// 0.0.0.0 にバインドして Pod の IP アドレスでアクセスできるようにする。
+		// NetworkPolicy で k1s0-observability namespace からの接続のみを許可し、外部露出を防止する。
 		internalMux := http.NewServeMux()
 		// メトリクスエンドポイントのみを内部サーバーに登録する
 		internalMux.Handle(metricsPath, promhttp.Handler())
-		internalAddr := fmt.Sprintf("127.0.0.1:%d", internalPort)
+		internalAddr := fmt.Sprintf("0.0.0.0:%d", internalPort)
 		internalSrv = &http.Server{
 			Addr:              internalAddr,
 			Handler:           internalMux,

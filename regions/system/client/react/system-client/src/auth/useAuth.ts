@@ -16,11 +16,13 @@ export interface UseAuthOptions {
 }
 
 /**
- * L-015 監査対応: useAuth のデフォルトエラーメッセージ定数。
+ * L-015 / DOCS-MED-005 監査対応: useAuth のデフォルトエラーメッセージ定数。
  * アプリケーション側で i18n 文字列を渡せる場合はオプションで上書きすること。
+ * デフォルト値は英語とし、多言語環境でも共通のベースラインを提供する。
+ * 日本語表示が必要な場合は outsideProviderMessage オプションで上書きすること。
  */
 export const AUTH_ERROR_MESSAGES = {
-  OUTSIDE_PROVIDER: 'useAuth は AuthProvider の内部で使用する必要があります',
+  OUTSIDE_PROVIDER: 'useAuth must be used within an AuthProvider',
 } as const;
 
 /**

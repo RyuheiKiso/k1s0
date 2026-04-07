@@ -65,6 +65,8 @@ tracing-opentelemetry = "0.28"
 prometheus = "0.14"
 validator = { version = "0.20", features = ["derive"] }
 rdkafka = { version = "0.39", features = ["cmake-build"] }
+# ARCH-HIGH-003 対応: outbox_poller の並行 Kafka 送信のために追加
+futures = "0.3"
 axum-test = "17"
 
 # リリースビルドの最適化設定

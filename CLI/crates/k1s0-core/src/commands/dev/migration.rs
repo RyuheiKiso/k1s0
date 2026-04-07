@@ -6,7 +6,7 @@
 /// 設計書: docs/cli/dev/ローカル開発環境設計.md
 ///   - Rust サービス → sqlx migrate run
 ///   - Go サービス   → migrate -path ... up
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::path::Path;
 
 use crate::commands::migrate::apply::execute_migrate_up;
@@ -48,9 +48,9 @@ pub fn run_dev_migrations(service_paths: &[String], ports: &PortAssignments) -> 
         // state.json はまだ保存されていないため、LocalDev ではなく
         // ポート情報から直接接続文字列を構築する
         // CLI-HIGH-001 監査対応: パスワードをハードコードせず環境変数 K1S0_DEV_DB_PASSWORD から取得する。
-        // 未設定時は "password" をデフォルト値として使用する（ローカル開発環境のみ）。
-        let dev_password =
-            std::env::var("K1S0_DEV_DB_PASSWORD").unwrap_or_else(|_| "password".to_string());
+        // ローカル開発環境では .env.dev に K1S0_DEV_DB_PASSWORD=password を設定すること。
+        let dev_password = std::env::var("K1S0_DEV_DB_PASSWORD")
+            .context("K1S0_DEV_DB_PASSWORD must be set (add to .env.dev for local dev)")?;
         let conn_url = format!(
             "postgresql://app:{dev_password}@localhost:{}/{db_name}?sslmode=disable",
             ports.postgres
