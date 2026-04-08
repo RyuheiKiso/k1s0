@@ -3,7 +3,7 @@ module github.com/k1s0-platform/system-library-go-eventstore
 go 1.26.1
 
 require (
-	github.com/lib/pq v1.12.0
+	github.com/lib/pq v1.12.3
 	github.com/stretchr/testify v1.11.1
 )
 
