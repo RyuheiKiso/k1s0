@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@tanstack/react-router": "^1.167.5",
-    "axios": "^1.13.6",
+    "axios": "^1.14.0",
     "yaml": "^2.8.2"
   },
   "devDependencies": {
