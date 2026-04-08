@@ -24,6 +24,7 @@ pub struct Event {
 }
 
 impl Event {
+    #[must_use] 
     pub fn new(event_type: String, payload: serde_json::Value) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -35,6 +36,7 @@ impl Event {
     }
 
     /// 集約IDを指定してイベントを生成する。
+    #[must_use] 
     pub fn with_aggregate_id(
         event_type: String,
         aggregate_id: String,

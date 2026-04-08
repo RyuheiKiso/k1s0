@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::ComponentError;
 
-/// ComponentsConfig はビルディングブロック群の設定を表す。
+/// `ComponentsConfig` はビルディングブロック群の設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentsConfig {
     pub components: Vec<ComponentConfig>,
 }
 
-/// ComponentConfig は個々のビルディングブロックの設定を表す。
+/// `ComponentConfig` は個々のビルディングブロックの設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComponentConfig {
     pub name: String,

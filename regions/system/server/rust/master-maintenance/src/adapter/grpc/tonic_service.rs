@@ -9,7 +9,7 @@ use crate::domain::value_object::domain_filter::DomainFilter;
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp as ProtoTimestamp};
 use crate::proto::k1s0::system::mastermaintenance::v1::{
     master_maintenance_service_server::MasterMaintenanceService,
-    ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, *,
+    ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, GetTableDefinitionResponse, ConsistencyRule, ValidationWarning, CreateTableDefinitionRequest, CreateTableDefinitionResponse, UpdateTableDefinitionRequest, UpdateTableDefinitionResponse, DeleteTableDefinitionRequest, DeleteTableDefinitionResponse, GetTableDefinitionRequest, ListTableDefinitionsRequest, ListTableDefinitionsResponse, GetRecordRequest, GetRecordResponse, ListRecordsRequest, ListRecordsResponse, CreateRecordRequest, CreateRecordResponse, UpdateRecordRequest, UpdateRecordResponse, DeleteRecordRequest, DeleteRecordResponse, CheckConsistencyRequest, CheckConsistencyResponse, ConsistencyResult, CreateRuleRequest, CreateRuleResponse, GetRuleRequest, GetRuleResponse, UpdateRuleRequest, UpdateRuleResponse, DeleteRuleRequest, DeleteRuleResponse, ListRulesRequest, ListRulesResponse, ExecuteRuleRequest, ExecuteRuleResponse, GetTableSchemaRequest, GetTableSchemaResponse, ListColumnsRequest, ListColumnsResponse, CreateColumnsRequest, CreateColumnsResponse, UpdateColumnRequest, UpdateColumnResponse, DeleteColumnRequest, DeleteColumnResponse, ListRelationshipsRequest, ListRelationshipsResponse, CreateRelationshipRequest, CreateRelationshipResponse, UpdateRelationshipRequest, UpdateRelationshipResponse, DeleteRelationshipRequest, DeleteRelationshipResponse, ImportRecordsRequest, ImportRecordsResponse, ExportRecordsRequest, ExportRecordsResponse, GetImportJobRequest, GetImportJobResponse, ListDisplayConfigsRequest, ListDisplayConfigsResponse, GetDisplayConfigRequest, GetDisplayConfigResponse, CreateDisplayConfigRequest, CreateDisplayConfigResponse, UpdateDisplayConfigRequest, UpdateDisplayConfigResponse, DeleteDisplayConfigRequest, DeleteDisplayConfigResponse, ListTableAuditLogsRequest, ListTableAuditLogsResponse, ListRecordAuditLogsRequest, ListRecordAuditLogsResponse, ListDomainsRequest, ListDomainsResponse, DomainInfo, DisplayConfig, ImportJob, AuditLogEntry,
 };
 
 // --- serde_json::Value <-> prost_types 変換ヘルパー ---
@@ -220,7 +220,7 @@ fn domain_warning_to_proto(
     }
 }
 
-/// MasterMaintenanceError を gRPC Status に型安全に変換する関数（C-04対応）。
+/// `MasterMaintenanceError` を gRPC Status に型安全に変換する関数（C-04対応）。
 /// 文字列マッチングを廃止し、enum の各バリアントに対して正確な gRPC ステータスコードを割り当てる。
 fn status_from_domain_error(err: crate::domain::error::MasterMaintenanceError) -> Status {
     use crate::domain::error::MasterMaintenanceError;
@@ -280,7 +280,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let input: crate::domain::entity::table_definition::CreateTableDefinition =
             serde_json::from_value(struct_to_json(&data))
-                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {e}")))?;
 
         let table = self
             .manage_tables_uc
@@ -310,7 +310,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .ok_or_else(|| Status::invalid_argument("data is required"))?;
         let input: crate::domain::entity::table_definition::UpdateTableDefinition =
             serde_json::from_value(struct_to_json(&data))
-                .map_err(|e| Status::invalid_argument(format!("invalid data: {}", e)))?;
+                .map_err(|e| Status::invalid_argument(format!("invalid data: {e}")))?;
 
         let ds = optional_str(&req.domain_scope);
         let table = self
@@ -400,9 +400,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .get_table_by_id(rel.target_table_id)
                 .await
                 .ok()
-                .flatten()
-                .map(|t| t.name.clone())
-                .unwrap_or_else(|| rel.target_table_id.to_string());
+                .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
             proto_relationships.push(domain_relationship_to_proto(rel, &target_name));
         }
 
@@ -490,9 +488,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                     .get_table_by_id(rel.target_table_id)
                     .await
                     .ok()
-                    .flatten()
-                    .map(|t| t.name.clone())
-                    .unwrap_or_else(|| rel.target_table_id.to_string());
+                    .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
                 proto_relationships.push(domain_relationship_to_proto(rel, &target_name));
             }
 
@@ -1120,9 +1116,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .get_table_by_id(rel.target_table_id)
                 .await
                 .ok()
-                .flatten()
-                .map(|t| t.name)
-                .unwrap_or_else(|| rel.target_table_id.to_string());
+                .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
             proto.push(domain_relationship_to_proto(rel, &target_name));
         }
         Ok(Response::new(ListRelationshipsResponse {
@@ -1153,9 +1147,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table_by_id(rel.target_table_id)
             .await
             .ok()
-            .flatten()
-            .map(|t| t.name)
-            .unwrap_or_else(|| rel.target_table_id.to_string());
+            .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
         Ok(Response::new(CreateRelationshipResponse {
             relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
         }))
@@ -1186,9 +1178,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table_by_id(rel.target_table_id)
             .await
             .ok()
-            .flatten()
-            .map(|t| t.name)
-            .unwrap_or_else(|| rel.target_table_id.to_string());
+            .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
         Ok(Response::new(UpdateRelationshipResponse {
             relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
         }))
@@ -1431,7 +1421,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 total_count: total,
                 page: p.page,
                 page_size: p.page_size,
-                has_next: (p.page as i64 * p.page_size as i64) < total,
+                has_next: (i64::from(p.page) * i64::from(p.page_size)) < total,
             }),
         }))
     }
@@ -1468,7 +1458,7 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 total_count: total,
                 page: p.page,
                 page_size: p.page_size,
-                has_next: (p.page as i64 * p.page_size as i64) < total,
+                has_next: (i64::from(p.page) * i64::from(p.page_size)) < total,
             }),
         }))
     }

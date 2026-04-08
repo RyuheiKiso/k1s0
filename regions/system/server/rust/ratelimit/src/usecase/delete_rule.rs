@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::RateLimitRepository;
 
-/// DeleteRuleError はルール削除に関するエラー。
+/// `DeleteRuleError` はルール削除に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum DeleteRuleError {
     #[error("rule not found: {0}")]
@@ -17,7 +17,7 @@ pub enum DeleteRuleError {
     Internal(String),
 }
 
-/// DeleteRuleUseCase はルール削除ユースケース。
+/// `DeleteRuleUseCase` はルール削除ユースケース。
 pub struct DeleteRuleUseCase {
     repo: Arc<dyn RateLimitRepository>,
 }
@@ -27,7 +27,7 @@ impl DeleteRuleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを削除する。
     pub async fn execute(&self, rule_id: &str, tenant_id: &str) -> Result<(), DeleteRuleError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| DeleteRuleError::InvalidRuleId(rule_id.to_string()))?;

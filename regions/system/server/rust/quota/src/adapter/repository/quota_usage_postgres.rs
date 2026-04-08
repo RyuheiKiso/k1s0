@@ -11,6 +11,7 @@ pub struct QuotaUsagePostgresRepository {
 }
 
 impl QuotaUsagePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -139,19 +140,16 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        match row {
-            Some((new_usage,)) => Ok(CheckAndIncrementResult {
-                used: new_usage as u64,
-                allowed: true,
-            }),
-            None => {
-                // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
-                let current = self.get_usage(quota_id, tenant_id).await?.unwrap_or(0);
-                Ok(CheckAndIncrementResult {
-                    used: current,
-                    allowed: false,
-                })
-            }
+        if let Some((new_usage,)) = row { Ok(CheckAndIncrementResult {
+            used: new_usage as u64,
+            allowed: true,
+        }) } else {
+            // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
+            let current = self.get_usage(quota_id, tenant_id).await?.unwrap_or(0);
+            Ok(CheckAndIncrementResult {
+                used: current,
+                allowed: false,
+            })
         }
     }
 }

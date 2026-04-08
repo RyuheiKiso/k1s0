@@ -21,7 +21,7 @@ impl ResumeJobUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを再開する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブを再開する。
     pub async fn execute(&self, job_id: &str, tenant_id: &str) -> Result<SchedulerJob, ResumeJobError> {
         let mut job = self
             .repo

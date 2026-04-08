@@ -33,7 +33,7 @@ fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
         .map(std::time::Duration::from_secs)
 }
 
-/// PostgreSQL接続プールを作成する
+/// `PostgreSQL接続プールを作成する`
 pub async fn create_pool(
     url: &str,
     max_connections: u32,
@@ -46,6 +46,6 @@ pub async fn create_pool(
         .max_lifetime(parse_pool_duration(conn_max_lifetime))
         .connect(url)
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {e}"))?;
     Ok(pool)
 }

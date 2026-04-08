@@ -33,6 +33,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -43,9 +44,7 @@ impl AppState {
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
 fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -185,7 +184,7 @@ pub async fn search(
         Err(SearchError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_INDEX_NOT_FOUND",
-            format!("index not found: {}", name),
+            format!("index not found: {name}"),
         )
         .into_response(),
         Err(SearchError::Internal(msg)) => {
@@ -249,7 +248,7 @@ pub async fn index_document(
         Err(IndexDocumentError::IndexNotFound(name)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_INDEX_NOT_FOUND",
-            format!("index not found: {}", name),
+            format!("index not found: {name}"),
         )
         .into_response(),
         Err(IndexDocumentError::Internal(msg)) => {
@@ -368,7 +367,7 @@ pub async fn list_indices(
     }
 }
 
-/// DELETE /api/v1/search/index/:index_name/:doc_id - Delete a document from an index
+/// DELETE /`api/v1/search/index/:index_name/:doc_id` - Delete a document from an index
 pub async fn delete_document_from_index(
     State(state): State<AppState>,
     claims: Option<Extension<Claims>>,
@@ -388,7 +387,7 @@ pub async fn delete_document_from_index(
         Err(DeleteDocumentError::NotFound(_, id)) => error_response(
             StatusCode::NOT_FOUND,
             "SYS_SEARCH_DOCUMENT_NOT_FOUND",
-            format!("document not found: {}", id),
+            format!("document not found: {id}"),
         )
         .into_response(),
         Err(DeleteDocumentError::Internal(msg)) => {

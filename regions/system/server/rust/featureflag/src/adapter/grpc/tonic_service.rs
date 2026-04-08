@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の FeatureFlagService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の FeatureFlagGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `FeatureFlagService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `FeatureFlagGrpcService` に委譲する。
 //! ADR-0028 Phase 1: x-tenant-id gRPC メタデータからテナントIDを取得し、
 //! 未指定の場合はシステムテナント UUID にフォールバックする。
 
@@ -103,6 +103,7 @@ pub struct FeatureFlagServiceTonic {
 }
 
 impl FeatureFlagServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<FeatureFlagGrpcService>) -> Self {
         Self { inner }
     }
@@ -160,7 +161,7 @@ impl FeatureFlagService for FeatureFlagServiceTonic {
     }
 
     /// ADR-0028 Phase 1: x-tenant-id メタデータからテナントIDを取得してフラグを評価する。
-    /// proto の EvaluationContext に含まれる tenant_id は評価コンテキスト用（RLS ではなく属性マッチング用）。
+    /// proto の `EvaluationContext` に含まれる `tenant_id` は評価コンテキスト用（RLS ではなく属性マッチング用）。
     async fn evaluate_flag(
         &self,
         request: Request<ProtoEvaluateFlagRequest>,

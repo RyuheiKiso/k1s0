@@ -4,19 +4,20 @@ use sqlx::PgPool;
 use crate::domain::entity::workflow::{WorkflowDefinition, WorkflowStep};
 use crate::domain::repository::WorkflowRepository;
 
-/// WorkflowPostgresRepository はPostgreSQL実装のワークフローリポジトリ。
+/// `WorkflowPostgresRepository` `はPostgreSQL実装のワークフローリポジトリ`。
 pub struct WorkflowPostgresRepository {
     pool: PgPool,
 }
 
 impl WorkflowPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
-/// WorkflowDefinitionRow は DB から取得したワークフロー定義の中間構造体。
-/// フィールドは TryFrom 実装を通じて WorkflowDefinition に変換される。
+/// `WorkflowDefinitionRow` は DB から取得したワークフロー定義の中間構造体。
+/// フィールドは `TryFrom` 実装を通じて `WorkflowDefinition` に変換される。
 // H-02 監査対応: created_at/updated_at は sqlx::FromRow のマッピングに必要なため保持する
 // （SELECT クエリで取得する列と構造体フィールドを一致させる必要がある）
 #[derive(sqlx::FromRow)]
@@ -25,10 +26,10 @@ struct WorkflowDefinitionRow {
     version: i32,
     definition: serde_json::Value,
     enabled: bool,
-    /// DB から取得するが WorkflowDefinition には含まれないため dead_code 警告を抑制する
+    /// DB から取得するが `WorkflowDefinition` には含まれないため `dead_code` 警告を抑制する
     #[allow(dead_code)]
     created_at: chrono::DateTime<chrono::Utc>,
-    /// DB から取得するが WorkflowDefinition には含まれないため dead_code 警告を抑制する
+    /// DB から取得するが `WorkflowDefinition` には含まれないため `dead_code` 警告を抑制する
     #[allow(dead_code)]
     updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -41,7 +42,7 @@ impl TryFrom<WorkflowDefinitionRow> for WorkflowDefinition {
         let total_timeout_secs = row
             .definition
             .get("total_timeout_secs")
-            .and_then(|v| v.as_u64())
+            .and_then(serde_json::Value::as_u64)
             .unwrap_or(300);
         let steps: Vec<WorkflowStep> = if row.definition.is_array() {
             // Backward compatibility: previous schema stored the step array directly.
@@ -72,7 +73,7 @@ impl WorkflowRepository for WorkflowPostgresRepository {
         });
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO saga.workflow_definitions (name, version, definition, enabled, created_at, updated_at)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
             ON CONFLICT (name) DO UPDATE
@@ -80,7 +81,7 @@ impl WorkflowRepository for WorkflowPostgresRepository {
                 definition = EXCLUDED.definition,
                 enabled = EXCLUDED.enabled,
                 updated_at = NOW()
-            "#,
+            ",
         )
         .bind(&workflow.name)
         .bind(workflow.version)
@@ -94,31 +95,31 @@ impl WorkflowRepository for WorkflowPostgresRepository {
 
     async fn get(&self, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
         let row = sqlx::query_as::<_, WorkflowDefinitionRow>(
-            r#"
+            r"
             SELECT name, version, definition, enabled, created_at, updated_at
             FROM saga.workflow_definitions
             WHERE name = $1
-            "#,
+            ",
         )
         .bind(name)
         .fetch_optional(&self.pool)
         .await?;
 
-        row.map(|r| r.try_into()).transpose()
+        row.map(std::convert::TryInto::try_into).transpose()
     }
 
     async fn list(&self) -> anyhow::Result<Vec<WorkflowDefinition>> {
         let rows = sqlx::query_as::<_, WorkflowDefinitionRow>(
-            r#"
+            r"
             SELECT name, version, definition, enabled, created_at, updated_at
             FROM saga.workflow_definitions
             ORDER BY name
-            "#,
+            ",
         )
         .fetch_all(&self.pool)
         .await?;
 
-        rows.into_iter().map(|r| r.try_into()).collect()
+        rows.into_iter().map(std::convert::TryInto::try_into).collect()
     }
 }
 

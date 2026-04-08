@@ -127,6 +127,7 @@ pub struct ApiRegistryServiceTonic {
 }
 
 impl ApiRegistryServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<ApiRegistryGrpcService>) -> Self {
         Self { inner }
     }
@@ -141,8 +142,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_schemas(ListSchemasRequest {
@@ -207,8 +207,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_versions(ListVersionsRequest {

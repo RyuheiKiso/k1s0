@@ -5,7 +5,7 @@ use crate::domain::repository::FileMetadataRepository;
 use crate::infrastructure::kafka_producer::FileEventPublisher;
 
 #[derive(Debug, Clone)]
-/// C-01 監査対応: checksum_sha256 → checksum にリネーム（DB カラム名に合わせる）
+/// C-01 監査対応: `checksum_sha256` → checksum にリネーム（DB カラム名に合わせる）
 pub struct CompleteUploadInput {
     pub file_id: String,
     pub checksum: Option<String>,

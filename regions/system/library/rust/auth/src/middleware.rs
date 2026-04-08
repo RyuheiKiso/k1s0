@@ -19,13 +19,13 @@ type AuthMiddlewareFuture = std::pin::Pin<
     Box<dyn std::future::Future<Output = Result<Response, AuthErrorResponse>> + Send>,
 >;
 
-/// AuthState はミドルウェアが使用する共有状態。
+/// `AuthState` はミドルウェアが使用する共有状態。
 #[derive(Clone)]
 pub struct AuthState {
     pub verifier: Arc<JwksVerifier>,
 }
 
-/// auth_middleware は JWT 認証ミドルウェア。
+/// `auth_middleware` は JWT 認証ミドルウェア。
 /// Authorization ヘッダーから Bearer トークンを取得し、JWKS 検証を行う。
 /// 検証成功時は Claims をリクエストエクステンションに格納する。
 pub async fn auth_middleware(
@@ -46,8 +46,8 @@ pub async fn auth_middleware(
     Ok(next.run(req).await)
 }
 
-/// require_role は指定ロールを必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_role` は指定ロールを必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_role(
     role: &'static str,
 ) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
@@ -69,8 +69,8 @@ pub fn require_role(
     }
 }
 
-/// require_permission は指定リソース・アクションの権限を必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_permission` は指定リソース・アクションの権限を必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_permission(
     resource: &'static str,
     action: &'static str,
@@ -93,8 +93,8 @@ pub fn require_permission(
     }
 }
 
-/// require_tier_access は指定 Tier へのアクセスを必須とするミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_tier_access` は指定 Tier へのアクセスを必須とするミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 pub fn require_tier_access(
     tier: &'static str,
 ) -> impl Fn(Request<Body>, Next) -> AuthMiddlewareFuture + Clone {
@@ -142,7 +142,7 @@ fn extract_bearer_token(req: &Request<Body>) -> Result<String, AuthErrorResponse
     Ok(token.to_string())
 }
 
-/// AuthErrorResponse は認証エラーの HTTP レスポンス。
+/// `AuthErrorResponse` は認証エラーの HTTP レスポンス。
 #[derive(Debug)]
 pub struct AuthErrorResponse {
     pub status: StatusCode,

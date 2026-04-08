@@ -23,10 +23,11 @@ impl DeleteAppUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, id: &str) -> Result<(), DeleteAppError> {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, id: &str) -> Result<(), DeleteAppError> {
         let deleted = self
             .repo
-            .delete(id)
+            .delete(tenant_id, id)
             .await
             .map_err(|e| DeleteAppError::Internal(e.to_string()))?;
 
@@ -46,20 +47,20 @@ mod tests {
     #[tokio::test]
     async fn test_delete_app_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_delete().returning(|_| Ok(true));
+        mock.expect_delete().returning(|_, _| Ok(true));
 
         let uc = DeleteAppUseCase::new(Arc::new(mock));
-        let result = uc.execute("app-1").await;
+        let result = uc.execute("tenant-1", "app-1").await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_delete_app_not_found() {
         let mut mock = MockAppRepository::new();
-        mock.expect_delete().returning(|_| Ok(false));
+        mock.expect_delete().returning(|_, _| Ok(false));
 
         let uc = DeleteAppUseCase::new(Arc::new(mock));
-        let result = uc.execute("missing").await;
+        let result = uc.execute("tenant-1", "missing").await;
         assert!(matches!(result, Err(DeleteAppError::NotFound(_))));
     }
 }

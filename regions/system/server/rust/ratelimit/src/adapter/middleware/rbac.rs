@@ -9,7 +9,7 @@ use axum::{
 
 use k1s0_auth::Claims;
 
-/// require_permission は resource/action ベースのアクセス制御ミドルウェアファクトリ。
+/// `require_permission` は resource/action ベースのアクセス制御ミドルウェアファクトリ。
 ///
 /// ratelimit-server の RBAC マッピング:
 /// - GET rules/usage -> ratelimit/read

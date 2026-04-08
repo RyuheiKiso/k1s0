@@ -30,7 +30,7 @@ impl From<DependencyRow> for Dependency {
     }
 }
 
-/// DependencyPostgresRepository は PostgreSQL ベースの依存関係リポジトリ。
+/// `DependencyPostgresRepository` は `PostgreSQL` ベースの依存関係リポジトリ。
 pub struct DependencyPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -38,6 +38,7 @@ pub struct DependencyPostgresRepository {
 
 impl DependencyPostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -45,6 +46,7 @@ impl DependencyPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -74,7 +76,7 @@ impl DependencyRepository for DependencyPostgresRepository {
             );
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn set_dependencies(
@@ -133,6 +135,6 @@ impl DependencyRepository for DependencyPostgresRepository {
             m.record_db_query_duration("get_all", "dependencies", start.elapsed().as_secs_f64());
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }

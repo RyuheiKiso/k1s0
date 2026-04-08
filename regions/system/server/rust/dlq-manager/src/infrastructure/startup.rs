@@ -14,6 +14,8 @@ use crate::adapter::handler::{self, AppState};
 use crate::proto::k1s0::system::dlq::v1::dlq_service_server::DlqServiceServer;
 use crate::usecase;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -37,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -165,8 +167,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let cache_ttl = auth_cfg
                     .jwks
                     .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                    .map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for dlq-manager");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -227,7 +228,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST グレースフルシャットダウン付きサーバー
@@ -237,7 +238,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = k1s0_server_common::shutdown::shutdown_signal().await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("REST server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("REST server error: {e}"))
     };
 
     info!("gRPC server starting on {}", grpc_addr);
@@ -285,7 +286,7 @@ impl InMemoryDlqMessageRepository {
 
 #[async_trait::async_trait]
 impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepository {
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_id(
         &self,
         id: uuid::Uuid,
@@ -295,7 +296,7 @@ impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepos
         Ok(messages.iter().find(|m| m.id == id).cloned())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_topic(
         &self,
         topic: &str,
@@ -333,14 +334,14 @@ impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepos
         Ok(())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn delete(&self, id: uuid::Uuid, _tenant_id: &str) -> anyhow::Result<()> {
         let mut messages = self.messages.write().await;
         messages.retain(|m| m.id != id);
         Ok(())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn count_by_topic(&self, topic: &str, _tenant_id: &str) -> anyhow::Result<i64> {
         let messages = self.messages.read().await;
         let count = messages

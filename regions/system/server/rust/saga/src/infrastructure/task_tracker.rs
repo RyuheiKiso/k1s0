@@ -9,7 +9,7 @@ use std::sync::{
 
 use tokio::sync::Notify;
 
-/// SagaTaskTracker は実行中の Saga タスク数を追跡する。
+/// `SagaTaskTracker` は実行中の Saga タスク数を追跡する。
 ///
 /// `spawn` でタスクを登録し、シャットダウン時に `wait_for_completion` で全タスクの終了を待つ。
 #[derive(Clone)]
@@ -21,7 +21,8 @@ pub struct SagaTaskTracker {
 }
 
 impl SagaTaskTracker {
-    /// 新しい SagaTaskTracker を生成する。
+    /// 新しい `SagaTaskTracker` を生成する。
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             active: Arc::new(AtomicUsize::new(0)),
@@ -48,6 +49,7 @@ impl SagaTaskTracker {
     }
 
     /// 実行中のタスク数を返す。
+    #[must_use] 
     pub fn active_count(&self) -> usize {
         self.active.load(Ordering::Acquire)
     }

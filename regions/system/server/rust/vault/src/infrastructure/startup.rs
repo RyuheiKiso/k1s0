@@ -15,6 +15,8 @@ use crate::adapter::handler::{self, AppState};
 use crate::domain::entity::secret::Secret;
 use crate::domain::repository::{AccessLogRepository, SecretStore};
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -37,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -284,7 +286,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -317,7 +319,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// SetSecret / RotateSecret / DeleteSecret は write、それ以外は read。
+/// `SetSecret` / `RotateSecret` / `DeleteSecret` は write、それ以外は read。
 fn vault_grpc_action(method: &str) -> &'static str {
     match method {
         "SetSecret" | "RotateSecret" | "DeleteSecret" => "write",
@@ -345,13 +347,13 @@ impl crate::domain::repository::SecretStore for InMemorySecretStore {
         let store = self.secrets.read().await;
         let secret = store
             .get(path)
-            .ok_or_else(|| anyhow::anyhow!("secret not found: {}", path))?;
+            .ok_or_else(|| anyhow::anyhow!("secret not found: {path}"))?;
         if let Some(v) = version {
             secret
                 .versions
                 .iter()
                 .find(|sv| sv.version == v && !sv.destroyed)
-                .ok_or_else(|| anyhow::anyhow!("version {} not found", v))?;
+                .ok_or_else(|| anyhow::anyhow!("version {v} not found"))?;
         }
         Ok(secret.clone())
     }

@@ -10,9 +10,9 @@ use crate::domain::entity::user::{Pagination, Role, User, UserListResult, UserRo
 use crate::domain::error::AuthError;
 use crate::domain::repository::UserRepository;
 
-/// KeycloakConfig は Keycloak 接続の設定を表す。
-/// STATIC-MEDIUM-003 監査対応 (ADR-0061): ROPC（admin_username / admin_password）を廃止し、
-/// Client Credentials Grant（client_id + client_secret）のみを使用する形に統一した。
+/// `KeycloakConfig` は Keycloak 接続の設定を表す。
+/// STATIC-MEDIUM-003 監査対応 (ADR-0061): `ROPC（admin_username` / `admin_password）を廃止し`、
+/// Client Credentials `Grant（client_id` + `client_secret）のみを使用する形に統一した`。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct KeycloakConfig {
     pub base_url: String,
@@ -35,8 +35,8 @@ impl KeycloakConfig {
     }
 
     /// Keycloak Admin API トークン取得用のフォームデータを生成する。
-    /// STATIC-MEDIUM-003 監査対応 (ADR-0061): Client Credentials Grant（client_id + client_secret）のみ使用。
-    /// ROPC（admin_username + admin_password）は OAuth 2.1 で廃止予定のため削除済み。
+    /// STATIC-MEDIUM-003 監査対応 (ADR-0061): Client Credentials `Grant（client_id` + `client_secret）のみ使用`。
+    /// `ROPC（admin_username` + `admin_password）は` OAuth 2.1 で廃止予定のため削除済み。
     /// Keycloak 側で auth-rust 専用 Service Account を作成し、必要な realm-management ロールを付与すること。
     pub(crate) fn admin_token_form(&self) -> Vec<(&'static str, String)> {
         // Client Credentials Grant: サービス間通信（M2M）の標準フロー（ADR-0061 で採用決定）
@@ -46,19 +46,19 @@ impl KeycloakConfig {
             // expose_secret() でクライアントシークレットを取り出してフォームに設定する
             (
                 "client_secret",
-                self.client_secret.expose_secret().to_string(),
+                self.client_secret.expose_secret().clone(),
             ),
         ]
     }
 }
 
-/// CachedToken はキャッシュされた管理トークンを表す。
+/// `CachedToken` はキャッシュされた管理トークンを表す。
 struct CachedToken {
     token: String,
     expires_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// KeycloakClient は Keycloak Admin API クライアント。
+/// `KeycloakClient` は Keycloak Admin API クライアント。
 /// サーキットブレーカーにより、Keycloak 障害時の連鎖的な障害伝播を防止する。
 pub struct KeycloakClient {
     config: KeycloakConfig,
@@ -75,7 +75,7 @@ pub struct KeycloakClient {
 impl KeycloakClient {
     /// M-004 監査対応: Keycloak Admin API レスポンスの HTTP ステータスを検査し、
     /// 403 Forbidden を権限不足エラーとして明示的に処理する。
-    /// error_for_status() では 403 が汎用エラーとして扱われ、サーキットブレーカーが
+    /// `error_for_status()` では 403 が汎用エラーとして扱われ、サーキットブレーカーが
     /// 「サービス障害」と誤認してオープン状態に遷移する問題を防止する。
     /// 403 は設定ミス（realm-management スコープ不足）であり、再試行しても無意味なため
     /// サーキットブレーカーを開かせるべきではない。
@@ -94,7 +94,7 @@ impl KeycloakClient {
         Ok(resp)
     }
 
-    /// 新しい KeycloakClient を生成する。
+    /// 新しい `KeycloakClient` を生成する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakConfig) -> anyhow::Result<Self> {
         // サーキットブレーカー設定:
@@ -107,7 +107,7 @@ impl KeycloakClient {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {e}"))?;
 
         Ok(Self {
             config,
@@ -121,9 +121,9 @@ impl KeycloakClient {
 
     /// Keycloak のヘルスチェックを行う。
     /// サーキットブレーカーで保護し、Keycloak 停止時の不要なリクエストを抑制する。
-    /// LOW-06 対応: AppState に Arc<KeycloakClient> が追加された場合は healthz/readyz から呼び出すこと。
-    /// 現状は AppState が http_client+keycloak_url で直接確認しているため dead_code となっているが、
-    /// TODO(LOW-06): AppState への KeycloakClient 組み込み後にこのアトリビュートを削除すること。
+    /// LOW-06 対応: `AppState` に Arc<KeycloakClient> が追加された場合は healthz/readyz から呼び出すこと。
+    /// 現状は `AppState` が `http_client+keycloak_url` で直接確認しているため `dead_code` となっているが、
+    /// TODO(LOW-06): `AppState` への `KeycloakClient` 組み込み後にこのアトリビュートを削除すること。
     #[allow(dead_code)]
     pub async fn healthy(&self) -> anyhow::Result<()> {
         let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
@@ -135,7 +135,7 @@ impl KeycloakClient {
                 Ok::<(), reqwest::Error>(())
             })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak health check failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("keycloak health check failed: {e}"))
     }
 
     /// Admin API トークンを取得する（キャッシュ付き）。
@@ -157,7 +157,7 @@ impl KeycloakClient {
             .token_refresh_semaphore
             .acquire()
             .await
-            .map_err(|e| anyhow::anyhow!("Semaphore acquire に失敗しました: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Semaphore acquire に失敗しました: {e}"))?;
 
         // Semaphore 取得後にダブルチェック（先行タスクがトークンを更新済みの場合はスキップ）
         {
@@ -186,7 +186,7 @@ impl KeycloakClient {
                 Ok::<serde_json::Value, reqwest::Error>(body)
             })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak token request failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("keycloak token request failed: {e}"))?;
 
         let token = body["access_token"]
             .as_str()
@@ -194,14 +194,11 @@ impl KeycloakClient {
             .to_string();
         // Keycloak レスポンスに expires_in が含まれない場合はデフォルト 300 秒にフォールバックする
         // フォールバック使用時は警告ログを出力し、Keycloak 設定の確認を促す（HIGH-CODE-01 監査対応）
-        let expires_in = match body["expires_in"].as_i64() {
-            Some(v) => v,
-            None => {
-                tracing::warn!(
-                    "Keycloak トークンレスポンスに expires_in が含まれていません。デフォルト値 300 秒を使用します。Keycloak の設定を確認してください。"
-                );
-                300
-            }
+        let expires_in = if let Some(v) = body["expires_in"].as_i64() { v } else {
+            tracing::warn!(
+                "Keycloak トークンレスポンスに expires_in が含まれていません。デフォルト値 300 秒を使用します。Keycloak の設定を確認してください。"
+            );
+            300
         };
 
         *cache = Some(CachedToken {
@@ -228,12 +225,12 @@ impl UserRepository for KeycloakClient {
             .circuit_breaker
             .call(|| async { http.get(&url).bearer_auth(&token).send().await })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak find_by_id failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("keycloak find_by_id failed: {e}"))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
             return Err(
-                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+                AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into(),
             );
         }
 
@@ -264,7 +261,7 @@ impl UserRepository for KeycloakClient {
             url.push_str(&format!("&search={}", urlencoding::encode(q)));
         }
         if let Some(e) = enabled {
-            url.push_str(&format!("&enabled={}", e));
+            url.push_str(&format!("&enabled={e}"));
         }
 
         // サーキットブレーカーでユーザー一覧取得リクエストを保護する
@@ -273,7 +270,7 @@ impl UserRepository for KeycloakClient {
             .circuit_breaker
             .call(|| async { http.get(&url).bearer_auth(&token).send().await })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak list users failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("keycloak list users failed: {e}"))?;
 
         // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
         let kc_users: Vec<KeycloakUser> = Self::check_keycloak_response(resp, &url)?
@@ -296,7 +293,7 @@ impl UserRepository for KeycloakClient {
         }
         if let Some(e) = enabled {
             count_url.push_str(if count_first_param { "?" } else { "&" });
-            count_url.push_str(&format!("enabled={}", e));
+            count_url.push_str(&format!("enabled={e}"));
         }
         let count_token = self.get_admin_token().await?;
         // サーキットブレーカーでユーザー数取得リクエストを保護する
@@ -304,15 +301,15 @@ impl UserRepository for KeycloakClient {
             .circuit_breaker
             .call(|| async { http.get(&count_url).bearer_auth(&count_token).send().await })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak user count failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("keycloak user count failed: {e}"))?;
         // M-004 監査対応: count エンドポイントでも 403 を権限不足エラーとして明示的に処理する
         let total_count: i64 = Self::check_keycloak_response(count_resp, &count_url)?
             .error_for_status()?
             .json()
             .await?;
 
-        let users: Vec<User> = kc_users.into_iter().map(|u| u.into()).collect();
-        let has_next = (page as i64 * page_size as i64) < total_count;
+        let users: Vec<User> = kc_users.into_iter().map(std::convert::Into::into).collect();
+        let has_next = (i64::from(page) * i64::from(page_size)) < total_count;
 
         Ok(UserListResult {
             users,
@@ -339,12 +336,12 @@ impl UserRepository for KeycloakClient {
             .circuit_breaker
             .call(|| async { http.get(&realm_url).bearer_auth(&token).send().await })
             .await
-            .map_err(|e| anyhow::anyhow!("keycloak get_roles failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("keycloak get_roles failed: {e}"))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
             return Err(
-                AuthError::NotFound(format!("ユーザーが見つかりません: {}", user_id)).into(),
+                AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into(),
             );
         }
 
@@ -356,13 +353,13 @@ impl UserRepository for KeycloakClient {
 
         Ok(UserRoles {
             user_id: user_id.to_string(),
-            realm_roles: realm_roles.into_iter().map(|r| r.into()).collect(),
+            realm_roles: realm_roles.into_iter().map(std::convert::Into::into).collect(),
             client_roles: std::collections::HashMap::new(),
         })
     }
 }
 
-/// KeycloakUser は Keycloak Admin API のユーザー表現。
+/// `KeycloakUser` は Keycloak Admin API のユーザー表現。
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct KeycloakUser {
@@ -424,7 +421,7 @@ impl From<KeycloakUser> for User {
     }
 }
 
-/// KeycloakRole は Keycloak Admin API のロール表現。
+/// `KeycloakRole` は Keycloak Admin API のロール表現。
 #[derive(Debug, serde::Deserialize)]
 struct KeycloakRole {
     id: String,

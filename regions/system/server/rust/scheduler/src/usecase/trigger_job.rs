@@ -55,7 +55,7 @@ impl TriggerJobUseCase {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを手動実行する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブを手動実行する。
     pub async fn execute(&self, job_id: &str, tenant_id: &str) -> Result<SchedulerExecution, TriggerJobError> {
         let mut job = self
             .repo

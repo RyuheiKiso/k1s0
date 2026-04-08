@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// RevokeApiKeyError は API キー失効に関するエラー。
+/// `RevokeApiKeyError` は API キー失効に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum RevokeApiKeyError {
     #[error("api key not found: {0}")]
@@ -14,7 +14,7 @@ pub enum RevokeApiKeyError {
     Internal(String),
 }
 
-/// RevokeApiKeyUseCase は API キー失効ユースケース。
+/// `RevokeApiKeyUseCase` は API キー失効ユースケース。
 pub struct RevokeApiKeyUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }

@@ -4,7 +4,7 @@ use chrono::Utc;
 
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// ValidateApiKeyError は API キー検証に関するエラー。
+/// `ValidateApiKeyError` は API キー検証に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum ValidateApiKeyError {
     #[error("invalid api key")]
@@ -19,12 +19,12 @@ pub enum ValidateApiKeyError {
     #[error("internal error: {0}")]
     Internal(String),
 
-    /// API_KEY_PEPPER 環境変数が未設定の場合のエラー。
+    /// `API_KEY_PEPPER` 環境変数が未設定の場合のエラー。
     #[error("pepper not configured")]
     PepperNotConfigured,
 }
 
-/// ValidateApiKeyResult は検証成功時の結果。
+/// `ValidateApiKeyResult` は検証成功時の結果。
 #[derive(Debug, Clone)]
 pub struct ValidateApiKeyResult {
     pub tenant_id: String,
@@ -32,7 +32,7 @@ pub struct ValidateApiKeyResult {
     pub scopes: Vec<String>,
 }
 
-/// ValidateApiKeyUseCase は API キー検証ユースケース。
+/// `ValidateApiKeyUseCase` は API キー検証ユースケース。
 pub struct ValidateApiKeyUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }
@@ -118,7 +118,7 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     let mut out = String::with_capacity(digest.len() * 2);
     for b in digest {
         use std::fmt::Write;
-        let _ = write!(&mut out, "{:02x}", b);
+        let _ = write!(&mut out, "{b:02x}");
     }
     out
 }

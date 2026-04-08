@@ -22,7 +22,7 @@ impl GetFlagUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを取得する。
-    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（migration 006 で DB の TEXT 型に変更済み）。
     pub async fn execute(&self, tenant_id: &str, flag_key: &str) -> Result<FeatureFlag, GetFlagError> {
         self.repo.find_by_key(tenant_id, flag_key).await.map_err(|e| {
             let msg = e.to_string();

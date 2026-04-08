@@ -5,7 +5,7 @@ use axum::Json;
 use k1s0_server_common::error as codes;
 use k1s0_server_common::ErrorResponse;
 
-/// DlqError は DLQ 操作のエラー型。
+/// `DlqError` は DLQ 操作のエラー型。
 ///
 /// Error codes follow the `SYS_DLQ_*` pattern via k1s0-server-common.
 #[derive(Debug, thiserror::Error)]

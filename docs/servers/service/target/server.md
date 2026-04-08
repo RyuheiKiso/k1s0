@@ -1,5 +1,9 @@
 # service-target-server 設計
 
+> **ステータス: 未実装（計画中）**
+> MED-020 監査対応: 本サービスは設計書のみ存在し、`regions/service/target/` の実装はまだ存在しない。
+> 実装着手時には本設計書を更新し、ステータスを「実装中」または「実装済み」に変更すること。
+
 service tier のターゲット（OKR目標）管理サーバー設計を定義する。組織・チーム・個人の OKR 目標（Objective and Key Results）を REST/gRPC API で管理し、進捗更新イベントを Kafka に非同期配信する。
 Rust で実装する。
 

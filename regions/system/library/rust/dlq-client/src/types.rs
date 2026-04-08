@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// DlqStatus は DLQ メッセージのステータス。
+/// `DlqStatus` は DLQ メッセージのステータス。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DlqStatus {
@@ -22,7 +22,7 @@ impl std::fmt::Display for DlqStatus {
     }
 }
 
-/// DlqMessage は DLQ メッセージ。
+/// `DlqMessage` は DLQ メッセージ。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DlqMessage {
     pub id: String,
@@ -37,7 +37,7 @@ pub struct DlqMessage {
     pub last_retry_at: Option<DateTime<Utc>>,
 }
 
-/// ListDlqMessagesRequest は DLQ メッセージ一覧取得リクエスト。
+/// `ListDlqMessagesRequest` は DLQ メッセージ一覧取得リクエスト。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListDlqMessagesRequest {
     pub topic: String,
@@ -55,7 +55,7 @@ impl ListDlqMessagesRequest {
     }
 }
 
-/// ListDlqMessagesResponse は DLQ メッセージ一覧取得レスポンス。
+/// `ListDlqMessagesResponse` は DLQ メッセージ一覧取得レスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListDlqMessagesResponse {
     pub messages: Vec<DlqMessage>,
@@ -63,7 +63,7 @@ pub struct ListDlqMessagesResponse {
     pub page: u32,
 }
 
-/// RetryDlqMessageResponse は DLQ メッセージ再処理レスポンス。
+/// `RetryDlqMessageResponse` は DLQ メッセージ再処理レスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetryDlqMessageResponse {
     pub message_id: String,

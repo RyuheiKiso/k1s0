@@ -24,6 +24,7 @@ impl Default for InMemoryWorkflowDefinitionRepository {
 }
 
 impl InMemoryWorkflowDefinitionRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
@@ -90,6 +91,7 @@ impl Default for InMemoryWorkflowInstanceRepository {
 }
 
 impl InMemoryWorkflowInstanceRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
@@ -154,6 +156,7 @@ impl Default for InMemoryWorkflowTaskRepository {
 }
 
 impl InMemoryWorkflowTaskRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }

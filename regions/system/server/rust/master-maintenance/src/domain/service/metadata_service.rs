@@ -5,6 +5,7 @@ use serde_json::Value;
 pub struct SchemaGeneratorService;
 
 impl SchemaGeneratorService {
+    #[must_use] 
     pub fn generate_json_schema(
         table_def: &TableDefinition,
         columns: &[ColumnDefinition],

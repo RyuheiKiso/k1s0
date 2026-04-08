@@ -9,7 +9,7 @@ use crate::usecase::ExecuteSagaUseCase;
 /// 同時リカバリの最大並行数。リソース枯渇を防ぐために制限する。
 const MAX_CONCURRENT_RECOVERIES: usize = 10;
 
-/// RecoverSagasUseCase は起動時に未完了Sagaを再開する。
+/// `RecoverSagasUseCase` は起動時に未完了Sagaを再開する。
 pub struct RecoverSagasUseCase {
     saga_repo: Arc<dyn SagaRepository>,
     workflow_repo: Arc<dyn WorkflowRepository>,
@@ -58,7 +58,7 @@ impl RecoverSagasUseCase {
                         .clone()
                         .acquire_owned()
                         .await
-                        .map_err(|e| anyhow::anyhow!("semaphore closed unexpectedly: {}", e))?;
+                        .map_err(|e| anyhow::anyhow!("semaphore closed unexpectedly: {e}"))?;
                     tokio::spawn(async move {
                         info!(saga_id = %saga_id, workflow = %workflow_name, tenant_id = %tenant_id, "resuming saga");
                         if let Err(e) = execute_uc.run(saga_id, &workflow, &tenant_id).await {

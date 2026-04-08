@@ -2,7 +2,7 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// DatabaseConfig はデータベース接続設定。
+/// `DatabaseConfig` はデータベース接続設定。
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -46,7 +46,8 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL接続URLを構築する。
+    /// `PostgreSQL接続URLを構築する`。
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",

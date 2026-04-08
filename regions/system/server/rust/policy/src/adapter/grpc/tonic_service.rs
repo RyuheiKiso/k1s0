@@ -82,9 +82,7 @@ fn to_proto_bundle(bundle: PolicyBundleData) -> ProtoPolicyBundle {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct PolicyServiceTonic {
@@ -92,6 +90,7 @@ pub struct PolicyServiceTonic {
 }
 
 impl PolicyServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<PolicyGrpcService>) -> Self {
         Self { inner }
     }
@@ -154,8 +153,7 @@ impl PolicyService for PolicyServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_policies(ListPoliciesRequest {

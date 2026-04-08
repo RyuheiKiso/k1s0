@@ -15,7 +15,7 @@ pub async fn healthz() -> impl IntoResponse {
 
 /// readiness probe: DB 接続確認および cron タスク健全性チェックを行い、サービスがリクエスト受付可能かを返す。
 /// CRITICAL-003 監査対応: Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
-/// ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
+/// ADR-0068 対応: "`ready"/"not_ready`" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
 /// MED-011 監査対応: cron リセットタスクの停止は補助機能の障害であり、サービス全体の停止には相当しない。
 ///   - DB 接続が正常 + cron 正常 → 200 "healthy"
 ///   - DB 接続が正常 + cron 停止 → 200 "degraded"（K8s は Pod を再起動しないが Prometheus でアラートを設定すること）
@@ -31,7 +31,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let db_check: Result<&str, String> = if let Some(ref pool) = state.db_pool {
         match sqlx::query("SELECT 1").execute(pool).await {
             Ok(_) => Ok("ok"),
-            Err(e) => Err(format!("error: {}", e)),
+            Err(e) => Err(format!("error: {e}")),
         }
     } else {
         Ok("not_configured")

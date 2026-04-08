@@ -9,7 +9,7 @@
 //! - `vault_required=true` (本番デフォルト): Vault 接続失敗時はエラーを返し、
 //!   サーバー起動を中断する。シークレットなしでの運用はセキュリティリスク。
 //! - `vault_required=false` (開発環境): Vault 接続失敗時は警告ログを出力し、
-//!   空の HashMap を返す。ローカル設定ファイルの値がそのまま使用される。
+//!   空の `HashMap` を返す。ローカル設定ファイルの値がそのまま使用される。
 
 use std::collections::HashMap;
 
@@ -19,21 +19,21 @@ use crate::client::VaultClient;
 use crate::error::VaultError;
 
 /// サーバー起動時に Vault からシークレットを取得し、取得できない場合は
-/// vault_required フラグに基づいてフォールバック処理を行う。
+/// `vault_required` フラグに基づいてフォールバック処理を行う。
 ///
 /// # 引数
-/// - `client`: VaultClient 実装（HttpVaultClient, InMemoryVaultClient など）
+/// - `client`: `VaultClient` 実装（HttpVaultClient, `InMemoryVaultClient` など）
 /// - `secret_path`: Vault 上のシークレットパス
 /// - `keys`: 取得するシークレットのキー一覧
 /// - `vault_required`: Vault 接続が必須かどうか
 ///
 /// # 戻り値
-/// - `Ok(HashMap)`: シークレットのキーと値のマップ。フォールバック時は空の HashMap。
-/// - `Err(VaultError)`: vault_required=true かつ Vault 接続失敗時のエラー。
+/// - `Ok(HashMap)`: シークレットのキーと値のマップ。フォールバック時は空の `HashMap`。
+/// - `Err(VaultError)`: `vault_required=true` かつ Vault 接続失敗時のエラー。
 ///
 /// # フォールバック判定
-/// - ConnectionUnavailable エラーかつ vault_required=false の場合のみフォールバック。
-/// - NotFound, PermissionDenied 等のアプリケーションエラーは vault_required に関わらず
+/// - `ConnectionUnavailable` エラーかつ `vault_required=false` の場合のみフォールバック。
+/// - `NotFound`, `PermissionDenied` 等のアプリケーションエラーは `vault_required` に関わらず
 ///   エラーとして返す（設定ミスの可能性があるため黙殺しない）。
 pub async fn fetch_secrets_with_fallback(
     client: &dyn VaultClient,

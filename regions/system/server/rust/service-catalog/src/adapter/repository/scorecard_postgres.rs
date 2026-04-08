@@ -33,7 +33,7 @@ impl From<ScorecardRow> for Scorecard {
     }
 }
 
-/// ScorecardPostgresRepository は PostgreSQL ベースのスコアカードリポジトリ。
+/// `ScorecardPostgresRepository` は `PostgreSQL` ベースのスコアカードリポジトリ。
 pub struct ScorecardPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -41,6 +41,7 @@ pub struct ScorecardPostgresRepository {
 
 impl ScorecardPostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -48,6 +49,7 @@ impl ScorecardPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -74,7 +76,7 @@ impl ScorecardRepository for ScorecardPostgresRepository {
             m.record_db_query_duration("get", "scorecards", start.elapsed().as_secs_f64());
         }
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn upsert(&self, scorecard: &Scorecard) -> anyhow::Result<()> {

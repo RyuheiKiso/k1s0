@@ -10,7 +10,7 @@ use k1s0_server_common::escape_like_pattern;
 use crate::domain::entity::service::{Service, ServiceLifecycle, ServiceTier};
 use crate::domain::repository::service_repository::{ServiceListFilters, ServiceRepository};
 
-/// ServiceRow は service_catalog.services テーブルの行を表す中間構造体。
+/// `ServiceRow` は `service_catalog.services` テーブルの行を表す中間構造体。
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct ServiceRow {
     id: Uuid,
@@ -58,7 +58,7 @@ impl From<ServiceRow> for Service {
     }
 }
 
-/// ServicePostgresRepository は PostgreSQL ベースのサービスリポジトリ。
+/// `ServicePostgresRepository` は `PostgreSQL` ベースのサービスリポジトリ。
 pub struct ServicePostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -66,6 +66,7 @@ pub struct ServicePostgresRepository {
 
 impl ServicePostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -73,6 +74,7 @@ impl ServicePostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -83,37 +85,47 @@ impl ServicePostgresRepository {
 
 #[async_trait]
 impl ServiceRepository for ServicePostgresRepository {
-    async fn list(&self, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
+    // CRIT-004 監査対応: RLS テナント分離のため set_config をトランザクション内で設定する。
+    // defense-in-depth として WHERE 句にも tenant_id 条件を追加する。
+    async fn list(&self, tenant_id: &str, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
         let start = std::time::Instant::now();
 
-        // Build dynamic query based on filters
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // defense-in-depth として WHERE 句にも tenant_id を追加する
         let mut query = String::from(
             "SELECT id, name, description, team_id, tier, lifecycle, repository_url, \
              api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at \
-             FROM service_catalog.services WHERE 1=1",
+             FROM service_catalog.services WHERE tenant_id = $1",
         );
-        let mut param_idx = 1u32;
+        let mut param_idx = 2u32;
 
         if filters.team_id.is_some() {
-            query.push_str(&format!(" AND team_id = ${}", param_idx));
+            query.push_str(&format!(" AND team_id = ${param_idx}"));
             param_idx += 1;
         }
         if filters.tier.is_some() {
-            query.push_str(&format!(" AND tier = ${}", param_idx));
+            query.push_str(&format!(" AND tier = ${param_idx}"));
             param_idx += 1;
         }
         if filters.lifecycle.is_some() {
-            query.push_str(&format!(" AND lifecycle = ${}", param_idx));
+            query.push_str(&format!(" AND lifecycle = ${param_idx}"));
             param_idx += 1;
         }
         if filters.tag.is_some() {
-            query.push_str(&format!(" AND tags @> ${}::jsonb", param_idx));
-            // param_idx += 1; // last param
+            query.push_str(&format!(" AND tags @> ${param_idx}::jsonb"));
+            // param_idx += 1; // 最後のパラメータ
         }
 
         query.push_str(" ORDER BY name ASC");
 
         let mut q = sqlx::query_as::<_, ServiceRow>(&query);
+        q = q.bind(tenant_id);
 
         if let Some(ref team_id) = filters.team_id {
             q = q.bind(team_id);
@@ -129,45 +141,66 @@ impl ServiceRepository for ServicePostgresRepository {
             q = q.bind(tag_json);
         }
 
-        let rows = q.fetch_all(&self.pool).await?;
+        let rows = q.fetch_all(&mut *tx).await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("list", "services", start.elapsed().as_secs_f64());
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Service>> {
+    // テナントスコープで set_config を設定した後にサービス ID で検索する。
+    async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Service>> {
         let start = std::time::Instant::now();
+
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+        // defense-in-depth として WHERE 句にも tenant_id を追加する
         let row = sqlx::query_as::<_, ServiceRow>(
             "SELECT id, name, description, team_id, tier, lifecycle, repository_url, \
              api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at \
-             FROM service_catalog.services WHERE id = $1",
+             FROM service_catalog.services WHERE tenant_id = $1 AND id = $2",
         )
+        .bind(tenant_id)
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("find_by_id", "services", start.elapsed().as_secs_f64());
         }
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
-    async fn create(&self, service: &Service) -> anyhow::Result<Service> {
+    // テナントスコープで set_config を設定した後に新規サービスを登録する。
+    async fn create(&self, tenant_id: &str, service: &Service) -> anyhow::Result<Service> {
         let start = std::time::Instant::now();
         let tags_json = serde_json::to_value(&service.tags)?;
 
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+        // tenant_id カラムにも挿入して defense-in-depth を実現する
         let row = sqlx::query_as::<_, ServiceRow>(
             "INSERT INTO service_catalog.services \
-             (id, name, description, team_id, tier, lifecycle, repository_url, \
+             (tenant_id, id, name, description, team_id, tier, lifecycle, repository_url, \
               api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) \
              RETURNING id, name, description, team_id, tier, lifecycle, repository_url, \
              api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at",
         )
+        .bind(tenant_id)
         .bind(service.id)
         .bind(&service.name)
         .bind(&service.description)
@@ -181,8 +214,9 @@ impl ServiceRepository for ServicePostgresRepository {
         .bind(&service.metadata)
         .bind(service.created_at)
         .bind(service.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("create", "services", start.elapsed().as_secs_f64());
@@ -191,19 +225,28 @@ impl ServiceRepository for ServicePostgresRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, service: &Service) -> anyhow::Result<Service> {
+    // テナントスコープで set_config を設定した後にサービスを更新する。
+    async fn update(&self, tenant_id: &str, service: &Service) -> anyhow::Result<Service> {
         let start = std::time::Instant::now();
         let tags_json = serde_json::to_value(&service.tags)?;
 
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+        // WHERE 句に tenant_id を追加して defense-in-depth を実現する
         let row = sqlx::query_as::<_, ServiceRow>(
             "UPDATE service_catalog.services SET \
-             name = $2, description = $3, tier = $4, lifecycle = $5, \
-             repository_url = $6, api_endpoint = $7, healthcheck_url = $8, \
-             tags = $9, metadata = $10, updated_at = $11 \
-             WHERE id = $1 \
+             name = $3, description = $4, tier = $5, lifecycle = $6, \
+             repository_url = $7, api_endpoint = $8, healthcheck_url = $9, \
+             tags = $10, metadata = $11, updated_at = $12 \
+             WHERE tenant_id = $1 AND id = $2 \
              RETURNING id, name, description, team_id, tier, lifecycle, repository_url, \
              api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at",
         )
+        .bind(tenant_id)
         .bind(service.id)
         .bind(&service.name)
         .bind(&service.description)
@@ -215,8 +258,9 @@ impl ServiceRepository for ServicePostgresRepository {
         .bind(&tags_json)
         .bind(&service.metadata)
         .bind(service.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("update", "services", start.elapsed().as_secs_f64());
@@ -225,13 +269,23 @@ impl ServiceRepository for ServicePostgresRepository {
         Ok(row.into())
     }
 
-    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+    // テナントスコープで set_config を設定した後にサービスを削除する。
+    async fn delete(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<()> {
         let start = std::time::Instant::now();
 
-        sqlx::query("DELETE FROM service_catalog.services WHERE id = $1")
-            .bind(id)
-            .execute(&self.pool)
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
             .await?;
+        // WHERE 句に tenant_id を追加して defense-in-depth を実現する
+        sqlx::query("DELETE FROM service_catalog.services WHERE tenant_id = $1 AND id = $2")
+            .bind(tenant_id)
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("delete", "services", start.elapsed().as_secs_f64());
@@ -240,41 +294,51 @@ impl ServiceRepository for ServicePostgresRepository {
         Ok(())
     }
 
+    // テナントスコープで set_config を設定した後にサービスを検索する。
     async fn search(
         &self,
+        tenant_id: &str,
         query: Option<String>,
         tags: Option<Vec<String>>,
         tier: Option<ServiceTier>,
     ) -> anyhow::Result<Vec<Service>> {
         let start = std::time::Instant::now();
 
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // defense-in-depth として WHERE 句にも tenant_id を追加する
         let mut sql = String::from(
             "SELECT id, name, description, team_id, tier, lifecycle, repository_url, \
              api_endpoint, healthcheck_url, tags, metadata, created_at, updated_at \
-             FROM service_catalog.services WHERE 1=1",
+             FROM service_catalog.services WHERE tenant_id = $1",
         );
-        let mut param_idx = 1u32;
+        let mut param_idx = 2u32;
 
         if query.is_some() {
             // HIGH-003 監査対応: ILIKE のワイルドカード特殊文字をエスケープし、ESCAPE '\' を指定する
             sql.push_str(&format!(
-                " AND (name ILIKE '%' || ${idx} || '%' ESCAPE '\\' OR description ILIKE '%' || ${idx} || '%' ESCAPE '\\')",
-                idx = param_idx
+                " AND (name ILIKE '%' || ${param_idx} || '%' ESCAPE '\\' OR description ILIKE '%' || ${param_idx} || '%' ESCAPE '\\')"
             ));
             param_idx += 1;
         }
         if tags.is_some() {
-            sql.push_str(&format!(" AND tags @> ${}::jsonb", param_idx));
+            sql.push_str(&format!(" AND tags @> ${param_idx}::jsonb"));
             param_idx += 1;
         }
         if tier.is_some() {
-            sql.push_str(&format!(" AND tier = ${}", param_idx));
+            sql.push_str(&format!(" AND tier = ${param_idx}"));
             // param_idx += 1;
         }
 
         sql.push_str(" ORDER BY name ASC");
 
         let mut q = sqlx::query_as::<_, ServiceRow>(&sql);
+        q = q.bind(tenant_id);
 
         if let Some(ref query_str) = query {
             // HIGH-003 監査対応: バインド前に escape_like_pattern でエスケープ済みの値を渡す
@@ -289,12 +353,13 @@ impl ServiceRepository for ServicePostgresRepository {
             q = q.bind(t.to_string());
         }
 
-        let rows = q.fetch_all(&self.pool).await?;
+        let rows = q.fetch_all(&mut *tx).await?;
+        tx.commit().await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("search", "services", start.elapsed().as_secs_f64());
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }

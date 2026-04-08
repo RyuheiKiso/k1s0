@@ -16,6 +16,7 @@ impl Default for InMemoryFileMetadataRepository {
 }
 
 impl InMemoryFileMetadataRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
@@ -95,8 +96,8 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         Ok(files.remove(id).is_some())
     }
 
-    /// テナント分離対応: tenant_id フィールドと storage_path の両方でテナント境界を確認する（migration 003 対応）
-    /// expected_uploader が Some の場合は uploaded_by も確認してアトミックな認可チェックを実現する。
+    /// テナント分離対応: `tenant_id` フィールドと `storage_path` の両方でテナント境界を確認する（migration 003 対応）
+    /// `expected_uploader` が Some の場合は `uploaded_by` も確認してアトミックな認可チェックを実現する。
     async fn delete_with_tenant_check(
         &self,
         id: String,
@@ -125,7 +126,7 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
 
 pub struct InMemoryFileStorageRepository;
 
-/// InMemoryFileStorageRepository の Default 実装（clippy::new_without_default 対応）
+/// `InMemoryFileStorageRepository` の Default `実装（clippy::new_without_default` 対応）
 impl Default for InMemoryFileStorageRepository {
     fn default() -> Self {
         Self
@@ -133,6 +134,7 @@ impl Default for InMemoryFileStorageRepository {
 }
 
 impl InMemoryFileStorageRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self
     }
@@ -147,8 +149,7 @@ impl FileStorageRepository for InMemoryFileStorageRepository {
         _expires_in_seconds: u32,
     ) -> anyhow::Result<String> {
         Ok(format!(
-            "https://storage.example.com/upload/{}?sig=mock",
-            storage_key
+            "https://storage.example.com/upload/{storage_key}?sig=mock"
         ))
     }
 
@@ -158,8 +159,7 @@ impl FileStorageRepository for InMemoryFileStorageRepository {
         _expires_in_seconds: u32,
     ) -> anyhow::Result<String> {
         Ok(format!(
-            "https://storage.example.com/download/{}?sig=mock",
-            storage_key
+            "https://storage.example.com/download/{storage_key}?sig=mock"
         ))
     }
 

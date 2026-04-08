@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::{RateLimitRepository, RateLimitStateStore};
 
-/// GetUsageError はレートリミット使用状況取得に関するエラー。
+/// `GetUsageError` はレートリミット使用状況取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum GetUsageError {
     #[error("rule not found: {0}")]
@@ -18,7 +18,7 @@ pub enum GetUsageError {
     Internal(String),
 }
 
-/// UsageInfo はレートリミットの使用状況。
+/// `UsageInfo` はレートリミットの使用状況。
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct UsageInfo {
     pub rule_id: String,
@@ -32,7 +32,7 @@ pub struct UsageInfo {
     pub reset_at: Option<i64>,
 }
 
-/// GetUsageUseCase はレートリミット使用状況取得ユースケース。
+/// `GetUsageUseCase` はレートリミット使用状況取得ユースケース。
 pub struct GetUsageUseCase {
     rule_repo: Arc<dyn RateLimitRepository>,
     state_store: Option<Arc<dyn RateLimitStateStore>>,

@@ -46,7 +46,7 @@ use super::workflow_grpc::{
     WorkflowStepData, WorkflowTaskData,
 };
 
-/// gRPC リクエストの Extensions から tenant_id を取得する。
+/// gRPC リクエストの Extensions から `tenant_id` を取得する。
 /// HIGH-004対応: 認証なしリクエストが "system" テナントとして処理されるのを防ぐ。
 /// Claims が存在しない場合は明示的に Unauthenticated エラーを返す（CWE-287対応）。
 fn tenant_id_from_request<T>(request: &Request<T>) -> Result<String, Status> {
@@ -159,6 +159,7 @@ pub struct WorkflowServiceTonic {
 }
 
 impl WorkflowServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<WorkflowGrpcService>) -> Self {
         Self { inner }
     }
@@ -175,8 +176,7 @@ impl WorkflowService for WorkflowServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_workflows(ListWorkflowsRequest {
@@ -354,8 +354,7 @@ impl WorkflowService for WorkflowServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_instances(ListInstancesRequest {
@@ -409,8 +408,7 @@ impl WorkflowService for WorkflowServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_tasks(ListTasksRequest {

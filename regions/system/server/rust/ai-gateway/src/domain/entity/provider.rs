@@ -21,6 +21,7 @@ pub struct Provider {
 #[allow(dead_code)]
 impl Provider {
     /// 新しいプロバイダーインスタンスを生成する。
+    #[must_use] 
     pub fn new(id: String, name: String, api_base_url: String, enabled: bool) -> Self {
         Self {
             id,

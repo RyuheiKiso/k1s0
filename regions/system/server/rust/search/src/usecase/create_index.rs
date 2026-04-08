@@ -29,7 +29,7 @@ impl CreateIndexUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからインデックスを作成する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからインデックスを作成する。
     pub async fn execute(&self, input: &CreateIndexInput) -> Result<SearchIndex, CreateIndexError> {
         let existing = self
             .repo

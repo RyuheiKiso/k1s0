@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::repository::DlqMessageRepository;
 use crate::infrastructure::kafka::producer::DlqEventPublisher;
 
-/// RetryAllUseCase はトピック内の全 DLQ メッセージを一括再処理する。
+/// `RetryAllUseCase` はトピック内の全 DLQ メッセージを一括再処理する。
 pub struct RetryAllUseCase {
     repo: Arc<dyn DlqMessageRepository>,
     publisher: Option<Arc<dyn DlqEventPublisher>>,
@@ -17,7 +17,7 @@ impl RetryAllUseCase {
         Self { repo, publisher }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからトピック内の全メッセージを再処理する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからトピック内の全メッセージを再処理する。
     /// 成功件数を返す。
     pub async fn execute(&self, topic: &str, tenant_id: &str) -> anyhow::Result<i64> {
         let mut retried = 0i64;

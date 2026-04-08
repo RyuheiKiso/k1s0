@@ -3,7 +3,8 @@ use tera::Context;
 use crate::config::{ApiStyle, DatabaseType, ScaffoldConfig};
 use crate::naming;
 
-/// Build a Tera context from a ScaffoldConfig.
+/// Build a Tera context from a `ScaffoldConfig`.
+#[must_use] 
 pub fn build_context(config: &ScaffoldConfig) -> Context {
     let mut ctx = Context::new();
 

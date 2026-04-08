@@ -7,10 +7,12 @@ use tracing::info;
 use super::config::Config;
 use super::navigation_loader::YamlNavigationConfigLoader;
 use crate::adapter;
-use crate::proto;
+use crate::proto::k1s0::system::navigation::v1::navigation_service_server::NavigationServiceServer;
 use crate::usecase;
 use crate::usecase::get_navigation::JwksNavigationTokenVerifier;
 
+// HIGH-001 監査対応: startup 関数は実装上 too_many_lines を超えるが分割は可読性を損なうため許容する
+#[allow(clippy::too_many_lines)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -33,7 +35,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -93,7 +95,6 @@ pub async fn run() -> anyhow::Result<()> {
     ));
     let navigation_tonic = adapter::grpc::NavigationServiceTonic::new(grpc_svc);
 
-    use proto::k1s0::system::navigation::v1::navigation_service_server::NavigationServiceServer;
 
     // REST (health/readyz/metrics only)
     let rest_state = adapter::handler::AppState {
@@ -133,7 +134,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server

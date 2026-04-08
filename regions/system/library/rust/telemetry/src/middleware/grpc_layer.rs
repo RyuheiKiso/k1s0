@@ -9,7 +9,7 @@ use tower::{Layer, Service};
 use crate::metrics::Metrics;
 use crate::middleware::GrpcInterceptor;
 
-/// GrpcMetricsLayer は tonic::transport::Server に適用する Tower Layer で、
+/// `GrpcMetricsLayer` は `tonic::transport::Server` に適用する Tower Layer で、
 /// gRPC リクエストのメトリクスを自動記録する。
 ///
 /// # 使用例
@@ -29,6 +29,7 @@ pub struct GrpcMetricsLayer {
 }
 
 impl GrpcMetricsLayer {
+    #[must_use]
     pub fn new(metrics: Arc<Metrics>) -> Self {
         Self {
             interceptor: GrpcInterceptor::new(metrics),
@@ -47,7 +48,7 @@ impl<S> Layer<S> for GrpcMetricsLayer {
     }
 }
 
-/// GrpcMetricsService は GrpcMetricsLayer が生成する Tower Service。
+/// `GrpcMetricsService` は `GrpcMetricsLayer` が生成する Tower Service。
 /// URI パスから `/package.Service/Method` を抽出し、レスポンスの grpc-status ヘッダから
 /// ステータスコードを取得してメトリクスを記録する。
 #[derive(Clone)]
@@ -79,7 +80,6 @@ fn grpc_status_code<B>(response: &Response<B>) -> &'static str {
     match status {
         0 => "OK",
         1 => "CANCELLED",
-        2 => "UNKNOWN",
         3 => "INVALID_ARGUMENT",
         4 => "DEADLINE_EXCEEDED",
         5 => "NOT_FOUND",

@@ -24,7 +24,7 @@ impl ConditionParser {
 
                 let children_arr = children_val
                     .as_array()
-                    .ok_or_else(|| format!("'{}' must be an array", key))?;
+                    .ok_or_else(|| format!("'{key}' must be an array"))?;
 
                 let mut children = Vec::with_capacity(children_arr.len());
                 for child in children_arr {
@@ -78,7 +78,7 @@ impl ConditionParser {
             "not_in" => Ok(Operator::NotIn),
             "contains" => Ok(Operator::Contains),
             "regex" => Ok(Operator::Regex),
-            other => Err(format!("unknown operator: '{}'", other)),
+            other => Err(format!("unknown operator: '{other}'")),
         }
     }
 }

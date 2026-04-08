@@ -1,5 +1,5 @@
-/// UserCache はユーザー情報のインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きでユーザー情報をキャッシュする。
+/// `UserCache` はユーザー情報のインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きでユーザー情報をキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,11 +11,12 @@ pub struct UserCache {
 }
 
 impl UserCache {
-    /// 新しい UserCache を作成する。
+    /// 新しい `UserCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use] 
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -24,7 +25,7 @@ impl UserCache {
         Self { inner }
     }
 
-    /// user_id に対応するユーザーを取得する。
+    /// `user_id` に対応するユーザーを取得する。
     /// キャッシュミスの場合は None を返す。
     pub async fn get(&self, user_id: &str) -> Option<Arc<User>> {
         self.inner.get(user_id).await

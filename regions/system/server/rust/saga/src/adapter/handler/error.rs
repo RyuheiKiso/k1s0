@@ -4,7 +4,7 @@ use axum::Json;
 
 use super::ErrorResponse;
 
-/// SagaError はSaga操作のエラー型。
+/// `SagaError` はSaga操作のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum SagaError {
     #[error("saga not found: {0}")]

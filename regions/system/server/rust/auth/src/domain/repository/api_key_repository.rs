@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::api_key::ApiKey;
 
-/// ApiKeyRepository は API キー管理のためのリポジトリトレイト。
+/// `ApiKeyRepository` は API キー管理のためのリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ApiKeyRepository: Send + Sync {

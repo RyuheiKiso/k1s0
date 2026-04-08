@@ -14,7 +14,7 @@ use super::database::{DatabaseConfig, DatabaseSetup};
 use super::kafka_setup::{KafkaConfig, KafkaSetup};
 use super::stack::{K1s0Stack, Profile};
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[cfg(feature = "auth")]
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AuthConfig {
@@ -25,7 +25,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[cfg(feature = "auth")]
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct JwtConfig {
@@ -35,7 +35,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[cfg(feature = "auth")]
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct JwksConfig {
@@ -65,9 +65,9 @@ impl Default for AuthConfig {
     }
 }
 
-/// K1s0App はサーバー初期化のボイラープレートを削減する上位ビルダー。
+/// `K1s0App` はサーバー初期化のボイラープレートを削減する上位ビルダー。
 ///
-/// Config → Telemetry → Metrics → HealthCheck → K1s0Stack の初期化を一括で行い、
+/// Config → Telemetry → Metrics → `HealthCheck` → `K1s0Stack` の初期化を一括で行い、
 /// 初期化順序ミス・設定漏れを構造的に排除する。
 pub struct K1s0App {
     telemetry_config: TelemetryConfig,
@@ -84,6 +84,7 @@ pub struct K1s0App {
 }
 
 impl K1s0App {
+    #[must_use] 
     pub fn new(telemetry_config: TelemetryConfig) -> Self {
         Self {
             telemetry_config,
@@ -100,21 +101,25 @@ impl K1s0App {
         }
     }
 
+    #[must_use] 
     pub fn profile(mut self, profile: Profile) -> Self {
         self.profile = Some(profile);
         self
     }
 
+    #[must_use] 
     pub fn add_health_check(mut self, check: Box<dyn HealthCheck>) -> Self {
         self.health_checks.push(check);
         self
     }
 
+    #[must_use] 
     pub fn without_correlation(mut self) -> Self {
         self.skip_correlation = true;
         self
     }
 
+    #[must_use] 
     pub fn without_request_id(mut self) -> Self {
         self.skip_request_id = true;
         self
@@ -133,6 +138,7 @@ impl K1s0App {
     }
 
     #[cfg(feature = "auth")]
+    #[must_use] 
     pub fn with_auth(mut self, auth_config: AuthConfig) -> Self {
         self.auth_config = Some(auth_config);
         self
@@ -149,7 +155,9 @@ impl K1s0App {
         config_loader::load_config(path)
     }
 
-    /// Telemetry初期化 → Metrics生成 → HealthChecker構築 → K1s0AppReady返却。
+    /// Telemetry初期化 → Metrics生成 → `HealthChecker構築` → `K1s0AppReady返却`。
+    // HIGH-001 監査対応: 公開 API の async を維持するため unused_async を許容する
+    #[allow(clippy::unused_async)]
     pub async fn build(self) -> Result<K1s0AppReady, Box<dyn std::error::Error>> {
         k1s0_telemetry::init_telemetry(&self.telemetry_config)?;
         self.build_inner()
@@ -161,6 +169,8 @@ impl K1s0App {
         self.build_inner()
     }
 
+    // HIGH-001 監査対応: build_inner は将来のエラー返却に備えて Result を保持する（unnecessary_wraps 許容）
+    #[allow(clippy::unnecessary_wraps)]
     fn build_inner(self) -> Result<K1s0AppReady, Box<dyn std::error::Error>> {
         let service_name = self.telemetry_config.service_name.clone();
         let profile = self
@@ -192,7 +202,7 @@ impl K1s0App {
     }
 }
 
-/// K1s0AppReady はビルド完了後の不変な状態を保持し、wrap() でRouterに適用する。
+/// `K1s0AppReady` `はビルド完了後の不変な状態を保持し、wrap()` でRouterに適用する。
 pub struct K1s0AppReady {
     service_name: String,
     profile: Profile,
@@ -209,18 +219,22 @@ pub struct K1s0AppReady {
 }
 
 impl K1s0AppReady {
+    #[must_use] 
     pub fn service_name(&self) -> &str {
         &self.service_name
     }
 
+    #[must_use] 
     pub fn profile(&self) -> &Profile {
         &self.profile
     }
 
+    #[must_use] 
     pub fn metrics(&self) -> Arc<Metrics> {
         self.metrics.clone()
     }
 
+    #[must_use] 
     pub fn health_checker(&self) -> Arc<CompositeHealthChecker> {
         self.health_checker.clone()
     }
@@ -231,6 +245,7 @@ impl K1s0AppReady {
     }
 
     #[cfg(feature = "auth")]
+    #[must_use] 
     pub fn auth_config(&self) -> Option<&AuthConfig> {
         self.auth_config.as_ref()
     }

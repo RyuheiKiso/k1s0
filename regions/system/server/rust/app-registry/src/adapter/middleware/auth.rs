@@ -34,7 +34,7 @@ pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
     }
 }
 
-/// auth_middleware は Bearer トークンを検証して、Request extension に Claims を格納する axum ミドルウェア。
+/// `auth_middleware` は Bearer トークンを検証して、Request extension に Claims を格納する axum ミドルウェア。
 /// トークンが存在しないか無効な場合は 401 Unauthorized を返す。
 pub async fn auth_middleware(
     State(state): State<AppState>,

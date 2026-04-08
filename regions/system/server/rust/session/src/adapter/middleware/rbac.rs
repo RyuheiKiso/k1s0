@@ -9,8 +9,8 @@ use axum::{
 
 use k1s0_auth::Claims;
 
-/// require_permission は resource/action ベースのアクセス制御ミドルウェアファクトリ。
-/// auth_middleware の後に使用すること。
+/// `require_permission` は resource/action ベースのアクセス制御ミドルウェアファクトリ。
+/// `auth_middleware` の後に使用すること。
 ///
 /// session-server の RBAC マッピング:
 /// - GET    -> sessions/read
@@ -28,10 +28,10 @@ pub fn require_permission(
 }
 
 /// system tier 向けのパーミッションチェック。
-/// auth-server の AuthDomainService::check_permission と同じロジック:
-/// - sys_admin   : 全アクション許可
-/// - sys_operator: "read" / "write" を許可
-/// - sys_auditor : "read" のみ許可
+/// auth-server の `AuthDomainService::check_permission` と同じロジック:
+/// - `sys_admin`   : 全アクション許可
+/// - `sys_operator`: "read" / "write" を許可
+/// - `sys_auditor` : "read" のみ許可
 fn check_system_permission(roles: &[String], _resource: &str, action: &str) -> bool {
     for role in roles {
         match role.as_str() {

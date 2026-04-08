@@ -21,6 +21,7 @@ impl TimeoutDetectionService {
     /// Check in-progress flow instances against their flow definitions and detect timeouts.
     /// Returns a list of instances that have exceeded the timeout for their current step.
     #[allow(dead_code)]
+    #[must_use] 
     pub fn detect_timeouts(
         instances: &[FlowInstance],
         flow_definitions: &[FlowDefinition],
@@ -46,7 +47,7 @@ impl TimeoutDetectionService {
             if next_step_index >= flow.steps.len() {
                 // Already at or past the last step, check overall SLO timeout
                 let elapsed = (now - instance.started_at).num_seconds();
-                if elapsed > flow.slo.target_completion_seconds as i64 {
+                if elapsed > i64::from(flow.slo.target_completion_seconds) {
                     results.push(TimeoutResult {
                         instance: instance.clone(),
                         flow_name: flow.name.clone(),
@@ -71,7 +72,7 @@ impl TimeoutDetectionService {
                 .map(|s| s.timeout_seconds)
                 .sum();
 
-            if elapsed > cumulative_timeout as i64 {
+            if elapsed > i64::from(cumulative_timeout) {
                 results.push(TimeoutResult {
                     instance: instance.clone(),
                     flow_name: flow.name.clone(),

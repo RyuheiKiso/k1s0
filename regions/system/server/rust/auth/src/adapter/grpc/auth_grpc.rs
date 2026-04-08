@@ -44,6 +44,7 @@ pub struct AuthGrpcService {
 }
 
 impl AuthGrpcService {
+    #[must_use] 
     pub fn new(
         validate_token_uc: Arc<ValidateTokenUseCase>,
         get_user_uc: Arc<GetUserUseCase>,
@@ -86,7 +87,7 @@ impl AuthGrpcService {
                 user: Some(domain_user_to_proto(&user)),
             }),
             Err(GetUserError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("user not found: {}", id)))
+                Err(GrpcError::NotFound(format!("user not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -161,7 +162,7 @@ impl AuthGrpcService {
                 })
             }
             Err(GetUserRolesError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("user not found: {}", id)))
+                Err(GrpcError::NotFound(format!("user not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }

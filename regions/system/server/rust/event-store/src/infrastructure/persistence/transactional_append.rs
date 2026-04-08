@@ -11,14 +11,15 @@ use crate::domain::repository::TransactionalAppendPort;
 
 use super::{EventPostgresRepository, StreamPostgresRepository};
 
-/// TransactionalAppendPort の PostgreSQL 実装。
+/// `TransactionalAppendPort` の `PostgreSQL` 実装。
 /// REPEATABLE READ トランザクション内でストリーム作成・イベント追記・バージョン更新を実行する。
 pub struct TransactionalAppendAdapter {
     pool: PgPool,
 }
 
 impl TransactionalAppendAdapter {
-    /// PgPool からアダプターを生成する。
+    /// `PgPool` からアダプターを生成する。
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -28,7 +29,7 @@ impl TransactionalAppendAdapter {
 impl TransactionalAppendPort for TransactionalAppendAdapter {
     /// ストリーム作成（新規の場合）・イベント追記・バージョン更新を
     /// 単一の REPEATABLE READ トランザクションで実行する。
-    /// テナント分離のため、トランザクション開始時に set_config でテナント ID を設定する（ADR-0106）。
+    /// テナント分離のため、トランザクション開始時に `set_config` でテナント ID を設定する（ADR-0106）。
     async fn append_in_transaction<'a>(
         &self,
         tenant_id: &str,

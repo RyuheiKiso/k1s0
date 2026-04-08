@@ -12,6 +12,7 @@ pub struct TableDefinitionPostgresRepository {
 }
 
 impl TableDefinitionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -38,7 +39,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         }
         // カテゴリフィルタ（ユーザー入力のためパラメータ化必須）
         if let Some(cat) = category {
-            query.push_str(&format!(" AND category = ${}", param_idx));
+            query.push_str(&format!(" AND category = ${param_idx}"));
             bind_values.push(cat.to_string());
             param_idx += 1;
         }
@@ -49,8 +50,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                 query.push_str(" AND domain_scope IS NULL");
             }
             DomainFilter::Domain(domain) => {
-                query.push_str(&format!(" AND domain_scope = ${}", param_idx));
-                bind_values.push(domain.to_string());
+                query.push_str(&format!(" AND domain_scope = ${param_idx}"));
+                bind_values.push(domain.clone());
             }
         }
         query.push_str(" ORDER BY sort_order, name");
@@ -62,7 +63,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         }
 
         let rows = q.fetch_all(&self.pool).await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_name(
@@ -88,7 +89,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             .fetch_optional(&self.pool)
             .await?
         };
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableDefinition>> {
@@ -99,7 +100,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn create(
@@ -108,13 +109,13 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
         created_by: &str,
     ) -> anyhow::Result<TableDefinition> {
         let row = sqlx::query_as::<_, TableDefinitionRow>(
-            r#"INSERT INTO master_maintenance.table_definitions
+            r"INSERT INTO master_maintenance.table_definitions
                (name, schema_name, database_name, display_name, description, category,
                 allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles,
                 sort_order, created_by, domain_scope)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
+               RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope",
         )
         .bind(&input.name)
         .bind(&input.schema_name)
@@ -144,7 +145,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
     ) -> anyhow::Result<TableDefinition> {
         let row = if let Some(ds) = domain_scope {
             sqlx::query_as::<_, TableDefinitionRow>(
-                r#"UPDATE master_maintenance.table_definitions SET
+                r"UPDATE master_maintenance.table_definitions SET
                    display_name = COALESCE($2, display_name),
                    description = COALESCE($3, description),
                    category = COALESCE($4, category),
@@ -158,7 +159,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    sort_order = COALESCE($12, sort_order),
                    updated_at = now()
                    -- 明示的カラム指定によるクエリ安全性の確保
-                   WHERE name = $1 AND domain_scope = $13 RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
+                   WHERE name = $1 AND domain_scope = $13 RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope",
             )
             .bind(name)
             .bind(&input.display_name)
@@ -177,7 +178,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             .await?
         } else {
             sqlx::query_as::<_, TableDefinitionRow>(
-                r#"UPDATE master_maintenance.table_definitions SET
+                r"UPDATE master_maintenance.table_definitions SET
                    display_name = COALESCE($2, display_name),
                    description = COALESCE($3, description),
                    category = COALESCE($4, category),
@@ -191,7 +192,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                    sort_order = COALESCE($12, sort_order),
                    updated_at = now()
                    -- 明示的カラム指定によるクエリ安全性の確保
-                   WHERE name = $1 AND domain_scope IS NULL RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope"#,
+                   WHERE name = $1 AND domain_scope IS NULL RETURNING id, name, schema_name, database_name, display_name, description, category, is_active, allow_create, allow_update, allow_delete, read_roles, write_roles, admin_roles, sort_order, created_by, created_at, updated_at, domain_scope",
             )
             .bind(name)
             .bind(&input.display_name)
@@ -229,11 +230,11 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
 
     async fn find_domains(&self) -> anyhow::Result<Vec<(String, i64)>> {
         let rows: Vec<(String, i64)> = sqlx::query_as(
-            r#"SELECT domain_scope, COUNT(*) as table_count
+            r"SELECT domain_scope, COUNT(*) as table_count
                FROM master_maintenance.table_definitions
                WHERE domain_scope IS NOT NULL
                GROUP BY domain_scope
-               ORDER BY domain_scope"#,
+               ORDER BY domain_scope",
         )
         .fetch_all(&self.pool)
         .await?;

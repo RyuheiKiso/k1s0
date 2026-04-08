@@ -7,7 +7,15 @@ use tracing::instrument;
 use crate::domain::model::{Session, SessionStatus};
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -31,13 +39,13 @@ pub struct SessionGrpcClient {
     client: SessionServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl SessionGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -64,7 +72,7 @@ impl SessionGrpcClient {
                 Ok(Some(session_from_proto(s)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("SessionService.GetSession failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("SessionService.GetSession failed: {e}")),
         }
     }
 
@@ -80,7 +88,7 @@ impl SessionGrpcClient {
             .clone()
             .list_user_sessions(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SessionService.ListUserSessions failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SessionService.ListUserSessions failed: {e}"))?
             .into_inner();
 
         Ok(resp.sessions.into_iter().map(session_from_proto).collect())
@@ -101,10 +109,10 @@ impl SessionGrpcClient {
         let request = tonic::Request::new(proto::k1s0::system::session::v1::CreateSessionRequest {
             user_id: user_id.to_owned(),
             device_id: device_id.to_owned(),
-            device_name: device_name.map(|s| s.to_owned()),
-            device_type: device_type.map(|s| s.to_owned()),
-            user_agent: user_agent.map(|s| s.to_owned()),
-            ip_address: ip_address.map(|s| s.to_owned()),
+            device_name: device_name.map(std::borrow::ToOwned::to_owned),
+            device_type: device_type.map(std::borrow::ToOwned::to_owned),
+            user_agent: user_agent.map(std::borrow::ToOwned::to_owned),
+            ip_address: ip_address.map(std::borrow::ToOwned::to_owned),
             ttl_seconds: ttl_seconds.map(|t| t as u32),
             max_devices: None,
             metadata: Default::default(),
@@ -115,7 +123,7 @@ impl SessionGrpcClient {
             .clone()
             .create_session(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SessionService.CreateSession failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SessionService.CreateSession failed: {e}"))?
             .into_inner();
 
         let token = resp.token.clone();
@@ -154,7 +162,7 @@ impl SessionGrpcClient {
             .clone()
             .refresh_session(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SessionService.RefreshSession failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SessionService.RefreshSession failed: {e}"))?
             .into_inner();
 
         let token = resp.token.clone();
@@ -189,7 +197,7 @@ impl SessionGrpcClient {
             .clone()
             .revoke_session(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SessionService.RevokeSession failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SessionService.RevokeSession failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -207,7 +215,7 @@ impl SessionGrpcClient {
             .clone()
             .revoke_all_sessions(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SessionService.RevokeAllSessions failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SessionService.RevokeAllSessions failed: {e}"))?
             .into_inner();
 
         Ok(resp.revoked_count)
@@ -228,13 +236,13 @@ impl SessionGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("session gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("session gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }
 
-/// proto の SessionStatus 値をドメインモデルの SessionStatus に変換するヘルパー関数。
-/// proto の SessionStatus i32 値をドメインモデルの SessionStatus に変換する。
+/// proto の `SessionStatus` 値をドメインモデルの `SessionStatus` に変換するヘルパー関数。
+/// proto の `SessionStatus` i32 値をドメインモデルの `SessionStatus` に変換する。
 /// buf generate 後の生成コードでは status フィールドは i32 型（enumeration）になる。
 /// proto enum: Unspecified = 0, Active = 1, Revoked = 2
 fn proto_status_to_domain_str(v: &i32) -> SessionStatus {

@@ -7,6 +7,7 @@ pub struct CircuitBreaker {
 }
 
 impl CircuitBreaker {
+    #[must_use] 
     pub fn new(config: CircuitBreakerConfig) -> Self {
         Self {
             inner: k1s0_circuit_breaker::CircuitBreaker::new(config),

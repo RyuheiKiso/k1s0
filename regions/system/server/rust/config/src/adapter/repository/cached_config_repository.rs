@@ -8,10 +8,10 @@ use crate::infrastructure::cache::ConfigCache;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-/// CachedConfigRepository は ConfigRepository をキャッシュでラップする。
-/// find_by_namespace_and_key でキャッシュヒット時はDBアクセスをスキップする。
+/// `CachedConfigRepository` は `ConfigRepository` をキャッシュでラップする。
+/// `find_by_namespace_and_key` でキャッシュヒット時はDBアクセスをスキップする。
 /// update / delete 時はキャッシュを invalidate して整合性を保つ。
-/// STATIC-CRITICAL-001 監査対応: 全メソッドに tenant_id パラメータを追加。
+/// STATIC-CRITICAL-001 監査対応: 全メソッドに `tenant_id` パラメータを追加。
 pub struct CachedConfigRepository {
     inner: Arc<dyn ConfigRepository>,
     cache: Arc<ConfigCache>,
@@ -29,7 +29,7 @@ impl CachedConfigRepository {
         }
     }
 
-    /// メトリクス付きの CachedConfigRepository を作成する。
+    /// メトリクス付きの `CachedConfigRepository` を作成する。
     pub fn with_metrics(
         inner: Arc<dyn ConfigRepository>,
         cache: Arc<ConfigCache>,
@@ -79,7 +79,7 @@ impl ConfigRepository for CachedConfigRepository {
         Ok(result)
     }
 
-    /// list_by_namespace はキャッシュを使わず inner に委譲する。
+    /// `list_by_namespace` はキャッシュを使わず inner に委譲する。
     async fn list_by_namespace(
         &self,
         tenant_id: Uuid,
@@ -140,7 +140,7 @@ impl ConfigRepository for CachedConfigRepository {
         Ok(deleted)
     }
 
-    /// find_by_service_name はキャッシュを使わず inner に委譲する。
+    /// `find_by_service_name` はキャッシュを使わず inner に委譲する。
     async fn find_by_service_name(
         &self,
         tenant_id: Uuid,
@@ -149,7 +149,7 @@ impl ConfigRepository for CachedConfigRepository {
         self.inner.find_by_service_name(tenant_id, service_name).await
     }
 
-    /// record_change_log はキャッシュを使わず inner に委譲する。
+    /// `record_change_log` はキャッシュを使わず inner に委譲する。
     async fn record_change_log(&self, log: &ConfigChangeLog) -> Result<(), ConfigRepositoryError> {
         self.inner.record_change_log(log).await
     }

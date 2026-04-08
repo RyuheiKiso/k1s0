@@ -16,14 +16,14 @@ use crate::infrastructure::kafka_producer::{
 };
 
 /// 通知送信ユースケースの入力パラメータを定義する構造体
-/// RUST-MED-003: template_variables は現状 HashMap<String, String>（文字列のみ対応）。
-/// 将来的には serde_json::Value への移行で JSON オブジェクト・数値・配列を扱えるようにする予定。
+/// RUST-MED-003: `template_variables` は現状 `HashMap`<String, String>（文字列のみ対応）。
+/// 将来的には `serde_json::Value` への移行で JSON オブジェクト・数値・配列を扱えるようにする予定。
 /// 移行は proto v2 での破壊的変更として実施する（proto の map<string, string> → google.protobuf.Struct への変更が必要）。
-/// MEDIUM-RUST-001 監査対応: tenant_id を追加してチャンネル検索時の RLS を有効化する。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` を追加してチャンネル検索時の RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct SendNotificationInput {
     pub channel_id: String,
-    /// MEDIUM-RUST-001: JWT クレームから取得したテナント ID。RLS の set_config に使用する。
+    /// MEDIUM-RUST-001: JWT クレームから取得したテナント ID。RLS の `set_config` に使用する。
     pub tenant_id: String,
     pub template_id: Option<String>,
     pub recipient: String,

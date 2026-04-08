@@ -38,7 +38,7 @@ impl IndexDocumentUseCase {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからドキュメントを登録する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからドキュメントを登録する。
     pub async fn execute(
         &self,
         input: &IndexDocumentInput,

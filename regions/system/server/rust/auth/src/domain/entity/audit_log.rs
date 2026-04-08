@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// AuditLog は監査ログエントリを表すドメインエンティティ。
+/// `AuditLog` は監査ログエントリを表すドメインエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct AuditLog {
     pub id: Uuid,
@@ -20,7 +20,7 @@ pub struct AuditLog {
     pub created_at: DateTime<Utc>,
 }
 
-/// CreateAuditLogRequest は監査ログ記録リクエストを表す。
+/// `CreateAuditLogRequest` は監査ログ記録リクエストを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct CreateAuditLogRequest {
     pub event_type: String,
@@ -37,7 +37,7 @@ pub struct CreateAuditLogRequest {
     pub trace_id: Option<String>,
 }
 
-/// AuditLogSearchParams は監査ログ検索パラメータを表す。
+/// `AuditLogSearchParams` は監査ログ検索パラメータを表す。
 #[derive(Debug, Clone, Default)]
 pub struct AuditLogSearchParams {
     pub user_id: Option<String>,
@@ -49,14 +49,14 @@ pub struct AuditLogSearchParams {
     pub page_size: i32,
 }
 
-/// AuditLogSearchResult は監査ログ検索結果を表す。
+/// `AuditLogSearchResult` は監査ログ検索結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct AuditLogSearchResult {
     pub logs: Vec<AuditLog>,
     pub pagination: super::user::Pagination,
 }
 
-/// CreateAuditLogResponse は監査ログ作成レスポンスを表す。
+/// `CreateAuditLogResponse` は監査ログ作成レスポンスを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct CreateAuditLogResponse {
     pub id: Uuid,
@@ -64,7 +64,8 @@ pub struct CreateAuditLogResponse {
 }
 
 impl AuditLog {
-    /// 新しい AuditLog エンティティを作成する。
+    /// 新しい `AuditLog` エンティティを作成する。
+    #[must_use] 
     pub fn new(req: CreateAuditLogRequest) -> Self {
         Self {
             id: Uuid::new_v4(),

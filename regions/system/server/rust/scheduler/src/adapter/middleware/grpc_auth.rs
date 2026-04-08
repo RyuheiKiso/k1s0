@@ -14,6 +14,7 @@ pub struct GrpcAuthLayer {
 }
 
 impl GrpcAuthLayer {
+    #[must_use] 
     pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }
@@ -98,8 +99,7 @@ where
                     return Ok(permission_denied_response(
                         "SYS_AUTH_PERMISSION_DENIED",
                         &format!(
-                            "Insufficient permissions: action '{}' is not allowed for gRPC method '{}'.",
-                            action, path
+                            "Insufficient permissions: action '{action}' is not allowed for gRPC method '{path}'."
                         ),
                     ));
                 }

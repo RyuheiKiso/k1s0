@@ -4,7 +4,7 @@ use crate::domain::entity::{Algorithm, RateLimitRule};
 use crate::domain::repository::RateLimitRepository;
 use crate::domain::service::RateLimitDomainService;
 
-/// CreateRuleError はルール作成に関するエラー。
+/// `CreateRuleError` はルール作成に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum CreateRuleError {
     #[error("invalid algorithm: {0}")]
@@ -20,7 +20,7 @@ pub enum CreateRuleError {
     Internal(String),
 }
 
-/// CreateRuleInput はルール作成の入力。
+/// `CreateRuleInput` はルール作成の入力。
 pub struct CreateRuleInput {
     pub scope: String,
     pub identifier_pattern: String,
@@ -32,7 +32,7 @@ pub struct CreateRuleInput {
     pub tenant_id: String,
 }
 
-/// CreateRuleUseCase はルール作成ユースケース。
+/// `CreateRuleUseCase` はルール作成ユースケース。
 pub struct CreateRuleUseCase {
     repo: Arc<dyn RateLimitRepository>,
 }
@@ -42,7 +42,7 @@ impl CreateRuleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを作成する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを作成する。
     pub async fn execute(&self, input: &CreateRuleInput) -> Result<RateLimitRule, CreateRuleError> {
         // バリデーション
         RateLimitDomainService::validate_rule_input(

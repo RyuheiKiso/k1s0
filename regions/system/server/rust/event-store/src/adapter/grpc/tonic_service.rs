@@ -43,6 +43,7 @@ pub struct EventStoreGrpcAuthState {
 }
 
 impl EventStoreServiceTonic {
+    #[must_use] 
     pub fn new(
         inner: Arc<EventStoreGrpcService>,
         auth_state: Option<EventStoreGrpcAuthState>,
@@ -50,7 +51,7 @@ impl EventStoreServiceTonic {
         Self { inner, auth_state }
     }
 
-    /// リクエストの認証・認可を行い、Claims から tenant_id を取得して返す。
+    /// リクエストの認証・認可を行い、Claims から `tenant_id` を取得して返す。
     /// 認証が設定されていない場合は "system" を返す（開発環境用フォールバック）。
     async fn authorize_with_tenant<T>(
         &self,
@@ -90,8 +91,7 @@ impl EventStoreServiceTonic {
             Ok(claims.tenant_id().to_string())
         } else {
             Err(Status::permission_denied(format!(
-                "insufficient permissions for action '{}': required role mapping not satisfied",
-                action
+                "insufficient permissions for action '{action}': required role mapping not satisfied"
             )))
         }
     }

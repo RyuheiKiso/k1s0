@@ -2,7 +2,7 @@ use tokio::sync::broadcast;
 
 use crate::usecase::watch_tenant::TenantChangeEvent;
 
-/// TenantChangeNotification は gRPC ストリーミングレスポンスとして返す変更通知。
+/// `TenantChangeNotification` は gRPC ストリーミングレスポンスとして返す変更通知。
 #[derive(Debug, Clone)]
 pub struct TenantChangeNotification {
     pub tenant_id: String,
@@ -13,8 +13,8 @@ pub struct TenantChangeNotification {
     pub tenant_plan: String,
 }
 
-/// WatchTenantStreamHandler は broadcast::Receiver をラップし、
-/// tenant_id フィルタを適用しながら次の変更通知を非同期で返す。
+/// `WatchTenantStreamHandler` は `broadcast::Receiver` をラップし、
+/// `tenant_id` フィルタを適用しながら次の変更通知を非同期で返す。
 pub struct WatchTenantStreamHandler {
     receiver: broadcast::Receiver<TenantChangeEvent>,
     tenant_id_filter: Option<String>,
@@ -34,6 +34,7 @@ impl WatchTenantStreamHandler {
     /// - `receiver`: `WatchTenantUseCase::subscribe()` で得た Receiver。
     /// - `tenant_id_filter`: 指定した場合、そのテナント ID の変更通知のみを返す。
     ///   空文字列または None の場合は全通知を返す。
+    #[must_use] 
     pub fn new(
         receiver: broadcast::Receiver<TenantChangeEvent>,
         tenant_id_filter: Option<String>,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 
-/// HashiCorp Vault KV v2 クライアント。
+/// `HashiCorp` Vault KV v2 クライアント。
 pub struct VaultKvClient {
     client: VaultClient,
     mount: String,

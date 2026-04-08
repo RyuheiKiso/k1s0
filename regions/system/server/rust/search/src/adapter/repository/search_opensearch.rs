@@ -16,16 +16,16 @@ use crate::domain::entity::search_index::{
 };
 use crate::domain::repository::SearchRepository;
 
-/// SearchOpenSearchRepository は OpenSearch を使った SearchRepository 実装。
+/// `SearchOpenSearchRepository` は `OpenSearch` を使った `SearchRepository` 実装。
 pub struct SearchOpenSearchRepository {
     client: OpenSearch,
     prefix: String,
 }
 
 impl SearchOpenSearchRepository {
-    /// SearchOpenSearchRepository を構築する。
-    /// tls_insecure が false（デフォルト）の場合、TLS 証明書を完全検証する。
-    /// 開発環境のみ tls_insecure = true を使用すること。
+    /// `SearchOpenSearchRepository` を構築する。
+    /// `tls_insecure` が false（デフォルト）の場合、TLS 証明書を完全検証する。
+    /// 開発環境のみ `tls_insecure` = true を使用すること。
     pub fn new(
         url: &str,
         username: &str,
@@ -82,7 +82,7 @@ impl SearchOpenSearchRepository {
 
 #[async_trait]
 impl SearchRepository for SearchOpenSearchRepository {
-    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
     async fn create_index(&self, index: &SearchIndex, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&index.name);
         let response = self
@@ -95,12 +95,12 @@ impl SearchRepository for SearchOpenSearchRepository {
 
         if !response.status_code().is_success() {
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("failed to create index {}: {}", idx_name, body);
+            anyhow::bail!("failed to create index {idx_name}: {body}");
         }
         Ok(())
     }
 
-    /// OpenSearch実装: tenant_id をレスポンスの SearchIndex に付与する。
+    /// `OpenSearch実装`: `tenant_id` をレスポンスの `SearchIndex` に付与する。
     async fn find_index(&self, name: &str, tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
         let idx_name = self.index_name(name);
         let response = self
@@ -124,7 +124,7 @@ impl SearchRepository for SearchOpenSearchRepository {
         }
     }
 
-    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
     async fn index_document(&self, doc: &SearchDocument, _tenant_id: &str) -> anyhow::Result<()> {
         let idx_name = self.index_name(&doc.index_name);
         let response = self
@@ -146,7 +146,7 @@ impl SearchRepository for SearchOpenSearchRepository {
         Ok(())
     }
 
-    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
     async fn search(&self, query: &SearchQuery, _tenant_id: &str) -> anyhow::Result<SearchResult> {
         let idx_name = self.index_name(&query.index_name);
 
@@ -204,15 +204,15 @@ impl SearchRepository for SearchOpenSearchRepository {
         let response = self
             .client
             .search(SearchParts::Index(&[&idx_name]))
-            .from(query.from as i64)
-            .size(query.size as i64)
+            .from(i64::from(query.from))
+            .size(i64::from(query.size))
             .body(body)
             .send()
             .await?;
 
         if !response.status_code().is_success() {
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("search failed on {}: {}", idx_name, body);
+            anyhow::bail!("search failed on {idx_name}: {body}");
         }
 
         let response_body: Value = response.json().await?;
@@ -259,7 +259,7 @@ impl SearchRepository for SearchOpenSearchRepository {
 
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (query.from as u64 + hits.len() as u64);
+        let has_next = total > (u64::from(query.from) + hits.len() as u64);
 
         Ok(SearchResult {
             total,
@@ -274,7 +274,7 @@ impl SearchRepository for SearchOpenSearchRepository {
         })
     }
 
-    /// OpenSearch実装: tenant_id はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
+    /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
     async fn delete_document(&self, index_name: &str, doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let idx_name = self.index_name(index_name);
         let response = self
@@ -291,7 +291,7 @@ impl SearchRepository for SearchOpenSearchRepository {
         }
     }
 
-    /// OpenSearch実装: tenant_id を使用してレスポンスの SearchIndex に付与する。
+    /// `OpenSearch実装`: `tenant_id` を使用してレスポンスの `SearchIndex` に付与する。
     async fn list_indices(&self, tenant_id: &str) -> anyhow::Result<Vec<SearchIndex>> {
         let pattern = format!("{}*", self.prefix);
         let response = self

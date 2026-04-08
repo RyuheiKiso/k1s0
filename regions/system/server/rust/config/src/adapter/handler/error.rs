@@ -14,14 +14,14 @@ use crate::usecase::update_config::UpdateConfigError;
 use crate::usecase::upsert_config_schema::UpsertConfigSchemaError;
 use k1s0_server_common::{ErrorDetail, ErrorResponse};
 
-/// GetConfigError を HTTP レスポンスに変換する。
+/// `GetConfigError` を HTTP レスポンスに変換する。
 impl IntoResponse for GetConfigError {
     fn into_response(self) -> axum::response::Response {
         match self {
             GetConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {ns}/{key}"),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -33,7 +33,7 @@ impl IntoResponse for GetConfigError {
     }
 }
 
-/// ListConfigsError を HTTP レスポンスに変換する。
+/// `ListConfigsError` を HTTP レスポンスに変換する。
 impl IntoResponse for ListConfigsError {
     fn into_response(self) -> axum::response::Response {
         match self {
@@ -49,14 +49,14 @@ impl IntoResponse for ListConfigsError {
     }
 }
 
-/// UpdateConfigError を HTTP レスポンスに変換する。
+/// `UpdateConfigError` を HTTP レスポンスに変換する。
 impl IntoResponse for UpdateConfigError {
     fn into_response(self) -> axum::response::Response {
         match self {
             UpdateConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {ns}/{key}"),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -68,7 +68,7 @@ impl IntoResponse for UpdateConfigError {
                     vec![ErrorDetail::new(
                         "version",
                         "version_conflict",
-                        format!("期待値: {}, 現在値: {}", expected, current),
+                        format!("期待値: {expected}, 現在値: {current}"),
                     )],
                 );
                 (StatusCode::CONFLICT, Json(err)).into_response()
@@ -89,14 +89,14 @@ impl IntoResponse for UpdateConfigError {
     }
 }
 
-/// DeleteConfigError を HTTP レスポンスに変換する。
+/// `DeleteConfigError` を HTTP レスポンスに変換する。
 impl IntoResponse for DeleteConfigError {
     fn into_response(self) -> axum::response::Response {
         match self {
             DeleteConfigError::NotFound(ns, key) => {
                 let err = ErrorResponse::new(
                     codes::config::key_not_found().as_str(),
-                    format!("指定された設定キーが見つかりません: {}/{}", ns, key),
+                    format!("指定された設定キーが見つかりません: {ns}/{key}"),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -108,14 +108,14 @@ impl IntoResponse for DeleteConfigError {
     }
 }
 
-/// GetServiceConfigError を HTTP レスポンスに変換する。
+/// `GetServiceConfigError` を HTTP レスポンスに変換する。
 impl IntoResponse for GetServiceConfigError {
     fn into_response(self) -> axum::response::Response {
         match self {
             GetServiceConfigError::NotFound(name) => {
                 let err = ErrorResponse::new(
                     codes::config::service_not_found().as_str(),
-                    format!("指定されたサービスの設定が見つかりません: {}", name),
+                    format!("指定されたサービスの設定が見つかりません: {name}"),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -127,14 +127,14 @@ impl IntoResponse for GetServiceConfigError {
     }
 }
 
-/// GetConfigSchemaError を HTTP レスポンスに変換する。
+/// `GetConfigSchemaError` を HTTP レスポンスに変換する。
 impl IntoResponse for GetConfigSchemaError {
     fn into_response(self) -> axum::response::Response {
         match self {
             GetConfigSchemaError::NotFound(name) => {
                 let err = ErrorResponse::new(
                     codes::config::schema_not_found().as_str(),
-                    format!("指定されたサービスの設定スキーマが見つかりません: {}", name),
+                    format!("指定されたサービスの設定スキーマが見つかりません: {name}"),
                 );
                 (StatusCode::NOT_FOUND, Json(err)).into_response()
             }
@@ -146,7 +146,7 @@ impl IntoResponse for GetConfigSchemaError {
     }
 }
 
-/// UpsertConfigSchemaError を HTTP レスポンスに変換する。
+/// `UpsertConfigSchemaError` を HTTP レスポンスに変換する。
 impl IntoResponse for UpsertConfigSchemaError {
     fn into_response(self) -> axum::response::Response {
         match self {
@@ -158,7 +158,7 @@ impl IntoResponse for UpsertConfigSchemaError {
     }
 }
 
-/// ListConfigSchemasError を HTTP レスポンスに変換する。
+/// `ListConfigSchemasError` を HTTP レスポンスに変換する。
 impl IntoResponse for ListConfigSchemasError {
     fn into_response(self) -> axum::response::Response {
         match self {

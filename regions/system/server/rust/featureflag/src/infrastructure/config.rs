@@ -68,7 +68,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `DatabaseConfig` 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -105,7 +105,8 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
+    /// `PostgreSQL` 謗･邯・URL 繧堤函謌舌☆繧九・
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -120,7 +121,7 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `KafkaConfig` 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -129,13 +130,13 @@ pub struct KafkaConfig {
     pub topic: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// CacheConfig 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `CacheConfig` 縺ｯ繧､繝ｳ繝｡繝｢繝ｪ繧ｭ繝｣繝・す繝･縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_max_entries")]
@@ -153,7 +154,7 @@ impl Default for CacheConfig {
     }
 }
 
-/// AuthConfig 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` 縺ｯ JWT 隱崎ｨｼ縺ｮ險ｭ螳壹ｒ陦ｨ縺吶・
 /// 認証設定（JWT検証とJWKS取得を管理する）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {

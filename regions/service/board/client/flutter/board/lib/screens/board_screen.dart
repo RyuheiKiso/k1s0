@@ -15,8 +15,9 @@ class BoardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    /// ボードカラム一覧の状態を監視する（プロジェクトIDをキーとして使用）
-    final columnsAsync = ref.watch(boardColumnListProvider(projectId));
+    /// ボードカラム一覧の状態を監視する
+    /// 非ファミリープロバイダーのため引数なしで参照する
+    final columnsAsync = ref.watch(boardColumnListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,7 +28,7 @@ class BoardScreen extends ConsumerWidget {
             icon: const Icon(Icons.refresh),
             tooltip: '更新',
             onPressed: () =>
-                ref.read(boardColumnListProvider(projectId).notifier).load(projectId),
+                ref.read(boardColumnListProvider.notifier).load(projectId),
           ),
         ],
       ),
@@ -43,7 +44,7 @@ class BoardScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () =>
-                    ref.read(boardColumnListProvider(projectId).notifier).load(projectId),
+                    ref.read(boardColumnListProvider.notifier).load(projectId),
                 child: const Text('再試行'),
               ),
             ],
@@ -69,10 +70,10 @@ class BoardScreen extends ConsumerWidget {
                       '/boards/$projectId/columns/${column.statusCode}/wip-limit',
                     ),
                     onIncrement: () => ref
-                        .read(boardColumnListProvider(projectId).notifier)
+                        .read(boardColumnListProvider.notifier)
                         .increment(projectId, column.statusCode),
                     onDecrement: () => ref
-                        .read(boardColumnListProvider(projectId).notifier)
+                        .read(boardColumnListProvider.notifier)
                         .decrement(projectId, column.statusCode),
                   ),
                 );

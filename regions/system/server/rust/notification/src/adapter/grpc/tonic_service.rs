@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の NotificationService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の NotificationGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `NotificationService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `NotificationGrpcService` に委譲する。
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
@@ -54,7 +54,7 @@ use super::notification_grpc::{
 
 // --- ヘルパー関数 ---
 
-/// ISO 8601 文字列を ProtoTimestamp に変換する。
+/// ISO 8601 文字列を `ProtoTimestamp` に変換する。
 /// パース失敗時は None を返す（既存の deprecated 文字列フィールドでカバー）。
 fn str_to_ts(s: &str) -> Option<ProtoTimestamp> {
     chrono::DateTime::parse_from_rfc3339(s)
@@ -65,7 +65,7 @@ fn str_to_ts(s: &str) -> Option<ProtoTimestamp> {
         })
 }
 
-/// ドメインのステータス文字列を NotificationStatus enum の i32 値に変換する。
+/// ドメインのステータス文字列を `NotificationStatus` enum の i32 値に変換する。
 /// 未知の文字列は Unspecified (0) にフォールバックする。
 fn status_str_to_enum(s: &str) -> i32 {
     match s {
@@ -128,6 +128,7 @@ pub struct NotificationServiceTonic {
 }
 
 impl NotificationServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<NotificationGrpcService>) -> Self {
         Self { inner }
     }

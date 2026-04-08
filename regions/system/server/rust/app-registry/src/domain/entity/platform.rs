@@ -28,7 +28,7 @@ impl std::str::FromStr for Platform {
             "windows" => Ok(Platform::Windows),
             "linux" => Ok(Platform::Linux),
             "macos" => Ok(Platform::Macos),
-            _ => Err(anyhow::anyhow!("unknown platform: {}", s)),
+            _ => Err(anyhow::anyhow!("unknown platform: {s}")),
         }
     }
 }

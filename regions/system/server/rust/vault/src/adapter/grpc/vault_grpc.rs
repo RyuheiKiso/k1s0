@@ -10,7 +10,7 @@ use crate::usecase::set_secret::{SetSecretInput, SetSecretUseCase};
 
 // --- gRPC Request/Response Types (手動定義) ---
 
-/// MED-011 対応: tenant_id を gRPC 層から use case 層（アクセスログ記録）へ伝播するために追加。
+/// MED-011 対応: `tenant_id` を gRPC 層から use case 層（アクセスログ記録）へ伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretRequest {
     pub path: String,
@@ -28,7 +28,7 @@ pub struct GetSecretResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct SetSecretRequest {
     pub path: String,
@@ -44,7 +44,7 @@ pub struct SetSecretResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct RotateSecretRequest {
     pub path: String,
@@ -60,7 +60,7 @@ pub struct RotateSecretResponse {
     pub rotated: bool,
 }
 
-/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct DeleteSecretRequest {
     pub path: String,
@@ -82,7 +82,7 @@ pub struct ListSecretsResponse {
     pub keys: Vec<String>,
 }
 
-/// MED-011 対応: tenant_id をアクセスログに伝播するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに伝播するために追加。
 #[derive(Debug, Clone)]
 pub struct GetSecretMetadataRequest {
     pub path: String,
@@ -145,13 +145,13 @@ pub enum GrpcError {
 
 // --- Key Path バリデーション ---
 
-/// ADR-0109 対応: key_path がリクエスト元テナントのパスプレフィックスで始まることを検証する。
-/// tenant_id が Some で空でない場合、key_path は必ず "{tenant_id}/" で始まらなければならない。
+/// ADR-0109 対応: `key_path` がリクエスト元テナントのパスプレフィックスで始まることを検証する。
+/// `tenant_id` が Some `で空でない場合、key_path` は必ず "{`tenant_id`}/" で始まらなければならない。
 /// これにより RLS の代替として vault-db のテナント境界を application 層で強制する。
 fn validate_key_path_for_tenant(path: &str, tenant_id: &Option<String>) -> Result<(), GrpcError> {
     if let Some(tid) = tenant_id {
         if !tid.is_empty() {
-            let expected_prefix = format!("{}/", tid);
+            let expected_prefix = format!("{tid}/");
             if !path.starts_with(&expected_prefix) {
                 tracing::error!(
                     key_path = %path,
@@ -159,8 +159,7 @@ fn validate_key_path_for_tenant(path: &str, tenant_id: &Option<String>) -> Resul
                     "key_path がテナントプレフィックスで始まっていません（ADR-0109 テナント分離違反）"
                 );
                 return Err(GrpcError::PermissionDenied(format!(
-                    "key_path '{}' はテナント '{}' のパスプレフィックス '{expected_prefix}' で始まる必要があります",
-                    path, tid
+                    "key_path '{path}' はテナント '{tid}' のパスプレフィックス '{expected_prefix}' で始まる必要があります"
                 )));
             }
         }
@@ -180,6 +179,7 @@ pub struct VaultGrpcService {
 }
 
 impl VaultGrpcService {
+    #[must_use] 
     pub fn new(
         get_secret_uc: Arc<GetSecretUseCase>,
         set_secret_uc: Arc<SetSecretUseCase>,

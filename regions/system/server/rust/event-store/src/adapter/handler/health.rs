@@ -24,7 +24,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         None => true,
     };
     let kafka_ok = match state.event_publisher.health_check().await {
-        Ok(_) => true,
+        Ok(()) => true,
         Err(e) => {
             tracing::error!(error = %e, "readyz: Kafka health check failed");
             false

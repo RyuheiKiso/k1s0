@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::error::OutboxError;
 use crate::message::OutboxMessage;
 
-/// OutboxStore はアウトボックスメッセージの永続化インターフェース。
+/// `OutboxStore` はアウトボックスメッセージの永続化インターフェース。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait OutboxStore: Send + Sync {
@@ -20,8 +20,8 @@ pub trait OutboxStore: Send + Sync {
     async fn delete_delivered(&self, older_than_days: u32) -> Result<u64, OutboxError>;
 
     /// 一定時間以上 PROCESSING 状態のままのメッセージを PENDING に戻す（M-12 監査対応）。
-    /// mark_delivered 後の DB Update 失敗によりスタックしたメッセージのリカバリに使用する。
-    /// stale_minutes: この分数以上 PROCESSING のままのメッセージをリカバリ対象とする（推奨: 5〜15分）。
+    /// `mark_delivered` 後の DB Update 失敗によりスタックしたメッセージのリカバリに使用する。
+    /// `stale_minutes`: この分数以上 PROCESSING のままのメッセージをリカバリ対象とする（推奨: 5〜15分）。
     async fn recover_stale_processing(&self, stale_minutes: u32) -> Result<u64, OutboxError>;
 }
 

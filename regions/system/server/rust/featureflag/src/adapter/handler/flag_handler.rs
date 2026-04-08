@@ -174,7 +174,7 @@ pub async fn delete_flag(
         Err(DeleteFlagError::NotFound(_)) => error_response(
             StatusCode::NOT_FOUND,
             codes::featureflag::not_found(),
-            format!("flag not found: {}", key),
+            format!("flag not found: {key}"),
         ),
         Err(DeleteFlagError::Internal(msg)) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -287,7 +287,7 @@ impl From<crate::domain::entity::feature_flag::FeatureFlag> for FlagResponse {
 }
 
 /// エラーレスポンスを生成するヘルパー関数。
-/// Json<ErrorResponse> を直接返すことで .expect() を排除する。
+/// Json<ErrorResponse> を直接返すことで .`expect()` を排除する。
 fn error_response(
     status: StatusCode,
     code: impl Into<k1s0_server_common::ErrorCode>,

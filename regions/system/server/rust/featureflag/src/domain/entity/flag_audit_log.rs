@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-/// FlagAuditLog はフィーチャーフラグの変更監査ログエンティティ。
-/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープの監査ログを実現する。
-/// HIGH-005 対応: migration 006 で tenant_id を UUID → TEXT に変更したため String 型を使用する。
+/// `FlagAuditLog` はフィーチャーフラグの変更監査ログエンティティ。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` でテナントスコープの監査ログを実現する。
+/// HIGH-005 対応: migration 006 で `tenant_id` を UUID → TEXT に変更したため String 型を使用する。
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FlagAuditLog {
@@ -21,7 +21,8 @@ pub struct FlagAuditLog {
 }
 
 impl FlagAuditLog {
-    /// HIGH-005 対応: tenant_id は String 型（DB の TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は String 型（DB の TEXT 型に対応）。
+    #[must_use] 
     pub fn new(
         tenant_id: String,
         flag_id: Uuid,

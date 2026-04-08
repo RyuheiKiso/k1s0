@@ -17,6 +17,8 @@ use crate::adapter::handler::{self, AppState};
 use crate::domain::entity::{ProvisioningJob, Tenant, TenantMember};
 use crate::domain::repository::{MemberRepository, TenantRepository};
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -39,7 +41,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -373,7 +375,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     let rest_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.http_port));
@@ -405,8 +407,8 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// CreateTenant / UpdateTenant / DeleteTenant / SuspendTenant / ActivateTenant /
-/// AddMember / RemoveMember は write、それ以外は read。
+/// `CreateTenant` / `UpdateTenant` / `DeleteTenant` / `SuspendTenant` / `ActivateTenant` /
+/// `AddMember` / `RemoveMember` は write、それ以外は read。
 /// gRPC メソッド名から RBAC アクション文字列を返す。
 /// 書き込み系メソッドは "write"、それ以外は "read" を返す。
 fn tenant_grpc_action(method: &str) -> &'static str {

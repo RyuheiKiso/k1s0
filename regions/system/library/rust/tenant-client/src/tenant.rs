@@ -28,10 +28,12 @@ pub struct TenantFilter {
 }
 
 impl TenantFilter {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use] 
     pub fn status(mut self, status: TenantStatus) -> Self {
         self.status = Some(status);
         self
@@ -49,12 +51,14 @@ pub struct TenantSettings {
 }
 
 impl TenantSettings {
+    #[must_use] 
     pub fn new(values: HashMap<String, String>) -> Self {
         Self { values }
     }
 
+    #[must_use] 
     pub fn get(&self, key: &str) -> Option<&str> {
-        self.values.get(key).map(|v| v.as_str())
+        self.values.get(key).map(std::string::String::as_str)
     }
 }
 

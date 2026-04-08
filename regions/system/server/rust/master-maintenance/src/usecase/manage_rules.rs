@@ -33,7 +33,7 @@ impl ManageRulesUseCase {
                 .table_repo
                 .find_by_name(name, domain_scope)
                 .await?
-                .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", name))?;
+                .ok_or_else(|| anyhow::anyhow!("Table '{name}' not found"))?;
             Some(table.id)
         } else {
             None
@@ -84,7 +84,7 @@ impl ManageRulesUseCase {
                     self.table_repo
                         .find_by_name(right_table_name, domain_scope)
                         .await?
-                        .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", right_table_name))?
+                        .ok_or_else(|| anyhow::anyhow!("Table '{right_table_name}' not found"))?
                         .id,
                 )
             } else {
@@ -130,7 +130,7 @@ impl ManageRulesUseCase {
         if let Some(severity) = input.get("severity").and_then(|v| v.as_str()) {
             rule.severity = severity.to_string();
         }
-        if let Some(active) = input.get("is_active").and_then(|v| v.as_bool()) {
+        if let Some(active) = input.get("is_active").and_then(serde_json::Value::as_bool) {
             rule.is_active = active;
         }
         if let Some(timing) = input.get("evaluation_timing").and_then(|v| v.as_str()) {
@@ -163,7 +163,7 @@ impl ManageRulesUseCase {
                                 .find_by_name(right_table_name, domain_scope)
                                 .await?
                                 .ok_or_else(|| {
-                                    anyhow::anyhow!("Table '{}' not found", right_table_name)
+                                    anyhow::anyhow!("Table '{right_table_name}' not found")
                                 })?
                                 .id,
                         )

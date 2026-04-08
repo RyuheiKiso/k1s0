@@ -11,7 +11,7 @@ use crate::usecase::{
 
 // --- Proto 手動型定義 ---
 
-/// StartSagaRequest はSaga開始リクエスト。
+/// `StartSagaRequest` はSaga開始リクエスト。
 #[derive(Debug)]
 pub struct StartSagaRequest {
     pub workflow_name: String,
@@ -22,14 +22,14 @@ pub struct StartSagaRequest {
     pub tenant_id: String,
 }
 
-/// StartSagaResponse はSaga開始レスポンス。
+/// `StartSagaResponse` はSaga開始レスポンス。
 #[derive(Debug)]
 pub struct StartSagaResponse {
     pub saga_id: String,
     pub status: String,
 }
 
-/// GetSagaRequest はSaga取得リクエスト。
+/// `GetSagaRequest` はSaga取得リクエスト。
 #[derive(Debug)]
 pub struct GetSagaRequest {
     pub saga_id: String,
@@ -37,14 +37,14 @@ pub struct GetSagaRequest {
     pub tenant_id: String,
 }
 
-/// GetSagaResponse はSaga取得レスポンス。
+/// `GetSagaResponse` はSaga取得レスポンス。
 #[derive(Debug)]
 pub struct GetSagaResponse {
     pub saga: SagaStateProto,
     pub step_logs: Vec<SagaStepLogProto>,
 }
 
-/// ListSagasRequest はSaga一覧リクエスト。
+/// `ListSagasRequest` はSaga一覧リクエスト。
 #[derive(Debug)]
 pub struct ListSagasRequest {
     pub page: i32,
@@ -56,7 +56,7 @@ pub struct ListSagasRequest {
     pub tenant_id: String,
 }
 
-/// ListSagasResponse はSaga一覧レスポンス。
+/// `ListSagasResponse` はSaga一覧レスポンス。
 #[derive(Debug)]
 pub struct ListSagasResponse {
     pub sagas: Vec<SagaStateProto>,
@@ -66,7 +66,7 @@ pub struct ListSagasResponse {
     pub has_next: bool,
 }
 
-/// CancelSagaRequest はSagaキャンセルリクエスト。
+/// `CancelSagaRequest` はSagaキャンセルリクエスト。
 #[derive(Debug)]
 pub struct CancelSagaRequest {
     pub saga_id: String,
@@ -74,14 +74,14 @@ pub struct CancelSagaRequest {
     pub tenant_id: String,
 }
 
-/// CancelSagaResponse はSagaキャンセルレスポンス。
+/// `CancelSagaResponse` はSagaキャンセルレスポンス。
 #[derive(Debug)]
 pub struct CancelSagaResponse {
     pub success: bool,
     pub message: String,
 }
 
-/// CompensateSagaRequest は Saga 補償実行リクエスト。
+/// `CompensateSagaRequest` は Saga 補償実行リクエスト。
 #[derive(Debug)]
 pub struct CompensateSagaRequest {
     pub saga_id: String,
@@ -89,7 +89,7 @@ pub struct CompensateSagaRequest {
     pub tenant_id: String,
 }
 
-/// CompensateSagaResponse は Saga 補償実行レスポンス。
+/// `CompensateSagaResponse` は Saga 補償実行レスポンス。
 #[derive(Debug)]
 pub struct CompensateSagaResponse {
     pub success: bool,
@@ -98,30 +98,30 @@ pub struct CompensateSagaResponse {
     pub saga_id: String,
 }
 
-/// RegisterWorkflowRequest はワークフロー登録リクエスト。
+/// `RegisterWorkflowRequest` はワークフロー登録リクエスト。
 #[derive(Debug)]
 pub struct RegisterWorkflowRequest {
     pub workflow_yaml: String,
 }
 
-/// RegisterWorkflowResponse はワークフロー登録レスポンス。
+/// `RegisterWorkflowResponse` はワークフロー登録レスポンス。
 #[derive(Debug)]
 pub struct RegisterWorkflowResponse {
     pub name: String,
     pub step_count: i32,
 }
 
-/// ListWorkflowsRequest はワークフロー一覧リクエスト。
+/// `ListWorkflowsRequest` はワークフロー一覧リクエスト。
 #[derive(Debug)]
 pub struct ListWorkflowsRequest {}
 
-/// ListWorkflowsResponse はワークフロー一覧レスポンス。
+/// `ListWorkflowsResponse` はワークフロー一覧レスポンス。
 #[derive(Debug)]
 pub struct ListWorkflowsResponse {
     pub workflows: Vec<WorkflowSummary>,
 }
 
-/// WorkflowSummary はワークフローの概要情報。
+/// `WorkflowSummary` はワークフローの概要情報。
 #[derive(Debug)]
 pub struct WorkflowSummary {
     pub name: String,
@@ -129,7 +129,7 @@ pub struct WorkflowSummary {
     pub step_names: Vec<String>,
 }
 
-/// SagaStateProto はSaga状態のProto相当型。
+/// `SagaStateProto` `はSaga状態のProto相当型`。
 #[derive(Debug)]
 pub struct SagaStateProto {
     pub id: String,
@@ -144,7 +144,7 @@ pub struct SagaStateProto {
     pub updated_at: String,
 }
 
-/// SagaStepLogProto はSagaステップログのProto相当型。
+/// `SagaStepLogProto` `はSagaステップログのProto相当型`。
 #[derive(Debug)]
 pub struct SagaStepLogProto {
     pub id: String,
@@ -162,7 +162,7 @@ pub struct SagaStepLogProto {
 
 // --- GrpcError ---
 
-/// GrpcError はgRPC層のエラー型。
+/// `GrpcError` `はgRPC層のエラー型`。
 #[derive(Debug)]
 pub enum GrpcError {
     NotFound(String),
@@ -171,7 +171,7 @@ pub enum GrpcError {
     Internal(String),
 }
 
-/// anyhow::Error をドメインエラー型で型ベースに GrpcError へ変換する。
+/// `anyhow::Error` をドメインエラー型で型ベースに `GrpcError` へ変換する。
 /// ダウンキャストに失敗した場合は internal エラーとする。
 fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
     use crate::domain::error::SagaError;
@@ -191,8 +191,8 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
     }
 }
 
-/// domain::SagaError を直接 GrpcError に型安全に変換する。
-/// anyhow ダウンキャスト不要で、execute() 戻り値型変更後に使用する。
+/// `domain::SagaError` を直接 `GrpcError` に型安全に変換する。
+/// anyhow `ダウンキャスト不要で、execute()` 戻り値型変更後に使用する。
 fn map_domain_saga_error_to_grpc_error(err: crate::domain::error::SagaError) -> GrpcError {
     use crate::domain::error::SagaError;
     let msg = err.to_string();
@@ -205,8 +205,8 @@ fn map_domain_saga_error_to_grpc_error(err: crate::domain::error::SagaError) -> 
     }
 }
 
-/// CancelSagaError を GrpcError に変換する。
-/// NotFound は not_found、AlreadyTerminal は failed_precondition、それ以外は internal とする。
+/// `CancelSagaError` を `GrpcError` に変換する。
+/// `NotFound` は `not_found、AlreadyTerminal` は `failed_precondition、それ以外は` internal とする。
 fn map_cancel_error_to_grpc_error(err: CancelSagaError) -> GrpcError {
     let msg = err.to_string();
     match err {
@@ -218,7 +218,7 @@ fn map_cancel_error_to_grpc_error(err: CancelSagaError) -> GrpcError {
 
 // --- SagaGrpcService ---
 
-/// SagaGrpcService はgRPC Sagaサービスの実装。
+/// `SagaGrpcService` `はgRPC` Sagaサービスの実装。
 pub struct SagaGrpcService {
     pub start_saga_uc: Arc<StartSagaUseCase>,
     pub get_saga_uc: Arc<GetSagaUseCase>,
@@ -230,6 +230,7 @@ pub struct SagaGrpcService {
 }
 
 impl SagaGrpcService {
+    #[must_use] 
     pub fn new(
         start_saga_uc: Arc<StartSagaUseCase>,
         get_saga_uc: Arc<GetSagaUseCase>,
@@ -256,7 +257,7 @@ impl SagaGrpcService {
             serde_json::Value::Null
         } else {
             serde_json::from_slice(&req.payload)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {e}")))?
         };
 
         let correlation = if req.correlation_id.is_empty() {
@@ -294,7 +295,7 @@ impl SagaGrpcService {
             .get_saga_uc
             .execute(id, &req.tenant_id)
             .await
-            .map_err(|e| GrpcError::Internal(format!("failed to get saga: {}", e)))?
+            .map_err(|e| GrpcError::Internal(format!("failed to get saga: {e}")))?
             .ok_or_else(|| GrpcError::NotFound(format!("saga not found: {}", req.saga_id)))?;
 
         // payload のシリアライズ失敗はデバッグ困難なエラーになるため、黙殺せず Internal エラーとして伝播させる
@@ -388,12 +389,12 @@ impl SagaGrpcService {
             .list_sagas_uc
             .execute(params)
             .await
-            .map_err(|e| GrpcError::Internal(format!("failed to list sagas: {}", e)))?;
+            .map_err(|e| GrpcError::Internal(format!("failed to list sagas: {e}")))?;
 
         let page = req.page;
         let page_size = req.page_size;
         let total_count_i64 = i64::from(total_count);
-        let has_next = (page as i64 * page_size as i64) < total_count_i64;
+        let has_next = (i64::from(page) * i64::from(page_size)) < total_count_i64;
 
         // payload のシリアライズ失敗はデバッグ困難なエラーになるため、黙殺せず Internal エラーとして伝播させる
         // map クロージャを Result を返すように変更し、collect::<Result<Vec<_>, _>>() でエラーを伝播させる
@@ -467,13 +468,13 @@ impl SagaGrpcService {
             .await
             .map_err(|e| match e {
                 CompensateSagaError::NotFound(saga_id) => {
-                    GrpcError::NotFound(format!("saga not found: {}", saga_id))
+                    GrpcError::NotFound(format!("saga not found: {saga_id}"))
                 }
                 CompensateSagaError::AlreadyTerminal(status) => {
-                    GrpcError::FailedPrecondition(format!("saga is already terminal: {}", status))
+                    GrpcError::FailedPrecondition(format!("saga is already terminal: {status}"))
                 }
                 CompensateSagaError::WorkflowNotFound(name) => {
-                    GrpcError::NotFound(format!("workflow not found: {}", name))
+                    GrpcError::NotFound(format!("workflow not found: {name}"))
                 }
                 CompensateSagaError::Internal(err) => GrpcError::Internal(err.to_string()),
             })?;
@@ -518,7 +519,7 @@ impl SagaGrpcService {
             .list_workflows_uc
             .execute()
             .await
-            .map_err(|e| GrpcError::Internal(format!("failed to list workflows: {}", e)))?;
+            .map_err(|e| GrpcError::Internal(format!("failed to list workflows: {e}")))?;
 
         let summaries = workflows
             .into_iter()

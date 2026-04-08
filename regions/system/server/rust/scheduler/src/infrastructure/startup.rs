@@ -19,6 +19,8 @@ use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::entity::scheduler_job::SchedulerJob;
 use crate::domain::repository::{SchedulerExecutionRepository, SchedulerJobRepository};
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -40,7 +42,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -68,7 +70,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(pool.as_ref())
             .await
-            .map_err(|e| anyhow::anyhow!("scheduler-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("scheduler-db migration failed: {e}"))?;
         tracing::info!("scheduler-db migrations applied successfully");
 
         // RUNTIME-001 監査対応: マイグレーション後の整合性確認
@@ -83,7 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
         )
         .fetch_one(pool.as_ref())
         .await
-        .map_err(|e| anyhow::anyhow!("scheduler-db 整合性確認クエリ失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("scheduler-db 整合性確認クエリ失敗: {e}"))?;
         if !table_exists {
             return Err(anyhow::anyhow!(
                 "scheduler_jobs テーブルが存在しません。\
@@ -282,7 +284,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server（server.host は設定ファイルで制御可能）
@@ -390,13 +392,13 @@ impl InMemorySchedulerJobRepository {
 
 #[async_trait::async_trait]
 impl SchedulerJobRepository for InMemorySchedulerJobRepository {
-    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    /// CRIT-005 対応: インメモリ実装では `tenant_id` によるフィルタは行わない（起動テスト用途）。
     async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.get(id).cloned())
     }
 
-    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    /// CRIT-005 対応: インメモリ実装では `tenant_id` によるフィルタは行わない（起動テスト用途）。
     async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<SchedulerJob>> {
         let jobs = self.jobs.read().await;
         Ok(jobs.values().cloned().collect())
@@ -414,7 +416,7 @@ impl SchedulerJobRepository for InMemorySchedulerJobRepository {
         Ok(())
     }
 
-    /// CRIT-005 対応: インメモリ実装では tenant_id によるフィルタは行わない（起動テスト用途）。
+    /// CRIT-005 対応: インメモリ実装では `tenant_id` によるフィルタは行わない（起動テスト用途）。
     async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut jobs = self.jobs.write().await;
         Ok(jobs.remove(id).is_some())

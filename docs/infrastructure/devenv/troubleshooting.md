@@ -93,7 +93,53 @@ docker compose --profile infra --profile observability up -d
 
 ---
 
-## 3. WSL2 のファイルシステム（I/O 遅延）
+## 3. Docker Desktop が並列大規模ビルドでクラッシュする（HIGH-004 監査対応）
+
+### 症状
+
+- `docker build --no-cache` を複数サービス同時に実行すると dockerd が停止する
+- `\\.\pipe\dockerDesktopLinuxEngine` パイプが5分以上待機しても作成されない
+- `docker ps` で `Error: 500 Internal Server Error` が返る
+
+### 原因
+
+29サービス分の `--no-cache` 並列ビルドは CPU・メモリ・I/O を大量消費する。WSL2 バックエンドのリソース制限またはビルドキャッシュが溢れることで dockerd が強制終了する。
+
+### 対処
+
+**1. WSL2 リソースを増強する**（`%USERPROFILE%\.wslconfig`）:
+
+```ini
+[wsl2]
+memory=12GB
+processors=8
+swap=8GB
+```
+
+変更後は `wsl --shutdown` で WSL2 を再起動する。
+
+**2. 並列ビルドを制限する**:
+
+```bash
+# --no-cache は個別サービスに限定し、全サービス同時実行を避ける
+docker compose build --no-cache auth-server
+docker compose build --no-cache config-server
+# ... サービスごとに順次実行する
+```
+
+**3. Docker Builder のキャッシュを最適化する**:
+
+```bash
+# ビルドキャッシュを定期的にクリアしてディスク・メモリ消費を抑える
+docker builder prune --filter until=48h
+```
+
+**4. Docker Desktop の再起動**:
+クラッシュ後は Docker Desktop を完全終了（タスクバーアイコン右クリック → Quit Docker Desktop）して再起動すること。
+
+---
+
+## 4. WSL2 のファイルシステム（I/O 遅延）
 
 ### 症状
 

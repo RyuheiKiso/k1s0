@@ -44,7 +44,7 @@ pub enum FileError {
     Internal(String),
 }
 
-/// FileError から ServiceError への変換実装
+/// `FileError` から `ServiceError` への変換実装
 impl From<FileError> for ServiceError {
     fn from(err: FileError) -> Self {
         match err {

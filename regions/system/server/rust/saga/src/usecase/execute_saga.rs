@@ -10,7 +10,7 @@ use crate::domain::repository::SagaRepository;
 use crate::infrastructure::grpc_caller::GrpcStepCaller;
 use crate::infrastructure::kafka_producer::SagaEventPublisher;
 
-/// CompensateSagaError は補償トリガー操作のエラーを型安全に表現する。
+/// `CompensateSagaError` は補償トリガー操作のエラーを型安全に表現する。
 #[derive(Debug, thiserror::Error)]
 pub enum CompensateSagaError {
     #[error("saga not found: {0}")]
@@ -23,7 +23,7 @@ pub enum CompensateSagaError {
     Internal(#[from] anyhow::Error),
 }
 
-/// ExecuteSagaUseCase はSagaの実行・補償ロジックを担う。
+/// `ExecuteSagaUseCase` はSagaの実行・補償ロジックを担う。
 pub struct ExecuteSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
     caller: Arc<dyn GrpcStepCaller>,
@@ -45,7 +45,7 @@ impl ExecuteSagaUseCase {
         }
     }
 
-    /// WorkflowRepository を設定する。
+    /// `WorkflowRepository` を設定する。
     pub fn with_workflow_repo(
         mut self,
         repo: Arc<dyn crate::domain::repository::WorkflowRepository>,
@@ -54,46 +54,43 @@ impl ExecuteSagaUseCase {
         self
     }
 
-    /// Sagaを実行する。ステータスに応じてforward_executeまたはcompensateを実行する。
-    /// WorkflowDefinition の total_timeout_secs でSaga全体にタイムアウトを適用する。
-    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
+    /// `Sagaを実行する。ステータスに応じてforward_executeまたはcompensateを実行する`。
+    /// `WorkflowDefinition` の `total_timeout_secs` でSaga全体にタイムアウトを適用する。
+    /// CRIT-005 対応: `tenant_id` を引数で受け取り RLS 分離に使用する。
     pub async fn run(&self, saga_id: Uuid, workflow: &WorkflowDefinition, tenant_id: &str) -> anyhow::Result<()> {
         let timeout_duration = std::time::Duration::from_secs(workflow.total_timeout_secs);
 
-        match tokio::time::timeout(timeout_duration, self.run_inner(saga_id, workflow, tenant_id)).await {
-            Ok(result) => result,
-            Err(_) => {
-                error!(
-                    saga_id = %saga_id,
-                    timeout_secs = workflow.total_timeout_secs,
-                    "Saga全体のタイムアウトに到達"
-                );
-                // タイムアウト時は補償処理を開始する
-                let mut state = self
-                    .saga_repo
-                    .find_by_id(saga_id, tenant_id)
-                    .await?
-                    .ok_or_else(|| anyhow::anyhow!("saga not found: {}", saga_id))?;
+        if let Ok(result) = tokio::time::timeout(timeout_duration, self.run_inner(saga_id, workflow, tenant_id)).await { result } else {
+            error!(
+                saga_id = %saga_id,
+                timeout_secs = workflow.total_timeout_secs,
+                "Saga全体のタイムアウトに到達"
+            );
+            // タイムアウト時は補償処理を開始する
+            let mut state = self
+                .saga_repo
+                .find_by_id(saga_id, tenant_id)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("saga not found: {saga_id}"))?;
 
-                if !state.is_terminal() {
-                    let error_msg = format!(
-                        "saga timed out after {} seconds",
-                        workflow.total_timeout_secs
-                    );
-                    state.start_compensation(error_msg);
-                    self.saga_repo
-                        .update_status(state.saga_id, &state.status, state.error_message.clone(), &state.tenant_id)
-                        .await?;
-                    self.publish_event(&state, "SAGA_COMPENSATING").await;
-                    self.compensate(&mut state, workflow).await?;
-                }
-
-                Err(anyhow::anyhow!(
-                    "saga {} timed out after {} seconds",
-                    saga_id,
+            if !state.is_terminal() {
+                let error_msg = format!(
+                    "saga timed out after {} seconds",
                     workflow.total_timeout_secs
-                ))
+                );
+                state.start_compensation(error_msg);
+                self.saga_repo
+                    .update_status(state.saga_id, &state.status, state.error_message.clone(), &state.tenant_id)
+                    .await?;
+                self.publish_event(&state, "SAGA_COMPENSATING").await;
+                self.compensate(&mut state, workflow).await?;
             }
+
+            Err(anyhow::anyhow!(
+                "saga {} timed out after {} seconds",
+                saga_id,
+                workflow.total_timeout_secs
+            ))
         }
     }
 
@@ -103,7 +100,7 @@ impl ExecuteSagaUseCase {
             .saga_repo
             .find_by_id(saga_id, tenant_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("saga not found: {}", saga_id))?;
+            .ok_or_else(|| anyhow::anyhow!("saga not found: {saga_id}"))?;
 
         if state.is_terminal() {
             info!(saga_id = %saga_id, status = %state.status, "saga already in terminal state");
@@ -128,7 +125,7 @@ impl ExecuteSagaUseCase {
 
     /// 外部から補償処理をトリガーする。
     /// Sagaを読み込み、Compensating状態に遷移させ、補償ステップを実行する。
-    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
+    /// CRIT-005 対応: `tenant_id` を引数で受け取り RLS 分離に使用する。
     pub async fn trigger_compensate(
         &self,
         saga_id: Uuid,
@@ -179,7 +176,7 @@ impl ExecuteSagaUseCase {
         Ok(updated)
     }
 
-    /// 前方実行：current_stepから最終ステップまで順次実行する。
+    /// `前方実行：current_stepから最終ステップまで順次実行する`。
     async fn forward_execute(
         &self,
         state: &mut SagaState,
@@ -356,27 +353,24 @@ impl ExecuteSagaUseCase {
         for step_idx in (0..comp_start).rev() {
             let step = &workflow.steps[step_idx];
 
-            let compensate_method = match &step.compensate {
-                Some(method) => method,
-                None => {
-                    info!(
-                        saga_id = %state.saga_id,
-                        step = step_idx,
-                        step_name = %step.name,
-                        "no compensate method defined, skipping"
-                    );
-                    let mut step_log = SagaStepLog::new_compensate(
-                        state.saga_id,
-                        step_idx as i32,
-                        step.name.clone(),
-                        None,
-                    );
-                    step_log.status = crate::domain::entity::saga_step_log::StepStatus::Skipped;
-                    step_log.completed_at = Some(chrono::Utc::now());
-                    // Best effort: ignore repo errors during compensation logging
-                    let _ = self.saga_repo.update_with_step_log(state, &step_log).await;
-                    continue;
-                }
+            let compensate_method = if let Some(method) = &step.compensate { method } else {
+                info!(
+                    saga_id = %state.saga_id,
+                    step = step_idx,
+                    step_name = %step.name,
+                    "no compensate method defined, skipping"
+                );
+                let mut step_log = SagaStepLog::new_compensate(
+                    state.saga_id,
+                    step_idx as i32,
+                    step.name.clone(),
+                    None,
+                );
+                step_log.status = crate::domain::entity::saga_step_log::StepStatus::Skipped;
+                step_log.completed_at = Some(chrono::Utc::now());
+                // Best effort: ignore repo errors during compensation logging
+                let _ = self.saga_repo.update_with_step_log(state, &step_log).await;
+                continue;
             };
 
             info!(
@@ -409,7 +403,7 @@ impl ExecuteSagaUseCase {
                 }
                 Err(e) => {
                     compensation_failures += 1;
-                    step_log.mark_failed(format!("compensation failed: {}", e));
+                    step_log.mark_failed(format!("compensation failed: {e}"));
                     warn!(
                         saga_id = %state.saga_id,
                         step = step_idx,

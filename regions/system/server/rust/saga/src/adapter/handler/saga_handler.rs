@@ -32,7 +32,7 @@ pub struct StartSagaResponse {
 
 /// Saga 一覧取得のクエリパラメータ。
 /// cursor が指定された場合は keyset ページネーションを優先する。
-/// 後方互換のため page / page_size も維持する。
+/// 後方互換のため page / `page_size` も維持する。
 #[derive(Debug, Deserialize)]
 pub struct ListSagasQuery {
     pub workflow_name: Option<String>,
@@ -42,7 +42,7 @@ pub struct ListSagasQuery {
     pub page: i32,
     #[serde(default = "default_page_size")]
     pub page_size: i32,
-    /// keyset ページネーション用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// keyset ページネーション用カーソル。形式: "{`created_at_unix_ms`}_{id}"
     /// 指定された場合は OFFSET より優先される。
     pub cursor: Option<String>,
 }
@@ -97,7 +97,7 @@ pub struct ListSagasResponse {
 }
 
 /// ページネーション情報レスポンス。
-/// keyset ページネーション使用時は next_cursor に次ページのカーソル値が入る。
+/// keyset ページネーション使用時は `next_cursor` に次ページのカーソル値が入る。
 /// cursor が None の場合はリストの末尾に達したことを示す。
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct PaginationResponse {
@@ -105,7 +105,7 @@ pub struct PaginationResponse {
     pub page: i32,
     pub page_size: i32,
     pub has_next: bool,
-    /// 次ページ取得用カーソル。形式: "{created_at_unix_ms}_{id}"
+    /// 次ページ取得用カーソル。形式: "{`created_at_unix_ms`}_{id}"
     /// keyset ページネーション使用時のみ設定される。
     pub next_cursor: Option<String>,
 }
@@ -220,9 +220,7 @@ pub async fn start_saga(
 
     // テナント ID を Claims から取得する。Claims がない場合は "system" を使用する
     let tenant_id = claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string());
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     // ドメインエラー（SagaError）をアダプタ層のハンドラーエラー型に型安全に変換する
     let saga_id = state
@@ -286,9 +284,7 @@ pub async fn list_sagas(
 
     // テナント ID を Claims から取得する
     let tenant_id = claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string());
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     // cursor が指定された場合は keyset ページネーション、未指定の場合は OFFSET を使用する
     let params = SagaListParams {
@@ -323,7 +319,7 @@ pub async fn list_sagas(
         sagas.len() as i32 == page_size_i32 && next_cursor.is_some()
     } else {
         // OFFSET ページネーション: 従来通りの計算
-        (query.page as i64 * query.page_size as i64) < total_i64
+        (i64::from(query.page) * i64::from(query.page_size)) < total_i64
     };
 
     let saga_responses: Vec<SagaResponse> = sagas
@@ -376,19 +372,17 @@ pub async fn get_saga(
     Path(saga_id): Path<String>,
 ) -> Result<Json<SagaDetailResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
-        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
+        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string());
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     let (saga, step_logs) = state
         .get_saga_uc
         .execute(id, &tenant_id)
         .await
         .map_err(|e| SagaError::Internal(e.to_string()))?
-        .ok_or_else(|| SagaError::NotFound(format!("saga not found: {}", saga_id)))?;
+        .ok_or_else(|| SagaError::NotFound(format!("saga not found: {saga_id}")))?;
 
     let step_log_responses: Vec<StepLogResponse> = step_logs
         .into_iter()
@@ -442,12 +436,10 @@ pub async fn cancel_saga(
     Path(saga_id): Path<String>,
 ) -> Result<Json<CancelSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
-        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
+        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string());
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     state
         .cancel_saga_uc
@@ -461,7 +453,7 @@ pub async fn cancel_saga(
 
     Ok(Json(CancelSagaResponse {
         success: true,
-        message: format!("saga {} cancelled", saga_id),
+        message: format!("saga {saga_id} cancelled"),
     }))
 }
 
@@ -483,12 +475,10 @@ pub async fn compensate_saga(
     Path(saga_id): Path<String>,
 ) -> Result<Json<CompensateSagaResponse>, SagaError> {
     let id = Uuid::parse_str(&saga_id)
-        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {}", saga_id)))?;
+        .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string());
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     let updated = state
         .execute_saga_uc
@@ -505,7 +495,7 @@ pub async fn compensate_saga(
         success: true,
         saga_id: updated.saga_id.to_string(),
         status: updated.status.to_string(),
-        message: format!("saga {} compensation completed", saga_id),
+        message: format!("saga {saga_id} compensation completed"),
     }))
 }
 

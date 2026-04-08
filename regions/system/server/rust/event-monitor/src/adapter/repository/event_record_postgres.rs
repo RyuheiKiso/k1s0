@@ -12,6 +12,7 @@ pub struct EventRecordPostgresRepository {
 }
 
 impl EventRecordPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -29,11 +30,11 @@ impl EventRecordRepository for EventRecordPostgresRepository {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            r#"
+            r"
             INSERT INTO event_monitor.event_records
                 (id, tenant_id, correlation_id, event_type, source, domain, trace_id, timestamp, flow_id, flow_step_index, status, received_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            "#,
+            ",
         )
         .bind(record.id)
         .bind(&record.tenant_id)
@@ -81,8 +82,8 @@ impl EventRecordRepository for EventRecordPostgresRepository {
         to: Option<DateTime<Utc>>,
         status: Option<String>,
     ) -> anyhow::Result<(Vec<EventRecord>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // READ 操作は "system" テナントコンテキストで全イベントを参照する
         let mut tx = self.pool.begin().await?;
@@ -91,7 +92,7 @@ impl EventRecordRepository for EventRecordPostgresRepository {
             .await?;
 
         let rows = sqlx::query_as::<_, EventRecordRow>(
-            r#"
+            r"
             SELECT id, tenant_id, correlation_id, event_type, source, domain, trace_id, timestamp, flow_id, flow_step_index, status, received_at
             FROM event_monitor.event_records
             WHERE ($1::text IS NULL OR domain = $1)
@@ -102,7 +103,7 @@ impl EventRecordRepository for EventRecordPostgresRepository {
               AND ($6::text IS NULL OR status = $6)
             ORDER BY timestamp DESC
             LIMIT $7 OFFSET $8
-            "#,
+            ",
         )
         .bind(&domain)
         .bind(&event_type)
@@ -116,7 +117,7 @@ impl EventRecordRepository for EventRecordPostgresRepository {
         .await?;
 
         let count: (i64,) = sqlx::query_as(
-            r#"
+            r"
             SELECT COUNT(*) FROM event_monitor.event_records
             WHERE ($1::text IS NULL OR domain = $1)
               AND ($2::text IS NULL OR event_type = $2)
@@ -124,7 +125,7 @@ impl EventRecordRepository for EventRecordPostgresRepository {
               AND ($4::timestamptz IS NULL OR timestamp >= $4)
               AND ($5::timestamptz IS NULL OR timestamp <= $5)
               AND ($6::text IS NULL OR status = $6)
-            "#,
+            ",
         )
         .bind(&domain)
         .bind(&event_type)
@@ -149,12 +150,12 @@ impl EventRecordRepository for EventRecordPostgresRepository {
             .execute(&mut *tx)
             .await?;
         let rows = sqlx::query_as::<_, EventRecordRow>(
-            r#"
+            r"
             SELECT id, tenant_id, correlation_id, event_type, source, domain, trace_id, timestamp, flow_id, flow_step_index, status, received_at
             FROM event_monitor.event_records
             WHERE correlation_id = $1
             ORDER BY timestamp ASC
-            "#,
+            ",
         )
         .bind(&correlation_id)
         .fetch_all(&mut *tx)
@@ -165,7 +166,7 @@ impl EventRecordRepository for EventRecordPostgresRepository {
     }
 }
 
-/// DB から取得したイベント記録の中間表現。tenant_id を含む。
+/// DB `から取得したイベント記録の中間表現。tenant_id` を含む。
 #[derive(sqlx::FromRow)]
 struct EventRecordRow {
     id: Uuid,
@@ -182,7 +183,7 @@ struct EventRecordRow {
     received_at: DateTime<Utc>,
 }
 
-/// EventRecordRow からドメインエンティティへ変換する。tenant_id を含める。
+/// `EventRecordRow` `からドメインエンティティへ変換する。tenant_id` を含める。
 impl From<EventRecordRow> for EventRecord {
     fn from(row: EventRecordRow) -> Self {
         Self {

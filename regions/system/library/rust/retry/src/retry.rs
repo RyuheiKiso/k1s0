@@ -2,6 +2,9 @@ use crate::error::RetryError;
 use crate::policy::RetryConfig;
 use std::future::Future;
 
+/// # Panics
+///
+/// リトライ回数が0の場合はパニックしない。内部で必ず `last_error` が設定されるため安全。
 pub async fn with_retry<F, Fut, T, E>(
     config: &RetryConfig,
     mut operation: F,

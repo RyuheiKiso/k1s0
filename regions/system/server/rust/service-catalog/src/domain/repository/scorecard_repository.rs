@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::scorecard::Scorecard;
 
-/// ScorecardRepository はサービススコアカードの永続化トレイト。
+/// `ScorecardRepository` はサービススコアカードの永続化トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ScorecardRepository: Send + Sync {

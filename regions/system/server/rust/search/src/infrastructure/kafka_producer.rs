@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-/// DocumentIndexedEvent はドキュメントインデックス登録時に Kafka へ発行するイベント。
+/// `DocumentIndexedEvent` はドキュメントインデックス登録時に Kafka へ発行するイベント。
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DocumentIndexedEvent {
     pub event_type: String,
@@ -13,7 +13,7 @@ pub struct DocumentIndexedEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// SearchEventPublisher はドキュメントインデックスイベント配信のためのトレイト。
+/// `SearchEventPublisher` はドキュメントインデックスイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SearchEventPublisher: Send + Sync {
@@ -22,7 +22,7 @@ pub trait SearchEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopSearchEventPublisher はイベント配信を行わない実装。
+/// `NoopSearchEventPublisher` はイベント配信を行わない実装。
 /// テストやKafka未設定環境で使用。
 pub struct NoopSearchEventPublisher;
 
@@ -38,7 +38,7 @@ impl SearchEventPublisher for NoopSearchEventPublisher {
     }
 }
 
-/// KafkaSearchProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaSearchProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaSearchProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -46,7 +46,7 @@ pub struct KafkaSearchProducer {
 }
 
 impl KafkaSearchProducer {
-    /// 新しい KafkaSearchProducer を作成する。
+    /// 新しい `KafkaSearchProducer` を作成する。
     pub fn new(brokers: &str, security_protocol: &str, topic: &str) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -69,6 +69,7 @@ impl KafkaSearchProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -93,7 +94,7 @@ impl SearchEventPublisher for KafkaSearchProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish document indexed event: {}", err)
+                anyhow::anyhow!("failed to publish document indexed event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {

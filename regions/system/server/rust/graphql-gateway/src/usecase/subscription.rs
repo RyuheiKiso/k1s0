@@ -25,8 +25,8 @@ impl SubscriptionResolver {
         }
     }
 
-    /// WatchConfig ストリームを返す。設定変更が発生するたびに ConfigEntry を配信する。
-    /// 接続失敗時は anyhow::Error を返し、ストリーム中の gRPC エラーは Result::Err で伝播する。
+    /// `WatchConfig` ストリームを返す。設定変更が発生するたびに `ConfigEntry` を配信する。
+    /// 接続失敗時は `anyhow::Error` を返し、ストリーム中の gRPC エラーは `Result::Err` で伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_config(
         &self,
@@ -35,8 +35,8 @@ impl SubscriptionResolver {
         self.config_client.watch_config(namespaces).await
     }
 
-    /// WatchTenant ストリームを返す。テナント変更が発生するたびに Tenant を配信する。
-    /// 接続失敗時は anyhow::Error を返し、呼び出し元で適切にハンドリングする。
+    /// `WatchTenant` ストリームを返す。テナント変更が発生するたびに Tenant を配信する。
+    /// 接続失敗時は `anyhow::Error` を返し、呼び出し元で適切にハンドリングする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_tenant_updated(
         &self,
@@ -45,8 +45,8 @@ impl SubscriptionResolver {
         self.tenant_client.watch_tenant(&tenant_id).await
     }
 
-    /// WatchFeatureFlag ストリームを返す。フラグ変更が発生するたびに FeatureFlag を配信する。
-    /// 接続失敗時は anyhow::Error を返し、呼び出し元で適切にハンドリングする。
+    /// `WatchFeatureFlag` ストリームを返す。フラグ変更が発生するたびに `FeatureFlag` を配信する。
+    /// 接続失敗時は `anyhow::Error` を返し、呼び出し元で適切にハンドリングする。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_feature_flag_changed(
         &self,

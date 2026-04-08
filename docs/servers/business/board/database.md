@@ -1,5 +1,10 @@
 # business-board-server データベース設計
 
+> **MED-021 監査対応 — 配置ティアの明確化**
+> task / board / activity は **service tier** に属するサービスであり、実装は `regions/service/board/` にある。
+> `docs/servers/business/board/` は旧来の配置ミスによる残存ファイルであり、DB 設計はここで管理するが、
+> サーバー設計・デプロイ設計は **[service tier 設計書](../../service/board/server.md)** を参照すること。
+
 business Tier のボードサービスデータベース（k1s0_service DB の `board_service` スキーマ）の設計を定義する。
 配置先: `regions/service/board/database/postgres/`
 

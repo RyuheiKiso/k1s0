@@ -4,7 +4,7 @@ use thiserror::Error;
 /// gRPC / HTTP 通信エラー、制限超過、キー不在、タイムアウトを表現する。
 #[derive(Debug, Error)]
 pub enum RateLimitError {
-    /// レート制限が超過した場合（retry_after_secs 秒後に再試行可能）
+    /// `レート制限が超過した場合（retry_after_secs` 秒後に再試行可能）
     #[error("レート制限超過: {retry_after_secs}秒後に再試行してください")]
     LimitExceeded { retry_after_secs: u64 },
     /// 指定されたキーが見つからない場合

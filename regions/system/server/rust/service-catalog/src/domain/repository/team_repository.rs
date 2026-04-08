@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::team::Team;
 
-/// TeamRepository はチーム情報の永続化トレイト。
+/// `TeamRepository` はチーム情報の永続化トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait TeamRepository: Send + Sync {

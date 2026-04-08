@@ -29,6 +29,7 @@ impl Default for ResiliencyMetrics {
 }
 
 impl ResiliencyMetrics {
+    #[must_use] 
     pub fn new() -> Self {
         #[cfg(feature = "metrics")]
         let meter = opentelemetry::global::meter("k1s0.resiliency");

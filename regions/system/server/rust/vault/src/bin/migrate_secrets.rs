@@ -1,18 +1,18 @@
 /// HIGH-RUST-001 / CRIT-003 Phase B: 全シークレットの AAD 付き再暗号化バッチ処理。
 ///
-/// 目的: vault.secret_versions に AAD なし（旧形式）で暗号化された行が存在する場合、
-/// AAD あり（新形式）で再暗号化することで decrypt_with_legacy_fallback を不要にする。
+/// 目的: `vault.secret_versions` に AAD なし（旧形式）で暗号化された行が存在する場合、
+/// AAD あり（新形式）で再暗号化することで `decrypt_with_legacy_fallback` を不要にする。
 ///
 /// 実行前提:
-///   - DATABASE_URL 環境変数に vault-db の接続文字列を設定すること
-///   - VAULT_MASTER_KEY 環境変数に現在稼働中と同じ鍵を設定すること
-///   - DB 接続ロールは row_security = off を実行できる権限（SUPERUSER または BYPASSRLS）が必要
+///   - `DATABASE_URL` 環境変数に vault-db の接続文字列を設定すること
+///   - `VAULT_MASTER_KEY` 環境変数に現在稼働中と同じ鍵を設定すること
+///   - DB 接続ロールは `row_security` = off を実行できる権限（SUPERUSER または BYPASSRLS）が必要
 ///
 /// 実行手順:
 ///   1. vault サービスを停止する（書き込み競合を回避）
 ///   2. このバイナリを実行してすべてのシークレットを再暗号化する
 ///   3. 再暗号化が完了したことを確認する
-///   4. 新しい vault サービス（decrypt_with_legacy_fallback 削除済み）をデプロイする
+///   4. 新しい vault `サービス（decrypt_with_legacy_fallback` 削除済み）をデプロイする
 ///
 /// 使用例:
 ///   cargo run --bin migrate-secrets
@@ -45,8 +45,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| {
             anyhow::anyhow!(
-                "row_security の無効化に失敗しました。SUPERUSER または BYPASSRLS 権限が必要です: {}",
-                e
+                "row_security の無効化に失敗しました。SUPERUSER または BYPASSRLS 権限が必要です: {e}"
             )
         })?;
 
@@ -162,14 +161,12 @@ async fn main() -> anyhow::Result<()> {
 
     if errors > 0 {
         return Err(anyhow::anyhow!(
-            "{} 件のエラーが発生しました。ログを確認してください",
-            errors
+            "{errors} 件のエラーが発生しました。ログを確認してください"
         ));
     }
 
     println!(
-        "完了: {} 件を再暗号化, {} 件はすでに新形式",
-        migrated, already_new_format
+        "完了: {migrated} 件を再暗号化, {already_new_format} 件はすでに新形式"
     );
 
     Ok(())

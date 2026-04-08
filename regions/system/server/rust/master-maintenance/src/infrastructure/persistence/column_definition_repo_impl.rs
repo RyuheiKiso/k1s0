@@ -9,6 +9,7 @@ pub struct ColumnDefinitionPostgresRepository {
 }
 
 impl ColumnDefinitionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -24,7 +25,7 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         .bind(table_id)
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_table_and_column(
@@ -40,7 +41,7 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         .bind(column_name)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn create_batch(
@@ -53,14 +54,14 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
 
         for (i, col) in columns.iter().enumerate() {
             let row = sqlx::query_as::<_, ColumnDefinitionRow>(
-                r#"INSERT INTO master_maintenance.column_definitions
+                r"INSERT INTO master_maintenance.column_definitions
                    (table_id, column_name, display_name, data_type, is_primary_key, is_nullable,
                     is_unique, default_value, max_length, min_value, max_value, regex_pattern,
                     display_order, is_searchable, is_sortable, is_filterable,
                     is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options)
                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
                    -- 明示的カラム指定によるクエリ安全性の確保
-                   RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at"#
+                   RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at"
             )
             .bind(table_id)
             .bind(&col.column_name)
@@ -99,7 +100,7 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
         input: &CreateColumnDefinition,
     ) -> anyhow::Result<ColumnDefinition> {
         let row = sqlx::query_as::<_, ColumnDefinitionRow>(
-            r#"UPDATE master_maintenance.column_definitions SET
+            r"UPDATE master_maintenance.column_definitions SET
                display_name = $3,
                data_type = $4,
                is_primary_key = COALESCE($5, is_primary_key),
@@ -121,7 +122,7 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
                select_options = $21,
                updated_at = now()
                -- 明示的カラム指定によるクエリ安全性の確保
-               WHERE table_id = $1 AND column_name = $2 RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at"#,
+               WHERE table_id = $1 AND column_name = $2 RETURNING id, table_id, column_name, display_name, data_type, is_primary_key, is_nullable, is_unique, default_value, max_length, min_value, max_value, regex_pattern, display_order, is_searchable, is_sortable, is_filterable, is_visible_in_list, is_visible_in_form, is_readonly, input_type, select_options, created_at, updated_at",
         )
         .bind(table_id)
         .bind(column_name)

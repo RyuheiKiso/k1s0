@@ -8,7 +8,7 @@ pub struct DeleteFileInput {
     pub file_id: String,
     /// CRIT-01 監査対応: テナントIDを必須化し、DELETE クエリの条件として使用する
     pub tenant_id: String,
-    /// CRIT-01 監査対応: 所有者IDを DELETE 条件に追加する。None の場合は所有者チェックをスキップ（sys_admin 用）
+    /// CRIT-01 監査対応: 所有者IDを DELETE 条件に追加する。None `の場合は所有者チェックをスキップ（sys_admin` 用）
     pub expected_uploader: Option<String>,
 }
 

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::policy::Policy;
 
-/// PolicyChangedEvent はポリシー変更時に Kafka へ発行するイベント。
+/// `PolicyChangedEvent` はポリシー変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct PolicyChangedEvent {
     pub event_type: String,
@@ -26,6 +26,7 @@ impl PolicyChangedEvent {
         })
     }
 
+    #[must_use] 
     pub fn created(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -40,6 +41,7 @@ impl PolicyChangedEvent {
         }
     }
 
+    #[must_use] 
     pub fn updated(before: &Policy, after: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -54,6 +56,7 @@ impl PolicyChangedEvent {
         }
     }
 
+    #[must_use] 
     pub fn deleted(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -69,7 +72,7 @@ impl PolicyChangedEvent {
     }
 }
 
-/// PolicyEventPublisher はポリシー変更イベント配信のためのトレイト。
+/// `PolicyEventPublisher` はポリシー変更イベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait PolicyEventPublisher: Send + Sync {
@@ -78,7 +81,7 @@ pub trait PolicyEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopPolicyEventPublisher はイベントを破棄する No-Op 実装。
+/// `NoopPolicyEventPublisher` はイベントを破棄する No-Op 実装。
 pub struct NoopPolicyEventPublisher;
 
 #[async_trait]
@@ -92,7 +95,7 @@ impl PolicyEventPublisher for NoopPolicyEventPublisher {
     }
 }
 
-/// KafkaPolicyProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaPolicyProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaPolicyProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -100,7 +103,7 @@ pub struct KafkaPolicyProducer {
 }
 
 impl KafkaPolicyProducer {
-    /// 新しい KafkaPolicyProducer を作成する。
+    /// 新しい `KafkaPolicyProducer` を作成する。
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -124,6 +127,7 @@ impl KafkaPolicyProducer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -148,7 +152,7 @@ impl PolicyEventPublisher for KafkaPolicyProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish policy changed event: {}", err)
+                anyhow::anyhow!("failed to publish policy changed event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {

@@ -2,8 +2,8 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -13,7 +13,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -22,7 +22,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -78,7 +78,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバーのバインドアドレス設定。host/port/grpc_port は startup.rs で使用する。
+/// `ServerConfig` `はサーバーのバインドアドレス設定。host/port/grpc_port` は startup.rs で使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -101,7 +101,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `DatabaseConfig` 縺ｯ繝・・繧ｿ繝吶・繧ｹ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -126,7 +126,8 @@ fn default_max_open_conns() -> u32 {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 謗･邯・URL 繧堤函謌舌☆繧九・
+    /// `PostgreSQL` 謗･邯・URL 繧堤函謌舌☆繧九・
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -141,7 +142,7 @@ impl DatabaseConfig {
     }
 }
 
-/// KafkaConfig 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `KafkaConfig` 縺ｯ Kafka 繝悶Ο繝ｼ繧ｫ繝ｼ謗･邯壹・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -151,7 +152,7 @@ pub struct KafkaConfig {
     pub topics: KafkaTopics,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -182,7 +183,7 @@ fn default_topic_created() -> String {
     "k1s0.system.scheduler.created.v1".to_string()
 }
 
-/// SchedulerConfig 縺ｯ繧ｹ繧ｱ繧ｸ繝･繝ｼ繝ｩ繝ｼ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
+/// `SchedulerConfig` 縺ｯ繧ｹ繧ｱ繧ｸ繝･繝ｼ繝ｩ繝ｼ蝗ｺ譛峨・險ｭ螳壹ｒ陦ｨ縺吶・
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]

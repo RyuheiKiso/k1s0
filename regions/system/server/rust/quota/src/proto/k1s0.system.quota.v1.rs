@@ -204,7 +204,7 @@ pub mod quota_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with QuotaServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `QuotaServiceServer`.
     #[async_trait]
     pub trait QuotaService: std::marker::Send + std::marker::Sync + 'static {
         async fn create_quota_policy(
@@ -271,7 +271,7 @@ pub mod quota_service_server {
             tonic::Status,
         >;
     }
-    /// QuotaService はクォータポリシー管理サービス。
+    /// `QuotaService` はクォータポリシー管理サービス。
     #[derive(Debug)]
     pub struct QuotaServiceServer<T> {
         inner: Arc<T>,

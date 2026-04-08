@@ -22,6 +22,8 @@ rules:
     verbs: ["get"]
 ---
 # k1s0-system Namespace 用 RoleBinding
+# MED-009 監査対応: tier 単位 SA に加えて system tier の全サービス個別 SA を追加する
+# 各サービスが自 namespace 内の Pod/Service/ConfigMap/Secret を参照できるようにする
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -30,6 +32,91 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: k1s0-system-sa
+    namespace: k1s0-system
+  # 個別サービス SA（service-accounts.yaml と対応）
+  - kind: ServiceAccount
+    name: ai-gateway
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: ai-agent
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: auth-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: bff-proxy-sa
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: graphql-gateway
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: config-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: saga-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: dlq-manager
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: session-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: vault-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: scheduler-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: notification-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: workflow-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: featureflag-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: tenant-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: ratelimit-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: navigation-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: service-catalog
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: rule-engine-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: quota-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: search-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: file-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: event-store-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: event-monitor-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: app-registry
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: api-registry-rust
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: master-maintenance
+    namespace: k1s0-system
+  - kind: ServiceAccount
+    name: policy-rust
     namespace: k1s0-system
 roleRef:
   kind: Role
@@ -54,6 +141,7 @@ rules:
     verbs: ["get"]
 ---
 # k1s0-business Namespace 用 RoleBinding
+# MED-009 監査対応: business tier の個別サービス SA を追加する
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -62,6 +150,10 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: k1s0-business-sa
+    namespace: k1s0-business
+  # 個別サービス SA
+  - kind: ServiceAccount
+    name: project-master-rust
     namespace: k1s0-business
 roleRef:
   kind: Role
@@ -86,6 +178,7 @@ rules:
     verbs: ["get"]
 ---
 # k1s0-service Namespace 用 RoleBinding
+# MED-009 監査対応: service tier の個別サービス SA を追加する
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -94,6 +187,16 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: k1s0-service-sa
+    namespace: k1s0-service
+  # 個別サービス SA
+  - kind: ServiceAccount
+    name: task-rust
+    namespace: k1s0-service
+  - kind: ServiceAccount
+    name: board-rust
+    namespace: k1s0-service
+  - kind: ServiceAccount
+    name: activity-rust
     namespace: k1s0-service
 roleRef:
   kind: Role

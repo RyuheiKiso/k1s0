@@ -9,18 +9,20 @@ use sqlx::PgPool;
 use crate::domain::entity::usage_record::UsageRecord;
 use crate::domain::repository::UsageRepository;
 
-/// PostgreSQLベースの使用量リポジトリ。
+/// `PostgreSQLベースの使用量リポジトリ`。
 pub struct UsagePostgresRepository {
     pool: Option<Arc<PgPool>>,
 }
 
 impl UsagePostgresRepository {
     /// データベースプール付きでリポジトリを生成する。
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool: Some(pool) }
     }
 
     /// インメモリフォールバック用リポジトリを生成する（保存は無操作）。
+    #[must_use] 
     pub fn in_memory() -> Self {
         Self { pool: None }
     }
@@ -62,7 +64,7 @@ impl UsageRepository for UsagePostgresRepository {
             .await;
 
             match rows {
-                Ok(rows) => rows.into_iter().map(|r| r.into()).collect(),
+                Ok(rows) => rows.into_iter().map(std::convert::Into::into).collect(),
                 Err(e) => {
                     tracing::warn!(error = %e, "使用量レコードのDB取得に失敗");
                     vec![]

@@ -23,7 +23,7 @@ pub struct InMemoryVaultClient {
     store: tokio::sync::Mutex<HashMap<String, Secret>>,
 }
 
-/// InMemoryVaultClient のデフォルト実装（new() と同じ）。
+/// `InMemoryVaultClient` `のデフォルト実装（new()` と同じ）。
 impl Default for InMemoryVaultClient {
     fn default() -> Self {
         Self::new()
@@ -31,10 +31,12 @@ impl Default for InMemoryVaultClient {
 }
 
 impl InMemoryVaultClient {
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_config(VaultClientConfig::default())
     }
 
+    #[must_use] 
     pub fn with_config(config: VaultClientConfig) -> Self {
         Self {
             config,

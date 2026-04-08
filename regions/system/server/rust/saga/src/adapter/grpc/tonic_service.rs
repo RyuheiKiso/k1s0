@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の SagaService トレイトを実装する。
-//! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の SagaGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `SagaService` トレイトを実装する。
+//! 各メソッドで proto 型 ↔ 手動型の変換を行い、既存の `SagaGrpcService` に委譲する。
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
@@ -50,7 +50,7 @@ impl From<GrpcError> for Status {
 
 // --- 変換ヘルパー ---
 
-/// ドメインのサガステータス文字列を SagaStatus enum の i32 値に変換する。
+/// ドメインのサガステータス文字列を `SagaStatus` enum の i32 値に変換する。
 /// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
 fn saga_status_str_to_enum(s: &str) -> i32 {
     match s {
@@ -97,19 +97,16 @@ fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
 }
 
 fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
-    match value {
-        serde_json::Value::Object(map) => {
-            let fields: BTreeMap<String, prost_types::Value> = map
-                .iter()
-                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
-                .collect();
-            prost_types::Struct { fields }
-        }
-        _ => {
-            let mut fields = BTreeMap::new();
-            fields.insert("value".to_string(), json_to_prost_value(value));
-            prost_types::Struct { fields }
-        }
+    if let serde_json::Value::Object(map) = value {
+        let fields: BTreeMap<String, prost_types::Value> = map
+            .iter()
+            .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+            .collect();
+        prost_types::Struct { fields }
+    } else {
+        let mut fields = BTreeMap::new();
+        fields.insert("value".to_string(), json_to_prost_value(value));
+        prost_types::Struct { fields }
     }
 }
 
@@ -152,24 +149,23 @@ fn empty_string_to_none(value: String) -> Option<String> {
     }
 }
 
-/// gRPC リクエストの Extensions から tenant_id を取得する。
-/// CRIT-005 対応: Claims が存在する場合はその tenant_id を返し、存在しない場合は "system" を返す。
+/// gRPC リクエストの Extensions から `tenant_id` を取得する。
+/// CRIT-005 対応: Claims が存在する場合はその `tenant_id` を返し、存在しない場合は "system" を返す。
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 // --- SagaService tonic ラッパー ---
 
-/// SagaServiceTonic は tonic の SagaService として SagaGrpcService をラップする。
+/// `SagaServiceTonic` は tonic の `SagaService` として `SagaGrpcService` をラップする。
 pub struct SagaServiceTonic {
     inner: Arc<SagaGrpcService>,
 }
 
 impl SagaServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<SagaGrpcService>) -> Self {
         Self { inner }
     }
@@ -186,11 +182,9 @@ impl SagaService for SagaServiceTonic {
         let inner = request.into_inner();
         let payload = inner
             .payload
-            .as_ref()
-            .map(prost_struct_to_json)
-            .unwrap_or_else(|| serde_json::json!({}));
+            .as_ref().map_or_else(|| serde_json::json!({}), prost_struct_to_json);
         let payload = serde_json::to_vec(&payload)
-            .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))?;
+            .map_err(|e| Status::invalid_argument(format!("invalid payload: {e}")))?;
         let req = StartSagaRequest {
             workflow_name: inner.workflow_name,
             payload,
@@ -277,8 +271,7 @@ impl SagaService for SagaServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let req = ListSagasRequest {
             page,
             page_size,

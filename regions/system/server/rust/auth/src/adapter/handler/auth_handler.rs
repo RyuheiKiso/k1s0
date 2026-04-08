@@ -73,23 +73,17 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // DB check: テーブル存在確認まで行い、スキーマ未初期化でも "ready" を返す誤検知を防ぐ（MED-006 監査対応）
     // `SELECT 1` だけでは DB 接続の疎通確認のみでスキーマ未初期化を見逃すため、実テーブルを参照する
     if let Some(ref pool) = state.db_pool {
-        match sqlx::query("SELECT 1 FROM auth.users LIMIT 0").execute(pool).await {
-            Ok(_) => db_status = "ok",
-            Err(_) => {
-                db_status = "error";
-                overall_ok = false;
-            }
+        if let Ok(_) = sqlx::query("SELECT 1 FROM auth.users LIMIT 0").execute(pool).await { db_status = "ok" } else {
+            db_status = "error";
+            overall_ok = false;
         }
     }
 
     // Keycloak check — AppState のシングルトン HTTP クライアントを使用する
     if let Some(ref url) = state.keycloak_url {
-        match state.http_client.get(url).send().await {
-            Ok(_) => kc_status = "ok",
-            Err(_) => {
-                kc_status = "error";
-                overall_ok = false;
-            }
+        if let Ok(_) = state.http_client.get(url).send().await { kc_status = "ok" } else {
+            kc_status = "error";
+            overall_ok = false;
         }
     }
 
@@ -154,19 +148,16 @@ pub async fn validate_token(
         let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "token must not be empty");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
-    match state.validate_token_uc.execute(&req.token).await {
-        Ok(claims) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "valid": true,
-                "claims": claims
-            })),
-        )
-            .into_response(),
-        Err(_) => {
-            let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "Token validation failed");
-            (StatusCode::UNAUTHORIZED, Json(err)).into_response()
-        }
+    if let Ok(claims) = state.validate_token_uc.execute(&req.token).await { (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "valid": true,
+            "claims": claims
+        })),
+    )
+        .into_response() } else {
+        let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "Token validation failed");
+        (StatusCode::UNAUTHORIZED, Json(err)).into_response()
     }
 }
 
@@ -222,15 +213,12 @@ pub async fn introspect_token(
     security(("bearer_auth" = []))
 )]
 pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    match state.get_user_uc.execute(&id).await {
-        Ok(user) => (StatusCode::OK, Json(user)).into_response(),
-        Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_AUTH_USER_NOT_FOUND",
-                "The specified user was not found",
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
-        }
+    if let Ok(user) = state.get_user_uc.execute(&id).await { (StatusCode::OK, Json(user)).into_response() } else {
+        let err = ErrorResponse::new(
+            "SYS_AUTH_USER_NOT_FOUND",
+            "The specified user was not found",
+        );
+        (StatusCode::NOT_FOUND, Json(err)).into_response()
     }
 }
 
@@ -322,15 +310,12 @@ pub async fn get_user_roles(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_user_roles_uc.execute(&id).await {
-        Ok(roles) => (StatusCode::OK, Json(roles)).into_response(),
-        Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_AUTH_USER_NOT_FOUND",
-                "The specified user was not found",
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
-        }
+    if let Ok(roles) = state.get_user_roles_uc.execute(&id).await { (StatusCode::OK, Json(roles)).into_response() } else {
+        let err = ErrorResponse::new(
+            "SYS_AUTH_USER_NOT_FOUND",
+            "The specified user was not found",
+        );
+        (StatusCode::NOT_FOUND, Json(err)).into_response()
     }
 }
 

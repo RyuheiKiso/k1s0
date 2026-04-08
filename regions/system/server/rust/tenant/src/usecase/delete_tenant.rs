@@ -52,6 +52,7 @@ impl DeleteTenantUseCase {
         self
     }
 
+    #[must_use] 
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,

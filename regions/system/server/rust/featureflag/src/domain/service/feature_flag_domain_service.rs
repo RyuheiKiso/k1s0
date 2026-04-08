@@ -32,6 +32,7 @@ impl FeatureFlagDomainService {
         Ok(())
     }
 
+    #[must_use] 
     pub fn evaluate(
         flag: &FeatureFlag,
         context: &EvaluationContext,
@@ -69,7 +70,7 @@ impl FeatureFlagDomainService {
         match attribute {
             "user_id" => context.user_id.as_deref(),
             "tenant_id" => context.tenant_id.as_deref(),
-            key => context.attributes.get(key).map(|v| v.as_str()),
+            key => context.attributes.get(key).map(std::string::String::as_str),
         }
     }
 
@@ -80,7 +81,7 @@ impl FeatureFlagDomainService {
             "in" => rule
                 .value
                 .split(',')
-                .map(|s| s.trim())
+                .map(str::trim)
                 .any(|expected| !expected.is_empty() && expected == actual_value),
             _ => false,
         }

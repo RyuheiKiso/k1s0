@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::search_index::{SearchDocument, SearchIndex, SearchQuery, SearchResult};
 
-/// CRIT-005 対応: 各メソッドに tenant_id を追加してテナント分離を実現する。
+/// CRIT-005 対応: 各メソッドに `tenant_id` を追加してテナント分離を実現する。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SearchRepository: Send + Sync {

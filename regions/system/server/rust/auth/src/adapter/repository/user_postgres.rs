@@ -11,7 +11,7 @@ use crate::domain::entity::user::{Pagination, User, UserListResult, UserRoles};
 use crate::domain::error::AuthError;
 use crate::domain::repository::UserRepository;
 
-/// UserPostgresRepository は PostgreSQL ベースのユーザーリポジトリ。
+/// `UserPostgresRepository` は `PostgreSQL` ベースのユーザーリポジトリ。
 /// auth.users テーブルに対する CRUD 操作を提供する。
 pub struct UserPostgresRepository {
     pool: PgPool,
@@ -21,6 +21,7 @@ pub struct UserPostgresRepository {
 impl UserPostgresRepository {
     // メトリクス不要の簡易コンストラクタ（テストやスクリプト用途で使用予定のため dead_code を許可）
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -28,6 +29,7 @@ impl UserPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -67,7 +69,7 @@ impl UserPostgresRepository {
     }
 }
 
-/// UserRow は auth.users テーブルの行を表す中間構造体。
+/// `UserRow` は auth.users テーブルの行を表す中間構造体。
 // UserRepository トレイト実装の find_by_id / list で使用される。
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct UserRow {
@@ -80,8 +82,8 @@ pub struct UserRow {
     pub display_name: String,
     pub status: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    /// DB テーブルの updated_at カラムに対応。sqlx::FromRow で SELECT 時に必要だが、
-    /// User ドメインモデルへの変換では使用しないため dead_code を許可する。
+    /// DB テーブルの `updated_at` `カラムに対応。sqlx::FromRow` で SELECT 時に必要だが、
+    /// User ドメインモデルへの変換では使用しないため `dead_code` を許可する。
     #[allow(dead_code)]
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -109,7 +111,7 @@ impl From<UserRow> for User {
     }
 }
 
-/// display_name を first_name と last_name に分割する。
+/// `display_name` を `first_name` と `last_name` に分割する。
 fn split_display_name(display_name: &str) -> (String, String) {
     let parts: Vec<&str> = display_name.splitn(2, ' ').collect();
     match parts.len() {
@@ -125,15 +127,15 @@ impl UserRepository for UserPostgresRepository {
         // UUID フォーマットが無効な場合はドメインエラー型 ValidationFailed を返す
         // anyhow::anyhow! ではなく AuthError を使用することで型安全なエラー分類が可能になる
         let uuid = Uuid::parse_str(user_id)
-            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {}", e)))?;
+            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {e}")))?;
 
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
-            r#"
+            r"
             SELECT id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             FROM auth.users
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(uuid)
         .fetch_optional(&self.pool)
@@ -170,11 +172,11 @@ impl UserRepository for UserPostgresRepository {
             let escaped = escape_like_pattern(s);
             count_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\' OR email ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\' OR display_name ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\')");
         }
 
@@ -204,11 +206,11 @@ impl UserRepository for UserPostgresRepository {
             let escaped = escape_like_pattern(s);
             data_qb
                 .push(" AND (username ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\' OR email ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\' OR display_name ILIKE ")
-                .push_bind(format!("%{}%", escaped))
+                .push_bind(format!("%{escaped}%"))
                 .push(" ESCAPE '\\\\')");
         }
 
@@ -221,9 +223,9 @@ impl UserRepository for UserPostgresRepository {
         // ページネーション用の ORDER BY / LIMIT / OFFSET を追加する
         data_qb
             .push(" ORDER BY created_at DESC LIMIT ")
-            .push_bind(page_size as i64)
+            .push_bind(i64::from(page_size))
             .push(" OFFSET ")
-            .push_bind(offset as i64);
+            .push_bind(i64::from(offset));
 
         let start = std::time::Instant::now();
         let rows: Vec<UserRow> = data_qb
@@ -234,8 +236,8 @@ impl UserRepository for UserPostgresRepository {
             m.record_db_query_duration("list", "users", start.elapsed().as_secs_f64());
         }
 
-        let users: Vec<User> = rows.into_iter().map(|r| r.into()).collect();
-        let has_next = (page as i64 * page_size as i64) < total_count;
+        let users: Vec<User> = rows.into_iter().map(std::convert::Into::into).collect();
+        let has_next = (i64::from(page) * i64::from(page_size)) < total_count;
 
         Ok(UserListResult {
             users,
@@ -253,27 +255,26 @@ impl UserRepository for UserPostgresRepository {
         // このメソッドは UserRepository トレイトの互換性のために存在する。
         // anyhow::bail! ではなく AuthError::Internal を使用してドメインエラー型で伝播させる
         Err(AuthError::Internal(format!(
-            "UserPostgresRepository does not support get_roles; use KeycloakClient instead: {}",
-            user_id
+            "UserPostgresRepository does not support get_roles; use KeycloakClient instead: {user_id}"
         ))
         .into())
     }
 }
 
-/// UserPostgresRepository に追加の CRUD メソッド。
-/// UserRepository トレイトにない DB 固有の操作。
+/// `UserPostgresRepository` に追加の CRUD メソッド。
+/// `UserRepository` トレイトにない DB 固有の操作。
 impl UserPostgresRepository {
-    /// keycloak_sub でユーザーを検索する。
+    /// `keycloak_sub` でユーザーを検索する。
     // 将来のユーザー同期・認証連携機能で使用予定のため dead_code を許可
     #[allow(dead_code)]
     pub async fn find_by_keycloak_sub(&self, sub: &str) -> anyhow::Result<Option<User>> {
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
-            r#"
+            r"
             SELECT id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
             FROM auth.users
             WHERE keycloak_sub = $1
-            "#,
+            ",
         )
         .bind(sub)
         .fetch_optional(&self.pool)
@@ -286,7 +287,7 @@ impl UserPostgresRepository {
             );
         }
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     /// ユーザーを作成する。
@@ -299,11 +300,11 @@ impl UserPostgresRepository {
 
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
-            r#"
+            r"
             INSERT INTO auth.users (keycloak_sub, username, email, display_name, status)
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
-            "#,
+            ",
         )
         .bind(&keycloak_sub)
         .bind(&user.username)
@@ -325,18 +326,18 @@ impl UserPostgresRepository {
     pub async fn update(&self, user: &User) -> anyhow::Result<User> {
         // UUID フォーマットが無効な場合はドメインエラー型 ValidationFailed を返す
         let uuid = Uuid::parse_str(&user.id)
-            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {}", e)))?;
+            .map_err(|e| AuthError::ValidationFailed(format!("invalid user ID format: {e}")))?;
         let display_name = Self::build_display_name(user);
         let status = Self::status_from_enabled(user.enabled);
 
         let start = std::time::Instant::now();
         let row = sqlx::query_as::<_, UserRow>(
-            r#"
+            r"
             UPDATE auth.users
             SET username = $2, email = $3, display_name = $4, status = $5
             WHERE id = $1
             RETURNING id, keycloak_sub, username, email, email_verified, display_name, status, created_at, updated_at
-            "#,
+            ",
         )
         .bind(uuid)
         .bind(&user.username)

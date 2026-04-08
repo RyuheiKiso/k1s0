@@ -36,7 +36,7 @@ pub enum TenantError {
     Internal(String),
 }
 
-/// TenantError から ServiceError への変換実装
+/// `TenantError` から `ServiceError` への変換実装
 impl From<TenantError> for ServiceError {
     fn from(err: TenantError) -> Self {
         match err {

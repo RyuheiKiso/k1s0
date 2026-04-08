@@ -58,7 +58,7 @@ impl ListPoliciesUseCase {
             .await
             .map_err(|e| ListPoliciesError::Internal(e.to_string()))?;
 
-        let has_next = (input.page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(input.page) * u64::from(page_size) < total_count;
 
         Ok(ListPoliciesOutput {
             policies,

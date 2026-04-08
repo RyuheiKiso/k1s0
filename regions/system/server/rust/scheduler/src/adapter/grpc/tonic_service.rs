@@ -80,19 +80,16 @@ fn json_to_prost_value(value: &serde_json::Value) -> prost_types::Value {
 }
 
 fn json_to_prost_struct(value: &serde_json::Value) -> prost_types::Struct {
-    match value {
-        serde_json::Value::Object(map) => {
-            let fields: BTreeMap<String, prost_types::Value> = map
-                .iter()
-                .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
-                .collect();
-            prost_types::Struct { fields }
-        }
-        _ => {
-            let mut fields = BTreeMap::new();
-            fields.insert("value".to_string(), json_to_prost_value(value));
-            prost_types::Struct { fields }
-        }
+    if let serde_json::Value::Object(map) = value {
+        let fields: BTreeMap<String, prost_types::Value> = map
+            .iter()
+            .map(|(k, v)| (k.clone(), json_to_prost_value(v)))
+            .collect();
+        prost_types::Struct { fields }
+    } else {
+        let mut fields = BTreeMap::new();
+        fields.insert("value".to_string(), json_to_prost_value(value));
+        prost_types::Struct { fields }
     }
 }
 
@@ -130,11 +127,9 @@ fn json_bytes_to_prost_struct(bytes: &[u8]) -> Option<prost_types::Struct> {
 #[allow(clippy::result_large_err)]
 fn prost_struct_to_json_bytes(payload: Option<prost_types::Struct>) -> Result<Vec<u8>, Status> {
     let payload = payload
-        .as_ref()
-        .map(prost_struct_to_json)
-        .unwrap_or_else(|| serde_json::json!({}));
+        .as_ref().map_or_else(|| serde_json::json!({}), prost_struct_to_json);
     serde_json::to_vec(&payload)
-        .map_err(|e| Status::invalid_argument(format!("invalid payload: {}", e)))
+        .map_err(|e| Status::invalid_argument(format!("invalid payload: {e}")))
 }
 
 fn to_proto_job(job: JobData) -> ProtoJob {
@@ -173,9 +168,7 @@ fn to_proto_execution(execution: JobExecutionData) -> ProtoJobExecution {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct SchedulerServiceTonic {
@@ -183,6 +176,7 @@ pub struct SchedulerServiceTonic {
 }
 
 impl SchedulerServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<SchedulerGrpcService>) -> Self {
         Self { inner }
     }
@@ -246,8 +240,7 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_jobs(ListJobsRequest {
@@ -405,8 +398,7 @@ impl SchedulerService for SchedulerServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_executions(ListExecutionsRequest {

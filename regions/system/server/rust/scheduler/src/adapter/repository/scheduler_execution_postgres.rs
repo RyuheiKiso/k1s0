@@ -7,12 +7,13 @@ use sqlx::PgPool;
 use crate::domain::entity::scheduler_execution::SchedulerExecution;
 use crate::domain::repository::SchedulerExecutionRepository;
 
-/// PostgreSQL によるスケジューラ実行履歴リポジトリの実装。
+/// `PostgreSQL` によるスケジューラ実行履歴リポジトリの実装。
 pub struct SchedulerExecutionPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl SchedulerExecutionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }

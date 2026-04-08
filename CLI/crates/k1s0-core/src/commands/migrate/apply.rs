@@ -310,6 +310,11 @@ mod tests {
 
     #[test]
     fn test_resolve_connection_string_local_dev() {
+        // MED-007 監査対応: テスト内でenv変数を設定し、CI環境での未設定による失敗を防ぐ
+        // SAFETY: テスト専用ファンクションであり、並列テスト実行による競合は #[test] の制約下で許容する
+        unsafe {
+            std::env::set_var("K1S0_DEV_DB_PASSWORD", "test-dev-password");
+        }
         let conn = resolve_connection_string(&DbConnection::LocalDev, "auth_db").unwrap();
         // ポートはstate.jsonが無い場合デフォルトの5432
         assert!(conn.contains("localhost"));

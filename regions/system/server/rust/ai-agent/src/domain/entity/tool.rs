@@ -10,6 +10,6 @@ pub struct Tool {
     pub name: String,
     /// ツールの説明
     pub description: String,
-    /// パラメータのOpenAPI JSONスキーマ
+    /// `パラメータのOpenAPI` JSONスキーマ
     pub parameters_schema: String,
 }

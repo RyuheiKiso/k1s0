@@ -1,5 +1,5 @@
-/// JobCache はスケジューラジョブのインメモリキャッシュ。
-/// moka::future::Cache を使用し、TTL 付きでジョブをキャッシュする。
+/// `JobCache` はスケジューラジョブのインメモリキャッシュ。
+/// `moka::future::Cache` を使用し、TTL 付きでジョブをキャッシュする。
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,11 +13,12 @@ pub struct JobCache {
 }
 
 impl JobCache {
-    /// 新しい JobCache を作成する。
+    /// 新しい `JobCache` を作成する。
     ///
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
+    #[must_use] 
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -26,7 +27,8 @@ impl JobCache {
         Self { inner }
     }
 
-    /// デフォルト設定 (max 1000, TTL 120秒) で JobCache を作成する。
+    /// デフォルト設定 (max 1000, TTL 120秒) で `JobCache` を作成する。
+    #[must_use] 
     pub fn default_config() -> Self {
         Self::new(1000, 120)
     }
@@ -42,7 +44,7 @@ impl JobCache {
     /// キーはジョブの ID から自動生成する。
     #[allow(dead_code)]
     pub async fn insert(&self, job: Arc<SchedulerJob>) {
-        let key = job.id.to_string();
+        let key = job.id.clone();
         self.inner.insert(key, job).await;
     }
 

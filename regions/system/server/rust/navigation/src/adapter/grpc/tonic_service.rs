@@ -12,16 +12,16 @@ use super::navigation_grpc::{GrpcError, NavigationGrpcService};
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
+        // HIGH-001 監査対応: 同一ボディのマッチアームを OR パターンで統合する
         match e {
-            GrpcError::ConfigLoad(msg) => Status::internal(msg),
+            GrpcError::ConfigLoad(msg) | GrpcError::Internal(msg) => Status::internal(msg),
             GrpcError::Unauthenticated(msg) => Status::unauthenticated(msg),
-            GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
 }
 
 /// gRPC メタデータの Authorization ヘッダーから Bearer トークンを取得する。
-/// HIGH-015対応: bearer_token フィールドをプロトメッセージから削除し、
+/// HIGH-015対応: `bearer_token` フィールドをプロトメッセージから削除し、
 /// 標準の gRPC メタデータ経由でトークンを受け取る設計に移行する。
 /// トークンが存在しない場合は空文字列を返す（公開ルート取得を可能にするため）。
 fn bearer_token_from_metadata<T>(request: &Request<T>) -> String {
@@ -46,6 +46,7 @@ pub struct NavigationServiceTonic {
 }
 
 impl NavigationServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<NavigationGrpcService>) -> Self {
         Self { inner }
     }

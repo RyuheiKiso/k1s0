@@ -5,7 +5,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::Execution;
 
-/// ExecutionRepository はエージェント実行の永続化を抽象化するトレイト
+/// `ExecutionRepository` はエージェント実行の永続化を抽象化するトレイト
 // テスト時にmockallによるモック自動生成を有効にする
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]

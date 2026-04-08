@@ -23,6 +23,10 @@ type SessionOptions struct {
 	Subject string
 	// CSRFToken は CSRF トークン。省略時は "test-csrf-token"。
 	CSRFToken string
+	// CSRFTokenCreatedAt は CSRF トークン生成時刻（Unix タイムスタンプ）。
+	// 省略時は time.Now().Unix()（再生成しきい値を超えないよう現在時刻を使う）。
+	// 0 を明示すると旧形式セッション（MED-001 変更前）のシミュレーションになる。
+	CSRFTokenCreatedAt int64
 	// Roles は Keycloak realm roles。省略時は []string{"user"}。
 	Roles []string
 	// TTL はセッションの有効期間。省略時は 1 時間（正常なセッション）。
@@ -65,6 +69,14 @@ func CreateTestSession(opts SessionOptions) *session.SessionData {
 		roles = []string{"user"}
 	}
 
+	// CSRF トークン生成時刻: 省略時は現在時刻（再生成しきい値を超えない）
+	// MED-001 監査対応: CSRFTokenCreatedAt=0 の旧セッションは TTL 超過と判定され再生成される。
+	// テストがデフォルトで再生成をトリガーしないよう現在時刻をデフォルトとする。
+	csrfCreatedAt := opts.CSRFTokenCreatedAt
+	if csrfCreatedAt == 0 {
+		csrfCreatedAt = time.Now().Unix()
+	}
+
 	// TTL に応じた有効期限を計算する
 	ttl := opts.TTL
 	if ttl == 0 {
@@ -73,13 +85,14 @@ func CreateTestSession(opts SessionOptions) *session.SessionData {
 	expiresAt := time.Now().Add(ttl).Unix()
 
 	return &session.SessionData{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		IDToken:      idToken,
-		Subject:      subject,
-		CSRFToken:    csrfToken,
-		Roles:        roles,
-		ExpiresAt:    expiresAt,
+		AccessToken:        accessToken,
+		RefreshToken:       refreshToken,
+		IDToken:            idToken,
+		Subject:            subject,
+		CSRFToken:          csrfToken,
+		CSRFTokenCreatedAt: csrfCreatedAt,
+		Roles:              roles,
+		ExpiresAt:          expiresAt,
 	}
 }
 

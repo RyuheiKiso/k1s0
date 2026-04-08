@@ -40,7 +40,7 @@ impl DeletePolicyUseCase {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからポリシーを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからポリシーを削除する。
     pub async fn execute(&self, id: &Uuid, tenant_id: &str) -> Result<(), DeletePolicyError> {
         let before = self
             .repo

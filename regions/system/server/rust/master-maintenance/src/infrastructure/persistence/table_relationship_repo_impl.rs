@@ -10,6 +10,7 @@ pub struct TableRelationshipPostgresRepository {
 }
 
 impl TableRelationshipPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -24,7 +25,7 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<TableRelationship>> {
@@ -35,7 +36,7 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn find_by_table_id(&self, table_id: Uuid) -> anyhow::Result<Vec<TableRelationship>> {
@@ -46,17 +47,17 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
         .bind(table_id)
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn create(&self, relationship: &TableRelationship) -> anyhow::Result<TableRelationship> {
         let row = sqlx::query_as::<_, TableRelationshipRow>(
-            r#"INSERT INTO master_maintenance.table_relationships
+            r"INSERT INTO master_maintenance.table_relationships
                (id, source_table_id, source_column, target_table_id, target_column,
                 relationship_type, display_name, is_cascade_delete)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at"#,
+               RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at",
         )
         .bind(relationship.id)
         .bind(relationship.source_table_id)
@@ -77,14 +78,14 @@ impl TableRelationshipRepository for TableRelationshipPostgresRepository {
         relationship: &TableRelationship,
     ) -> anyhow::Result<TableRelationship> {
         let row = sqlx::query_as::<_, TableRelationshipRow>(
-            r#"UPDATE master_maintenance.table_relationships SET
+            r"UPDATE master_maintenance.table_relationships SET
                source_column = $2,
                target_column = $3,
                relationship_type = $4,
                display_name = $5,
                is_cascade_delete = $6
                -- 明示的カラム指定によるクエリ安全性の確保
-               WHERE id = $1 RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at"#,
+               WHERE id = $1 RETURNING id, source_table_id, source_column, target_table_id, target_column, relationship_type, display_name, is_cascade_delete, created_at",
         )
         .bind(id)
         .bind(&relationship.source_column)

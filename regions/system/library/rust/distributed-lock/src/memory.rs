@@ -24,6 +24,7 @@ pub struct InMemoryDistributedLock {
 }
 
 impl InMemoryDistributedLock {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             locks: Mutex::new(HashMap::new()),

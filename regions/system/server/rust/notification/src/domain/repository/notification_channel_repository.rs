@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use crate::domain::entity::notification_channel::NotificationChannel;
 
 /// MEDIUM-RUST-001 監査対応: チャンネルリポジトリトレイト
-/// 全取得・削除系メソッドに tenant_id を追加してテナント分離を強制する。
-/// RLS の set_config に渡す tenant_id を呼び出し元（ユースケース）から受け取る設計。
+/// 全取得・削除系メソッドに `tenant_id` を追加してテナント分離を強制する。
+/// RLS の `set_config` に渡す `tenant_id` を呼び出し元（ユースケース）から受け取る設計。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait NotificationChannelRepository: Send + Sync {

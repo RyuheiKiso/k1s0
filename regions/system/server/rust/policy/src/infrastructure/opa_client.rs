@@ -11,7 +11,7 @@ pub struct OpaClient {
 }
 
 impl OpaClient {
-    /// H-001 監査対応: package_path のアローリスト検証
+    /// H-001 監査対応: `package_path` のアローリスト検証
     /// 英数字・アンダースコア・ドットのみ許可し、パストラバーサルを防止する
     fn validate_package_path(path: &str) -> anyhow::Result<()> {
         if path.is_empty() {
@@ -22,16 +22,14 @@ impl OpaClient {
         let first = chars.next().unwrap();
         if !first.is_ascii_alphabetic() && first != '_' {
             return Err(anyhow::anyhow!(
-                "package_path must start with a letter or underscore, got: '{}'",
-                first
+                "package_path must start with a letter or underscore, got: '{first}'"
             ));
         }
         // 残りの文字は英数字・アンダースコア・ドットのみ
         for c in chars {
             if !c.is_ascii_alphanumeric() && c != '_' && c != '.' {
                 return Err(anyhow::anyhow!(
-                    "package_path contains invalid character '{}'. Only [a-zA-Z0-9_.] are allowed.",
-                    c
+                    "package_path contains invalid character '{c}'. Only [a-zA-Z0-9_.] are allowed."
                 ));
             }
         }
@@ -75,7 +73,7 @@ impl OpaClient {
         Ok(json
             .get("result")
             .and_then(|r| r.get("allow"))
-            .and_then(|a| a.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(false))
     }
 }

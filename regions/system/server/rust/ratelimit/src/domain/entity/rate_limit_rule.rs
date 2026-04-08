@@ -13,6 +13,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             Algorithm::TokenBucket => "token_bucket",
@@ -29,7 +30,7 @@ impl Algorithm {
             "fixed_window" => Ok(Algorithm::FixedWindow),
             "sliding_window" => Ok(Algorithm::SlidingWindow),
             "leaky_bucket" => Ok(Algorithm::LeakyBucket),
-            _ => Err(format!("unknown algorithm: {}", s)),
+            _ => Err(format!("unknown algorithm: {s}")),
         }
     }
 }
@@ -58,6 +59,7 @@ pub struct RateLimitRule {
 }
 
 impl RateLimitRule {
+    #[must_use] 
     pub fn new(
         scope: String,
         identifier_pattern: String,
@@ -66,7 +68,7 @@ impl RateLimitRule {
         algorithm: Algorithm,
     ) -> Self {
         let now = Utc::now();
-        let name = format!("{}:{}", scope, identifier_pattern);
+        let name = format!("{scope}:{identifier_pattern}");
         Self {
             id: Uuid::new_v4(),
             name,
@@ -99,6 +101,7 @@ pub struct RateLimitDecision {
 }
 
 impl RateLimitDecision {
+    #[must_use] 
     pub fn allowed(limit: i64, remaining: i64, reset_at: DateTime<Utc>) -> Self {
         Self {
             allowed: true,
@@ -113,6 +116,7 @@ impl RateLimitDecision {
         }
     }
 
+    #[must_use] 
     pub fn denied(limit: i64, remaining: i64, reset_at: DateTime<Utc>, reason: String) -> Self {
         Self {
             allowed: false,

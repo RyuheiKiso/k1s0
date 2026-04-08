@@ -23,12 +23,12 @@ pub struct SendNotificationResponse {
     pub notification_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub status: ::prost::alloc::string::String,
-    /// Deprecated: created_at_ts を使用すること。
+    /// Deprecated: `created_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "3")]
     pub created_at: ::prost::alloc::string::String,
-    /// created_at_ts は created_at の Timestamp 型。
+    /// `created_at_ts` は `created_at` の Timestamp 型。
     #[prost(message, optional, tag = "4")]
     pub created_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
@@ -85,7 +85,7 @@ pub struct NotificationLog {
     pub subject: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, tag = "7")]
     pub body: ::prost::alloc::string::String,
-    /// Deprecated: use status_enum instead.
+    /// Deprecated: use `status_enum` instead.
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "8")]
@@ -94,12 +94,12 @@ pub struct NotificationLog {
     pub retry_count: u32,
     #[prost(string, optional, tag = "10")]
     pub error_message: ::core::option::Option<::prost::alloc::string::String>,
-    /// Deprecated: sent_at_ts を使用すること。
+    /// Deprecated: `sent_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, optional, tag = "11")]
     pub sent_at: ::core::option::Option<::prost::alloc::string::String>,
-    /// Deprecated: created_at_ts を使用すること。
+    /// Deprecated: `created_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "12")]
@@ -107,10 +107,10 @@ pub struct NotificationLog {
     /// 通知ステータスの enum 版（status の型付き版）。
     #[prost(enumeration = "NotificationStatus", tag = "13")]
     pub status_enum: i32,
-    /// sent_at_ts は sent_at の Timestamp 型。
+    /// `sent_at_ts` は `sent_at` の Timestamp 型。
     #[prost(message, optional, tag = "14")]
     pub sent_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// created_at_ts は created_at の Timestamp 型。
+    /// `created_at_ts` は `created_at` の Timestamp 型。
     #[prost(message, optional, tag = "15")]
     pub created_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
@@ -126,20 +126,20 @@ pub struct Channel {
     pub config_json: ::prost::alloc::string::String,
     #[prost(bool, tag = "5")]
     pub enabled: bool,
-    /// Deprecated: created_at_ts を使用すること。
+    /// Deprecated: `created_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "6")]
     pub created_at: ::prost::alloc::string::String,
-    /// Deprecated: updated_at_ts を使用すること。
+    /// Deprecated: `updated_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "7")]
     pub updated_at: ::prost::alloc::string::String,
-    /// created_at_ts は created_at の Timestamp 型。
+    /// `created_at_ts` は `created_at` の Timestamp 型。
     #[prost(message, optional, tag = "8")]
     pub created_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// updated_at_ts は updated_at の Timestamp 型。
+    /// `updated_at_ts` は `updated_at` の Timestamp 型。
     #[prost(message, optional, tag = "9")]
     pub updated_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
@@ -226,20 +226,20 @@ pub struct Template {
     pub subject_template: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, tag = "5")]
     pub body_template: ::prost::alloc::string::String,
-    /// Deprecated: created_at_ts を使用すること。
+    /// Deprecated: `created_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "6")]
     pub created_at: ::prost::alloc::string::String,
-    /// Deprecated: updated_at_ts を使用すること。
+    /// Deprecated: `updated_at_ts` を使用すること。
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "7")]
     pub updated_at: ::prost::alloc::string::String,
-    /// created_at_ts は created_at の Timestamp 型。
+    /// `created_at_ts` は `created_at` の Timestamp 型。
     #[prost(message, optional, tag = "8")]
     pub created_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// updated_at_ts は updated_at の Timestamp 型。
+    /// `updated_at_ts` は `updated_at` の Timestamp 型。
     #[prost(message, optional, tag = "9")]
     pub updated_at_ts: ::core::option::Option<super::super::common::v1::Timestamp>,
 }
@@ -312,26 +312,27 @@ pub struct DeleteTemplateResponse {
     #[prost(string, tag = "2")]
     pub message: ::prost::alloc::string::String,
 }
-/// NotificationStatus は通知配信のステータス。
+/// `NotificationStatus` は通知配信のステータス。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum NotificationStatus {
-    /// NOTIFICATION_STATUS_UNSPECIFIED は未指定（デフォルト値）。
+    /// `NOTIFICATION_STATUS_UNSPECIFIED` は未指定（デフォルト値）。
     Unspecified = 0,
-    /// NOTIFICATION_STATUS_PENDING は送信待ち。
+    /// `NOTIFICATION_STATUS_PENDING` は送信待ち。
     Pending = 1,
-    /// NOTIFICATION_STATUS_SENT は送信済み。
+    /// `NOTIFICATION_STATUS_SENT` は送信済み。
     Sent = 2,
-    /// NOTIFICATION_STATUS_FAILED は送信失敗。
+    /// `NOTIFICATION_STATUS_FAILED` は送信失敗。
     Failed = 3,
-    /// NOTIFICATION_STATUS_RETRYING はリトライ中。
+    /// `NOTIFICATION_STATUS_RETRYING` はリトライ中。
     Retrying = 4,
 }
 impl NotificationStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
+    /// String value of the enum field names used in the `ProtoBuf` definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "NOTIFICATION_STATUS_UNSPECIFIED",
@@ -341,7 +342,8 @@ impl NotificationStatus {
             Self::Retrying => "NOTIFICATION_STATUS_RETRYING",
         }
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
+    /// Creates an enum from field names used in the `ProtoBuf` definition.
+    #[must_use] 
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "NOTIFICATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
@@ -363,7 +365,7 @@ pub mod notification_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with NotificationServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `NotificationServiceServer`.
     #[async_trait]
     pub trait NotificationService: std::marker::Send + std::marker::Sync + 'static {
         async fn send_notification(

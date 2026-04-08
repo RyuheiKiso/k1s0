@@ -13,7 +13,7 @@
 
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-/// init_logger は tracing-subscriber を初期化する。
+/// `init_logger` は tracing-subscriber を初期化する。
 /// 環境に応じてログレベルを設定し、format に応じて出力形式を切り替える。
 ///
 /// - dev: debug
@@ -50,11 +50,11 @@ pub fn init_logger(env: &str, format: &str) {
     }
 }
 
-/// parse_log_level はログレベル文字列を tracing の Level に変換する。
+/// `parse_log_level` はログレベル文字列を tracing の Level に変換する。
+#[must_use]
 pub fn parse_log_level(level: &str) -> tracing::Level {
     match level {
         "debug" => tracing::Level::DEBUG,
-        "info" => tracing::Level::INFO,
         "warn" => tracing::Level::WARN,
         "error" => tracing::Level::ERROR,
         _ => tracing::Level::INFO,

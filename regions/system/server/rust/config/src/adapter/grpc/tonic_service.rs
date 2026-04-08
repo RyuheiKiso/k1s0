@@ -15,8 +15,8 @@ use crate::proto::k1s0::system::config::v1 as pb;
 /// JWT Claims がない場合（dev モード / 認証バイパス）のシステムテナントフォールバック UUID。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// STATIC-CRITICAL-001: gRPC リクエスト extensions から tenant_id を抽出する。
-/// Claims が未設定または tenant_id が空文字の場合はシステムテナントにフォールバックする。
+/// STATIC-CRITICAL-001: gRPC リクエスト extensions から `tenant_id` を抽出する。
+/// Claims が未設定または `tenant_id` が空文字の場合はシステムテナントにフォールバックする。
 fn extract_tenant_id<B>(request: &Request<B>) -> Uuid {
     request
         .extensions()
@@ -49,6 +49,7 @@ pub struct ConfigServiceTonic {
 }
 
 impl ConfigServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<ConfigGrpcService>) -> Self {
         Self { inner }
     }
@@ -194,7 +195,7 @@ impl pb::config_service_server::ConfigService for ConfigServiceTonic {
                     .as_ref()
                     .map(|(value, _)| value.clone())
                     .unwrap_or_default();
-                let old_version = previous.as_ref().map(|(_, version)| *version).unwrap_or(0);
+                let old_version = previous.as_ref().map_or(0, |(_, version)| *version);
                 let new_is_deleted = serde_json::from_slice::<serde_json::Value>(&new_value)
                     .map(|v| v.is_null())
                     .unwrap_or(false);

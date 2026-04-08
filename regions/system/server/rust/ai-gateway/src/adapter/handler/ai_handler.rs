@@ -38,6 +38,7 @@ pub struct AppState {
 
 impl AppState {
     /// 認証状態を設定する。
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -109,7 +110,7 @@ pub struct UsageQuery {
 }
 
 /// 使用量取得エンドポイント。
-/// GET /api/v1/usage?tenant_id=xxx&start=xxx&end=xxx
+/// GET /`api/v1/usage?tenant_id=xxx&start=xxx&end=xxx`
 pub async fn get_usage(
     State(state): State<AppState>,
     Query(query): Query<UsageQuery>,

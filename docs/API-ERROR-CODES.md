@@ -54,6 +54,7 @@ ADR-0005 に基づき、k1s0 の全サービスで使用するエラーコード
 | `SYS_AUTH_PEPPER_NOT_CONFIGURED` | 500 | API キーペッパー未設定（サーバー設定エラー）|
 | `SYS_AUTH_VALIDATION_FAILED` | 400 | 入力値バリデーションエラー |
 | `SYS_AUTH_UNAUTHORIZED` | 401 | 未認証 |
+| `SYS_AUTH_USER_NOT_FOUND` | 404 | ユーザー未発見（MED-017 監査対応: auth_handler.rs に実装済みだが未記載だった） |
 
 ---
 
@@ -134,6 +135,11 @@ ADR-0005 に基づき、k1s0 の全サービスで使用するエラーコード
 | `SYS_VAULT_ALREADY_EXISTS` | 409 | シークレット重複 |
 | `SYS_VAULT_CACHE_ERROR` | 500 | キャッシュエラー |
 | `SYS_VAULT_ENCRYPTION_ERROR` | 500 | 暗号化エラー |
+| `SYS_VAULT_NOT_FOUND` | 404 | シークレット未発見（MED-017 監査対応） |
+| `SYS_VAULT_VALIDATION_ERROR` | 400 | バリデーションエラー（vault_handler.rs）（MED-017 監査対応） |
+| `SYS_VAULT_VALIDATION_FAILED` | 400 | バリデーション失敗（domain/error.rs）（MED-017 監査対応） |
+| `SYS_VAULT_UPSTREAM_ERROR` | 502 | 上流 Vault サービスエラー（MED-017 監査対応） |
+| `SYS_VAULT_INTERNAL_ERROR` | 500 | 内部エラー（MED-017 監査対応） |
 
 ---
 
@@ -195,6 +201,29 @@ ADR-0005 に基づき、k1s0 の全サービスで使用するエラーコード
 | `SVC_ACTIVITY_NOT_FOUND` | 404 | アクティビティ未発見 |
 | `SVC_ACTIVITY_INVALID_STATUS` | 400 | 無効なステータス |
 | `SVC_ACTIVITY_ERROR` | 500 | 内部エラー |
+
+---
+
+## file サービス (`SYS_FILE_*`)
+
+<!-- MED-017 監査対応: file サービスのエラーコードを API カタログに追記 -->
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_FILE_VALIDATION` | 400 | 入力バリデーションエラー（ファイル名不正等） |
+| `SYS_FILE_NOT_FOUND` | 404 | ファイル未発見 |
+| `SYS_FILE_ALREADY_COMPLETED` | 409 | ファイルアップロード完了済み |
+| `SYS_FILE_NOT_AVAILABLE` | 404 | ファイルがまだ利用可能でない |
+| `SYS_FILE_ACCESS_DENIED` | 403 | アクセス権限なし |
+| `SYS_FILE_SIZE_EXCEEDED` | 413 | ファイルサイズ超過 |
+| `SYS_FILE_STORAGE_ERROR` | 502 | ストレージバックエンドエラー |
+| `SYS_FILE_UPLOAD_FAILED` | 500 | アップロード開始失敗 |
+| `SYS_FILE_GET_FAILED` | 500 | ファイルメタデータ取得失敗 |
+| `SYS_FILE_LIST_FAILED` | 500 | ファイル一覧取得失敗 |
+| `SYS_FILE_DELETE_FAILED` | 500 | ファイル削除失敗 |
+| `SYS_FILE_COMPLETE_FAILED` | 500 | アップロード完了処理失敗 |
+| `SYS_FILE_DOWNLOAD_URL_FAILED` | 500 | ダウンロードURL生成失敗 |
+| `SYS_FILE_TAGS_UPDATE_FAILED` | 500 | タグ更新失敗 |
 
 ---
 

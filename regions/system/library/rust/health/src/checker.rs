@@ -21,6 +21,7 @@ pub struct CompositeHealthChecker {
 }
 
 impl CompositeHealthChecker {
+    #[must_use]
     pub fn new() -> Self {
         Self { checks: vec![] }
     }
@@ -52,12 +53,13 @@ impl CompositeHealthChecker {
     }
 
     /// readyz は全ヘルスチェッカーを実行し、トラフィック受け入れ可否を返す。
-    /// run_all() と同等。
+    /// `run_all()` と同等。
     pub async fn readyz(&self) -> HealthResponse {
         self.run_all().await
     }
 
     /// healthz は死活確認用エンドポイント。常に ok を返す。
+    #[must_use]
     pub fn healthz(&self) -> HealthzResponse {
         HealthzResponse {
             status: "ok".to_string(),
@@ -85,6 +87,8 @@ mod tests {
 
     #[async_trait]
     impl HealthCheck for AlwaysHealthy {
+        // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+        #[allow(clippy::unnecessary_literal_bound)]
         fn name(&self) -> &str {
             "always-healthy"
         }
@@ -97,6 +101,8 @@ mod tests {
 
     #[async_trait]
     impl HealthCheck for AlwaysUnhealthy {
+        // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+        #[allow(clippy::unnecessary_literal_bound)]
         fn name(&self) -> &str {
             "always-unhealthy"
         }

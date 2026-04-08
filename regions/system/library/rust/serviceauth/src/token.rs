@@ -23,7 +23,8 @@ pub struct ServiceToken {
 }
 
 impl ServiceToken {
-    /// 新しい ServiceToken を生成する。
+    /// 新しい `ServiceToken` を生成する。
+    #[must_use] 
     pub fn new(access_token: String, token_type: String, expires_in: u64) -> Self {
         Self {
             access_token,
@@ -34,6 +35,7 @@ impl ServiceToken {
     }
 
     /// トークンが有効期限切れかどうかを返す。
+    #[must_use] 
     pub fn is_expired(&self) -> bool {
         let elapsed = Utc::now()
             .signed_duration_since(self.acquired_at)
@@ -44,6 +46,7 @@ impl ServiceToken {
     /// 指定秒数前にリフレッシュすべきかどうかを返す。
     ///
     /// `refresh_before_secs` 秒以内に有効期限が切れる場合は `true` を返す。
+    #[must_use] 
     pub fn should_refresh(&self, refresh_before_secs: u64) -> bool {
         let elapsed = Utc::now()
             .signed_duration_since(self.acquired_at)
@@ -57,6 +60,7 @@ impl ServiceToken {
     }
 
     /// Authorization ヘッダー用の Bearer 文字列を返す。
+    #[must_use] 
     pub fn bearer_header(&self) -> String {
         format!("Bearer {}", self.access_token)
     }
@@ -78,7 +82,7 @@ pub struct SpiffeId {
 }
 
 impl SpiffeId {
-    /// SPIFFE URI 文字列を解析して SpiffeId を返す。
+    /// SPIFFE URI 文字列を解析して `SpiffeId` を返す。
     ///
     /// 期待フォーマット: `spiffe://{trust_domain}/ns/{namespace}/sa/{service_account}`
     ///
@@ -88,23 +92,20 @@ impl SpiffeId {
     pub fn parse(spiffe_uri: &str) -> Result<Self, ServiceAuthError> {
         let path = spiffe_uri.strip_prefix("spiffe://").ok_or_else(|| {
             ServiceAuthError::SpiffeValidationFailed(format!(
-                "SPIFFE URI は 'spiffe://' で始まる必要があります: {}",
-                spiffe_uri
+                "SPIFFE URI は 'spiffe://' で始まる必要があります: {spiffe_uri}"
             ))
         })?;
 
         // trust_domain と残りのパスを分離する
         let (trust_domain, rest) = path.split_once('/').ok_or_else(|| {
             ServiceAuthError::SpiffeValidationFailed(format!(
-                "SPIFFE URI にパスが含まれていません: {}",
-                spiffe_uri
+                "SPIFFE URI にパスが含まれていません: {spiffe_uri}"
             ))
         })?;
 
         if trust_domain.is_empty() {
             return Err(ServiceAuthError::SpiffeValidationFailed(format!(
-                "SPIFFE URI のトラストドメインが空です: {}",
-                spiffe_uri
+                "SPIFFE URI のトラストドメインが空です: {spiffe_uri}"
             )));
         }
 
@@ -117,8 +118,7 @@ impl SpiffeId {
             || segments[3].is_empty()
         {
             return Err(ServiceAuthError::SpiffeValidationFailed(format!(
-                "SPIFFE URI のパスは /ns/{{namespace}}/sa/{{service_account}} 形式である必要があります: {}",
-                spiffe_uri
+                "SPIFFE URI のパスは /ns/{{namespace}}/sa/{{service_account}} 形式である必要があります: {spiffe_uri}"
             )));
         }
 
@@ -130,6 +130,7 @@ impl SpiffeId {
     }
 
     /// SPIFFE URI 文字列に変換する。
+    #[must_use] 
     pub fn to_uri(&self) -> String {
         format!(
             "spiffe://{}/ns/{}/sa/{}",
@@ -147,6 +148,7 @@ impl SpiffeId {
     /// | system     | system, business, service |
     /// | business   | business, service    |
     /// | service    | service のみ         |
+    #[must_use] 
     pub fn allows_tier_access(&self, target_tier: &str) -> bool {
         match self.namespace.as_str() {
             "system" => matches!(target_tier, "system" | "business" | "service"),

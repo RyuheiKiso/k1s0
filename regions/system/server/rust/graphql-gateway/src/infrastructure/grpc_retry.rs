@@ -1,9 +1,9 @@
 /// gRPC リトライポリシーモジュール（P2-25）
 ///
-/// 一時的なエラー（UNAVAILABLE, DEADLINE_EXCEEDED）に対してリトライを行う。
-/// 恒久的なエラー（NOT_FOUND, PERMISSION_DENIED 等）はリトライしない。
+/// 一時的なエラー（UNAVAILABLE, `DEADLINE_EXCEEDED）に対してリトライを行う`。
+/// `恒久的なエラー（NOT_FOUND`, `PERMISSION_DENIED` 等）はリトライしない。
 ///
-/// tower::retry::Policy を実装し、ServiceBuilder でチャンネルに適用できる。
+/// `tower::retry::Policy` を実装し、ServiceBuilder でチャンネルに適用できる。
 use std::future::Future;
 
 use tokio::time::Duration;
@@ -11,7 +11,7 @@ use tonic::Status;
 use tracing::warn;
 
 /// リトライ対象となる一時的な tonic エラーコードを判定する。
-/// UNAVAILABLE（サーバー未起動・過負荷）と DEADLINE_EXCEEDED（タイムアウト）のみリトライ。
+/// UNAVAILABLE（サーバー未起動・過負荷）と `DEADLINE_EXCEEDED（タイムアウト）のみリトライ`。
 fn is_transient(status: &Status) -> bool {
     matches!(
         status.code(),
@@ -50,8 +50,7 @@ where
     // max_attempts が 0 の場合はパニックを回避するため事前にエラーを返す（CRITICAL-CODE-01 監査対応）
     if max_attempts == 0 {
         return Err(Status::internal(format!(
-            "{}: max_attempts must be >= 1",
-            operation_name
+            "{operation_name}: max_attempts must be >= 1"
         )));
     }
     // 上限を超える max_attempts はクランプして無制限リトライを防止する（H-09 監査対応）
@@ -87,8 +86,7 @@ where
     // ループ内の全パスが return するため論理的には到達しないが、
     // unreachable! の代わりに安全なエラーを返す（H-09 監査対応）
     Err(Status::internal(format!(
-        "{}: retry exhausted after {} attempts",
-        operation_name, clamped
+        "{operation_name}: retry exhausted after {clamped} attempts"
     )))
 }
 

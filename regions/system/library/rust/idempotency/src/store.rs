@@ -367,8 +367,8 @@ pub struct PostgresIdempotencyStore {
 }
 
 impl PostgresIdempotencyStore {
-    /// 接続プールの最大接続数を指定して新しい PostgresIdempotencyStore を生成する。
-    /// max_connections が None の場合はデフォルト値 (10) を使用する。
+    /// 接続プールの最大接続数を指定して新しい `PostgresIdempotencyStore` を生成する。
+    /// `max_connections` が None の場合はデフォルト値 (10) を使用する。
     pub async fn new(
         database_url: impl Into<String>,
         max_connections: Option<u32>,

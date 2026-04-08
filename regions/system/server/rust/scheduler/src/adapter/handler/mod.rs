@@ -17,7 +17,7 @@ use crate::usecase::{
 };
 
 /// Shared application state for REST handlers.
-/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
+/// `db_pool` は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub list_jobs_uc: Arc<ListJobsUseCase>,
@@ -36,6 +36,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self

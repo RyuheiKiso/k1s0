@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
 
-/// VersionRepository はアプリバージョン管理のためのリポジトリトレイト。
+/// `VersionRepository` はアプリバージョン管理のためのリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait VersionRepository: Send + Sync {

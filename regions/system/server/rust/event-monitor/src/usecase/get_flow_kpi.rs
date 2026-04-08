@@ -44,6 +44,7 @@ impl GetFlowKpiUseCase {
         }
     }
 
+    #[must_use] 
     pub fn with_cache(mut self, cache: Arc<KpiCache>) -> Self {
         self.kpi_cache = Some(cache);
         self
@@ -55,7 +56,7 @@ impl GetFlowKpiUseCase {
         period: &str,
     ) -> Result<GetFlowKpiOutput, GetFlowKpiError> {
         // Check cache first
-        let cache_key = format!("flow_kpi:{}:{}", flow_id, period);
+        let cache_key = format!("flow_kpi:{flow_id}:{period}");
         if let Some(ref cache) = self.kpi_cache {
             if let Some(cached_kpi) = cache.get(&cache_key).await {
                 let flow = self

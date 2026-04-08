@@ -18,6 +18,7 @@ impl GraphQlQuery {
         }
     }
 
+    #[must_use] 
     pub fn variables(mut self, variables: serde_json::Value) -> Self {
         self.variables = Some(variables);
         self

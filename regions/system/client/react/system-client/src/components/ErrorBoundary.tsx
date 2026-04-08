@@ -36,10 +36,17 @@ export class ErrorBoundary extends Component<Props, State> {
       // 本番環境ではエラー詳細（スタックトレース等）を隠蔽してセキュリティを確保する
       // DOCS-MED-003 監査対応: バンドラー非依存の開発環境判定。
       // Vite: import.meta.env.DEV (boolean) / webpack 等: process.env.NODE_ENV で判定する。
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // MED-012 監査対応: `as any` を排除して型安全な globalThis アクセスに変更する。
+      // globalThis に存在しうる Node.js の process オブジェクトを型キャストなしで参照する。
+      const nodeEnv = (
+        'process' in globalThis &&
+        typeof (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
+          ?.NODE_ENV === 'string'
+          ? (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV
+          : undefined
+      );
       const isDev =
-        (typeof (globalThis as any).process !== 'undefined' &&
-          (globalThis as any).process?.env?.NODE_ENV === 'development') ||
+        nodeEnv === 'development' ||
         Boolean(import.meta.env?.MODE === 'development');
 
       return (

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::DlqMessage;
 use crate::domain::repository::DlqMessageRepository;
 
-/// ListMessagesUseCase はトピック別の DLQ メッセージ一覧取得を担う。
+/// `ListMessagesUseCase` はトピック別の DLQ メッセージ一覧取得を担う。
 pub struct ListMessagesUseCase {
     repo: Arc<dyn DlqMessageRepository>,
 }
@@ -13,7 +13,7 @@ impl ListMessagesUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからトピック別にメッセージ一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからトピック別にメッセージ一覧を取得する。
     pub async fn execute(
         &self,
         topic: &str,

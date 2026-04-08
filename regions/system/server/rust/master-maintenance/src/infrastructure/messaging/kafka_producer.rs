@@ -26,6 +26,7 @@ impl MasterMaintenanceKafkaProducer {
         })
     }
 
+    #[must_use] 
     pub fn topic(&self) -> &str {
         &self.topic
     }
@@ -63,7 +64,7 @@ impl MasterMaintenanceKafkaProducer {
         domain: &str,
         event: &Value,
     ) -> anyhow::Result<()> {
-        let domain_topic = format!("k1s0.business.{}.mastermaintenance.data_changed.v1", domain);
+        let domain_topic = format!("k1s0.business.{domain}.mastermaintenance.data_changed.v1");
         let payload = serde_json::to_vec(event)?;
         let key = event
             .get("resource_id")

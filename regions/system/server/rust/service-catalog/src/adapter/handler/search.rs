@@ -2,12 +2,13 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use serde::Deserialize;
 
 use super::{AppState, ErrorResponse};
 // utoipa マクロの body 型参照に必要なインポート
+use crate::domain::entity::claims::Claims;
 use crate::domain::entity::service::Service;
 use crate::domain::entity::service::ServiceTier;
 
@@ -32,8 +33,10 @@ pub struct SearchQuery {
     ),
     security(("bearer_auth" = []))
 )]
+// CRIT-004 監査対応: Claims extension から tenant_id を取得して RLS に渡す。
 pub async fn search_services(
     State(state): State<AppState>,
+    Extension(claims): Extension<Claims>,
     Query(params): Query<SearchQuery>,
 ) -> impl IntoResponse {
     let tags = params
@@ -41,7 +44,7 @@ pub async fn search_services(
         .map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
     let tier = params.tier.and_then(|t| t.parse::<ServiceTier>().ok());
 
-    match state.search_services_uc.execute(params.q, tags, tier).await {
+    match state.search_services_uc.execute(&claims.tenant_id, params.q, tags, tier).await {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());

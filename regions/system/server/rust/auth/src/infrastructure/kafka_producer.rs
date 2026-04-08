@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::domain::entity::audit_log::AuditLog;
 
-/// KafkaConfig は Kafka 接続の設定を表す。
+/// `KafkaConfig` は Kafka 接続の設定を表す。
 #[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
@@ -20,13 +20,13 @@ pub struct KafkaConfig {
     pub topics: TopicsConfig,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SaslConfig は SASL 認証の設定を表す。
+/// `SaslConfig` は SASL 認証の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SaslConfig {
     #[serde(default)]
@@ -48,7 +48,7 @@ impl Default for SaslConfig {
     }
 }
 
-/// TopicsConfig はトピック設定を表す。
+/// `TopicsConfig` はトピック設定を表す。
 #[allow(dead_code)]
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
@@ -58,7 +58,7 @@ pub struct TopicsConfig {
     pub subscribe: Vec<String>,
 }
 
-/// AuditEventPublisher は監査イベント配信のためのトレイト。
+/// `AuditEventPublisher` は監査イベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AuditEventPublisher: Send + Sync {
@@ -67,7 +67,7 @@ pub trait AuditEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// KafkaProducer is a Kafka producer using rdkafka FutureProducer.
+/// `KafkaProducer` is a Kafka producer using rdkafka `FutureProducer`.
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -75,7 +75,7 @@ pub struct KafkaProducer {
 }
 
 impl KafkaProducer {
-    /// Create a new KafkaProducer.
+    /// Create a new `KafkaProducer`.
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -114,17 +114,18 @@ impl KafkaProducer {
 
     /// Return the default topic name.
     #[allow(dead_code)]
+    #[must_use] 
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     /// Resolve a topic by event type prefix, falling back to the default topic.
+    #[must_use] 
     pub fn resolve_topic(&self, event_type: &str) -> &str {
         let prefix = event_type.split('_').next().unwrap_or("");
         self.topic_map
             .get(prefix)
-            .map(|s| s.as_str())
-            .unwrap_or(&self.topic)
+            .map_or(&self.topic, std::string::String::as_str)
     }
 
     fn build_default_topic_map() -> std::collections::HashMap<String, String> {
@@ -157,7 +158,7 @@ impl AuditEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish audit event: {}", err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish audit event: {err}"))?;
 
         Ok(())
     }

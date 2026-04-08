@@ -1,6 +1,6 @@
 use crate::id::{CorrelationId, TraceId};
 
-/// CorrelationContext はリクエスト伝播コンテキストを表す。
+/// `CorrelationContext` はリクエスト伝播コンテキストを表す。
 /// HTTP ヘッダー・gRPC メタデータ・Kafka ヘッダー経由で伝播する。
 #[derive(Debug, Clone)]
 pub struct CorrelationContext {
@@ -12,6 +12,7 @@ pub struct CorrelationContext {
 
 impl CorrelationContext {
     /// 新しいコンテキストを生成する（相関 ID は自動生成）。
+    #[must_use]
     pub fn new() -> Self {
         Self {
             correlation_id: CorrelationId::new(),
@@ -19,12 +20,14 @@ impl CorrelationContext {
         }
     }
 
+    #[must_use]
     pub fn with_trace_id(mut self, trace_id: TraceId) -> Self {
         self.trace_id = Some(trace_id);
         self
     }
 
     /// 既存の相関 ID からコンテキストを生成する。
+    #[must_use]
     pub fn from_correlation_id(correlation_id: CorrelationId) -> Self {
         Self {
             correlation_id,
@@ -39,7 +42,7 @@ impl Default for CorrelationContext {
     }
 }
 
-/// CorrelationHeaders は HTTP/gRPC ヘッダーでの伝播用のヘッダー名定数。
+/// `CorrelationHeaders` は HTTP/gRPC ヘッダーでの伝播用のヘッダー名定数。
 pub struct CorrelationHeaders;
 
 impl CorrelationHeaders {
@@ -48,7 +51,8 @@ impl CorrelationHeaders {
     /// トレース ID のヘッダー名（OpenTelemetry の traceparent に対応）
     pub const TRACE_ID: &'static str = "x-trace-id";
 
-    /// CorrelationContext からヘッダーマップを生成する。
+    /// `CorrelationContext` からヘッダーマップを生成する。
+    #[must_use]
     pub fn to_headers(ctx: &CorrelationContext) -> Vec<(String, String)> {
         let mut headers = vec![(
             Self::CORRELATION_ID.to_string(),
@@ -60,7 +64,8 @@ impl CorrelationHeaders {
         headers
     }
 
-    /// HTTP ヘッダーから CorrelationContext を復元する。
+    /// HTTP ヘッダーから `CorrelationContext` を復元する。
+    #[must_use]
     pub fn from_headers(headers: &[(String, String)]) -> CorrelationContext {
         let mut correlation_id = None;
         let mut trace_id = None;

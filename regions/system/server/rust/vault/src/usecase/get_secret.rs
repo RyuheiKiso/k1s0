@@ -10,7 +10,7 @@ pub struct GetSecretInput {
     pub path: String,
     pub version: Option<i64>,
     /// MED-011 監査対応: JWT クレームから伝播したテナント ID
-    /// None の場合はシステム全体スコープとして扱う（key_path による論理分離: ADR-0056 参照）
+    /// None `の場合はシステム全体スコープとして扱う（key_path` による論理分離: ADR-0056 参照）
     pub tenant_id: Option<String>,
 }
 

@@ -13,6 +13,7 @@ pub struct MemberPostgresRepository {
 }
 
 impl MemberPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -73,7 +74,7 @@ impl From<ProvisioningJobRow> for ProvisioningJob {
     }
 }
 
-/// CRITICAL-RUST-001 監査対応: MemberRepository の PostgreSQL 実装。
+/// CRITICAL-RUST-001 監査対応: `MemberRepository` の `PostgreSQL` 実装。
 /// migration 008 で追加した RLS ポリシーに対応する。
 #[async_trait]
 impl MemberRepository for MemberPostgresRepository {

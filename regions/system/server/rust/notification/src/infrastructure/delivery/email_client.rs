@@ -44,18 +44,18 @@ impl DeliveryClient for EmailDeliveryClient {
                 self.from_address
                     .parse()
                     .map_err(|e: lettre::address::AddressError| {
-                        DeliveryError::Other(format!("invalid from address: {}", e))
+                        DeliveryError::Other(format!("invalid from address: {e}"))
                     })?,
             )
             .to(recipient
                 .parse()
                 .map_err(|e: lettre::address::AddressError| {
-                    DeliveryError::Other(format!("invalid recipient address: {}", e))
+                    DeliveryError::Other(format!("invalid recipient address: {e}"))
                 })?)
             .subject(subject)
             .header(ContentType::TEXT_PLAIN)
             .body(body.to_string())
-            .map_err(|e| DeliveryError::Other(format!("failed to build email: {}", e)))?;
+            .map_err(|e| DeliveryError::Other(format!("failed to build email: {e}")))?;
 
         self.mailer
             .send(email)

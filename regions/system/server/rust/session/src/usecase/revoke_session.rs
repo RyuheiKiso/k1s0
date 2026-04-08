@@ -6,7 +6,7 @@ use crate::error::SessionError;
 use crate::infrastructure::kafka_producer::SessionEventPublisher;
 
 /// セッション失効リクエストの入力。
-/// HIGH-002 対応: jwt_jti と jwt_remaining_secs を追加し、ログアウト時に jti ブラックリスト登録を行う。
+/// HIGH-002 対応: `jwt_jti` と `jwt_remaining_secs` を追加し、ログアウト時に jti ブラックリスト登録を行う。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct RevokeSessionInput {
     pub id: String,

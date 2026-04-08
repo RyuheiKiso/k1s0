@@ -8,7 +8,7 @@ use crate::domain::entity::platform::Platform;
 use crate::domain::entity::version::AppVersion;
 use crate::domain::repository::VersionRepository;
 
-/// VersionRow は app_registry.app_versions テーブルの行を表す中間構造体。
+/// `VersionRow` は `app_registry.app_versions` テーブルの行を表す中間構造体。
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct VersionRow {
     pub id: Uuid,
@@ -50,7 +50,7 @@ impl TryFrom<VersionRow> for AppVersion {
     }
 }
 
-/// VersionPostgresRepository は PostgreSQL ベースのバージョンリポジトリ。
+/// `VersionPostgresRepository` は `PostgreSQL` ベースのバージョンリポジトリ。
 pub struct VersionPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -66,6 +66,7 @@ impl VersionPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -79,13 +80,13 @@ impl VersionRepository for VersionPostgresRepository {
     async fn list_by_app(&self, app_id: &str) -> anyhow::Result<Vec<AppVersion>> {
         let start = std::time::Instant::now();
         let rows = sqlx::query_as::<_, VersionRow>(
-            r#"
+            r"
             SELECT id, app_id, version, platform, arch, size_bytes, checksum_sha256,
                    storage_key, release_notes, mandatory, cosign_signature, published_at, created_at
             FROM app_registry.app_versions
             WHERE app_id = $1
             ORDER BY published_at DESC
-            "#,
+            ",
         )
         .bind(app_id)
         .fetch_all(&self.pool)
@@ -99,21 +100,21 @@ impl VersionRepository for VersionPostgresRepository {
             );
         }
 
-        rows.into_iter().map(|r| r.try_into()).collect()
+        rows.into_iter().map(std::convert::TryInto::try_into).collect()
     }
 
     async fn create(&self, version: &AppVersion) -> anyhow::Result<AppVersion> {
         let start = std::time::Instant::now();
         // STATIC-CRITICAL-002: cosign_signature を INSERT に含め、署名を永続化する
         let row = sqlx::query_as::<_, VersionRow>(
-            r#"
+            r"
             INSERT INTO app_registry.app_versions
                 (app_id, version, platform, arch, size_bytes, checksum_sha256,
                  storage_key, release_notes, mandatory, cosign_signature, published_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id, app_id, version, platform, arch, size_bytes, checksum_sha256,
                       storage_key, release_notes, mandatory, cosign_signature, published_at, created_at
-            "#,
+            ",
         )
         .bind(&version.app_id)
         .bind(&version.version)
@@ -145,10 +146,10 @@ impl VersionRepository for VersionPostgresRepository {
     ) -> anyhow::Result<()> {
         let start = std::time::Instant::now();
         let result = sqlx::query(
-            r#"
+            r"
             DELETE FROM app_registry.app_versions
             WHERE app_id = $1 AND version = $2 AND platform = $3 AND arch = $4
-            "#,
+            ",
         )
         .bind(app_id)
         .bind(version)
@@ -163,11 +164,7 @@ impl VersionRepository for VersionPostgresRepository {
 
         if result.rows_affected() == 0 {
             anyhow::bail!(
-                "version not found: app={} version={} platform={} arch={}",
-                app_id,
-                version,
-                platform,
-                arch
+                "version not found: app={app_id} version={version} platform={platform} arch={arch}"
             );
         }
 

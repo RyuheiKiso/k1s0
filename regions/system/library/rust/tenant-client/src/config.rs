@@ -16,11 +16,13 @@ impl TenantClientConfig {
         }
     }
 
+    #[must_use] 
     pub fn cache_ttl(mut self, ttl: Duration) -> Self {
         self.cache_ttl = ttl;
         self
     }
 
+    #[must_use] 
     pub fn cache_max_capacity(mut self, capacity: u64) -> Self {
         self.cache_max_capacity = capacity;
         self

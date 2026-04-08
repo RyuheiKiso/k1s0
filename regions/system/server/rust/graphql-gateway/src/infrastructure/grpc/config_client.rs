@@ -10,7 +10,15 @@ use crate::domain::model::ConfigEntry;
 use crate::domain::port::ConfigPort;
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -34,13 +42,13 @@ pub struct ConfigGrpcClient {
     client: ConfigServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl ConfigGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -67,7 +75,7 @@ impl ConfigGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("config gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("config gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 
@@ -91,7 +99,7 @@ impl ConfigGrpcClient {
                 // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
                 let value_str = String::from_utf8(entry.value).map_err(|e| {
                     warn!(namespace = %entry.namespace, key = %entry.key, "config value is not valid UTF-8: {}", e);
-                    anyhow::anyhow!("config value is not valid UTF-8: {}", e)
+                    anyhow::anyhow!("config value is not valid UTF-8: {e}")
                 })?;
                 Ok(Some(ConfigEntry {
                     key: format!("{}/{}", entry.namespace, entry.key),
@@ -100,13 +108,13 @@ impl ConfigGrpcClient {
                 }))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("ConfigService.GetConfig failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("ConfigService.GetConfig failed: {e}")),
         }
     }
 
-    /// 複数の "namespace/key" キーに対して ListConfigs をバッチ呼び出しし、該当する ConfigEntry を返す。
+    /// 複数の "namespace/key" キーに対して `ListConfigs` をバッチ呼び出しし、該当する `ConfigEntry` を返す。
     ///
-    /// namespace ごとにグルーピングし、1回の ListConfigs RPC で該当エントリを取得する。
+    /// namespace ごとにグルーピングし、1回の `ListConfigs` RPC で該当エントリを取得する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn list_configs_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<ConfigEntry>> {
         // namespace ごとにキーをグルーピング
@@ -133,13 +141,13 @@ impl ConfigGrpcClient {
             match self.client.clone().list_configs(request).await {
                 Ok(resp) => {
                     let target_set: std::collections::HashSet<&str> =
-                        target_keys.iter().map(|s| s.as_str()).collect();
+                        target_keys.iter().map(std::string::String::as_str).collect();
                     for entry in resp.into_inner().entries {
                         if target_set.contains(entry.key.as_str()) {
                             // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
                             let value_str = String::from_utf8(entry.value).map_err(|e| {
                                 warn!(namespace = %entry.namespace, key = %entry.key, "config value is not valid UTF-8: {}", e);
-                                anyhow::anyhow!("config value is not valid UTF-8: {}", e)
+                                anyhow::anyhow!("config value is not valid UTF-8: {e}")
                             })?;
                             results.push(ConfigEntry {
                                 key: format!("{}/{}", entry.namespace, entry.key),
@@ -150,14 +158,14 @@ impl ConfigGrpcClient {
                     }
                 }
                 Err(e) => {
-                    return Err(anyhow::anyhow!("ConfigService.ListConfigs failed: {}", e));
+                    return Err(anyhow::anyhow!("ConfigService.ListConfigs failed: {e}"));
                 }
             }
         }
         Ok(results)
     }
 
-    /// WatchConfig Server-Side Streaming を購読し、変更イベントを ConfigEntry として返す。
+    /// `WatchConfig` Server-Side Streaming を購読し、変更イベントを `ConfigEntry` として返す。
     /// ストリームアイテムは `Result<ConfigEntry, tonic::Status>` として返し、
     /// 接続中の gRPC エラーをサブスクライバーに伝播する（P2-26）。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]

@@ -5,15 +5,15 @@ use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// SessionMetadata はセッションのメタデータ（デバイス情報、IP、UA）を表す。
-/// 監査ログ・セッション一覧表示用に PostgreSQL に永続化される。
-/// tenant_id は RLS ポリシー（app.current_tenant_id）によるテナント分離に使用する。
+/// `SessionMetadata` はセッションのメタデータ（デバイス情報、IP、UA）を表す。
+/// 監査ログ・セッション一覧表示用に `PostgreSQL` に永続化される。
+/// `tenant_id` は RLS `ポリシー（app.current_tenant_id）によるテナント分離に使用する`。
 #[allow(dead_code)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct SessionMetadata {
     pub id: Uuid,
     pub user_id: Uuid,
-    /// テナント識別子。RLS ポリシーで app.current_tenant_id と照合される。
+    /// テナント識別子。RLS ポリシーで `app.current_tenant_id` と照合される。
     pub tenant_id: String,
     pub device_id: Option<String>,
     pub device_name: Option<String>,
@@ -26,12 +26,12 @@ pub struct SessionMetadata {
     pub revoked: bool,
 }
 
-/// SaveSessionMetadataInput はメタデータ保存用の入力パラメータ。
-/// tenant_id は RLS ポリシーと INSERT カラム両方で必須となる。
+/// `SaveSessionMetadataInput` はメタデータ保存用の入力パラメータ。
+/// `tenant_id` は RLS ポリシーと INSERT カラム両方で必須となる。
 pub struct SaveSessionMetadataInput {
     pub session_id: Uuid,
     pub user_id: Uuid,
-    /// テナント識別子。RLS ポリシーが使用する app.current_tenant_id の設定に使用する。
+    /// テナント識別子。RLS ポリシーが使用する `app.current_tenant_id` の設定に使用する。
     pub tenant_id: String,
     pub device_id: Option<String>,
     pub device_name: Option<String>,
@@ -41,8 +41,8 @@ pub struct SaveSessionMetadataInput {
     pub expires_at: DateTime<Utc>,
 }
 
-/// SessionMetadataRepository はセッションメタデータの永続化トレイト。
-/// 全メソッドは RLS ポリシー適用のため tenant_id を受け取る。
+/// `SessionMetadataRepository` はセッションメタデータの永続化トレイト。
+/// 全メソッドは RLS ポリシー適用のため `tenant_id` を受け取る。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SessionMetadataRepository: Send + Sync {
@@ -54,26 +54,27 @@ pub trait SessionMetadataRepository: Send + Sync {
         user_id: Uuid,
         tenant_id: &str,
     ) -> anyhow::Result<Vec<SessionMetadata>>;
-    /// セッションを失効済みに更新する。RLS のため tenant_id を渡す。
+    /// セッションを失効済みに更新する。RLS のため `tenant_id` を渡す。
     async fn mark_revoked(&self, session_id: Uuid, tenant_id: &str) -> anyhow::Result<()>;
     async fn health_check(&self) -> anyhow::Result<()> {
         Ok(())
     }
 }
 
-/// SessionMetadataPostgresRepository は PostgreSQL を使ったメタデータリポジトリ。
+/// `SessionMetadataPostgresRepository` は `PostgreSQL` を使ったメタデータリポジトリ。
 pub struct SessionMetadataPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl SessionMetadataPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
 
-/// PostgreSQL の user_sessions テーブル行を表す内部構造体。
-/// tenant_id は RLS で使用するカラムであり、SELECT 結果にも含まれる。
+/// `PostgreSQL` の `user_sessions` テーブル行を表す内部構造体。
+/// `tenant_id` は RLS で使用するカラムであり、SELECT 結果にも含まれる。
 #[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct SessionMetadataRow {
@@ -112,8 +113,8 @@ impl From<SessionMetadataRow> for SessionMetadata {
 
 #[async_trait]
 impl SessionMetadataRepository for SessionMetadataPostgresRepository {
-    /// セッションメタデータを PostgreSQL に保存する。
-    /// トランザクション内で set_config を呼び出し、RLS ポリシーが正しいテナントに適用されるようにする。
+    /// セッションメタデータを `PostgreSQL` に保存する。
+    /// トランザクション内で `set_config` を呼び出し、RLS ポリシーが正しいテナントに適用されるようにする。
     async fn save_metadata(&self, input: &SaveSessionMetadataInput) -> anyhow::Result<()> {
         // トランザクションを開始し、set_config → INSERT をアトミックに実行する
         let mut tx = self.pool.begin().await?;
@@ -149,7 +150,7 @@ impl SessionMetadataRepository for SessionMetadataPostgresRepository {
     }
 
     /// テナントに属するユーザーのセッション一覧を取得する。
-    /// set_config で RLS ポリシーを適用し、クロステナントアクセスを防ぐ。
+    /// `set_config` で RLS ポリシーを適用し、クロステナントアクセスを防ぐ。
     async fn list_by_user(
         &self,
         user_id: Uuid,
@@ -181,7 +182,7 @@ impl SessionMetadataRepository for SessionMetadataPostgresRepository {
     }
 
     /// セッションを失効済みに更新する。
-    /// set_config で RLS ポリシーを適用し、他テナントのセッションを変更できないようにする。
+    /// `set_config` で RLS ポリシーを適用し、他テナントのセッションを変更できないようにする。
     async fn mark_revoked(&self, session_id: Uuid, tenant_id: &str) -> anyhow::Result<()> {
         // トランザクション内で set_config → UPDATE をアトミックに実行する
         let mut tx = self.pool.begin().await?;
@@ -206,12 +207,12 @@ impl SessionMetadataRepository for SessionMetadataPostgresRepository {
             .execute(self.pool.as_ref())
             .await
             .map(|_| ())
-            .map_err(|e| anyhow::anyhow!("postgres health check failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("postgres health check failed: {e}"))
     }
 }
 
-/// NoopSessionMetadataRepository は何もしないフォールバック実装。
-/// PostgreSQL が設定されていない場合（dev/test 環境）に使用する。
+/// `NoopSessionMetadataRepository` は何もしないフォールバック実装。
+/// `PostgreSQL` が設定されていない場合（dev/test 環境）に使用する。
 pub struct NoopSessionMetadataRepository;
 
 #[async_trait]
@@ -221,7 +222,7 @@ impl SessionMetadataRepository for NoopSessionMetadataRepository {
         Ok(())
     }
 
-    /// Noop 実装のため tenant_id 引数は無視してから空リストを返す。
+    /// Noop 実装のため `tenant_id` 引数は無視してから空リストを返す。
     async fn list_by_user(
         &self,
         _user_id: Uuid,
@@ -231,7 +232,7 @@ impl SessionMetadataRepository for NoopSessionMetadataRepository {
         Ok(Vec::new())
     }
 
-    /// Noop 実装のため tenant_id 引数は無視して成功を返す。
+    /// Noop 実装のため `tenant_id` 引数は無視して成功を返す。
     async fn mark_revoked(&self, _session_id: Uuid, _tenant_id: &str) -> anyhow::Result<()> {
         tracing::debug!("noop: session metadata mark_revoked skipped");
         Ok(())

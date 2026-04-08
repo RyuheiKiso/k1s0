@@ -137,6 +137,7 @@ pub struct InMemoryAppUpdater {
 
 impl InMemoryAppUpdater {
     /// 初期バージョン情報と現在バージョンを指定してインスタンスを生成する
+    #[must_use] 
     pub fn new(version_info: AppVersionInfo, current_version: String) -> Self {
         Self {
             state: Arc::new(RwLock::new(InMemoryState {

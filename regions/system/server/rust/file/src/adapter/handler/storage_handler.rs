@@ -61,7 +61,7 @@ pub async fn serve_internal_storage(
     let extension_type = full_path
         .extension()
         .and_then(|ext| ext.to_str())
-        .map(|ext| match ext {
+        .map_or("application/octet-stream", |ext| match ext {
             "pdf" => "application/pdf",
             "png" => "image/png",
             "jpg" | "jpeg" => "image/jpeg",
@@ -73,8 +73,7 @@ pub async fn serve_internal_storage(
             "zip" => "application/zip",
             "gz" => "application/gzip",
             _ => "application/octet-stream",
-        })
-        .unwrap_or("application/octet-stream");
+        });
 
     // STATIC-HIGH-003 監査対応: マジックバイトで検出した型が拡張子の期待型と一致しない場合は拒否する。
     // ただし infer が判定できない場合（バイナリ等）は拡張子ベースにフォールバックする。
@@ -129,7 +128,7 @@ pub async fn serve_internal_storage(
         .header(header::CONTENT_TYPE, &content_type)
         .header(
             header::CONTENT_DISPOSITION,
-            format!("attachment; filename=\"{}\"", safe_filename),
+            format!("attachment; filename=\"{safe_filename}\""),
         )
         // MIME スニッフィングを完全に無効化する
         .header("X-Content-Type-Options", "nosniff")

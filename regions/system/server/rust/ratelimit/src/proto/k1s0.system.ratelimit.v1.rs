@@ -10,7 +10,7 @@ pub struct CheckRateLimitRequest {
     #[prost(int64, tag = "3")]
     pub window: i64,
     /// CRITICAL-ARCH-001 監査対応: テナント分離のために追加したテナント識別子。
-    /// gRPC クライアントは JWT Claims から取得した tenant_id を設定すること。
+    /// gRPC クライアントは JWT Claims から取得した `tenant_id` を設定すること。
     #[prost(string, tag = "4")]
     pub tenant_id: ::prost::alloc::string::String,
 }
@@ -122,7 +122,7 @@ pub struct RateLimitRule {
     pub limit: i64,
     #[prost(int64, tag = "5")]
     pub window_seconds: i64,
-    /// Deprecated: use algorithm_enum instead.
+    /// Deprecated: use `algorithm_enum` instead.
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "6")]
@@ -157,7 +157,7 @@ pub struct GetUsageResponse {
     pub limit: i64,
     #[prost(int64, tag = "4")]
     pub window_seconds: i64,
-    /// Deprecated: use algorithm_enum instead.
+    /// Deprecated: use `algorithm_enum` instead.
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
     #[prost(string, tag = "5")]
@@ -189,26 +189,27 @@ pub struct ResetLimitResponse {
     #[prost(bool, tag = "1")]
     pub success: bool,
 }
-/// RateLimitAlgorithm はレートリミットのアルゴリズム種別。
+/// `RateLimitAlgorithm` はレートリミットのアルゴリズム種別。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum RateLimitAlgorithm {
-    /// RATE_LIMIT_ALGORITHM_UNSPECIFIED は未指定（デフォルト値）。
+    /// `RATE_LIMIT_ALGORITHM_UNSPECIFIED` は未指定（デフォルト値）。
     Unspecified = 0,
-    /// RATE_LIMIT_ALGORITHM_SLIDING_WINDOW はスライディングウィンドウアルゴリズム。
+    /// `RATE_LIMIT_ALGORITHM_SLIDING_WINDOW` はスライディングウィンドウアルゴリズム。
     SlidingWindow = 1,
-    /// RATE_LIMIT_ALGORITHM_TOKEN_BUCKET はトークンバケットアルゴリズム。
+    /// `RATE_LIMIT_ALGORITHM_TOKEN_BUCKET` はトークンバケットアルゴリズム。
     TokenBucket = 2,
-    /// RATE_LIMIT_ALGORITHM_FIXED_WINDOW は固定ウィンドウアルゴリズム。
+    /// `RATE_LIMIT_ALGORITHM_FIXED_WINDOW` は固定ウィンドウアルゴリズム。
     FixedWindow = 3,
-    /// RATE_LIMIT_ALGORITHM_LEAKY_BUCKET はリーキーバケットアルゴリズム。
+    /// `RATE_LIMIT_ALGORITHM_LEAKY_BUCKET` はリーキーバケットアルゴリズム。
     LeakyBucket = 4,
 }
 impl RateLimitAlgorithm {
-    /// String value of the enum field names used in the ProtoBuf definition.
+    /// String value of the enum field names used in the `ProtoBuf` definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "RATE_LIMIT_ALGORITHM_UNSPECIFIED",
@@ -218,7 +219,8 @@ impl RateLimitAlgorithm {
             Self::LeakyBucket => "RATE_LIMIT_ALGORITHM_LEAKY_BUCKET",
         }
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
+    /// Creates an enum from field names used in the `ProtoBuf` definition.
+    #[must_use] 
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "RATE_LIMIT_ALGORITHM_UNSPECIFIED" => Some(Self::Unspecified),
@@ -240,10 +242,10 @@ pub mod rate_limit_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with RateLimitServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `RateLimitServiceServer`.
     #[async_trait]
     pub trait RateLimitService: std::marker::Send + std::marker::Sync + 'static {
-        /// CheckRateLimit はリクエストがレートリミットに引っかかるか確認する。
+        /// `CheckRateLimit` はリクエストがレートリミットに引っかかるか確認する。
         async fn check_rate_limit(
             &self,
             request: tonic::Request<super::CheckRateLimitRequest>,
@@ -251,7 +253,7 @@ pub mod rate_limit_service_server {
             tonic::Response<super::CheckRateLimitResponse>,
             tonic::Status,
         >;
-        /// CreateRule は新しいレートリミットルールを作成する。
+        /// `CreateRule` は新しいレートリミットルールを作成する。
         async fn create_rule(
             &self,
             request: tonic::Request<super::CreateRuleRequest>,
@@ -259,12 +261,12 @@ pub mod rate_limit_service_server {
             tonic::Response<super::CreateRuleResponse>,
             tonic::Status,
         >;
-        /// GetRule はルールIDでルール情報を取得する。
+        /// `GetRule` はルールIDでルール情報を取得する。
         async fn get_rule(
             &self,
             request: tonic::Request<super::GetRuleRequest>,
         ) -> std::result::Result<tonic::Response<super::GetRuleResponse>, tonic::Status>;
-        /// UpdateRule はルールを更新する。
+        /// `UpdateRule` はルールを更新する。
         async fn update_rule(
             &self,
             request: tonic::Request<super::UpdateRuleRequest>,
@@ -272,7 +274,7 @@ pub mod rate_limit_service_server {
             tonic::Response<super::UpdateRuleResponse>,
             tonic::Status,
         >;
-        /// DeleteRule はルールを削除する。
+        /// `DeleteRule` はルールを削除する。
         async fn delete_rule(
             &self,
             request: tonic::Request<super::DeleteRuleRequest>,
@@ -280,7 +282,7 @@ pub mod rate_limit_service_server {
             tonic::Response<super::DeleteRuleResponse>,
             tonic::Status,
         >;
-        /// ListRules はルール一覧を取得する。
+        /// `ListRules` はルール一覧を取得する。
         async fn list_rules(
             &self,
             request: tonic::Request<super::ListRulesRequest>,
@@ -288,7 +290,7 @@ pub mod rate_limit_service_server {
             tonic::Response<super::ListRulesResponse>,
             tonic::Status,
         >;
-        /// GetUsage はレートリミットの使用状況を取得する。
+        /// `GetUsage` はレートリミットの使用状況を取得する。
         async fn get_usage(
             &self,
             request: tonic::Request<super::GetUsageRequest>,
@@ -296,7 +298,7 @@ pub mod rate_limit_service_server {
             tonic::Response<super::GetUsageResponse>,
             tonic::Status,
         >;
-        /// ResetLimit はレートリミットの状態をリセットする。
+        /// `ResetLimit` はレートリミットの状態をリセットする。
         async fn reset_limit(
             &self,
             request: tonic::Request<super::ResetLimitRequest>,
@@ -305,7 +307,7 @@ pub mod rate_limit_service_server {
             tonic::Status,
         >;
     }
-    /// RateLimitService は API レート制限サービス。
+    /// `RateLimitService` は API レート制限サービス。
     /// スライディングウィンドウ・トークンバケット等のアルゴリズムをサポートする。
     #[derive(Debug)]
     pub struct RateLimitServiceServer<T> {

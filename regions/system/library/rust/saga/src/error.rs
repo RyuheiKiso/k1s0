@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// SagaError は Saga クライアント操作のエラー型。
+/// `SagaError` は Saga クライアント操作のエラー型。
 #[derive(Debug, Error)]
 pub enum SagaError {
     /// HTTP 通信エラー

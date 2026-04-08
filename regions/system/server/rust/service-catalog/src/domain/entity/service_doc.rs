@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// ServiceDoc はサービスに関連するドキュメントを表す。
+/// `ServiceDoc` はサービスに関連するドキュメントを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ServiceDoc {
     pub id: Uuid,
@@ -14,7 +14,7 @@ pub struct ServiceDoc {
     pub created_at: DateTime<Utc>,
 }
 
-/// DocType はドキュメントの種類を表す。
+/// `DocType` はドキュメントの種類を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum DocType {

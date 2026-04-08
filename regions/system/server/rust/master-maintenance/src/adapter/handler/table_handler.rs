@@ -126,7 +126,7 @@ pub async fn get_table(
         .ok_or_else(|| {
             AppError::not_found(
                 "SYS_MM_TABLE_NOT_FOUND",
-                &format!("Table '{}' not found", name),
+                &format!("Table '{name}' not found"),
             )
         })?;
     let columns = state

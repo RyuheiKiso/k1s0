@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// GetConfigSchemaError は設定スキーマ取得に関するエラーを表す。
+/// `GetConfigSchemaError` は設定スキーマ取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetConfigSchemaError {
     #[error("config schema not found: {0}")]
@@ -13,7 +13,7 @@ pub enum GetConfigSchemaError {
     Internal(String),
 }
 
-/// GetConfigSchemaUseCase は設定スキーマ取得ユースケース。
+/// `GetConfigSchemaUseCase` は設定スキーマ取得ユースケース。
 pub struct GetConfigSchemaUseCase {
     schema_repo: Arc<dyn ConfigSchemaRepository>,
 }
@@ -23,7 +23,7 @@ impl GetConfigSchemaUseCase {
         Self { schema_repo }
     }
 
-    /// service_name とテナントIDで設定スキーマを取得する。
+    /// `service_name` とテナントIDで設定スキーマを取得する。
     // CRITICAL-RUST-001 監査対応: テナント分離のために tenant_id 引数を追加する。
     pub async fn execute(
         &self,

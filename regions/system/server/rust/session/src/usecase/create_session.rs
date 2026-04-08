@@ -16,11 +16,11 @@ use crate::error::SessionError;
 use crate::infrastructure::kafka_producer::SessionEventPublisher;
 
 /// セッション作成ユースケースの入力パラメータ。
-/// tenant_id は RLS ポリシー適用とエンティティへの埋め込みに必須となる。
+/// `tenant_id` は RLS ポリシー適用とエンティティへの埋め込みに必須となる。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct CreateSessionInput {
     pub user_id: String,
-    /// テナント識別子。JWT Claims の tenant_id から取得して渡す。
+    /// テナント識別子。JWT Claims の `tenant_id` から取得して渡す。
     pub tenant_id: String,
     pub device_id: String,
     pub device_name: Option<String>,
@@ -73,7 +73,7 @@ impl CreateSessionUseCase {
         let mut existing = self.repo.find_by_user_id(&input.user_id).await?;
         existing.sort_by_key(|s| s.created_at);
 
-        let valid_sessions: Vec<Session> = existing.into_iter().filter(|s| s.is_valid()).collect();
+        let valid_sessions: Vec<Session> = existing.into_iter().filter(super::super::domain::entity::session::Session::is_valid).collect();
         let revoke_count =
             SessionDomainService::compute_revoke_count(valid_sessions.len(), max_devices);
         if revoke_count > 0 {

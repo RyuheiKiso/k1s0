@@ -19,6 +19,7 @@ pub struct AuditGrpcService {
 }
 
 impl AuditGrpcService {
+    #[must_use] 
     pub fn new(
         record_audit_log_uc: Arc<RecordAuditLogUseCase>,
         search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
@@ -145,7 +146,7 @@ impl AuditGrpcService {
     }
 }
 
-/// ドメインのイベントタイプ文字列を AuditEventType enum の i32 値に変換する。
+/// ドメインのイベントタイプ文字列を `AuditEventType` enum の i32 値に変換する。
 /// 未知の文字列は Unspecified (0) にフォールバックする。
 fn event_type_str_to_enum(s: &str) -> i32 {
     match s {
@@ -159,7 +160,7 @@ fn event_type_str_to_enum(s: &str) -> i32 {
     }
 }
 
-/// ドメインの結果文字列を AuditResult enum の i32 値に変換する。
+/// ドメインの結果文字列を `AuditResult` enum の i32 値に変換する。
 fn result_str_to_enum(s: &str) -> i32 {
     match s {
         "SUCCESS" => AuditResult::Success as i32,
@@ -193,7 +194,7 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
     }
 }
 
-/// prost_types::Struct を serde_json::Value に変換するヘルパー。
+/// `prost_types::Struct` を `serde_json::Value` に変換するヘルパー。
 fn prost_struct_to_json(s: prost_types::Struct) -> serde_json::Value {
     let obj: serde_json::Map<String, serde_json::Value> = s
         .fields

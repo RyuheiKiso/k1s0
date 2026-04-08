@@ -6,7 +6,7 @@ use crate::domain::entity::config_entry::ServiceConfigResult;
 use crate::domain::error::ConfigRepositoryError;
 use crate::domain::repository::ConfigRepository;
 
-/// GetServiceConfigError はサービス設定取得に関するエラーを表す。
+/// `GetServiceConfigError` はサービス設定取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetServiceConfigError {
     #[error("service not found: {0}")]
@@ -16,7 +16,7 @@ pub enum GetServiceConfigError {
     Internal(String),
 }
 
-/// GetServiceConfigUseCase はサービス向け設定一括取得ユースケース。
+/// `GetServiceConfigUseCase` はサービス向け設定一括取得ユースケース。
 pub struct GetServiceConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
 }

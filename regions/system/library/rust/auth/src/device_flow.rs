@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::time::Duration;
 
-/// DeviceCodeResponse はデバイス認可リクエストのレスポンス。
+/// `DeviceCodeResponse` はデバイス認可リクエストのレスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeviceCodeResponse {
     pub device_code: String,
@@ -16,7 +16,7 @@ pub struct DeviceCodeResponse {
     pub interval: u64,
 }
 
-/// TokenResult はトークンエンドポイントのレスポンス。
+/// `TokenResult` はトークンエンドポイントのレスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenResult {
     pub access_token: String,
@@ -26,7 +26,7 @@ pub struct TokenResult {
     pub expires_in: u64,
 }
 
-/// DeviceFlowError は Device Authorization Grant フローのエラー。
+/// `DeviceFlowError` は Device Authorization Grant フローのエラー。
 #[derive(thiserror::Error, Debug)]
 pub enum DeviceFlowError {
     #[error("expired_token: device code has expired")]
@@ -48,7 +48,7 @@ pub enum DeviceFlowError {
     Cancelled,
 }
 
-/// OAuth2 エラーレスポンス。
+/// `OAuth2` エラーレスポンス。
 #[derive(Debug, Deserialize)]
 struct OAuthErrorResponse {
     error: String,
@@ -96,7 +96,7 @@ impl DeviceFlowHttpClient for DefaultDeviceFlowHttpClient {
     }
 }
 
-/// DeviceAuthClient は Device Authorization Grant フロー（RFC 8628）のクライアント。
+/// `DeviceAuthClient` は Device Authorization Grant フロー（RFC 8628）のクライアント。
 pub struct DeviceAuthClient {
     device_endpoint: String,
     token_endpoint: String,
@@ -104,7 +104,8 @@ pub struct DeviceAuthClient {
 }
 
 impl DeviceAuthClient {
-    /// 新しい DeviceAuthClient を生成する。
+    /// 新しい `DeviceAuthClient` を生成する。
+    #[must_use]
     pub fn new(device_endpoint: &str, token_endpoint: &str) -> Self {
         Self {
             device_endpoint: device_endpoint.to_string(),
@@ -113,7 +114,8 @@ impl DeviceAuthClient {
         }
     }
 
-    /// カスタム HTTP クライアントを使う DeviceAuthClient を生成する（テスト用）。
+    /// カスタム HTTP クライアントを使う `DeviceAuthClient` を生成する（テスト用）。
+    #[must_use]
     pub fn with_http_client(
         device_endpoint: &str,
         token_endpoint: &str,
@@ -144,15 +146,14 @@ impl DeviceAuthClient {
 
         if status != 200 {
             return Err(DeviceFlowError::HttpError(format!(
-                "device code request failed with status {}: {}",
-                status, body
+                "device code request failed with status {status}: {body}"
             )));
         }
 
         serde_json::from_str(&body).map_err(|e| DeviceFlowError::ParseError(e.to_string()))
     }
 
-    /// device_code を使ってトークンエンドポイントをポーリングする。
+    /// `device_code` を使ってトークンエンドポイントをポーリングする。
     /// interval が 0 の場合はデフォルトの 5 秒を使用する。
     pub async fn poll_token(
         &self,
@@ -195,8 +196,8 @@ impl DeviceAuthClient {
             }
 
             tokio::select! {
-                _ = tokio::time::sleep(Duration::from_secs(interval_secs)) => {}
-                _ = &mut cancel => {
+                () = tokio::time::sleep(Duration::from_secs(interval_secs)) => {}
+                () = &mut cancel => {
                     return Err(DeviceFlowError::Cancelled);
                 }
             }
@@ -204,7 +205,7 @@ impl DeviceAuthClient {
     }
 
     /// Device Authorization Grant フロー全体を実行する統合メソッド。
-    /// on_user_code コールバックでユーザーにデバイスコード情報を通知する。
+    /// `on_user_code` コールバックでユーザーにデバイスコード情報を通知する。
     pub async fn device_flow<F>(
         &self,
         client_id: &str,

@@ -57,9 +57,9 @@ impl TargetJobExecutor {
             .json(payload)
             .send()
             .await
-            .with_context(|| format!("failed to POST scheduler target {}", target))?
+            .with_context(|| format!("failed to POST scheduler target {target}"))?
             .error_for_status()
-            .with_context(|| format!("scheduler HTTP target returned error for {}", target))?;
+            .with_context(|| format!("scheduler HTTP target returned error for {target}"))?;
         Ok(())
     }
 
@@ -76,7 +76,7 @@ impl TargetJobExecutor {
             )
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish scheduler target message: {}", err)
+                anyhow::anyhow!("failed to publish scheduler target message: {err}")
             })?;
         Ok(())
     }

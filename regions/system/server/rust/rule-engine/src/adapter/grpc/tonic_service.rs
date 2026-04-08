@@ -87,6 +87,7 @@ pub struct RuleEngineServiceTonic {
 }
 
 impl RuleEngineServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<RuleEngineGrpcService>) -> Self {
         Self { inner }
     }
@@ -116,8 +117,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
 
         let (rules, total_count, p, ps, has_next) = self
             .inner
@@ -222,8 +222,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
 
         let (rule_sets, total_count, p, ps, has_next) = self
             .inner

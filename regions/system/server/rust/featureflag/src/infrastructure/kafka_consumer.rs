@@ -11,8 +11,8 @@ use crate::infrastructure::cache::FlagCache;
 use crate::infrastructure::config::KafkaConfig;
 
 /// フラグ変更イベントの Kafka メッセージ構造体。
-/// STATIC-CRITICAL-001 監査対応: tenant_id を含めてキャッシュキーを正確に特定する。
-/// tenant_id が存在しない場合はシステムテナント UUID にフォールバックする（ADR-0028 Phase 1）。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` を含めてキャッシュキーを正確に特定する。
+/// `tenant_id` が存在しない場合はシステムテナント UUID にフォールバックする（ADR-0028 Phase 1）。
 #[derive(Debug, Deserialize)]
 struct FlagChangedEvent {
     flag_key: String,
@@ -20,7 +20,7 @@ struct FlagChangedEvent {
     tenant_id: Option<String>,
 }
 
-/// システムテナントUUID: Kafka イベントに tenant_id が含まれない場合のフォールバック値。
+/// システムテナントUUID: Kafka イベントに `tenant_id` が含まれない場合のフォールバック値。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// フィーチャーフラグ変更イベントを購読し、キャッシュを無効化するバックグラウンドタスクを起動する。

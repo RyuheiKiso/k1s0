@@ -16,9 +16,7 @@ use k1s0_auth::Claims;
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
 fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 /// GET /api/v1/jobs
@@ -114,14 +112,14 @@ pub async fn create_job(
         Err(CreateJobError::InvalidCron(expr)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_INVALID_CRON",
-                &format!("invalid cron expression: {}", expr),
+                &format!("invalid cron expression: {expr}"),
             );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(CreateJobError::InvalidTimezone(tz)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_INVALID_TIMEZONE",
-                &format!("invalid timezone: {}", tz),
+                &format!("invalid timezone: {tz}"),
             );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
@@ -157,13 +155,13 @@ pub async fn delete_job(
         )
             .into_response(),
         Err(DeleteJobError::NotFound(_)) => {
-            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteJobError::JobRunning(_)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_JOB_RUNNING",
-                &format!("job is currently running: {}", id),
+                &format!("job is currently running: {id}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -255,20 +253,20 @@ pub async fn update_job(
     match state.update_job_uc.execute(&input).await {
         Ok(job) => (StatusCode::OK, Json(job)).into_response(),
         Err(UpdateJobError::NotFound(id)) => {
-            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(UpdateJobError::InvalidCron(expr)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_INVALID_CRON",
-                &format!("invalid cron expression: {}", expr),
+                &format!("invalid cron expression: {expr}"),
             );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
         Err(UpdateJobError::InvalidTimezone(tz)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_INVALID_TIMEZONE",
-                &format!("invalid timezone: {}", tz),
+                &format!("invalid timezone: {tz}"),
             );
             (StatusCode::BAD_REQUEST, Json(err)).into_response()
         }
@@ -292,13 +290,13 @@ pub async fn trigger_job(
     match state.trigger_job_uc.execute(&id, &tenant_id).await {
         Ok(execution) => (StatusCode::CREATED, Json(execution)).into_response(),
         Err(TriggerJobError::NotFound(id)) => {
-            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(TriggerJobError::NotActive(id)) => {
             let err = ErrorResponse::new(
                 "SYS_SCHED_NOT_ACTIVE",
-                &format!("job is not active: {}", id),
+                &format!("job is not active: {id}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -327,28 +325,22 @@ pub async fn list_executions(
             }
 
             let from = match params.from {
-                Some(from) => match DateTime::parse_from_rfc3339(&from) {
-                    Ok(v) => Some(v.with_timezone(&Utc)),
-                    Err(_) => {
-                        let err = ErrorResponse::new(
-                            "SYS_SCHED_VALIDATION_ERROR",
-                            "invalid from timestamp; use RFC3339",
-                        );
-                        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-                    }
+                Some(from) => if let Ok(v) = DateTime::parse_from_rfc3339(&from) { Some(v.with_timezone(&Utc)) } else {
+                    let err = ErrorResponse::new(
+                        "SYS_SCHED_VALIDATION_ERROR",
+                        "invalid from timestamp; use RFC3339",
+                    );
+                    return (StatusCode::BAD_REQUEST, Json(err)).into_response();
                 },
                 None => None,
             };
             let to = match params.to {
-                Some(to) => match DateTime::parse_from_rfc3339(&to) {
-                    Ok(v) => Some(v.with_timezone(&Utc)),
-                    Err(_) => {
-                        let err = ErrorResponse::new(
-                            "SYS_SCHED_VALIDATION_ERROR",
-                            "invalid to timestamp; use RFC3339",
-                        );
-                        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-                    }
+                Some(to) => if let Ok(v) = DateTime::parse_from_rfc3339(&to) { Some(v.with_timezone(&Utc)) } else {
+                    let err = ErrorResponse::new(
+                        "SYS_SCHED_VALIDATION_ERROR",
+                        "invalid to timestamp; use RFC3339",
+                    );
+                    return (StatusCode::BAD_REQUEST, Json(err)).into_response();
                 },
                 None => None,
             };
@@ -388,7 +380,7 @@ pub async fn list_executions(
                 .into_response()
         }
         Err(ListExecutionsError::NotFound(id)) => {
-            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {}", id));
+            let err = ErrorResponse::new("SYS_SCHED_NOT_FOUND", &format!("job not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ListExecutionsError::Internal(msg)) => {
@@ -410,8 +402,8 @@ fn execution_to_response(execution: SchedulerExecution) -> serde_json::Value {
     });
 
     serde_json::json!({
-        "id": execution.id.to_string(),
-        "job_id": execution.job_id.to_string(),
+        "id": execution.id.clone(),
+        "job_id": execution.job_id.clone(),
         "status": normalize_status(&execution.status),
         "triggered_by": execution.triggered_by,
         "started_at": execution.started_at.to_rfc3339(),
@@ -480,6 +472,7 @@ pub struct ErrorBody {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

@@ -6,7 +6,7 @@
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
 
 /// テナントサービスへのアクセスを抽象化するポートトレイト。
-/// DataLoader から呼び出されるバッチ取得メソッドを定義する。
+/// `DataLoader` から呼び出されるバッチ取得メソッドを定義する。
 #[async_trait::async_trait]
 pub trait TenantPort: Send + Sync {
     /// 複数のテナント ID をまとめて取得する（DataLoader バッチ用）。
@@ -14,7 +14,7 @@ pub trait TenantPort: Send + Sync {
 }
 
 /// フィーチャーフラグサービスへのアクセスを抽象化するポートトレイト。
-/// DataLoader から呼び出されるバッチ取得メソッドを定義する。
+/// `DataLoader` から呼び出されるバッチ取得メソッドを定義する。
 #[async_trait::async_trait]
 pub trait FeatureFlagPort: Send + Sync {
     /// 複数のフラグキーをまとめて取得する（DataLoader バッチ用）。
@@ -22,7 +22,7 @@ pub trait FeatureFlagPort: Send + Sync {
 }
 
 /// コンフィグサービスへのアクセスを抽象化するポートトレイト。
-/// DataLoader から呼び出されるバッチ取得メソッドを定義する。
+/// `DataLoader` から呼び出されるバッチ取得メソッドを定義する。
 #[async_trait::async_trait]
 pub trait ConfigPort: Send + Sync {
     /// 複数の "namespace/key" 形式キーをまとめて取得する（DataLoader バッチ用）。

@@ -3,13 +3,13 @@ use std::sync::Arc;
 use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::revoke_all_sessions::{RevokeAllSessionsInput, RevokeAllSessionsUseCase};
 
-/// RevokeAllRequestEvent は Kafka から受信する全セッション失効リクエストイベント。
+/// `RevokeAllRequestEvent` は Kafka から受信する全セッション失効リクエストイベント。
 #[derive(Debug, serde::Deserialize)]
 pub struct RevokeAllRequestEvent {
     pub user_id: String,
 }
 
-/// SessionKafkaConsumer は全セッション失効リクエストトピックを購読してメッセージを処理する。
+/// `SessionKafkaConsumer` は全セッション失効リクエストトピックを購読してメッセージを処理する。
 pub struct SessionKafkaConsumer {
     consumer: rdkafka::consumer::StreamConsumer,
     use_case: Arc<RevokeAllSessionsUseCase>,
@@ -18,7 +18,7 @@ pub struct SessionKafkaConsumer {
 }
 
 impl SessionKafkaConsumer {
-    /// 新しい SessionKafkaConsumer を作成する。
+    /// 新しい `SessionKafkaConsumer` を作成する。
     pub fn new(
         config: &KafkaConfig,
         use_case: Arc<RevokeAllSessionsUseCase>,
@@ -52,6 +52,7 @@ impl SessionKafkaConsumer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
@@ -73,12 +74,9 @@ impl SessionKafkaConsumer {
                         m.record_kafka_message_consumed(&topic, &self.consumer_group);
                     }
 
-                    let payload = match msg.payload() {
-                        Some(bytes) => bytes,
-                        None => {
-                            tracing::warn!("received kafka message with empty payload");
-                            continue;
-                        }
+                    let payload = if let Some(bytes) = msg.payload() { bytes } else {
+                        tracing::warn!("received kafka message with empty payload");
+                        continue;
                     };
 
                     let event: RevokeAllRequestEvent = match serde_json::from_slice(payload) {

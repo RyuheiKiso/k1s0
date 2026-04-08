@@ -8,7 +8,7 @@ pub struct WsConfig {
 }
 
 impl WsConfig {
-    /// URL を指定して WsConfig を生成する。その他のフィールドはデフォルト値を使用する。
+    /// URL を指定して `WsConfig` を生成する。その他のフィールドはデフォルト値を使用する。
     pub fn new(url: impl Into<String>) -> Self {
         Self {
             url: url.into(),
@@ -19,21 +19,25 @@ impl WsConfig {
         }
     }
 
+    #[must_use] 
     pub fn reconnect(mut self, enabled: bool) -> Self {
         self.reconnect = enabled;
         self
     }
 
+    #[must_use] 
     pub fn max_reconnect_attempts(mut self, max: u32) -> Self {
         self.max_reconnect_attempts = max;
         self
     }
 
+    #[must_use] 
     pub fn reconnect_delay_ms(mut self, ms: u64) -> Self {
         self.reconnect_delay_ms = ms;
         self
     }
 
+    #[must_use] 
     pub fn ping_interval_ms(mut self, ms: u64) -> Self {
         self.ping_interval_ms = Some(ms);
         self

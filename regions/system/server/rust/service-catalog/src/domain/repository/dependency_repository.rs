@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::dependency::Dependency;
 
-/// DependencyRepository はサービス間依存関係の永続化トレイト。
+/// `DependencyRepository` はサービス間依存関係の永続化トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DependencyRepository: Send + Sync {

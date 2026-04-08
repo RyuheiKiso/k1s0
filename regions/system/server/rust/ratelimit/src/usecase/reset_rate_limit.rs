@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::domain::repository::RateLimitStateStore;
 
-/// ResetRateLimitInput はレートリミットリセットの入力。
+/// `ResetRateLimitInput` はレートリミットリセットの入力。
 pub struct ResetRateLimitInput {
     /// STATIC-CRITICAL-001: テナントスコープでリセット対象を特定する
     pub tenant_id: String,
@@ -10,7 +10,7 @@ pub struct ResetRateLimitInput {
     pub identifier: String,
 }
 
-/// ResetRateLimitError はレートリミットリセットに関するエラー。
+/// `ResetRateLimitError` はレートリミットリセットに関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum ResetRateLimitError {
     #[error("validation error: {0}")]
@@ -20,7 +20,7 @@ pub enum ResetRateLimitError {
     Internal(String),
 }
 
-/// ResetRateLimitUseCase はレートリミットリセットユースケース。
+/// `ResetRateLimitUseCase` はレートリミットリセットユースケース。
 pub struct ResetRateLimitUseCase {
     state_store: Arc<dyn RateLimitStateStore>,
 }

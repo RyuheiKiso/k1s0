@@ -21,7 +21,7 @@ impl GetChannelUseCase {
         Self { repo }
     }
 
-    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取りリポジトリに伝播して RLS を有効化する。
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取りリポジトリに伝播して RLS を有効化する。
     pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<NotificationChannel, GetChannelError> {
         self.repo
             .find_by_id(id, tenant_id)

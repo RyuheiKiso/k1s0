@@ -28,6 +28,7 @@
 #   k1s0_service_catalog_rw — service-catalog サービス（サービスカタログ管理）（H-006 監査対応）
 #   k1s0_api_registry_rw — api-registry サービス（API スキーマレジストリ）（H-006 監査対応）
 #   k1s0_app_registry_rw — app-registry サービス（アプリバージョン管理）（H-006 監査対応）
+#   k1s0_master_maintenance_rw — master-maintenance サービス（マスターデータメンテナンス）（HIGH-003 監査対応）
 #
 # 環境変数が未設定の場合は開発用デフォルト値にフォールバックする（本番では必ず設定すること）。
 # M-5 監査対応: 各ロールにどのサービスが使用するかコメントを追加。
@@ -157,6 +158,11 @@ $PSQL_CMD -c "CREATE ROLE k1s0_api_registry_rw WITH LOGIN PASSWORD \$\$${K1S0_AP
 # 使用サービス: regions/system/server/rust/app-registry（アプリバージョン管理）
 # app_registry スキーマのみ DML 可
 $PSQL_CMD -c "CREATE ROLE k1s0_app_registry_rw WITH LOGIN PASSWORD \$\$${K1S0_APP_REGISTRY_PASSWORD:-dev-app-registry}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
+
+# HIGH-003 監査対応: master-maintenance サービス専用ロール追加
+# 使用サービス: regions/system/server/rust/master-maintenance（マスターデータメンテナンス）
+# master_maintenance スキーマのみ DML 可。Terraform の roles.tf と同様の定義。
+$PSQL_CMD -c "CREATE ROLE k1s0_master_maintenance_rw WITH LOGIN PASSWORD \$\$${K1S0_MASTER_MAINTENANCE_PASSWORD:-dev-master-maintenance}\$\$ NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;"
 
 # 権限付与は 99-finalize-grants.sh で全スキーマ作成後に実行する（HIGH-008 監査対応）
 # スキーマ作成（02〜22番台の SQL ファイル）が完了した後に権限付与することで、

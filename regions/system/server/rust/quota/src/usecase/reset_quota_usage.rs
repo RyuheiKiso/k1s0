@@ -4,7 +4,7 @@ use chrono::Utc;
 
 use crate::domain::repository::{QuotaPolicyRepository, QuotaUsageRepository};
 
-/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct ResetQuotaUsageInput {
     pub quota_id: String,

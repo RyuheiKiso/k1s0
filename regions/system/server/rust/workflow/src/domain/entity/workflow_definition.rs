@@ -16,6 +16,7 @@ pub struct WorkflowDefinition {
 }
 
 impl WorkflowDefinition {
+    #[must_use] 
     pub fn new(
         id: String,
         name: String,
@@ -36,19 +37,22 @@ impl WorkflowDefinition {
         }
     }
 
+    #[must_use] 
     pub fn step_count(&self) -> usize {
         self.steps.len()
     }
 
+    #[must_use] 
     pub fn find_step(&self, step_id: &str) -> Option<&WorkflowStep> {
         self.steps.iter().find(|s| s.step_id == step_id)
     }
 
     /// ワークフローの最初のステップを返す。
-    /// WorkflowStep に sort_order フィールドが追加された場合は
-    /// min_by_key(|s| s.sort_order) で最小値のステップを返すよう変更すること。
-    /// TODO(LOW-02): WorkflowStep に sort_order: u32 フィールドを追加し、
+    /// `WorkflowStep` に `sort_order` フィールドが追加された場合は
+    /// `min_by_key(|s`| `s.sort_order`) で最小値のステップを返すよう変更すること。
+    /// TODO(LOW-02): `WorkflowStep` に `sort_order`: u32 フィールドを追加し、
     ///               `self.steps.iter().min_by_key(|s| s.sort_order)` に差し替える。
+    #[must_use] 
     pub fn first_step(&self) -> Option<&WorkflowStep> {
         self.steps.iter().min_by_key(|s| s.step_id.as_str())
     }

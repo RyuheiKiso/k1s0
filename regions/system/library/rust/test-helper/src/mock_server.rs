@@ -27,6 +27,7 @@ impl MockServer {
     }
 
     /// 登録済みルートからレスポンスを取得する。
+    #[must_use] 
     pub fn handle(&self, method: &str, path: &str) -> Option<(u16, String)> {
         self.requests
             .lock()
@@ -39,6 +40,7 @@ impl MockServer {
     }
 
     /// 記録されたリクエスト数を返す。
+    #[must_use] 
     pub fn request_count(&self) -> usize {
         self.requests
             .lock()
@@ -47,6 +49,7 @@ impl MockServer {
     }
 
     /// 記録されたリクエストを返す。
+    #[must_use] 
     pub fn recorded_requests(&self) -> Vec<(String, String)> {
         self.requests
             .lock()
@@ -55,6 +58,7 @@ impl MockServer {
     }
 
     /// ベース URL を返す（テスト用にプレースホルダー）。
+    #[must_use] 
     pub fn base_url(&self) -> String {
         "http://localhost:0".to_string()
     }
@@ -68,6 +72,7 @@ pub struct MockServerBuilder {
 
 impl MockServerBuilder {
     /// Notification サーバーモックを構築する。
+    #[must_use] 
     pub fn notification_server() -> Self {
         Self {
             server_type: "notification".to_string(),
@@ -76,6 +81,7 @@ impl MockServerBuilder {
     }
 
     /// Ratelimit サーバーモックを構築する。
+    #[must_use] 
     pub fn ratelimit_server() -> Self {
         Self {
             server_type: "ratelimit".to_string(),
@@ -84,6 +90,7 @@ impl MockServerBuilder {
     }
 
     /// Tenant サーバーモックを構築する。
+    #[must_use] 
     pub fn tenant_server() -> Self {
         Self {
             server_type: "tenant".to_string(),
@@ -92,6 +99,7 @@ impl MockServerBuilder {
     }
 
     /// ヘルスチェック用の成功レスポンスを追加する。
+    #[must_use] 
     pub fn with_health_ok(mut self) -> Self {
         self.routes.push(MockRoute {
             method: "GET".to_string(),
@@ -103,6 +111,7 @@ impl MockServerBuilder {
     }
 
     /// 成功レスポンスルートを追加する。
+    #[must_use] 
     pub fn with_success_response(mut self, path: &str, body: &str) -> Self {
         self.routes.push(MockRoute {
             method: "POST".to_string(),
@@ -114,6 +123,7 @@ impl MockServerBuilder {
     }
 
     /// エラーレスポンスルートを追加する。
+    #[must_use] 
     pub fn with_error_response(mut self, path: &str, status: u16) -> Self {
         self.routes.push(MockRoute {
             method: "POST".to_string(),
@@ -125,17 +135,20 @@ impl MockServerBuilder {
     }
 
     /// サーバータイプを返す。
+    #[must_use] 
     pub fn server_type(&self) -> &str {
         &self.server_type
     }
 
     /// モックサーバーを構築する。
+    #[must_use] 
     pub fn build(self) -> MockServer {
         MockServer::new(self.routes)
     }
 }
 
 /// サーバータイプ別のデフォルトルート付きモックを生成するヘルパー。
+#[must_use] 
 pub fn default_mock_routes(server_type: &str) -> HashMap<String, MockRoute> {
     let mut routes = HashMap::new();
     routes.insert(
@@ -144,7 +157,7 @@ pub fn default_mock_routes(server_type: &str) -> HashMap<String, MockRoute> {
             method: "GET".to_string(),
             path: "/health".to_string(),
             status: 200,
-            body: format!(r#"{{"service":"{}","status":"ok"}}"#, server_type),
+            body: format!(r#"{{"service":"{server_type}","status":"ok"}}"#),
         },
     );
     routes

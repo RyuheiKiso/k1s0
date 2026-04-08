@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::service::Service;
 use crate::domain::repository::ServiceRepository;
 
-/// GetServiceError はサービス取得に関するエラーを表す。
+/// `GetServiceError` はサービス取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetServiceError {
     #[error("service not found: {0}")]
@@ -15,7 +15,7 @@ pub enum GetServiceError {
     Internal(String),
 }
 
-/// GetServiceUseCase はサービス情報取得ユースケース。
+/// `GetServiceUseCase` はサービス情報取得ユースケース。
 pub struct GetServiceUseCase {
     service_repo: Arc<dyn ServiceRepository>,
 }
@@ -25,8 +25,9 @@ impl GetServiceUseCase {
         Self { service_repo }
     }
 
-    pub async fn execute(&self, id: Uuid) -> Result<Service, GetServiceError> {
-        match self.service_repo.find_by_id(id).await {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, id: Uuid) -> Result<Service, GetServiceError> {
+        match self.service_repo.find_by_id(tenant_id, id).await {
             Ok(Some(service)) => Ok(service),
             Ok(None) => Err(GetServiceError::NotFound(id)),
             Err(e) => Err(GetServiceError::Internal(e.to_string())),
@@ -70,10 +71,10 @@ mod tests {
         let svc_clone = svc.clone();
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(move |_| Ok(Some(svc_clone.clone())));
+            .returning(move |_, _| Ok(Some(svc_clone.clone())));
 
         let uc = GetServiceUseCase::new(Arc::new(mock));
-        let result = uc.execute(id).await.unwrap();
+        let result = uc.execute("tenant-1", id).await.unwrap();
         assert_eq!(result.id, id);
     }
 
@@ -81,11 +82,11 @@ mod tests {
     #[tokio::test]
     async fn test_get_service_not_found() {
         let mut mock = MockServiceRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = GetServiceUseCase::new(Arc::new(mock));
         let id = Uuid::new_v4();
-        let result = uc.execute(id).await;
+        let result = uc.execute("tenant-1", id).await;
         assert!(matches!(result, Err(GetServiceError::NotFound(_))));
     }
 
@@ -94,10 +95,10 @@ mod tests {
     async fn test_get_service_internal_error() {
         let mut mock = MockServiceRepository::new();
         mock.expect_find_by_id()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let uc = GetServiceUseCase::new(Arc::new(mock));
-        let result = uc.execute(Uuid::new_v4()).await;
+        let result = uc.execute("tenant-1", Uuid::new_v4()).await;
         assert!(matches!(result, Err(GetServiceError::Internal(_))));
     }
 }

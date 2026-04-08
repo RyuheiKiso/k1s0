@@ -49,6 +49,8 @@ fn parse_pool_duration(value: &str) -> Option<std::time::Duration> {
         .map(std::time::Duration::from_secs)
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -72,7 +74,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -289,7 +291,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -357,17 +359,17 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(rule.clone())
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn find_by_id(&self, id: &uuid::Uuid, _tenant_id: &str) -> anyhow::Result<domain::entity::RateLimitRule> {
         let rules = self.rules.read().await;
         rules
             .iter()
             .find(|r| r.id == *id)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("rule not found: {}", id))
+            .ok_or_else(|| anyhow::anyhow!("rule not found: {id}"))
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn find_by_name(
         &self,
         name: &str,
@@ -377,7 +379,7 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(rules.iter().find(|r| r.name == name).cloned())
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn find_by_scope(
         &self,
         scope: &str,
@@ -387,13 +389,13 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(rules.iter().filter(|r| r.scope == scope).cloned().collect())
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.clone())
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn find_page(
         &self,
         page: u32,
@@ -432,7 +434,7 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
         Ok(())
     }
 
-    /// CRIT-005 対応: tenant_id を受け取るが InMemory 実装では無視する。
+    /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
     async fn delete(&self, id: &uuid::Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut rules = self.rules.write().await;
         let len_before = rules.len();

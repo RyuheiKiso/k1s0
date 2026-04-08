@@ -11,7 +11,15 @@ use crate::domain::model::{AuditLog, PermissionCheck, Role, User};
 use crate::infrastructure::config::BackendConfig;
 use crate::infrastructure::grpc_retry::with_retry;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     // buf generate の compile_well_known_types オプションで生成された .rs ファイルは
     // google::protobuf::Struct を super チェーンで参照する（例: super*4::google::protobuf::Struct）。
@@ -46,13 +54,13 @@ pub struct AuthGrpcClient {
     audit_client: AuditServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl AuthGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -86,7 +94,7 @@ impl AuthGrpcClient {
                 Ok(Some(user_from_proto(u)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("AuthService.GetUser failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("AuthService.GetUser failed: {e}")),
         }
     }
 
@@ -112,7 +120,7 @@ impl AuthGrpcClient {
             .clone()
             .list_users(request)
             .await
-            .map_err(|e| anyhow::anyhow!("AuthService.ListUsers failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("AuthService.ListUsers failed: {e}"))?
             .into_inner();
 
         Ok(resp.users.into_iter().map(user_from_proto).collect())
@@ -129,7 +137,7 @@ impl AuthGrpcClient {
             .clone()
             .get_user_roles(request)
             .await
-            .map_err(|e| anyhow::anyhow!("AuthService.GetUserRoles failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("AuthService.GetUserRoles failed: {e}"))?
             .into_inner();
 
         Ok(resp.realm_roles.into_iter().map(role_from_proto).collect())
@@ -144,7 +152,7 @@ impl AuthGrpcClient {
         roles: &[String],
     ) -> anyhow::Result<PermissionCheck> {
         let request = tonic::Request::new(proto::k1s0::system::auth::v1::CheckPermissionRequest {
-            user_id: user_id.map(|s| s.to_owned()),
+            user_id: user_id.map(std::borrow::ToOwned::to_owned),
             permission: permission.to_owned(),
             resource: resource.to_owned(),
             roles: roles.to_vec(),
@@ -155,7 +163,7 @@ impl AuthGrpcClient {
             .clone()
             .check_permission(request)
             .await
-            .map_err(|e| anyhow::anyhow!("AuthService.CheckPermission failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("AuthService.CheckPermission failed: {e}"))?
             .into_inner();
 
         Ok(PermissionCheck {
@@ -197,7 +205,7 @@ impl AuthGrpcClient {
             .clone()
             .record_audit_log(request)
             .await
-            .map_err(|e| anyhow::anyhow!("AuditService.RecordAuditLog failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("AuditService.RecordAuditLog failed: {e}"))?
             .into_inner();
 
         Ok((resp.id, timestamp_to_rfc3339(resp.created_at)))
@@ -220,11 +228,9 @@ impl AuthGrpcClient {
             }),
             user_id: user_id.unwrap_or_default().to_owned(),
             event_type_enum: event_type
-                .map(domain_event_type_to_proto_i32)
-                .unwrap_or(proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32),
+                .map_or(proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32, domain_event_type_to_proto_i32),
             result_enum: result
-                .map(domain_result_to_proto_i32)
-                .unwrap_or(proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32),
+                .map_or(proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32, domain_result_to_proto_i32),
             from: None,
             to: None,
         });
@@ -234,15 +240,14 @@ impl AuthGrpcClient {
             .clone()
             .search_audit_logs(request)
             .await
-            .map_err(|e| anyhow::anyhow!("AuditService.SearchAuditLogs failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("AuditService.SearchAuditLogs failed: {e}"))?
             .into_inner();
 
         let logs = resp.logs.into_iter().map(audit_log_from_proto).collect();
 
         let (total_count, has_next) = resp
             .pagination
-            .map(|p| (p.total_count, p.has_next))
-            .unwrap_or((0, false));
+            .map_or((0, false), |p| (p.total_count, p.has_next));
 
         Ok((logs, total_count, has_next))
     }
@@ -262,7 +267,7 @@ impl AuthGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("auth gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("auth gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }
@@ -295,12 +300,10 @@ fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog 
     let result_enum = proto_i32_to_domain_result(l.result_enum);
     // GraphQL deprecated string フィールドは enum から逆変換して後方互換クライアントに提供する
     let event_type_str = event_type_enum
-        .map(audit_event_type_to_str)
-        .unwrap_or("")
+        .map_or("", audit_event_type_to_str)
         .to_string();
     let result_str = result_enum
-        .map(audit_result_to_str)
-        .unwrap_or("")
+        .map_or("", audit_result_to_str)
         .to_string();
     AuditLog {
         id: l.id,
@@ -325,7 +328,7 @@ fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) 
         .unwrap_or_default()
 }
 
-/// ドメイン AuditEventType → proto AuditEventType の i32 値に変換する。
+/// ドメイン `AuditEventType` → proto `AuditEventType` の i32 値に変換する。
 fn domain_event_type_to_proto_i32(e: AuditEventType) -> i32 {
     use proto::k1s0::system::auth::v1::AuditEventType as ProtoAET;
     let proto_enum = match e {
@@ -346,7 +349,7 @@ fn domain_event_type_to_proto_i32(e: AuditEventType) -> i32 {
     proto_enum as i32
 }
 
-/// ドメイン AuditResult → proto AuditResult の i32 値に変換する。
+/// ドメイン `AuditResult` → proto `AuditResult` の i32 値に変換する。
 fn domain_result_to_proto_i32(r: AuditResult) -> i32 {
     use proto::k1s0::system::auth::v1::AuditResult as ProtoAR;
     let proto_enum = match r {
@@ -357,7 +360,7 @@ fn domain_result_to_proto_i32(r: AuditResult) -> i32 {
     proto_enum as i32
 }
 
-/// proto AuditEventType i32 → ドメイン AuditEventType に変換する。
+/// proto `AuditEventType` i32 → ドメイン `AuditEventType` に変換する。
 fn proto_i32_to_domain_event_type(i: i32) -> Option<AuditEventType> {
     use proto::k1s0::system::auth::v1::AuditEventType as ProtoAET;
     match ProtoAET::try_from(i).unwrap_or(ProtoAET::Unspecified) {
@@ -378,7 +381,7 @@ fn proto_i32_to_domain_event_type(i: i32) -> Option<AuditEventType> {
     }
 }
 
-/// proto AuditResult i32 → ドメイン AuditResult に変換する。
+/// proto `AuditResult` i32 → ドメイン `AuditResult` に変換する。
 fn proto_i32_to_domain_result(i: i32) -> Option<AuditResult> {
     use proto::k1s0::system::auth::v1::AuditResult as ProtoAR;
     match ProtoAR::try_from(i).unwrap_or(ProtoAR::Unspecified) {

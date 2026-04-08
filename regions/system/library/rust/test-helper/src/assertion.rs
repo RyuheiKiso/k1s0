@@ -14,9 +14,7 @@ impl AssertionHelper {
             serde_json::from_str(expected).expect("expected is not valid JSON");
         assert!(
             json_contains(&actual_val, &expected_val),
-            "JSON partial match failed.\nActual: {}\nExpected: {}",
-            actual,
-            expected
+            "JSON partial match failed.\nActual: {actual}\nExpected: {expected}"
         );
     }
 
@@ -27,13 +25,11 @@ impl AssertionHelper {
         let found = events.iter().any(|e| {
             e.get("type")
                 .and_then(|t| t.as_str())
-                .map(|t| t == event_type)
-                .unwrap_or(false)
+                .is_some_and(|t| t == event_type)
         });
         assert!(
             found,
-            "Event '{}' not found in events: {:?}",
-            event_type, events
+            "Event '{event_type}' not found in events: {events:?}"
         );
     }
 
@@ -44,9 +40,7 @@ impl AssertionHelper {
         // is_some_and で Option を安全にアンラップし、null チェックを行う
         assert!(
             result.is_some_and(|v| !v.is_null()),
-            "Expected non-null at path '{}' in: {}",
-            path,
-            json_str
+            "Expected non-null at path '{path}' in: {json_str}"
         );
     }
 }
@@ -55,7 +49,7 @@ fn json_contains(actual: &Value, expected: &Value) -> bool {
     match (actual, expected) {
         (Value::Object(a), Value::Object(e)) => e
             .iter()
-            .all(|(k, v)| a.get(k).map(|av| json_contains(av, v)).unwrap_or(false)),
+            .all(|(k, v)| a.get(k).is_some_and(|av| json_contains(av, v))),
         (Value::Array(a), Value::Array(e)) => {
             e.iter().all(|ev| a.iter().any(|av| json_contains(av, ev)))
         }

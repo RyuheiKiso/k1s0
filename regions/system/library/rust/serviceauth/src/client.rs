@@ -14,13 +14,13 @@ use tracing::{debug, error};
 #[cfg(feature = "mock")]
 use mockall::automock;
 
-/// ServiceClaims はサービストークンの JWT Claims を表す。
+/// `ServiceClaims` はサービストークンの JWT Claims を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceClaims {
-    /// サービスアカウントの識別子（client_id と同一のケースが多い）。
+    /// `サービスアカウントの識別子（client_id` と同一のケースが多い）。
     pub sub: String,
 
-    /// Keycloak の client_id（オプション）。
+    /// Keycloak の `client_id（オプション`）。
     pub client_id: Option<String>,
 
     /// 付与されたスコープ（オプション）。
@@ -39,7 +39,7 @@ pub struct ServiceClaims {
     pub aud: Option<String>,
 }
 
-/// ServiceAuthClient は Client Credentials フローによるサービス間認証を提供するトレイト。
+/// `ServiceAuthClient` は Client Credentials フローによるサービス間認証を提供するトレイト。
 ///
 /// `HttpServiceAuthClient` がデフォルト実装。テスト時は `MockServiceAuthClient` が使用可能。
 #[async_trait]
@@ -80,7 +80,7 @@ struct TokenResponse {
     expires_in: u64,
 }
 
-/// HttpServiceAuthClient は reqwest を使った ServiceAuthClient の HTTP 実装。
+/// `HttpServiceAuthClient` は reqwest を使った `ServiceAuthClient` の HTTP 実装。
 ///
 /// トークンをメモリ内にキャッシュし、有効期限前に自動リフレッシュする。
 pub struct HttpServiceAuthClient {
@@ -90,7 +90,7 @@ pub struct HttpServiceAuthClient {
 }
 
 impl HttpServiceAuthClient {
-    /// 新しい HttpServiceAuthClient を生成する。
+    /// 新しい `HttpServiceAuthClient` を生成する。
     ///
     /// `config.timeout_secs` で指定したタイムアウトを持つ HTTP クライアントを内部で生成する。
     pub fn new(config: ServiceAuthConfig) -> Result<Self, ServiceAuthError> {
@@ -142,8 +142,7 @@ impl ServiceAuthClient for HttpServiceAuthClient {
                 "トークン取得に失敗しました"
             );
             return Err(ServiceAuthError::TokenAcquisition(format!(
-                "HTTP {} - {}",
-                status, body
+                "HTTP {status} - {body}"
             )));
         }
 
@@ -237,7 +236,7 @@ impl ServiceAuthClient for HttpServiceAuthClient {
             .iter()
             .find(|k| k["kid"].as_str() == Some(&kid))
             .ok_or_else(|| {
-                ServiceAuthError::InvalidToken(format!("JWKS に kid '{}' が見つかりません", kid))
+                ServiceAuthError::InvalidToken(format!("JWKS に kid '{kid}' が見つかりません"))
             })?;
 
         let n = jwk["n"].as_str().ok_or_else(|| {
@@ -248,7 +247,7 @@ impl ServiceAuthClient for HttpServiceAuthClient {
         })?;
 
         let decoding_key = DecodingKey::from_rsa_components(n, e).map_err(|e| {
-            ServiceAuthError::InvalidToken(format!("RSA 公開鍵の構築に失敗しました: {}", e))
+            ServiceAuthError::InvalidToken(format!("RSA 公開鍵の構築に失敗しました: {e}"))
         })?;
 
         let mut validation = Validation::new(Algorithm::RS256);

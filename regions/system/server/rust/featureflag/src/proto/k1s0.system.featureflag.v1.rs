@@ -39,14 +39,14 @@ pub struct GetFlagResponse {
     #[prost(message, optional, tag = "1")]
     pub flag: ::core::option::Option<FeatureFlag>,
 }
-/// ListFlagsRequest はフラグ一覧取得リクエスト。
+/// `ListFlagsRequest` はフラグ一覧取得リクエスト。
 /// ページネーションにより大量のフラグを効率的に取得できる。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListFlagsRequest {
     /// 1ページあたりの取得件数（0 の場合はサーバーデフォルト値を使用）
     #[prost(int32, tag = "1")]
     pub page_size: i32,
-    /// ページトークン（前回レスポンスの next_page_token を指定）
+    /// ページトークン（前回レスポンスの `next_page_token` を指定）
     #[prost(string, tag = "2")]
     pub page_token: ::prost::alloc::string::String,
 }
@@ -133,7 +133,7 @@ pub struct FlagVariant {
 pub struct FlagRule {
     #[prost(string, tag = "1")]
     pub attribute: ::prost::alloc::string::String,
-    /// 比較演算子（OPERATOR_EQ / OPERATOR_NE / OPERATOR_CONTAINS / OPERATOR_GT / OPERATOR_LT）
+    /// `比較演算子（OPERATOR_EQ` / `OPERATOR_NE` / `OPERATOR_CONTAINS` / `OPERATOR_GT` / `OPERATOR_LT`）
     #[prost(enumeration = "Operator", tag = "2")]
     pub operator: i32,
     #[prost(string, tag = "3")]
@@ -141,19 +141,19 @@ pub struct FlagRule {
     #[prost(string, tag = "4")]
     pub variant: ::prost::alloc::string::String,
 }
-/// WatchFeatureFlagRequest はフラグ変更監視リクエスト。
+/// `WatchFeatureFlagRequest` はフラグ変更監視リクエスト。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchFeatureFlagRequest {
     /// 監視対象のフラグキー（空の場合は全フラグの変更を受け取る）
     #[prost(string, tag = "1")]
     pub flag_key: ::prost::alloc::string::String,
 }
-/// WatchFeatureFlagResponse はフラグ変更の監視レスポンス（ストリーミング）。
+/// `WatchFeatureFlagResponse` はフラグ変更の監視レスポンス（ストリーミング）。
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WatchFeatureFlagResponse {
     #[prost(string, tag = "1")]
     pub flag_key: ::prost::alloc::string::String,
-    /// Deprecated: use change_type_enum instead.
+    /// Deprecated: use `change_type_enum` instead.
     /// CREATED, UPDATED, DELETED
     /// \[deprecated = true\] アノテーションを追加: enum 型フィールドへ移行（A-4 対応）
     #[deprecated]
@@ -163,7 +163,7 @@ pub struct WatchFeatureFlagResponse {
     pub flag: ::core::option::Option<FeatureFlag>,
     #[prost(message, optional, tag = "4")]
     pub changed_at: ::core::option::Option<super::super::common::v1::Timestamp>,
-    /// 変更操作の種別（change_type の enum 版）。
+    /// `変更操作の種別（change_type` の enum 版）。
     #[prost(enumeration = "super::super::common::v1::ChangeType", tag = "5")]
     pub change_type_enum: i32,
 }
@@ -180,10 +180,11 @@ pub enum Operator {
     Lt = 5,
 }
 impl Operator {
-    /// String value of the enum field names used in the ProtoBuf definition.
+    /// String value of the enum field names used in the `ProtoBuf` definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "OPERATOR_UNSPECIFIED",
@@ -194,7 +195,8 @@ impl Operator {
             Self::Lt => "OPERATOR_LT",
         }
     }
-    /// Creates an enum from field names used in the ProtoBuf definition.
+    /// Creates an enum from field names used in the `ProtoBuf` definition.
+    #[must_use] 
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "OPERATOR_UNSPECIFIED" => Some(Self::Unspecified),
@@ -217,7 +219,7 @@ pub mod feature_flag_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with FeatureFlagServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `FeatureFlagServiceServer`.
     #[async_trait]
     pub trait FeatureFlagService: std::marker::Send + std::marker::Sync + 'static {
         async fn evaluate_flag(
@@ -259,7 +261,7 @@ pub mod feature_flag_service_server {
             tonic::Response<super::DeleteFlagResponse>,
             tonic::Status,
         >;
-        /// Server streaming response type for the WatchFeatureFlag method.
+        /// Server streaming response type for the `WatchFeatureFlag` method.
         type WatchFeatureFlagStream: tonic::codegen::tokio_stream::Stream<
                 Item = std::result::Result<
                     super::WatchFeatureFlagResponse,
@@ -268,7 +270,7 @@ pub mod feature_flag_service_server {
             >
             + std::marker::Send
             + 'static;
-        /// WatchFeatureFlag はフラグ変更の監視（Server-Side Streaming）。
+        /// `WatchFeatureFlag` はフラグ変更の監視（Server-Side Streaming）。
         async fn watch_feature_flag(
             &self,
             request: tonic::Request<super::WatchFeatureFlagRequest>,

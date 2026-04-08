@@ -69,7 +69,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続設定を表す（URL形式）。
+/// `DatabaseConfig` はデータベース接続設定を表す（URL形式）。
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct DatabaseConfig {
@@ -100,7 +100,7 @@ fn default_connect_timeout_seconds() -> u64 {
     5
 }
 
-/// KafkaConfig は Kafka ブローカー接続設定を表す。
+/// `KafkaConfig` は Kafka ブローカー接続設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -113,7 +113,7 @@ pub struct KafkaConfig {
     pub producer_retries: u32,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -161,7 +161,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// EventStoreConfig はイベントストア固有の設定を表す。
+/// `EventStoreConfig` はイベントストア固有の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 #[allow(dead_code)]
 pub struct EventStoreConfig {

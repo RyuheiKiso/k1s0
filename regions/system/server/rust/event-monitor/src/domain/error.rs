@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// EventMonitor ドメイン固有のエラー型。
+/// `EventMonitor` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum EventMonitorError {
     /// イベントが見つからない
@@ -24,7 +24,7 @@ pub enum EventMonitorError {
     Internal(String),
 }
 
-/// EventMonitorError から ServiceError への変換実装
+/// `EventMonitorError` から `ServiceError` への変換実装
 impl From<EventMonitorError> for ServiceError {
     fn from(err: EventMonitorError) -> Self {
         match err {

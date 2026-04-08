@@ -13,6 +13,8 @@ use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRe
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
 use crate::usecase;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Load config
     let config_path =
@@ -36,7 +38,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -245,10 +247,12 @@ impl super::TokenVerifier for StubTokenVerifier {
 
 struct StubAppRepository;
 
+// CRIT-004 監査対応: tenant_id パラメータを追加（スタブ実装のため無視）
 #[async_trait::async_trait]
 impl crate::domain::repository::AppRepository for StubAppRepository {
     async fn list(
         &self,
+        _tenant_id: &str,
         _category: Option<String>,
         _search: Option<String>,
     ) -> anyhow::Result<Vec<crate::domain::entity::app::App>> {
@@ -257,6 +261,7 @@ impl crate::domain::repository::AppRepository for StubAppRepository {
 
     async fn find_by_id(
         &self,
+        _tenant_id: &str,
         _id: &str,
     ) -> anyhow::Result<Option<crate::domain::entity::app::App>> {
         Ok(None)
@@ -264,6 +269,7 @@ impl crate::domain::repository::AppRepository for StubAppRepository {
 
     async fn create(
         &self,
+        _tenant_id: &str,
         app: &crate::domain::entity::app::App,
     ) -> anyhow::Result<crate::domain::entity::app::App> {
         Ok(app.clone())
@@ -271,12 +277,13 @@ impl crate::domain::repository::AppRepository for StubAppRepository {
 
     async fn update(
         &self,
+        _tenant_id: &str,
         app: &crate::domain::entity::app::App,
     ) -> anyhow::Result<crate::domain::entity::app::App> {
         Ok(app.clone())
     }
 
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, _tenant_id: &str, _id: &str) -> anyhow::Result<bool> {
         Ok(false)
     }
 }

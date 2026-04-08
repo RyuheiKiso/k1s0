@@ -9,7 +9,7 @@ use k1s0_bb_core::{Component, ComponentError, ComponentStatus};
 use crate::traits::{SecretStore, SecretValue};
 use crate::SecretStoreError;
 
-/// InMemorySecretStore はテスト・開発用のインメモリ SecretStore 実装。
+/// `InMemorySecretStore` はテスト・開発用のインメモリ `SecretStore` 実装。
 pub struct InMemorySecretStore {
     name: String,
     status: RwLock<ComponentStatus>,
@@ -65,7 +65,7 @@ impl Component for InMemorySecretStore {
         &self.name
     }
 
-    fn component_type(&self) -> &str {
+    fn component_type(&self) -> &'static str {
         "secretstore"
     }
 

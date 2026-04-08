@@ -48,6 +48,7 @@ pub struct ConfigGrpcService {
 }
 
 impl ConfigGrpcService {
+    #[must_use] 
     pub fn new_with_watch(
         get_config_uc: Arc<GetConfigUseCase>,
         list_configs_uc: Arc<ListConfigsUseCase>,
@@ -69,6 +70,7 @@ impl ConfigGrpcService {
         }
     }
 
+    #[must_use] 
     pub fn with_schema_usecases(
         mut self,
         get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
@@ -81,7 +83,7 @@ impl ConfigGrpcService {
         self
     }
 
-    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を取得する。
+    /// STATIC-CRITICAL-001: `tenant_id` を受け取り、テナントスコープで設定値を取得する。
     pub async fn get_config(
         &self,
         tenant_id: Uuid,
@@ -98,14 +100,13 @@ impl ConfigGrpcService {
                 entry: Some(domain_config_to_pb(&entry)),
             }),
             Err(GetConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {}/{}",
-                ns, key
+                "config not found: {ns}/{key}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
-    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値一覧を取得する。
+    /// STATIC-CRITICAL-001: `tenant_id` を受け取り、テナントスコープで設定値一覧を取得する。
     pub async fn list_configs(
         &self,
         tenant_id: Uuid,
@@ -118,8 +119,8 @@ impl ConfigGrpcService {
         }
 
         let params = ListConfigsParams {
-            page: req.pagination.as_ref().map(|p| p.page).unwrap_or(1),
-            page_size: req.pagination.as_ref().map(|p| p.page_size).unwrap_or(20),
+            page: req.pagination.as_ref().map_or(1, |p| p.page),
+            page_size: req.pagination.as_ref().map_or(20, |p| p.page_size),
             search: if req.search.is_empty() {
                 None
             } else {
@@ -142,7 +143,7 @@ impl ConfigGrpcService {
         }
     }
 
-    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープでサービス設定を取得する。
+    /// STATIC-CRITICAL-001: `tenant_id` を受け取り、テナントスコープでサービス設定を取得する。
     pub async fn get_service_config(
         &self,
         tenant_id: Uuid,
@@ -168,13 +169,13 @@ impl ConfigGrpcService {
                     .collect(),
             }),
             Err(GetServiceConfigError::NotFound(name)) => {
-                Err(GrpcError::NotFound(format!("service not found: {}", name)))
+                Err(GrpcError::NotFound(format!("service not found: {name}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
-    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を更新する。
+    /// STATIC-CRITICAL-001: `tenant_id` を受け取り、テナントスコープで設定値を更新する。
     pub async fn update_config(
         &self,
         tenant_id: Uuid,
@@ -187,9 +188,9 @@ impl ConfigGrpcService {
         }
 
         let value_json = String::from_utf8(req.value)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid value bytes: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid value bytes: {e}")))?;
         let value: serde_json::Value = serde_json::from_str(&value_json)
-            .map_err(|e| GrpcError::InvalidArgument(format!("invalid value_json: {}", e)))?;
+            .map_err(|e| GrpcError::InvalidArgument(format!("invalid value_json: {e}")))?;
 
         let input = UpdateConfigInput {
             tenant_id,
@@ -210,22 +211,20 @@ impl ConfigGrpcService {
                 entry: Some(domain_config_to_pb(&entry)),
             }),
             Err(UpdateConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {}/{}",
-                ns, key
+                "config not found: {ns}/{key}"
             ))),
             Err(UpdateConfigError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(UpdateConfigError::SchemaValidation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(UpdateConfigError::VersionConflict { expected, current }) => {
                 Err(GrpcError::Aborted(format!(
-                    "version conflict: expected={}, current={}",
-                    expected, current
+                    "version conflict: expected={expected}, current={current}"
                 )))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
-    /// STATIC-CRITICAL-001: tenant_id を受け取り、テナントスコープで設定値を削除する。
+    /// STATIC-CRITICAL-001: `tenant_id` を受け取り、テナントスコープで設定値を削除する。
     pub async fn delete_config(
         &self,
         tenant_id: Uuid,
@@ -250,8 +249,7 @@ impl ConfigGrpcService {
         {
             Ok(()) => Ok(pb::DeleteConfigResponse { success: true }),
             Err(DeleteConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {}/{}",
-                ns, key
+                "config not found: {ns}/{key}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -277,8 +275,7 @@ impl ConfigGrpcService {
                 schema: Some(domain_schema_to_pb(&schema)),
             }),
             Err(GetConfigSchemaError::NotFound(service_name)) => Err(GrpcError::NotFound(format!(
-                "config schema not found: {}",
-                service_name
+                "config schema not found: {service_name}"
             ))),
             Err(GetConfigSchemaError::Internal(msg)) => Err(GrpcError::Internal(msg)),
         }
@@ -391,9 +388,7 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
 fn domain_schema_to_pb(
     schema: &crate::domain::entity::config_schema::ConfigSchema,
 ) -> pb::ConfigEditorSchema {
-    ConfigEditorSchemaDto::try_from(schema)
-        .map(|dto| dto.to_pb())
-        .unwrap_or_else(|_| pb::ConfigEditorSchema {
+    ConfigEditorSchemaDto::try_from(schema).map_or_else(|_| pb::ConfigEditorSchema {
             service_name: schema.service_name.clone(),
             namespace_prefix: schema.namespace_prefix.clone(),
             categories: vec![],
@@ -401,11 +396,9 @@ fn domain_schema_to_pb(
                 seconds: schema.updated_at.timestamp(),
                 nanos: schema.updated_at.timestamp_subsec_nanos() as i32,
             }),
-        })
+        }, |dto| dto.to_pb())
 }
 
 fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
-    ConfigEditorSchemaDto::from_pb(schema)
-        .map(|dto| dto.into_schema_json())
-        .unwrap_or_else(|_| serde_json::json!({ "categories": [] }))
+    ConfigEditorSchemaDto::from_pb(schema).map_or_else(|_| serde_json::json!({ "categories": [] }), super::super::presentation::ConfigEditorSchemaDto::into_schema_json)
 }

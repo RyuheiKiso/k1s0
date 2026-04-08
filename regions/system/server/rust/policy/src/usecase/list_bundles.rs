@@ -18,7 +18,7 @@ impl ListBundlesUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからバンドル一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからバンドル一覧を取得する。
     pub async fn execute(&self, tenant_id: &str) -> Result<Vec<PolicyBundle>, ListBundlesError> {
         self.repo
             .find_all(tenant_id)

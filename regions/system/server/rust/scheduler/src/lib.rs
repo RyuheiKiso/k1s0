@@ -5,6 +5,6 @@ pub mod proto;
 pub mod usecase;
 
 /// scheduler-db マイグレーションを起動時に自動適用するためのマイグレーターを定義する
-/// sqlx::migrate!() はコンパイル時にマイグレーションファイルを埋め込む
+/// `sqlx::migrate`!() はコンパイル時にマイグレーションファイルを埋め込む
 pub static MIGRATOR: sqlx::migrate::Migrator =
     sqlx::migrate!("../../../database/scheduler-db/migrations");

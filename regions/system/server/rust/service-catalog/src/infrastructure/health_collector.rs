@@ -18,9 +18,9 @@ use crate::domain::repository::{HealthRepository, ServiceRepository};
 /// - 172.16.0.0/12 (private)
 /// - 192.168.0.0/16 (private)
 /// - 169.254.0.0/16 (link-local)
-/// - ::1 (IPv6 loopback)
-/// - fc00::/7 (IPv6 unique local)
-/// - fe80::/10 (IPv6 link-local)
+/// - `::1` (IPv6 loopback)
+/// - `fc00::/7` (IPv6 unique local)
+/// - `fe80::/10` (IPv6 link-local)
 ///
 /// 許可するスキーム: http および https のみ
 fn is_safe_url(url: &reqwest::Url) -> bool {
@@ -79,7 +79,7 @@ fn is_private_ip(ip: &IpAddr) -> bool {
     }
 }
 
-/// HealthCollectorConfig はヘルスコレクターの設定を表す。
+/// `HealthCollectorConfig` はヘルスコレクターの設定を表す。
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct HealthCollectorConfig {
     #[serde(default = "default_interval_secs")]
@@ -105,7 +105,7 @@ fn default_timeout_secs() -> u64 {
     5
 }
 
-/// HealthCollector はサービスの /healthz エンドポイントを定期的にポーリングするバックグラウンドタスク。
+/// `HealthCollector` はサービスの /healthz エンドポイントを定期的にポーリングするバックグラウンドタスク。
 pub struct HealthCollector {
     service_repo: Arc<dyn ServiceRepository>,
     health_repo: Arc<dyn HealthRepository>,
@@ -114,7 +114,7 @@ pub struct HealthCollector {
 }
 
 impl HealthCollector {
-    /// 新しい HealthCollector を生成する。
+    /// 新しい `HealthCollector` を生成する。
     /// HTTP クライアントの構築に失敗した場合は Err を返す。
     pub fn new(
         service_repo: Arc<dyn ServiceRepository>,
@@ -125,7 +125,7 @@ impl HealthCollector {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
             .build()
-            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {e}"))?;
 
         Ok(Self {
             service_repo,
@@ -149,7 +149,9 @@ impl HealthCollector {
     }
 
     async fn collect(&self) {
-        let services = match self.service_repo.list(ServiceListFilters::default()).await {
+        // ヘルスコレクターは全テナントのサービスを対象とするため、システム用の空文字列を使用する。
+        // RLS の set_config('app.current_tenant_id', '', true) は全テナントを返すポリシーが必要。
+        let services = match self.service_repo.list("", ServiceListFilters::default()).await {
             Ok(s) => s,
             Err(e) => {
                 warn!(error = %e, "failed to list services for health check");

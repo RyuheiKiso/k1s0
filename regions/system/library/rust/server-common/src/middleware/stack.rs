@@ -19,6 +19,7 @@ pub enum Profile {
 }
 
 impl Profile {
+    #[must_use] 
     pub fn from_env(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "prod" | "production" => Self::Prod,
@@ -28,7 +29,7 @@ impl Profile {
     }
 }
 
-/// K1s0Stack は標準ミドルウェアスタックを構築するビルダー。
+/// `K1s0Stack` は標準ミドルウェアスタックを構築するビルダー。
 pub struct K1s0Stack {
     #[allow(dead_code)]
     service_name: String,
@@ -40,6 +41,7 @@ pub struct K1s0Stack {
 }
 
 impl K1s0Stack {
+    #[must_use] 
     pub fn new(service_name: &str) -> Self {
         Self {
             service_name: service_name.to_string(),
@@ -51,26 +53,31 @@ impl K1s0Stack {
         }
     }
 
+    #[must_use] 
     pub fn profile(mut self, profile: Profile) -> Self {
         self.profile = profile;
         self
     }
 
+    #[must_use] 
     pub fn metrics(mut self, metrics: Arc<Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
     }
 
+    #[must_use] 
     pub fn health_checker(mut self, checker: Arc<CompositeHealthChecker>) -> Self {
         self.health_checker = Some(checker);
         self
     }
 
+    #[must_use] 
     pub fn without_correlation(mut self) -> Self {
         self.correlation = false;
         self
     }
 
+    #[must_use] 
     pub fn without_request_id(mut self) -> Self {
         self.request_id = false;
         self
@@ -81,7 +88,7 @@ impl K1s0Stack {
     /// レイヤー適用順序（外→内）:
     /// 1. MetricsLayer（metrics設定時）
     /// 2. CorrelationLayer（correlation有効時）
-    /// 3. RequestIdLayer（request_id有効時）
+    /// 3. `RequestIdLayer（request_id有効時`）
     pub fn wrap(self, router: Router) -> Router {
         // 標準エンドポイントをマージ
         let router = standard_routes::merge_standard_routes(

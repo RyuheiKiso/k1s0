@@ -4,7 +4,7 @@ use crate::domain::entity::audit_log::{AuditLogSearchParams, AuditLogSearchResul
 use crate::domain::entity::user::Pagination;
 use crate::domain::repository::AuditLogRepository;
 
-/// SearchAuditLogsError は監査ログ検索に関するエラーを表す。
+/// `SearchAuditLogsError` は監査ログ検索に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum SearchAuditLogsError {
     #[error("invalid page: {0}")]
@@ -17,7 +17,7 @@ pub enum SearchAuditLogsError {
     Internal(String),
 }
 
-/// SearchAuditLogsQueryParams は監査ログ検索のクエリパラメータを表す。
+/// `SearchAuditLogsQueryParams` は監査ログ検索のクエリパラメータを表す。
 #[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct SearchAuditLogsQueryParams {
     pub page: Option<i32>,
@@ -29,7 +29,7 @@ pub struct SearchAuditLogsQueryParams {
     pub result: Option<String>,
 }
 
-/// SearchAuditLogsUseCase は監査ログ検索ユースケース。
+/// `SearchAuditLogsUseCase` は監査ログ検索ユースケース。
 pub struct SearchAuditLogsUseCase {
     audit_repo: Arc<dyn AuditLogRepository>,
 }
@@ -67,7 +67,7 @@ impl SearchAuditLogsUseCase {
                 chrono::DateTime::parse_from_rfc3339(s)
                     .map(|dt| dt.with_timezone(&chrono::Utc))
                     .map_err(|_| {
-                        SearchAuditLogsError::InvalidPage(format!("invalid from datetime: {}", s))
+                        SearchAuditLogsError::InvalidPage(format!("invalid from datetime: {s}"))
                     })
             })
             .transpose()?;
@@ -79,7 +79,7 @@ impl SearchAuditLogsUseCase {
                 chrono::DateTime::parse_from_rfc3339(s)
                     .map(|dt| dt.with_timezone(&chrono::Utc))
                     .map_err(|_| {
-                        SearchAuditLogsError::InvalidPage(format!("invalid to datetime: {}", s))
+                        SearchAuditLogsError::InvalidPage(format!("invalid to datetime: {s}"))
                     })
             })
             .transpose()?;
@@ -100,7 +100,7 @@ impl SearchAuditLogsUseCase {
             .await
             .map_err(|e| SearchAuditLogsError::Internal(e.to_string()))?;
 
-        let has_next = (page as i64 * page_size as i64) < total_count;
+        let has_next = (i64::from(page) * i64::from(page_size)) < total_count;
 
         Ok(AuditLogSearchResult {
             logs,

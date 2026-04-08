@@ -7,8 +7,8 @@ use crate::domain::entity::RateLimitRule;
 use crate::domain::repository::RateLimitRepository;
 use crate::infrastructure::cache::RuleCache;
 
-/// CachedRateLimitRepository は RateLimitRepository をキャッシュでラップする。
-/// find_by_id / find_by_name でキャッシュヒット時はDBアクセスをスキップする。
+/// `CachedRateLimitRepository` は `RateLimitRepository` をキャッシュでラップする。
+/// `find_by_id` / `find_by_name` でキャッシュヒット時はDBアクセスをスキップする。
 /// create 時はキャッシュを invalidate して整合性を保つ。
 pub struct CachedRateLimitRepository {
     inner: Arc<dyn RateLimitRepository>,
@@ -17,7 +17,7 @@ pub struct CachedRateLimitRepository {
 }
 
 impl CachedRateLimitRepository {
-    /// 新しい CachedRateLimitRepository を作成する。
+    /// 新しい `CachedRateLimitRepository` を作成する。
     #[allow(dead_code)]
     pub fn new(inner: Arc<dyn RateLimitRepository>, cache: Arc<RuleCache>) -> Self {
         Self {
@@ -27,7 +27,7 @@ impl CachedRateLimitRepository {
         }
     }
 
-    /// メトリクス付きの CachedRateLimitRepository を作成する。
+    /// メトリクス付きの `CachedRateLimitRepository` を作成する。
     pub fn with_metrics(
         inner: Arc<dyn RateLimitRepository>,
         cache: Arc<RuleCache>,
@@ -155,7 +155,7 @@ impl RateLimitRepository for CachedRateLimitRepository {
         Ok(deleted)
     }
 
-    /// PostgreSQL リポジトリではRedis状態のリセットは行わない（state_storeが担当）。
+    /// `PostgreSQL` `リポジトリではRedis状態のリセットは行わない（state_storeが担当`）。
     async fn reset_state(&self, key: &str) -> anyhow::Result<()> {
         self.inner.reset_state(key).await
     }

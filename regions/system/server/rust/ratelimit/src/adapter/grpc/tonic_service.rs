@@ -48,7 +48,7 @@ fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> ProtoTimestamp {
     }
 }
 
-/// アルゴリズム文字列を RateLimitAlgorithm enum の i32 値に変換する。
+/// アルゴリズム文字列を `RateLimitAlgorithm` enum の i32 値に変換する。
 /// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
 fn algorithm_str_to_enum(s: &str) -> i32 {
     match s {
@@ -78,6 +78,7 @@ pub struct RateLimitServiceTonic {
 }
 
 impl RateLimitServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<RateLimitGrpcService>) -> Self {
         Self { inner }
     }

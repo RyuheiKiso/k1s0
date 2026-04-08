@@ -34,6 +34,7 @@ impl Default for IdempotencyConfig {
 }
 
 impl IdempotencyConfig {
+    #[must_use] 
     pub fn with_ttl(mut self, ttl: Duration) -> Self {
         self.ttl_secs = Some(ttl.as_secs() as i64);
         self
@@ -73,6 +74,7 @@ impl IdempotencyMiddleware {
         }
     }
 
+    #[must_use] 
     pub fn state(&self) -> IdempotencyState {
         self.state.clone()
     }
@@ -132,12 +134,9 @@ async fn process_request(state: &IdempotencyState, req: Request<Body>, next: Nex
 
     let response = next.run(req).await;
     let (parts, body) = response.into_parts();
-    let body_bytes = match body.collect().await {
-        Ok(collected) => collected.to_bytes(),
-        Err(_) => {
-            let _ = state.store.mark_failed(&key, None, None).await;
-            return Response::from_parts(parts, Body::empty());
-        }
+    let body_bytes = if let Ok(collected) = body.collect().await { collected.to_bytes() } else {
+        let _ = state.store.mark_failed(&key, None, None).await;
+        return Response::from_parts(parts, Body::empty());
     };
 
     let response_body = String::from_utf8_lossy(&body_bytes).to_string();

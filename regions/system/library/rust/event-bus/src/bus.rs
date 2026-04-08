@@ -12,13 +12,14 @@ use crate::handler::EventHandler;
 /// サブスクリプションID。
 type SubscriptionId = u64;
 
-/// InMemoryEventBus はメモリ内のイベントバス（レガシーAPI、後方互換性のため維持）。
+/// `InMemoryEventBus` はメモリ内のイベントバス（レガシーAPI、後方互換性のため維持）。
 pub struct InMemoryEventBus {
     #[allow(clippy::type_complexity)]
     handlers: Arc<RwLock<HashMap<String, Vec<Arc<dyn EventHandler>>>>>,
 }
 
 impl InMemoryEventBus {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             handlers: Arc::new(RwLock::new(HashMap::new())),
@@ -61,8 +62,8 @@ impl Default for InMemoryEventBus {
     }
 }
 
-/// DDD パターンに対応した EventBus。
-/// EventBusConfig で初期化し、EventSubscription で購読を管理する。
+/// DDD パターンに対応した `EventBus`。
+/// `EventBusConfig` で初期化し、EventSubscription で購読を管理する。
 pub struct EventBus {
     config: EventBusConfig,
     // (subscription_id, cancelled_flag, handler) のタプルで管理する。
@@ -74,7 +75,8 @@ pub struct EventBus {
 }
 
 impl EventBus {
-    /// 設定を指定して新しい EventBus を生成する。
+    /// 設定を指定して新しい `EventBus` を生成する。
+    #[must_use] 
     pub fn new(config: EventBusConfig) -> Self {
         Self {
             config,
@@ -84,13 +86,14 @@ impl EventBus {
     }
 
     /// 設定を取得する。
+    #[must_use] 
     pub fn config(&self) -> &EventBusConfig {
         &self.config
     }
 
     /// ハンドラーを購読し、EventSubscription を返す。
-    /// EventSubscription が Drop されるとキャンセルフラグが立ち、次回 publish() 時に配信がスキップされる。
-    /// 即時解除が必要な場合は明示的に EventSubscription::unsubscribe() を呼ぶこと。
+    /// `EventSubscription` が Drop されるとキャンセルフラグが立ち、次回 `publish()` 時に配信がスキップされる。
+    /// 即時解除が必要な場合は明示的に `EventSubscription::unsubscribe()` を呼ぶこと。
     pub async fn subscribe(&self, handler: Arc<dyn EventHandler>) -> EventSubscription {
         let event_type = handler.event_type().to_string();
 
@@ -146,8 +149,8 @@ impl EventBus {
 }
 
 /// イベント購読を表す構造体。
-/// Drop 時にキャンセルフラグを立て、次回 publish() 時の配信をスキップさせる。
-/// 即時かつ確実に解除するには明示的に unsubscribe() を呼ぶこと。
+/// Drop 時にキャンセルフラグを立て、次回 `publish()` 時の配信をスキップさせる。
+/// 即時かつ確実に解除するには明示的に `unsubscribe()` を呼ぶこと。
 pub struct EventSubscription {
     id: SubscriptionId,
     event_type: String,

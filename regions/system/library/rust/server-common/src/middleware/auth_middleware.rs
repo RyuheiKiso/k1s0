@@ -7,7 +7,7 @@ use tokio::time::timeout;
 
 use crate::ServiceError;
 
-/// 汎用認証ステート。各サーバー固有の AuthState は不要になる。
+/// 汎用認証ステート。各サーバー固有の `AuthState` は不要になる。
 #[derive(Clone)]
 pub struct AuthState {
     pub verifier: Arc<JwksVerifier>,
@@ -19,11 +19,12 @@ pub async fn auth_middleware(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, ServiceError> {
+    // HIGH-001 監査対応: const は文より前に定義する
+    // トークン検証のタイムアウト上限（秒）。外部 JWKS エンドポイントの応答遅延によるリクエスト滞留を防ぐ。
+    const VERIFY_TIMEOUT: Duration = Duration::from_secs(2);
+
     let token = extract_bearer_token(&req)
         .ok_or_else(|| ServiceError::unauthorized("AUTH", "Missing bearer token"))?;
-
-    /// トークン検証のタイムアウト上限（秒）。外部 JWKS エンドポイントの応答遅延によるリクエスト滞留を防ぐ。
-    const VERIFY_TIMEOUT: Duration = Duration::from_secs(2);
 
     // verify_token をタイムアウト付きで実行し、応答遅延時は 503 を返す
     // LOW-014 監査対応: エラー種別に応じてメッセージを分離し、クライアントが原因を特定しやすくする。

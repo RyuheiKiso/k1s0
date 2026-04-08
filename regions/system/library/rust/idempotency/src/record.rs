@@ -21,6 +21,7 @@ pub struct IdempotencyRecord {
 }
 
 impl IdempotencyRecord {
+    #[must_use] 
     pub fn new(key: String, ttl_secs: Option<i64>) -> Self {
         let now = Utc::now();
         Self {
@@ -35,10 +36,12 @@ impl IdempotencyRecord {
         }
     }
 
+    #[must_use] 
     pub fn is_expired(&self) -> bool {
         self.expires_at.is_some_and(|exp| exp <= Utc::now())
     }
 
+    #[must_use] 
     pub fn complete(mut self, response_body: Option<String>, response_status: Option<u16>) -> Self {
         self.status = IdempotencyStatus::Completed;
         self.response_body = response_body;
@@ -47,6 +50,7 @@ impl IdempotencyRecord {
         self
     }
 
+    #[must_use] 
     pub fn fail(mut self, error: String) -> Self {
         self.status = IdempotencyStatus::Failed;
         self.response_body = Some(error);

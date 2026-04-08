@@ -14,6 +14,8 @@ use crate::adapter::repository::scorecard_postgres::ScorecardPostgresRepository;
 use crate::adapter::repository::service_postgres::ServicePostgresRepository;
 use crate::adapter::repository::team_postgres::TeamPostgresRepository;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Load config
     let config_path =
@@ -37,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -278,10 +280,12 @@ impl super::TokenVerifier for StubTokenVerifier {
 
 struct StubServiceRepository;
 
+// CRIT-004 監査対応: tenant_id パラメータを追加（スタブ実装のため無視）
 #[async_trait::async_trait]
 impl crate::domain::repository::ServiceRepository for StubServiceRepository {
     async fn list(
         &self,
+        _tenant_id: &str,
         _filters: crate::domain::repository::service_repository::ServiceListFilters,
     ) -> anyhow::Result<Vec<crate::domain::entity::service::Service>> {
         Ok(vec![])
@@ -289,6 +293,7 @@ impl crate::domain::repository::ServiceRepository for StubServiceRepository {
 
     async fn find_by_id(
         &self,
+        _tenant_id: &str,
         _id: uuid::Uuid,
     ) -> anyhow::Result<Option<crate::domain::entity::service::Service>> {
         Ok(None)
@@ -296,6 +301,7 @@ impl crate::domain::repository::ServiceRepository for StubServiceRepository {
 
     async fn create(
         &self,
+        _tenant_id: &str,
         service: &crate::domain::entity::service::Service,
     ) -> anyhow::Result<crate::domain::entity::service::Service> {
         Ok(service.clone())
@@ -303,17 +309,19 @@ impl crate::domain::repository::ServiceRepository for StubServiceRepository {
 
     async fn update(
         &self,
+        _tenant_id: &str,
         service: &crate::domain::entity::service::Service,
     ) -> anyhow::Result<crate::domain::entity::service::Service> {
         Ok(service.clone())
     }
 
-    async fn delete(&self, _id: uuid::Uuid) -> anyhow::Result<()> {
+    async fn delete(&self, _tenant_id: &str, _id: uuid::Uuid) -> anyhow::Result<()> {
         Ok(())
     }
 
     async fn search(
         &self,
+        _tenant_id: &str,
         _query: Option<String>,
         _tags: Option<Vec<String>>,
         _tier: Option<crate::domain::entity::service::ServiceTier>,

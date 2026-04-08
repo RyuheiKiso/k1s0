@@ -27,7 +27,7 @@ impl AuthQueryResolver {
         enabled: Option<bool>,
     ) -> anyhow::Result<Vec<User>> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         self.client
             .list_users(Some(page_size), Some(page), search, enabled)
             .await
@@ -61,7 +61,7 @@ impl AuthQueryResolver {
         result: Option<AuditResult>,
     ) -> anyhow::Result<AuditLogConnection> {
         let page_size = first.unwrap_or(20);
-        let page = after.map(|a| a + 1).unwrap_or(1);
+        let page = after.map_or(1, |a| a + 1);
         let (logs, total_count, has_next) = self
             .client
             .search_audit_logs(Some(page_size), Some(page), user_id, event_type, result)

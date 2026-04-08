@@ -54,13 +54,14 @@ func (h *HealthHandler) Readyz(c *gin.Context) {
 	// 本ポッドをサービスから切り離すことで OIDC 未対応状態のトラフィックを遮断する。
 	// nil チェックは OIDC を使用しないデプロイ構成（テスト環境等）でも安全に動作させるための防御的実装（L-004）
 	if h.oidcReady != nil && !h.oidcReady.Load() {
-		// ADR-0068 準拠: "unhealthy" + checks + timestamp
+		// ADR-0068 準拠: "unhealthy" + checks + timestamp + reason（CRIT-002関連: テスト整合性確保）
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status": "unhealthy",
 			"checks": gin.H{
 				"oidc":  "not_ready",
 				"redis": "skipped",
 			},
+			"reason":    "oidc discovery not completed",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return
@@ -75,6 +76,7 @@ func (h *HealthHandler) Readyz(c *gin.Context) {
 				"oidc":  "not_ready",
 				"redis": "skipped",
 			},
+			"reason":    "oidc discovery not completed",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return

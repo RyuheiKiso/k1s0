@@ -14,7 +14,7 @@ impl ChecksumVerifier {
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
         let result = hasher.finalize();
-        Ok(format!("{:x}", result))
+        Ok(format!("{result:x}"))
     }
 
     /// ファイルのチェックサムが期待値と一致するかを検証する

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// ListConfigSchemasError は設定スキーマ一覧取得に関するエラーを表す。
+/// `ListConfigSchemasError` は設定スキーマ一覧取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ListConfigSchemasError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// ListConfigSchemasUseCase は全設定スキーマ一覧取得ユースケース。
+/// `ListConfigSchemasUseCase` は全設定スキーマ一覧取得ユースケース。
 pub struct ListConfigSchemasUseCase {
     schema_repo: Arc<dyn ConfigSchemaRepository>,
 }

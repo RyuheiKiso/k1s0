@@ -8,21 +8,22 @@ use uuid::Uuid;
 use crate::domain::entity::feature_flag::{FeatureFlag, FlagRule, FlagVariant};
 use crate::domain::repository::FeatureFlagRepository;
 
-/// FeatureFlagPostgresRepository は PostgreSQL を使ったフィーチャーフラグリポジトリ。
+/// `FeatureFlagPostgresRepository` は `PostgreSQL` を使ったフィーチャーフラグリポジトリ。
 pub struct FeatureFlagPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl FeatureFlagPostgresRepository {
-    /// 新しい FeatureFlagPostgresRepository を作成する。
+    /// 新しい `FeatureFlagPostgresRepository` を作成する。
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
 
-/// PostgreSQL の行をマッピングするための内部構造体。
-/// STATIC-CRITICAL-001 監査対応: tenant_id カラムを含む。
-/// HIGH-005 対応: migration 006 で tenant_id が TEXT 型に変更されたため String 型を使用する。
+/// `PostgreSQL` の行をマッピングするための内部構造体。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` カラムを含む。
+/// HIGH-005 対応: migration 006 で `tenant_id` が TEXT 型に変更されたため String 型を使用する。
 #[derive(sqlx::FromRow)]
 struct FeatureFlagRow {
     id: Uuid,
@@ -68,9 +69,9 @@ impl From<FeatureFlagRow> for FeatureFlag {
 
 #[async_trait]
 impl FeatureFlagRepository for FeatureFlagPostgresRepository {
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
-    /// STATIC-CRITICAL-001 監査対応: tenant_id + flag_key でフラグを取得する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
+    /// STATIC-CRITICAL-001 監査対応: `tenant_id` + `flag_key` でフラグを取得する。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn find_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<FeatureFlag> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         // lessons.md: SET LOCAL = $1 は禁止。set_config() を使うこと。
@@ -90,12 +91,12 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         tx.commit().await?;
 
         row.map(Into::into)
-            .ok_or_else(|| anyhow::anyhow!("flag not found: {}", flag_key))
+            .ok_or_else(|| anyhow::anyhow!("flag not found: {flag_key}"))
     }
 
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内の全フラグを取得する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await?;
@@ -115,9 +116,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフラグを作成する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn create(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
@@ -149,9 +150,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(())
     }
 
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを更新する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn update(&self, tenant_id: &str, flag: &FeatureFlag) -> anyhow::Result<()> {
         let variants_json = serde_json::to_value(&flag.variants)?;
         let rules_json = serde_json::to_value(&flag.rules)?;
@@ -185,9 +186,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(())
     }
 
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内のフラグを削除する。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn delete(&self, tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         // テナント分離のため set_config でセッション変数を設定してから DELETE を実行する
         let mut tx = self.pool.begin().await?;
@@ -206,9 +207,9 @@ impl FeatureFlagRepository for FeatureFlagPostgresRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// CRIT-001 監査対応: テナント分離のため RLS と set_config を組み合わせて二重防御する。
+    /// CRIT-001 監査対応: テナント分離のため RLS と `set_config` を組み合わせて二重防御する。
     /// STATIC-CRITICAL-001 監査対応: テナント内でのフラグキー存在確認。
-    /// HIGH-005 対応: tenant_id は &str 型（DB TEXT 型に対応）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（DB TEXT 型に対応）。
     async fn exists_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         // テナント分離のため set_config でセッション変数を設定してから SELECT を実行する
         let mut tx = self.pool.begin().await?;

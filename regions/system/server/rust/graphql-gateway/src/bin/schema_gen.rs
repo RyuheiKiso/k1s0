@@ -9,6 +9,6 @@
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let sdl = k1s0_graphql_gateway_server::adapter::graphql_handler::build_sdl()?;
-    print!("{}", sdl);
+    print!("{sdl}");
     Ok(())
 }

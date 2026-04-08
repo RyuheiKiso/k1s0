@@ -6,7 +6,7 @@ use uuid::Uuid;
 pub struct Rule {
     pub id: Uuid,
     /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子。
-    /// RLS ポリシーの app.current_tenant_id セッション変数と対応する（migration 003 対応）。
+    /// RLS ポリシーの `app.current_tenant_id` セッション変数と対応する（migration 003 対応）。
     pub tenant_id: String,
     pub name: String,
     pub description: String,
@@ -20,6 +20,7 @@ pub struct Rule {
 }
 
 impl Rule {
+    #[must_use] 
     pub fn new(
         tenant_id: String,
         name: String,
@@ -63,6 +64,7 @@ pub struct RuleSet {
 }
 
 impl RuleSet {
+    #[must_use] 
     pub fn new(
         tenant_id: String,
         name: String,
@@ -98,6 +100,7 @@ pub enum EvaluationMode {
 }
 
 impl EvaluationMode {
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             EvaluationMode::FirstMatch => "first_match",
@@ -106,6 +109,7 @@ impl EvaluationMode {
     }
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use] 
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "first_match" => Some(EvaluationMode::FirstMatch),
@@ -128,6 +132,7 @@ pub struct RuleSetVersion {
 }
 
 impl RuleSetVersion {
+    #[must_use] 
     pub fn new(
         rule_set_id: Uuid,
         version: u32,

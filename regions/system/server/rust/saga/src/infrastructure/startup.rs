@@ -23,6 +23,8 @@ use crate::adapter::repository::workflow_in_memory::InMemoryWorkflowRepository;
 use crate::adapter::repository::workflow_postgres::WorkflowPostgresRepository;
 use crate::domain::repository::WorkflowRepository;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -46,7 +48,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -70,7 +72,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(&pool)
             .await
-            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {e}"))?;
         tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else if let Ok(url) = std::env::var("DATABASE_URL") {
@@ -83,7 +85,7 @@ pub async fn run() -> anyhow::Result<()> {
         crate::MIGRATOR
             .run(&pool)
             .await
-            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("saga-db migration failed: {e}"))?;
         tracing::info!("saga-db migrations applied successfully");
         Some(pool)
     } else {
@@ -201,8 +203,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let cache_ttl = auth_cfg
                     .jwks
                     .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                    .map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for saga-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -281,7 +282,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server（server.host は設定ファイルで制御可能）
@@ -342,7 +343,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// StartSaga / CancelSaga / CompensateSaga / RegisterWorkflow は write、それ以外は read。
+/// `StartSaga` / `CancelSaga` / `CompensateSaga` / `RegisterWorkflow` は write、それ以外は read。
 fn saga_grpc_action(method: &str) -> &'static str {
     match method {
         "StartSaga" | "CancelSaga" | "CompensateSaga" | "RegisterWorkflow" => "write",
@@ -386,7 +387,7 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn update_status(
         &self,
         saga_id: uuid::Uuid,
@@ -403,7 +404,7 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_by_id(
         &self,
         saga_id: uuid::Uuid,
@@ -413,7 +414,7 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         Ok(states.iter().find(|s| s.saga_id == saga_id).cloned())
     }
 
-    /// InMemory実装: tenant_id はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
+    /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
     async fn find_step_logs(
         &self,
         saga_id: uuid::Uuid,

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::service::{Service, ServiceLifecycle, ServiceTier};
 use crate::domain::repository::{ServiceRepository, TeamRepository};
 
-/// RegisterServiceError はサービス登録に関するエラーを表す。
+/// `RegisterServiceError` はサービス登録に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum RegisterServiceError {
     #[error("team not found: {0}")]
@@ -19,7 +19,7 @@ pub enum RegisterServiceError {
     Internal(String),
 }
 
-/// RegisterServiceInput は新規サービス登録の入力データ。
+/// `RegisterServiceInput` は新規サービス登録の入力データ。
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 pub struct RegisterServiceInput {
     pub name: String,
@@ -40,7 +40,7 @@ fn default_metadata() -> serde_json::Value {
     serde_json::Value::Object(serde_json::Map::new())
 }
 
-/// RegisterServiceUseCase はサービス登録ユースケース。
+/// `RegisterServiceUseCase` はサービス登録ユースケース。
 pub struct RegisterServiceUseCase {
     service_repo: Arc<dyn ServiceRepository>,
     team_repo: Arc<dyn TeamRepository>,
@@ -57,18 +57,20 @@ impl RegisterServiceUseCase {
         }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         input: RegisterServiceInput,
     ) -> Result<Service, RegisterServiceError> {
-        // Validate name
+        // サービス名のバリデーション
         if input.name.trim().is_empty() {
             return Err(RegisterServiceError::InvalidInput(
                 "service name must not be empty".to_string(),
             ));
         }
 
-        // Validate team exists
+        // チームの存在確認
         match self.team_repo.find_by_id(input.team_id).await {
             Ok(Some(_)) => {}
             Ok(None) => return Err(RegisterServiceError::TeamNotFound(input.team_id)),
@@ -93,7 +95,7 @@ impl RegisterServiceUseCase {
         };
 
         self.service_repo
-            .create(&service)
+            .create(tenant_id, &service)
             .await
             .map_err(|e| RegisterServiceError::Internal(e.to_string()))
     }
@@ -126,7 +128,7 @@ mod tests {
             tags: vec![],
             metadata: serde_json::json!({}),
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(matches!(result, Err(RegisterServiceError::TeamNotFound(_))));
     }
 
@@ -148,14 +150,14 @@ mod tests {
             tags: vec![],
             metadata: serde_json::json!({}),
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(matches!(result, Err(RegisterServiceError::InvalidInput(_))));
     }
 
     #[tokio::test]
     async fn test_register_service_success() {
         let mut mock_svc = MockServiceRepository::new();
-        mock_svc.expect_create().returning(|s| Ok(s.clone()));
+        mock_svc.expect_create().returning(|_, s| Ok(s.clone()));
 
         let team_id = Uuid::new_v4();
         let mut mock_team = MockTeamRepository::new();
@@ -184,7 +186,7 @@ mod tests {
             tags: vec!["test".to_string()],
             metadata: serde_json::json!({}),
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().name, "my-service");
     }

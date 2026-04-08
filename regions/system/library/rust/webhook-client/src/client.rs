@@ -76,7 +76,8 @@ pub struct HttpWebhookClient {
 }
 
 impl HttpWebhookClient {
-    /// デフォルト設定で新しい HttpWebhookClient を生成する。
+    /// デフォルト設定で新しい `HttpWebhookClient` を生成する。
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             config: WebhookConfig::default(),
@@ -89,7 +90,8 @@ impl HttpWebhookClient {
         }
     }
 
-    /// リトライ設定付きの HttpWebhookClient を生成する。
+    /// リトライ設定付きの `HttpWebhookClient` を生成する。
+    #[must_use] 
     pub fn with_config(config: WebhookConfig) -> Self {
         Self {
             config,

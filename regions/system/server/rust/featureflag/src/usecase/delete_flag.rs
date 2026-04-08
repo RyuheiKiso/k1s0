@@ -12,7 +12,7 @@ pub enum DeleteFlagError {
     #[error("flag not found: {0}")]
     NotFound(Uuid),
 
-    /// HIGH-005 対応: delete メソッドは &str 型の tenant_id を受け取る。
+    /// HIGH-005 対応: delete メソッドは &str 型の `tenant_id` を受け取る。
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -38,6 +38,7 @@ impl DeleteFlagUseCase {
         }
     }
 
+    #[must_use] 
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>,
@@ -47,7 +48,7 @@ impl DeleteFlagUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを削除する。
-    /// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は &str 型（migration 006 で DB の TEXT 型に変更済み）。
     pub async fn execute(&self, tenant_id: &str, id: &Uuid) -> Result<(), DeleteFlagError> {
         let flags = self
             .repo

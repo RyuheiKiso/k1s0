@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::config_entry::ConfigEntry;
 use crate::domain::repository::ConfigRepository;
 
-/// GetConfigError は設定値取得に関するエラーを表す。
+/// `GetConfigError` は設定値取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetConfigError {
     #[error("config not found: {0}/{1}")]
@@ -15,7 +15,7 @@ pub enum GetConfigError {
     Internal(String),
 }
 
-/// GetConfigUseCase は設定値取得ユースケース。
+/// `GetConfigUseCase` は設定値取得ユースケース。
 pub struct GetConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
 }
@@ -25,7 +25,7 @@ impl GetConfigUseCase {
         Self { config_repo }
     }
 
-    /// STATIC-CRITICAL-001 監査対応: tenant_id + namespace + key で設定値を取得する。
+    /// STATIC-CRITICAL-001 監査対応: `tenant_id` + namespace + key で設定値を取得する。
     pub async fn execute(
         &self,
         tenant_id: Uuid,

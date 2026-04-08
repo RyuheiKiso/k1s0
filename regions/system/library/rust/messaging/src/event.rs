@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// EventMetadata は全 Kafka イベントに付与する共通メタデータ。
-/// api/proto/k1s0/system/common/v1/event_metadata.proto に対応する。
+/// `EventMetadata` は全 Kafka イベントに付与する共通メタデータ。
+/// `api/proto/k1s0/system/common/v1/event_metadata.proto` に対応する。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventMetadata {
     /// イベント ID（UUID v4）
@@ -24,7 +24,7 @@ pub struct EventMetadata {
 }
 
 impl EventMetadata {
-    /// 新しい EventMetadata を生成する。
+    /// 新しい `EventMetadata` を生成する。
     pub fn new(event_type: impl Into<String>, source: impl Into<String>) -> Self {
         Self {
             event_id: Uuid::new_v4().to_string(),
@@ -48,22 +48,24 @@ impl EventMetadata {
     }
 
     /// timestamp を Unix epoch milliseconds に変換する。
+    #[must_use] 
     pub fn to_unix_millis(&self) -> i64 {
         self.timestamp.timestamp_millis()
     }
 
-    /// Unix epoch milliseconds から DateTime<Utc> へ変換する。
+    /// Unix epoch milliseconds から `DateTime`<Utc> へ変換する。
+    #[must_use] 
     pub fn from_unix_millis(millis: i64) -> Option<DateTime<Utc>> {
         DateTime::from_timestamp_millis(millis)
     }
 }
 
-/// EventEnvelope はトピック・キー・ペイロードをラップするメッセージエンベロープ。
+/// `EventEnvelope` はトピック・キー・ペイロードをラップするメッセージエンベロープ。
 #[derive(Debug, Clone)]
 pub struct EventEnvelope {
     /// 送信先トピック名（例: "k1s0.system.auth.login.v1"）
     pub topic: String,
-    /// パーティションキー（例: user_id）
+    /// パーティションキー（例: `user_id`）
     pub key: String,
     /// JSON シリアライズされたペイロード
     pub payload: Vec<u8>,
@@ -73,7 +75,7 @@ pub struct EventEnvelope {
 }
 
 impl EventEnvelope {
-    /// JSON ペイロードで EventEnvelope を生成する。
+    /// JSON ペイロードで `EventEnvelope` を生成する。
     pub fn json<T: Serialize>(
         topic: impl Into<String>,
         key: impl Into<String>,

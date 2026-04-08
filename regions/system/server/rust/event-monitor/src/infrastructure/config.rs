@@ -15,7 +15,7 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
     #[serde(default)]
     pub kafka: Option<KafkaConfig>,
-    /// DLQ Manager gRPC クライアントの接続設定。startup.rs で GrpcDlqClient 生成に使用する。
+    /// DLQ Manager gRPC クライアントの接続設定。startup.rs で `GrpcDlqClient` 生成に使用する。
     #[serde(default)]
     pub dlq_manager: Option<DlqManagerConfig>,
     #[serde(default)]
@@ -99,7 +99,7 @@ pub struct DatabaseConfig {
     #[serde(default = "default_max_idle_conns")]
     #[allow(dead_code)]
     pub max_idle_conns: u32,
-    /// コネクション最大生存期間。sqlx の max_lifetime として使用予定。
+    /// コネクション最大生存期間。sqlx の `max_lifetime` として使用予定。
     #[serde(default = "default_conn_max_lifetime")]
     #[allow(dead_code)]
     pub conn_max_lifetime: String,
@@ -123,6 +123,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -189,7 +190,7 @@ fn default_consumer_group() -> String {
     "event-monitor.default".to_string()
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()

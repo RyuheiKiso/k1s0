@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// OutboxStatus はアウトボックスメッセージの処理ステータスを表す。
+/// `OutboxStatus` はアウトボックスメッセージの処理ステータスを表す。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OutboxStatus {
@@ -20,6 +20,7 @@ pub enum OutboxStatus {
 
 impl OutboxStatus {
     /// ステータスを文字列に変換する（DB保存用）。
+    #[must_use] 
     pub fn as_str(&self) -> &'static str {
         match self {
             OutboxStatus::Pending => "PENDING",
@@ -32,6 +33,7 @@ impl OutboxStatus {
 
     /// 文字列からステータスを復元する（DB読み込み用）。
     #[allow(clippy::should_implement_trait)]
+    #[must_use] 
     pub fn from_str(s: &str) -> Self {
         match s {
             "PENDING" => OutboxStatus::Pending,
@@ -44,7 +46,7 @@ impl OutboxStatus {
     }
 }
 
-/// OutboxMessage はアウトボックステーブルに格納するメッセージを表す。
+/// `OutboxMessage` はアウトボックステーブルに格納するメッセージを表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutboxMessage {
     /// メッセージの一意識別子
@@ -73,7 +75,7 @@ pub struct OutboxMessage {
 
 impl OutboxMessage {
     /// 新しいアウトボックスメッセージを生成する。
-    /// idempotency_key は UUID v4 から自動生成される。
+    /// `idempotency_key` は UUID v4 から自動生成される。
     pub fn new(
         topic: impl Into<String>,
         partition_key: impl Into<String>,
@@ -144,6 +146,7 @@ impl OutboxMessage {
     }
 
     /// メッセージが処理可能かどうか判定する。
+    #[must_use] 
     pub fn is_processable(&self) -> bool {
         matches!(self.status, OutboxStatus::Pending | OutboxStatus::Failed)
             && self.process_after <= Utc::now()

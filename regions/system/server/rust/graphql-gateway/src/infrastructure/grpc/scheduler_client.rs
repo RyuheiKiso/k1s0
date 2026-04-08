@@ -7,7 +7,15 @@ use tracing::instrument;
 use crate::domain::model::{Job, JobExecution};
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     // buf generate の compile_well_known_types オプションで生成された .rs ファイルは
     // google::protobuf::Struct を super チェーンで参照する（例: super*4::google::protobuf::Struct）。
@@ -40,7 +48,7 @@ pub struct SchedulerGrpcClient {
     client: SchedulerServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
@@ -76,7 +84,7 @@ impl SchedulerGrpcClient {
     }
 
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -103,7 +111,7 @@ impl SchedulerGrpcClient {
                 Ok(Some(Self::job_from_proto(j)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("SchedulerService.GetJob failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("SchedulerService.GetJob failed: {e}")),
         }
     }
 
@@ -127,7 +135,7 @@ impl SchedulerGrpcClient {
             .clone()
             .list_jobs(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.ListJobs failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.ListJobs failed: {e}"))?
             .into_inner();
 
         Ok(resp.jobs.into_iter().map(Self::job_from_proto).collect())
@@ -158,7 +166,7 @@ impl SchedulerGrpcClient {
             .clone()
             .create_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.CreateJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.CreateJob failed: {e}"))?
             .into_inner()
             .job
             .ok_or_else(|| anyhow::anyhow!("empty job in response"))?;
@@ -187,25 +195,25 @@ impl SchedulerGrpcClient {
                 },
             ))
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.GetJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.GetJob failed: {e}"))?
             .into_inner()
             .job
-            .ok_or_else(|| anyhow::anyhow!("job not found: {}", job_id))?;
+            .ok_or_else(|| anyhow::anyhow!("job not found: {job_id}"))?;
 
         let request = tonic::Request::new(proto::k1s0::system::scheduler::v1::UpdateJobRequest {
             job_id: job_id.to_owned(),
-            name: name.map(|s| s.to_owned()).unwrap_or(current.name),
+            name: name.map(std::borrow::ToOwned::to_owned).unwrap_or(current.name),
             description: description
-                .map(|s| s.to_owned())
+                .map(std::borrow::ToOwned::to_owned)
                 .unwrap_or(current.description),
             cron_expression: cron_expression
-                .map(|s| s.to_owned())
+                .map(std::borrow::ToOwned::to_owned)
                 .unwrap_or(current.cron_expression),
-            timezone: timezone.map(|s| s.to_owned()).unwrap_or(current.timezone),
+            timezone: timezone.map(std::borrow::ToOwned::to_owned).unwrap_or(current.timezone),
             target_type: target_type
-                .map(|s| s.to_owned())
+                .map(std::borrow::ToOwned::to_owned)
                 .unwrap_or(current.target_type),
-            target: target.map(|s| s.to_owned()).unwrap_or(current.target),
+            target: target.map(std::borrow::ToOwned::to_owned).unwrap_or(current.target),
             payload: None,
         });
 
@@ -214,7 +222,7 @@ impl SchedulerGrpcClient {
             .clone()
             .update_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.UpdateJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.UpdateJob failed: {e}"))?
             .into_inner()
             .job
             .ok_or_else(|| anyhow::anyhow!("empty job in update response"))?;
@@ -233,7 +241,7 @@ impl SchedulerGrpcClient {
             .clone()
             .delete_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.DeleteJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.DeleteJob failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -250,7 +258,7 @@ impl SchedulerGrpcClient {
             .clone()
             .pause_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.PauseJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.PauseJob failed: {e}"))?
             .into_inner()
             .job
             .ok_or_else(|| anyhow::anyhow!("empty job in pause response"))?;
@@ -269,7 +277,7 @@ impl SchedulerGrpcClient {
             .clone()
             .resume_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.ResumeJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.ResumeJob failed: {e}"))?
             .into_inner()
             .job
             .ok_or_else(|| anyhow::anyhow!("empty job in resume response"))?;
@@ -291,7 +299,7 @@ impl SchedulerGrpcClient {
             .clone()
             .trigger_job(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.TriggerJob failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.TriggerJob failed: {e}"))?
             .into_inner();
 
         Ok((
@@ -322,8 +330,7 @@ impl SchedulerGrpcClient {
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!(
-                "SchedulerService.GetJobExecution failed: {}",
-                e
+                "SchedulerService.GetJobExecution failed: {e}"
             )),
         }
     }
@@ -343,7 +350,7 @@ impl SchedulerGrpcClient {
                     page: page.unwrap_or(1),
                     page_size: page_size.unwrap_or(50),
                 }),
-                status: status.map(|s| s.to_owned()),
+                status: status.map(std::borrow::ToOwned::to_owned),
                 from: None,
                 to: None,
             });
@@ -353,7 +360,7 @@ impl SchedulerGrpcClient {
             .clone()
             .list_executions(request)
             .await
-            .map_err(|e| anyhow::anyhow!("SchedulerService.ListExecutions failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("SchedulerService.ListExecutions failed: {e}"))?
             .into_inner();
 
         Ok(resp
@@ -378,7 +385,7 @@ impl SchedulerGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("scheduler gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("scheduler gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }

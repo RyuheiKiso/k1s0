@@ -123,8 +123,7 @@ impl HttpSchemaRegistryClient {
         let body = response.text().await.unwrap_or_else(|_| status.to_string());
         error!("Schema Registry returned error {}: {}", status, body);
         Err(SchemaRegistryError::Unavailable(format!(
-            "status={}, body={}",
-            status, body
+            "status={status}, body={body}"
         )))
     }
 }
@@ -292,7 +291,7 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
 
         let is_compatible = result
             .get("is_compatible")
-            .and_then(|v| v.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
 
         debug!(
@@ -333,8 +332,7 @@ impl SchemaRegistryClient for HttpSchemaRegistryClient {
             let status = response.status();
             error!("Schema Registry health check returned status {}", status);
             return Err(SchemaRegistryError::Unavailable(format!(
-                "health check failed with status {}",
-                status
+                "health check failed with status {status}"
             )));
         }
 

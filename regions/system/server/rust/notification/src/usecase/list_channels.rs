@@ -18,7 +18,7 @@ impl ListChannelsUseCase {
         Self { repo }
     }
 
-    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取りリポジトリに伝播して RLS を有効化する。
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取りリポジトリに伝播して RLS を有効化する。
     #[allow(dead_code)]
     pub async fn execute(&self, tenant_id: &str) -> Result<Vec<NotificationChannel>, ListChannelsError> {
         self.repo
@@ -27,7 +27,7 @@ impl ListChannelsUseCase {
             .map_err(|e| ListChannelsError::Internal(e.to_string()))
     }
 
-    /// MEDIUM-RUST-001 監査対応: tenant_id を受け取りリポジトリに伝播して RLS を有効化する。
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取りリポジトリに伝播して RLS を有効化する。
     pub async fn execute_paginated(
         &self,
         tenant_id: &str,

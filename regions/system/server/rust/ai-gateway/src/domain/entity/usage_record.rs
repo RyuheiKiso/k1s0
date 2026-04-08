@@ -26,6 +26,7 @@ pub struct UsageRecord {
 
 impl UsageRecord {
     /// 新しい使用量レコードインスタンスを生成する。
+    #[must_use] 
     pub fn new(
         id: String,
         tenant_id: String,

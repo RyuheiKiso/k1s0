@@ -9,20 +9,23 @@ use crate::domain::service::tool_registry::ToolRegistry;
 use k1s0_bb_ai_client::traits::AiClient;
 use k1s0_bb_ai_client::types::{ChatMessage, CompleteRequest};
 
-/// ReActEngine はThought→Action→Observationループを実装するエンジン
+/// `ReActEngine` はThought→Action→Observationループを実装するエンジン
 pub struct ReActEngine {
     /// ツールレジストリ（登録済みツール管理）
     tool_registry: ToolRegistry,
 }
 
 impl ReActEngine {
-    /// 新しいReActEngineを生成する
+    /// `新しいReActEngineを生成する`
+    #[must_use] 
     pub fn new(tool_registry: ToolRegistry) -> Self {
         Self { tool_registry }
     }
 
-    /// エージェント定義と入力に基づいてReActループを実行する
-    /// max_stepsに達するか、最終出力が得られるまでループする
+    /// `エージェント定義と入力に基づいてReActループを実行する`
+    /// `max_stepsに達するか、最終出力が得られるまでループする`
+    // HIGH-001 監査対応: ReActエンジンのロジックは構造上行数が多くなるため許容する
+    #[allow(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         agent: &AgentDefinition,
@@ -50,10 +53,9 @@ impl ReActEngine {
             messages.push(ChatMessage {
                 role: "system".to_string(),
                 content: format!(
-                    "You have access to the following tools:\n{}\n\
+                    "You have access to the following tools:\n{tools_info}\n\
                      To use a tool, respond with JSON: {{\"action\": \"tool_name\", \"input\": {{...}}}}\n\
-                     To give a final answer, respond with JSON: {{\"action\": \"final_answer\", \"output\": \"...\"}}",
-                    tools_info
+                     To give a final answer, respond with JSON: {{\"action\": \"final_answer\", \"output\": \"...\"}}"
                 ),
             });
         }
@@ -79,7 +81,7 @@ impl ReActEngine {
                         index: step_index,
                         step_type: "thinking".to_string(),
                         input: String::new(),
-                        output: format!("Error: {}", e),
+                        output: format!("Error: {e}"),
                         tool_name: None,
                         status: "failed".to_string(),
                     });
@@ -113,13 +115,12 @@ impl ReActEngine {
                     // Action: ツール呼び出し
                     let tool_input = parsed
                         .get("input")
-                        .map(|i| i.to_string())
+                        .map(std::string::ToString::to_string)
                         .unwrap_or_default();
 
                     // Observation: ツール実行結果（実際のツール実行はスタブ）
                     let observation = format!(
-                        "Tool '{}' called with input: {}. (Tool execution not yet implemented)",
-                        action, tool_input
+                        "Tool '{action}' called with input: {tool_input}. (Tool execution not yet implemented)"
                     );
 
                     steps.push(ExecutionStep {
@@ -138,7 +139,7 @@ impl ReActEngine {
                     });
                     messages.push(ChatMessage {
                         role: "user".to_string(),
-                        content: format!("Observation: {}", observation),
+                        content: format!("Observation: {observation}"),
                     });
                     continue;
                 }

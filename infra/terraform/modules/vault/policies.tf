@@ -155,6 +155,105 @@ resource "vault_policy" "graphql_gateway" {
   policy = file("${path.module}/policies/graphql-gateway.hcl")
 }
 
+# ============================================================
+# CRIT-006 監査対応: auth.tf が参照するポリシー名と policies.tf の定義を一致させる
+# auth.tf の token_policies は以下の名前を使用しているが、policies.tf に定義がなかった
+# ============================================================
+
+# AI ゲートウェイサービス専用ポリシー（auth.tf の token_policies = ["ai-gateway"] に対応）
+resource "vault_policy" "ai_gateway" {
+  name   = "ai-gateway"
+  policy = file("${path.module}/policies/ai-gateway.hcl")
+}
+
+# AI エージェントサービス専用ポリシー（auth.tf の token_policies = ["ai-agent"] に対応）
+resource "vault_policy" "ai_agent" {
+  name   = "ai-agent"
+  policy = file("${path.module}/policies/ai-agent.hcl")
+}
+
+# BFF プロキシサービス専用ポリシー（auth.tf の token_policies = ["bff-proxy"] に対応）
+resource "vault_policy" "bff_proxy" {
+  name   = "bff-proxy"
+  policy = file("${path.module}/policies/bff-proxy.hcl")
+}
+
+# 設定サービス専用ポリシー（auth.tf の token_policies = ["config-server"] に対応）
+resource "vault_policy" "config_server" {
+  name   = "config-server"
+  policy = file("${path.module}/policies/config-server.hcl")
+}
+
+# DLQ マネージャーサービス専用ポリシー（auth.tf の token_policies = ["dlq-manager"] に対応）
+resource "vault_policy" "dlq_manager" {
+  name   = "dlq-manager"
+  policy = file("${path.module}/policies/dlq-manager.hcl")
+}
+
+# イベントストアサービス専用ポリシー（auth.tf の token_policies = ["event-store"] に対応）
+resource "vault_policy" "event_store" {
+  name   = "event-store"
+  policy = file("${path.module}/policies/event-store.hcl")
+}
+
+# マスターメンテナンスサービス専用ポリシー（auth.tf の token_policies = ["master-maintenance"] に対応）
+resource "vault_policy" "master_maintenance" {
+  name   = "master-maintenance"
+  policy = file("${path.module}/policies/master-maintenance.hcl")
+}
+
+# ナビゲーションサービス専用ポリシー（auth.tf の token_policies = ["navigation"] に対応）
+resource "vault_policy" "navigation" {
+  name   = "navigation"
+  policy = file("${path.module}/policies/navigation.hcl")
+}
+
+# Saga サーバーサービス専用ポリシー（auth.tf の token_policies = ["saga-server"] に対応）
+resource "vault_policy" "saga_server" {
+  name   = "saga-server"
+  policy = file("${path.module}/policies/saga-server.hcl")
+}
+
+# 検索サービス専用ポリシー（auth.tf の token_policies = ["search"] に対応）
+resource "vault_policy" "search" {
+  name   = "search"
+  policy = file("${path.module}/policies/search.hcl")
+}
+
+# Vault サーバーサービス専用ポリシー（auth.tf の token_policies = ["vault-server"] に対応）
+resource "vault_policy" "vault_server" {
+  name   = "vault-server"
+  policy = file("${path.module}/policies/vault-server.hcl")
+}
+
+# project-master ポリシー（auth.tf の token_policies = ["project-master"] に対応）
+# 内容は business-project-master.hcl と同一（命名の統一のため短縮名でも定義）
+resource "vault_policy" "project_master" {
+  name   = "project-master"
+  policy = file("${path.module}/policies/business-project-master.hcl")
+}
+
+# task ポリシー（auth.tf の token_policies = ["task"] に対応）
+# 内容は service-task.hcl と同一（命名の統一のため短縮名でも定義）
+resource "vault_policy" "task" {
+  name   = "task"
+  policy = file("${path.module}/policies/service-task.hcl")
+}
+
+# board ポリシー（auth.tf の token_policies = ["board"] に対応）
+# 内容は service-board.hcl と同一（命名の統一のため短縮名でも定義）
+resource "vault_policy" "board" {
+  name   = "board"
+  policy = file("${path.module}/policies/service-board.hcl")
+}
+
+# activity ポリシー（auth.tf の token_policies = ["activity"] に対応）
+# 内容は service-activity.hcl と同一（命名の統一のため短縮名でも定義）
+resource "vault_policy" "activity" {
+  name   = "activity"
+  policy = file("${path.module}/policies/service-activity.hcl")
+}
+
 # CI/CD pipeline policy - limited access for AppRole auth
 # セキュリティ: CI/CDパイプラインはデプロイに必要な cicd 配下のシークレットのみアクセス可能
 resource "vault_policy" "cicd" {

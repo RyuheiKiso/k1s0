@@ -8,7 +8,7 @@ use axum::{Json, Router};
 use k1s0_health::CompositeHealthChecker;
 use k1s0_telemetry::metrics::Metrics;
 
-/// merge_standard_routes は標準エンドポイントをRouterにマージする。
+/// `merge_standard_routes` は標準エンドポイントをRouterにマージする。
 pub fn merge_standard_routes(
     router: Router,
     metrics: Option<Arc<Metrics>>,

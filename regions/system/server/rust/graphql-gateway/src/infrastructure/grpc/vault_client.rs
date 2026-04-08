@@ -8,7 +8,15 @@ use tracing::instrument;
 use crate::domain::model::{SecretMetadata, VaultAuditLogEntry};
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -32,13 +40,13 @@ pub struct VaultGrpcClient {
     client: VaultServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl VaultGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -70,8 +78,7 @@ impl VaultGrpcClient {
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
             Err(e) => Err(anyhow::anyhow!(
-                "VaultService.GetSecretMetadata failed: {}",
-                e
+                "VaultService.GetSecretMetadata failed: {e}"
             )),
         }
     }
@@ -89,7 +96,7 @@ impl VaultGrpcClient {
             .clone()
             .list_secrets(request)
             .await
-            .map_err(|e| anyhow::anyhow!("VaultService.ListSecrets failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("VaultService.ListSecrets failed: {e}"))?
             .into_inner();
 
         Ok(resp.keys)
@@ -116,7 +123,7 @@ impl VaultGrpcClient {
             .clone()
             .list_audit_logs(request)
             .await
-            .map_err(|e| anyhow::anyhow!("VaultService.ListAuditLogs failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("VaultService.ListAuditLogs failed: {e}"))?
             .into_inner();
 
         let entries = resp
@@ -153,7 +160,7 @@ impl VaultGrpcClient {
             .clone()
             .set_secret(request)
             .await
-            .map_err(|e| anyhow::anyhow!("VaultService.SetSecret failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("VaultService.SetSecret failed: {e}"))?
             .into_inner();
 
         Ok((
@@ -179,7 +186,7 @@ impl VaultGrpcClient {
             .clone()
             .rotate_secret(request)
             .await
-            .map_err(|e| anyhow::anyhow!("VaultService.RotateSecret failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("VaultService.RotateSecret failed: {e}"))?
             .into_inner();
 
         Ok((resp.path, resp.new_version, resp.rotated))
@@ -197,7 +204,7 @@ impl VaultGrpcClient {
             .clone()
             .delete_secret(request)
             .await
-            .map_err(|e| anyhow::anyhow!("VaultService.DeleteSecret failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("VaultService.DeleteSecret failed: {e}"))?
             .into_inner();
 
         Ok(resp.success)
@@ -218,7 +225,7 @@ impl VaultGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("vault gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("vault gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 }

@@ -437,7 +437,8 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5                # kubernetes設計.md の staging 設定と同じ値を採用
   targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
+  # MED-018 監査対応: メモリ閾値を 80%→60% に修正（高メモリ使用時の遅延スケールを防止）
+  targetMemoryUtilizationPercentage: 60
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 60    # スパイク時の過剰スケールアップを抑制

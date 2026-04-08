@@ -1,6 +1,6 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の QuotaService トレイトを実装する。
+//! proto 生成コード (`src/proto/`) の `QuotaService` トレイトを実装する。
 //! 各メソッドで proto 型 <-> ドメイン型の変換を行い、QuotaGrpcService に委譲する。
 
 use std::sync::Arc;
@@ -59,7 +59,7 @@ fn policy_to_proto(p: &QuotaPolicy) -> ProtoQuotaPolicy {
         limit: p.limit,
         period: p.period.as_str().to_string(),
         enabled: p.enabled,
-        alert_threshold_percent: p.alert_threshold_percent.map(|v| v as u32),
+        alert_threshold_percent: p.alert_threshold_percent.map(u32::from),
         created_at: Some(to_proto_timestamp(p.created_at)),
         updated_at: Some(to_proto_timestamp(p.updated_at)),
     }
@@ -93,12 +93,13 @@ fn to_proto_timestamp(
 
 // --- QuotaService tonic ラッパー ---
 
-/// QuotaServiceTonic は tonic の QuotaService として QuotaGrpcService をラップする。
+/// `QuotaServiceTonic` は tonic の `QuotaService` として `QuotaGrpcService` をラップする。
 pub struct QuotaServiceTonic {
     inner: Arc<QuotaGrpcService>,
 }
 
 impl QuotaServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<QuotaGrpcService>) -> Self {
         Self { inner }
     }

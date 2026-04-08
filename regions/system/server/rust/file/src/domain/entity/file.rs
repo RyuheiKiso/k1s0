@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::error::FileError;
 
-/// テナント分離のための tenant_id を含むファイルメタデータエンティティ
-/// DB カラム: id, tenant_id, filename, size_bytes, content_type, uploaded_by, tags, storage_path, checksum, status, created_at, updated_at
-/// migration 003 で tenant_id カラムを追加し、RLS によるテナント分離を実現する
+/// テナント分離のための `tenant_id` を含むファイルメタデータエンティティ
+/// DB カラム: id, `tenant_id`, filename, `size_bytes`, `content_type`, `uploaded_by`, tags, `storage_path`, checksum, status, `created_at`, `updated_at`
+/// migration 003 で `tenant_id` カラムを追加し、RLS によるテナント分離を実現する
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMetadata {
     pub id: String,
@@ -22,10 +22,10 @@ pub struct FileMetadata {
     #[serde(alias = "owner_id")]
     pub uploaded_by: String,
     pub tags: HashMap<String, String>,
-    /// DB カラム名: storage_path（旧 storage_key から改名）
+    /// DB カラム名: `storage_path（旧` `storage_key` から改名）
     #[serde(alias = "storage_key")]
     pub storage_path: String,
-    /// DB カラム名: checksum（旧 checksum_sha256 から改名）
+    /// DB カラム名: checksum（旧 `checksum_sha256` から改名）
     #[serde(alias = "checksum_sha256")]
     pub checksum: Option<String>,
     pub status: String,
@@ -34,8 +34,9 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
-    /// テナント分離対応: tenant_id を引数に追加。RLS set_config と合わせてテナント境界を強制する。
+    /// テナント分離対応: `tenant_id` を引数に追加。RLS `set_config` と合わせてテナント境界を強制する。
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn new(
         id: String,
         tenant_id: String,
@@ -81,8 +82,8 @@ impl FileMetadata {
     }
 
     /// ストレージキーを生成する
-    /// MED-03: tenant_id と filename の両方に対してパストラバーサル攻撃を防ぐバリデーションを実施する。
-    /// tenant_id に '/' や '..' が含まれていると {tenant_id}/{filename} のテナント境界が破れる。
+    /// MED-03: `tenant_id` と filename の両方に対してパストラバーサル攻撃を防ぐバリデーションを実施する。
+    /// `tenant_id` に '/' や '..' が含まれていると {`tenant_id}/{filename`} のテナント境界が破れる。
     pub fn generate_storage_path(tenant_id: &str, filename: &str) -> Result<String, FileError> {
         // tenant_id がスラッシュ・バックスラッシュ・ドット連続を含む場合は拒否する
         // （例: "tenant-a/../tenant-b" でテナント境界を突破するパス操作を防止）
@@ -110,7 +111,7 @@ impl FileMetadata {
                 "ファイル名にパストラバーサル文字列が含まれています".to_string(),
             ));
         }
-        Ok(format!("{}/{}", tenant_id, filename))
+        Ok(format!("{tenant_id}/{filename}"))
     }
 }
 

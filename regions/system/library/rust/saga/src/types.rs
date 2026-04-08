@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// SagaStatus はSagaの状態を表す。
+/// `SagaStatus` はSagaの状態を表す。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SagaStatus {
@@ -27,7 +27,7 @@ impl std::fmt::Display for SagaStatus {
     }
 }
 
-/// SagaState はSagaの状態DTOを表す。
+/// `SagaState` `はSagaの状態DTOを表す`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SagaState {
     pub saga_id: String,
@@ -44,7 +44,7 @@ pub struct SagaState {
     pub updated_at: DateTime<Utc>,
 }
 
-/// SagaStepLog はSagaステップのログDTOを表す。
+/// `SagaStepLog` `はSagaステップのログDTOを表す`。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SagaStepLog {
     pub id: Uuid,
@@ -60,7 +60,7 @@ pub struct SagaStepLog {
     pub completed_at: Option<DateTime<Utc>>,
 }
 
-/// StartSagaRequest はSaga開始リクエスト。
+/// `StartSagaRequest` はSaga開始リクエスト。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartSagaRequest {
     pub workflow_name: String,
@@ -70,7 +70,7 @@ pub struct StartSagaRequest {
     pub initiated_by: Option<String>,
 }
 
-/// StartSagaResponse はSaga開始レスポンス。
+/// `StartSagaResponse` はSaga開始レスポンス。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartSagaResponse {
     pub saga_id: String,

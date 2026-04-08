@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-/// DlqError は DLQ クライアントのエラー型。
+/// `DlqError` は DLQ クライアントのエラー型。
 #[derive(Debug, Error)]
 pub enum DlqError {
     #[error("HTTP request failed: {0}")]

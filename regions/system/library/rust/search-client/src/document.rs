@@ -52,6 +52,7 @@ pub struct IndexMapping {
 }
 
 impl IndexMapping {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             fields: HashMap::new(),

@@ -5,7 +5,7 @@ use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::{AccessLogRepository, SecretStore};
 use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
-/// MED-011 対応: tenant_id をアクセスログに記録するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに記録するために追加。
 /// Vault シークレットストア自体はキーパス規約（{service}/{tenant}/key）でテナント分離するが
 /// アクセスログのテナント属性は JWT Claims から取得する必要がある（ADR-0056 フェーズ3）。
 #[derive(Debug, Clone)]
@@ -78,8 +78,7 @@ impl SetSecretUseCase {
                     .map(|sv| sv.created_at)
                     .ok_or_else(|| {
                         SetSecretError::Internal(format!(
-                            "failed to resolve created_at for version {}",
-                            version
+                            "failed to resolve created_at for version {version}"
                         ))
                     })?;
 

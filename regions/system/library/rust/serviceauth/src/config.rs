@@ -2,12 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
-/// refresh_before_secs のデフォルト値（120 秒）。
+/// `refresh_before_secs` のデフォルト値（120 秒）。
 fn default_refresh_before_secs() -> u64 {
     120
 }
 
-/// timeout_secs のデフォルト値（10 秒）。
+/// `timeout_secs` のデフォルト値（10 秒）。
 fn default_timeout_secs() -> u64 {
     10
 }
@@ -17,7 +17,7 @@ fn default_audience() -> String {
     "k1s0-api".to_string()
 }
 
-/// ServiceAuthConfig はサービス間認証クライアントの設定を表す。
+/// `ServiceAuthConfig` はサービス間認証クライアントの設定を表す。
 ///
 /// Keycloak の Client Credentials フローで使用する設定値を保持する。
 /// YAML または環境変数から serde でデシリアライズ可能。
@@ -27,10 +27,10 @@ pub struct ServiceAuthConfig {
     /// 例: `https://auth.k1s0.internal.example.com/realms/k1s0/protocol/openid-connect/token`
     pub token_endpoint: String,
 
-    /// OAuth2 クライアント ID（サービス名）。
+    /// `OAuth2` クライアント ID（サービス名）。
     pub client_id: String,
 
-    /// OAuth2 クライアントシークレット（Vault から取得）。
+    /// `OAuth2` クライアントシークレット（Vault から取得）。
     pub client_secret: String,
 
     /// トークン検証に使用する JWKS URI。
@@ -51,9 +51,10 @@ pub struct ServiceAuthConfig {
 }
 
 impl ServiceAuthConfig {
-    /// 最小限の設定で ServiceAuthConfig を生成する。
+    /// 最小限の設定で `ServiceAuthConfig` を生成する。
     ///
     /// `refresh_before_secs` と `timeout_secs` はデフォルト値が使用される。
+    #[must_use] 
     pub fn new(token_endpoint: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
             token_endpoint: token_endpoint.to_string(),
@@ -67,24 +68,28 @@ impl ServiceAuthConfig {
     }
 
     /// JWKS URI を設定する。
+    #[must_use] 
     pub fn with_jwks_uri(mut self, jwks_uri: &str) -> Self {
         self.jwks_uri = Some(jwks_uri.to_string());
         self
     }
 
     /// リフレッシュ秒数を設定する。
+    #[must_use] 
     pub fn with_refresh_before_secs(mut self, secs: u64) -> Self {
         self.refresh_before_secs = secs;
         self
     }
 
     /// タイムアウト秒数を設定する。
+    #[must_use] 
     pub fn with_timeout_secs(mut self, secs: u64) -> Self {
         self.timeout_secs = secs;
         self
     }
 
     /// オーディエンスを設定する。
+    #[must_use] 
     pub fn with_audience(mut self, audience: &str) -> Self {
         self.audience = audience.to_string();
         self

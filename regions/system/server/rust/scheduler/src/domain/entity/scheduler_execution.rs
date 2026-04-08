@@ -13,6 +13,7 @@ pub struct SchedulerExecution {
 }
 
 impl SchedulerExecution {
+    #[must_use] 
     pub fn new(job_id: String) -> Self {
         Self {
             id: format!("exec_{}", uuid::Uuid::new_v4().simple()),

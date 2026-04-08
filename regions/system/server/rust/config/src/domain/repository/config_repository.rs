@@ -4,13 +4,13 @@ use crate::domain::error::ConfigRepositoryError;
 use async_trait::async_trait;
 use uuid::Uuid;
 
-/// ConfigRepository は設定値の永続化のためのリポジトリトレイト。
-/// 実装は PostgreSQL を通じて設定値を管理する。
-/// STATIC-CRITICAL-001 監査対応: 全クエリに tenant_id フィルタを追加してテナント分離を強制する。
+/// `ConfigRepository` は設定値の永続化のためのリポジトリトレイト。
+/// 実装は `PostgreSQL` を通じて設定値を管理する。
+/// STATIC-CRITICAL-001 監査対応: 全クエリに `tenant_id` フィルタを追加してテナント分離を強制する。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ConfigRepository: Send + Sync {
-    /// tenant_id + namespace + key で設定値を取得する。
+    /// `tenant_id` + namespace + key で設定値を取得する。
     async fn find_by_namespace_and_key(
         &self,
         tenant_id: Uuid,
@@ -29,7 +29,7 @@ pub trait ConfigRepository: Send + Sync {
     ) -> Result<ConfigListResult, ConfigRepositoryError>;
 
     /// 設定値を更新する（楽観的排他制御付き）。
-    /// expected_version と現在のバージョンが一致しない場合はエラーを返す。
+    /// `expected_version` と現在のバージョンが一致しない場合はエラーを返す。
     async fn update(
         &self,
         tenant_id: Uuid,

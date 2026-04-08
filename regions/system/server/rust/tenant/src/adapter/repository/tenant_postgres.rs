@@ -13,6 +13,7 @@ pub struct TenantPostgresRepository {
 }
 
 impl TenantPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -44,7 +45,7 @@ fn status_from_str(s: &str) -> TenantStatus {
 
 fn plan_from_str(s: &str) -> anyhow::Result<Plan> {
     s.parse::<Plan>()
-        .map_err(|e| anyhow::anyhow!("invalid tenant plan in database: {}", e))
+        .map_err(|e| anyhow::anyhow!("invalid tenant plan in database: {e}"))
 }
 
 impl TryFrom<TenantRow> for Tenant {
@@ -67,7 +68,7 @@ impl TryFrom<TenantRow> for Tenant {
     }
 }
 
-/// CRITICAL-RUST-001 監査対応: TenantRepository の PostgreSQL 実装。
+/// CRITICAL-RUST-001 監査対応: `TenantRepository` の `PostgreSQL` 実装。
 /// migration 008 で追加した RLS ポリシーに対応する。
 #[async_trait]
 impl TenantRepository for TenantPostgresRepository {
@@ -106,8 +107,8 @@ impl TenantRepository for TenantPostgresRepository {
     async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
         // CRITICAL-RUST-001 監査対応: FORCE RLS 下で全テナント一覧が必要な管理 API のため
         // migration 010 で作成した SECURITY DEFINER 関数を使用して RLS をバイパスする。
-        let offset = ((page.max(1) - 1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from((page.max(1) - 1) * page_size);
+        let limit = i64::from(page_size);
 
         let rows: Vec<TenantRow> = sqlx::query_as(
             "SELECT id, name, display_name, status, plan, owner_id, settings, keycloak_realm, db_schema, created_at, updated_at \

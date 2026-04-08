@@ -22,7 +22,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // MEDIUM-RUST-002 監査対応: navigation 設定ファイルのロード可否を確認する。
     // DB を持たないサービスのため、YAML 設定ファイルの可読性をレディネスチェックとして使用する。
     match state.get_navigation_uc.check_config_loadable() {
-        Ok(_) => Json(serde_json::json!({
+        Ok(()) => Json(serde_json::json!({
             "status": "healthy",
             "checks": {
                 "navigation_config": "ok"

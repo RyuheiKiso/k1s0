@@ -71,9 +71,7 @@ fn domain_to_proto(msg: crate::domain::entity::DlqMessage) -> ProtoDlqMessage {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 // --- DlqServiceTonic ラッパー ---
@@ -83,6 +81,7 @@ pub struct DlqServiceTonic {
 }
 
 impl DlqServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<DlqGrpcService>) -> Self {
         Self { inner }
     }
@@ -114,7 +113,7 @@ impl DlqService for DlqServiceTonic {
             .list_messages(&inner.topic, page, page_size, &tenant_id)
             .await
             .map_err(Into::<Status>::into)?;
-        let has_next = (page as i64 * page_size as i64) < total;
+        let has_next = (i64::from(page) * i64::from(page_size)) < total;
 
         Ok(Response::new(ProtoListMessagesResponse {
             messages: messages.into_iter().map(domain_to_proto).collect(),

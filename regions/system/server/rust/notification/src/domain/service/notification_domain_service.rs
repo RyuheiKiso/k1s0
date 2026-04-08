@@ -1,6 +1,7 @@
 pub struct NotificationDomainService;
 
 impl NotificationDomainService {
+    #[must_use] 
     pub fn is_supported_channel_type(channel_type: &str) -> bool {
         matches!(channel_type, "email" | "slack" | "webhook" | "sms" | "push")
     }
@@ -10,8 +11,7 @@ impl NotificationDomainService {
             Ok(())
         } else {
             Err(format!(
-                "invalid channel_type: {} (allowed: email, slack, webhook, sms, push)",
-                channel_type
+                "invalid channel_type: {channel_type} (allowed: email, slack, webhook, sms, push)"
             ))
         }
     }
@@ -20,9 +20,10 @@ impl NotificationDomainService {
         let mut handlebars = handlebars::Handlebars::new();
         handlebars
             .register_template_string("template", template)
-            .map_err(|e| format!("invalid template syntax: {}", e))
+            .map_err(|e| format!("invalid template syntax: {e}"))
     }
 
+    #[must_use] 
     pub fn is_retryable_status(status: &str) -> bool {
         status != "sent"
     }
@@ -39,7 +40,7 @@ impl NotificationDomainService {
         match parsed.scheme() {
             "http" | "https" => {}
             scheme => {
-                return Err(format!("許可されていないスキームです: {}", scheme));
+                return Err(format!("許可されていないスキームです: {scheme}"));
             }
         }
 
@@ -74,10 +75,10 @@ impl NotificationDomainService {
 
         // HIGH-03 DNS リバインド攻撃対策: ホスト名を DNS 解決し、解決後の全 IP アドレスを検証する
         // DNS 解決にはポート番号が必要なため :80 を付与してルックアップを行う
-        let lookup_target = format!("{}:80", host);
+        let lookup_target = format!("{host}:80");
         let addrs = tokio::net::lookup_host(lookup_target)
             .await
-            .map_err(|e| format!("DNS解決に失敗しました: {}", e))?;
+            .map_err(|e| format!("DNS解決に失敗しました: {e}"))?;
 
         for addr in addrs {
             let ip = addr.ip();

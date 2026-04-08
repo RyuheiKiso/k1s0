@@ -7,9 +7,9 @@ use crate::domain::service::FeatureFlagDomainService;
 use crate::infrastructure::kafka_producer::FlagEventPublisher;
 use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
-/// CreateFlagInput はフィーチャーフラグ作成の入力データ。
-/// STATIC-CRITICAL-001 監査対応: tenant_id でテナントスコープを指定する。
-/// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+/// `CreateFlagInput` はフィーチャーフラグ作成の入力データ。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` でテナントスコープを指定する。
+/// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
 #[derive(Debug, Clone)]
 pub struct CreateFlagInput {
     pub tenant_id: String,
@@ -49,6 +49,7 @@ impl CreateFlagUseCase {
         }
     }
 
+    #[must_use] 
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>,

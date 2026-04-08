@@ -24,7 +24,7 @@ pub enum QuotaError {
     Internal(String),
 }
 
-/// QuotaError から ServiceError への変換実装
+/// `QuotaError` から `ServiceError` への変換実装
 impl From<QuotaError> for ServiceError {
     fn from(err: QuotaError) -> Self {
         match err {

@@ -21,7 +21,7 @@ impl GetQuotaPolicyUseCase {
         Self { repo }
     }
 
-    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り find_by_id に渡して RLS を有効にする。
+    /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り `find_by_id` に渡して RLS を有効にする。
     pub async fn execute(
         &self,
         id: &str,

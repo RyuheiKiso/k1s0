@@ -19,7 +19,7 @@ pub struct Dependency {
     pub description: Option<String>,
 }
 
-/// DependencyType は依存関係の種類を表す。
+/// `DependencyType` は依存関係の種類を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum DependencyType {
@@ -48,8 +48,7 @@ impl std::str::FromStr for DependencyType {
             "build" => Ok(DependencyType::Build),
             "optional" => Ok(DependencyType::Optional),
             _ => Err(ParseError::InvalidValue(format!(
-                "invalid dependency type: {}",
-                s
+                "invalid dependency type: {s}"
             ))),
         }
     }

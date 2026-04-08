@@ -14,7 +14,7 @@ pub async fn healthz() -> impl IntoResponse {
 /// in-memory バックエンド使用時は degraded ステータスを返して
 /// 永続化バックエンド未構成であることを運用チームに明示する。
 /// MED-001 対応: postgres バックエンドの場合は DB 接続を実際に確認し、
-///              エラー詳細を tracing::error! でログ出力する。
+///              エラー詳細を `tracing::error`! でログ出力する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // ADR-0068 標準: healthy / degraded / unhealthy の3値を使用する
     // MED-001 対応: バックエンド種別に応じて実際の接続確認を実施する

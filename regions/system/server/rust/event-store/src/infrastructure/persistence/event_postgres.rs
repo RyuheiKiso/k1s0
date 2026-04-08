@@ -4,20 +4,21 @@ use sqlx::PgPool;
 use crate::domain::entity::event::{EventMetadata, StoredEvent};
 use crate::domain::repository::EventRepository;
 
-/// EventPostgresRepository は PostgreSQL 実装のイベントリポジトリ。
-/// テナント分離のため、全クエリの前に set_config でテナント ID を設定し RLS を有効化する（ADR-0106）。
+/// `EventPostgresRepository` は `PostgreSQL` 実装のイベントリポジトリ。
+/// テナント分離のため、全クエリの前に `set_config` でテナント ID を設定し RLS を有効化する（ADR-0106）。
 pub struct EventPostgresRepository {
     pool: PgPool,
 }
 
 impl EventPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 
     /// トランザクション内でイベントを一括INSERTする内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、全件INSERTが成功した場合のみコミットは呼び出し元が行う。
-    /// tenant_id を INSERT カラムに含め、RLS ポリシーに適合させる。
+    /// `tenant_id` を INSERT カラムに含め、RLS ポリシーに適合させる。
     pub async fn append_in_tx<'a>(
         tenant_id: &str,
         stream_id: &str,
@@ -43,12 +44,12 @@ impl EventPostgresRepository {
             // トランザクション内でINSERTを実行し、採番されたシーケンスを含む行を返す
             // tenant_id カラムを明示指定してテナント分離を保証する
             let row = sqlx::query_as::<_, StoredEventRow>(
-                r#"
+                r"
                 INSERT INTO eventstore.events
                     (stream_id, tenant_id, event_type, version, payload, metadata, occurred_at, stored_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                 RETURNING stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
-                "#,
+                ",
             )
             .bind(stream_id)
             .bind(tenant_id)
@@ -67,8 +68,8 @@ impl EventPostgresRepository {
     }
 }
 
-/// PostgreSQL の events テーブル行をマッピングする内部構造体。
-/// tenant_id カラムを含む（migration 006 で追加）。
+/// `PostgreSQL` の events テーブル行をマッピングする内部構造体。
+/// `tenant_id` カラムを含む（migration 006 で追加）。
 #[derive(sqlx::FromRow)]
 struct StoredEventRow {
     stream_id: String,
@@ -115,7 +116,7 @@ impl From<StoredEventRow> for StoredEvent {
 
 #[async_trait]
 impl EventRepository for EventPostgresRepository {
-    /// テナント分離のため、トランザクション開始後に set_config を呼び出してから INSERT する。
+    /// テナント分離のため、トランザクション開始後に `set_config` を呼び出してから INSERT する。
     async fn append(
         &self,
         tenant_id: &str,
@@ -134,7 +135,7 @@ impl EventRepository for EventPostgresRepository {
         Ok(result)
     }
 
-    /// テナント分離のため、クエリ実行前に set_config でテナント ID を設定する。
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
     async fn find_by_stream(
         &self,
         tenant_id: &str,
@@ -147,7 +148,7 @@ impl EventRepository for EventPostgresRepository {
     ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as i64;
+        let offset = i64::from((page - 1) * page_size);
 
         // テナントIDをセッション変数に設定して RLS を有効化する
         let mut tx = self.pool.begin().await?;
@@ -160,8 +161,8 @@ impl EventRepository for EventPostgresRepository {
         let total: i64 = if let Some(ref et) = event_type {
             if let Some(tv) = to_version {
                 sqlx::query_scalar(
-                    r#"SELECT COUNT(*) FROM eventstore.events
-                       WHERE stream_id = $1 AND version >= $2 AND version <= $3 AND event_type = $4"#,
+                    r"SELECT COUNT(*) FROM eventstore.events
+                       WHERE stream_id = $1 AND version >= $2 AND version <= $3 AND event_type = $4",
                 )
                 .bind(stream_id)
                 .bind(from_version)
@@ -171,8 +172,8 @@ impl EventRepository for EventPostgresRepository {
                 .await?
             } else {
                 sqlx::query_scalar(
-                    r#"SELECT COUNT(*) FROM eventstore.events
-                       WHERE stream_id = $1 AND version >= $2 AND event_type = $3"#,
+                    r"SELECT COUNT(*) FROM eventstore.events
+                       WHERE stream_id = $1 AND version >= $2 AND event_type = $3",
                 )
                 .bind(stream_id)
                 .bind(from_version)
@@ -182,8 +183,8 @@ impl EventRepository for EventPostgresRepository {
             }
         } else if let Some(tv) = to_version {
             sqlx::query_scalar(
-                r#"SELECT COUNT(*) FROM eventstore.events
-                   WHERE stream_id = $1 AND version >= $2 AND version <= $3"#,
+                r"SELECT COUNT(*) FROM eventstore.events
+                   WHERE stream_id = $1 AND version >= $2 AND version <= $3",
             )
             .bind(stream_id)
             .bind(from_version)
@@ -192,8 +193,8 @@ impl EventRepository for EventPostgresRepository {
             .await?
         } else {
             sqlx::query_scalar(
-                r#"SELECT COUNT(*) FROM eventstore.events
-                   WHERE stream_id = $1 AND version >= $2"#,
+                r"SELECT COUNT(*) FROM eventstore.events
+                   WHERE stream_id = $1 AND version >= $2",
             )
             .bind(stream_id)
             .bind(from_version)
@@ -205,62 +206,62 @@ impl EventRepository for EventPostgresRepository {
         let rows = if let Some(ref et) = event_type {
             if let Some(tv) = to_version {
                 sqlx::query_as::<_, StoredEventRow>(
-                    r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                    r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                        FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND version <= $3 AND event_type = $4
                        ORDER BY sequence ASC
-                       LIMIT $5 OFFSET $6"#,
+                       LIMIT $5 OFFSET $6",
                 )
                 .bind(stream_id)
                 .bind(from_version)
                 .bind(tv)
                 .bind(et)
-                .bind(page_size as i64)
+                .bind(i64::from(page_size))
                 .bind(offset)
                 .fetch_all(&mut *tx)
                 .await?
             } else {
                 sqlx::query_as::<_, StoredEventRow>(
-                    r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                    r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                        FROM eventstore.events
                        WHERE stream_id = $1 AND version >= $2 AND event_type = $3
                        ORDER BY sequence ASC
-                       LIMIT $4 OFFSET $5"#,
+                       LIMIT $4 OFFSET $5",
                 )
                 .bind(stream_id)
                 .bind(from_version)
                 .bind(et)
-                .bind(page_size as i64)
+                .bind(i64::from(page_size))
                 .bind(offset)
                 .fetch_all(&mut *tx)
                 .await?
             }
         } else if let Some(tv) = to_version {
             sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                    FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2 AND version <= $3
                    ORDER BY sequence ASC
-                   LIMIT $4 OFFSET $5"#,
+                   LIMIT $4 OFFSET $5",
             )
             .bind(stream_id)
             .bind(from_version)
             .bind(tv)
-            .bind(page_size as i64)
+            .bind(i64::from(page_size))
             .bind(offset)
             .fetch_all(&mut *tx)
             .await?
         } else {
             sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                    FROM eventstore.events
                    WHERE stream_id = $1 AND version >= $2
                    ORDER BY sequence ASC
-                   LIMIT $3 OFFSET $4"#,
+                   LIMIT $3 OFFSET $4",
             )
             .bind(stream_id)
             .bind(from_version)
-            .bind(page_size as i64)
+            .bind(i64::from(page_size))
             .bind(offset)
             .fetch_all(&mut *tx)
             .await?
@@ -272,7 +273,7 @@ impl EventRepository for EventPostgresRepository {
         Ok((events, total as u64))
     }
 
-    /// テナント分離のため、クエリ実行前に set_config でテナント ID を設定する。
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
     /// RLS が有効なため、設定したテナント ID のイベントのみ返される（全テナント漏洩を防止）。
     async fn find_all(
         &self,
@@ -283,7 +284,7 @@ impl EventRepository for EventPostgresRepository {
     ) -> anyhow::Result<(Vec<StoredEvent>, u64)> {
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as i64;
+        let offset = i64::from((page - 1) * page_size);
 
         // テナントIDをセッション変数に設定して RLS を有効化する
         let mut tx = self.pool.begin().await?;
@@ -300,14 +301,14 @@ impl EventRepository for EventPostgresRepository {
                     .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                    FROM eventstore.events
                    WHERE event_type = $1
                    ORDER BY sequence DESC
-                   LIMIT $2 OFFSET $3"#,
+                   LIMIT $2 OFFSET $3",
             )
             .bind(et)
-            .bind(page_size as i64)
+            .bind(i64::from(page_size))
             .bind(offset)
             .fetch_all(&mut *tx)
             .await?;
@@ -319,12 +320,12 @@ impl EventRepository for EventPostgresRepository {
                 .await?;
 
             let rows = sqlx::query_as::<_, StoredEventRow>(
-                r#"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
+                r"SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
                    FROM eventstore.events
                    ORDER BY sequence DESC
-                   LIMIT $1 OFFSET $2"#,
+                   LIMIT $1 OFFSET $2",
             )
-            .bind(page_size as i64)
+            .bind(i64::from(page_size))
             .bind(offset)
             .fetch_all(&mut *tx)
             .await?;
@@ -338,7 +339,7 @@ impl EventRepository for EventPostgresRepository {
         Ok((events, total as u64))
     }
 
-    /// テナント分離のため、クエリ実行前に set_config でテナント ID を設定する。
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
     async fn find_by_sequence(
         &self,
         tenant_id: &str,
@@ -353,11 +354,11 @@ impl EventRepository for EventPostgresRepository {
             .await?;
 
         let row = sqlx::query_as::<_, StoredEventRow>(
-            r#"
+            r"
             SELECT stream_id, tenant_id, sequence, event_type, version, payload, metadata, occurred_at, stored_at
             FROM eventstore.events
             WHERE stream_id = $1 AND sequence = $2
-            "#,
+            ",
         )
         .bind(stream_id)
         .bind(sequence as i64)
@@ -369,7 +370,7 @@ impl EventRepository for EventPostgresRepository {
         Ok(row.map(Into::into))
     }
 
-    /// テナント分離のため、クエリ実行前に set_config でテナント ID を設定する。
+    /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
     async fn delete_by_stream(&self, tenant_id: &str, stream_id: &str) -> anyhow::Result<u64> {
         // テナントIDをセッション変数に設定して RLS を有効化する
         let mut tx = self.pool.begin().await?;

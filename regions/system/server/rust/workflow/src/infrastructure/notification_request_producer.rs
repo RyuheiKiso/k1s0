@@ -83,7 +83,7 @@ impl NotificationRequestPublisher for KafkaNotificationRequestPublisher {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish notification requested event: {}", err)
+                anyhow::anyhow!("failed to publish notification requested event: {err}")
             })?;
 
         Ok(())

@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// UpsertConfigSchemaError は設定スキーマ作成・更新に関するエラーを表す。
+/// `UpsertConfigSchemaError` は設定スキーマ作成・更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpsertConfigSchemaError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// UpsertConfigSchemaInput は設定スキーマ作成・更新の入力を表す。
+/// `UpsertConfigSchemaInput` は設定スキーマ作成・更新の入力を表す。
 #[derive(Debug, Clone)]
 pub struct UpsertConfigSchemaInput {
     // CRITICAL-RUST-001 監査対応: テナント分離のために追加
@@ -21,7 +21,7 @@ pub struct UpsertConfigSchemaInput {
     pub updated_by: String,
 }
 
-/// UpsertConfigSchemaUseCase は設定スキーマ作成・更新ユースケース。
+/// `UpsertConfigSchemaUseCase` は設定スキーマ作成・更新ユースケース。
 pub struct UpsertConfigSchemaUseCase {
     schema_repo: Arc<dyn ConfigSchemaRepository>,
 }

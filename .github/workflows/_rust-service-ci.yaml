@@ -61,9 +61,13 @@ jobs:
       - name: Clippy (workspace)
         if: ${{ !inputs.standalone }}
         run: cargo clippy --manifest-path ${{ inputs.workspace-path }}/Cargo.toml -p ${{ inputs.package-name }} --all-targets -- -D warnings
-      # HIGH-001 監査対応: unwrap_used/expect_used の件数を報告する（段階的排除の進捗確認）
+      # HIGH-001 / LOW-003 監査対応: unwrap_used/expect_used の件数を報告する（段階的排除の進捗確認）
       # continue-on-error: true で CI をブロックしない（現在は情報収集フェーズ）
-      # 四半期ごとに件数を確認し、0 件になったら -D clippy::unwrap_used に昇格する
+      # 削減ロードマップ（全ワークスペース合算）:
+      #   2026-Q2 目標: ≤ 150 件
+      #   2026-Q3 目標: ≤  75 件
+      #   2026-Q4 目標: ≤  25 件
+      #   2027-Q1 目標:    0 件（達成後 -D clippy::unwrap_used に昇格し CI を強制化）
       - name: Clippy unwrap_used 件数確認 (standalone)
         if: inputs.standalone
         continue-on-error: true
@@ -72,7 +76,7 @@ jobs:
             -- -W clippy::unwrap_used -W clippy::expect_used 2>&1 \
             | grep -c "warning\[clippy::unwrap_used\]\|warning\[clippy::expect_used\]" || echo 0)
           echo "unwrap/expect 件数: ${COUNT}"
-          echo "HIGH-001: 0 件になったら -D clippy::unwrap_used に昇格予定"
+          echo "LOW-003: 削減目標 2026-Q2≤150 → 2026-Q3≤75 → 2026-Q4≤25 → 2027-Q1=0（-D 昇格）"
       - name: Clippy unwrap_used 件数確認 (workspace)
         if: ${{ !inputs.standalone }}
         continue-on-error: true
@@ -82,7 +86,7 @@ jobs:
             -- -W clippy::unwrap_used -W clippy::expect_used 2>&1 \
             | grep -c "warning\[clippy::unwrap_used\]\|warning\[clippy::expect_used\]" || echo 0)
           echo "unwrap/expect 件数: ${COUNT}"
-          echo "HIGH-001: 0 件になったら -D clippy::unwrap_used に昇格予定"
+          echo "LOW-003: 削減目標 2026-Q2≤150 → 2026-Q3≤75 → 2026-Q4≤25 → 2027-Q1=0（-D 昇格）"
 
   # ユニットテスト実行
   test:

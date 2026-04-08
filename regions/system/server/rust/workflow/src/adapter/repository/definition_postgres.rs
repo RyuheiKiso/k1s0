@@ -13,6 +13,7 @@ pub struct DefinitionPostgresRepository {
 }
 
 impl DefinitionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -35,9 +36,9 @@ impl TryFrom<DefinitionRow> for WorkflowDefinition {
 
     fn try_from(r: DefinitionRow) -> anyhow::Result<Self> {
         let steps: Vec<WorkflowStep> = serde_json::from_value(r.steps)
-            .map_err(|e| anyhow::anyhow!("failed to deserialize steps: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to deserialize steps: {e}"))?;
         Ok(WorkflowDefinition {
-            id: r.id.to_string(),
+            id: r.id.clone(),
             name: r.name,
             description: r.description,
             version: r.version as u32,
@@ -111,8 +112,8 @@ impl WorkflowDefinitionRepository for DefinitionPostgresRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<WorkflowDefinition>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する

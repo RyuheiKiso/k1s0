@@ -29,7 +29,7 @@ impl ListJobsUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブ一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブ一覧を取得する。
     pub async fn execute(&self, input: &ListJobsInput) -> anyhow::Result<ListJobsOutput> {
         let all_jobs = self.repo.find_all(&input.tenant_id).await?;
         let filtered: Vec<_> = all_jobs

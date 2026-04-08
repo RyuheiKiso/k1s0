@@ -14,6 +14,7 @@ pub struct SpanHandle {
 }
 
 impl SpanHandle {
+    #[must_use] 
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -32,6 +33,7 @@ pub fn add_event(handle: &mut SpanHandle, name: &str, attributes: HashMap<String
     });
 }
 
+#[must_use] 
 pub fn start_span(name: &str) -> SpanHandle {
     SpanHandle::new(name)
 }

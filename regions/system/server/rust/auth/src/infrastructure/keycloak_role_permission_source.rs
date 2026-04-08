@@ -20,14 +20,14 @@ pub struct KeycloakRolePermissionSource {
 }
 
 impl KeycloakRolePermissionSource {
-    /// 新しい KeycloakRolePermissionSource を生成する。
+    /// 新しい `KeycloakRolePermissionSource` を生成する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakConfig, token_cache_ttl_secs: u64) -> anyhow::Result<Self> {
         // reqwest の Client 構築: TLS バックエンドが利用不可の場合はエラーとして伝播する
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()
-            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("reqwest::Client の構築に失敗: {e}"))?;
         Ok(Self {
             config,
             http_client,
@@ -199,7 +199,7 @@ fn normalize_permission(raw: &str) -> Option<String> {
     if resource.is_empty() {
         return None;
     }
-    Some(format!("{}:{}", resource, action))
+    Some(format!("{resource}:{action}"))
 }
 
 fn default_permissions_for_role(role: &str) -> Vec<String> {

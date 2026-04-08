@@ -64,8 +64,9 @@ impl SchemaRegistryConfig {
     ///
     /// Confluent の規則に従い `{topic-name}-value` 形式を返す。
     /// トピック名の命名規則: `k1s0.{tier}.{domain}.{event-type}.{version}`
+    #[must_use] 
     pub fn subject_name(topic: &str) -> String {
-        format!("{}-value", topic)
+        format!("{topic}-value")
     }
 }
 

@@ -24,7 +24,7 @@ mod tests {
         assert_eq!(cfg.tier, "system");
         assert_eq!(cfg.environment, "dev");
         assert!(cfg.trace_endpoint.is_none());
-        assert_eq!(cfg.sample_rate, 1.0);
+        assert!((cfg.sample_rate - 1.0_f64).abs() < f64::EPSILON);
         assert_eq!(cfg.log_level, "debug");
         assert_eq!(cfg.log_format, "json");
     }
@@ -45,7 +45,7 @@ mod tests {
 
         assert_eq!(cfg.service_name, "task-server");
         assert_eq!(cfg.trace_endpoint, Some("otel-collector:4317".to_string()));
-        assert_eq!(cfg.sample_rate, 0.1);
+        assert!((cfg.sample_rate - 0.1_f64).abs() < f64::EPSILON);
     }
 
     // "debug" 文字列が DEBUG ログレベルに変換されることを確認する。
@@ -165,9 +165,9 @@ mod tests {
     // gather_metrics が Prometheus テキスト形式を含む文字列を返すことを確認する。
     #[test]
     fn test_metrics_handler_returns_text() {
-        let _m = Metrics::new("test-handler");
-        _m.record_http_request("GET", "/health", "200");
-        let output = _m.gather_metrics();
+        let m = Metrics::new("test-handler");
+        m.record_http_request("GET", "/health", "200");
+        let output = m.gather_metrics();
         // Prometheus テキストフォーマットが含まれることを確認
         assert!(output.contains("http_requests_total"));
     }

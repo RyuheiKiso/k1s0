@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use crate::domain::entity::event::{EventStream, Snapshot, StoredEvent};
 
 /// テナント分離のためのイベントストリームリポジトリトレイト。
-/// 全メソッドに tenant_id を引数として受け取り、RLS の set_config と組み合わせてテナント分離を実現する（ADR-0106）。
+/// 全メソッドに `tenant_id` を引数として受け取り、RLS の `set_config` と組み合わせてテナント分離を実現する（ADR-0106）。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait EventStreamRepository: Send + Sync {
@@ -25,7 +25,7 @@ pub trait EventStreamRepository: Send + Sync {
 }
 
 /// テナント分離のためのイベントリポジトリトレイト。
-/// 全メソッドに tenant_id を引数として受け取り、RLS の set_config と組み合わせてテナント分離を実現する（ADR-0106）。
+/// 全メソッドに `tenant_id` を引数として受け取り、RLS の `set_config` と組み合わせてテナント分離を実現する（ADR-0106）。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait EventRepository: Send + Sync {
@@ -66,7 +66,7 @@ pub trait EventRepository: Send + Sync {
 }
 
 /// テナント分離のためのスナップショットリポジトリトレイト。
-/// 全メソッドに tenant_id を引数として受け取り、RLS の set_config と組み合わせてテナント分離を実現する（ADR-0106）。
+/// 全メソッドに `tenant_id` を引数として受け取り、RLS の `set_config` と組み合わせてテナント分離を実現する（ADR-0106）。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SnapshotRepository: Send + Sync {

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// DlqStatus は DLQ メッセージのステータス。
+/// `DlqStatus` は DLQ メッセージのステータス。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DlqStatus {
@@ -30,12 +30,12 @@ impl DlqStatus {
             "RETRYING" => Ok(Self::Retrying),
             "RESOLVED" => Ok(Self::Resolved),
             "DEAD" => Ok(Self::Dead),
-            _ => anyhow::bail!("invalid DLQ status: {}", s),
+            _ => anyhow::bail!("invalid DLQ status: {s}"),
         }
     }
 }
 
-/// DlqMessage は DLQ メッセージエンティティ。
+/// `DlqMessage` は DLQ メッセージエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct DlqMessage {
     pub id: Uuid,
@@ -53,7 +53,8 @@ pub struct DlqMessage {
 }
 
 impl DlqMessage {
-    /// 新しい DlqMessage を作成する。
+    /// 新しい `DlqMessage` を作成する。
+    #[must_use] 
     pub fn new(
         original_topic: String,
         error_message: String,
@@ -98,6 +99,7 @@ impl DlqMessage {
     }
 
     /// リトライ可能かどうかを返す。
+    #[must_use] 
     pub fn is_retryable(&self) -> bool {
         matches!(self.status, DlqStatus::Pending | DlqStatus::Retrying)
             && self.retry_count < self.max_retries

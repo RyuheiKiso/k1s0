@@ -4,7 +4,7 @@ use aes_gcm::aead::rand_core::RngCore;
 use aes_gcm::aead::{Aead, KeyInit, OsRng, Payload};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 
-/// MasterKey は vault の暗号化/復号化に使用するマスター鍵を保持する。
+/// `MasterKey` は vault の暗号化/復号化に使用するマスター鍵を保持する。
 /// AES-256-GCM を使用し、各暗号化操作で一意の 12 バイト nonce を生成する。
 #[derive(Debug)]
 pub struct MasterKey {
@@ -16,27 +16,24 @@ impl MasterKey {
     /// 本番環境ではゼロ鍵での起動を拒否する。
     pub fn from_env() -> anyhow::Result<Self> {
         let environment = std::env::var("APP_ENVIRONMENT").unwrap_or_default();
-        let key_hex = match std::env::var("VAULT_MASTER_KEY") {
-            Ok(key) => key,
-            Err(_) => {
-                // 本番・ステージング環境では VAULT_MASTER_KEY が必須
-                // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
-                let env_lower = environment.to_lowercase();
-                if env_lower == "production" || env_lower == "staging" {
-                    return Err(anyhow::anyhow!(
-                        "VAULT_MASTER_KEY 環境変数は本番・ステージング環境では必須です"
-                    ));
-                }
-                // 開発環境: 起動ごとにランダムな鍵を生成（再起動でデータ復号不可になる点に注意）
-                // ゼロ鍵は既知の弱い鍵であるため使用しない
-                tracing::warn!(
-                    "VAULT_MASTER_KEY が設定されていません。開発環境用にランダム鍵を生成します（再起動で暗号化データが失われます）"
-                );
-                let mut key_bytes = [0u8; 32];
-                // aes_gcm クレートが依存する rand_core の OsRng で安全な乱数を生成する
-                OsRng.fill_bytes(&mut key_bytes);
-                hex::encode(key_bytes)
+        let key_hex = if let Ok(key) = std::env::var("VAULT_MASTER_KEY") { key } else {
+            // 本番・ステージング環境では VAULT_MASTER_KEY が必須
+            // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
+            let env_lower = environment.to_lowercase();
+            if env_lower == "production" || env_lower == "staging" {
+                return Err(anyhow::anyhow!(
+                    "VAULT_MASTER_KEY 環境変数は本番・ステージング環境では必須です"
+                ));
             }
+            // 開発環境: 起動ごとにランダムな鍵を生成（再起動でデータ復号不可になる点に注意）
+            // ゼロ鍵は既知の弱い鍵であるため使用しない
+            tracing::warn!(
+                "VAULT_MASTER_KEY が設定されていません。開発環境用にランダム鍵を生成します（再起動で暗号化データが失われます）"
+            );
+            let mut key_bytes = [0u8; 32];
+            // aes_gcm クレートが依存する rand_core の OsRng で安全な乱数を生成する
+            OsRng.fill_bytes(&mut key_bytes);
+            hex::encode(key_bytes)
         };
         let key_bytes = hex::decode(&key_hex)?;
         if key_bytes.len() != 32 {
@@ -60,7 +57,7 @@ impl MasterKey {
         // CRIT-003 監査対応: AAD を Payload に含めて暗号化し、認証タグがコンテキストを保証する
         let ciphertext = cipher
             .encrypt(nonce, Payload { msg: plaintext, aad })
-            .map_err(|e| anyhow::anyhow!("encryption failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("encryption failed: {e}"))?;
         Ok((ciphertext, nonce_bytes.to_vec()))
     }
 
@@ -74,7 +71,7 @@ impl MasterKey {
         // CRIT-003 監査対応: AAD を Payload に含めて復号することでコンテキスト認証を実施する
         cipher
             .decrypt(nonce, Payload { msg: ciphertext, aad })
-            .map_err(|e| anyhow::anyhow!("decryption failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("decryption failed: {e}"))
     }
 }
 

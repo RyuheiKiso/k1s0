@@ -42,10 +42,10 @@
 | [ADR-0034](./0034-deprecated-proto-field-dual-write.md) | deprecated proto フィールド dual-write 移行戦略 | 承認済み |
 | [ADR-0035](./0035-dockerfile-template-strategy.md) | Dockerfile テンプレート戦略（27 サービス個別 Dockerfile の維持方針） | 承認済み |
 | [ADR-0036](./0036-promtail-log-collection-strategy.md) | Promtail ログ収集戦略 | 承認済み |
-| [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 提案中 |
+| [ADR-0037](./0037-yaml-config-library-migration.md) | YAML 設定ライブラリ移行 | 却下済み |
 | [ADR-0038](./0038-k8s-rbac-namespace-scoping.md) | Kubernetes RBAC 権限の Namespace スコープ化（ClusterRoleBinding → RoleBinding） | 承認済み |
 | [ADR-0039](./0039-service-catalog-rest-client.md) | graphql-gateway の service-catalog クライアントを gRPC から REST へ変更 | 承認済み |
-| [ADR-0040](./0040-grpc-port-range-hyper-v-avoidance.md) | gRPC ホストポートを Hyper-V 動的除外範囲外に移動 | 承認済み |
+| [ADR-0040](./0040-grpc-port-range-hyper-v-avoidance.md) | gRPC ホストポートを Hyper-V 動的除外範囲外に移動 | 更新済み（ADR-0114 に上書き） |
 | [ADR-0041](./0041-ratelimit-api-path-alignment.md) | レートリミット API パスのクライアント・サーバー間統一 | 承認済み |
 | [ADR-0042](./0042-bff-proxy-upstream-strategy.md) | BFF-Proxy upstream 拡張戦略 | 承認済み |
 | [ADR-0043](./0043-service-tier-graphql-integration.md) | Service Tier GraphQL 統合方針 | 承認済み |
@@ -80,8 +80,8 @@
 | [ADR-0072](./0072-rls-policy-type-cast-standardization.md) | RLS ポリシーの tenant_id 型キャスト標準化 | 承認済み |
 | [ADR-0073](./0073-vault-terraform-yaml-sync-strategy.md) | Vault Terraform/YAML 同期戦略 | 承認済み |
 | [ADR-0074](./0074-k1s0-common-template-validation-ci.md) | k1s0-common Helm テンプレート CI 検証 | 承認済み |
-| [ADR-0075](./0075-vault-backup-dynamic-token.md) | Vault バックアップ動的トークン | 承認済み |
-| [ADR-0076](./0076-gitops-networkpolicy-drift-prevention.md) | GitOps NetworkPolicy ドリフト防止 | 承認済み |
+| [ADR-0075](./0075-vault-backup-dynamic-token.md) | Vault バックアップ動的トークン | 提案中 |
+| [ADR-0076](./0076-gitops-networkpolicy-drift-prevention.md) | GitOps NetworkPolicy ドリフト防止 | 提案中 |
 | [ADR-0077](./0077-vault-business-service-role-isolation.md) | Vault ビジネス/サービス層ロール分離 | 承認済み |
 | [ADR-0078](./0078-audit-response-2026-04-03.md) | 外部技術監査 2026-04-03 対応記録（v1） | 承認済み |
 | [ADR-0079](./0079-external-audit-remediation-2026-04-03-v2.md) | 外部技術監査 2026-04-03 v2 対応記録 | 承認済み |
@@ -97,7 +97,7 @@
 | [ADR-0089](./0089-vault-role-per-service-business-service-tier.md) | Vault ロール個別化の business/service tier 拡張 | 承認済み |
 | [ADR-0090](./0090-aes-gcm-aad-introduction.md) | AES-GCM AAD（Additional Authenticated Data）導入 | 承認済み |
 | [ADR-0091](./0091-jwt-token-introspection-hybrid.md) | JWT Token Introspection ハイブリッド方式 | 承認済み |
-| [ADR-0092](./0092-aes-gcm-siv-migration-consideration.md) | AES-GCM-SIV 移行検討（M-002 監査対応） | 提案中 |
+| [ADR-0092](./0092-aes-gcm-siv-migration-consideration.md) | AES-GCM-SIV 移行検討（M-002 監査対応） | 置き換え済み（ADR-0104） |
 | [ADR-0093](./0093-tenant-id-uuid-to-text-migration.md) | tenant_id 型統一 — featureflag-db・config-db の UUID→TEXT マイグレーション | 承認済み |
 | [ADR-0094](./0094-ts-auth-jwt-id-token-verification.md) | TypeScript Auth ライブラリ JWT id_token 署名検証の追加 | 承認済み |
 | [ADR-0095](./0095-cli-template-version-alignment.md) | CLI テンプレートバージョンのワークスペース同期ポリシー | 承認済み |

@@ -8,7 +8,7 @@ use crate::domain::entity::api_key::ApiKey;
 use crate::domain::error::AuthError;
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// ApiKeyPostgresRepository は ApiKeyRepository の PostgreSQL 実装。
+/// `ApiKeyPostgresRepository` は `ApiKeyRepository` の `PostgreSQL` 実装。
 pub struct ApiKeyPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -16,6 +16,7 @@ pub struct ApiKeyPostgresRepository {
 
 impl ApiKeyPostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -23,6 +24,7 @@ impl ApiKeyPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -47,13 +49,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
             .await?;
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO auth.api_keys (
                 id, tenant_id, name, key_hash, prefix, scopes,
                 expires_at, revoked, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            "#,
+            ",
         )
         .bind(api_key.id)
         .bind(&api_key.tenant_id)
@@ -83,11 +85,11 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         // 管理操作（テナント ID 不明の内部 API）では RLS バイパスが必要なため
         // 関数オーナー（DB オーナー）権限で実行する。
         let row = sqlx::query_as::<_, ApiKeyRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, key_hash, prefix, scopes,
                    expires_at, revoked, created_at, updated_at
             FROM auth.api_key_find_by_id($1)
-            "#,
+            ",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -106,11 +108,11 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         // 認証ブートストラップフロー（テナント ID 不明の API キー検証）では
         // FORCE ROW LEVEL SECURITY を持つテーブルに対して RLS バイパスが必要。
         let row = sqlx::query_as::<_, ApiKeyRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, key_hash, prefix, scopes,
                    expires_at, revoked, created_at, updated_at
             FROM auth.api_key_find_by_prefix($1)
-            "#,
+            ",
         )
         .bind(prefix)
         .fetch_optional(&self.pool)
@@ -135,13 +137,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
             .await?;
 
         let rows = sqlx::query_as::<_, ApiKeyRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, key_hash, prefix, scopes,
                    expires_at, revoked, created_at, updated_at
             FROM auth.api_keys
             WHERE tenant_id = $1
             ORDER BY created_at DESC
-            "#,
+            ",
         )
         .bind(tenant_id)
         .fetch_all(&mut *tx)
@@ -173,7 +175,7 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
 
         if updated_id.is_none() {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
+            return Err(AuthError::NotFound(format!("api key が見つかりません: {id}")).into());
         }
         Ok(())
     }
@@ -196,13 +198,13 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
 
         if deleted_id.is_none() {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(AuthError::NotFound(format!("api key が見つかりません: {}", id)).into());
+            return Err(AuthError::NotFound(format!("api key が見つかりません: {id}")).into());
         }
         Ok(())
     }
 }
 
-/// ApiKeyRow は DB から取得した行を表す中間構造体。
+/// `ApiKeyRow` は DB から取得した行を表す中間構造体。
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct ApiKeyRow {
     pub id: Uuid,

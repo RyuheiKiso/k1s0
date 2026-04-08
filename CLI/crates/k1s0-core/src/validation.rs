@@ -90,8 +90,7 @@ mod tests {
         // 64文字はOK
         assert!(validate_name(&"a".repeat(64)).is_ok());
         // 65文字はエラー
-        let err = validate_name(&"a".repeat(65))
-            .expect_err("65文字の名前はエラーになるべき");
+        let err = validate_name(&"a".repeat(65)).expect_err("65文字の名前はエラーになるべき");
         assert!(err.contains("64文字以内"));
         assert!(err.contains("65 文字"));
     }
@@ -116,7 +115,8 @@ mod tests {
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
 
         // 使用不可文字（アンダースコア）
-        let err = validate_name("task_api").expect_err("アンダースコアを含む名前はエラーになるべき");
+        let err =
+            validate_name("task_api").expect_err("アンダースコアを含む名前はエラーになるべき");
         assert_eq!(err, "英小文字・ハイフン・数字のみ使用できます。");
     }
 }

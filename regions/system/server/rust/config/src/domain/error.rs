@@ -1,6 +1,6 @@
 use std::fmt;
 
-/// ConfigRepositoryError はリポジトリ層のエラーを型安全に表す。
+/// `ConfigRepositoryError` はリポジトリ層のエラーを型安全に表す。
 /// 文字列マッチングによるエラー分類を排除するための型付きエラー。
 #[derive(Debug)]
 pub enum ConfigRepositoryError {
@@ -14,31 +14,30 @@ pub enum ConfigRepositoryError {
     Infrastructure(anyhow::Error),
 }
 
-/// ConfigRepositoryError の表示フォーマット実装
+/// `ConfigRepositoryError` の表示フォーマット実装
 impl fmt::Display for ConfigRepositoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NotFound { namespace, key } => {
-                write!(f, "config not found: {}/{}", namespace, key)
+                write!(f, "config not found: {namespace}/{key}")
             }
             Self::VersionConflict { expected, current } => {
                 write!(
                     f,
-                    "version conflict: expected={}, current={}",
-                    expected, current
+                    "version conflict: expected={expected}, current={current}"
                 )
             }
             Self::ServiceNotFound(name) => {
-                write!(f, "service not found: {}", name)
+                write!(f, "service not found: {name}")
             }
             Self::Infrastructure(e) => {
-                write!(f, "infrastructure error: {}", e)
+                write!(f, "infrastructure error: {e}")
             }
         }
     }
 }
 
-/// std::error::Error トレイト実装（エラーチェーンのサポート）
+/// `std::error::Error` トレイト実装（エラーチェーンのサポート）
 impl std::error::Error for ConfigRepositoryError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {

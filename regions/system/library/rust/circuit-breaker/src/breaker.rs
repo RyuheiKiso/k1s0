@@ -28,6 +28,8 @@ pub struct CircuitBreaker {
 }
 
 impl CircuitBreaker {
+    // HIGH-001 監査対応: 戻り値を必ず使用するよう must_use を付与する
+    #[must_use]
     pub fn new(config: CircuitBreakerConfig) -> Self {
         let metrics = CircuitBreakerMetricsRecorder::new();
         metrics.set_state(CircuitBreakerState::Closed);
@@ -96,7 +98,8 @@ impl CircuitBreaker {
                     self.metrics.set_state(CircuitBreakerState::Closed);
                 }
             }
-            _ => {}
+            // HIGH-001 監査対応: wildcard を特定のバリアント名に置き換えて将来の変更を検出可能にする
+            CircuitBreakerState::Open => {}
         }
     }
 
@@ -116,7 +119,8 @@ impl CircuitBreaker {
         }
     }
 
-    pub async fn metrics(&self) -> CircuitBreakerMetrics {
+    /// HIGH-001 監査対応: await 文がないため async を除去してコンパイラ最適化を助ける
+    pub fn metrics(&self) -> CircuitBreakerMetrics {
         self.metrics.snapshot()
     }
 
@@ -253,7 +257,7 @@ mod tests {
         cb.record_success().await;
         cb.record_failure().await;
 
-        let m = cb.metrics().await;
+        let m = cb.metrics();
         assert_eq!(m.success_count, 1);
         assert_eq!(m.failure_count, 1);
         assert_eq!(m.state, "Closed");

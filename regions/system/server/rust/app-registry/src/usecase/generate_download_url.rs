@@ -6,7 +6,7 @@ use crate::domain::repository::{AppRepository, DownloadStatsRepository, VersionR
 use crate::infrastructure::file_storage::FileStorage;
 use crate::usecase::version_selection::{resolve_version, VersionSelectionError};
 
-/// GenerateDownloadUrlError はダウンロード処理に関するエラーを表す。
+/// `GenerateDownloadUrlError` はダウンロード処理に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GenerateDownloadUrlError {
     #[error("app not found: {0}")]
@@ -22,7 +22,7 @@ pub enum GenerateDownloadUrlError {
     Internal(String),
 }
 
-/// DownloadUrlResult はファイルの直接配信に必要な情報を表す。
+/// `DownloadUrlResult` はファイルの直接配信に必要な情報を表す。
 /// S3 presigned URL の代わりに、ファイルのバイト列とメタデータを保持する。
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 pub struct DownloadUrlResult {
@@ -39,7 +39,7 @@ pub struct DownloadUrlResult {
     pub filename: String,
 }
 
-/// GenerateDownloadUrlUseCase はアプリバイナリのダウンロードユースケース。
+/// `GenerateDownloadUrlUseCase` はアプリバイナリのダウンロードユースケース。
 /// バージョン情報を取得し、ローカルFS からファイルを読み取って直接配信する。
 pub struct GenerateDownloadUrlUseCase {
     app_repo: Arc<dyn AppRepository>,
@@ -63,8 +63,10 @@ impl GenerateDownloadUrlUseCase {
         }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         app_id: &str,
         version: &str,
         platform: Option<&Platform>,
@@ -73,7 +75,7 @@ impl GenerateDownloadUrlUseCase {
     ) -> Result<DownloadUrlResult, GenerateDownloadUrlError> {
         let app = self
             .app_repo
-            .find_by_id(app_id)
+            .find_by_id(tenant_id, app_id)
             .await
             .map_err(|e| GenerateDownloadUrlError::Internal(e.to_string()))?;
 

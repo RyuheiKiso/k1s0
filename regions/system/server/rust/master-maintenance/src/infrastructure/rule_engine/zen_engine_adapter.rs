@@ -16,6 +16,7 @@ impl Default for ZenEngineAdapter {
 }
 
 impl ZenEngineAdapter {
+    #[must_use] 
     pub fn new() -> Self {
         Self
     }
@@ -25,7 +26,7 @@ impl ZenEngineAdapter {
 impl RuleEngineService for ZenEngineAdapter {
     /// カスタムルールを評価する。
     ///
-    /// ZEN エンジンの Future は Send ではないため、spawn_blocking で
+    /// ZEN エンジンの Future は Send `ではないため、spawn_blocking` で
     /// 専用スレッド上で同期版を実行することでネストランタイムを回避する。
     async fn evaluate_rule(
         &self,
@@ -82,7 +83,7 @@ impl ZenEngineAdapter {
 
     /// ZEN エンジンでカスタムルールを同期評価する。
     ///
-    /// ZEN の evaluate Future は !Send のため、spawn_blocking 上で
+    /// ZEN の evaluate Future は !Send `のため、spawn_blocking` 上で
     /// 一時的なランタイムを使って実行する。
     fn evaluate_custom_rule(
         rule: &ConsistencyRule,
@@ -99,7 +100,7 @@ impl ZenEngineAdapter {
         Self::map_rule_result(rule, &result)
     }
 
-    /// ZEN エンジンの結果を RuleResult にマッピングする。
+    /// ZEN エンジンの結果を `RuleResult` にマッピングする。
     fn map_rule_result(rule: &ConsistencyRule, result: &Value) -> anyhow::Result<RuleResult> {
         match result.get("_result").and_then(|v| v.as_str()) {
             Some("fail") => Ok(Self::result_with_severity(

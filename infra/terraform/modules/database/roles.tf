@@ -28,7 +28,8 @@ locals {
     policy              = "policy"
     quota               = "quota"
     service_catalog     = "service_catalog"
-    navigation          = "navigation"
+    # HIGH-002 監査対応: navigation は DB を使用しない（YAML 設定のみで動作）ため削除済み
+    # init-db/01-create-databases.sql でも LOW-4 監査対応として削除済み
     event_store         = "event_store"
     # LOW-009 監査対応: DB を使用するが MED-029 で追加漏れだったサービスを補完する
     event_monitor       = "event_monitor"

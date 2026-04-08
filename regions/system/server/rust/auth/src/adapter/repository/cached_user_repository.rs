@@ -6,8 +6,8 @@ use crate::domain::entity::user::{User, UserListResult, UserRoles};
 use crate::domain::repository::UserRepository;
 use crate::infrastructure::user_cache::UserCache;
 
-/// CachedUserRepository は UserRepository をキャッシュでラップする。
-/// find_by_id でキャッシュヒット時はDBアクセスをスキップする。
+/// `CachedUserRepository` は `UserRepository` をキャッシュでラップする。
+/// `find_by_id` でキャッシュヒット時はDBアクセスをスキップする。
 /// ユーザー情報は読み取り専用のため、書き込み系の invalidation は不要。
 pub struct CachedUserRepository {
     inner: Arc<dyn UserRepository>,
@@ -16,7 +16,7 @@ pub struct CachedUserRepository {
 }
 
 impl CachedUserRepository {
-    /// 新しい CachedUserRepository を作成する。
+    /// 新しい `CachedUserRepository` を作成する。
     #[allow(dead_code)]
     pub fn new(inner: Arc<dyn UserRepository>, cache: Arc<UserCache>) -> Self {
         Self {
@@ -26,7 +26,7 @@ impl CachedUserRepository {
         }
     }
 
-    /// メトリクス付きの CachedUserRepository を作成する。
+    /// メトリクス付きの `CachedUserRepository` を作成する。
     pub fn with_metrics(
         inner: Arc<dyn UserRepository>,
         cache: Arc<UserCache>,
@@ -77,7 +77,7 @@ impl UserRepository for CachedUserRepository {
         self.inner.list(page, page_size, search, enabled).await
     }
 
-    /// get_roles はキャッシュを使わず inner に委譲する。
+    /// `get_roles` はキャッシュを使わず inner に委譲する。
     async fn get_roles(&self, user_id: &str) -> anyhow::Result<UserRoles> {
         self.inner.get_roles(user_id).await
     }

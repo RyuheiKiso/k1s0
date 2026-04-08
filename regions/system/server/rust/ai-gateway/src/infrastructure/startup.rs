@@ -22,6 +22,8 @@ async fn resolve_bind_addr(host: &str, port: u16) -> anyhow::Result<SocketAddr> 
 
 /// AI Gatewayサーバーのメインエントリポイント。
 /// 設定ファイルを読み込み、依存関係を構築し、REST/gRPCサーバーを起動する。
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines)]
 pub async fn run() -> anyhow::Result<()> {
     let config_path =
         std::env::var("CONFIG_PATH").unwrap_or_else(|_| "config/config.yaml".to_string());
@@ -44,7 +46,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -150,8 +152,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let cache_ttl = auth_cfg
                     .jwks
                     .as_ref()
-                    .map(|j| j.cache_ttl_secs)
-                    .unwrap_or(300);
+                    .map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for ai-gateway-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(

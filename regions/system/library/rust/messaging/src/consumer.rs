@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// ConsumerConfig は Kafka コンシューマーの設定を表す。
+/// `ConsumerConfig` は Kafka コンシューマーの設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsumerConfig {
     /// コンシューマーグループ ID
@@ -23,7 +23,7 @@ fn default_session_timeout_ms() -> u64 {
     30000
 }
 
-/// ConsumedMessage は Kafka から受信したメッセージを表す。
+/// `ConsumedMessage` は Kafka から受信したメッセージを表す。
 #[derive(Debug, Clone)]
 pub struct ConsumedMessage {
     /// トピック名
@@ -45,7 +45,7 @@ impl ConsumedMessage {
     }
 }
 
-/// EventConsumer は Kafka からのメッセージ受信インターフェース。
+/// `EventConsumer` は Kafka からのメッセージ受信インターフェース。
 #[async_trait::async_trait]
 pub trait EventConsumer: Send + Sync {
     /// 次のメッセージを受信する（タイムアウトは実装側で制御）。

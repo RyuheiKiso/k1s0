@@ -27,7 +27,7 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
 }
 
-/// AuthConfig は JWT 認証設定を表す。
+/// `AuthConfig` は JWT 認証設定を表す。
 /// config.docker.yaml の nested 形式（auth.jwt / auth.jwks）に対応する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
@@ -38,7 +38,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークンの issuer と audience を保持する。
+/// `JwtConfig` は JWT トークンの issuer と audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT の発行者（issuer）URL
@@ -47,7 +47,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントとキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントとキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -62,7 +62,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// AppConfig はアプリケーション設定。
+/// `AppConfig` はアプリケーション設定。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -81,8 +81,8 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバー設定。
-/// host/port/grpc_port は startup.rs でバインドアドレス構築に使用する。
+/// `ServerConfig` はサーバー設定。
+/// `host/port/grpc_port` は startup.rs でバインドアドレス構築に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -105,15 +105,15 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// ServiceEndpoint は外部サービスのエンドポイント。
+/// `ServiceEndpoint` は外部サービスのエンドポイント。
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServiceEndpoint {
     pub host: String,
     pub port: u16,
 }
 
-/// SagaConfig は Saga 固有の設定。
-/// workflow_dir は startup.rs で WorkflowLoader の初期化に使用する。
+/// `SagaConfig` は Saga 固有の設定。
+/// `workflow_dir` は startup.rs で `WorkflowLoader` の初期化に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SagaConfig {
     #[serde(default = "default_workflow_dir")]

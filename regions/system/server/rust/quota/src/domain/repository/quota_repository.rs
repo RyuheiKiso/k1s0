@@ -11,8 +11,8 @@ pub struct CheckAndIncrementResult {
     pub allowed: bool,
 }
 
-/// CRITICAL-RUST-001 監査対応: 全メソッドに tenant_id を追加し、
-/// PostgreSQL RLS の set_config('app.current_tenant_id', ...) を確実に呼び出す。
+/// CRITICAL-RUST-001 監査対応: 全メソッドに `tenant_id` を追加し、
+/// `PostgreSQL` RLS の `set_config`('`app.current_tenant_id`', ...) を確実に呼び出す。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait QuotaPolicyRepository: Send + Sync {
@@ -28,8 +28,8 @@ pub trait QuotaPolicyRepository: Send + Sync {
     async fn delete(&self, id: &str, tenant_id: &str) -> anyhow::Result<bool>;
 }
 
-/// CRITICAL-RUST-001 監査対応: 全メソッドに tenant_id を追加し、
-/// PostgreSQL RLS の set_config('app.current_tenant_id', ...) を確実に呼び出す。
+/// CRITICAL-RUST-001 監査対応: 全メソッドに `tenant_id` を追加し、
+/// `PostgreSQL` RLS の `set_config`('`app.current_tenant_id`', ...) を確実に呼び出す。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait QuotaUsageRepository: Send + Sync {

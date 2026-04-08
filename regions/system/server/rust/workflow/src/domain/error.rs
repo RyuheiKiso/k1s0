@@ -28,7 +28,7 @@ pub enum WorkflowError {
     Internal(String),
 }
 
-/// WorkflowError から ServiceError への変換実装
+/// `WorkflowError` から `ServiceError` への変換実装
 impl From<WorkflowError> for ServiceError {
     fn from(err: WorkflowError) -> Self {
         match err {
@@ -38,7 +38,7 @@ impl From<WorkflowError> for ServiceError {
             },
             WorkflowError::InvalidStatusTransition { from, to } => ServiceError::BadRequest {
                 code: ErrorCode::new("SYS_WORKFLOW_INVALID_STATUS_TRANSITION"),
-                message: format!("invalid status transition: '{}' -> '{}'", from, to),
+                message: format!("invalid status transition: '{from}' -> '{to}'"),
                 details: vec![],
             },
             WorkflowError::AlreadyExists(msg) => ServiceError::Conflict {

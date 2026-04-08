@@ -16,9 +16,9 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 
 /// 静的 RBAC: ロール名とリソース・アクションの組み合わせでパーミッションを判定する。
 /// service-catalog 固有のロール定義:
-/// - admin / sys_admin: すべてのリソースに対する全アクション
-/// - sys_operator / service_manager: "services", "teams" に対する read/write
-/// - user / sys_auditor / sys_viewer: "services", "teams" に対する read のみ
+/// - admin / `sys_admin`: すべてのリソースに対する全アクション
+/// - `sys_operator` / `service_manager`: "services", "teams" に対する read/write
+/// - user / `sys_auditor` / `sys_viewer`: "services", "teams" に対する read のみ
 fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bool {
     for role in roles {
         let allowed = match role.as_str() {
@@ -39,8 +39,8 @@ fn check_permission_static(roles: &[String], resource: &str, action: &str) -> bo
     false
 }
 
-/// make_rbac_middleware はリソースとアクションを受け取り、RBAC チェックを行うクロージャを返す。
-/// 現在はメソッドベースの make_method_rbac_middleware を使用しているが、
+/// `make_rbac_middleware` はリソースとアクションを受け取り、RBAC チェックを行うクロージャを返す。
+/// 現在はメソッドベースの `make_method_rbac_middleware` を使用しているが、
 /// 特定アクション固定のルートが必要な場合に備えて保持。
 #[allow(dead_code)]
 pub fn make_rbac_middleware(
@@ -105,8 +105,7 @@ pub async fn rbac_check(
             StatusCode::FORBIDDEN,
             "SYS_SCAT_PERMISSION_DENIED",
             format!(
-                "Insufficient permissions: action '{}' on resource '{}' is not allowed for the current roles.",
-                action, resource
+                "Insufficient permissions: action '{action}' on resource '{resource}' is not allowed for the current roles."
             ),
         )
     }

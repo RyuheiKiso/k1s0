@@ -7,7 +7,7 @@ pub mod startup;
 use crate::domain::entity::claims::Claims;
 use async_trait::async_trait;
 
-/// TokenVerifier はトークン検証のためのトレイト。
+/// `TokenVerifier` はトークン検証のためのトレイト。
 /// JWKS エンドポイントから公開鍵を取得し、JWT の署名検証を行う。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -15,12 +15,13 @@ pub trait TokenVerifier: Send + Sync {
     async fn verify_token(&self, token: &str) -> anyhow::Result<Claims>;
 }
 
-/// JwksVerifierAdapter は k1s0-auth ライブラリの JwksVerifier をラップするアダプター。
+/// `JwksVerifierAdapter` は k1s0-auth ライブラリの `JwksVerifier` をラップするアダプター。
 pub struct JwksVerifierAdapter {
     verifier: std::sync::Arc<k1s0_auth::JwksVerifier>,
 }
 
 impl JwksVerifierAdapter {
+    #[must_use] 
     pub fn new(verifier: std::sync::Arc<k1s0_auth::JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -63,6 +64,8 @@ impl TokenVerifier for JwksVerifierAdapter {
                 })
                 .unwrap_or_default(),
             tier_access: lib_claims.tier_access_list().to_vec(),
+            // tenant_id は Keycloak のカスタムクレームから取得する。JWT に含まれない場合は空文字列。
+            tenant_id: lib_claims.tenant_id.clone(),
         })
     }
 }

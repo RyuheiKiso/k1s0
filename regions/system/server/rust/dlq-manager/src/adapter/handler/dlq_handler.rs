@@ -13,9 +13,7 @@ use super::AppState;
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
 fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -121,7 +119,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl axum::response::IntoR
 
     let (kafka_status, kafka_ready) = if let Some(publisher) = &state.publisher {
         match publisher.health_check().await {
-            Ok(_) => ("ok", true),
+            Ok(()) => ("ok", true),
             Err(e) => {
                 tracing::error!(error = %e, "readyz: Kafka health check failed");
                 ("error", false)
@@ -189,7 +187,7 @@ pub async fn list_messages(
     let message_responses: Vec<DlqMessageResponse> =
         messages.iter().map(to_message_response).collect();
 
-    let has_next = (query.page as i64 * query.page_size as i64) < total;
+    let has_next = (i64::from(query.page) * i64::from(query.page_size)) < total;
 
     Ok(Json(ListMessagesResponse {
         messages: message_responses,
@@ -221,7 +219,7 @@ pub async fn get_message(
     let tenant_id = extract_tenant_id(&claims);
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     let message = state
         .get_message_uc
@@ -258,7 +256,7 @@ pub async fn retry_message(
     let tenant_id = extract_tenant_id(&claims);
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     let message = state
         .retry_message_uc
@@ -297,7 +295,7 @@ pub async fn delete_message(
     let tenant_id = extract_tenant_id(&claims);
 
     let uuid = Uuid::parse_str(&id)
-        .map_err(|_| DlqError::Validation(format!("invalid message id: {}", id)))?;
+        .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
 
     state
         .delete_message_uc
@@ -335,7 +333,7 @@ pub async fn retry_all(
 
     Ok(Json(RetryAllResponse {
         retried_count: retried_i32,
-        message: format!("{} messages retried in topic {}", retried, topic),
+        message: format!("{retried} messages retried in topic {topic}"),
     }))
 }
 

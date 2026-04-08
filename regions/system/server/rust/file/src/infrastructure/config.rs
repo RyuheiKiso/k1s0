@@ -85,7 +85,7 @@ fn default_connect_timeout_seconds() -> u64 {
     10
 }
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -95,7 +95,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -104,7 +104,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -127,7 +127,7 @@ pub struct StorageConfig {
     pub backend: String,
     /// ローカルFS バックエンド時のルートディレクトリパス。
     pub path: Option<String>,
-    /// base_url: ファイルの upload/download URL 生成に使う file-server のベース URL。
+    /// `base_url`: ファイルの upload/download URL 生成に使う file-server のベース URL。
     pub base_url: Option<String>,
     pub max_file_size_bytes: Option<u64>,
 }
@@ -145,7 +145,7 @@ pub struct KafkaConfig {
     pub topic_events: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
@@ -158,9 +158,9 @@ fn default_topic_events() -> String {
 impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("Failed to read config file {}: {}", path, e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to read config file {path}: {e}"))?;
         let config: Self = serde_yaml::from_str(&content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse config file: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to parse config file: {e}"))?;
         Ok(config)
     }
 }

@@ -18,7 +18,7 @@ pub async fn healthz() -> impl IntoResponse {
 /// レディネスチェックエンドポイント: バックエンド種別と疎通確認結果を返す。
 /// DB/Vault 未構成（in-memory フォールバック）時は degraded ステータスを返して
 /// 永続化バックエンド未構成であることを運用チームに明示する。
-/// ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
+/// ADR-0068 対応: "`ready"/"not_ready`" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す
     let timestamp = chrono::Utc::now().to_rfc3339();

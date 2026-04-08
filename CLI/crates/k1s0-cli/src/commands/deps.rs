@@ -235,7 +235,7 @@ fn print_confirmation(scope: &DepsScope, output: &DepsOutputFormat) {
 }
 
 /// MED-008/HIGH-008 監査対応: 非インタラクティブモード用の deps コマンド実行関数。
-/// --scope / --tier / --output / --output-path フラグで対話プロンプトをスキップして直接実行する。
+/// `--scope` / `--tier` / `--output` / `--output-path` フラグで対話プロンプトをスキップして直接実行する。
 ///
 /// # 使用例（CI/CD）
 ///
@@ -249,6 +249,14 @@ fn print_confirmation(scope: &DepsScope, output: &DepsOutputFormat) {
 /// # --non-interactive で実行（すべてのデフォルト値を使用）
 /// k1s0-cli --non-interactive deps
 /// ```
+///
+/// # Errors
+///
+/// - `--scope tier` を指定したが `--tier` が未指定の場合にエラーを返す
+/// - `--output mermaid` または `--output both` を指定したが `--output-path` が未指定の場合にエラーを返す
+/// - グラフ生成に失敗した場合にエラーを返す
+// MED-006 監査対応: CLI 引数パーサーから所有権付きで渡されるため needless_pass_by_value を抑制する
+#[allow(clippy::needless_pass_by_value)]
 pub fn run_non_interactive(
     scope_str: Option<String>,
     tier: Option<String>,
@@ -259,7 +267,9 @@ pub fn run_non_interactive(
         Some("all") | None => DepsScope::All,
         Some("tier") => {
             let t = tier.ok_or_else(|| {
-                anyhow::anyhow!("--scope tier を指定する場合は --tier も必須です（例: --tier system）")
+                anyhow::anyhow!(
+                    "--scope tier を指定する場合は --tier も必須です（例: --tier system）"
+                )
             })?;
             DepsScope::Tier(t)
         }
@@ -269,25 +279,27 @@ pub fn run_non_interactive(
                 --scope all または --scope tier を使用してください。"
             )
         }
-        Some(other) => anyhow::bail!("不明なスコープ: '{other}'。'all' / 'tier' を指定してください。"),
+        Some(other) => {
+            anyhow::bail!("不明なスコープ: '{other}'。'all' / 'tier' を指定してください。")
+        }
     };
 
     let output = match output_str.as_deref() {
         Some("mermaid") => {
-            let path = output_path.unwrap_or_else(|| {
-                std::path::PathBuf::from("docs/diagrams/dependency-map.md")
-            });
+            let path = output_path
+                .unwrap_or_else(|| std::path::PathBuf::from("docs/diagrams/dependency-map.md"));
             DepsOutputFormat::Mermaid(path)
         }
         Some("both") => {
-            let path = output_path.unwrap_or_else(|| {
-                std::path::PathBuf::from("docs/diagrams/dependency-map.md")
-            });
+            let path = output_path
+                .unwrap_or_else(|| std::path::PathBuf::from("docs/diagrams/dependency-map.md"));
             DepsOutputFormat::Both(path)
         }
         Some("terminal") | None => DepsOutputFormat::Terminal,
         Some(other) => {
-            anyhow::bail!("不明な出力形式: '{other}'。'terminal' / 'mermaid' / 'both' を指定してください。")
+            anyhow::bail!(
+                "不明な出力形式: '{other}'。'terminal' / 'mermaid' / 'both' を指定してください。"
+            )
         }
     };
 

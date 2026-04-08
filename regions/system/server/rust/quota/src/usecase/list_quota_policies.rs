@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::quota::QuotaPolicy;
 use crate::domain::repository::QuotaPolicyRepository;
 
-/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を追加して RLS テナント分離を有効にする。
 #[derive(Debug, Clone)]
 pub struct ListQuotaPoliciesInput {
     pub page: u32,
@@ -53,7 +53,7 @@ impl ListQuotaPoliciesUseCase {
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
 
-            let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+            let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
             return Ok(ListQuotaPoliciesOutput {
                 quotas,
@@ -107,7 +107,7 @@ impl ListQuotaPoliciesUseCase {
             .skip(start)
             .take(input.page_size as usize)
             .collect();
-        let has_next = (input.page as u64 * input.page_size as u64) < total_count;
+        let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
         Ok(ListQuotaPoliciesOutput {
             quotas,

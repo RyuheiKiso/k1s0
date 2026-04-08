@@ -12,13 +12,13 @@ use crate::domain::repository::{AgentRepository, ExecutionRepository};
 use crate::domain::service::ReActEngine;
 use k1s0_bb_ai_client::traits::AiClient;
 
-/// ExecuteAgentUseCase はエージェント実行を担当する
+/// `ExecuteAgentUseCase` はエージェント実行を担当する
 pub struct ExecuteAgentUseCase {
     /// エージェントリポジトリ
     agent_repo: Arc<dyn AgentRepository>,
     /// 実行リポジトリ
     execution_repo: Arc<dyn ExecutionRepository>,
-    /// ReActエンジン
+    /// `ReActエンジン`
     react_engine: Arc<ReActEngine>,
     /// AIクライアント
     ai_client: Arc<dyn AiClient>,
@@ -38,7 +38,7 @@ pub struct ExecuteAgentResponse {
 }
 
 impl ExecuteAgentUseCase {
-    /// 新しいExecuteAgentUseCaseを生成する
+    /// `新しいExecuteAgentUseCaseを生成する`
     pub fn new(
         agent_repo: Arc<dyn AgentRepository>,
         execution_repo: Arc<dyn ExecutionRepository>,
@@ -99,7 +99,7 @@ impl ExecuteAgentUseCase {
             }
             Err(e) => {
                 // エラー時はFailed状態に設定する
-                execution.output = Some(format!("Error: {}", e));
+                execution.output = Some(format!("Error: {e}"));
                 execution.status = ExecutionStatus::Failed;
             }
         }

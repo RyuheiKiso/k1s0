@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::version::AppVersion;
 use crate::domain::repository::VersionRepository;
 
-/// CreateVersionUseCase はアプリバージョン作成ユースケース。
+/// `CreateVersionUseCase` はアプリバージョン作成ユースケース。
 pub struct CreateVersionUseCase {
     version_repo: Arc<dyn VersionRepository>,
 }
@@ -46,6 +46,7 @@ mod tests {
             storage_key: "cli/1.1.0/linux/amd64/k1s0".to_string(),
             release_notes: Some("New feature".to_string()),
             mandatory: false,
+            cosign_signature: None,
             published_at: chrono::Utc::now(),
             created_at: chrono::Utc::now(),
         };

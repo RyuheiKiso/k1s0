@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::download_stat::DownloadStat;
 
-/// DownloadStatsRepository はダウンロード統計情報のためのリポジトリトレイト。
+/// `DownloadStatsRepository` はダウンロード統計情報のためのリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DownloadStatsRepository: Send + Sync {

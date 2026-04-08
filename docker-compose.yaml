@@ -1818,9 +1818,12 @@ services:
     cap_drop:
       - ALL
     environment:
-      # postgres への接続文字列（開発環境はホスト名 postgres、ポート 5432 を使用する）
-      # CRITICAL-INFRA-001 監査対応: デフォルト認証情報を開発環境標準 "dev" に変更しデフォルト "postgres" を排除する
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER:-dev}:${POSTGRES_PASSWORD:-dev}@postgres:5432/postgres?sslmode=disable"
+      # HIGH-008 監査対応: 認証情報を DSN 文字列に埋め込まず個別の環境変数に分離する
+      # DATA_SOURCE_NAME のシングル文字列では docker inspect やプロセスリストに認証情報が漏洩するリスクがある
+      # DATA_SOURCE_URI にはユーザー/パスワードを含まないホスト部のみを設定する
+      DATA_SOURCE_URI: "postgres:5432/postgres?sslmode=disable"
+      DATA_SOURCE_USER: "${POSTGRES_USER:-dev}"
+      DATA_SOURCE_PASS: "${POSTGRES_PASSWORD:-dev}"
     ports:
       # 共用開発サーバーでの LAN 経由アクセスを防ぐため 127.0.0.1 にバインドする
       - "127.0.0.1:9187:9187"
@@ -1842,6 +1845,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # LOW-005 監査対応: ルートファイルシステムを読み取り専用にする（メトリクス収集のみで書き込み不要）
+    read_only: true
+    tmpfs:
+      - /tmp
     environment:
       # Redis キャッシュサービスの接続先（セッション用 redis-session は別途追加が必要な場合参照）
       REDIS_ADDR: "redis:6379"
@@ -1863,9 +1870,15 @@ volumes:
   grafana-data:
 
 networks:
-  # LOW-011 ネットワーク設計注記:
+  # LOW-011 / MED-008 ネットワーク設計注記:
   # 現在は全サービスを k1s0-network（単一ネットワーク）に統一している。
   # ローカル開発環境では単一ネットワークの方がサービス間通信の設定が簡単なため現状維持とする。
+  #
+  # MED-008 監査対応: 現状の影響とリスク
+  #   全40+サービスが同一ネットワークに存在するため、アプリサービスが侵害された場合に
+  #   PostgreSQL/Kafka/Redis へ直接アクセス可能。Kubernetes 本番環境では NetworkPolicy で制御済み。
+  #   Docker Compose（開発環境）での分離は将来課題として対応する。
+  #
   # 将来課題: 本番相当の環境ではインフラ層（postgres/kafka/redis/keycloak）と
   # アプリ層（system サービス群）をネットワーク分離することでセキュリティを向上できる。
   # 分離案:

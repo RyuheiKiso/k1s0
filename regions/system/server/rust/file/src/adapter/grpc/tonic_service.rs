@@ -18,13 +18,14 @@ pub struct FileServiceTonic {
 }
 
 impl FileServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<FileGrpcService>) -> Self {
         Self { inner }
     }
 }
 
 /// テナント分離対応: domain entity → proto メッセージ変換
-/// migration 003 で追加した tenant_id フィールドを proto メッセージに含める
+/// migration 003 で追加した `tenant_id` フィールドを proto メッセージに含める
 fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFileMetadata {
     ProtoFileMetadata {
         id: file.id.clone(),
@@ -96,7 +97,7 @@ impl FileService for FileServiceTonic {
             )
             .await
             .map_err(Into::<Status>::into)?;
-        let has_next = ((page * page_size) as u64) < total;
+        let has_next = u64::from(page * page_size) < total;
         let total_count = total as i64;
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),

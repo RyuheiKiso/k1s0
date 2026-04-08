@@ -4,7 +4,7 @@ use redis::aio::ConnectionManager;
 use crate::domain::repository::quota_repository::CheckAndIncrementResult;
 use crate::domain::repository::QuotaUsageRepository;
 
-/// RedisQuotaUsageRepository は Redis ベースのクォータ使用量リポジトリ。
+/// `RedisQuotaUsageRepository` は Redis ベースのクォータ使用量リポジトリ。
 ///
 /// カウンターは Redis の INCRBY でアトミックに更新される。
 /// TTL は設定せず、リセットはスケジューラが `reset()` を呼ぶ設計。
@@ -14,6 +14,7 @@ pub struct RedisQuotaUsageRepository {
 }
 
 impl RedisQuotaUsageRepository {
+    #[must_use] 
     pub fn new(conn: ConnectionManager, key_prefix: String) -> Self {
         Self { conn, key_prefix }
     }
@@ -25,7 +26,7 @@ impl RedisQuotaUsageRepository {
 
 #[async_trait]
 impl QuotaUsageRepository for RedisQuotaUsageRepository {
-    /// Redis 実装では tenant_id は使用しない（テナント分離は PostgreSQL RLS で行う）。
+    /// Redis 実装では `tenant_id` は使用しない（テナント分離は `PostgreSQL` RLS で行う）。
     /// ただし trait の signature に合わせるためパラメータを受け取る。
     async fn get_usage(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         let key = self.make_key(quota_id);
@@ -66,7 +67,7 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
         let mut conn = self.conn.clone();
 
         let script = redis::Script::new(
-            r#"
+            r"
             local key = KEYS[1]
             local amount = tonumber(ARGV[1])
             local limit = tonumber(ARGV[2])
@@ -76,7 +77,7 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
             end
             local new_val = redis.call('INCRBY', key, amount)
             return {new_val, 1}
-            "#,
+            ",
         );
 
         let (used, allowed): (u64, u64) = script
@@ -93,10 +94,10 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
     }
 }
 
-/// キープレフィックスとクォータIDからRedisキーを生成するヘルパー。
+/// `キープレフィックスとクォータIDからRedisキーを生成するヘルパー`。
 /// テストで安全に呼び出せるようスタンドアロン関数として公開。
 fn build_key(prefix: &str, quota_id: &str) -> String {
-    format!("{}{}", prefix, quota_id)
+    format!("{prefix}{quota_id}")
 }
 
 #[cfg(test)]

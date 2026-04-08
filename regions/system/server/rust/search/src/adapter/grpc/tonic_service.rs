@@ -38,9 +38,7 @@ impl From<GrpcError> for Status {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>()
-        .map(|c| c.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct SearchServiceTonic {
@@ -48,6 +46,7 @@ pub struct SearchServiceTonic {
 }
 
 impl SearchServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<SearchGrpcService>) -> Self {
         Self { inner }
     }

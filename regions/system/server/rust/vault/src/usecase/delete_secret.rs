@@ -4,7 +4,7 @@ use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::{AccessLogRepository, SecretStore};
 use crate::infrastructure::kafka_producer::{VaultAccessEvent, VaultEventPublisher};
 
-/// MED-011 対応: tenant_id をアクセスログに記録するために追加。
+/// MED-011 対応: `tenant_id` をアクセスログに記録するために追加。
 #[derive(Debug, Clone)]
 pub struct DeleteSecretInput {
     pub path: String,

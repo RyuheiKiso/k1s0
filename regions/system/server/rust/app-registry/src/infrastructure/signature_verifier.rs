@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use std::io::Write;
 
-/// CosignVerifier はコンテナイメージやバイナリの Cosign 署名検証を行うトレイト。
+/// `CosignVerifier` はコンテナイメージやバイナリの Cosign 署名検証を行うトレイト。
 /// STATIC-CRITICAL-002: サプライチェーン攻撃対策として、バージョン登録時に署名を検証する。
 #[async_trait]
 pub trait CosignVerifier: Send + Sync {
-    /// アーティファクト識別子（checksum_sha256 等）と署名を受け取り、署名の正当性を検証する。
+    /// `アーティファクト識別子（checksum_sha256` 等）と署名を受け取り、署名の正当性を検証する。
     ///
     /// # Arguments
     /// - `artifact`: 検証対象のアーティファクト識別子（例: SHA256 チェックサム）
@@ -18,7 +18,7 @@ pub trait CosignVerifier: Send + Sync {
     async fn verify(&self, artifact: &str, signature: &str) -> anyhow::Result<bool>;
 }
 
-/// StubCosignVerifier は開発・テスト用のスタブ実装。常に true を返す。
+/// `StubCosignVerifier` は開発・テスト用のスタブ実装。常に true を返す。
 /// 本番環境では使用しないこと。
 pub struct StubCosignVerifier;
 
@@ -29,7 +29,7 @@ impl CosignVerifier for StubCosignVerifier {
     }
 }
 
-/// SubprocessCosignVerifier は cosign CLI を通じてアーティファクト署名を検証する実装。
+/// `SubprocessCosignVerifier` は cosign CLI を通じてアーティファクト署名を検証する実装。
 /// 事前に cosign バイナリが PATH 上にインストールされている必要がある。
 ///
 /// 検証コマンド例:
@@ -45,6 +45,7 @@ pub struct SubprocessCosignVerifier {
 }
 
 impl SubprocessCosignVerifier {
+    #[must_use] 
     pub fn new(public_key_path: String) -> Self {
         Self { public_key_path }
     }
@@ -74,7 +75,7 @@ impl CosignVerifier for SubprocessCosignVerifier {
             ])
             .output()
             .await
-            .map_err(|e| anyhow::anyhow!("cosign コマンドの実行に失敗しました: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("cosign コマンドの実行に失敗しました: {e}"))?;
 
         // sig_file はここで Drop され、一時ファイルが確実に削除される
 
@@ -93,16 +94,16 @@ impl CosignVerifier for SubprocessCosignVerifier {
 }
 
 /// 署名文字列を安全な一時ファイルに書き込む。
-/// tempfile::Builder を使用してアトミックにファイルを作成し、TOCTOU 脆弱性を防止する。
-/// NamedTempFile は Drop 時に自動的に削除されるため、手動クリーンアップが不要になる。
+/// `tempfile::Builder` を使用してアトミックにファイルを作成し、TOCTOU 脆弱性を防止する。
+/// `NamedTempFile` は Drop 時に自動的に削除されるため、手動クリーンアップが不要になる。
 fn create_signature_tempfile(signature: &str) -> anyhow::Result<tempfile::NamedTempFile> {
     let mut file = tempfile::Builder::new()
         .prefix("cosign-sig-")
         .suffix(".sig")
         .tempfile()
-        .map_err(|e| anyhow::anyhow!("一時ファイルの作成に失敗しました: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("一時ファイルの作成に失敗しました: {e}"))?;
     file.write_all(signature.as_bytes())
-        .map_err(|e| anyhow::anyhow!("署名の一時ファイル書き込みに失敗しました: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("署名の一時ファイル書き込みに失敗しました: {e}"))?;
     Ok(file)
 }
 

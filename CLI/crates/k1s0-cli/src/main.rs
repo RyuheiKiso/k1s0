@@ -183,12 +183,18 @@ fn main() {
             Commands::ConfigTypes => commands::generate_config_types::run(),
             Commands::Navigation => commands::generate_navigation::run(),
             Commands::Events => commands::generate_events::run(),
-            Commands::Validate { file, validate_type } => {
-                commands::validate::run_with_args(file, validate_type)
-            }
+            Commands::Validate {
+                file,
+                validate_type,
+            } => commands::validate::run_with_args(file, validate_type),
             // MED-008/HIGH-008 監査対応: --scope 等のフラグが指定された場合、または非インタラクティブモードの場合は
             // 対話プロンプトをスキップして直接実行する。フラグなし TTY 環境では従来の対話フローを使用する。
-            Commands::Deps { scope, tier, output, output_path } => {
+            Commands::Deps {
+                scope,
+                tier,
+                output,
+                output_path,
+            } => {
                 if non_interactive || scope.is_some() || output.is_some() {
                     commands::deps::run_non_interactive(scope, tier, output, output_path)
                 } else {

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-/// EventBus の設定。
+/// `EventBus` の設定。
 #[derive(Debug, Clone)]
 pub struct EventBusConfig {
     buffer_size: usize,
@@ -8,8 +8,9 @@ pub struct EventBusConfig {
 }
 
 impl EventBusConfig {
-    /// デフォルト設定で新しい EventBusConfig を生成する。
-    /// buffer_size: 1024, handler_timeout: 30秒
+    /// デフォルト設定で新しい `EventBusConfig` を生成する。
+    /// `buffer_size`: 1024, `handler_timeout`: 30秒
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             buffer_size: 1024,
@@ -18,23 +19,27 @@ impl EventBusConfig {
     }
 
     /// バッファサイズを設定する（ビルダーパターン）。
+    #[must_use] 
     pub fn buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = size;
         self
     }
 
     /// ハンドラータイムアウトを設定する（ビルダーパターン）。
+    #[must_use] 
     pub fn handler_timeout(mut self, timeout: Duration) -> Self {
         self.handler_timeout = timeout;
         self
     }
 
     /// 現在のバッファサイズを取得する。
+    #[must_use] 
     pub fn get_buffer_size(&self) -> usize {
         self.buffer_size
     }
 
     /// 現在のハンドラータイムアウトを取得する。
+    #[must_use] 
     pub fn get_handler_timeout(&self) -> Duration {
         self.handler_timeout
     }

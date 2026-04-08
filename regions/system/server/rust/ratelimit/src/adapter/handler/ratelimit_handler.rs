@@ -11,7 +11,7 @@ use uuid::Uuid;
 use super::{AppState, ErrorDetail, ErrorResponse};
 
 /// JWT クレームからテナントIDを文字列として抽出するヘルパー。
-/// クレームが存在しない場合、または tenant_id が無効な UUID の場合は 401 を返す。
+/// クレームが存在しない場合、または `tenant_id` が無効な UUID の場合は 401 を返す。
 fn extract_tenant_id_str(
     claims: &Option<Extension<k1s0_auth::Claims>>,
 ) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
@@ -67,12 +67,9 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut overall_ok = true;
 
     if let Some(ref pool) = state.db_pool {
-        match sqlx::query("SELECT 1").execute(pool).await {
-            Ok(_) => db_status = "ok",
-            Err(_) => {
-                db_status = "error";
-                overall_ok = false;
-            }
+        if let Ok(_) = sqlx::query("SELECT 1").execute(pool).await { db_status = "ok" } else {
+            db_status = "error";
+            overall_ok = false;
         }
     }
 
@@ -133,8 +130,8 @@ pub struct CheckRateLimitResponse {
     pub reason: String,
 }
 
-/// MED-019 監査対応: parse_window_secs を Result 返却に変更。
-/// 以前は unwrap_or(60) でサイレントにデフォルト値を返していたが、
+/// MED-019 監査対応: `parse_window_secs` を Result 返却に変更。
+/// 以前は `unwrap_or(60)` でサイレントにデフォルト値を返していたが、
 /// 不正なフォーマット（例: "abc", "60x"）は 400 Bad Request として返すべき。
 /// None の場合はデフォルト値 60 秒を返す（省略可能フィールドのため）。
 fn parse_window_secs(
@@ -430,30 +427,27 @@ pub async fn get_rule(
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    match state.get_uc.execute(&id, &tenant_id).await {
-        Ok(rule) => (
-            StatusCode::OK,
-            Json(RuleResponse {
-                id: rule.id.to_string(),
-                name: rule.name,
-                scope: rule.scope,
-                identifier_pattern: rule.identifier_pattern,
-                limit: rule.limit,
-                window_seconds: rule.window_seconds,
-                algorithm: rule.algorithm.as_str().to_string(),
-                enabled: rule.enabled,
-                created_at: rule.created_at.to_rfc3339(),
-                updated_at: rule.updated_at.to_rfc3339(),
-            }),
-        )
-            .into_response(),
-        Err(_) => {
-            let err = ErrorResponse::new(
-                "SYS_RATELIMIT_RULE_NOT_FOUND",
-                "The specified rule was not found",
-            );
-            (StatusCode::NOT_FOUND, Json(err)).into_response()
-        }
+    if let Ok(rule) = state.get_uc.execute(&id, &tenant_id).await { (
+        StatusCode::OK,
+        Json(RuleResponse {
+            id: rule.id.to_string(),
+            name: rule.name,
+            scope: rule.scope,
+            identifier_pattern: rule.identifier_pattern,
+            limit: rule.limit,
+            window_seconds: rule.window_seconds,
+            algorithm: rule.algorithm.as_str().to_string(),
+            enabled: rule.enabled,
+            created_at: rule.created_at.to_rfc3339(),
+            updated_at: rule.updated_at.to_rfc3339(),
+        }),
+    )
+        .into_response() } else {
+        let err = ErrorResponse::new(
+            "SYS_RATELIMIT_RULE_NOT_FOUND",
+            "The specified rule was not found",
+        );
+        (StatusCode::NOT_FOUND, Json(err)).into_response()
     }
 }
 
@@ -671,10 +665,10 @@ pub async fn delete_rule(
     };
     match state.delete_uc.execute(&id, &tenant_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
-        Err(DeleteRuleError::NotFound(_)) | Err(DeleteRuleError::InvalidRuleId(_)) => {
+        Err(DeleteRuleError::NotFound(_) | DeleteRuleError::InvalidRuleId(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RATELIMIT_RULE_NOT_FOUND",
-                &format!("rule not found: {}", id),
+                &format!("rule not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -706,12 +700,9 @@ pub async fn get_usage(
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    let rule_id = match params.get("rule_id") {
-        Some(id) => id.clone(),
-        None => {
-            let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", "rule_id is required");
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        }
+    let rule_id = if let Some(id) = params.get("rule_id") { id.clone() } else {
+        let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", "rule_id is required");
+        return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     };
 
     match state.get_usage_uc.execute(&tenant_id, &rule_id).await {
@@ -730,10 +721,10 @@ pub async fn get_usage(
             }),
         )
             .into_response(),
-        Err(GetUsageError::NotFound(_)) | Err(GetUsageError::InvalidRuleId(_)) => {
+        Err(GetUsageError::NotFound(_) | GetUsageError::InvalidRuleId(_)) => {
             let err = ErrorResponse::new(
                 "SYS_RATELIMIT_RULE_NOT_FOUND",
-                &format!("rule not found: {}", rule_id),
+                &format!("rule not found: {rule_id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }

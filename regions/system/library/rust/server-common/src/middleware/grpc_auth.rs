@@ -85,28 +85,22 @@ where
             }
 
             if let Some(auth_state) = auth_state {
-                let token = match extract_bearer_token(&req) {
-                    Some(token) => token,
-                    None => {
-                        return Ok(unauthenticated_response(
-                            "Authorization metadata with Bearer token is required",
-                        ));
-                    }
+                // HIGH-001 監査対応: let...else パターンに書き換えてネストを削減する
+                let Some(token) = extract_bearer_token(&req) else {
+                    return Ok(unauthenticated_response(
+                        "Authorization metadata with Bearer token is required",
+                    ));
                 };
 
-                let claims = match auth_state.verifier.verify_token(&token).await {
-                    Ok(claims) => claims,
-                    Err(_) => {
-                        return Ok(unauthenticated_response("Token validation failed"));
-                    }
+                let Ok(claims) = auth_state.verifier.verify_token(&token).await else {
+                    return Ok(unauthenticated_response("Token validation failed"));
                 };
 
                 let method = grpc_method_name(&path);
                 let action = action_mapper(method);
                 if !check_permission(tier, claims.realm_roles(), action) {
                     return Ok(permission_denied_response(&format!(
-                        "Insufficient permissions: action '{}' is not allowed for gRPC method '{}'.",
-                        action, path
+                        "Insufficient permissions: action '{action}' is not allowed for gRPC method '{path}'."
                     )));
                 }
 
@@ -119,11 +113,12 @@ where
 }
 
 fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
-    let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
-    let auth_str = auth_header.to_str().ok()?;
+    // HIGH-001 監査対応: const は文より前に定義する
     // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（lessons.md HIGH-007 対応）
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
+    let auth_str = auth_header.to_str().ok()?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }

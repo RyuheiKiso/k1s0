@@ -35,7 +35,7 @@ impl SearchUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから検索を実行する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してから検索を実行する。
     pub async fn execute(&self, input: &SearchInput) -> Result<SearchResult, SearchError> {
         let index = self
             .repo

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::dependency::Dependency;
 use crate::domain::repository::DependencyRepository;
 
-/// ManageDependenciesError は依存関係管理に関するエラーを表す。
+/// `ManageDependenciesError` は依存関係管理に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum ManageDependenciesError {
     #[error("dependency cycle detected involving service: {0}")]
@@ -16,7 +16,7 @@ pub enum ManageDependenciesError {
     Internal(String),
 }
 
-/// ManageDependenciesUseCase は依存関係管理ユースケース。
+/// `ManageDependenciesUseCase` は依存関係管理ユースケース。
 pub struct ManageDependenciesUseCase {
     dep_repo: Arc<dyn DependencyRepository>,
 }

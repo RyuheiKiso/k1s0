@@ -39,10 +39,11 @@ impl RateLimitDomainService {
     }
 
     /// 有効なリミットとウィンドウ秒数を決定する。
-    /// LOW-11 対応: ルールが未設定の場合、外部リクエストの window_secs を使用せずに
-    /// サーバー側の default_window_seconds を採用する。
+    /// LOW-11 対応: ルールが未設定の場合、外部リクエストの `window_secs` を使用せずに
+    /// サーバー側の `default_window_seconds` を採用する。
     /// これにより、クライアントが任意のウィンドウを指定してレートリミットを迂回することを防ぐ。
-    /// ルールが設定されている場合は、ルール側の window_seconds が常に優先される。
+    /// ルールが設定されている場合は、ルール側の `window_seconds` が常に優先される。
+    #[must_use] 
     pub fn effective_limit_and_window(
         matched_rule: Option<&RateLimitRule>,
         default_limit: u32,
@@ -50,18 +51,16 @@ impl RateLimitDomainService {
         _requested_window_seconds: i64,
     ) -> (u32, u32) {
         matched_rule
-            .map(|rule| (rule.limit, rule.window_seconds))
-            // LOW-11: ルール未設定時はサーバー側のデフォルト値のみを使用し、
-            // クライアント指定の window_secs は無視する（セキュリティ上の最小権限原則）
-            .unwrap_or((default_limit, default_window_seconds))
+            .map_or((default_limit, default_window_seconds), |rule| (rule.limit, rule.window_seconds))
     }
 
+    #[must_use] 
     pub fn resolve_algorithm(matched_rule: Option<&RateLimitRule>) -> Algorithm {
         matched_rule
-            .map(|rule| rule.algorithm.clone())
-            .unwrap_or(Algorithm::TokenBucket)
+            .map_or(Algorithm::TokenBucket, |rule| rule.algorithm.clone())
     }
 
+    #[must_use] 
     pub fn fail_open_decision(
         scope: &str,
         identifier: &str,

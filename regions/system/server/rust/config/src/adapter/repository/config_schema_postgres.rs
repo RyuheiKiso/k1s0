@@ -6,13 +6,14 @@ use sqlx::{PgPool, Row};
 use crate::domain::entity::config_schema::ConfigSchema;
 use crate::domain::repository::config_schema_repository::ConfigSchemaRepository;
 
-/// ConfigSchemaPostgresRepository は ConfigSchemaRepository の PostgreSQL 実装。
+/// `ConfigSchemaPostgresRepository` は `ConfigSchemaRepository` の `PostgreSQL` 実装。
 pub struct ConfigSchemaPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl ConfigSchemaPostgresRepository {
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -21,8 +22,8 @@ impl ConfigSchemaPostgresRepository {
     }
 }
 
-/// PostgreSQL の行から ConfigSchema を構築するヘルパー。
-/// CRITICAL-RUST-001 監査対応: tenant_id を SELECT カラムから取得してマッピングする。
+/// `PostgreSQL` の行から `ConfigSchema` を構築するヘルパー。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を SELECT カラムから取得してマッピングする。
 fn row_to_config_schema(row: sqlx::postgres::PgRow) -> Result<ConfigSchema, sqlx::Error> {
     Ok(ConfigSchema {
         id: row.try_get("id")?,
@@ -53,12 +54,12 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
 
         let start = std::time::Instant::now();
         let row = sqlx::query(
-            r#"
+            r"
             SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             WHERE service_name = $1
-            "#,
+            ",
         )
         .bind(service_name)
         .fetch_optional(&self.pool)
@@ -91,14 +92,14 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
 
         let start = std::time::Instant::now();
         let row = sqlx::query(
-            r#"
+            r"
             SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             WHERE $1 LIKE namespace_prefix || '%'
             ORDER BY LENGTH(namespace_prefix) DESC
             LIMIT 1
-            "#,
+            ",
         )
         .bind(namespace)
         .fetch_optional(&self.pool)
@@ -127,12 +128,12 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
 
         let start = std::time::Instant::now();
         let rows = sqlx::query(
-            r#"
+            r"
             SELECT id, tenant_id, service_name, namespace_prefix, schema_json,
                    updated_by, created_at, updated_at
             FROM config.config_schemas
             ORDER BY service_name ASC
-            "#,
+            ",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -156,7 +157,7 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
 
         let start = std::time::Instant::now();
         let row = sqlx::query(
-            r#"
+            r"
             INSERT INTO config.config_schemas (id, tenant_id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (service_name) DO UPDATE
@@ -165,7 +166,7 @@ impl ConfigSchemaRepository for ConfigSchemaPostgresRepository {
                 updated_by = EXCLUDED.updated_by,
                 updated_at = EXCLUDED.updated_at
             RETURNING id, tenant_id, service_name, namespace_prefix, schema_json, updated_by, created_at, updated_at
-            "#,
+            ",
         )
         .bind(schema.id)
         .bind(&schema.tenant_id)

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::workflow::WorkflowDefinition;
 use crate::domain::repository::WorkflowRepository;
 
-/// RegisterWorkflowUseCase はワークフロー登録を担う。
+/// `RegisterWorkflowUseCase` はワークフロー登録を担う。
 pub struct RegisterWorkflowUseCase {
     workflow_repo: Arc<dyn WorkflowRepository>,
 }

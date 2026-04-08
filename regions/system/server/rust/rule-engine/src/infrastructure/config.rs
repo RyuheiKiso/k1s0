@@ -106,6 +106,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -120,7 +121,7 @@ impl DatabaseConfig {
     }
 }
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -130,7 +131,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -139,7 +140,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -162,7 +163,7 @@ pub struct KafkaConfig {
     pub topic: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()

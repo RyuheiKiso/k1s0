@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// RuleEngine ドメイン固有のエラー型。
+/// `RuleEngine` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum RuleEngineError {
     /// ルールが見つからない
@@ -28,7 +28,7 @@ pub enum RuleEngineError {
     Internal(String),
 }
 
-/// RuleEngineError から ServiceError への変換実装
+/// `RuleEngineError` から `ServiceError` への変換実装
 impl From<RuleEngineError> for ServiceError {
     fn from(err: RuleEngineError) -> Self {
         match err {

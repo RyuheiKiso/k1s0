@@ -9,7 +9,15 @@ use crate::domain::model::{FeatureFlag, FlagRule, FlagVariant};
 use crate::domain::port::FeatureFlagPort;
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -34,7 +42,7 @@ pub struct FeatureFlagGrpcClient {
     client: FeatureFlagServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
@@ -60,8 +68,8 @@ impl FeatureFlagGrpcClient {
     }
 
     /// proto Operator i32 値を文字列表現に変換する。
-    /// proto enum Operator { OPERATOR_UNSPECIFIED = 0; OPERATOR_EQ = 1; OPERATOR_NE = 2;
-    ///   OPERATOR_CONTAINS = 3; OPERATOR_GT = 4; OPERATOR_LT = 5; }
+    /// proto enum Operator { `OPERATOR_UNSPECIFIED` = 0; `OPERATOR_EQ` = 1; `OPERATOR_NE` = 2;
+    ///   `OPERATOR_CONTAINS` = 3; `OPERATOR_GT` = 4; `OPERATOR_LT` = 5; }
     fn operator_to_string(op: i32) -> String {
         match op {
             1 => "EQ".to_string(),
@@ -73,9 +81,9 @@ impl FeatureFlagGrpcClient {
         }
     }
 
-    /// proto ProtoFeatureFlag をドメインモデル FeatureFlag に変換する。
-    /// CRIT-007 対応: proto に存在しない name/rollout_percentage/target_environments を除去し、
-    /// variants/rules/created_at/updated_at を直接マッピングする。
+    /// proto `ProtoFeatureFlag` をドメインモデル `FeatureFlag` に変換する。
+    /// CRIT-007 対応: proto に存在しない `name/rollout_percentage/target_environments` を除去し、
+    /// `variants/rules/created_at/updated_at` を直接マッピングする。
     fn to_domain_flag(flag: ProtoFeatureFlag) -> FeatureFlag {
         // proto FlagVariant をドメイン FlagVariant に変換する
         let variants = flag
@@ -117,7 +125,7 @@ impl FeatureFlagGrpcClient {
     }
 
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -144,7 +152,7 @@ impl FeatureFlagGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("featureflag gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("featureflag gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 
@@ -163,7 +171,7 @@ impl FeatureFlagGrpcClient {
                 Ok(Some(Self::to_domain_flag(flag)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
-            Err(e) => Err(anyhow::anyhow!("FeatureFlagService.GetFlag failed: {}", e)),
+            Err(e) => Err(anyhow::anyhow!("FeatureFlagService.GetFlag failed: {e}")),
         }
     }
 
@@ -178,7 +186,7 @@ impl FeatureFlagGrpcClient {
                 proto::k1s0::system::featureflag::v1::ListFlagsRequest::default(),
             ))
             .await
-            .map_err(|e| anyhow::anyhow!("FeatureFlagService.ListFlags failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("FeatureFlagService.ListFlags failed: {e}"))?
             .into_inner();
 
         let mut flags: Vec<FeatureFlag> = resp
@@ -201,7 +209,7 @@ impl FeatureFlagGrpcClient {
         Ok(flags)
     }
 
-    /// DataLoader 向け: 複数キーをまとめて取得
+    /// `DataLoader` 向け: 複数キーをまとめて取得
     pub async fn list_flags_by_keys(&self, keys: &[String]) -> anyhow::Result<Vec<FeatureFlag>> {
         if keys.is_empty() {
             return Ok(vec![]);
@@ -216,7 +224,7 @@ impl FeatureFlagGrpcClient {
     }
 
     /// フラグを更新する。
-    /// CRIT-007 対応: rollout_percentage/target_environments の抽象化を廃止し、
+    /// CRIT-007 対応: `rollout_percentage/target_environments` の抽象化を廃止し、
     /// proto と整合する variants/rules を直接受け付ける。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn set_flag(
@@ -240,7 +248,7 @@ impl FeatureFlagGrpcClient {
             .clone()
             .update_flag(request)
             .await
-            .map_err(|e| anyhow::anyhow!("FeatureFlagService.UpdateFlag failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("FeatureFlagService.UpdateFlag failed: {e}"))?
             .into_inner()
             .flag
             .ok_or_else(|| anyhow::anyhow!("empty flag in response"))?;
@@ -248,8 +256,8 @@ impl FeatureFlagGrpcClient {
         Ok(Self::to_domain_flag(flag))
     }
 
-    /// WatchFeatureFlag Server-Side Streaming を購読し、変更イベントを FeatureFlag として返す。
-    /// .expect() によるパニックを排除し、接続失敗時は anyhow::Error として伝播する。
+    /// `WatchFeatureFlag` Server-Side Streaming を購読し、変更イベントを `FeatureFlag` として返す。
+    /// .`expect()` によるパニックを排除し、接続失敗時は `anyhow::Error` として伝播する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn watch_feature_flag(
         &self,

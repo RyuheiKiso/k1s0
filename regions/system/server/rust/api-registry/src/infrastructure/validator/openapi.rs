@@ -2,7 +2,7 @@ use super::{SchemaValidator, ValidationError};
 use async_trait::async_trait;
 use tokio::process::Command;
 
-/// OpenAPI validator backed by `openapi-spec-validator` subprocess.
+/// `OpenAPI` validator backed by `openapi-spec-validator` subprocess.
 ///
 /// If the executable is missing or times out, it falls back to YAML parsing.
 pub struct OpenApiSubprocessValidator {
@@ -11,6 +11,7 @@ pub struct OpenApiSubprocessValidator {
 }
 
 impl OpenApiSubprocessValidator {
+    #[must_use] 
     pub fn new(validator_path: String, timeout_secs: u64) -> Self {
         Self {
             validator_path,
@@ -62,7 +63,7 @@ fn validate_yaml(content: &str) -> anyhow::Result<Vec<ValidationError>> {
         Ok(_) => Ok(vec![]),
         Err(e) => Ok(vec![ValidationError {
             field: "content".to_string(),
-            message: format!("YAML parse error: {}", e),
+            message: format!("YAML parse error: {e}"),
         }]),
     }
 }

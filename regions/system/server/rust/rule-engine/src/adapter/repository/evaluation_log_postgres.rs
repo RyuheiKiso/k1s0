@@ -13,6 +13,7 @@ pub struct EvaluationLogPostgresRepository {
 }
 
 impl EvaluationLogPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -72,8 +73,8 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
     ) -> anyhow::Result<(Vec<EvaluationLog>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // Build dynamic WHERE clauses with separate parameter indices for
         // the data query ($1=limit, $2=offset, then $3..) and the count query ($1..).
@@ -179,7 +180,7 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
                     use sha2::{Digest, Sha256};
                     let bytes = serde_json::to_vec(&r.input).unwrap_or_default();
                     let hash = Sha256::digest(&bytes);
-                    format!("{:x}", hash)
+                    format!("{hash:x}")
                 };
                 EvaluationLog {
                     id: r.id,

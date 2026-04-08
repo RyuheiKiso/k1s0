@@ -37,6 +37,7 @@ pub struct InMemoryFileClient {
 }
 
 impl InMemoryFileClient {
+    #[must_use] 
     pub fn new(config: FileClientConfig) -> Self {
         Self {
             files: tokio::sync::Mutex::new(std::collections::HashMap::new()),
@@ -72,7 +73,7 @@ impl FileClient for InMemoryFileClient {
         };
         self.files.lock().await.insert(path.to_string(), meta);
         Ok(PresignedUrl {
-            url: format!("https://storage.example.com/upload/{}", path),
+            url: format!("https://storage.example.com/upload/{path}"),
             method: "PUT".to_string(),
             expires_at,
             headers: std::collections::HashMap::new(),
@@ -93,7 +94,7 @@ impl FileClient for InMemoryFileClient {
             .map_err(|e| FileClientError::InvalidDuration(e.to_string()))?;
         let expires_at = chrono::Utc::now() + chrono_duration;
         Ok(PresignedUrl {
-            url: format!("https://storage.example.com/download/{}", path),
+            url: format!("https://storage.example.com/download/{path}"),
             method: "GET".to_string(),
             expires_at,
             headers: std::collections::HashMap::new(),
@@ -203,8 +204,7 @@ impl ServerFileClient {
             401 | 403 => Err(FileClientError::Unauthorized(body)),
             404 => Err(FileClientError::NotFound(body)),
             _ => Err(FileClientError::Internal(format!(
-                "HTTP {}: {}",
-                status, body
+                "HTTP {status}: {body}"
             ))),
         }
     }
@@ -277,7 +277,7 @@ impl FileClient for ServerFileClient {
         let encoded = urlencoding_simple(path);
         let resp = self
             .http
-            .delete(self.url(&format!("/api/v1/files/{}", encoded)))
+            .delete(self.url(&format!("/api/v1/files/{encoded}")))
             .send()
             .await
             .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
@@ -289,7 +289,7 @@ impl FileClient for ServerFileClient {
         let encoded = urlencoding_simple(path);
         let resp = self
             .http
-            .get(self.url(&format!("/api/v1/files/{}/metadata", encoded)))
+            .get(self.url(&format!("/api/v1/files/{encoded}/metadata")))
             .send()
             .await
             .map_err(|e| FileClientError::ConnectionError(e.to_string()))?;
@@ -341,7 +341,7 @@ fn urlencoding_simple(path: &str) -> String {
                     {
                         vec![b as char]
                     } else {
-                        format!("%{:02X}", b).chars().collect::<Vec<_>>()
+                        format!("%{b:02X}").chars().collect::<Vec<_>>()
                     }
                 })
                 .collect::<String>()

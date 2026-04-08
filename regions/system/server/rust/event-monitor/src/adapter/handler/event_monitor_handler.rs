@@ -150,7 +150,7 @@ pub async fn trace_by_correlation(
         Err(crate::usecase::trace_by_correlation::TraceByCorrelationError::NotFound(id)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_CORRELATION_NOT_FOUND",
-                &format!("no events found for correlation_id: {}", id),
+                &format!("no events found for correlation_id: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -214,7 +214,7 @@ pub async fn get_flow(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
         Err(crate::usecase::get_flow::GetFlowError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {}", id),
+                &format!("flow not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -263,7 +263,7 @@ pub async fn create_flow(
         Err(crate::usecase::create_flow::CreateFlowError::AlreadyExists(name)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_ALREADY_EXISTS",
-                &format!("flow already exists: {}", name),
+                &format!("flow already exists: {name}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -307,7 +307,7 @@ pub async fn update_flow(
         Err(crate::usecase::update_flow::UpdateFlowError::NotFound(id)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {}", id),
+                &format!("flow not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -331,7 +331,7 @@ pub async fn delete_flow(State(state): State<AppState>, Path(id): Path<Uuid>) ->
         Err(crate::usecase::delete_flow::DeleteFlowError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {}", id),
+                &format!("flow not found: {id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -401,7 +401,7 @@ pub async fn get_flow_instance(
         Err(crate::usecase::get_flow_instance::GetFlowInstanceError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_NOT_FOUND",
-                &format!("instance not found: {}", instance_id),
+                &format!("instance not found: {instance_id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -432,15 +432,14 @@ pub async fn get_flow_kpi(
                 .kpi
                 .bottleneck_step
                 .as_ref()
-                .map(|b| {
+                .map_or(serde_json::Value::Null, |b| {
                     serde_json::json!({
                         "event_type": b.event_type,
                         "step_index": b.step_index,
                         "avg_duration_seconds": b.avg_duration_seconds,
                         "timeout_rate": b.timeout_rate
                     })
-                })
-                .unwrap_or(serde_json::Value::Null);
+                });
 
             (
                 StatusCode::OK,
@@ -475,7 +474,7 @@ pub async fn get_flow_kpi(
         Err(crate::usecase::get_flow_kpi::GetFlowKpiError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {}", flow_id),
+                &format!("flow not found: {flow_id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -591,7 +590,7 @@ pub async fn get_slo_burn_rate(
         Err(crate::usecase::get_slo_burn_rate::GetSloBurnRateError::NotFound(_)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {}", flow_id),
+                &format!("flow not found: {flow_id}"),
             );
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
@@ -692,7 +691,7 @@ pub async fn execute_replay(
         Err(crate::usecase::execute_replay::ExecuteReplayError::ReplayInProgress(ids)) => {
             let err = ErrorResponse::new(
                 "SYS_EVMON_REPLAY_IN_PROGRESS",
-                &format!("replay already in progress for: {}", ids),
+                &format!("replay already in progress for: {ids}"),
             );
             (StatusCode::CONFLICT, Json(err)).into_response()
         }
@@ -812,6 +811,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

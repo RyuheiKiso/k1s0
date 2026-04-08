@@ -9,6 +9,7 @@ pub struct DisplayConfigPostgresRepository {
 }
 
 impl DisplayConfigPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -24,7 +25,7 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
         .bind(table_id)
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DisplayConfig>> {
@@ -35,16 +36,16 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn create(&self, config: &DisplayConfig) -> anyhow::Result<DisplayConfig> {
         let row = sqlx::query_as::<_, DisplayConfigRow>(
-            r#"INSERT INTO master_maintenance.display_configs
+            r"INSERT INTO master_maintenance.display_configs
                (id, table_id, config_type, config_json, is_default, created_by)
                VALUES ($1, $2, $3, $4, $5, $6)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at"#,
+               RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at",
         )
         .bind(config.id)
         .bind(config.table_id)
@@ -59,13 +60,13 @@ impl DisplayConfigRepository for DisplayConfigPostgresRepository {
 
     async fn update(&self, id: Uuid, config: &DisplayConfig) -> anyhow::Result<DisplayConfig> {
         let row = sqlx::query_as::<_, DisplayConfigRow>(
-            r#"UPDATE master_maintenance.display_configs SET
+            r"UPDATE master_maintenance.display_configs SET
                config_type = $2,
                config_json = $3,
                is_default = $4,
                updated_at = now()
                -- 明示的カラム指定によるクエリ安全性の確保
-               WHERE id = $1 RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at"#,
+               WHERE id = $1 RETURNING id, table_id, config_type, config_json, is_default, created_by, created_at, updated_at",
         )
         .bind(id)
         .bind(&config.config_type)

@@ -14,8 +14,10 @@ class _MockHttpClientAdapter implements HttpClientAdapter {
   final String Function(RequestOptions) responseBodyFn;
   final int statusCode;
 
+  // LOW-004 監査対応: statusCode をコンストラクタで初期化し、未初期化フィールドによる実行時エラーを防ぐ
   _MockHttpClientAdapter({
     required this.responseBodyFn,
+    this.statusCode = 200, // ignore: unused_element_parameter
   });
 
   @override

@@ -9,6 +9,7 @@ pub struct ImportJobPostgresRepository {
 }
 
 impl ImportJobPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -24,17 +25,17 @@ impl ImportJobRepository for ImportJobPostgresRepository {
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn create(&self, job: &ImportJob) -> anyhow::Result<ImportJob> {
         let row = sqlx::query_as::<_, ImportJobRow>(
-            r#"INSERT INTO master_maintenance.import_jobs
+            r"INSERT INTO master_maintenance.import_jobs
                (id, table_id, file_name, status, total_rows, processed_rows, error_rows,
                 error_details, started_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                -- 明示的カラム指定によるクエリ安全性の確保
-               RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at"#,
+               RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at",
         )
         .bind(job.id)
         .bind(job.table_id)
@@ -52,14 +53,14 @@ impl ImportJobRepository for ImportJobPostgresRepository {
 
     async fn update(&self, id: Uuid, job: &ImportJob) -> anyhow::Result<ImportJob> {
         let row = sqlx::query_as::<_, ImportJobRow>(
-            r#"UPDATE master_maintenance.import_jobs SET
+            r"UPDATE master_maintenance.import_jobs SET
                status = $2,
                processed_rows = $3,
                error_rows = $4,
                error_details = $5,
                completed_at = $6
                -- 明示的カラム指定によるクエリ安全性の確保
-               WHERE id = $1 RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at"#,
+               WHERE id = $1 RETURNING id, table_id, file_name, status, total_rows, processed_rows, error_rows, error_details, started_by, started_at, completed_at",
         )
         .bind(id)
         .bind(&job.status)

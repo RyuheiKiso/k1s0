@@ -12,6 +12,7 @@ pub struct SchemaPostgresRepository {
 }
 
 impl SchemaPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -44,60 +45,96 @@ impl From<ApiSchemaRow> for ApiSchema {
 
 #[async_trait]
 impl ApiSchemaRepository for SchemaPostgresRepository {
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<ApiSchema>> {
+    // テナントスコープで set_config を設定した後にスキーマ名で検索する。
+    // defense-in-depth として WHERE 句にも tenant_id 条件を追加する。
+    async fn find_by_name(&self, tenant_id: &str, name: &str) -> anyhow::Result<Option<ApiSchema>> {
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
         let row: Option<ApiSchemaRow> = sqlx::query_as(
             "SELECT name, description, schema_type, latest_version, version_count, created_at, updated_at \
-             FROM apiregistry.api_schemas WHERE name = $1",
+             FROM apiregistry.api_schemas WHERE tenant_id = $1 AND name = $2",
         )
+        .bind(tenant_id)
         .bind(name)
-        .fetch_optional(self.pool.as_ref())
+        .fetch_optional(&mut *tx)
         .await?;
+        tx.commit().await?;
         Ok(row.map(Into::into))
     }
 
+    // テナントスコープで set_config を設定した後にスキーマ一覧を取得する。
     async fn find_all(
         &self,
+        tenant_id: &str,
         schema_type: Option<String>,
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<ApiSchema>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+
+        // defense-in-depth として WHERE 句にも tenant_id を追加する
         let rows: Vec<ApiSchemaRow> = if let Some(ref st) = schema_type {
             sqlx::query_as(
                 "SELECT name, description, schema_type, latest_version, version_count, created_at, updated_at \
-                 FROM apiregistry.api_schemas WHERE schema_type = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+                 FROM apiregistry.api_schemas WHERE tenant_id = $1 AND schema_type = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4",
             )
+            .bind(tenant_id)
             .bind(st)
             .bind(limit)
             .bind(offset)
-            .fetch_all(self.pool.as_ref())
+            .fetch_all(&mut *tx)
             .await?
         } else {
             sqlx::query_as(
                 "SELECT name, description, schema_type, latest_version, version_count, created_at, updated_at \
-                 FROM apiregistry.api_schemas ORDER BY created_at DESC LIMIT $1 OFFSET $2",
+                 FROM apiregistry.api_schemas WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
             )
+            .bind(tenant_id)
             .bind(limit)
             .bind(offset)
-            .fetch_all(self.pool.as_ref())
+            .fetch_all(&mut *tx)
             .await?
         };
 
-        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM apiregistry.api_schemas")
-            .fetch_one(self.pool.as_ref())
-            .await?;
+        // カウントクエリにも tenant_id フィルタを適用する
+        let count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM apiregistry.api_schemas WHERE tenant_id = $1",
+        )
+        .bind(tenant_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
+        tx.commit().await?;
         Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
     }
 
-    async fn create(&self, schema: &ApiSchema) -> anyhow::Result<()> {
+    // テナントスコープで set_config を設定した後にスキーマを作成する。
+    async fn create(&self, tenant_id: &str, schema: &ApiSchema) -> anyhow::Result<()> {
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+        // tenant_id カラムにも挿入する
         sqlx::query(
             "INSERT INTO apiregistry.api_schemas \
-             (name, description, schema_type, latest_version, version_count, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+             (tenant_id, name, description, schema_type, latest_version, version_count, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
+        .bind(tenant_id)
         .bind(&schema.name)
         .bind(&schema.description)
         .bind(schema.schema_type.to_string())
@@ -105,24 +142,35 @@ impl ApiSchemaRepository for SchemaPostgresRepository {
         .bind(schema.version_count as i32)
         .bind(schema.created_at)
         .bind(schema.updated_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
         Ok(())
     }
 
-    async fn update(&self, schema: &ApiSchema) -> anyhow::Result<()> {
+    // テナントスコープで set_config を設定した後にスキーマを更新する。
+    async fn update(&self, tenant_id: &str, schema: &ApiSchema) -> anyhow::Result<()> {
+        // トランザクション内で RLS 用セッション変数を設定する
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
+            .bind(tenant_id)
+            .execute(&mut *tx)
+            .await?;
+        // WHERE 句に tenant_id を追加して defense-in-depth を実現する
         sqlx::query(
             "UPDATE apiregistry.api_schemas \
-             SET description = $2, latest_version = $3, version_count = $4, updated_at = $5 \
-             WHERE name = $1",
+             SET description = $3, latest_version = $4, version_count = $5, updated_at = $6 \
+             WHERE tenant_id = $1 AND name = $2",
         )
+        .bind(tenant_id)
         .bind(&schema.name)
         .bind(&schema.description)
         .bind(schema.latest_version as i32)
         .bind(schema.version_count as i32)
         .bind(schema.updated_at)
-        .execute(self.pool.as_ref())
+        .execute(&mut *tx)
         .await?;
+        tx.commit().await?;
         Ok(())
     }
 }

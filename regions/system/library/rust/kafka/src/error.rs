@@ -1,4 +1,4 @@
-/// KafkaError は Kafka 操作に関するエラーを表す。
+/// `KafkaError` は Kafka 操作に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum KafkaError {
     #[error("connection failed: {0}")]

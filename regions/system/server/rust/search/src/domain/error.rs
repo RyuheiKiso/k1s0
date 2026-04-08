@@ -28,7 +28,7 @@ pub enum SearchError {
     Internal(String),
 }
 
-/// SearchError から ServiceError への変換実装
+/// `SearchError` から `ServiceError` への変換実装
 impl From<SearchError> for ServiceError {
     fn from(err: SearchError) -> Self {
         match err {

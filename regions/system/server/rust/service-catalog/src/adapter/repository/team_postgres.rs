@@ -33,7 +33,7 @@ impl From<TeamRow> for Team {
     }
 }
 
-/// TeamPostgresRepository は PostgreSQL ベースのチームリポジトリ。
+/// `TeamPostgresRepository` は `PostgreSQL` ベースのチームリポジトリ。
 pub struct TeamPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -41,6 +41,7 @@ pub struct TeamPostgresRepository {
 
 impl TeamPostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -48,6 +49,7 @@ impl TeamPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -72,7 +74,7 @@ impl TeamRepository for TeamPostgresRepository {
             m.record_db_query_duration("list", "teams", start.elapsed().as_secs_f64());
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 
     async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<Team>> {
@@ -90,7 +92,7 @@ impl TeamRepository for TeamPostgresRepository {
             m.record_db_query_duration("find_by_id", "teams", start.elapsed().as_secs_f64());
         }
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn create(&self, team: &Team) -> anyhow::Result<Team> {

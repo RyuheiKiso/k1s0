@@ -25,6 +25,8 @@ type mockAuthOAuthClient struct {
 	exchangeCodeFn func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
 	// extractClaimsFn は ExtractClaims 呼び出しの振る舞いを定義する。
 	extractClaimsFn func(ctx context.Context, idToken string) (string, []string, error)
+	// extractFullClaimsFn は ExtractFullClaims 呼び出しの振る舞いを定義する（CRIT-002 監査対応）。
+	extractFullClaimsFn func(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
 	// logoutURLFn は LogoutURL 呼び出しの振る舞いを定義する。
 	logoutURLFn func(idTokenHint, postLogoutRedirectURI string) (string, error)
 	// discoveryCacheCleared は ClearDiscoveryCache が呼ばれたかどうかの記録フラグ。
@@ -66,6 +68,19 @@ func (m *mockAuthOAuthClient) LogoutURL(idTokenHint, postLogoutRedirectURI strin
 		return m.logoutURLFn(idTokenHint, postLogoutRedirectURI)
 	}
 	return "https://idp.example.com/logout?redirect=" + postLogoutRedirectURI, nil
+}
+
+// ExtractFullClaims は JWKS 署名検証済み ID トークンから IDTokenClaims 全体を返すモック実装。
+// CRIT-002 監査対応: AuthOAuthClient インターフェースの ExtractFullClaims メソッドを実装する。
+func (m *mockAuthOAuthClient) ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+	if m.extractFullClaimsFn != nil {
+		return m.extractFullClaimsFn(ctx, idToken)
+	}
+	return &oauth.IDTokenClaims{
+		Subject:  "default-subject",
+		Roles:    []string{"user"},
+		TenantID: "default-tenant",
+	}, nil
 }
 
 // ClearDiscoveryCache は OIDC discovery キャッシュクリアのモック実装。
@@ -886,18 +901,19 @@ func TestCheckSession_CSRFRefresh_SkippedWhenFresh(t *testing.T) {
 	}
 }
 
-// TestCheckSession_CSRFRefresh_SkippedForLegacySession は CSRFTokenCreatedAt=0 の旧形式セッションで
-// 再生成がスキップされることを検証する（H-003 後方互換性確認）。
-func TestCheckSession_CSRFRefresh_SkippedForLegacySession(t *testing.T) {
+// TestCheckSession_CSRFRefresh_LegacySessionGetsRegenerated は CSRFTokenCreatedAt=0 の旧形式セッションで
+// CSRF トークンが再生成されることを検証する。
+// MED-001 監査対応: 後方互換ガードを削除し、旧形式セッションも TTL 超過として再生成する。
+func TestCheckSession_CSRFRefresh_LegacySessionGetsRegenerated(t *testing.T) {
 	store := newMockSessionStoreForAuth()
 	uc := NewAuthUseCase(&mockAuthOAuthClient{}, store, store, 0)
 
-	// CSRFTokenCreatedAt=0 の旧形式セッション（後方互換性のためにスキップ）
+	// CSRFTokenCreatedAt=0 の旧形式セッション（MED-001 対応: 1970-01-01 起算で TTL 超過と判定される）
 	legacyCSRFToken := "legacy-csrf-token"
 	sessionID, err := store.Create(context.Background(), &session.SessionData{
 		AccessToken:        "access-token",
 		CSRFToken:          legacyCSRFToken,
-		CSRFTokenCreatedAt: 0, // 旧形式: 生成時刻未設定
+		CSRFTokenCreatedAt: 0, // 旧形式: 生成時刻未設定 → TTL 超過と判定され再生成される
 		ExpiresAt:          time.Now().Add(10 * time.Minute).Unix(),
 		Subject:            "user-3",
 	}, 30*time.Minute)
@@ -910,8 +926,11 @@ func TestCheckSession_CSRFRefresh_SkippedForLegacySession(t *testing.T) {
 		t.Fatalf("CheckSession は nil エラーを期待したが %v が返った", err)
 	}
 
-	// CSRFTokenCreatedAt=0 の場合は再生成をスキップし、元のトークンを返す
-	if out.CSRFToken != legacyCSRFToken {
-		t.Errorf("旧形式セッションの CSRF トークンが変更された: want %q, got %q", legacyCSRFToken, out.CSRFToken)
+	// MED-001 監査対応: CSRFTokenCreatedAt=0 は TTL 超過と判定され、新しいトークンに再生成される
+	if out.CSRFToken == legacyCSRFToken {
+		t.Errorf("旧形式セッションの CSRF トークンが再生成されなかった: got %q（変更されるべき）", out.CSRFToken)
+	}
+	if out.CSRFToken == "" {
+		t.Error("再生成後の CSRF トークンが空文字")
 	}
 }

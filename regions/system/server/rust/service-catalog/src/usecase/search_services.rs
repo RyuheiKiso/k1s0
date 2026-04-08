@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::domain::entity::service::{Service, ServiceTier};
 use crate::domain::repository::ServiceRepository;
 
-/// SearchServicesError は検索に関するエラーを表す。
+/// `SearchServicesError` は検索に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum SearchServicesError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// SearchServicesUseCase はサービス検索ユースケース。
+/// `SearchServicesUseCase` はサービス検索ユースケース。
 pub struct SearchServicesUseCase {
     service_repo: Arc<dyn ServiceRepository>,
 }
@@ -20,14 +20,16 @@ impl SearchServicesUseCase {
         Self { service_repo }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         query: Option<String>,
         tags: Option<Vec<String>>,
         tier: Option<ServiceTier>,
     ) -> Result<Vec<Service>, SearchServicesError> {
         self.service_repo
-            .search(query, tags, tier)
+            .search(tenant_id, query, tags, tier)
             .await
             .map_err(|e| SearchServicesError::Internal(e.to_string()))
     }
@@ -65,11 +67,11 @@ mod tests {
     async fn search_with_query() {
         let mut mock = MockServiceRepository::new();
         mock.expect_search()
-            .returning(|_, _, _| Ok(vec![sample_service("auth-service")]));
+            .returning(|_, _, _, _| Ok(vec![sample_service("auth-service")]));
 
         let uc = SearchServicesUseCase::new(Arc::new(mock));
         let result = uc
-            .execute(Some("auth".to_string()), None, None)
+            .execute("tenant-1", Some("auth".to_string()), None, None)
             .await
             .unwrap();
         assert_eq!(result.len(), 1);
@@ -81,10 +83,10 @@ mod tests {
     async fn search_internal_error() {
         let mut mock = MockServiceRepository::new();
         mock.expect_search()
-            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = SearchServicesUseCase::new(Arc::new(mock));
-        let result = uc.execute(None, None, None).await;
+        let result = uc.execute("tenant-1", None, None, None).await;
         assert!(matches!(result, Err(SearchServicesError::Internal(_))));
     }
 }

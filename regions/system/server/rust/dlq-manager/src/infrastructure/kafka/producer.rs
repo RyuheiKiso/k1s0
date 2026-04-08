@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use super::KafkaConfig;
 
-/// DlqEventPublisher は元トピックへのメッセージ再発行用トレイト。
+/// `DlqEventPublisher` は元トピックへのメッセージ再発行用トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DlqEventPublisher: Send + Sync {
@@ -19,14 +19,14 @@ pub trait DlqEventPublisher: Send + Sync {
     }
 }
 
-/// DlqKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `DlqKafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct DlqKafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     metrics: Option<std::sync::Arc<k1s0_telemetry::metrics::Metrics>>,
 }
 
 impl DlqKafkaProducer {
-    /// 新しい DlqKafkaProducer を作成する。
+    /// 新しい `DlqKafkaProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -47,6 +47,7 @@ impl DlqKafkaProducer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -74,7 +75,7 @@ impl DlqEventPublisher for DlqKafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish to topic {}: {}", topic, err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish to topic {topic}: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(topic);
@@ -89,7 +90,7 @@ impl DlqEventPublisher for DlqKafkaProducer {
             .client()
             .fetch_metadata(None, std::time::Duration::from_secs(2))
             .map(|_| ())
-            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {e}"))
     }
 }
 

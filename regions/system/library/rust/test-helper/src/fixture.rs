@@ -5,21 +5,25 @@ pub struct FixtureBuilder;
 
 impl FixtureBuilder {
     /// ランダム UUID を生成する。
+    #[must_use] 
     pub fn uuid() -> String {
         Uuid::new_v4().to_string()
     }
 
     /// ランダムなテスト用メールアドレスを生成する。
+    #[must_use] 
     pub fn email() -> String {
         format!("test-{}@example.com", &Uuid::new_v4().to_string()[..8])
     }
 
     /// ランダムなテスト用ユーザー名を生成する。
+    #[must_use] 
     pub fn name() -> String {
         format!("user-{}", &Uuid::new_v4().to_string()[..8])
     }
 
     /// 指定範囲のランダム整数を生成する。
+    #[must_use] 
     pub fn int(min: i64, max: i64) -> i64 {
         if min >= max {
             return min;
@@ -34,6 +38,7 @@ impl FixtureBuilder {
     }
 
     /// テスト用テナント ID を生成する。
+    #[must_use] 
     pub fn tenant_id() -> String {
         format!("tenant-{}", &Uuid::new_v4().to_string()[..8])
     }

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::domain::entity::api_key::{ApiKey, CreateApiKeyRequest, CreateApiKeyResponse};
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// CreateApiKeyError は API キー作成に関するエラー。
+/// `CreateApiKeyError` は API キー作成に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum CreateApiKeyError {
     #[error("validation error: {0}")]
@@ -15,13 +15,13 @@ pub enum CreateApiKeyError {
     #[error("internal error: {0}")]
     Internal(String),
 
-    /// API_KEY_PEPPER 環境変数が未設定の場合のエラー（C-5 監査対応）。
+    /// `API_KEY_PEPPER` 環境変数が未設定の場合のエラー（C-5 監査対応）。
     /// パニックではなくエラーとして伝播することで、呼び出し元が適切に処理できるようにする。
     #[error("pepper not configured")]
     PepperNotConfigured,
 }
 
-/// CreateApiKeyUseCase は API キー作成ユースケース。
+/// `CreateApiKeyUseCase` は API キー作成ユースケース。
 pub struct CreateApiKeyUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }
@@ -97,14 +97,14 @@ fn generate_random_key() -> String {
     let mut s = String::with_capacity(48);
     for b in &bytes {
         // String への write!() は常に成功するため失敗しない
-        let _ = write!(s, "{:02x}", b);
+        let _ = write!(s, "{b:02x}");
     }
     s
 }
 
 /// HMAC-SHA256 を使用して API キーをハッシュ化する。
 /// サーバー側ペッパーにより、DB 漏洩時でも元キーの復元を困難にする。
-/// ペッパーが未設定の場合はエラーを返す（C-5 監査対応: expect() パニックを除去）。
+/// ペッパーが未設定の場合はエラーを返す（C-5 監査対応: `expect()` パニックを除去）。
 fn hash_key(raw_key: &str) -> Result<String, CreateApiKeyError> {
     // API_KEY_PEPPER は必須環境変数。未設定時はパニックせずエラーを返す（C-5 監査対応）。
     // デフォルト値へのフォールバックを行わず、ペッパー未設定状態での運用を防ぐ。
@@ -133,7 +133,7 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     let mut out = String::with_capacity(digest.len() * 2);
     for b in digest {
         use std::fmt::Write;
-        let _ = write!(&mut out, "{:02x}", b);
+        let _ = write!(&mut out, "{b:02x}");
     }
     out
 }

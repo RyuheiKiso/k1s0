@@ -3,9 +3,9 @@ use std::sync::Arc;
 use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::send_notification::{SendNotificationInput, SendNotificationUseCase};
 
-/// NotificationRequestEvent は Kafka から受信する通知リクエストイベント。
-/// MEDIUM-RUST-001 監査対応: tenant_id を追加してテナント分離を有効化する。
-/// Kafka プロデューサーはイベント発行時に tenant_id を含める必要がある。
+/// `NotificationRequestEvent` は Kafka から受信する通知リクエストイベント。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` を追加してテナント分離を有効化する。
+/// Kafka プロデューサーはイベント発行時に `tenant_id` を含める必要がある。
 /// 後方互換のため serde(default) で未設定時は "system" にフォールバックする。
 #[derive(Debug, serde::Deserialize)]
 pub struct NotificationRequestEvent {
@@ -24,13 +24,13 @@ pub struct NotificationRequestEvent {
     pub template_variables: Option<std::collections::HashMap<String, String>>,
 }
 
-/// MEDIUM-RUST-001 監査対応: tenant_id が未指定の場合のデフォルト値。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` が未指定の場合のデフォルト値。
 /// 既存の Kafka プロデューサーとの後方互換性を保つためのフォールバック。
 fn default_system_tenant() -> String {
     "system".to_string()
 }
 
-/// NotificationKafkaConsumer は通知リクエストトピックを購読してメッセージを処理する。
+/// `NotificationKafkaConsumer` は通知リクエストトピックを購読してメッセージを処理する。
 pub struct NotificationKafkaConsumer {
     consumer: rdkafka::consumer::StreamConsumer,
     use_case: Arc<SendNotificationUseCase>,
@@ -39,7 +39,7 @@ pub struct NotificationKafkaConsumer {
 }
 
 impl NotificationKafkaConsumer {
-    /// 新しい NotificationKafkaConsumer を作成する。
+    /// 新しい `NotificationKafkaConsumer` を作成する。
     pub fn new(
         config: &KafkaConfig,
         use_case: Arc<SendNotificationUseCase>,
@@ -73,6 +73,7 @@ impl NotificationKafkaConsumer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
@@ -94,12 +95,9 @@ impl NotificationKafkaConsumer {
                         m.record_kafka_message_consumed(&topic, &self.consumer_group);
                     }
 
-                    let payload = match msg.payload() {
-                        Some(bytes) => bytes,
-                        None => {
-                            tracing::warn!("received kafka message with empty payload");
-                            continue;
-                        }
+                    let payload = if let Some(bytes) = msg.payload() { bytes } else {
+                        tracing::warn!("received kafka message with empty payload");
+                        continue;
                     };
 
                     let event: NotificationRequestEvent = match serde_json::from_slice(payload) {

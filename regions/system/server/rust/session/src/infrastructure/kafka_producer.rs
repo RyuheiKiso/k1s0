@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::domain::entity::session::Session;
 
-/// SessionEvent はセッション関連イベントの種別を表す。
+/// `SessionEvent` はセッション関連イベントの種別を表す。
 #[derive(Debug, serde::Serialize)]
 #[serde(tag = "event_type")]
 pub enum SessionEvent {
@@ -21,7 +21,7 @@ pub enum SessionEvent {
     },
 }
 
-/// SessionEventPublisher はセッションイベント配信のためのトレイト。
+/// `SessionEventPublisher` はセッションイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SessionEventPublisher: Send + Sync {
@@ -34,7 +34,7 @@ pub trait SessionEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopSessionEventPublisher はイベントを発行しない実装（フォールバック用）。
+/// `NoopSessionEventPublisher` はイベントを発行しない実装（フォールバック用）。
 pub struct NoopSessionEventPublisher;
 
 #[async_trait]
@@ -58,7 +58,7 @@ impl SessionEventPublisher for NoopSessionEventPublisher {
     }
 }
 
-/// KafkaSessionProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaSessionProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaSessionProducer {
     producer: rdkafka::producer::FutureProducer,
     topic_created: String,
@@ -67,7 +67,7 @@ pub struct KafkaSessionProducer {
 }
 
 impl KafkaSessionProducer {
-    /// 新しい KafkaSessionProducer を作成する。
+    /// 新しい `KafkaSessionProducer` を作成する。
     pub fn new(config: &crate::infrastructure::config::KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -91,6 +91,7 @@ impl KafkaSessionProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -124,7 +125,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish session created event: {}", err)
+                anyhow::anyhow!("failed to publish session created event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {
@@ -145,7 +146,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
         };
 
         let payload = serde_json::to_vec(&event)?;
-        let key = format!("session:{}", session_id);
+        let key = format!("session:{session_id}");
 
         let record = FutureRecord::to(&self.topic_revoked)
             .key(&key)
@@ -155,7 +156,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish session revoked event: {}", err)
+                anyhow::anyhow!("failed to publish session revoked event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {
@@ -171,7 +172,7 @@ impl SessionEventPublisher for KafkaSessionProducer {
             .client()
             .fetch_metadata(None, std::time::Duration::from_secs(2))
             .map(|_| ())
-            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {e}"))
     }
 
     async fn close(&self) -> anyhow::Result<()> {

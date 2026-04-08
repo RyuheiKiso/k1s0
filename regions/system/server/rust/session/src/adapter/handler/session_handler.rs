@@ -39,6 +39,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -86,9 +87,9 @@ fn forbidden_response(message: impl Into<String>) -> (StatusCode, Json<ErrorResp
     )
 }
 
-/// REST CreateSession ハンドラー。
-/// JWT Claims から tenant_id を取得し CreateSessionInput に設定する。
-/// 認証済みの場合は Claims.sub と user_id の一致確認（IDOR対策）も行う。
+/// REST `CreateSession` ハンドラー。
+/// JWT Claims から `tenant_id` を取得し `CreateSessionInput` に設定する。
+/// 認証済みの場合は Claims.sub と `user_id` の一致確認（IDOR対策）も行う。
 pub async fn create_session(
     State(state): State<AppState>,
     claims: Option<Extension<k1s0_auth::Claims>>,
@@ -183,7 +184,7 @@ pub async fn refresh_session(
 
     let ttl_seconds = body
         .get("ttl_seconds")
-        .and_then(|v| v.as_i64())
+        .and_then(serde_json::Value::as_i64)
         .unwrap_or(3600);
     let input = RefreshSessionInput {
         id: session_id,

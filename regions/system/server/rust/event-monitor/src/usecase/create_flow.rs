@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::flow_definition::{FlowDefinition, FlowSlo, FlowStep};
 use crate::domain::repository::FlowDefinitionRepository;
 
-/// フロー定義作成ユースケースの入力。tenant_id はテナント分離に使用する。
+/// `フロー定義作成ユースケースの入力。tenant_id` はテナント分離に使用する。
 #[derive(Debug, Clone)]
 pub struct CreateFlowInput {
     /// テナント識別子（gRPC メタデータ "x-tenant-id" から取得）

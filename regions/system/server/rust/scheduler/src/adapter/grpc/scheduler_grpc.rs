@@ -291,10 +291,10 @@ impl SchedulerGrpcService {
             .await
             .map_err(|e| match e {
                 CreateJobError::InvalidCron(expr) => {
-                    GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                    GrpcError::InvalidArgument(format!("invalid cron expression: {expr}"))
                 }
                 CreateJobError::InvalidTimezone(tz) => {
-                    GrpcError::InvalidArgument(format!("invalid timezone: {}", tz))
+                    GrpcError::InvalidArgument(format!("invalid timezone: {tz}"))
                 }
                 CreateJobError::Internal(msg) => {
                     if msg.contains("already exists") || msg.contains("duplicate") {
@@ -314,7 +314,7 @@ impl SchedulerGrpcService {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
         let job = self.get_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
             GetJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
 
@@ -393,13 +393,13 @@ impl SchedulerGrpcService {
             .await
             .map_err(|e| match e {
                 UpdateJobError::NotFound(id) => {
-                    GrpcError::NotFound(format!("job not found: {}", id))
+                    GrpcError::NotFound(format!("job not found: {id}"))
                 }
                 UpdateJobError::InvalidCron(expr) => {
-                    GrpcError::InvalidArgument(format!("invalid cron expression: {}", expr))
+                    GrpcError::InvalidArgument(format!("invalid cron expression: {expr}"))
                 }
                 UpdateJobError::InvalidTimezone(tz) => {
-                    GrpcError::InvalidArgument(format!("invalid timezone: {}", tz))
+                    GrpcError::InvalidArgument(format!("invalid timezone: {tz}"))
                 }
                 UpdateJobError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -413,9 +413,9 @@ impl SchedulerGrpcService {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
         self.delete_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
             DeleteJobError::JobRunning(id) => {
-                GrpcError::Aborted(format!("job is currently running: {}", id))
+                GrpcError::Aborted(format!("job is currently running: {id}"))
             }
             DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
@@ -430,7 +430,7 @@ impl SchedulerGrpcService {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
         let job = self.pause_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
             PauseJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
         Ok(PauseJobResponse {
@@ -442,7 +442,7 @@ impl SchedulerGrpcService {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
         let job = self.resume_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {}", id)),
+            ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
             ResumeJobError::Internal(msg) => GrpcError::Internal(msg),
         })?;
         Ok(ResumeJobResponse {
@@ -459,17 +459,16 @@ impl SchedulerGrpcService {
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
         match self.trigger_job_uc.execute(&job_id, &req.tenant_id).await {
             Ok(execution) => Ok(TriggerJobResponse {
-                execution_id: execution.id.to_string(),
-                job_id: execution.job_id.to_string(),
+                execution_id: execution.id.clone(),
+                job_id: execution.job_id.clone(),
                 status: execution.status,
                 triggered_at: execution.started_at,
             }),
             Err(TriggerJobError::NotFound(id)) => {
-                Err(GrpcError::NotFound(format!("job not found: {}", id)))
+                Err(GrpcError::NotFound(format!("job not found: {id}")))
             }
             Err(TriggerJobError::NotActive(id)) => Err(GrpcError::FailedPrecondition(format!(
-                "job not active: {}",
-                id
+                "job not active: {id}"
             ))),
             Err(TriggerJobError::Internal(e)) => Err(GrpcError::Internal(e)),
         }
@@ -485,7 +484,7 @@ impl SchedulerGrpcService {
             .find_by_id(&execution_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
-            .ok_or_else(|| GrpcError::NotFound(format!("execution not found: {}", execution_id)))?;
+            .ok_or_else(|| GrpcError::NotFound(format!("execution not found: {execution_id}")))?;
 
         Ok(GetJobExecutionResponse {
             execution: to_execution_data(execution),
@@ -503,7 +502,7 @@ impl SchedulerGrpcService {
             .await
             .map_err(|e| match e {
                 ListExecutionsError::NotFound(id) => {
-                    GrpcError::NotFound(format!("job not found: {}", id))
+                    GrpcError::NotFound(format!("job not found: {id}"))
                 }
                 ListExecutionsError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -544,8 +543,7 @@ impl SchedulerGrpcService {
 fn parse_uuid(value: &str, field: &str) -> Result<String, GrpcError> {
     if value.trim().is_empty() {
         Err(GrpcError::InvalidArgument(format!(
-            "invalid {}: {}",
-            field, value
+            "invalid {field}: {value}"
         )))
     } else {
         Ok(value.to_string())
@@ -557,12 +555,12 @@ fn parse_payload(payload: &[u8]) -> Result<serde_json::Value, GrpcError> {
         return Ok(serde_json::json!({}));
     }
     serde_json::from_slice(payload)
-        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {}", e)))
+        .map_err(|e| GrpcError::InvalidArgument(format!("invalid payload: {e}")))
 }
 
 fn to_job_data(job: SchedulerJob) -> JobData {
     JobData {
-        id: job.id.to_string(),
+        id: job.id.clone(),
         name: job.name,
         description: job.description.unwrap_or_default(),
         cron_expression: job.cron_expression,
@@ -589,8 +587,8 @@ fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
     });
 
     JobExecutionData {
-        id: execution.id.to_string(),
-        job_id: execution.job_id.to_string(),
+        id: execution.id.clone(),
+        job_id: execution.job_id.clone(),
         status: normalize_status(&execution.status),
         triggered_by: execution.triggered_by,
         started_at: execution.started_at,

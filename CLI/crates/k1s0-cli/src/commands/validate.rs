@@ -3,9 +3,17 @@ use dialoguer::Input;
 
 use crate::prompt;
 
-/// CLI-004 監査対応: --file フラグによる非インタラクティブバリデーションを実装する。
-/// --file が指定されている場合は対話プロンプトをスキップしてバリデーションを実行する。
-/// --type が未指定の場合はファイル拡張子から推定する。
+/// CLI-004 監査対応: `--file` フラグによる非インタラクティブバリデーションを実装する。
+/// `--file` が指定されている場合は対話プロンプトをスキップしてバリデーションを実行する。
+/// `--type` が未指定の場合はファイル拡張子から推定する。
+///
+/// # Errors
+///
+/// - `--file` 引数のパスが解決できない場合にエラーを返す
+/// - バリデーション型の推定に失敗した場合にエラーを返す
+/// - バリデーション処理自体が失敗した場合にエラーを返す
+// MED-006 監査対応: CLI 引数パーサーから所有権付きで渡されるため needless_pass_by_value を抑制する
+#[allow(clippy::needless_pass_by_value)]
 pub fn run_with_args(
     file: Option<std::path::PathBuf>,
     validate_type: Option<String>,
@@ -19,16 +27,13 @@ pub fn run_with_args(
     let canonical = file_path
         .canonicalize()
         .map_err(|e| anyhow::anyhow!("パスの解決に失敗しました: {}: {e}", file_path.display()))?;
-    let canonical_str = canonical
-        .to_str()
-        .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display()))?;
+    let canonical_str = canonical.to_str().ok_or_else(|| {
+        anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display())
+    })?;
 
     // --type が未指定の場合はファイル名から推定する
     let vtype = validate_type.as_deref().unwrap_or_else(|| {
-        let name = file_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("");
+        let name = file_path.file_name().and_then(|n| n.to_str()).unwrap_or("");
         if name.contains("navigation") {
             "navigation"
         } else {
@@ -91,7 +96,9 @@ pub fn run() -> Result<()> {
             let canonical_str = canonical
                 .to_str()
                 // unnecessary_debug_formatting 対応: PathBuf は Display が実装されているため {} を使用する
-                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display()))?;
+                .ok_or_else(|| {
+                    anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display())
+                })?;
             let errors =
                 k1s0_core::commands::validate::config_schema::validate_config_schema(canonical_str)
                     .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -114,9 +121,12 @@ pub fn run() -> Result<()> {
             let canonical_str = canonical
                 .to_str()
                 // unnecessary_debug_formatting 対応: PathBuf は Display が実装されているため {} を使用する
-                .ok_or_else(|| anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display()))?;
-            let errors = k1s0_core::commands::validate::navigation::validate_navigation(canonical_str)
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+                .ok_or_else(|| {
+                    anyhow::anyhow!("パスの文字列変換に失敗しました: {}", canonical.display())
+                })?;
+            let errors =
+                k1s0_core::commands::validate::navigation::validate_navigation(canonical_str)
+                    .map_err(|e| anyhow::anyhow!("{e}"))?;
             if errors == 0 {
                 println!("\nバリデーション完了: エラーなし");
             } else {

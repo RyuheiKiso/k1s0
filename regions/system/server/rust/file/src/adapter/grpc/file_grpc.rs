@@ -42,6 +42,7 @@ pub struct FileGrpcService {
 }
 
 impl FileGrpcService {
+    #[must_use] 
     pub fn new(
         get_file_metadata_uc: Arc<GetFileMetadataUseCase>,
         list_files_uc: Arc<ListFilesUseCase>,
@@ -156,8 +157,7 @@ impl FileGrpcService {
                     GenerateUploadUrlError::Validation(msg) => GrpcError::InvalidArgument(msg),
                     GenerateUploadUrlError::SizeExceeded { actual, max } => {
                         GrpcError::InvalidArgument(format!(
-                            "file size exceeded: actual={}, max={}",
-                            actual, max
+                            "file size exceeded: actual={actual}, max={max}"
                         ))
                     }
                     GenerateUploadUrlError::Internal(msg) => GrpcError::Internal(msg),
@@ -166,7 +166,7 @@ impl FileGrpcService {
         Ok((output.file_id, output.upload_url, output.expires_in_seconds))
     }
 
-    /// C-01 監査対応: checksum_sha256 → checksum にリネーム
+    /// C-01 監査対応: `checksum_sha256` → checksum にリネーム
     pub async fn complete_upload(
         &self,
         file_id: String,
@@ -215,7 +215,7 @@ impl FileGrpcService {
     }
 
     /// ファイルを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
-    /// CRIT-01 監査対応: tenant_id と expected_uploader を DELETE 条件に追加してアトミックな認可チェックを実現する。
+    /// CRIT-01 監査対応: `tenant_id` と `expected_uploader` を DELETE 条件に追加してアトミックな認可チェックを実現する。
     /// gRPC 呼び出し元はリクエストメタデータから取得したテナントID・認証済みユーザーIDを渡す責任を持つ。
     pub async fn delete_file(
         &self,

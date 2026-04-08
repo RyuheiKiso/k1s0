@@ -64,7 +64,8 @@ pub struct CreateChangeLogRequest {
 }
 
 impl ConfigChangeLog {
-    /// 新しい ConfigChangeLog を作成する。
+    /// 新しい `ConfigChangeLog` を作成する。
+    #[must_use] 
     pub fn new(req: CreateChangeLogRequest) -> Self {
         Self {
             id: Uuid::new_v4(),

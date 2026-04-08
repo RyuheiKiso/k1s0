@@ -37,6 +37,8 @@ fn mask_db_url(url: &str) -> String {
     url.to_string()
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -59,7 +61,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -164,8 +166,7 @@ pub async fn run() -> anyhow::Result<()> {
             .auth
             .jwks
             .as_ref()
-            .map(|j| j.cache_ttl_secs)
-            .unwrap_or(default_cache_ttl_secs());
+            .map_or(default_cache_ttl_secs(), |j| j.cache_ttl_secs);
         super::jwks_provider::JwksProvider::new(url, std::time::Duration::from_secs(ttl_secs))
     });
 
@@ -427,7 +428,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -459,8 +460,8 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// HIGH-RUST-006 監査対応: gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// RecordAuditLog / SearchAuditLogs / GetUser / ListUsers は write または admin 相当（"write"）、
-/// ValidateToken / CheckPermission / GetUserRoles は検証系（"read"）として扱う。
+/// `RecordAuditLog` / `SearchAuditLogs` / `GetUser` / `ListUsers` は write または admin 相当（"write"）、
+/// `ValidateToken` / `CheckPermission` / `GetUserRoles` は検証系（"read"）として扱う。
 fn auth_grpc_action(method: &str) -> &'static str {
     match method {
         "RecordAuditLog" | "SearchAuditLogs" | "ListUsers" => "write",
@@ -484,7 +485,7 @@ struct StubUserRepository;
 #[async_trait::async_trait]
 impl crate::domain::repository::UserRepository for StubUserRepository {
     async fn find_by_id(&self, user_id: &str) -> anyhow::Result<crate::domain::entity::user::User> {
-        anyhow::bail!("stub user repository: user not found: {}", user_id)
+        anyhow::bail!("stub user repository: user not found: {user_id}")
     }
 
     async fn list(
@@ -509,11 +510,11 @@ impl crate::domain::repository::UserRepository for StubUserRepository {
         &self,
         user_id: &str,
     ) -> anyhow::Result<crate::domain::entity::user::UserRoles> {
-        anyhow::bail!("stub user repository: user not found: {}", user_id)
+        anyhow::bail!("stub user repository: user not found: {user_id}")
     }
 }
 
-/// InMemoryApiKeyRepository は開発用のインメモリ API キーリポジトリ。
+/// `InMemoryApiKeyRepository` は開発用のインメモリ API キーリポジトリ。
 struct InMemoryApiKeyRepository {
     keys: tokio::sync::RwLock<Vec<crate::domain::entity::api_key::ApiKey>>,
 }
@@ -567,7 +568,7 @@ impl crate::domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
             key.revoked = true;
             Ok(())
         } else {
-            anyhow::bail!("api key not found: {}", id)
+            anyhow::bail!("api key not found: {id}")
         }
     }
 
@@ -576,13 +577,13 @@ impl crate::domain::repository::ApiKeyRepository for InMemoryApiKeyRepository {
         let len_before = keys.len();
         keys.retain(|k| k.id != id);
         if keys.len() == len_before {
-            anyhow::bail!("api key not found: {}", id)
+            anyhow::bail!("api key not found: {id}")
         }
         Ok(())
     }
 }
 
-/// InMemoryAuditLogRepository は開発用のインメモリ監査ログリポジトリ。
+/// `InMemoryAuditLogRepository` は開発用のインメモリ監査ログリポジトリ。
 struct InMemoryAuditLogRepository {
     logs: tokio::sync::RwLock<Vec<crate::domain::entity::audit_log::AuditLog>>,
 }

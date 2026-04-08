@@ -13,6 +13,8 @@ use rand::RngCore;
 
 use crate::error::EncryptionError;
 
+// HIGH-001 監査対応: 戻り値を必ず使用するよう must_use を付与する
+#[must_use]
 pub fn generate_aes_key() -> [u8; 32] {
     let mut key = [0u8; 32];
     // OS の乱数生成器を使用して暗号学的に安全な AES-256 鍵を生成する
@@ -47,7 +49,7 @@ pub fn aes_encrypt(key: &[u8; 32], plaintext: &[u8], aad: &[u8]) -> Result<Strin
 /// AES-256-GCM で暗号文を復号する。
 /// C-001 監査対応: aad（Additional Authenticated Data）を Payload に含めることで、
 /// 暗号化時と同一の AAD が指定された場合のみ復号成功となる。
-/// AAD が異なる場合は認証タグ検証に失敗し DecryptFailed エラーを返す。
+/// AAD が異なる場合は認証タグ検証に失敗し `DecryptFailed` エラーを返す。
 pub fn aes_decrypt(key: &[u8; 32], ciphertext: &str, aad: &[u8]) -> Result<Vec<u8>, EncryptionError> {
     let combined = STANDARD
         .decode(ciphertext)

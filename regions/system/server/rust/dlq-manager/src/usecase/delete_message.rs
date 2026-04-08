@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::domain::repository::DlqMessageRepository;
 
-/// DeleteMessageUseCase は DLQ メッセージ削除を担う。
+/// `DeleteMessageUseCase` は DLQ メッセージ削除を担う。
 pub struct DeleteMessageUseCase {
     repo: Arc<dyn DlqMessageRepository>,
 }
@@ -14,7 +14,7 @@ impl DeleteMessageUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してから DLQ メッセージを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してから DLQ メッセージを削除する。
     pub async fn execute(&self, id: Uuid, tenant_id: &str) -> anyhow::Result<()> {
         self.repo.delete(id, tenant_id).await
     }

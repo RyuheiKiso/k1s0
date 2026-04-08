@@ -12,15 +12,16 @@ use crate::domain::entity::condition::{Combinator, ConditionNode, Operator};
 const MAX_EVALUATION_DEPTH: usize = 32;
 
 /// 正規表現コンパイル結果をキャッシュする構造体
-/// RUST-HIGH-003 対応: 毎回コンパイルする代わりにキャッシュを利用し ReDoS リスクを軽減する
-/// L-002 監査対応: regex_cache を tokio::sync::Mutex で保護する
+/// RUST-HIGH-003 対応: 毎回コンパイルする代わりにキャッシュを利用し `ReDoS` リスクを軽減する
+/// L-002 監査対応: `regex_cache` を `tokio::sync::Mutex` で保護する
 pub struct ConditionEvaluator {
     regex_cache: Mutex<LruCache<String, regex::Regex>>,
 }
 
 impl ConditionEvaluator {
-    /// ConditionEvaluator を生成する。
+    /// `ConditionEvaluator` を生成する。
     /// キャッシュサイズは 256 パターン（メモリ効率とヒット率のバランス）
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             regex_cache: Mutex::new(LruCache::new(
@@ -30,7 +31,7 @@ impl ConditionEvaluator {
     }
 
     /// 条件ノードを評価する（外部向けエントリーポイント）
-    /// L-002 監査対応: tokio::sync::Mutex の .lock().await が必要なため async fn にする
+    /// L-002 監査対応: `tokio::sync::Mutex` の .lock().await が必要なため async fn にする
     pub async fn evaluate(
         &self,
         condition: &ConditionNode,
@@ -40,8 +41,8 @@ impl ConditionEvaluator {
     }
 
     /// 条件ノードを評価する（再帰深度を追跡する内部実装）
-    /// L-002 監査対応: tokio::sync::Mutex の .lock().await を使うため async 再帰が必要。
-    /// Rust の async fn は再帰できないため Box::pin でヒープ確保し再帰を実現する
+    /// L-002 監査対応: `tokio::sync::Mutex` の .lock().await を使うため async 再帰が必要。
+    /// Rust の async fn は再帰できないため `Box::pin` でヒープ確保し再帰を実現する
     #[allow(clippy::manual_async_fn)]
     fn evaluate_inner<'a>(
         &'a self,
@@ -53,8 +54,7 @@ impl ConditionEvaluator {
             // 再帰深度が上限を超えた場合はエラーを返し、スタックオーバーフローを防止する
             if depth > MAX_EVALUATION_DEPTH {
                 return Err(format!(
-                    "条件評価の再帰深度が上限（{}）を超えました。ルールのネストが深すぎます",
-                    MAX_EVALUATION_DEPTH
+                    "条件評価の再帰深度が上限（{MAX_EVALUATION_DEPTH}）を超えました。ルールのネストが深すぎます"
                 ));
             }
 
@@ -129,7 +129,7 @@ impl ConditionEvaluator {
     }
 
     /// 演算子に応じて条件を評価する
-    /// L-002 監査対応: Regex 評価で tokio::sync::Mutex の .lock().await が必要なため async にする
+    /// L-002 監査対応: Regex 評価で `tokio::sync::Mutex` の .lock().await が必要なため async にする
     async fn evaluate_operator(
         &self,
         operator: &Operator,
@@ -158,10 +158,10 @@ impl ConditionEvaluator {
         cmp: fn(f64, f64) -> bool,
     ) -> Result<bool, String> {
         let a = actual
-            .and_then(|v| v.as_f64())
+            .and_then(serde_json::Value::as_f64)
             .ok_or_else(|| "actual value is not a number".to_string())?;
         let b = expected
-            .and_then(|v| v.as_f64())
+            .and_then(serde_json::Value::as_f64)
             .ok_or_else(|| "expected value is not a number".to_string())?;
         Ok(cmp(a, b))
     }
@@ -194,8 +194,8 @@ impl ConditionEvaluator {
     }
 
     /// 正規表現マッチングを行う。LruCache でコンパイル済みパターンを再利用する。
-    /// ReDoS 緩和: 長大なパターン（1024 文字超）を拒否する
-    /// L-002 監査対応: tokio::sync::Mutex の .lock().await を使用するため async fn にする
+    /// `ReDoS` 緩和: 長大なパターン（1024 文字超）を拒否する
+    /// L-002 監査対応: `tokio::sync::Mutex` の .lock().await を使用するため async fn にする
     async fn evaluate_regex(
         &self,
         actual: Option<&serde_json::Value>,
@@ -226,7 +226,7 @@ impl ConditionEvaluator {
 
         // キャッシュミス: 正規表現をコンパイルしてキャッシュに追加する
         let re = regex::Regex::new(pattern)
-            .map_err(|e| format!("invalid regex pattern '{}': {}", pattern, e))?;
+            .map_err(|e| format!("invalid regex pattern '{pattern}': {e}"))?;
         let result = re.is_match(text);
         cache.put(pattern.to_string(), re);
         Ok(result)

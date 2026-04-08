@@ -9,7 +9,7 @@ use crate::error::CodegenError;
 use crate::naming;
 use crate::templates::create_tera_engine;
 
-/// Result of a generate() call.
+/// Result of a `generate()` call.
 #[derive(Debug)]
 pub struct GenerateResult {
     /// Files that were created.
@@ -68,7 +68,7 @@ pub fn generate(
 
     for (rel_path, children) in &mod_files {
         let mut mod_ctx = ctx.clone();
-        let children_vec: Vec<String> = children.iter().map(|s| s.to_string()).collect();
+        let children_vec: Vec<String> = children.iter().map(std::string::ToString::to_string).collect();
         mod_ctx.insert("children", &children_vec);
         render_file(&tera, "mod_rs", &mod_ctx, output_dir, rel_path, &mut result)?;
     }
@@ -88,14 +88,14 @@ pub fn generate(
         // .gitkeep for src/proto/
         let gitkeep = output_dir.join("src/proto/.gitkeep");
         ensure_parent(&gitkeep)?;
-        if !gitkeep.exists() {
+        if gitkeep.exists() {
+            result.skipped.push(gitkeep);
+        } else {
             fs::write(&gitkeep, "").map_err(|e| CodegenError::Io {
                 path: gitkeep.clone(),
                 source: e,
             })?;
             result.created.push(gitkeep);
-        } else {
-            result.skipped.push(gitkeep);
         }
     }
 

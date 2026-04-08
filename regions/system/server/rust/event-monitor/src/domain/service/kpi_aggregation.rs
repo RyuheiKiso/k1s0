@@ -4,6 +4,7 @@ use crate::domain::entity::flow_kpi::FlowKpi;
 pub struct KpiAggregationService;
 
 impl KpiAggregationService {
+    #[must_use] 
     pub fn aggregate(instances: &[FlowInstance]) -> FlowKpi {
         if instances.is_empty() {
             return FlowKpi::default();

@@ -30,7 +30,7 @@ impl ManageDisplayConfigsUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         self.display_config_repo.find_by_table_id(table.id).await
     }
@@ -50,7 +50,7 @@ impl ManageDisplayConfigsUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let create_input: CreateDisplayConfig = serde_json::from_value(input.clone())?;
 
@@ -85,7 +85,7 @@ impl ManageDisplayConfigsUseCase {
         if let Some(config_json) = input.get("config_json") {
             config.config_json = config_json.clone();
         }
-        if let Some(is_default) = input.get("is_default").and_then(|v| v.as_bool()) {
+        if let Some(is_default) = input.get("is_default").and_then(serde_json::Value::as_bool) {
             config.is_default = is_default;
         }
         config.updated_at = chrono::Utc::now();

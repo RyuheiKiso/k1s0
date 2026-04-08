@@ -13,6 +13,7 @@ pub struct InMemoryIdempotencyStore {
 }
 
 impl InMemoryIdempotencyStore {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             data: Arc::new(RwLock::new(HashMap::new())),

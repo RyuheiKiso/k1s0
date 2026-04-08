@@ -5,7 +5,7 @@ use crate::error::PerPageValidationError;
 const MIN_PER_PAGE: u32 = 1;
 const MAX_PER_PAGE: u32 = 100;
 
-/// Validate that per_page is between 1 and 100.
+/// Validate that `per_page` is between 1 and 100.
 pub fn validate_per_page(per_page: u32) -> Result<u32, PerPageValidationError> {
     if !(MIN_PER_PAGE..=MAX_PER_PAGE).contains(&per_page) {
         return Err(PerPageValidationError::InvalidPerPage {
@@ -33,16 +33,19 @@ impl Default for PageRequest {
 }
 
 impl PageRequest {
+    #[must_use] 
     pub fn offset(&self) -> u64 {
-        (self.page as u64 - 1) * self.per_page as u64
+        (u64::from(self.page) - 1) * u64::from(self.per_page)
     }
 
+    #[must_use] 
     pub fn has_next(&self, total: u64) -> bool {
-        (self.page as u64) * (self.per_page as u64) < total
+        u64::from(self.page) * u64::from(self.per_page) < total
     }
 }
 
 /// Returns a default page request (`page = 1`, `per_page = 20`).
+#[must_use] 
 pub fn default_page_request() -> PageRequest {
     PageRequest::default()
 }
@@ -66,11 +69,12 @@ pub struct PageResponse<T> {
 }
 
 impl<T> PageResponse<T> {
+    #[must_use] 
     pub fn new(items: Vec<T>, total: u64, request: &PageRequest) -> Self {
         let total_pages = if request.per_page == 0 {
             0
         } else {
-            ((total as f64) / (request.per_page as f64)).ceil() as u32
+            ((total as f64) / f64::from(request.per_page)).ceil() as u32
         };
         Self {
             items,
@@ -82,6 +86,7 @@ impl<T> PageResponse<T> {
     }
 
     /// Return the pagination metadata for this response.
+    #[must_use] 
     pub fn meta(&self) -> PaginationMeta {
         PaginationMeta {
             total: self.total,

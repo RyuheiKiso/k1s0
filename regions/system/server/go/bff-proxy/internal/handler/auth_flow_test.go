@@ -27,6 +27,8 @@ type mockOAuthClient struct {
 	authCodeURLFn         func(state, codeChallenge string) (string, error)
 	exchangeCodeFn        func(ctx context.Context, code, codeVerifier string) (*oauth.TokenResponse, error)
 	extractClaimsFn       func(ctx context.Context, idToken string) (string, []string, error)
+	// extractFullClaimsFn は ExtractFullClaims の振る舞いを定義する（CRIT-002 監査対応）。
+	extractFullClaimsFn   func(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error)
 	logoutURLFn           func(idTokenHint, postLogoutRedirectURI string) (string, error)
 	discoveryCacheCleared bool
 }
@@ -49,6 +51,19 @@ func (m *mockOAuthClient) ExtractClaims(ctx context.Context, idToken string) (st
 // LogoutURL は IdP のログアウト URL を返すモック実装。
 func (m *mockOAuthClient) LogoutURL(idTokenHint, postLogoutRedirectURI string) (string, error) {
 	return m.logoutURLFn(idTokenHint, postLogoutRedirectURI)
+}
+
+// ExtractFullClaims は JWKS 署名検証済み ID トークンから IDTokenClaims 全体を返すモック実装。
+// CRIT-002 監査対応: AuthOAuthClient インターフェースの ExtractFullClaims メソッドを実装する。
+func (m *mockOAuthClient) ExtractFullClaims(ctx context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+	if m.extractFullClaimsFn != nil {
+		return m.extractFullClaimsFn(ctx, idToken)
+	}
+	return &oauth.IDTokenClaims{
+		Subject:  "default-subject",
+		Roles:    []string{"user"},
+		TenantID: "default-tenant",
+	}, nil
 }
 
 // ClearDiscoveryCache は OIDC discovery キャッシュクリアのモック実装。
@@ -401,10 +416,12 @@ func TestSession_Valid(t *testing.T) {
 	store := newMockSessionStore()
 	// 有効なセッションを事前に作成する
 	store.sessions["valid-session"] = &session.SessionData{
-		AccessToken: "access-token-123",
-		Subject:     "user-sub-001",
-		CSRFToken:   "csrf-token-abc",
-		ExpiresAt:   time.Now().Add(1 * time.Hour).Unix(),
+		AccessToken:        "access-token-123",
+		Subject:            "user-sub-001",
+		CSRFToken:          "csrf-token-abc",
+		// MED-001 監査対応: CSRFTokenCreatedAt=0 だと TTL 超過で再生成される。現在時刻を設定して防ぐ。
+		CSRFTokenCreatedAt: time.Now().Unix(),
+		ExpiresAt:          time.Now().Add(1 * time.Hour).Unix(),
 	}
 
 	h := newTestAuthHandler(mock, store)
@@ -835,9 +852,10 @@ func TestCallback_IDTokenInvalid(t *testing.T) {
 				ExpiresIn:    3600,
 			}, nil
 		},
-		// ExtractClaims は ID トークンの署名検証失敗をシミュレートする
-		extractClaimsFn: func(_ context.Context, idToken string) (string, []string, error) {
-			return "", nil, errors.New("jwks: signature verification failed")
+		// ExtractFullClaims は ID トークンの署名検証失敗をシミュレートする
+		// CRIT-002 監査対応: Callback ユースケースが ExtractFullClaims を使用するため extractFullClaimsFn を設定する
+		extractFullClaimsFn: func(_ context.Context, idToken string) (*oauth.IDTokenClaims, error) {
+			return nil, errors.New("jwks: signature verification failed")
 		},
 	}
 

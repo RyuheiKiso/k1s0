@@ -13,7 +13,7 @@ use tokio::sync::RwLock;
 /// HIGH-002 対応: ログアウト後もJWTが exp まで有効な問題を修正するための拡張ポイント。
 pub type JtiRevokedChecker = Arc<dyn Fn(&str) -> bool + Send + Sync>;
 
-/// AuthError は認証・認可エラーを表す。
+/// `AuthError` は認証・認可エラーを表す。
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     #[error("token expired")]
@@ -59,13 +59,13 @@ struct Jwk {
     e: String,
 }
 
-/// JwksFetcher は JWKS エンドポイントからの鍵取得を抽象化するトレイト。
+/// `JwksFetcher` は JWKS エンドポイントからの鍵取得を抽象化するトレイト。
 #[async_trait::async_trait]
 pub trait JwksFetcher: Send + Sync {
     async fn fetch_keys(&self, jwks_url: &str) -> Result<Vec<JwkKey>, AuthError>;
 }
 
-/// JwkKey は取得した JWK 鍵の公開情報。
+/// `JwkKey` は取得した JWK 鍵の公開情報。
 #[derive(Debug, Clone)]
 pub struct JwkKey {
     pub kid: String,
@@ -73,15 +73,15 @@ pub struct JwkKey {
     pub e: String,
 }
 
-/// DefaultJwksFetcher は HTTP 経由で JWKS を取得するデフォルト実装。
-/// タイムアウト付きの reqwest::Client を保持し、JWKS エンドポイントへの接続遅延を防ぐ。
+/// `DefaultJwksFetcher` は HTTP 経由で JWKS を取得するデフォルト実装。
+/// タイムアウト付きの `reqwest::Client` を保持し、JWKS エンドポイントへの接続遅延を防ぐ。
 pub struct DefaultJwksFetcher {
     /// タイムアウト設定済みの HTTP クライアント
     client: reqwest::Client,
 }
 
 impl DefaultJwksFetcher {
-    /// 新しい DefaultJwksFetcher を生成する。
+    /// 新しい `DefaultJwksFetcher` を生成する。
     /// HTTP クライアントにタイムアウトを設定し、JWKS 取得時の無限待ちを防止する。
     pub fn new() -> Result<Self, AuthError> {
         // 全体タイムアウト: 10秒。JWKS レスポンスは通常小さいため、
@@ -131,7 +131,7 @@ struct JwksCache {
     fetched_at: Instant,
 }
 
-/// JwksVerifier は JWKS エンドポイントから公開鍵を取得し、JWT トークンを検証する。
+/// `JwksVerifier` は JWKS エンドポイントから公開鍵を取得し、JWT トークンを検証する。
 pub struct JwksVerifier {
     jwks_url: String,
     issuer: String,
@@ -150,9 +150,9 @@ pub struct JwksVerifier {
 }
 
 impl JwksVerifier {
-    /// 新しい JwksVerifier を生成する。
-    /// DefaultJwksFetcher の HTTP クライアント構築に失敗した場合はエラーを返す。
-    /// LOW-008 対応: max_stale_duration のデフォルトを 1時間から 15分に短縮。
+    /// 新しい `JwksVerifier` を生成する。
+    /// `DefaultJwksFetcher` の HTTP クライアント構築に失敗した場合はエラーを返す。
+    /// LOW-008 対応: `max_stale_duration` のデフォルトを 1時間から 15分に短縮。
     pub fn new(
         jwks_url: &str,
         issuer: &str,
@@ -175,7 +175,7 @@ impl JwksVerifier {
         })
     }
 
-    /// カスタムフェッチャーを使う JwksVerifier を生成する（テスト用）。
+    /// カスタムフェッチャーを使う `JwksVerifier` を生成する（テスト用）。
     pub fn with_fetcher(
         jwks_url: &str,
         issuer: &str,
@@ -209,14 +209,16 @@ impl JwksVerifier {
     ///
     /// Phase 2: 全サービスで jti チェックを有効化する際は
     /// session サービスの Redis lookup パターンを参考にすること。
+    #[must_use]
     pub fn with_jti_checker(mut self, checker: JtiRevokedChecker) -> Self {
         self.jti_checker = Some(checker);
         self
     }
 
-    /// max_stale_duration を上書きする（テスト用ビルダー）。
+    /// `max_stale_duration` を上書きする（テスト用ビルダー）。
     /// JWKS 取得失敗時に stale キャッシュを許容する最大期間を変更する。
     #[cfg(test)]
+    #[must_use]
     pub fn with_max_stale_duration(mut self, max_stale_duration: Duration) -> Self {
         self.max_stale_duration = max_stale_duration;
         self
@@ -237,7 +239,7 @@ impl JwksVerifier {
         let jwk = keys
             .iter()
             .find(|k| k.kid == kid)
-            .ok_or_else(|| AuthError::InvalidToken(format!("unknown kid: {}", kid)))?;
+            .ok_or_else(|| AuthError::InvalidToken(format!("unknown kid: {kid}")))?;
 
         let key = DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
             .map_err(|e| AuthError::InvalidToken(e.to_string()))?;

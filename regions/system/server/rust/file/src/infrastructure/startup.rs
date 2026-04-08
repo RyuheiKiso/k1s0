@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use tower_http::limit::RequestBodyLimitLayer;
 use tracing::info;
 
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
@@ -38,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(
         app_name = %cfg.app.name,
@@ -150,8 +151,7 @@ pub async fn run() -> anyhow::Result<()> {
                 // dev/test 以外では Kafka 初期化失敗時に即座にサーバー起動を中断する。
                 if !k1s0_server_common::allow_in_memory_infra(&cfg.app.environment) {
                     return Err(anyhow::anyhow!(
-                        "Kafka パブリッシャーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {}",
-                        e
+                        "Kafka パブリッシャーの初期化に失敗しました。本番環境ではフォールバックは許可されていません: {e}"
                     ));
                 }
                 tracing::warn!(
@@ -252,9 +252,12 @@ pub async fn run() -> anyhow::Result<()> {
     }
 
     // REST router（メトリクスレイヤーとCorrelation IDレイヤーを追加）
+    // MED-022 監査対応: リクエストボディサイズを 10MB に制限し、大容量ペイロードによる DoS を防止する
+    // ファイル実体は presigned URL 経由で直接 S3 にアップロードするため、REST API は 10MB で十分
     let app = crate::adapter::handler::router(state)
         .layer(k1s0_telemetry::MetricsLayer::new(metrics.clone()))
-        .layer(k1s0_correlation::layer::CorrelationLayer::new());
+        .layer(k1s0_correlation::layer::CorrelationLayer::new())
+        .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024));
 
     // gRPC service
     let grpc_svc = Arc::new(crate::adapter::grpc::FileGrpcService::new(
@@ -270,7 +273,7 @@ pub async fn run() -> anyhow::Result<()> {
 
     // gRPC server
     let grpc_port = cfg.server.grpc_port;
-    let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
+    let grpc_addr: SocketAddr = format!("0.0.0.0:{grpc_port}").parse()?;
     info!("gRPC server starting on {}", grpc_addr);
 
     // gRPC グレースフルシャットダウン用シグナル
@@ -285,7 +288,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server

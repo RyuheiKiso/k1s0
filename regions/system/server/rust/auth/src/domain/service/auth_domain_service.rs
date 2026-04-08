@@ -2,6 +2,7 @@
 
 impl AuthDomainService {
     /// Role x resource x action RBAC check.
+    #[must_use] 
     pub fn check_permission(roles: &[String], resource: &str, action: &str) -> bool {
         let resource = resource.to_ascii_lowercase();
         let action = action.to_ascii_lowercase();
@@ -28,11 +29,13 @@ impl AuthDomainService {
     }
 
     #[allow(dead_code)]
+    #[must_use] 
     pub fn is_admin(roles: &[String]) -> bool {
         roles.iter().any(|r| r == "sys_admin")
     }
 
     #[allow(dead_code)]
+    #[must_use] 
     pub fn is_operator_or_above(roles: &[String]) -> bool {
         roles
             .iter()
@@ -40,6 +43,7 @@ impl AuthDomainService {
     }
 
     #[allow(dead_code)]
+    #[must_use] 
     pub fn is_auditor_or_above(roles: &[String]) -> bool {
         roles
             .iter()

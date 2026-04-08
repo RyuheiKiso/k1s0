@@ -63,10 +63,12 @@ pub struct JobFilter {
 }
 
 impl JobFilter {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use] 
     pub fn status(mut self, status: JobStatus) -> Self {
         self.status = Some(status);
         self

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::user::UserRoles;
 use crate::domain::repository::UserRepository;
 
-/// GetUserRolesError はユーザーロール取得に関するエラーを表す。
+/// `GetUserRolesError` はユーザーロール取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetUserRolesError {
     #[error("user not found: {0}")]
@@ -13,7 +13,7 @@ pub enum GetUserRolesError {
     Internal(String),
 }
 
-/// GetUserRolesUseCase はユーザーロール取得ユースケース。
+/// `GetUserRolesUseCase` はユーザーロール取得ユースケース。
 pub struct GetUserRolesUseCase {
     user_repo: Arc<dyn UserRepository>,
 }

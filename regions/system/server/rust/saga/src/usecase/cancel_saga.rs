@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::saga_state::SagaStatus;
 use crate::domain::repository::SagaRepository;
 
-/// CancelSagaError はキャンセル操作のエラーを型安全に表現する。
+/// `CancelSagaError` はキャンセル操作のエラーを型安全に表現する。
 #[derive(Debug, thiserror::Error)]
 pub enum CancelSagaError {
     #[error("saga not found: {0}")]
@@ -16,7 +16,7 @@ pub enum CancelSagaError {
     Internal(#[from] anyhow::Error),
 }
 
-/// CancelSagaUseCase はSagaキャンセルを担う。
+/// `CancelSagaUseCase` はSagaキャンセルを担う。
 pub struct CancelSagaUseCase {
     saga_repo: Arc<dyn SagaRepository>,
 }
@@ -27,7 +27,7 @@ impl CancelSagaUseCase {
     }
 
     /// Sagaをキャンセルする。
-    /// CRIT-005 対応: tenant_id を引数で受け取り RLS 分離に使用する。
+    /// CRIT-005 対応: `tenant_id` を引数で受け取り RLS 分離に使用する。
     pub async fn execute(&self, saga_id: Uuid, tenant_id: &str) -> Result<(), CancelSagaError> {
         let saga = self
             .saga_repo

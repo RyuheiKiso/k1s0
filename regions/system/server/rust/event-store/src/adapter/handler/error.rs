@@ -5,7 +5,7 @@ use k1s0_server_common::error as codes;
 
 use super::ErrorResponse;
 
-/// EventStoreError はイベントストア REST API のエラー型。
+/// `EventStoreError` はイベントストア REST API のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum EventStoreError {
     #[error("stream not found: {0}")]

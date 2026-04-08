@@ -1,4 +1,6 @@
 // graphql-gateway ビルドスクリプト。
+// HIGH-001 監査対応: build.rs の too_many_lines は大規模 proto コピー処理のため許容する
+#![allow(clippy::too_many_lines)]
 // gRPC クライアントコードの生成または生成済みファイルの利用を行う。
 //
 // 戦略:
@@ -41,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 全ての生成済みファイルが揃っているか確認する
     // 1つでも欠けている場合はフォールバックとして tonic-build を試みる
     let all_generated = services.iter().all(|(subdir, pkg)| {
-        let rs_file = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
+        let rs_file = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
         Path::new(&rs_file).exists()
     });
 
@@ -53,20 +55,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         for (subdir, pkg) in services {
             // prost-build 生成の .rs ファイルをコピー（メッセージ型定義）
-            let src_rs = format!("{}/{}/{}.rs", gen_rust_base, subdir, pkg);
-            let dst_rs = out_path.join(format!("{}.rs", pkg));
+            let src_rs = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
+            let dst_rs = out_path.join(format!("{pkg}.rs"));
             fs::copy(&src_rs, &dst_rs).map_err(|e| {
                 format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e)
             })?;
 
             // tonic-build 生成の .tonic.rs ファイルをコピー（gRPC スタブ）
             // common/v1 は gRPC サービスを持たないためスキップ
-            let src_tonic = format!("{}/{}/{}.tonic.rs", gen_rust_base, subdir, pkg);
+            let src_tonic = format!("{gen_rust_base}/{subdir}/{pkg}.tonic.rs");
             if Path::new(&src_tonic).exists() {
                 // tonic::include_proto! は {pkg}.rs を読み込んだ後に
                 // 同ファイル内で include!("{pkg}.tonic.rs") を参照する設計のため、
                 // .tonic.rs も同じ OUT_DIR に配置する必要がある
-                let dst_tonic = out_path.join(format!("{}.tonic.rs", pkg));
+                let dst_tonic = out_path.join(format!("{pkg}.tonic.rs"));
                 fs::copy(&src_tonic, &dst_tonic).map_err(|e| {
                     format!(
                         "Failed to copy {} -> {}: {}",
@@ -143,8 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 Err(e) => {
                     println!(
-                        "cargo:warning=tonic-build failed (buf/validate.proto requires BSR access): {}",
-                        e
+                        "cargo:warning=tonic-build failed (buf/validate.proto requires BSR access): {e}"
                     );
                     println!("cargo:warning=Run 'buf generate' in api/proto/ to regenerate api/proto/gen/rust/");
                 }

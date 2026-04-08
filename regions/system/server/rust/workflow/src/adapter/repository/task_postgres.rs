@@ -14,6 +14,7 @@ pub struct TaskPostgresRepository {
 }
 
 impl TaskPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -43,8 +44,8 @@ impl From<TaskRow> for WorkflowTask {
             Some(r.assignee_id)
         };
         WorkflowTask {
-            id: r.id.to_string(),
-            instance_id: r.instance_id.to_string(),
+            id: r.id.clone(),
+            instance_id: r.instance_id.clone(),
             step_id: r.step_id,
             step_name: r.step_name,
             assignee_id: assignee,
@@ -97,8 +98,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<WorkflowTask>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // データ取得クエリを QueryBuilder で構築する
         // SELECT 句は固定、WHERE 句は動的に push_bind() で条件を追加する

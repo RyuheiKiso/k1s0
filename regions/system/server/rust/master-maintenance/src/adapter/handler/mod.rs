@@ -58,6 +58,7 @@ pub async fn publish_change_event(state: &AppState, event: serde_json::Value) {
     }
 }
 
+#[must_use] 
 pub fn current_trace_id() -> Option<String> {
     let context = tracing::Span::current().context();
     let span = context.span();

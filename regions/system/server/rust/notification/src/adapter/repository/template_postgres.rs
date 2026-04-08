@@ -12,6 +12,7 @@ pub struct TemplatePostgresRepository {
 }
 
 impl TemplatePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -75,14 +76,14 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
         page_size: u32,
         channel_type: Option<String>,
     ) -> anyhow::Result<(Vec<NotificationTemplate>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         let mut conditions = Vec::new();
         let mut bind_index = 1u32;
 
         if channel_type.is_some() {
-            conditions.push(format!("channel_type = ${}", bind_index));
+            conditions.push(format!("channel_type = ${bind_index}"));
             bind_index += 1;
         }
 
@@ -93,8 +94,7 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
         };
 
         let count_query = format!(
-            "SELECT COUNT(*) FROM notification.templates {}",
-            where_clause
+            "SELECT COUNT(*) FROM notification.templates {where_clause}"
         );
         let data_query = format!(
             "SELECT id, name, channel_type, subject_template, body_template, created_at, updated_at \

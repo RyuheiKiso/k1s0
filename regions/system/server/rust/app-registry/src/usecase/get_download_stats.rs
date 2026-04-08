@@ -40,13 +40,15 @@ impl GetDownloadStatsUseCase {
         }
     }
 
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
     pub async fn execute(
         &self,
+        tenant_id: &str,
         app_id: &str,
     ) -> Result<DownloadStatsSummary, GetDownloadStatsError> {
         let app = self
             .app_repo
-            .find_by_id(app_id)
+            .find_by_id(tenant_id, app_id)
             .await
             .map_err(|e| GetDownloadStatsError::Internal(e.to_string()))?;
 
@@ -102,7 +104,7 @@ mod tests {
     #[tokio::test]
     async fn returns_download_counts_for_latest_version() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| {
+        app_repo.expect_find_by_id().returning(|_, _| {
             Ok(Some(App {
                 id: "cli".to_string(),
                 name: "CLI".to_string(),
@@ -127,6 +129,7 @@ mod tests {
                 storage_key: "key".to_string(),
                 release_notes: None,
                 mandatory: false,
+                cosign_signature: None,
                 published_at: chrono::Utc::now(),
                 created_at: chrono::Utc::now(),
             }])
@@ -145,7 +148,7 @@ mod tests {
             Arc::new(stats_repo),
         );
 
-        let result = uc.execute("cli").await.unwrap();
+        let result = uc.execute("tenant-1", "cli").await.unwrap();
         assert_eq!(result.total_downloads, 42);
         assert_eq!(result.version_downloads, 7);
         assert_eq!(result.latest_version.as_deref(), Some("1.1.0"));

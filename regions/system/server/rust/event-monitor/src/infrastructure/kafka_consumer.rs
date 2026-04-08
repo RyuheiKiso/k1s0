@@ -58,7 +58,7 @@ impl EventKafkaConsumer {
         // Subscribe to topic pattern
         self.consumer
             .subscribe(&["k1s0.*.*.*.v1"])
-            .map_err(|e| anyhow::anyhow!("failed to subscribe: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to subscribe: {e}"))?;
 
         info!("Kafka consumer started, subscribing to k1s0.*.*.*.v1");
 

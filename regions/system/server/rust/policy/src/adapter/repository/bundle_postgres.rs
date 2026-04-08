@@ -8,12 +8,13 @@ use uuid::Uuid;
 use crate::domain::entity::policy_bundle::PolicyBundle;
 use crate::domain::repository::PolicyBundleRepository;
 
-/// PostgreSQL 実装の PolicyBundleRepository。
+/// `PostgreSQL` 実装の `PolicyBundleRepository`。
 pub struct BundlePostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl BundlePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }

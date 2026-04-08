@@ -33,17 +33,19 @@ impl GetSchemaUseCase {
         }
     }
 
-    pub async fn execute(&self, name: &str) -> Result<GetSchemaOutput, GetSchemaError> {
+    // テナントスコープでスキーマと最新バージョンを取得する
+    pub async fn execute(&self, tenant_id: &str, name: &str) -> Result<GetSchemaOutput, GetSchemaError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo
-            .find_by_name(name)
+            .find_by_name(tenant_id, name)
             .await
             .map_err(|e| GetSchemaError::Internal(e.to_string()))?
             .ok_or_else(|| GetSchemaError::NotFound(name.to_string()))?;
 
         let latest_version = self
             .version_repo
-            .find_latest_by_name(name)
+            .find_latest_by_name(tenant_id, name)
             .await
             .map_err(|e| GetSchemaError::Internal(e.to_string()))?;
 
@@ -66,7 +68,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| {
+        schema_mock.expect_find_by_name().returning(|_, _| {
             Ok(Some(ApiSchema::new(
                 "test-api".to_string(),
                 "Test API".to_string(),
@@ -75,7 +77,7 @@ mod tests {
         });
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_find_latest_by_name().returning(|_| {
+        version_mock.expect_find_latest_by_name().returning(|_, _| {
             Ok(Some(ApiSchemaVersion::new(
                 "test-api".to_string(),
                 1,
@@ -86,7 +88,7 @@ mod tests {
         });
 
         let uc = GetSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api").await;
+        let result = uc.execute("tenant-a", "test-api").await;
         assert!(result.is_ok());
         let output = result.unwrap();
         assert_eq!(output.schema.name, "test-api");
@@ -96,12 +98,12 @@ mod tests {
     #[tokio::test]
     async fn not_found() {
         let mut schema_mock = MockApiSchemaRepository::new();
-        schema_mock.expect_find_by_name().returning(|_| Ok(None));
+        schema_mock.expect_find_by_name().returning(|_, _| Ok(None));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = GetSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("tenant-a", "nonexistent").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetSchemaError::NotFound(name) => assert_eq!(name, "nonexistent"),
@@ -114,12 +116,12 @@ mod tests {
         let mut schema_mock = MockApiSchemaRepository::new();
         schema_mock
             .expect_find_by_name()
-            .returning(|_| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _| Err(anyhow::anyhow!("db error")));
 
         let version_mock = MockApiSchemaVersionRepository::new();
 
         let uc = GetSchemaUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
-        let result = uc.execute("test-api").await;
+        let result = uc.execute("tenant-a", "test-api").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetSchemaError::Internal(msg) => assert!(msg.contains("db error")),

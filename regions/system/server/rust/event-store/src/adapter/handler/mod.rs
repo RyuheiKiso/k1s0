@@ -20,9 +20,9 @@ use crate::usecase::{
     ListEventsUseCase, ListStreamsUseCase, ReadEventBySequenceUseCase, ReadEventsUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
-/// MED-013 監査対応: readyz の DB 疎通確認を business logic（list_all）ではなく
-/// SELECT 1 の単純 ping に置き換えるため、db_pool を直接保持する。
+/// `AppState` はアプリケーション全体の共有状態を表す。
+/// MED-013 監査対応: readyz の DB 疎通確認を business `logic（list_all）ではなく`
+/// SELECT 1 の単純 ping `に置き換えるため、db_pool` を直接保持する。
 #[derive(Clone)]
 pub struct AppState {
     pub append_events_uc: Arc<AppendEventsUseCase>,
@@ -37,11 +37,12 @@ pub struct AppState {
     pub event_publisher: Arc<dyn EventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
     pub auth_state: Option<AuthState>,
-    /// DB 接続プール（Some: PostgreSQL 使用中 / None: インメモリ dev モード）
+    /// DB 接続プール（Some: `PostgreSQL` 使用中 / None: インメモリ dev モード）
     pub db_pool: Option<sqlx::PgPool>,
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -169,7 +170,7 @@ pub fn router(state: AppState) -> Router {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
-/// ErrorResponse は統一エラーレスポンス。
+/// `ErrorResponse` は統一エラーレスポンス。
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
@@ -190,6 +191,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

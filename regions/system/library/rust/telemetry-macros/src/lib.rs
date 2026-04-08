@@ -66,10 +66,10 @@ pub fn k1s0_trace(args: TokenStream, input: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    let skip_attr = if !skip_args.is_empty() {
-        quote! { skip(#(#skip_args),*), }
-    } else {
+    let skip_attr = if skip_args.is_empty() {
         quote! {}
+    } else {
+        quote! { skip(#(#skip_args),*), }
     };
 
     let output = quote! {

@@ -219,6 +219,21 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 		prefix = "bff:session:"
 	}
 
+	// M-14 監査対応: SESSION_ENCRYPTION_KEY の検証を Redis nil チェックの前に実施する。
+	// Redis が nil（ALLOW_REDIS_SKIP=true の開発環境）でも不正なキーや本番環境でのキー未設定は
+	// 誤設定として早期にエラーを返す。
+	encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY")
+	var encKey []byte
+	if encKeyHex != "" {
+		var decErr error
+		encKey, decErr = hex.DecodeString(encKeyHex)
+		if decErr != nil || len(encKey) != 32 {
+			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
+		}
+	} else if !config.IsDevEnvironment(cfg.App.Environment) {
+		return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は非開発環境では必須です（SESSION_ENCRYPTION_KEY must be set in non-development environments）")
+	}
+
 	// H-002 監査対応: Redis 接続スキップ時（redisClient == nil）は NoOpStore を使用する。
 	// broken な redis クライアントを下流に渡すと nil dereference による panic が発生するリスクがある。
 	// NoOpStore は全操作を no-op で処理し、セッションデータは保持しない（dev 環境専用）。
@@ -228,11 +243,8 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 	}
 
 	var sessionStore session.FullStore
-	if encKeyHex := os.Getenv("SESSION_ENCRYPTION_KEY"); encKeyHex != "" {
-		encKey, err := hex.DecodeString(encKeyHex)
-		if err != nil || len(encKey) != 32 {
-			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は hex エンコードされた 32 バイト（64 hex 文字）である必要があります")
-		}
+	if encKey != nil {
+		// SESSION_ENCRYPTION_KEY が有効: AES-GCM 暗号化セッションストアを使用する（S-04 対応）
 		encStore, err := session.NewEncryptedStore(redisClient, prefix, encKey)
 		if err != nil {
 			return nil, 0, fmt.Errorf("暗号化セッションストアの初期化に失敗: %w", err)
@@ -240,9 +252,7 @@ func initSessionStore(cfg *config.BFFConfig, redisClient redis.Cmdable, logger *
 		sessionStore = encStore
 		logger.Info("AES-GCM 暗号化セッションストアを使用します")
 	} else {
-		if !config.IsDevEnvironment(cfg.App.Environment) {
-			return nil, 0, fmt.Errorf("SESSION_ENCRYPTION_KEY は非開発環境では必須です（SESSION_ENCRYPTION_KEY must be set in non-development environments）")
-		}
+		// dev 環境かつ SESSION_ENCRYPTION_KEY 未設定: 平文 Redis ストアを使用する
 		sessionStore = session.NewRedisStore(redisClient, prefix)
 		logger.Warn("SESSION_ENCRYPTION_KEY が設定されていません。セッションデータは Redis に平文で保存されます。本番環境では必ず設定してください。")
 	}

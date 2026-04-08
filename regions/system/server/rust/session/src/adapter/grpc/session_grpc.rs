@@ -11,12 +11,12 @@ use crate::usecase::revoke_session::{RevokeSessionInput, RevokeSessionUseCase};
 
 // --- gRPC Request/Response Types ---
 
-/// gRPC CreateSession リクエスト型。
-/// tenant_id は gRPC メタデータ（JWT Claims）から取得し、呼び出し元が設定する。
+/// gRPC `CreateSession` リクエスト型。
+/// `tenant_id` は gRPC メタデータ（JWT Claims）から取得し、呼び出し元が設定する。
 #[derive(Debug, Clone)]
 pub struct CreateSessionRequest {
     pub user_id: String,
-    /// テナント識別子。JWT Claims の tenant_id から取得して渡す。
+    /// テナント識別子。JWT Claims の `tenant_id` から取得して渡す。
     pub tenant_id: String,
     pub device_id: String,
     pub device_name: Option<String>,
@@ -151,6 +151,7 @@ pub struct SessionGrpcService {
 }
 
 impl SessionGrpcService {
+    #[must_use] 
     pub fn new(
         create_uc: Arc<CreateSessionUseCase>,
         get_uc: Arc<GetSessionUseCase>,
@@ -172,7 +173,7 @@ impl SessionGrpcService {
     }
 
     /// セッション作成 gRPC ハンドラー。
-    /// リクエストに含まれる tenant_id を CreateSessionInput に伝播させてテナント分離を保証する。
+    /// リクエストに含まれる `tenant_id` を `CreateSessionInput` に伝播させてテナント分離を保証する。
     pub async fn create_session(
         &self,
         req: CreateSessionRequest,
@@ -187,7 +188,7 @@ impl SessionGrpcService {
             ip_address: req.ip_address,
             ttl_seconds: req
                 .ttl_seconds
-                .map(|ttl| ttl as i64)
+                .map(i64::from)
                 .or(Some(self.default_ttl)),
             max_devices: req.max_devices,
             metadata: req.metadata,
@@ -260,8 +261,7 @@ impl SessionGrpcService {
             id: req.session_id,
             ttl_seconds: req
                 .ttl_seconds
-                .map(|ttl| ttl as i64)
-                .unwrap_or(self.default_ttl),
+                .map_or(self.default_ttl, i64::from),
         };
 
         match self.refresh_uc.execute(&input).await {
@@ -288,8 +288,8 @@ impl SessionGrpcService {
                 })
             }
             Err(SessionError::NotFound(msg)) => Err(GrpcError::NotFound(msg)),
-            Err(SessionError::Revoked(msg)) | Err(SessionError::AlreadyRevoked(msg)) => Err(
-                GrpcError::InvalidArgument(format!("session revoked: {}", msg)),
+            Err(SessionError::Revoked(msg) | SessionError::AlreadyRevoked(msg)) => Err(
+                GrpcError::InvalidArgument(format!("session revoked: {msg}")),
             ),
             Err(SessionError::InvalidInput(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),

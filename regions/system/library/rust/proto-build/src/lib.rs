@@ -20,13 +20,11 @@ pub fn compile_service_protos(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // サービス定義用 proto ファイルパス
     let service_proto = format!(
-        "{}/k1s0/service/{}/v1/{}.proto",
-        proto_root, service_name, service_name
+        "{proto_root}/k1s0/service/{service_name}/v1/{service_name}.proto"
     );
     // イベント定義用 proto ファイルパス
     let event_proto = format!(
-        "{}/k1s0/event/service/{}/v1/{}_events.proto",
-        proto_root, service_name, service_name
+        "{proto_root}/k1s0/event/service/{service_name}/v1/{service_name}_events.proto"
     );
 
     // コンパイル対象の proto ファイルを収集（存在するもののみ）
@@ -35,7 +33,7 @@ pub fn compile_service_protos(
         if std::path::Path::new(path).exists() {
             protos.push(path.clone());
         } else {
-            println!("cargo:warning=Proto file not found, skipping: {}", path);
+            println!("cargo:warning=Proto file not found, skipping: {path}");
         }
     }
 
@@ -52,10 +50,9 @@ pub fn compile_service_protos(
         .out_dir(out_dir)
         .compile_protos(&protos, &[proto_root])
     {
-        Ok(()) => println!("cargo:warning=tonic-build succeeded for {}", service_name),
+        Ok(()) => println!("cargo:warning=tonic-build succeeded for {service_name}"),
         Err(e) => println!(
-            "cargo:warning=tonic-build failed for {} (protoc may not be installed): {}",
-            service_name, e
+            "cargo:warning=tonic-build failed for {service_name} (protoc may not be installed): {e}"
         ),
     }
 

@@ -2,7 +2,7 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// ConfigChangedEvent は設定値変更時に Kafka へ発行するイベント。
+/// `ConfigChangedEvent` は設定値変更時に Kafka へ発行するイベント。
 #[derive(Debug, serde::Serialize)]
 pub struct ConfigChangedEvent {
     pub event_type: String,
@@ -17,7 +17,7 @@ pub struct ConfigChangedEvent {
     pub timestamp: String, // ISO 8601
 }
 
-/// KafkaConfig は Kafka 接続の設定を表す。
+/// `KafkaConfig` は Kafka 接続の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -33,13 +33,13 @@ pub struct KafkaConfig {
     pub topic_changed: String,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SaslConfig は SASL 認証の設定を表す。
+/// `SaslConfig` は SASL 認証の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SaslConfig {
     #[serde(default)]
@@ -61,7 +61,7 @@ impl Default for SaslConfig {
     }
 }
 
-/// TopicsConfig はトピック設定を表す。
+/// `TopicsConfig` はトピック設定を表す。
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
@@ -70,7 +70,7 @@ pub struct TopicsConfig {
     pub subscribe: Vec<String>,
 }
 
-/// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -78,19 +78,19 @@ pub struct KafkaProducer {
 }
 
 impl KafkaProducer {
-    /// 新しい KafkaProducer を作成する。
+    /// 新しい `KafkaProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
-        let topic = if !config.topic_changed.is_empty() {
-            config.topic_changed.clone()
-        } else {
+        let topic = if config.topic_changed.is_empty() {
             config
                 .topics
                 .publish
                 .first()
                 .cloned()
                 .unwrap_or_else(|| "k1s0.system.config.changed.v1".to_string())
+        } else {
+            config.topic_changed.clone()
         };
 
         let mut client_config = ClientConfig::new();
@@ -118,6 +118,7 @@ impl KafkaProducer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -135,7 +136,7 @@ impl KafkaProducer {
 
     /// 配信先トピック名を返す。
     /// 設定値変更イベントを Kafka へ発行する。
-    /// 内部的には ConfigChangeLog を構築して既存の publish メソッドに委譲する。
+    /// 内部的には `ConfigChangeLog` を構築して既存の publish メソッドに委譲する。
     pub async fn publish_config_changed(&self, event: &ConfigChangedEvent) -> anyhow::Result<()> {
         use rdkafka::producer::FutureRecord;
         use std::time::Duration;
@@ -149,7 +150,7 @@ impl KafkaProducer {
             .send(record, Duration::from_secs(5))
             .await
             .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish config changed event: {}", err)
+                anyhow::anyhow!("failed to publish config changed event: {err}")
             })?;
 
         if let Some(ref m) = self.metrics {

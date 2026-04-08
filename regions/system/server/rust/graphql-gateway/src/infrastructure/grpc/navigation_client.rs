@@ -9,7 +9,15 @@ use crate::domain::model::{
 };
 use crate::infrastructure::config::BackendConfig;
 
-#[allow(dead_code)]
+// HIGH-001 監査対応: tonic::include_proto!で展開される生成コードのClippy警告を抑制する
+#[allow(
+    dead_code,
+    clippy::default_trait_access,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::too_many_lines,
+    clippy::doc_markdown,
+    clippy::must_use_candidate
+)]
 pub mod proto {
     pub mod k1s0 {
         pub mod system {
@@ -32,13 +40,13 @@ pub struct NavigationGrpcClient {
     client: NavigationServiceClient<Channel>,
     /// バックエンドサービスのアドレス。gRPC Health Check Protocol のためのチャネル生成に使用する。
     address: String,
-    /// タイムアウト設定（ミリ秒）。health_check のチャネル生成にも適用する。
+    /// `タイムアウト設定（ミリ秒）。health_check` のチャネル生成にも適用する。
     timeout_ms: u64,
 }
 
 impl NavigationGrpcClient {
     /// バックエンド設定からクライアントを生成する。
-    /// connect_lazy() により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
+    /// `connect_lazy()` により起動時の接続確立を不要とし、実際のRPC呼び出し時に接続する。
     pub fn new(cfg: &BackendConfig) -> anyhow::Result<Self> {
         let channel = Channel::from_shared(cfg.address.clone())?
             .timeout(Duration::from_millis(cfg.timeout_ms))
@@ -65,12 +73,12 @@ impl NavigationGrpcClient {
         health_client
             .check(request)
             .await
-            .map_err(|e| anyhow::anyhow!("navigation gRPC Health Check 失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("navigation gRPC Health Check 失敗: {e}"))?;
         Ok(())
     }
 
     /// ナビゲーション設定を取得する。
-    /// HIGH-015対応: bearer_token フィールドはプロトメッセージから削除済みのため、
+    /// HIGH-015対応: `bearer_token` フィールドはプロトメッセージから削除済みのため、
     /// Authorization メタデータヘッダーにトークンを設定して送信する。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_navigation(&self, bearer_token: &str) -> anyhow::Result<Navigation> {
@@ -78,9 +86,9 @@ impl NavigationGrpcClient {
             tonic::Request::new(proto::k1s0::system::navigation::v1::GetNavigationRequest {});
         // Bearer トークンをメタデータヘッダーに設定する（空文字列の場合は設定しない）
         if !bearer_token.is_empty() {
-            let header_value = format!("Bearer {}", bearer_token)
+            let header_value = format!("Bearer {bearer_token}")
                 .parse()
-                .map_err(|e| anyhow::anyhow!("Authorization ヘッダーの設定に失敗: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Authorization ヘッダーの設定に失敗: {e}"))?;
             request.metadata_mut().insert("authorization", header_value);
         }
 
@@ -89,7 +97,7 @@ impl NavigationGrpcClient {
             .clone()
             .get_navigation(request)
             .await
-            .map_err(|e| anyhow::anyhow!("NavigationService.GetNavigation failed: {}", e))?
+            .map_err(|e| anyhow::anyhow!("NavigationService.GetNavigation failed: {e}"))?
             .into_inner();
 
         let routes = resp.routes.into_iter().map(route_from_proto).collect();

@@ -18,7 +18,7 @@ impl ListIndicesUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからインデックス一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからインデックス一覧を取得する。
     pub async fn execute(&self, tenant_id: &str) -> Result<Vec<SearchIndex>, ListIndicesError> {
         self.repo
             .list_indices(tenant_id)

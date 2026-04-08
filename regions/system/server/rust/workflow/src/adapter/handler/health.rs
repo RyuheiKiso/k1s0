@@ -13,7 +13,7 @@ pub async fn healthz() -> impl IntoResponse {
 
 /// readiness probe: DB 接続確認を行い、サービスがリクエスト受付可能かを返す。
 /// CRITICAL-003 監査対応: Docker Compose の healthcheck および Kubernetes readinessProbe として使用する。
-/// ADR-0068 対応: "ready"/"not_ready" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
+/// ADR-0068 対応: "`ready"/"not_ready`" から "healthy"/"unhealthy" に統一し、timestamp フィールドを追加する。
 /// DB が設定されている場合は SELECT 1 で疎通確認し、失敗時は 503 を返す。
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // ADR-0068: UTC タイムスタンプを ISO 8601 形式で返す

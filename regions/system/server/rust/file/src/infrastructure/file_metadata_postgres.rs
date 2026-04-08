@@ -18,19 +18,19 @@ impl FileMetadataPostgresRepository {
         let schema = sanitize_schema(schema)?;
         Ok(Self {
             pool,
-            table_name: format!("{}.file_metadata", schema),
+            table_name: format!("{schema}.file_metadata"),
         })
     }
 
-    /// migration 003 で追加した tenant_id カラムを含む行マッピング
-    /// DB カラム: id, tenant_id, filename, content_type, storage_path, checksum, uploaded_by
+    /// migration 003 で追加した `tenant_id` カラムを含む行マッピング
+    /// DB カラム: id, `tenant_id`, filename, `content_type`, `storage_path`, checksum, `uploaded_by`
     fn map_row(row: PgRow) -> anyhow::Result<FileMetadata> {
         let tags_json: serde_json::Value = row.try_get("tags")?;
         let tags = serde_json::from_value::<HashMap<String, String>>(tags_json).unwrap_or_default();
 
         let size_i64: i64 = row.try_get("size_bytes")?;
         let size_bytes = u64::try_from(size_i64)
-            .map_err(|_| anyhow::anyhow!("invalid size_bytes in DB: {}", size_i64))?;
+            .map_err(|_| anyhow::anyhow!("invalid size_bytes in DB: {size_i64}"))?;
 
         Ok(FileMetadata {
             id: row.try_get("id")?,
@@ -195,9 +195,9 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
         Ok(result.rows_affected() > 0)
     }
 
-    /// テナント分離対応: tenant_id カラムによる明示的なフィルタを追加（migration 003 対応）
-    /// RLS set_config + storage_path LIKE + tenant_id = で三重のテナント境界を確保する。
-    /// expected_uploader が Some の場合は uploaded_by カラムも条件に追加する。
+    /// テナント分離対応: `tenant_id` カラムによる明示的なフィルタを追加（migration 003 対応）
+    /// RLS `set_config` + `storage_path` LIKE + `tenant_id` = で三重のテナント境界を確保する。
+    /// `expected_uploader` が Some の場合は `uploaded_by` カラムも条件に追加する。
     async fn delete_with_tenant_check(
         &self,
         id: String,
@@ -222,7 +222,7 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             sqlx::query(&sql)
                 .bind(&id)
                 .bind(&tenant_id_prefix)
-                .bind(format!("{}%", escaped_prefix))
+                .bind(format!("{escaped_prefix}%"))
                 .bind(uploader)
                 .execute(&self.pool)
                 .await?
@@ -235,7 +235,7 @@ impl FileMetadataRepository for FileMetadataPostgresRepository {
             sqlx::query(&sql)
                 .bind(&id)
                 .bind(&tenant_id_prefix)
-                .bind(format!("{}%", escaped_prefix))
+                .bind(format!("{escaped_prefix}%"))
                 .execute(&self.pool)
                 .await?
         };
@@ -252,15 +252,14 @@ fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {
         .all(|c| c.is_ascii_alphanumeric() || c == '_')
     {
         return Err(anyhow::anyhow!(
-            "database schema contains invalid characters: {}",
-            schema
+            "database schema contains invalid characters: {schema}"
         ));
     }
     Ok(schema)
 }
 
-/// migration 003 で tenant_id カラムが追加されたためフィルタを有効化する
-/// RLS の set_config と組み合わせることで二重のテナント境界を実現する
+/// migration 003 で `tenant_id` カラムが追加されたためフィルタを有効化する
+/// RLS の `set_config` と組み合わせることで二重のテナント境界を実現する
 fn apply_filters(
     qb: &mut QueryBuilder<'_, Postgres>,
     tenant_id: &Option<String>,

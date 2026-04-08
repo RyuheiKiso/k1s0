@@ -5,7 +5,7 @@ use serde::Deserialize;
 use super::database::DatabaseConfig;
 use super::kafka_producer::KafkaConfig;
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -15,7 +15,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -24,7 +24,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -58,14 +58,14 @@ pub struct Config {
     pub cache: VaultCacheConfig,
 }
 
-/// VaultCacheConfig はシークレットキャッシュの設定を保持する。
+/// `VaultCacheConfig` はシークレットキャッシュの設定を保持する。
 /// キャッシュは Vault KV v2 / DB へのアクセス回数を削減するために使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct VaultCacheConfig {
-    /// max_entries はキャッシュに保持する最大エントリ数（デフォルト: 10,000）。
+    /// `max_entries` はキャッシュに保持する最大エントリ数（デフォルト: 10,000）。
     #[serde(default = "default_cache_max_entries")]
     pub max_entries: u64,
-    /// ttl_secs はキャッシュエントリの有効期間（秒）（デフォルト: 2880 = 48 分）。
+    /// `ttl_secs` はキャッシュエントリの有効期間（秒）（デフォルト: 2880 = 48 分）。
     /// 本番環境ではシークレットローテーション周期に合わせて調整すること。
     #[serde(default = "default_cache_ttl_secs")]
     pub ttl_secs: u64,

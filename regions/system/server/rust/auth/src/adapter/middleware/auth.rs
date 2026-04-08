@@ -45,11 +45,11 @@ fn tier_level(tiers: &[String], tier: &str) -> Option<u8> {
         .map(|i| i as u8)
 }
 
-/// LOW-13 監査対応: 設定駆動の Tier 階層を用いて tier_access から required_tier へのアクセス可否を判定する。
+/// LOW-13 監査対応: 設定駆動の Tier 階層を用いて `tier_access` から `required_tier` へのアクセス可否を判定する。
 ///
 /// Tier 階層ルール（tiers リストの順序に従う）:
 /// - 上位 Tier（インデックスが小さい）を持つユーザーは、それ以下の全 Tier にアクセス可能
-/// - 設定ファイルの tier_hierarchy.tiers に存在しない Tier は拒否される
+/// - 設定ファイルの `tier_hierarchy.tiers` に存在しない Tier は拒否される
 fn has_tier_access(tiers: &[String], tier_access: &[String], required_tier: &str) -> bool {
     let required_level = match tier_level(tiers, required_tier) {
         Some(level) => level,
@@ -58,12 +58,11 @@ fn has_tier_access(tiers: &[String], tier_access: &[String], required_tier: &str
 
     tier_access.iter().any(|user_tier| {
         tier_level(tiers, user_tier)
-            .map(|user_level| user_level <= required_level)
-            .unwrap_or(false)
+            .is_some_and(|user_level| user_level <= required_level)
     })
 }
 
-/// auth_middleware は Bearer トークンを検証して、Request extension に Claims を格納する axum ミドルウェア。
+/// `auth_middleware` は Bearer トークンを検証して、Request extension に Claims を格納する axum ミドルウェア。
 /// トークンが存在しないか無効な場合は 401 Unauthorized を返す。
 pub async fn auth_middleware(
     State(state): State<AppState>,

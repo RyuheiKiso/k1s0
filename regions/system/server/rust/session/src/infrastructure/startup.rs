@@ -23,7 +23,7 @@ use crate::error::SessionError;
 
 /// HIGH-002 対応: jti チェッカー構築ヘルパー。
 /// Redis に接続済みの場合は jti 失効確認コールバックを返す。
-/// コールバックは同期 Fn であるため、tokio の block_in_place を使って非同期処理をブロッキングで実行する。
+/// コールバックは同期 Fn であるため、tokio の `block_in_place` を使って非同期処理をブロッキングで実行する。
 /// auth ライブラリが同期コールバックを要求しているため、この変換が必要となる。
 fn build_jti_checker(
     redis_repo: Arc<RedisSessionRepository>,
@@ -42,6 +42,8 @@ fn build_jti_checker(
     })
 }
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -64,7 +66,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     info!(port = cfg.server.port, "starting session server");
 
@@ -76,10 +78,10 @@ pub async fn run() -> anyhow::Result<()> {
     let repo: Arc<dyn SessionRepository> = if let Some(ref redis_cfg) = cfg.redis {
         info!(url = %redis_cfg.url, "connecting to Redis");
         let client = redis::Client::open(redis_cfg.url.as_str())
-            .map_err(|e| anyhow::anyhow!("failed to create Redis client: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to create Redis client: {e}"))?;
         let conn = redis::aio::ConnectionManager::new(client)
             .await
-            .map_err(|e| anyhow::anyhow!("failed to connect to Redis: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("failed to connect to Redis: {e}"))?;
         info!("Redis connection established");
         let redis_repo = Arc::new(RedisSessionRepository::new(conn));
         // jti チェッカー用に Arc<RedisSessionRepository> を保持する（Arc::clone で参照カウントのみ増加）
@@ -363,7 +365,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server.port));

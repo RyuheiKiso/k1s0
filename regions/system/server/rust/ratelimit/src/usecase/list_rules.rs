@@ -3,14 +3,14 @@ use std::sync::Arc;
 use crate::domain::entity::RateLimitRule;
 use crate::domain::repository::RateLimitRepository;
 
-/// ListRulesError はルール一覧取得に関するエラー。
+/// `ListRulesError` はルール一覧取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum ListRulesError {
     #[error("internal error: {0}")]
     Internal(String),
 }
 
-/// ListRulesUseCase はルール一覧取得ユースケース。
+/// `ListRulesUseCase` はルール一覧取得ユースケース。
 pub struct ListRulesUseCase {
     repo: Arc<dyn RateLimitRepository>,
 }
@@ -38,7 +38,7 @@ impl ListRulesUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルール一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルール一覧を取得する。
     pub async fn execute(&self, input: &ListRulesInput) -> Result<ListRulesOutput, ListRulesError> {
         let page = input.page.max(1);
         let page_size = input.page_size.clamp(1, 200);
@@ -53,7 +53,7 @@ impl ListRulesUseCase {
             )
             .await
             .map_err(|e| ListRulesError::Internal(e.to_string()))?;
-        let has_next = (page as u64 * page_size as u64) < total_count;
+        let has_next = (u64::from(page) * u64::from(page_size)) < total_count;
         Ok(ListRulesOutput {
             rules,
             total_count,

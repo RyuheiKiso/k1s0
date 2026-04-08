@@ -29,7 +29,7 @@ pub struct Service {
     pub updated_at: DateTime<Utc>,
 }
 
-/// ServiceTier はサービスの重要度レベルを表す。
+/// `ServiceTier` はサービスの重要度レベルを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ServiceTier {
@@ -58,14 +58,13 @@ impl std::str::FromStr for ServiceTier {
             "standard" => Ok(ServiceTier::Standard),
             "internal" => Ok(ServiceTier::Internal),
             _ => Err(ParseError::InvalidValue(format!(
-                "invalid service tier: {}",
-                s
+                "invalid service tier: {s}"
             ))),
         }
     }
 }
 
-/// ServiceLifecycle はサービスのライフサイクルステージを表す。
+/// `ServiceLifecycle` はサービスのライフサイクルステージを表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ServiceLifecycle {
@@ -100,8 +99,7 @@ impl std::str::FromStr for ServiceLifecycle {
             "deprecated" => Ok(ServiceLifecycle::Deprecated),
             "decommissioned" => Ok(ServiceLifecycle::Decommissioned),
             _ => Err(ParseError::InvalidValue(format!(
-                "invalid service lifecycle: {}",
-                s
+                "invalid service lifecycle: {s}"
             ))),
         }
     }

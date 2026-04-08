@@ -20,13 +20,16 @@ impl GetSchemaVersionUseCase {
         Self { version_repo }
     }
 
+    // テナントスコープでスキーマバージョンを取得する
     pub async fn execute(
         &self,
+        tenant_id: &str,
         name: &str,
         version: u32,
     ) -> Result<ApiSchemaVersion, GetSchemaVersionError> {
+        // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         self.version_repo
-            .find_by_name_and_version(name, version)
+            .find_by_name_and_version(tenant_id, name, version)
             .await
             .map_err(|e| GetSchemaVersionError::Internal(e.to_string()))?
             .ok_or_else(|| GetSchemaVersionError::NotFound {
@@ -46,7 +49,7 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockApiSchemaVersionRepository::new();
-        mock.expect_find_by_name_and_version().returning(|_, _| {
+        mock.expect_find_by_name_and_version().returning(|_, _, _| {
             Ok(Some(ApiSchemaVersion::new(
                 "test-api".to_string(),
                 2,
@@ -57,7 +60,7 @@ mod tests {
         });
 
         let uc = GetSchemaVersionUseCase::new(Arc::new(mock));
-        let result = uc.execute("test-api", 2).await;
+        let result = uc.execute("tenant-a", "test-api", 2).await;
         assert!(result.is_ok());
         let version = result.unwrap();
         assert_eq!(version.name, "test-api");
@@ -68,10 +71,10 @@ mod tests {
     async fn not_found() {
         let mut mock = MockApiSchemaVersionRepository::new();
         mock.expect_find_by_name_and_version()
-            .returning(|_, _| Ok(None));
+            .returning(|_, _, _| Ok(None));
 
         let uc = GetSchemaVersionUseCase::new(Arc::new(mock));
-        let result = uc.execute("test-api", 99).await;
+        let result = uc.execute("tenant-a", "test-api", 99).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetSchemaVersionError::NotFound { name, version } => {
@@ -86,10 +89,10 @@ mod tests {
     async fn error() {
         let mut mock = MockApiSchemaVersionRepository::new();
         mock.expect_find_by_name_and_version()
-            .returning(|_, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = GetSchemaVersionUseCase::new(Arc::new(mock));
-        let result = uc.execute("test-api", 1).await;
+        let result = uc.execute("tenant-a", "test-api", 1).await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetSchemaVersionError::Internal(msg) => assert!(msg.contains("db error")),

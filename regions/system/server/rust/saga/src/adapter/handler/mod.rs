@@ -15,8 +15,8 @@ use crate::usecase::{
     RegisterWorkflowUseCase, StartSagaUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
-/// db_pool は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
+/// `AppState` はアプリケーション全体の共有状態を表す。
+/// `db_pool` は /healthz エンドポイントで DB 接続確認に使用する（C-02 対応）
 #[derive(Clone)]
 pub struct AppState {
     pub start_saga_uc: Arc<StartSagaUseCase>,
@@ -33,6 +33,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -142,7 +143,7 @@ pub fn router(state: AppState) -> Router {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
-/// ErrorResponse は統一エラーレスポンス。
+/// `ErrorResponse` は統一エラーレスポンス。
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
@@ -157,6 +158,7 @@ pub struct ErrorBody {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

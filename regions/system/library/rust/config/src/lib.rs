@@ -19,7 +19,7 @@ pub enum ConfigError {
     Validation(String),
 }
 
-/// YAML を読み込み Config を返す。env_path があればマージする。
+/// YAML を読み込み Config `を返す。env_path` があればマージする。
 pub fn load(base_path: &str, env_path: Option<&str>) -> Result<Config, ConfigError> {
     let base = std::fs::read_to_string(base_path)?;
     let mut config: Config = serde_yaml::from_str(&base)?;

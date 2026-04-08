@@ -26,6 +26,8 @@ use crate::usecase::{
     VaultQueryResolver, WorkflowMutationResolver, WorkflowQueryResolver,
 };
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // --- Telemetry ---
     let config_path =
@@ -48,7 +50,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // --- Config ---
     cfg.validate()?;
@@ -92,8 +94,7 @@ pub async fn run() -> anyhow::Result<()> {
         .auth
         .jwks
         .as_ref()
-        .map(|j| j.cache_ttl_secs)
-        .unwrap_or(300);
+        .map_or(300, |j| j.cache_ttl_secs);
     let jwks_verifier = Arc::new(
         JwksVerifier::new(jwks_url.to_string())?
             .with_cache_ttl(jwks_cache_ttl_secs)
@@ -168,10 +169,10 @@ pub async fn run() -> anyhow::Result<()> {
             "レート制限を有効化"
         );
         // C-02/L-16 監査対応: GrpcRateLimitClient → HttpRateLimitClient（非推奨エイリアスを廃止）
+        // HIGH-001 監査対応: HttpRateLimitClient::new は同期関数のため .await を除去する
         let ratelimit_client =
             k1s0_ratelimit_client::HttpRateLimitClient::new(cfg.ratelimit.server_url.clone())
-                .await
-                .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("ratelimit クライアントの作成に失敗: {e}"))?;
         Some(RateLimitLayer::new(
             Arc::new(ratelimit_client),
             cfg.ratelimit.scope.clone(),

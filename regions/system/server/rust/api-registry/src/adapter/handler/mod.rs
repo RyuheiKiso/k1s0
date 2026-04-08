@@ -9,7 +9,7 @@ use axum::Router;
 
 use crate::adapter::middleware::auth::{auth_middleware, AuthState};
 use crate::adapter::middleware::rbac::require_permission;
-use crate::usecase::*;
+use crate::usecase::{ListSchemasUseCase, RegisterSchemaUseCase, GetSchemaUseCase, ListVersionsUseCase, RegisterVersionUseCase, GetSchemaVersionUseCase, DeleteVersionUseCase, CheckCompatibilityUseCase, GetDiffUseCase};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -29,6 +29,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self

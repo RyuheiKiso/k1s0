@@ -38,6 +38,8 @@ use crate::domain::service::DeliveryClient;
 use k1s0_server_common::startup::{ObservabilityFields, ServerBuilder};
 use secrecy::ExposeSecret;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // 設定ファイルを読み込む
     let config_path =
@@ -85,7 +87,7 @@ pub async fn run() -> anyhow::Result<()> {
             .as_ref()
             .map(|k| -> anyhow::Result<[u8; 32]> {
                 let bytes = hex::decode(k.expose_secret())
-                    .map_err(|e| anyhow::anyhow!("channel_config_encryption_key の hex デコードに失敗: {}", e))?;
+                    .map_err(|e| anyhow::anyhow!("channel_config_encryption_key の hex デコードに失敗: {e}"))?;
                 bytes.try_into()
                     .map_err(|_| anyhow::anyhow!("channel_config_encryption_key は64文字の hex（32バイト）である必要があります"))
             })
@@ -189,7 +191,7 @@ pub async fn run() -> anyhow::Result<()> {
         reqwest::Url::parse(&webhook_url).context("WEBHOOK_URL が有効な URL ではありません")?;
         // H-18: タイムアウト付き WebhookDeliveryClient を構築する。失敗時は起動エラーとして伝播する
         let webhook_client = WebhookDeliveryClient::new(webhook_url, None)
-            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Webhookクライアントの初期化に失敗しました: {e}"))?;
         info!("Webhook delivery client initialized");
         delivery_clients.insert("webhook".to_string(), Arc::new(webhook_client));
     } else {
@@ -391,7 +393,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -448,8 +450,8 @@ impl InMemoryNotificationChannelRepository {
     }
 }
 
-/// MEDIUM-RUST-001 監査対応: InMemory 実装もトレイトシグネチャ変更に追従する。
-/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
+/// MEDIUM-RUST-001 監査対応: `InMemory` 実装もトレイトシグネチャ変更に追従する。
+/// `tenant_id` 引数は `InMemory` 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationChannelRepository for InMemoryNotificationChannelRepository {
     async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {

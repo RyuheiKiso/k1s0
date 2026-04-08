@@ -35,12 +35,14 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 
     #[allow(dead_code)]
+    #[must_use] 
     pub fn with_spiffe(mut self, spiffe_state: SpiffeAuthState) -> Self {
         self.spiffe_state = Some(spiffe_state);
         self
@@ -50,7 +52,7 @@ impl AppState {
 // --- Query DTOs ---
 
 /// LOW-12 監査対応: keyset ページネーションクエリパラメータ。
-/// after_id に前ページの最後のアイテムの UUID を指定すると次ページを取得できる。
+/// `after_id` に前ページの最後のアイテムの UUID を指定すると次ページを取得できる。
 #[derive(Debug, Deserialize)]
 pub struct AuditLogQuery {
     /// 前ページの最後のアイテムの id（カーソル）。省略した場合は先頭ページ。
@@ -118,16 +120,16 @@ fn classify_vault_internal_error(msg: &str) -> (StatusCode, &'static str) {
 }
 
 /// 本番環境で内部エラー詳細を API レスポンスに露出しないためのフラグ。
-/// VAULT_EXPOSE_INTERNAL_ERRORS=true を設定した場合のみ詳細を返す（開発環境専用）。
+/// `VAULT_EXPOSE_INTERNAL_ERRORS=true` を設定した場合のみ詳細を返す（開発環境専用）。
 fn should_expose_internal_errors() -> bool {
     std::env::var("VAULT_EXPOSE_INTERNAL_ERRORS")
         .map(|v| v.eq_ignore_ascii_case("true"))
         .unwrap_or(false)
 }
 
-/// Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー。
+/// `Vaultエラーを分類してHTTPエラーレスポンスを返すヘルパー`。
 /// 本番環境ではエラー詳細を隠蔽し、ジェネリックなメッセージを返す（LOW-04 監査対応）。
-/// 開発環境では VAULT_EXPOSE_INTERNAL_ERRORS=true で詳細を返せる。
+/// 開発環境では `VAULT_EXPOSE_INTERNAL_ERRORS=true` で詳細を返せる。
 fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
     let (status, code) = classify_vault_internal_error(msg);
     // 本番環境でのエラー詳細漏洩を防ぐため、expose フラグが false の場合はジェネリックメッセージに差し替える
@@ -221,7 +223,7 @@ pub async fn get_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -277,7 +279,7 @@ pub async fn delete_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -329,7 +331,7 @@ pub async fn get_secret_metadata(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),
@@ -418,7 +420,7 @@ pub async fn rotate_secret(
             StatusCode::NOT_FOUND,
             Json(ErrorResponse::new(
                 "SYS_VAULT_NOT_FOUND",
-                format!("secret not found: {}", path),
+                format!("secret not found: {path}"),
             )),
         )
             .into_response(),

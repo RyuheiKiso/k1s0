@@ -743,7 +743,7 @@ pub mod master_maintenance_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with MasterMaintenanceServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `MasterMaintenanceServiceServer`.
     #[async_trait]
     pub trait MasterMaintenanceService: std::marker::Send + std::marker::Sync + 'static {
         /// テーブル定義

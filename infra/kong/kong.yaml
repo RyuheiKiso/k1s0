@@ -703,6 +703,15 @@ plugins:
         - Authorization
 
   # CORS - クロスオリジンリソース共有
+  # LOW-006 監査対応: KONG_CORS_ORIGINS の展開仕様を明記する
+  # envsubst によりデプロイ時に展開される。複数オリジンを許可する場合は
+  # 本設定ファイルを複数エントリに直接記載すること。
+  # 例（ステージング）:
+  #   origins:
+  #     - "https://app.staging.k1s0.internal.example.com"
+  #     - "https://admin.staging.k1s0.internal.example.com"
+  # 本番はワイルドカードサブドメイン 1 エントリのみを想定するため
+  # 単一の ${KONG_CORS_ORIGINS} で展開する。
   - name: cors
     config:
       origins:

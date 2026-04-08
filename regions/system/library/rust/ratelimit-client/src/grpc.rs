@@ -1,4 +1,4 @@
-/// C-02 監査対応: GrpcRateLimitClient → HttpRateLimitClient にリネーム
+/// C-02 監査対応: `GrpcRateLimitClient` → `HttpRateLimitClient` にリネーム
 /// API パスをサーバー実装（POST /api/v1/ratelimit/check 等）に合わせる
 #[cfg(feature = "grpc")]
 mod inner {
@@ -11,7 +11,7 @@ mod inner {
     use crate::types::{RateLimitPolicy, RateLimitResult, RateLimitStatus};
 
     /// HTTP REST API を使用する ratelimit-server クライアント
-    /// C-02/L-16 監査対応: GrpcRateLimitClient から HttpRateLimitClient にリネーム
+    /// C-02/L-16 監査対応: `GrpcRateLimitClient` から `HttpRateLimitClient` にリネーム
     pub struct HttpRateLimitClient {
         http: reqwest::Client,
         base_url: String,
@@ -19,7 +19,8 @@ mod inner {
 
     impl HttpRateLimitClient {
         /// デフォルトタイムアウト30秒でHTTPクライアントを構築して接続する
-        pub async fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError> {
+        // HIGH-001 監査対応: reqwest::Client::builder().build() は同期処理のため async を除去する
+        pub fn new(server_url: impl Into<String>) -> Result<Self, RateLimitError> {
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
                 .build()
@@ -33,7 +34,7 @@ mod inner {
         ) -> Result<Self, RateLimitError> {
             let mut base = server_url.into();
             if !base.starts_with("http://") && !base.starts_with("https://") {
-                base = format!("http://{}", base);
+                base = format!("http://{base}");
             }
             let base = base.trim_end_matches('/').to_string();
             Ok(Self {
@@ -52,7 +53,7 @@ mod inner {
         window: Option<String>,
     }
 
-    /// サーバーの CheckRateLimitResponse に合わせたレスポンス構造体
+    /// サーバーの `CheckRateLimitResponse` に合わせたレスポンス構造体
     #[derive(Deserialize)]
     struct CheckResponse {
         allowed: bool,
@@ -60,7 +61,7 @@ mod inner {
         reset_at: String,
     }
 
-    /// サーバーの UsageResponse に合わせたレスポンス構造体
+    /// サーバーの `UsageResponse` に合わせたレスポンス構造体
     #[derive(Deserialize)]
     struct UsageResponse {
         #[serde(default)]
@@ -95,7 +96,7 @@ mod inner {
         };
         match status.as_u16() {
             404 => RateLimitError::KeyNotFound {
-                key: format!("{}: {}", op, msg),
+                key: format!("{op}: {msg}"),
             },
             429 => RateLimitError::LimitExceeded {
                 retry_after_secs: 0,
@@ -117,7 +118,7 @@ mod inner {
             let url = format!("{}/api/v1/ratelimit/check", self.base_url);
             let (scope, identifier) = split_key(key);
             let window = if cost > 1 {
-                Some(format!("{}s", cost))
+                Some(format!("{cost}s"))
             } else {
                 None
             };
@@ -138,12 +139,13 @@ mod inner {
             }
 
             let result: CheckResponse = resp.json().await.map_err(|e| {
-                RateLimitError::ServerError(format!("check: decode response: {}", e))
+                RateLimitError::ServerError(format!("check: decode response: {e}"))
             })?;
 
             Ok(RateLimitStatus {
                 allowed: result.allowed,
-                remaining: result.remaining as u32,
+                // HIGH-001 監査対応: i64→u32 の安全なキャスト（負値と過大値を0に変換）
+                remaining: u32::try_from(result.remaining.max(0)).unwrap_or(0),
                 reset_at: parse_reset_at(&result.reset_at),
                 retry_after_secs: if result.allowed { None } else { Some(0) },
             })
@@ -169,7 +171,7 @@ mod inner {
             }
 
             let result: UsageResponse = resp.json().await.map_err(|e| {
-                RateLimitError::ServerError(format!("get_limit: decode response: {}", e))
+                RateLimitError::ServerError(format!("get_limit: decode response: {e}"))
             })?;
 
             Ok(RateLimitPolicy {

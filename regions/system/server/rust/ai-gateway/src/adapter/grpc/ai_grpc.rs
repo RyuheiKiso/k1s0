@@ -50,8 +50,9 @@ pub struct GrpcGetUsageRequest {
 }
 
 /// AI Gateway gRPCサービス。
-/// ユースケースを呼び出してgRPC固有の変換を行う。
-#[allow(dead_code)]
+/// `ユースケースを呼び出してgRPC固有の変換を行う`。
+// HIGH-001 監査対応: フィールド名はユースケース名を反映するため同一サフィックスを許容する
+#[allow(dead_code, clippy::struct_field_names)]
 pub struct AiGatewayGrpcService {
     complete_uc: Arc<CompleteUseCase>,
     embed_uc: Arc<EmbedUseCase>,
@@ -61,7 +62,8 @@ pub struct AiGatewayGrpcService {
 
 #[allow(dead_code)]
 impl AiGatewayGrpcService {
-    /// 新しいgRPCサービスを生成する。
+    /// `新しいgRPCサービスを生成する`。
+    #[must_use] 
     pub fn new(
         complete_uc: Arc<CompleteUseCase>,
         embed_uc: Arc<EmbedUseCase>,
@@ -96,8 +98,10 @@ impl AiGatewayGrpcService {
         self.complete_uc.execute(input).await.map_err(|e| match e {
             CompleteError::GuardrailViolation(msg) => GrpcError::InvalidArgument(msg),
             CompleteError::ModelNotFound(msg) => GrpcError::NotFound(msg),
-            CompleteError::LlmError(msg) => GrpcError::Internal(msg),
-            CompleteError::Internal(msg) => GrpcError::Internal(msg),
+            // HIGH-001 監査対応: 同一ボディのmatchアームをORパターンで結合
+            CompleteError::LlmError(msg) | CompleteError::Internal(msg) => {
+                GrpcError::Internal(msg)
+            }
         })
     }
 

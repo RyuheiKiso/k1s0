@@ -5,6 +5,7 @@ use crate::domain::entity::flow_kpi::{BurnRateWindow, SloStatus};
 pub struct SloCalculationService;
 
 impl SloCalculationService {
+    #[must_use] 
     pub fn calculate(flow: &FlowDefinition, instances: &[FlowInstance]) -> SloStatus {
         let total = instances.len() as f64;
         if total == 0.0 {
@@ -50,7 +51,8 @@ impl SloCalculationService {
         }
     }
 
-    /// Calculate SLO status from a pre-computed FlowKpi (used with cached KPI data).
+    /// Calculate SLO status from a pre-computed `FlowKpi` (used with cached KPI data).
+    #[must_use] 
     pub fn calculate_from_kpi(
         flow: &FlowDefinition,
         kpi: &crate::domain::entity::flow_kpi::FlowKpi,
@@ -94,6 +96,7 @@ impl SloCalculationService {
         }
     }
 
+    #[must_use] 
     pub fn calculate_burn_rate(
         flow: &FlowDefinition,
         instances_by_window: &[(&str, &[FlowInstance])],

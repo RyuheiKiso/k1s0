@@ -20,7 +20,7 @@ impl DeleteQuotaPolicyUseCase {
         Self { repo }
     }
 
-    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り delete に渡して RLS を有効にする。
+    /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り delete に渡して RLS を有効にする。
     pub async fn execute(&self, id: &str, tenant_id: &str) -> Result<(), DeleteQuotaPolicyError> {
         let deleted = self
             .repo

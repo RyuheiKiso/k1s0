@@ -15,6 +15,8 @@ use crate::adapter::middleware::grpc_auth::GrpcAuthLayer;
 use crate::infrastructure::config::{Config, DatabaseConfig};
 use crate::MIGRATOR;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // 1. Telemetry
     let config_path =
@@ -37,7 +39,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // 2. Config
     info!("starting {}", cfg.app.name);
@@ -270,7 +272,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown_rx.changed().await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // 12. Start REST server
@@ -284,7 +286,7 @@ pub async fn run() -> anyhow::Result<()> {
     let shutdown_future = async move {
         k1s0_server_common::shutdown::shutdown_signal()
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         let _ = shutdown_tx.send(true);
         Ok::<(), anyhow::Error>(())
     };
@@ -295,7 +297,7 @@ pub async fn run() -> anyhow::Result<()> {
         }
         result = rest_future => {
             if let Err(e) = result {
-                return Err(anyhow::anyhow!("REST server error: {}", e));
+                return Err(anyhow::anyhow!("REST server error: {e}"));
             }
         }
         result = grpc_future => {

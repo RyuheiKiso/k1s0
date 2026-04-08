@@ -79,6 +79,7 @@ pub struct AppState {
 }
 
 impl AppState {
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -155,10 +156,10 @@ fn default_page_size() -> i32 {
 
 /// テナント一覧レスポンス。
 /// LOW-10 確認: ページネーション形式は他サービスと統一されている。
-/// auth サーバーの Pagination 構造体（total_count, page, page_size, has_next）と同一形式。
-/// TODO(LOW-10): cursor ベースのページネーション（after_cursor フィールド等）への移行を検討すること。
+/// auth サーバーの Pagination `構造体（total_count`, page, `page_size`, `has_next）と同一形式`。
+/// TODO(LOW-10): cursor `ベースのページネーション（after_cursor` フィールド等）への移行を検討すること。
 ///   大規模データ取得時に OFFSET ベースではパフォーマンス劣化が発生するため、
-///   keyset ページネーション化が推奨される（vault の list_audit_logs と同様の課題）。
+///   keyset ページネーション化が推奨される（vault の `list_audit_logs` と同様の課題）。
 #[derive(Debug, Serialize)]
 pub struct ListTenantsResponse {
     pub tenants: Vec<TenantResponse>,
@@ -336,7 +337,7 @@ pub async fn get_tenant(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -360,7 +361,7 @@ pub async fn get_tenant(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(GetTenantError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(GetTenantError::Internal(msg)) => internal_response(msg).into_response(),
     }
@@ -418,7 +419,7 @@ pub async fn create_tenant(
         }
         Err(CreateTenantError::NameConflict(name)) => conflict_response(
             codes::tenant::name_conflict(),
-            format!("tenant name already exists: {}", name),
+            format!("tenant name already exists: {name}"),
         )
         .into_response(),
         Err(CreateTenantError::Internal(msg)) => internal_response(msg).into_response(),
@@ -436,7 +437,7 @@ pub async fn update_tenant(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -477,7 +478,7 @@ pub async fn update_tenant(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(UpdateTenantError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(UpdateTenantError::InvalidStatus(msg)) => {
             bad_request_response(codes::tenant::invalid_status(), msg).into_response()
@@ -496,7 +497,7 @@ pub async fn delete_tenant(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -520,7 +521,7 @@ pub async fn delete_tenant(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(DeleteTenantError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(DeleteTenantError::InvalidStatus(msg)) => {
             bad_request_response(codes::tenant::invalid_status(), msg).into_response()
@@ -539,7 +540,7 @@ pub async fn suspend_tenant(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -563,7 +564,7 @@ pub async fn suspend_tenant(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(SuspendTenantError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(SuspendTenantError::InvalidStatus(msg)) => {
             bad_request_response(codes::tenant::invalid_status(), msg).into_response()
@@ -582,7 +583,7 @@ pub async fn activate_tenant(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -606,7 +607,7 @@ pub async fn activate_tenant(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(ActivateTenantError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(ActivateTenantError::InvalidStatus(msg)) => {
             bad_request_response(codes::tenant::invalid_status(), msg).into_response()
@@ -625,7 +626,7 @@ pub async fn list_members(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -646,7 +647,7 @@ pub async fn list_members(
             (StatusCode::OK, Json(serde_json::json!({"members": resp}))).into_response()
         }
         Err(ListMembersError::NotFound(_)) => {
-            not_found_response(format!("tenant not found: {}", id)).into_response()
+            not_found_response(format!("tenant not found: {id}")).into_response()
         }
         Err(ListMembersError::Internal(msg)) => internal_response(msg).into_response(),
     }
@@ -663,7 +664,7 @@ pub async fn add_member(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", id),
+                format!("invalid tenant id: {id}"),
             )
             .into_response()
         }
@@ -705,7 +706,7 @@ pub async fn add_member(
     }
 }
 
-/// DELETE /api/v1/tenants/:tenant_id/members/:user_id
+/// DELETE /`api/v1/tenants/:tenant_id/members/:user_id`
 pub async fn remove_member(
     State(state): State<AppState>,
     Path((tenant_id, user_id)): Path<(String, String)>,
@@ -715,7 +716,7 @@ pub async fn remove_member(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", tenant_id),
+                format!("invalid tenant id: {tenant_id}"),
             )
             .into_response()
         }
@@ -726,7 +727,7 @@ pub async fn remove_member(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid user id: {}", user_id),
+                format!("invalid user id: {user_id}"),
             )
             .into_response()
         }
@@ -741,7 +742,7 @@ pub async fn remove_member(
     }
 }
 
-/// PUT /api/v1/tenants/:tenant_id/members/:user_id
+/// PUT /`api/v1/tenants/:tenant_id/members/:user_id`
 pub async fn update_member_role(
     State(state): State<AppState>,
     Path((tenant_id, user_id)): Path<(String, String)>,
@@ -752,7 +753,7 @@ pub async fn update_member_role(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid tenant id: {}", tenant_id),
+                format!("invalid tenant id: {tenant_id}"),
             )
             .into_response()
         }
@@ -763,7 +764,7 @@ pub async fn update_member_role(
         Err(_) => {
             return bad_request_response(
                 codes::tenant::validation_error(),
-                format!("invalid user id: {}", user_id),
+                format!("invalid user id: {user_id}"),
             )
             .into_response()
         }
@@ -794,7 +795,7 @@ pub async fn update_member_role(
         }
         Err(UpdateMemberRoleError::InvalidRole(role)) => bad_request_response(
             codes::tenant::validation_error(),
-            format!("invalid role: {}", role),
+            format!("invalid role: {role}"),
         )
         .into_response(),
         Err(UpdateMemberRoleError::Internal(msg)) => internal_response(msg).into_response(),

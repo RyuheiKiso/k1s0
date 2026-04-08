@@ -17,7 +17,7 @@ use crate::usecase::{
     ListConfigSchemasUseCase, ListConfigsUseCase, UpdateConfigUseCase, UpsertConfigSchemaUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub get_config_uc: Arc<GetConfigUseCase>,
@@ -57,11 +57,13 @@ impl AppState {
         }
     }
 
+    #[must_use] 
     pub fn with_kafka(mut self) -> Self {
         self.kafka_configured = true;
         self
     }
 
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -208,5 +210,5 @@ pub fn router(state: AppState) -> Router {
 }
 
 /// server-common の統一エラーレスポンス型を再エクスポートする。
-/// 各サーバーで重複定義を避け、ErrorResponse / ErrorBody / ErrorDetail を共通化する。
+/// 各サーバーで重複定義を避け、ErrorResponse / `ErrorBody` / `ErrorDetail` を共通化する。
 pub use k1s0_server_common::{ErrorBody, ErrorDetail, ErrorResponse};

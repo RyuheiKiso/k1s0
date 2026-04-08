@@ -2,14 +2,14 @@ use async_trait::async_trait;
 
 use crate::domain::entity::audit_log::{AuditLog, AuditLogSearchParams};
 
-/// AuditLogRepository は監査ログの永続化インターフェース。
+/// `AuditLogRepository` は監査ログの永続化インターフェース。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait AuditLogRepository: Send + Sync {
     /// 監査ログエントリを作成する。
     async fn create(&self, log: &AuditLog) -> anyhow::Result<()>;
 
-    /// 監査ログを検索する。(logs, total_count) を返す。
+    /// 監査ログを検索する。(logs, `total_count`) を返す。
     async fn search(&self, params: &AuditLogSearchParams) -> anyhow::Result<(Vec<AuditLog>, i64)>;
 }
 

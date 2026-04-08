@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// ServiceCatalog ドメイン固有のエラー型。
+/// `ServiceCatalog` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum ServiceCatalogError {
     /// サービスが見つからない
@@ -28,7 +28,7 @@ pub enum ServiceCatalogError {
     Internal(String),
 }
 
-/// ServiceCatalogError から ServiceError への変換実装
+/// `ServiceCatalogError` から `ServiceError` への変換実装
 impl From<ServiceCatalogError> for ServiceError {
     fn from(err: ServiceCatalogError) -> Self {
         match err {

@@ -174,7 +174,7 @@ pub struct BackendsConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct BackendConfig {
-    /// gRPC エンドポイント（例: "http://tenant-server.k1s0-system.svc.cluster.local:50051"）
+    /// gRPC エンドポイント（例: "<http://tenant-server.k1s0-system.svc.cluster.local:50051>"）
     #[serde(default = "default_backend_address")]
     pub address: String,
     /// リクエストタイムアウト（ミリ秒）
@@ -286,7 +286,7 @@ pub struct RateLimitConfig {
     /// レート制限を有効化するか
     #[serde(default)]
     pub enabled: bool,
-    /// ratelimit サービスの URL（例: "http://ratelimit-server:50051"）
+    /// ratelimit サービスの URL（例: "<http://ratelimit-server:50051>"）
     #[serde(default = "default_ratelimit_server_url")]
     pub server_url: String,
     /// レート制限のスコープ（キープレフィックスとして使用）
@@ -369,7 +369,7 @@ impl Config {
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let path = std::env::var("CONFIG_PATH").unwrap_or_else(|_| path.to_owned());
         let content = fs::read_to_string(&path)
-            .map_err(|e| anyhow::anyhow!("failed to read config file {}: {}", path, e))?;
+            .map_err(|e| anyhow::anyhow!("failed to read config file {path}: {e}"))?;
         let cfg: Config = serde_yaml::from_str(&content)?;
         Ok(cfg)
     }

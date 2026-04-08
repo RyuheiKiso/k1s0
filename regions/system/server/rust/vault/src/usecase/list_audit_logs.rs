@@ -14,7 +14,7 @@ pub struct ListAuditLogsInput {
 }
 
 /// LOW-12 監査対応: keyset ページネーション出力。
-/// next_cursor が Some の場合は次のページが存在し、その値を after_id に渡すことで取得できる。
+/// `next_cursor` が Some の場合は次のページが存在し、その値を `after_id` に渡すことで取得できる。
 #[derive(Debug)]
 pub struct ListAuditLogsOutput {
     pub logs: Vec<SecretAccessLog>,
@@ -22,7 +22,7 @@ pub struct ListAuditLogsOutput {
     pub next_cursor: Option<Uuid>,
 }
 
-/// ListAuditLogsUseCase は監査ログ一覧取得ユースケース。
+/// `ListAuditLogsUseCase` は監査ログ一覧取得ユースケース。
 pub struct ListAuditLogsUseCase {
     repo: Arc<dyn AccessLogRepository>,
 }

@@ -3,21 +3,24 @@
 use crate::claims::Claims;
 
 /// Claims に指定のレルムロールが含まれるかを判定する。
+#[must_use]
 pub fn has_role(claims: &Claims, role: &str) -> bool {
     claims.realm_roles().iter().any(|r| r == role)
 }
 
 /// Claims に指定のリソースロールが含まれるかを判定する。
+#[must_use]
 pub fn has_resource_role(claims: &Claims, resource: &str, role: &str) -> bool {
     claims.resource_roles(resource).iter().any(|r| r == role)
 }
 
 /// Claims に指定の権限があるかを判定する。
 ///
-/// realm_access と resource_access の両方をチェックする。
-/// sys_admin のみ全リソース全アクションの権限を持つ（最小権限原則）。
-/// admin ロールは realm_access に存在しても全権限を付与しない（Go 版と同一ロジック）。
-/// resource_access に admin ロールがある場合はそのリソース内の全アクションを許可する。
+/// `realm_access` と `resource_access` の両方をチェックする。
+/// `sys_admin` のみ全リソース全アクションの権限を持つ（最小権限原則）。
+/// admin ロールは `realm_access` に存在しても全権限を付与しない（Go 版と同一ロジック）。
+/// `resource_access` に admin ロールがある場合はそのリソース内の全アクションを許可する。
+#[must_use]
 pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     // sys_admin のみ全権限を付与する（スーパーユーザー）。
     // realm_access の admin ロールは通常ロールとして扱い、全権限を付与しない。
@@ -41,6 +44,7 @@ pub fn check_permission(claims: &Claims, resource: &str, action: &str) -> bool {
 }
 
 /// Backward-compatible alias of `check_permission`.
+#[must_use]
 pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
     check_permission(claims, resource, action)
 }
@@ -49,7 +53,7 @@ pub fn has_permission(claims: &Claims, resource: &str, action: &str) -> bool {
 /// system(0) > business(1) > service(2) の順で上位 Tier ほど小さい値を返す。
 /// 不明な Tier は None を返す。
 ///
-/// LOW-13 注記: ["system", "business", "service"] はハードコードされており、
+/// LOW-13 注記: \["system", "business", "service"\] はハードコードされており、
 /// 新しい Tier の追加時にはこの関数の変更が必要となる。
 /// TODO(LOW-13): Tier 定義を設定ファイル（例: config.yaml）または環境変数から読み込む形式に移行を検討すること。
 ///   実装方針:
@@ -72,21 +76,19 @@ fn tier_level(tier: &str) -> Option<u8> {
 /// - business tier を持つユーザーは business と service にアクセス可能
 /// - service tier を持つユーザーは service のみにアクセス可能
 ///
-/// tier_access 配列内の各 Tier について、要求された Tier 以上の階層であればアクセスを許可する。
+/// `tier_access` 配列内の各 Tier について、要求された Tier 以上の階層であればアクセスを許可する。
+#[must_use]
 pub fn has_tier_access(claims: &Claims, required_tier: &str) -> bool {
-    let required_level = match tier_level(required_tier) {
-        Some(level) => level,
-        None => return false,
+    let Some(required_level) = tier_level(required_tier) else {
+        return false;
     };
 
     claims.tier_access_list().iter().any(|user_tier| {
-        tier_level(user_tier)
-            .map(|user_level| user_level <= required_level)
-            .unwrap_or(false)
+        tier_level(user_tier).is_some_and(|user_level| user_level <= required_level)
     })
 }
 
-/// tier_access Claim を検証し、指定 Tier へのアクセス権がない場合はエラーを返す。
+/// `tier_access` Claim を検証し、指定 Tier へのアクセス権がない場合はエラーを返す。
 ///
 /// `has_tier_access` のラッパーで、ミドルウェアやユースケースから直接呼び出せる。
 ///
@@ -119,8 +121,8 @@ mod tests {
             sub: "user-1".into(),
             iss: "https://auth.example.com/realms/k1s0".into(),
             aud: Audience(vec!["k1s0-api".into()]),
-            exp: 9999999999,
-            iat: 1000000000,
+            exp: 9_999_999_999,
+            iat: 1_000_000_000,
             jti: None,
             typ: None,
             azp: None,
@@ -278,8 +280,8 @@ mod tests {
             sub: "user-1".into(),
             iss: "iss".into(),
             aud: Audience(vec![]),
-            exp: 9999999999,
-            iat: 1000000000,
+            exp: 9_999_999_999,
+            iat: 1_000_000_000,
             jti: None,
             typ: None,
             azp: None,
@@ -346,8 +348,8 @@ mod tests {
             sub: "user-1".into(),
             iss: "iss".into(),
             aud: Audience(vec![]),
-            exp: 9999999999,
-            iat: 1000000000,
+            exp: 9_999_999_999,
+            iat: 1_000_000_000,
             jti: None,
             typ: None,
             azp: None,

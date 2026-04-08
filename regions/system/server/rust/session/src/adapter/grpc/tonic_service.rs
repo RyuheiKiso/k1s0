@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の SessionService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の SessionGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `SessionService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `SessionGrpcService` に委譲する。
 
 use std::sync::Arc;
 
@@ -46,6 +46,7 @@ pub struct SessionServiceTonic {
 }
 
 impl SessionServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<SessionGrpcService>) -> Self {
         Self { inner }
     }
@@ -53,8 +54,8 @@ impl SessionServiceTonic {
 
 #[async_trait::async_trait]
 impl SessionService for SessionServiceTonic {
-    /// gRPC CreateSession ハンドラー。
-    /// tonic Request Extensions から Claims を取得し、tenant_id を CreateSessionRequest に設定する。
+    /// gRPC `CreateSession` ハンドラー。
+    /// tonic Request Extensions から Claims `を取得し、tenant_id` を `CreateSessionRequest` に設定する。
     /// gRPC 認証レイヤー（GrpcAuthLayer）が Claims を Extensions に注入しているため、
     /// 認証済みリクエストでは必ず Claims が存在する。未認証時は "system" フォールバックを使用する。
     async fn create_session(
@@ -64,9 +65,7 @@ impl SessionService for SessionServiceTonic {
         // gRPC Extensions から Claims を取得して tenant_id を抽出する
         let tenant_id = request
             .extensions()
-            .get::<k1s0_auth::Claims>()
-            .map(|c| c.tenant_id().to_string())
-            .unwrap_or_else(|| "system".to_string());
+            .get::<k1s0_auth::Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string());
 
         let inner = request.into_inner();
         let req = CreateSessionRequest {
@@ -228,7 +227,7 @@ impl SessionService for SessionServiceTonic {
 
 // --- 変換ヘルパー ---
 
-/// セッション状態文字列を proto SessionStatus enum の i32 値に変換する。
+/// セッション状態文字列を proto `SessionStatus` enum の i32 値に変換する。
 /// ドメイン層の文字列表現（"active", "revoked"）を protobuf の整数 enum 値にマッピングする。
 fn status_str_to_proto(s: &str) -> i32 {
     use crate::proto::k1s0::system::session::v1::SessionStatus;

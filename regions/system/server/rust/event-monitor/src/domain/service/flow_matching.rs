@@ -6,6 +6,7 @@ use crate::domain::entity::flow_definition::FlowDefinition;
 pub struct FlowMatchingService;
 
 impl FlowMatchingService {
+    #[must_use] 
     pub fn match_event(
         event: &EventRecord,
         flow_definitions: &[FlowDefinition],

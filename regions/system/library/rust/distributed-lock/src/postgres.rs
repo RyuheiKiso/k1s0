@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::lock::{DistributedLock, LockGuard};
 use crate::LockError;
 
-/// PostgreSQL advisory lock を使った分散ロック実装。
+/// `PostgreSQL` advisory lock を使った分散ロック実装。
 ///
 /// `pg_try_advisory_lock(hashtext(key))` でロックを取得し、
 /// `pg_advisory_unlock(hashtext(key))` で解放する。
@@ -19,7 +19,8 @@ pub struct PostgresDistributedLock {
 }
 
 impl PostgresDistributedLock {
-    /// PgPool から新しい PostgresDistributedLock を作成する。
+    /// `PgPool` から新しい `PostgresDistributedLock` を作成する。
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -28,6 +29,7 @@ impl PostgresDistributedLock {
     }
 
     /// カスタムキープレフィックスを設定する。
+    #[must_use]
     pub fn with_prefix(mut self, prefix: impl Into<String>) -> Self {
         self.key_prefix = prefix.into();
         self
@@ -102,8 +104,9 @@ impl DistributedLock for PostgresDistributedLock {
 }
 
 /// ヘルパー: ロックキーのフォーマット（テスト用に公開）。
+#[must_use] 
 pub fn format_lock_key(prefix: &str, key: &str) -> String {
-    format!("{}:{}", prefix, key)
+    format!("{prefix}:{key}")
 }
 
 #[cfg(test)]

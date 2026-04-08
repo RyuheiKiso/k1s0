@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
-/// KafkaConfig は Kafka 接続の設定を表す。
-/// フィールドは KafkaProducer::new() で rdkafka クライアント設定に使用する。
+/// `KafkaConfig` は Kafka 接続の設定を表す。
+/// フィールドは `KafkaProducer::new()` で rdkafka クライアント設定に使用する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
@@ -16,13 +16,13 @@ pub struct KafkaConfig {
     pub topics: TopicsConfig,
 }
 
-/// セキュリティデフォルト: 本番環境では SASL_SSL を強制する。
+/// セキュリティデフォルト: 本番環境では `SASL_SSL` を強制する。
 /// 開発環境では config.dev.yaml / config.docker.yaml で明示的に PLAINTEXT を指定すること。
 fn default_security_protocol() -> String {
     "SASL_SSL".to_string()
 }
 
-/// SaslConfig は SASL 認証の設定を表す。
+/// `SaslConfig` は SASL 認証の設定を表す。
 #[derive(Debug, Clone, Deserialize)]
 pub struct SaslConfig {
     #[serde(default)]
@@ -44,15 +44,15 @@ impl Default for SaslConfig {
     }
 }
 
-/// TopicsConfig はトピック設定を表す。
-/// publish フィールドは KafkaProducer::new() でトピック名取得に使用する。
+/// `TopicsConfig` はトピック設定を表す。
+/// publish フィールドは `KafkaProducer::new()` でトピック名取得に使用する。
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
 }
 
-/// SagaEventPublisher はSagaイベント配信のためのトレイト。
+/// `SagaEventPublisher` はSagaイベント配信のためのトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait SagaEventPublisher: Send + Sync {
@@ -66,14 +66,14 @@ pub trait SagaEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// KafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `KafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct KafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
 }
 
 impl KafkaProducer {
-    /// 新しい KafkaProducer を作成する。
+    /// 新しい `KafkaProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -131,7 +131,7 @@ impl SagaEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| anyhow::anyhow!("failed to publish saga event: {}", err))?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish saga event: {err}"))?;
 
         Ok(())
     }

@@ -19,6 +19,7 @@ pub enum ConfigFieldType {
 }
 
 impl ConfigFieldType {
+    #[must_use] 
     pub fn from_legacy_number(value: i64) -> Option<Self> {
         match value {
             1 => Some(Self::String),
@@ -32,6 +33,7 @@ impl ConfigFieldType {
         }
     }
 
+    #[must_use] 
     pub fn to_legacy_number(self) -> i32 {
         match self {
             Self::String => 1,
@@ -44,6 +46,7 @@ impl ConfigFieldType {
         }
     }
 
+    #[must_use] 
     pub fn from_schema_value(value: &Value) -> Option<Self> {
         value
             .as_str()
@@ -115,12 +118,14 @@ pub struct UpsertConfigSchemaRequestDto {
 }
 
 impl UpsertConfigSchemaRequestDto {
+    #[must_use] 
     pub fn into_schema_json(self) -> Value {
         categories_to_schema_json(self.categories)
     }
 }
 
 impl ConfigEditorSchemaDto {
+    #[must_use] 
     pub fn into_schema_json(self) -> Value {
         categories_to_schema_json(self.categories)
     }
@@ -302,7 +307,7 @@ impl ConfigFieldSchemaDto {
             key: field.key.clone(),
             label: field.label.clone(),
             description: field.description.clone(),
-            field_type: ConfigFieldType::from_legacy_number(field.r#type as i64)
+            field_type: ConfigFieldType::from_legacy_number(i64::from(field.r#type))
                 .ok_or_else(|| anyhow::anyhow!("field type is invalid"))?,
             min: field.min,
             max: field.max,
@@ -380,7 +385,7 @@ fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, anyhow::Erro
     value
         .get(key)
         .and_then(Value::as_str)
-        .ok_or_else(|| anyhow::anyhow!("{} is required", key))
+        .ok_or_else(|| anyhow::anyhow!("{key} is required"))
 }
 
 fn optional_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {

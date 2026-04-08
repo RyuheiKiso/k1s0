@@ -41,8 +41,9 @@ impl RolePermissionTable {
         Ok(())
     }
 
-    /// tokio-util の CancellationToken を使ってキャンセル可能なバックグラウンドリフレッシュタスクを起動する。
-    /// 呼び出し元は返却された JoinHandle を保持し、シャットダウン時に cancellation_token.cancel() を呼ぶこと。
+    /// tokio-util の `CancellationToken` を使ってキャンセル可能なバックグラウンドリフレッシュタスクを起動する。
+    /// 呼び出し元は返却された `JoinHandle` を保持し、シャットダウン時に `cancellation_token.cancel()` を呼ぶこと。
+    #[must_use] 
     pub fn start_background_refresh(
         self: Arc<Self>,
         refresh_interval: Duration,
@@ -61,7 +62,7 @@ impl RolePermissionTable {
                             );
                         }
                     }
-                    _ = cancellation_token.cancelled() => {
+                    () = cancellation_token.cancelled() => {
                         tracing::info!("バックグラウンドリフレッシュタスクをキャンセルしました");
                         return;
                     }

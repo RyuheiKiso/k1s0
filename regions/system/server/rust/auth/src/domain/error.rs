@@ -32,7 +32,7 @@ pub enum AuthError {
     Internal(String),
 }
 
-/// AuthError から ServiceError への変換実装
+/// `AuthError` から `ServiceError` への変換実装
 impl From<AuthError> for ServiceError {
     fn from(err: AuthError) -> Self {
         match err {

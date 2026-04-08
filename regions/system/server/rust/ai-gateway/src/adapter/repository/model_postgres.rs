@@ -10,7 +10,7 @@ use sqlx::PgPool;
 use crate::domain::entity::model::AiModel;
 use crate::domain::repository::ModelRepository;
 
-/// PostgreSQLベースのモデルリポジトリ。
+/// `PostgreSQLベースのモデルリポジトリ`。
 /// データベースプールがない場合はデフォルトモデル一覧を返す。
 pub struct ModelPostgresRepository {
     pool: Option<Arc<PgPool>>,
@@ -18,11 +18,13 @@ pub struct ModelPostgresRepository {
 
 impl ModelPostgresRepository {
     /// データベースプール付きでリポジトリを生成する。
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool: Some(pool) }
     }
 
     /// インメモリフォールバック用リポジトリを生成する。
+    #[must_use] 
     pub fn in_memory() -> Self {
         Self { pool: None }
     }
@@ -34,7 +36,8 @@ impl ModelPostgresRepository {
                 "gpt-4".to_string(),
                 "GPT-4".to_string(),
                 "openai".to_string(),
-                128000,
+                // HIGH-001 監査対応: 数値リテラルに区切り文字を追加
+                128_000,
                 true,
                 0.03,
                 0.06,
@@ -74,7 +77,7 @@ impl ModelRepository for ModelPostgresRepository {
             .await;
 
             match rows {
-                Ok(rows) => rows.into_iter().map(|r| r.into()).collect(),
+                Ok(rows) => rows.into_iter().map(std::convert::Into::into).collect(),
                 Err(e) => {
                     tracing::warn!(error = %e, "モデル一覧のDB取得に失敗、フォールバック使用");
                     Self::default_models()
@@ -96,7 +99,7 @@ impl ModelRepository for ModelPostgresRepository {
             .await;
 
             match row {
-                Ok(row) => row.map(|r| r.into()),
+                Ok(row) => row.map(std::convert::Into::into),
                 Err(e) => {
                     tracing::warn!(error = %e, "モデルのDB取得に失敗");
                     Self::default_models().into_iter().find(|m| m.id == id)

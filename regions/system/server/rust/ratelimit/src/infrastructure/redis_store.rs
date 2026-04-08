@@ -7,15 +7,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::domain::entity::RateLimitDecision;
 use crate::domain::repository::{RateLimitStateStore, UsageSnapshot};
 
-/// TOKEN_BUCKET_SCRIPT は Redis Lua スクリプトでアトミックなトークンバケットを実装する。
+/// `TOKEN_BUCKET_SCRIPT` は Redis Lua スクリプトでアトミックなトークンバケットを実装する。
 ///
 /// KEYS[1]: バケットキー
 /// ARGV[1]: 最大トークン数 (limit)
 /// ARGV[2]: ウィンドウ秒数 (refill interval)
 /// ARGV[3]: 現在時刻 (Unix epoch seconds)
 ///
-/// Returns: {allowed (0/1), remaining, reset_at}
-const TOKEN_BUCKET_SCRIPT: &str = r#"
+/// Returns: {allowed (0/1), remaining, `reset_at`}
+const TOKEN_BUCKET_SCRIPT: &str = r"
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
@@ -48,15 +48,15 @@ local remaining = math.floor(new_tokens)
 local reset_at = now + window
 
 return {allowed, remaining, reset_at}
-"#;
+";
 
-/// FIXED_WINDOW_SCRIPT は固定ウィンドウアルゴリズムの Lua スクリプト。
+/// `FIXED_WINDOW_SCRIPT` は固定ウィンドウアルゴリズムの Lua スクリプト。
 ///
 /// KEYS[1]: カウンターキー
 /// ARGV[1]: 最大リクエスト数 (limit)
 /// ARGV[2]: ウィンドウ秒数
 /// ARGV[3]: 現在時刻
-const FIXED_WINDOW_SCRIPT: &str = r#"
+const FIXED_WINDOW_SCRIPT: &str = r"
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
@@ -80,15 +80,15 @@ end
 local reset_at = (math.floor(now / window) + 1) * window
 
 return {allowed, remaining, reset_at}
-"#;
+";
 
-/// SLIDING_WINDOW_SCRIPT はスライディングウィンドウアルゴリズムの Lua スクリプト。
+/// `SLIDING_WINDOW_SCRIPT` はスライディングウィンドウアルゴリズムの Lua スクリプト。
 ///
 /// KEYS[1]: ソートセットキー
 /// ARGV[1]: 最大リクエスト数 (limit)
 /// ARGV[2]: ウィンドウ秒数
 /// ARGV[3]: 現在時刻（ミリ秒精度）
-const SLIDING_WINDOW_SCRIPT: &str = r#"
+const SLIDING_WINDOW_SCRIPT: &str = r"
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
@@ -115,15 +115,15 @@ end
 local reset_at = now + window
 
 return {allowed, remaining, reset_at}
-"#;
+";
 
-/// LEAKY_BUCKET_SCRIPT はリーキーバケットアルゴリズムの Lua スクリプト。
+/// `LEAKY_BUCKET_SCRIPT` はリーキーバケットアルゴリズムの Lua スクリプト。
 ///
 /// KEYS[1]: バケットキー
 /// ARGV[1]: 最大容量 (limit)
 /// ARGV[2]: ウィンドウ秒数
 /// ARGV[3]: 現在時刻 (Unix epoch seconds)
-const LEAKY_BUCKET_SCRIPT: &str = r#"
+const LEAKY_BUCKET_SCRIPT: &str = r"
 local key = KEYS[1]
 local limit = tonumber(ARGV[1])
 local window = tonumber(ARGV[2])
@@ -155,15 +155,16 @@ redis.call('EXPIRE', key, window * 2)
 local remaining = math.max(0, math.floor(limit - level))
 local reset_at = now + window
 return {allowed, remaining, reset_at}
-"#;
+";
 
-/// RedisRateLimitStore は Redis ベースのレートリミット状態ストア。
+/// `RedisRateLimitStore` は Redis ベースのレートリミット状態ストア。
 pub struct RedisRateLimitStore {
     conns: Vec<ConnectionManager>,
     next: AtomicUsize,
 }
 
 impl RedisRateLimitStore {
+    #[must_use] 
     pub fn new(conns: Vec<ConnectionManager>) -> Self {
         Self {
             conns,
@@ -180,7 +181,7 @@ impl RedisRateLimitStore {
 fn unix_seconds_to_utc(seconds: i64) -> anyhow::Result<DateTime<Utc>> {
     Utc.timestamp_opt(seconds, 0)
         .single()
-        .ok_or_else(|| anyhow::anyhow!("invalid reset_at unix timestamp: {}", seconds))
+        .ok_or_else(|| anyhow::anyhow!("invalid reset_at unix timestamp: {seconds}"))
 }
 
 #[async_trait]

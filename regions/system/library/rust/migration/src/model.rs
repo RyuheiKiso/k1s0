@@ -38,6 +38,7 @@ pub enum MigrationDirection {
 }
 
 impl MigrationFile {
+    #[must_use] 
     pub fn parse_filename(filename: &str) -> Option<(String, String, MigrationDirection)> {
         let stem = filename.strip_suffix(".sql")?;
         let (rest, dir_str) = if let Some(r) = stem.strip_suffix(".up") {
@@ -59,6 +60,7 @@ impl MigrationFile {
         Some((version.to_string(), name.to_string(), dir_str))
     }
 
+    #[must_use] 
     pub fn checksum(content: &str) -> String {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();

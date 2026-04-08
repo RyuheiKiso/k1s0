@@ -22,6 +22,7 @@ pub fn inject_context(
     }
 }
 
+#[must_use] 
 pub fn extract_context(headers: &HashMap<String, String>) -> (Option<TraceContext>, Baggage) {
     let ctx = headers
         .get("traceparent")

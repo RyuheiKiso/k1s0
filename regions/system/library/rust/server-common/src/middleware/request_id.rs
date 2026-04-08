@@ -5,11 +5,12 @@ use pin_project_lite::pin_project;
 use tower::{Layer, Service};
 use uuid::Uuid;
 
-/// RequestIdLayer は各リクエストにユニークな x-request-id を割り当てる Tower Layer。
+/// `RequestIdLayer` は各リクエストにユニークな x-request-id を割り当てる Tower Layer。
 #[derive(Clone, Default)]
 pub struct RequestIdLayer;
 
 impl RequestIdLayer {
+    #[must_use] 
     pub fn new() -> Self {
         Self
     }

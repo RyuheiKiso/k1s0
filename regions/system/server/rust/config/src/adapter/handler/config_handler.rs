@@ -16,7 +16,7 @@ use crate::usecase::update_config::UpdateConfigInput;
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// JWT クレームからテナントIDを抽出する。
-/// クレームが存在しない場合、または tenant_id が無効な UUID の場合は 401 を返す。
+/// クレームが存在しない場合、または `tenant_id` が無効な UUID の場合は 401 を返す。
 fn extract_tenant_id(
     claims: &Option<Extension<k1s0_auth::Claims>>,
 ) -> Result<Uuid, (StatusCode, Json<serde_json::Value>)> {
@@ -328,8 +328,7 @@ pub async fn get_service_config(
                         Json(super::ErrorResponse::new(
                             k1s0_server_common::error::config::service_not_found().as_str(),
                             format!(
-                                "service config not found for {} in environment {}",
-                                service_name, environment
+                                "service config not found for {service_name} in environment {environment}"
                             ),
                         )),
                     )

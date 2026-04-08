@@ -9,7 +9,7 @@ use crate::domain::service::ConfigDomainService;
 use crate::infrastructure::kafka_producer::{ConfigChangedEvent, KafkaProducer};
 use crate::usecase::watch_config::ConfigChangeEvent;
 
-/// UpdateConfigError は設定値更新に関するエラーを表す。
+/// `UpdateConfigError` は設定値更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateConfigError {
     #[error("config not found: {0}/{1}")]
@@ -28,8 +28,8 @@ pub enum UpdateConfigError {
     Internal(String),
 }
 
-/// UpdateConfigInput は設定値更新のリクエストを表す。
-/// STATIC-CRITICAL-001 監査対応: tenant_id フィールドを追加。
+/// `UpdateConfigInput` は設定値更新のリクエストを表す。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` フィールドを追加。
 #[derive(Debug, Clone)]
 pub struct UpdateConfigInput {
     /// テナント識別子（JWT Claims から抽出）
@@ -42,7 +42,7 @@ pub struct UpdateConfigInput {
     pub updated_by: String,
 }
 
-/// UpdateConfigUseCase は設定値更新ユースケース。
+/// `UpdateConfigUseCase` は設定値更新ユースケース。
 pub struct UpdateConfigUseCase {
     config_repo: Arc<dyn ConfigRepository>,
     config_schema_repo: Option<Arc<dyn ConfigSchemaRepository>>,
@@ -64,7 +64,7 @@ impl UpdateConfigUseCase {
     /// スキーマリポジトリ付きのコンストラクタ。
     /// Kafka 通知ありのコンストラクタ。
     /// broadcast watch sender ありのコンストラクタ。
-    /// watch_sender を指定すると、更新成功後に ConfigChangeEvent が全購読者に送信される。
+    /// `watch_sender` を指定すると、更新成功後に `ConfigChangeEvent` が全購読者に送信される。
     pub fn new_with_watch(
         config_repo: Arc<dyn ConfigRepository>,
         watch_sender: tokio::sync::broadcast::Sender<ConfigChangeEvent>,
@@ -254,8 +254,7 @@ fn validate_value_against_schema(
             };
             if !type_ok {
                 return Err(UpdateConfigError::SchemaValidation(format!(
-                    "field '{}' expected type '{}', got {:?}",
-                    key, field_type, value
+                    "field '{key}' expected type '{field_type}', got {value:?}"
                 )));
             }
             return Ok(());

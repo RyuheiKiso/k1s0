@@ -21,6 +21,13 @@ use crate::usecase::{
 
 use super::{error::ApiError, AppState};
 
+// JWT Claims から tenant_id を取得するヘルパー関数
+// Claims が存在しない場合は "system" を返す
+fn extract_tenant_id(claims: &Option<axum::extract::Extension<k1s0_auth::Claims>>) -> String {
+    claims
+        .as_ref().map_or_else(|| "system".to_string(), |c| c.0.tenant_id().to_string())
+}
+
 // Request types
 
 #[derive(Debug, Deserialize)]
@@ -66,11 +73,16 @@ pub struct GetDiffQuery {
 // Handler functions
 
 /// GET /api/v1/schemas
+/// JWT Claims から `tenant_id` を取得してテナントスコープで一覧を返す
 pub async fn list_schemas(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Query(query): Query<ListSchemasQuery>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = ListSchemasInput {
+        tenant_id,
         schema_type: query.schema_type,
         page: query.page.unwrap_or(1),
         page_size: query.page_size.unwrap_or(20).min(100),
@@ -102,11 +114,16 @@ pub async fn list_schemas(
 }
 
 /// POST /api/v1/schemas
+/// JWT Claims から `tenant_id` を取得してテナントスコープでスキーマを登録する
 pub async fn register_schema(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Json(body): Json<RegisterSchemaRequest>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = RegisterSchemaInput {
+        tenant_id,
         name: body.name,
         description: body.description,
         schema_type: SchemaType::from_str(&body.schema_type),
@@ -141,22 +158,24 @@ pub async fn register_schema(
 }
 
 /// GET /api/v1/schemas/:name
+/// JWT Claims から `tenant_id` を取得してテナントスコープでスキーマを取得する
 pub async fn get_schema(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(name): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_schema_uc.execute(&name).await {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
+    match state.get_schema_uc.execute(&tenant_id, &name).await {
         Ok(output) => {
             let latest_content = output
                 .latest_content
                 .as_ref()
-                .map(|v| v.content.as_str())
-                .unwrap_or("");
+                .map_or("", |v| v.content.as_str());
             let latest_content_hash = output
                 .latest_content
                 .as_ref()
-                .map(|v| v.content_hash.as_str())
-                .unwrap_or("");
+                .map_or("", |v| v.content_hash.as_str());
             (
                 StatusCode::OK,
                 Json(serde_json::json!({
@@ -181,12 +200,17 @@ pub async fn get_schema(
 }
 
 /// GET /api/v1/schemas/:name/versions
+/// JWT Claims から `tenant_id` を取得してテナントスコープでバージョン一覧を取得する
 pub async fn list_versions(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(name): Path<String>,
     Query(query): Query<ListVersionsQuery>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = ListVersionsInput {
+        tenant_id,
         name,
         page: query.page.unwrap_or(1),
         page_size: query.page_size.unwrap_or(20).min(100),
@@ -221,12 +245,17 @@ pub async fn list_versions(
 }
 
 /// POST /api/v1/schemas/:name/versions
+/// JWT Claims から `tenant_id` を取得してテナントスコープでバージョンを登録する
 pub async fn register_version(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(name): Path<String>,
     Json(body): Json<RegisterVersionRequest>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = RegisterVersionInput {
+        tenant_id,
         name,
         content: body.content,
         registered_by: body
@@ -260,11 +289,15 @@ pub async fn register_version(
 }
 
 /// GET /api/v1/schemas/:name/versions/:version
+/// JWT Claims から `tenant_id` を取得してテナントスコープでスキーマバージョンを取得する
 pub async fn get_schema_version(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path((name, version)): Path<(String, u32)>,
 ) -> impl IntoResponse {
-    match state.get_schema_version_uc.execute(&name, version).await {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
+    match state.get_schema_version_uc.execute(&tenant_id, &name, version).await {
         Ok(v) => (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -288,15 +321,18 @@ pub async fn get_schema_version(
 }
 
 /// DELETE /api/v1/schemas/:name/versions/:version
+/// JWT Claims から `tenant_id` と `deleted_by` を取得してテナントスコープでバージョンを削除する
 pub async fn delete_version(
     State(state): State<AppState>,
     Path((name, version)): Path<(String, u32)>,
     claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id と削除者情報を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let deleted_by = claims.map(|c| c.0.sub);
     match state
         .delete_version_uc
-        .execute(&name, version, deleted_by)
+        .execute(&tenant_id, &name, version, deleted_by)
         .await
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
@@ -315,12 +351,17 @@ pub async fn delete_version(
 }
 
 /// POST /api/v1/schemas/:name/compatibility
+/// JWT Claims から `tenant_id` を取得してテナントスコープで互換性チェックを行う
 pub async fn check_compatibility(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(name): Path<String>,
     Json(body): Json<CheckCompatibilityRequest>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = CheckCompatibilityInput {
+        tenant_id,
         name,
         content: body.content,
         base_version: body.base_version,
@@ -348,12 +389,17 @@ pub async fn check_compatibility(
 }
 
 /// GET /api/v1/schemas/:name/diff
+/// JWT Claims から `tenant_id` を取得してテナントスコープで差分を取得する
 pub async fn get_diff(
     State(state): State<AppState>,
+    claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
     Path(name): Path<String>,
     Query(query): Query<GetDiffQuery>,
 ) -> impl IntoResponse {
+    // JWT Claims から tenant_id を取得する
+    let tenant_id = extract_tenant_id(&claims);
     let input = GetDiffInput {
+        tenant_id,
         name,
         from_version: query.from,
         to_version: query.to,

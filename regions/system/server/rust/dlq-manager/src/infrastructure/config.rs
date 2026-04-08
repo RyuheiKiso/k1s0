@@ -18,7 +18,7 @@ pub struct Config {
     pub auth: Option<AuthConfig>,
 }
 
-/// AuthConfig 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
+/// `AuthConfig` 縺ｯ JWT 隱崎ｨｼ險ｭ螳壹ｒ陦ｨ縺吶・
 /// 認証設定（JWT検証とJWKS取得を管理する）
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
@@ -53,7 +53,7 @@ fn default_jwks_cache_ttl() -> u64 {
     300
 }
 
-/// AppConfig 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ險ｭ螳壹・
+/// `AppConfig` 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -72,7 +72,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹・
+/// `ServerConfig` 縺ｯ繧ｵ繝ｼ繝舌・險ｭ螳壹・
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]

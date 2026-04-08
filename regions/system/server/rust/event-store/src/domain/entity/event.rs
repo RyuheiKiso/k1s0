@@ -9,6 +9,7 @@ pub struct EventMetadata {
 }
 
 impl EventMetadata {
+    #[must_use] 
     pub fn new(
         actor_id: Option<String>,
         correlation_id: Option<String>,
@@ -35,6 +36,7 @@ pub struct EventStream {
 
 impl EventStream {
     /// テナントIDを含む新規ストリームを生成する。
+    #[must_use] 
     pub fn new(id: String, aggregate_type: String, tenant_id: String) -> Self {
         let now = Utc::now();
         Self {
@@ -64,6 +66,7 @@ pub struct StoredEvent {
 
 impl StoredEvent {
     /// テナントIDを含む新規イベントを生成する。
+    #[must_use] 
     pub fn new(
         stream_id: String,
         tenant_id: String,
@@ -102,6 +105,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     /// テナントIDを含む新規スナップショットを生成する。
+    #[must_use] 
     pub fn new(
         id: String,
         stream_id: String,
@@ -128,6 +132,7 @@ impl StoredEvent {
     /// version フィールドに基づいて、古いスキーマから新しいスキーマへの
     /// マイグレーションを段階的に適用する。
     /// 未知のバージョンの場合はそのまま返す（前方互換性を維持する）。
+    #[must_use] 
     pub fn upcast(mut self, target_version: i64) -> Self {
         // 既に最新バージョン以上の場合はそのまま返す
         while self.version < target_version {

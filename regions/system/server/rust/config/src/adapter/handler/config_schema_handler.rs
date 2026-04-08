@@ -11,11 +11,11 @@ use crate::adapter::presentation::{
 };
 
 /// X-Tenant-ID ヘッダーまたは JWT Claims からテナントIDを抽出するヘルパー。
-/// Claims に tenant_id がある場合はそちらを優先し、なければヘッダーを使用する。
+/// Claims に `tenant_id` がある場合はそちらを優先し、なければヘッダーを使用する。
 /// どちらもなければシステムテナントにフォールバックする。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// CRITICAL-RUST-001 監査対応: HTTP リクエストから tenant_id を取得する。
+/// CRITICAL-RUST-001 監査対応: HTTP リクエストから `tenant_id` を取得する。
 fn extract_tenant_id_http(
     claims: &Option<Extension<k1s0_auth::Claims>>,
     headers: &HeaderMap,
@@ -62,7 +62,7 @@ pub async fn list_config_schemas(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -95,7 +95,7 @@ pub async fn get_config_schema(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -155,7 +155,7 @@ pub async fn upsert_config_schema(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse::new(
                     "SYS_CONFIG_SCHEMA_INVALID",
-                    format!("invalid persisted config schema: {}", err),
+                    format!("invalid persisted config schema: {err}"),
                 )),
             )
                 .into_response(),
@@ -190,7 +190,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // カテゴリ ID が空でないことを検証する
         if category.id.trim().is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].id", cat_idx),
+                format!("categories[{cat_idx}].id"),
                 "required",
                 "category id is required",
             ));
@@ -198,7 +198,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // カテゴリ label が空でないことを検証する
         if category.label.trim().is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].label", cat_idx),
+                format!("categories[{cat_idx}].label"),
                 "required",
                 "category label is required",
             ));
@@ -206,7 +206,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
         // namespaces が空でないことを検証する
         if category.namespaces.is_empty() {
             details.push(ErrorDetail::new(
-                format!("categories[{}].namespaces", cat_idx),
+                format!("categories[{cat_idx}].namespaces"),
                 "required",
                 "at least one namespace is required",
             ));
@@ -215,7 +215,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // 各 namespace が空でないことを検証する
             if namespace.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].namespaces[{}]", cat_idx, ns_idx),
+                    format!("categories[{cat_idx}].namespaces[{ns_idx}]"),
                     "required",
                     "namespace must not be empty",
                 ));
@@ -225,7 +225,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // フィールド key が空でないことを検証する
             if field.key.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].key", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].key"),
                     "required",
                     "field key is required",
                 ));
@@ -233,7 +233,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // フィールド label が空でないことを検証する
             if field.label.trim().is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].label", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].label"),
                     "required",
                     "field label is required",
                 ));
@@ -241,7 +241,7 @@ fn validate_upsert_request(req: &UpsertConfigSchemaRequestDto) -> Vec<ErrorDetai
             // Enum フィールドには options が必要であることを検証する
             if field.field_type == ConfigFieldType::Enum && field.options.is_empty() {
                 details.push(ErrorDetail::new(
-                    format!("categories[{}].fields[{}].options", cat_idx, field_idx),
+                    format!("categories[{cat_idx}].fields[{field_idx}].options"),
                     "required",
                     "enum field requires at least one option",
                 ));

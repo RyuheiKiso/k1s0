@@ -20,9 +20,7 @@ use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 /// クレームが存在しない場合（開発環境など）はフォールバック値 "system" を返す。
 fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
     claims
-        .as_ref()
-        .map(|ext| ext.0.tenant_id().to_string())
-        .unwrap_or_else(|| "system".to_string())
+        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.0.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -108,7 +106,7 @@ const MAX_PUBLISH_RETRY_DELAY_MS: u64 = 30_000;
 const MAX_PUBLISH_RETRY_ATTEMPTS: u32 = 10;
 
 /// イベントの Kafka パブリッシュをバックグラウンドで実行し、失敗時はリトライする。
-/// リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する。
+/// `リトライ上限（MAX_PUBLISH_RETRY_ATTEMPTS）に達した場合はエラーログを出力して終了する`。
 pub(crate) fn spawn_publish_events_with_retry(
     publisher: Arc<dyn crate::infrastructure::kafka::EventPublisher>,
     stream_id: String,
@@ -122,7 +120,7 @@ pub(crate) fn spawn_publish_events_with_retry(
         loop {
             attempt += 1;
             match publisher.publish_events(&stream_id, &events).await {
-                Ok(_) => {
+                Ok(()) => {
                     if attempt > 1 {
                         tracing::info!(
                             stream_id = %stream_id,
@@ -315,18 +313,17 @@ pub async fn append_events(
         .await
         .map_err(|e| match e {
             AppendEventsError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             AppendEventsError::StreamAlreadyExists(id) => {
-                EventStoreError::StreamAlreadyExists(format!("stream already exists: {}", id))
+                EventStoreError::StreamAlreadyExists(format!("stream already exists: {id}"))
             }
             AppendEventsError::VersionConflict {
                 stream_id,
                 expected,
                 actual,
             } => EventStoreError::VersionConflict(format!(
-                "version conflict for stream {}: expected {}, actual {}",
-                stream_id, expected, actual
+                "version conflict for stream {stream_id}: expected {expected}, actual {actual}"
             )),
             AppendEventsError::Validation(msg) => EventStoreError::Validation(msg),
             AppendEventsError::Internal(msg) => EventStoreError::Internal(msg),
@@ -351,7 +348,7 @@ pub async fn append_events(
     ))
 }
 
-/// GET /api/v1/events/:stream_id - Read events from a stream
+/// GET /`api/v1/events/:stream_id` - Read events from a stream
 #[utoipa::path(
     get,
     path = "/api/v1/events/{stream_id}",
@@ -393,7 +390,7 @@ pub async fn read_events(
         .await
         .map_err(|e| match e {
             ReadEventsError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             ReadEventsError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -414,7 +411,7 @@ pub async fn read_events(
     }))
 }
 
-/// GET /api/v1/streams/:stream_id/events/:sequence - Read one event by sequence
+/// GET /`api/v1/streams/:stream_id/events/:sequence` - Read one event by sequence
 #[utoipa::path(
     get,
     path = "/api/v1/streams/{stream_id}/events/{sequence}",
@@ -447,14 +444,13 @@ pub async fn read_event_by_sequence(
         .await
         .map_err(|e| match e {
             ReadEventBySequenceError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             ReadEventBySequenceError::EventNotFound {
                 stream_id,
                 sequence,
             } => EventStoreError::EventNotFound(format!(
-                "event not found: stream={}, sequence={}",
-                stream_id, sequence
+                "event not found: stream={stream_id}, sequence={sequence}"
             )),
             ReadEventBySequenceError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -560,7 +556,7 @@ pub async fn list_streams(
     }))
 }
 
-/// GET /api/v1/streams/:stream_id/snapshot - Get stream snapshot
+/// GET /`api/v1/streams/:stream_id/snapshot` - Get stream snapshot
 #[utoipa::path(
     get,
     path = "/api/v1/streams/{stream_id}/snapshot",
@@ -589,10 +585,10 @@ pub async fn get_snapshot(
         .await
         .map_err(|e| match e {
             GetLatestSnapshotError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             GetLatestSnapshotError::SnapshotNotFound(id) => {
-                EventStoreError::SnapshotNotFound(format!("snapshot not found for stream: {}", id))
+                EventStoreError::SnapshotNotFound(format!("snapshot not found for stream: {id}"))
             }
             GetLatestSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
         })?;
@@ -607,7 +603,7 @@ pub async fn get_snapshot(
     }))
 }
 
-/// POST /api/v1/streams/:stream_id/snapshot - Create snapshot
+/// POST /`api/v1/streams/:stream_id/snapshot` - Create snapshot
 #[utoipa::path(
     post,
     path = "/api/v1/streams/{stream_id}/snapshot",
@@ -643,7 +639,7 @@ pub async fn create_snapshot(
         .await
         .map_err(|e| match e {
             CreateSnapshotError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             CreateSnapshotError::Validation(msg) => EventStoreError::Validation(msg),
             CreateSnapshotError::Internal(msg) => EventStoreError::Internal(msg),
@@ -662,7 +658,7 @@ pub async fn create_snapshot(
     ))
 }
 
-/// DELETE /api/v1/streams/:stream_id - Delete a stream and all its events/snapshots
+/// DELETE /`api/v1/streams/:stream_id` - Delete a stream and all its events/snapshots
 #[utoipa::path(
     delete,
     path = "/api/v1/streams/{stream_id}",
@@ -691,7 +687,7 @@ pub async fn delete_stream(
         .await
         .map_err(|e| match e {
             DeleteStreamError::StreamNotFound(id) => {
-                EventStoreError::StreamNotFound(format!("stream not found: {}", id))
+                EventStoreError::StreamNotFound(format!("stream not found: {id}"))
             }
             DeleteStreamError::Internal(msg) => EventStoreError::Internal(msg),
         })?;

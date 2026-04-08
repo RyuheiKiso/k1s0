@@ -331,34 +331,42 @@ variable "postgres_ssl_mode" {
 }
 
 variable "vault_db_credential_ttl" {
+  # HIGH-009 監査対応: 動的クレデンシャルの TTL を 24h（86400s）から 1h（3600s）に短縮する。
+  # 短命なクレデンシャルはリーク時の露出時間を大幅に削減する（最小権限の原則）。
   description = "Default TTL for dynamic database credentials (seconds)"
   type        = number
-  default     = 86400
+  default     = 3600
 }
 
 variable "vault_db_credential_max_ttl" {
+  # HIGH-009 監査対応: 最大 TTL を 48h（172800s）から 4h（14400s）に短縮する。
+  # サービスが定期的にクレデンシャルを更新することで長期漏洩リスクを排除する。
   description = "Maximum TTL for dynamic database credentials (seconds)"
   type        = number
-  default     = 172800
+  default     = 14400
 }
 
 # --- Vault PKI ---
 variable "vault_pki_system_cert_max_ttl" {
+  # MED-010 監査対応: PKI 証明書有効期限を 30 日（2592000s）→ 72 時間（259200s）に短縮
+  # 短命な証明書は漏洩時のリスク期間を大幅に縮小する（最小権限の原則）
   description = "Maximum TTL for system tier TLS certificates (seconds)"
   type        = string
-  default     = "2592000"
+  default     = "259200"
 }
 
 variable "vault_pki_business_cert_max_ttl" {
+  # MED-010 監査対応: 30 日 → 72 時間に短縮
   description = "Maximum TTL for business tier TLS certificates (seconds)"
   type        = string
-  default     = "2592000"
+  default     = "259200"
 }
 
 variable "vault_pki_service_cert_max_ttl" {
+  # MED-010 監査対応: 30 日 → 72 時間に短縮
   description = "Maximum TTL for service tier TLS certificates (seconds)"
   type        = string
-  default     = "2592000"
+  default     = "259200"
 }
 
 # --- Consul Backup ---

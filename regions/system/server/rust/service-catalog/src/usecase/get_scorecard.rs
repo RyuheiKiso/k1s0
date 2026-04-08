@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::scorecard::Scorecard;
 use crate::domain::repository::ScorecardRepository;
 
-/// GetScorecardError はスコアカード取得に関するエラーを表す。
+/// `GetScorecardError` はスコアカード取得に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum GetScorecardError {
     #[error("scorecard not found for service: {0}")]
@@ -15,7 +15,7 @@ pub enum GetScorecardError {
     Internal(String),
 }
 
-/// GetScorecardUseCase はスコアカード取得ユースケース。
+/// `GetScorecardUseCase` はスコアカード取得ユースケース。
 pub struct GetScorecardUseCase {
     scorecard_repo: Arc<dyn ScorecardRepository>,
 }

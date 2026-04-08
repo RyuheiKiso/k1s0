@@ -1,6 +1,6 @@
 use sqlx::PgPool;
 
-/// PostgreSQL 接続プールを作成する（URL 直接指定）。
+/// `PostgreSQL` 接続プールを作成する（URL 直接指定）。
 pub async fn connect(url: &str, max_connections: u32) -> anyhow::Result<PgPool> {
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(max_connections)

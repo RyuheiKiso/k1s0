@@ -13,6 +13,7 @@ pub struct ExponentialBackoff {
 }
 
 impl ExponentialBackoff {
+    #[must_use] 
     pub fn new(initial_delay: Duration, max_delay: Duration) -> Self {
         Self {
             initial_delay,
@@ -20,6 +21,19 @@ impl ExponentialBackoff {
         }
     }
 
+    /// 指数バックオフの遅延時間を計算する。
+    ///
+    /// # Panics
+    ///
+    /// このメソッドはパニックしない。
+    // HIGH-001 監査対応: 数値計算のキャストは意図的なため許容する
+    #[must_use]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_sign_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap
+    )]
     pub fn compute_delay(&self, attempt: u32, multiplier: f64) -> Duration {
         let base = self.initial_delay.as_millis() as f64 * multiplier.powi(attempt as i32);
         let capped = base.min(self.max_delay.as_millis() as f64);
@@ -38,10 +52,12 @@ pub struct ResiliencyPolicy {
 }
 
 impl ResiliencyPolicy {
+    #[must_use] 
     pub fn builder() -> ResiliencyPolicyBuilder {
         ResiliencyPolicyBuilder::default()
     }
 
+    #[must_use] 
     pub fn decorate(self) -> ResiliencyDecorator {
         ResiliencyDecorator::new(self)
     }
@@ -58,31 +74,38 @@ pub struct ResiliencyPolicyBuilder {
 }
 
 impl ResiliencyPolicyBuilder {
+    #[must_use] 
     pub fn retry(mut self, config: RetryConfig) -> Self {
         self.retry = Some(config);
         self
     }
 
+    #[must_use] 
     pub fn circuit_breaker(mut self, config: CircuitBreakerConfig) -> Self {
         self.circuit_breaker = Some(config);
         self
     }
 
+    #[must_use] 
     pub fn bulkhead(mut self, config: BulkheadConfig) -> Self {
         self.bulkhead = Some(config);
         self
     }
 
+    #[must_use] 
     pub fn timeout(mut self, duration: Duration) -> Self {
         self.timeout = Some(duration);
         self
     }
 
+    #[must_use] 
     pub fn backoff(mut self, backoff: ExponentialBackoff) -> Self {
         self.backoff = Some(backoff);
         self
     }
 
+    // HIGH-001 監査対応: Selfを返すメソッドには#[must_use]を追加する
+    #[must_use]
     pub fn retryable_errors<I, S>(mut self, values: I) -> Self
     where
         I: IntoIterator<Item = S>,
@@ -92,6 +115,7 @@ impl ResiliencyPolicyBuilder {
         self
     }
 
+    #[must_use] 
     pub fn build(self) -> ResiliencyPolicy {
         ResiliencyPolicy {
             retry: self.retry,

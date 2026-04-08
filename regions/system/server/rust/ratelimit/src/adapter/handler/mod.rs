@@ -14,7 +14,7 @@ use crate::usecase::{
     ListRulesUseCase, ResetRateLimitUseCase, UpdateRuleUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub check_uc: Arc<CheckRateLimitUseCase>,
@@ -32,6 +32,7 @@ pub struct AppState {
 
 impl AppState {
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn new(
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,
@@ -60,6 +61,7 @@ impl AppState {
         }
     }
 
+    #[must_use] 
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -196,7 +198,7 @@ pub fn router(state: AppState) -> Router {
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
 }
 
-/// ErrorResponse は統一エラーレスポンス。
+/// `ErrorResponse` は統一エラーレスポンス。
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ErrorResponse {
     pub error: ErrorBody,
@@ -217,6 +219,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -228,6 +231,7 @@ impl ErrorResponse {
         }
     }
 
+    #[must_use] 
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

@@ -18,6 +18,7 @@ pub struct Policy {
 }
 
 impl Policy {
+    #[must_use] 
     pub fn new(name: String, description: String, rego_content: String) -> Self {
         let now = Utc::now();
         Self {

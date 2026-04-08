@@ -12,6 +12,7 @@ pub struct FlowDefinitionPostgresRepository {
 }
 
 impl FlowDefinitionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -26,10 +27,10 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .execute(&mut *tx)
             .await?;
         let row = sqlx::query_as::<_, FlowDefRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, description, domain, steps, slo_target_completion_secs, slo_target_success_rate, slo_alert_on_violation, enabled, created_at, updated_at
             FROM event_monitor.flow_definitions WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .fetch_optional(&mut *tx)
@@ -45,10 +46,10 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .execute(&mut *tx)
             .await?;
         let rows = sqlx::query_as::<_, FlowDefRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, description, domain, steps, slo_target_completion_secs, slo_target_success_rate, slo_alert_on_violation, enabled, created_at, updated_at
             FROM event_monitor.flow_definitions WHERE enabled = true ORDER BY created_at DESC
-            "#,
+            ",
         )
         .fetch_all(&mut *tx)
         .await?;
@@ -62,8 +63,8 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
         page_size: u32,
         domain: Option<String>,
     ) -> anyhow::Result<(Vec<FlowDefinition>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // "system" テナントコンテキストでページネーション取得する
         let mut tx = self.pool.begin().await?;
@@ -72,13 +73,13 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .await?;
 
         let rows = sqlx::query_as::<_, FlowDefRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, description, domain, steps, slo_target_completion_secs, slo_target_success_rate, slo_alert_on_violation, enabled, created_at, updated_at
             FROM event_monitor.flow_definitions
             WHERE ($1::text IS NULL OR domain = $1)
             ORDER BY created_at DESC
             LIMIT $2 OFFSET $3
-            "#,
+            ",
         )
         .bind(&domain)
         .bind(limit)
@@ -108,11 +109,11 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .execute(&mut *tx)
             .await?;
         let rows = sqlx::query_as::<_, FlowDefRow>(
-            r#"
+            r"
             SELECT id, tenant_id, name, description, domain, steps, slo_target_completion_secs, slo_target_success_rate, slo_alert_on_violation, enabled, created_at, updated_at
             FROM event_monitor.flow_definitions
             WHERE domain = $1 AND enabled = true
-            "#,
+            ",
         )
         .bind(&domain)
         .fetch_all(&mut *tx)
@@ -130,11 +131,11 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            r#"
+            r"
             INSERT INTO event_monitor.flow_definitions
                 (id, tenant_id, name, description, domain, steps, slo_target_completion_secs, slo_target_success_rate, slo_alert_on_violation, enabled, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            "#,
+            ",
         )
         .bind(flow.id)
         .bind(&flow.tenant_id)
@@ -163,13 +164,13 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            r#"
+            r"
             UPDATE event_monitor.flow_definitions SET
                 description = $2, domain = $3, steps = $4,
                 slo_target_completion_secs = $5, slo_target_success_rate = $6, slo_alert_on_violation = $7,
                 enabled = $8, updated_at = $9
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(flow.id)
         .bind(&flow.description)
@@ -216,7 +217,7 @@ impl FlowDefinitionRepository for FlowDefinitionPostgresRepository {
     }
 }
 
-/// DB から取得したフロー定義の中間表現。tenant_id を含む。
+/// DB `から取得したフロー定義の中間表現。tenant_id` を含む。
 #[derive(sqlx::FromRow)]
 struct FlowDefRow {
     id: Uuid,
@@ -233,7 +234,7 @@ struct FlowDefRow {
     updated_at: DateTime<Utc>,
 }
 
-/// FlowDefRow からドメインエンティティへ変換する。tenant_id を含める。
+/// `FlowDefRow` `からドメインエンティティへ変換する。tenant_id` を含める。
 impl From<FlowDefRow> for FlowDefinition {
     fn from(row: FlowDefRow) -> Self {
         let steps: Vec<FlowStep> = serde_json::from_value(row.steps).unwrap_or_default();

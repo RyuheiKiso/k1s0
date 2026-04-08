@@ -99,7 +99,7 @@ impl ServiceCatalogHttpClient {
     }
 
     /// 指定 ID のサービスを取得する。
-    /// 404 の場合は None を返す。その他のエラーは anyhow::Error で返す。
+    /// 404 の場合は None を返す。その他のエラーは `anyhow::Error` で返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn get_service(&self, service_id: &str) -> anyhow::Result<Option<CatalogService>> {
         let url = format!("{}/api/v1/services/{}", self.base_url, service_id);
@@ -108,7 +108,7 @@ impl ServiceCatalogHttpClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.GetService HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.GetService HTTP エラー: {e}"))?;
 
         // 404 の場合は None を返す
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
@@ -119,21 +119,19 @@ impl ServiceCatalogHttpClient {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             anyhow::bail!(
-                "ServiceCatalog.GetService 失敗: status={}, body={}",
-                status,
-                body
+                "ServiceCatalog.GetService 失敗: status={status}, body={body}"
             );
         }
 
         let svc: RestService = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.GetService JSON パースエラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.GetService JSON パースエラー: {e}"))?;
         Ok(Some(service_from_rest(svc)))
     }
 
     /// サービス一覧を取得する。
-    /// page/page_size でページネーション、tier/status/search でフィルタリングができる。
+    /// `page/page_size` でページネーション、tier/status/search でフィルタリングができる。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn list_services(
         &self,
@@ -154,25 +152,23 @@ impl ServiceCatalogHttpClient {
         let resp = req
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.ListServices HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.ListServices HTTP エラー: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             anyhow::bail!(
-                "ServiceCatalog.ListServices 失敗: status={}, body={}",
-                status,
-                body
+                "ServiceCatalog.ListServices 失敗: status={status}, body={body}"
             );
         }
 
         let services: Vec<RestService> = resp
             .json()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.ListServices JSON パースエラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.ListServices JSON パースエラー: {e}"))?;
 
         let total_count = services.len() as i64;
-        let has_next = total_count >= page_size as i64;
+        let has_next = total_count >= i64::from(page_size);
         let services = services.into_iter().map(service_from_rest).collect();
 
         Ok(CatalogServiceConnection {
@@ -205,7 +201,7 @@ impl ServiceCatalogHttpClient {
             tier: tier.to_owned(),
             version: version.to_owned(),
             base_url: base_url.to_owned(),
-            grpc_endpoint: grpc_endpoint.map(|s| s.to_owned()),
+            grpc_endpoint: grpc_endpoint.map(std::borrow::ToOwned::to_owned),
             health_url: health_url.to_owned(),
             metadata,
         };
@@ -216,20 +212,18 @@ impl ServiceCatalogHttpClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.RegisterService HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.RegisterService HTTP エラー: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             anyhow::bail!(
-                "ServiceCatalog.RegisterService 失敗: status={}, body={}",
-                status,
-                body
+                "ServiceCatalog.RegisterService 失敗: status={status}, body={body}"
             );
         }
 
         let svc: RestService = resp.json().await.map_err(|e| {
-            anyhow::anyhow!("ServiceCatalog.RegisterService JSON パースエラー: {}", e)
+            anyhow::anyhow!("ServiceCatalog.RegisterService JSON パースエラー: {e}")
         })?;
         Ok(service_from_rest(svc))
     }
@@ -250,12 +244,12 @@ impl ServiceCatalogHttpClient {
     ) -> anyhow::Result<CatalogService> {
         let url = format!("{}/api/v1/services/{}", self.base_url, service_id);
         let body = UpdateServiceRequest {
-            display_name: display_name.map(|s| s.to_owned()),
-            description: description.map(|s| s.to_owned()),
-            version: version.map(|s| s.to_owned()),
-            base_url: base_url.map(|s| s.to_owned()),
-            grpc_endpoint: grpc_endpoint.map(|s| s.to_owned()),
-            health_url: health_url.map(|s| s.to_owned()),
+            display_name: display_name.map(std::borrow::ToOwned::to_owned),
+            description: description.map(std::borrow::ToOwned::to_owned),
+            version: version.map(std::borrow::ToOwned::to_owned),
+            base_url: base_url.map(std::borrow::ToOwned::to_owned),
+            grpc_endpoint: grpc_endpoint.map(std::borrow::ToOwned::to_owned),
+            health_url: health_url.map(std::borrow::ToOwned::to_owned),
             metadata,
         };
 
@@ -265,20 +259,18 @@ impl ServiceCatalogHttpClient {
             .json(&body)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.UpdateService HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.UpdateService HTTP エラー: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             anyhow::bail!(
-                "ServiceCatalog.UpdateService 失敗: status={}, body={}",
-                status,
-                body
+                "ServiceCatalog.UpdateService 失敗: status={status}, body={body}"
             );
         }
 
         let svc: RestService = resp.json().await.map_err(|e| {
-            anyhow::anyhow!("ServiceCatalog.UpdateService JSON パースエラー: {}", e)
+            anyhow::anyhow!("ServiceCatalog.UpdateService JSON パースエラー: {e}")
         })?;
         Ok(service_from_rest(svc))
     }
@@ -293,7 +285,7 @@ impl ServiceCatalogHttpClient {
             .delete(&url)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.DeleteService HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.DeleteService HTTP エラー: {e}"))?;
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(false);
@@ -303,9 +295,7 @@ impl ServiceCatalogHttpClient {
             let status = resp.status();
             let body = resp.text().await.unwrap_or_default();
             anyhow::bail!(
-                "ServiceCatalog.DeleteService 失敗: status={}, body={}",
-                status,
-                body
+                "ServiceCatalog.DeleteService 失敗: status={status}, body={body}"
             );
         }
 
@@ -324,18 +314,18 @@ impl ServiceCatalogHttpClient {
             .get(&url)
             .send()
             .await
-            .map_err(|e| anyhow::anyhow!("ServiceCatalog.Healthz HTTP エラー: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("ServiceCatalog.Healthz HTTP エラー: {e}"))?;
 
         if !resp.status().is_success() {
             let status = resp.status();
-            anyhow::bail!("ServiceCatalog.Healthz 失敗: status={}", status);
+            anyhow::bail!("ServiceCatalog.Healthz 失敗: status={status}");
         }
 
         Ok(())
     }
 
     /// サービスのヘルスチェック状態を取得する。
-    /// service_id が指定された場合は特定サービスのヘルス状態のみ返す。
+    /// `service_id` が指定された場合は特定サービスのヘルス状態のみ返す。
     #[instrument(skip(self), fields(service = "graphql-gateway"))]
     pub async fn health_check(
         &self,
@@ -346,7 +336,7 @@ impl ServiceCatalogHttpClient {
             let url = format!("{}/api/v1/services/{}/health", self.base_url, id);
             let resp =
                 self.client.get(&url).send().await.map_err(|e| {
-                    anyhow::anyhow!("ServiceCatalog.HealthCheck HTTP エラー: {}", e)
+                    anyhow::anyhow!("ServiceCatalog.HealthCheck HTTP エラー: {e}")
                 })?;
 
             if resp.status() == reqwest::StatusCode::NOT_FOUND {
@@ -357,14 +347,12 @@ impl ServiceCatalogHttpClient {
                 let status = resp.status();
                 let body = resp.text().await.unwrap_or_default();
                 anyhow::bail!(
-                    "ServiceCatalog.HealthCheck 失敗: status={}, body={}",
-                    status,
-                    body
+                    "ServiceCatalog.HealthCheck 失敗: status={status}, body={body}"
                 );
             }
 
             let health: RestHealthStatus = resp.json().await.map_err(|e| {
-                anyhow::anyhow!("ServiceCatalog.HealthCheck JSON パースエラー: {}", e)
+                anyhow::anyhow!("ServiceCatalog.HealthCheck JSON パースエラー: {e}")
             })?;
             return Ok(vec![health_from_rest(health, id)]);
         }

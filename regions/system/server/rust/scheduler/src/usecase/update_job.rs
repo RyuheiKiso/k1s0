@@ -42,7 +42,7 @@ impl UpdateJobUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからジョブを更新する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからジョブを更新する。
     pub async fn execute(&self, input: &UpdateJobInput) -> Result<SchedulerJob, UpdateJobError> {
         if !SchedulerDomainService::validate_cron_expression(&input.cron_expression) {
             return Err(UpdateJobError::InvalidCron(input.cron_expression.clone()));

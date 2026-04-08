@@ -2,7 +2,7 @@ use tokio::sync::broadcast;
 
 use crate::usecase::watch_config::ConfigChangeEvent;
 
-/// WatchConfigRequest はクライアントから config 変更監視リクエストを表す。
+/// `WatchConfigRequest` はクライアントから config 変更監視リクエストを表す。
 #[derive(Debug, Clone)]
 pub struct WatchConfigRequest {
     /// 監視対象の namespace プレフィックス一覧。
@@ -10,7 +10,7 @@ pub struct WatchConfigRequest {
     pub namespaces: Vec<String>,
 }
 
-/// ConfigChangeNotification は gRPC ストリーミングレスポンスとして返す変更通知。
+/// `ConfigChangeNotification` は gRPC ストリーミングレスポンスとして返す変更通知。
 #[derive(Debug, Clone)]
 pub struct ConfigChangeNotification {
     pub namespace: String,
@@ -20,7 +20,7 @@ pub struct ConfigChangeNotification {
     pub updated_by: String,
 }
 
-/// WatchConfigStreamHandler は broadcast::Receiver をラップし、
+/// `WatchConfigStreamHandler` は `broadcast::Receiver` をラップし、
 /// namespace フィルタを適用しながら次の変更通知を非同期で返す。
 pub struct WatchConfigStreamHandler {
     receiver: broadcast::Receiver<ConfigChangeEvent>,
@@ -41,6 +41,7 @@ impl WatchConfigStreamHandler {
     /// - `receiver`: `WatchConfigUseCase::subscribe()` で得た Receiver。
     /// - `namespace_filters`: プレフィックス一覧を指定すると、いずれかのプレフィックスに
     ///   一致する namespace の変更通知のみを返す。空の場合は全通知を返す。
+    #[must_use] 
     pub fn new(
         receiver: broadcast::Receiver<ConfigChangeEvent>,
         namespace_filters: Vec<String>,

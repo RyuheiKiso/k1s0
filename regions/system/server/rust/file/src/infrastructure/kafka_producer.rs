@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::infrastructure::config::KafkaConfig;
 
-/// FileEventPublisher はファイルイベントを Kafka に送信するトレイト。
+/// `FileEventPublisher` はファイルイベントを Kafka に送信するトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait FileEventPublisher: Send + Sync {
@@ -12,7 +12,7 @@ pub trait FileEventPublisher: Send + Sync {
     async fn close(&self) -> anyhow::Result<()>;
 }
 
-/// NoopFileEventPublisher は何もしないダミー実装。
+/// `NoopFileEventPublisher` は何もしないダミー実装。
 pub struct NoopFileEventPublisher;
 
 #[async_trait]
@@ -26,7 +26,7 @@ impl FileEventPublisher for NoopFileEventPublisher {
     }
 }
 
-/// FileKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `FileKafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct FileKafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -76,9 +76,7 @@ impl FileEventPublisher for FileKafkaProducer {
         let payload_bytes = serde_json::to_vec(&message)?;
         let key = payload
             .get("file_id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+            .and_then(|v| v.as_str()).map_or_else(|| uuid::Uuid::new_v4().to_string(), std::string::ToString::to_string);
 
         let record = FutureRecord::to(&self.topic)
             .key(&key)

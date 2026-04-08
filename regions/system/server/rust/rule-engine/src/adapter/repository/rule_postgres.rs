@@ -13,12 +13,13 @@ pub struct RulePostgresRepository {
 }
 
 impl RulePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
 
-/// CRITICAL-RUST-001 監査対応: tenant_id カラムを含む row 構造体（migration 003 対応）。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` カラムを含む row 構造体（migration 003 対応）。
 #[derive(sqlx::FromRow)]
 struct RuleRow {
     id: Uuid,
@@ -53,8 +54,8 @@ impl From<RuleRow> for Rule {
     }
 }
 
-/// CRITICAL-RUST-001 監査対応: RuleRepository の PostgreSQL 実装。
-/// migration 003 で追加した tenant_id カラムと RLS ポリシーに対応する。
+/// CRITICAL-RUST-001 監査対応: `RuleRepository` の `PostgreSQL` 実装。
+/// migration 003 で追加した `tenant_id` カラムと RLS ポリシーに対応する。
 #[async_trait]
 impl RuleRepository for RulePostgresRepository {
     async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Rule>> {
@@ -91,8 +92,8 @@ impl RuleRepository for RulePostgresRepository {
         _rule_set_id: Option<Uuid>,
         _domain: Option<String>,
     ) -> anyhow::Result<(Vec<Rule>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // CRITICAL-RUST-001 監査対応: tenant_id カラムを SELECT に含める（migration 003 対応）。
         let rows: Vec<RuleRow> = sqlx::query_as(

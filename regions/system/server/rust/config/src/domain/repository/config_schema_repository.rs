@@ -2,12 +2,12 @@ use async_trait::async_trait;
 
 use crate::domain::entity::config_schema::ConfigSchema;
 
-/// ConfigSchemaRepository は設定スキーマの永続化のためのリポジトリトレイト。
+/// `ConfigSchemaRepository` は設定スキーマの永続化のためのリポジトリトレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ConfigSchemaRepository: Send + Sync {
     // CRITICAL-RUST-001 監査対応: RLS テナント分離のため tenant_id を全メソッドに追加する。
-    /// service_name とテナントIDで設定スキーマを取得する。
+    /// `service_name` とテナントIDで設定スキーマを取得する。
     async fn find_by_service_name(
         &self,
         service_name: &str,
@@ -15,7 +15,7 @@ pub trait ConfigSchemaRepository: Send + Sync {
     ) -> anyhow::Result<Option<ConfigSchema>>;
 
     /// namespace プレフィックスに一致するスキーマをテナントIDで絞り込んで取得する。
-    /// 指定された namespace がスキーマの namespace_prefix で始まるものを返す。
+    /// 指定された namespace がスキーマの `namespace_prefix` で始まるものを返す。
     async fn find_by_namespace(
         &self,
         namespace: &str,
@@ -25,7 +25,7 @@ pub trait ConfigSchemaRepository: Send + Sync {
     /// 指定テナントの全ての設定スキーマを一覧取得する。
     async fn list_all(&self, tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>>;
 
-    /// 設定スキーマを作成または更新する（upsert）。schema.tenant_id を使用する。
+    /// `設定スキーマを作成または更新する（upsert）。schema.tenant_id` を使用する。
     async fn upsert(&self, schema: &ConfigSchema) -> anyhow::Result<ConfigSchema>;
 }
 

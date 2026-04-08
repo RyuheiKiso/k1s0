@@ -1,7 +1,7 @@
 use crate::config::KafkaConfig;
 use crate::error::KafkaError;
 
-/// KafkaHealthStatus は Kafka クラスターのヘルス状態を表す。
+/// `KafkaHealthStatus` は Kafka クラスターのヘルス状態を表す。
 #[derive(Debug, Clone, PartialEq)]
 pub enum KafkaHealthStatus {
     /// 接続可能・正常
@@ -10,12 +10,13 @@ pub enum KafkaHealthStatus {
     Unhealthy(String),
 }
 
-/// KafkaHealthChecker は Kafka クラスターのヘルスチェックを提供する。
+/// `KafkaHealthChecker` は Kafka クラスターのヘルスチェックを提供する。
 pub struct KafkaHealthChecker {
     config: KafkaConfig,
 }
 
 impl KafkaHealthChecker {
+    #[must_use] 
     pub fn new(config: KafkaConfig) -> Self {
         Self { config }
     }

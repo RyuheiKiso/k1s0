@@ -124,6 +124,7 @@ pub struct SearchGrpcService {
 }
 
 impl SearchGrpcService {
+    #[must_use] 
     pub fn new(
         create_index_uc: Arc<CreateIndexUseCase>,
         list_indices_uc: Arc<ListIndicesUseCase>,
@@ -140,7 +141,7 @@ impl SearchGrpcService {
         }
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらインデックスを作成する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらインデックスを作成する。
     pub async fn create_index(
         &self,
         req: CreateIndexRequest,
@@ -153,7 +154,7 @@ impl SearchGrpcService {
             serde_json::json!({})
         } else {
             serde_json::from_slice(&req.mapping_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid mapping_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid mapping_json: {e}")))?
         };
 
         let index = self
@@ -166,7 +167,7 @@ impl SearchGrpcService {
             .await
             .map_err(|e| match e {
                 CreateIndexError::AlreadyExists(name) => {
-                    GrpcError::AlreadyExists(format!("index already exists: {}", name))
+                    GrpcError::AlreadyExists(format!("index already exists: {name}"))
                 }
                 CreateIndexError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -181,7 +182,7 @@ impl SearchGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらインデックス一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらインデックス一覧を取得する。
     pub async fn list_indices(
         &self,
         req: ListIndicesRequest,
@@ -207,7 +208,7 @@ impl SearchGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらドキュメントを登録する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらドキュメントを登録する。
     pub async fn index_document(
         &self,
         req: IndexDocumentRequest,
@@ -216,7 +217,7 @@ impl SearchGrpcService {
             serde_json::Value::Object(Default::default())
         } else {
             serde_json::from_slice(&req.document_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid document_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid document_json: {e}")))?
         };
 
         let input = IndexDocumentInput {
@@ -233,13 +234,13 @@ impl SearchGrpcService {
                 result: "created".to_string(),
             }),
             Err(IndexDocumentError::IndexNotFound(name)) => {
-                Err(GrpcError::NotFound(format!("index not found: {}", name)))
+                Err(GrpcError::NotFound(format!("index not found: {name}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながら検索を実行する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながら検索を実行する。
     pub async fn search(&self, req: SearchRequest) -> Result<SearchResponse, GrpcError> {
         let page_size = if req.size == 0 { 10 } else { req.size };
         let from = req.from;
@@ -247,7 +248,7 @@ impl SearchGrpcService {
             std::collections::HashMap::new()
         } else {
             serde_json::from_slice(&req.filters_json)
-                .map_err(|e| GrpcError::InvalidArgument(format!("invalid filters_json: {}", e)))?
+                .map_err(|e| GrpcError::InvalidArgument(format!("invalid filters_json: {e}")))?
         };
 
         let input = SearchInput {
@@ -285,13 +286,13 @@ impl SearchGrpcService {
                 })
             }
             Err(SearchError::IndexNotFound(name)) => {
-                Err(GrpcError::NotFound(format!("index not found: {}", name)))
+                Err(GrpcError::NotFound(format!("index not found: {name}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
-    /// CRIT-005 対応: tenant_id を使って RLS でテナント分離しながらドキュメントを削除する。
+    /// CRIT-005 対応: `tenant_id` を使って RLS でテナント分離しながらドキュメントを削除する。
     pub async fn delete_document(
         &self,
         req: DeleteDocumentRequest,
@@ -311,8 +312,7 @@ impl SearchGrpcService {
                 ),
             }),
             Err(DeleteDocumentError::NotFound(index, id)) => Err(GrpcError::NotFound(format!(
-                "document not found: {}/{}",
-                index, id
+                "document not found: {index}/{id}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }

@@ -13,14 +13,15 @@ pub struct FlagAuditLogPostgresRepository {
 }
 
 impl FlagAuditLogPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
 
-/// PostgreSQL の行をマッピングするための内部構造体。
-/// STATIC-CRITICAL-001 監査対応: tenant_id カラムを含む。
-/// HIGH-005 対応: migration 006 で tenant_id が TEXT 型に変更されたため String 型を使用する。
+/// `PostgreSQL` の行をマッピングするための内部構造体。
+/// STATIC-CRITICAL-001 監査対応: `tenant_id` カラムを含む。
+/// HIGH-005 対応: migration 006 で `tenant_id` が TEXT 型に変更されたため String 型を使用する。
 #[derive(sqlx::FromRow)]
 struct FlagAuditLogRow {
     id: Uuid,
@@ -53,7 +54,7 @@ impl From<FlagAuditLogRow> for FlagAuditLog {
 
 #[async_trait]
 impl FlagAuditLogRepository for FlagAuditLogPostgresRepository {
-    /// STATIC-CRITICAL-001 監査対応: tenant_id を含む監査ログを記録する。
+    /// STATIC-CRITICAL-001 監査対応: `tenant_id` を含む監査ログを記録する。
     async fn create(&self, log: &FlagAuditLog) -> anyhow::Result<()> {
         sqlx::query(
             "INSERT INTO featureflag.flag_audit_logs \

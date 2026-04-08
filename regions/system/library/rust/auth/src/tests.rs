@@ -156,8 +156,8 @@ mod tests {
             sub: "user-1".into(),
             iss: TEST_ISSUER.into(),
             aud: Audience(vec![TEST_AUDIENCE.into()]),
-            exp: 9999999999,
-            iat: 1000000000,
+            exp: 9_999_999_999,
+            iat: 1_000_000_000,
             jti: None,
             typ: None,
             azp: None,
@@ -170,7 +170,7 @@ mod tests {
             tenant_id: String::new(),
         };
 
-        let s = format!("{}", claims);
+        let s = format!("{claims}");
         assert!(s.contains("user-1"));
         assert!(s.contains("taro"));
     }
@@ -550,7 +550,7 @@ mod tests {
         );
         match result.unwrap_err() {
             AuthError::JwksFetchFailed(_) => {}
-            other => panic!("JwksFetchFailed が期待されるが: {:?}", other),
+            other => panic!("JwksFetchFailed が期待されるが: {other:?}"),
         }
     }
 

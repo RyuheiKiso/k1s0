@@ -44,7 +44,8 @@ impl UpdateAppUseCase {
         Self { repo }
     }
 
-    pub async fn execute(&self, input: UpdateAppInput) -> Result<App, UpdateAppError> {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, input: UpdateAppInput) -> Result<App, UpdateAppError> {
         if input.name.trim().is_empty() {
             return Err(UpdateAppError::ValidationError(
                 "name must not be empty".to_string(),
@@ -53,7 +54,7 @@ impl UpdateAppUseCase {
 
         let existing = self
             .repo
-            .find_by_id(&input.id)
+            .find_by_id(tenant_id, &input.id)
             .await
             .map_err(|e| UpdateAppError::Internal(e.to_string()))?
             .ok_or_else(|| UpdateAppError::NotFound(input.id.clone()))?;
@@ -69,7 +70,7 @@ impl UpdateAppUseCase {
         };
 
         self.repo
-            .update(&app)
+            .update(tenant_id, &app)
             .await
             .map_err(|e| UpdateAppError::Internal(e.to_string()))
     }
@@ -96,8 +97,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_app_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(Some(make_app())));
-        mock.expect_update().returning(|app| Ok(app.clone()));
+        mock.expect_find_by_id().returning(|_, _| Ok(Some(make_app())));
+        mock.expect_update().returning(|_, app| Ok(app.clone()));
 
         let uc = UpdateAppUseCase::new(Arc::new(mock));
         let input = UpdateAppInput {
@@ -107,7 +108,7 @@ mod tests {
             category: "utils".to_string(),
             icon_url: None,
         };
-        let result = uc.execute(input).await.unwrap();
+        let result = uc.execute("tenant-1", input).await.unwrap();
         assert_eq!(result.name, "New Name");
         assert_eq!(result.category, "utils");
     }
@@ -115,7 +116,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_app_not_found() {
         let mut mock = MockAppRepository::new();
-        mock.expect_find_by_id().returning(|_| Ok(None));
+        mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = UpdateAppUseCase::new(Arc::new(mock));
         let input = UpdateAppInput {
@@ -125,7 +126,7 @@ mod tests {
             category: "tools".to_string(),
             icon_url: None,
         };
-        let result = uc.execute(input).await;
+        let result = uc.execute("tenant-1", input).await;
         assert!(matches!(result, Err(UpdateAppError::NotFound(_))));
     }
 }

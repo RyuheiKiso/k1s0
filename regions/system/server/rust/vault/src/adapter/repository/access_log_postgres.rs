@@ -7,12 +7,13 @@ use uuid::Uuid;
 use crate::domain::entity::access_log::{AccessAction, SecretAccessLog};
 use crate::domain::repository::AccessLogRepository;
 
-/// AccessLogPostgresRepository は PostgreSQL を使った AccessLogRepository の実装。
+/// `AccessLogPostgresRepository` は `PostgreSQL` を使った `AccessLogRepository` の実装。
 pub struct AccessLogPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl AccessLogPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -39,8 +40,8 @@ fn action_from_str(s: &str) -> AccessAction {
     }
 }
 
-/// ADR-0109 対応: key_path の先頭セグメントからテナント ID を抽出する。
-/// key_path は "{tenant_id}/..." の形式であること。
+/// ADR-0109 対応: `key_path` の先頭セグメントからテナント ID を抽出する。
+/// `key_path` は "{`tenant_id`}/..." の形式であること。
 fn extract_tenant_id_from_path(path: &str) -> &str {
     path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
 }
@@ -85,16 +86,16 @@ impl AccessLogRepository for AccessLogPostgresRepository {
     }
 
     /// LOW-12 監査対応: keyset ページネーションで OFFSET を廃止する。
-    /// CRITICAL-DB-001 監査対応: vault.access_logs は RLS FORCE が有効（migration 007）。
+    /// CRITICAL-DB-001 監査対応: `vault.access_logs` は RLS FORCE が有効（migration 007）。
     /// 監査ログ一覧は管理・運用目的で全テナントを横断するため
-    /// vault.list_access_logs_all_tenants（SECURITY DEFINER 関数、migration 008）を使用する。
+    /// `vault.list_access_logs_all_tenants（SECURITY` DEFINER 関数、migration 008）を使用する。
     async fn list(
         &self,
         after_id: Option<Uuid>,
         limit: u32,
     ) -> anyhow::Result<(Vec<SecretAccessLog>, Option<Uuid>)> {
         // limit+1 件取得して次ページの存在を確認し、カーソルを生成する
-        let fetch_limit = limit as i64 + 1;
+        let fetch_limit = i64::from(limit) + 1;
 
         // vault.list_access_logs_all_tenants は SECURITY DEFINER 関数（migration 008）。
         // FORCE ROW LEVEL SECURITY を持つ access_logs テーブルに対して

@@ -19,7 +19,7 @@ pub struct FlowSlo {
     pub alert_on_violation: bool,
 }
 
-/// フロー定義ドメインエンティティ。テナント分離のため tenant_id を保持する。
+/// フロー定義ドメインエンティティ。テナント分離のため `tenant_id` を保持する。
 #[derive(Debug, Clone)]
 pub struct FlowDefinition {
     pub id: Uuid,
@@ -36,7 +36,8 @@ pub struct FlowDefinition {
 }
 
 impl FlowDefinition {
-    /// 新しいフロー定義を生成する。tenant_id はシステム管理者が管理するため通常 "system" を使用する。
+    /// `新しいフロー定義を生成する。tenant_id` はシステム管理者が管理するため通常 "system" を使用する。
+    #[must_use] 
     pub fn new(
         tenant_id: String,
         name: String,

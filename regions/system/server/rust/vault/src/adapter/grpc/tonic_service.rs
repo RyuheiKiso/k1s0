@@ -1,7 +1,7 @@
 //! tonic gRPC サービス実装。
 //!
-//! proto 生成コード (`src/proto/`) の VaultService トレイトを実装する。
-//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の VaultGrpcService に委譲する。
+//! proto 生成コード (`src/proto/`) の `VaultService` トレイトを実装する。
+//! 各メソッドで proto 型 <-> 手動型の変換を行い、既存の `VaultGrpcService` に委譲する。
 
 use std::sync::Arc;
 
@@ -50,6 +50,7 @@ pub struct VaultServiceTonic {
 }
 
 impl VaultServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<VaultGrpcService>) -> Self {
         Self { inner }
     }

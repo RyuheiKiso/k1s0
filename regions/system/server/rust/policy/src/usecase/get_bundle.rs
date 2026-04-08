@@ -23,7 +23,7 @@ impl GetBundleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからバンドルを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからバンドルを取得する。
     pub async fn execute(&self, id: &Uuid, tenant_id: &str) -> Result<PolicyBundle, GetBundleError> {
         self.repo
             .find_by_id(id, tenant_id)

@@ -52,7 +52,7 @@ impl ListWorkflowsUseCase {
             .await
             .map_err(|e| ListWorkflowsError::Internal(e.to_string()))?;
 
-        let has_next = (page as u64 * page_size as u64) < total_count;
+        let has_next = (u64::from(page) * u64::from(page_size)) < total_count;
 
         Ok(ListWorkflowsOutput {
             workflows,

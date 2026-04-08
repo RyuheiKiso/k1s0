@@ -27,7 +27,7 @@ use tracing_subscriber::{
     fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
 };
 
-/// TelemetryConfig は telemetry ライブラリの初期化設定を保持する。
+/// `TelemetryConfig` は telemetry ライブラリの初期化設定を保持する。
 pub struct TelemetryConfig {
     pub service_name: String,
     pub version: String,
@@ -40,7 +40,7 @@ pub struct TelemetryConfig {
     pub log_format: String,
 }
 
-/// TelemetryConfig を段階的に構築するビルダー。
+/// `TelemetryConfig` を段階的に構築するビルダー。
 /// サービスの startup.rs で繰り返される10行のボイラープレートを1チェーンに圧縮する。
 pub struct TelemetryConfigBuilder {
     service_name: String,
@@ -70,24 +70,28 @@ impl TelemetryConfigBuilder {
     }
 
     /// バージョンを設定する
+    #[must_use]
     pub fn version(mut self, version: impl Into<String>) -> Self {
         self.version = version.into();
         self
     }
 
     /// ティアを設定する（system / business / service）
+    #[must_use]
     pub fn tier(mut self, tier: impl Into<String>) -> Self {
         self.tier = tier.into();
         self
     }
 
     /// 環境名を設定する
+    #[must_use]
     pub fn environment(mut self, environment: impl Into<String>) -> Self {
         self.environment = environment.into();
         self
     }
 
     /// トレースエンドポイントを有効フラグに基づいて条件付きで設定する
+    #[must_use]
     pub fn trace(mut self, enabled: bool, endpoint: impl Into<String>, sample_rate: f64) -> Self {
         self.trace_endpoint = enabled.then(|| endpoint.into());
         self.sample_rate = sample_rate;
@@ -95,13 +99,15 @@ impl TelemetryConfigBuilder {
     }
 
     /// ログ設定を一括で設定する
+    #[must_use]
     pub fn log(mut self, level: impl Into<String>, format: impl Into<String>) -> Self {
         self.log_level = level.into();
         self.log_format = format.into();
         self
     }
 
-    /// TelemetryConfig を構築する
+    /// `TelemetryConfig` を構築する
+    #[must_use]
     pub fn build(self) -> TelemetryConfig {
         TelemetryConfig {
             service_name: self.service_name,
@@ -115,7 +121,7 @@ impl TelemetryConfigBuilder {
         }
     }
 
-    /// TelemetryConfig を構築し、同時に init_telemetry を呼び出す
+    /// `TelemetryConfig` を構築し、同時に `init_telemetry` を呼び出す
     pub fn init(self) -> Result<TelemetryConfig, Box<dyn std::error::Error>> {
         let config = self.build();
         init_telemetry(&config)?;
@@ -130,8 +136,8 @@ impl TelemetryConfig {
     }
 }
 
-/// init_telemetry は OpenTelemetry TracerProvider と tracing-subscriber を初期化する。
-/// trace_endpoint が指定されている場合、OTLP gRPC エクスポータを設定する。
+/// `init_telemetry` は OpenTelemetry `TracerProvider` と tracing-subscriber を初期化する。
+/// `trace_endpoint` が指定されている場合、OTLP gRPC エクスポータを設定する。
 pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::Error>> {
     let tracer = if let Some(ref endpoint) = cfg.trace_endpoint {
         let exporter = SpanExporter::builder()
@@ -186,7 +192,7 @@ pub fn init_telemetry(cfg: &TelemetryConfig) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-/// shutdown は OpenTelemetry TracerProvider をシャットダウンする。
+/// shutdown は OpenTelemetry `TracerProvider` をシャットダウンする。
 pub fn shutdown() {
     global::shutdown_tracer_provider();
 }

@@ -79,8 +79,7 @@ impl PreviewReplayUseCase {
                 .iter()
                 .filter(|e| {
                     e.flow_step_index
-                        .map(|idx| idx >= input.from_step_index)
-                        .unwrap_or(false)
+                        .is_some_and(|idx| idx >= input.from_step_index)
                 })
                 .collect();
 
@@ -97,9 +96,7 @@ impl PreviewReplayUseCase {
                 self.flow_def_repo
                     .find_by_id(&flow_id)
                     .await
-                    .map_err(|e| PreviewReplayError::Internal(e.to_string()))?
-                    .map(|f| f.name)
-                    .unwrap_or_else(|| "unknown".to_string())
+                    .map_err(|e| PreviewReplayError::Internal(e.to_string()))?.map_or_else(|| "unknown".to_string(), |f| f.name)
             } else {
                 "unknown".to_string()
             };

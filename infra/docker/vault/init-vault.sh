@@ -48,6 +48,23 @@ export VAULT_ADDR VAULT_TOKEN
 
 echo "=== Vault 初期化: ${VAULT_ADDR} ==="
 
+# MED-023 監査対応: ホストの vault CLI への依存を排除し docker exec 経由で実行する
+# vault CLI がホストにインストールされていない環境でもスクリプトが動作するようにする。
+# VAULT_CONTAINER: docker-compose で起動した vault コンテナ名（デフォルト: k1s0-vault-1）
+VAULT_CONTAINER="${VAULT_CONTAINER:-k1s0-vault-1}"
+
+# vault() ラッパー: ホストに vault CLI がある場合はそのまま使用し、ない場合は docker exec で実行する
+vault() {
+  if command -v vault 1>/dev/null 2>&1; then
+    command vault "$@"
+  else
+    docker exec \
+      -e VAULT_ADDR="${VAULT_ADDR}" \
+      -e VAULT_TOKEN="${VAULT_TOKEN}" \
+      "${VAULT_CONTAINER}" vault "$@"
+  fi
+}
+
 # KV v2 シークレットエンジンの有効化（dev モードでは secret/ がデフォルトで有効）
 echo "--- KV v2 シークレットエンジンを確認 ---"
 vault secrets list 2>/dev/null | grep -q "^secret/" && echo "secret/ は既に有効" || vault secrets enable -path=secret kv-v2
@@ -60,7 +77,17 @@ vault_kv_put() {
   local json="$2"
   local tmpfile="/tmp/vault-secret-$$.json"
   echo "${json}" > "${tmpfile}"
-  vault kv put "${path}" @"${tmpfile}"
+  # MED-023: docker exec 経由の場合はコンテナにファイルをコピーして実行する
+  if ! command -v vault 1>/dev/null 2>&1; then
+    docker cp "${tmpfile}" "${VAULT_CONTAINER}:${tmpfile}"
+    docker exec \
+      -e VAULT_ADDR="${VAULT_ADDR}" \
+      -e VAULT_TOKEN="${VAULT_TOKEN}" \
+      "${VAULT_CONTAINER}" vault kv put "${path}" @"${tmpfile}"
+    docker exec "${VAULT_CONTAINER}" rm -f "${tmpfile}"
+  else
+    vault kv put "${path}" @"${tmpfile}"
+  fi
   shred -u "${tmpfile}" 2>/dev/null || rm -f "${tmpfile}"
 }
 

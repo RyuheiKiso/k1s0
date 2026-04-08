@@ -14,7 +14,7 @@ use crate::usecase::watch_feature_flag::FeatureFlagChangeEvent;
 
 use super::watch_stream::WatchFeatureFlagStreamHandler;
 
-/// gRPC リクエストの tenant_id 文字列を UUID フォーマットで検証して String として返すヘルパー。
+/// gRPC リクエストの `tenant_id` 文字列を UUID フォーマットで検証して String として返すヘルパー。
 /// ADR-0028 Phase 1: gRPC メタデータ x-tenant-id から取得した文字列を検証する。
 /// HIGH-005 対応: 検証後は String 型を返す（ドメイン層は TEXT 型で保持するため）。
 fn parse_tenant_id(tenant_id_str: &str) -> Result<String, GrpcError> {
@@ -23,7 +23,7 @@ fn parse_tenant_id(tenant_id_str: &str) -> Result<String, GrpcError> {
         .map_err(|_| GrpcError::InvalidArgument("tenant_id の形式が不正です".to_string()))
 }
 
-/// gRPC メタデータから tenant_id を取得するヘルパー。
+/// gRPC メタデータから `tenant_id` を取得するヘルパー。
 /// HIGH-012 監査対応: "system" テナントへのフォールバックを廃止し、x-tenant-id が未設定の場合は
 /// UNAUTHENTICATED エラーを返す。x-tenant-id は Kong の JWT 検証後に認証ミドルウェアがセットする。
 /// フォールバックが存在すると認証バイパスや別テナントへの不正アクセスが可能になるため廃止した。
@@ -44,7 +44,7 @@ pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Resul
 
 #[derive(Debug, Clone)]
 pub struct EvaluateFlagRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
     pub flag_key: String,
     pub user_id: String,
@@ -62,7 +62,7 @@ pub struct EvaluateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct GetFlagRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
     pub flag_key: String,
 }
@@ -96,7 +96,7 @@ pub struct PbFlagRule {
 
 #[derive(Debug, Clone)]
 pub struct ListFlagsRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
 }
 
@@ -107,7 +107,7 @@ pub struct ListFlagsResponse {
 
 #[derive(Debug, Clone)]
 pub struct CreateFlagRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
     pub flag_key: String,
     pub description: String,
@@ -129,7 +129,7 @@ pub struct CreateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct UpdateFlagRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
     pub flag_key: String,
     pub enabled: Option<bool>,
@@ -152,7 +152,7 @@ pub struct UpdateFlagResponse {
 
 #[derive(Debug, Clone)]
 pub struct DeleteFlagRequest {
-    /// HIGH-005 対応: tenant_id は String 型（migration 006 で DB の TEXT 型に変更済み）。
+    /// HIGH-005 対応: `tenant_id` は String 型（migration 006 で DB の TEXT 型に変更済み）。
     pub tenant_id: String,
     pub flag_key: String,
 }
@@ -163,7 +163,7 @@ pub struct DeleteFlagResponse {
     pub message: String,
 }
 
-/// gRPCエラー種別: tonic::Status への変換に使用する。Unauthenticated はテナントID取得失敗時に返す。
+/// gRPCエラー種別: `tonic::Status` への変換に使用する。Unauthenticated はテナントID取得失敗時に返す。
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
@@ -195,6 +195,7 @@ pub struct FeatureFlagGrpcService {
 
 impl FeatureFlagGrpcService {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(
         list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
@@ -214,6 +215,7 @@ impl FeatureFlagGrpcService {
         }
     }
 
+    #[must_use] 
     pub fn new_with_watch(
         list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
@@ -251,7 +253,7 @@ impl FeatureFlagGrpcService {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを評価する。
-    /// EvaluateFlagInput に tenant_id を含めてユースケースに渡す。
+    /// `EvaluateFlagInput` に `tenant_id` を含めてユースケースに渡す。
     pub async fn evaluate_flag(
         &self,
         req: EvaluateFlagRequest,
@@ -282,7 +284,7 @@ impl FeatureFlagGrpcService {
                 reason: result.reason,
             }),
             Err(EvaluateFlagError::FlagNotFound(key)) => {
-                Err(GrpcError::NotFound(format!("flag not found: {}", key)))
+                Err(GrpcError::NotFound(format!("flag not found: {key}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -302,7 +304,7 @@ impl FeatureFlagGrpcService {
                 updated_at: flag.updated_at,
             }),
             Err(GetFlagError::NotFound(key)) => {
-                Err(GrpcError::NotFound(format!("flag not found: {}", key)))
+                Err(GrpcError::NotFound(format!("flag not found: {key}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -364,8 +366,7 @@ impl FeatureFlagGrpcService {
                 updated_at: flag.updated_at,
             }),
             Err(CreateFlagError::AlreadyExists(key)) => Err(GrpcError::AlreadyExists(format!(
-                "flag already exists: {}",
-                key
+                "flag already exists: {key}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -424,14 +425,14 @@ impl FeatureFlagGrpcService {
                 updated_at: flag.updated_at,
             }),
             Err(UpdateFlagError::NotFound(key)) => {
-                Err(GrpcError::NotFound(format!("flag not found: {}", key)))
+                Err(GrpcError::NotFound(format!("flag not found: {key}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを削除する。
-    /// get_flag でフラグの存在確認後、delete_flag_uc で削除を実行する。
+    /// `get_flag` `でフラグの存在確認後、delete_flag_uc` で削除を実行する。
     pub async fn delete_flag(
         &self,
         req: DeleteFlagRequest,
@@ -442,7 +443,7 @@ impl FeatureFlagGrpcService {
             .await
             .map_err(|e| match e {
                 GetFlagError::NotFound(key) => {
-                    GrpcError::NotFound(format!("flag not found: {}", key))
+                    GrpcError::NotFound(format!("flag not found: {key}"))
                 }
                 _ => GrpcError::Internal(e.to_string()),
             })?;
@@ -452,7 +453,7 @@ impl FeatureFlagGrpcService {
             .await
             .map_err(|e| match e {
                 DeleteFlagError::NotFound(id) => {
-                    GrpcError::NotFound(format!("flag not found: {}", id))
+                    GrpcError::NotFound(format!("flag not found: {id}"))
                 }
                 DeleteFlagError::Internal(msg) => GrpcError::Internal(msg),
             })?;

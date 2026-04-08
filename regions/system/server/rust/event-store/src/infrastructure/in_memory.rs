@@ -10,6 +10,7 @@ pub struct InMemoryEventStreamRepository {
 }
 
 impl InMemoryEventStreamRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             streams: tokio::sync::RwLock::new(HashMap::new()),
@@ -101,6 +102,7 @@ pub struct InMemoryEventRepository {
 }
 
 impl InMemoryEventRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             events: tokio::sync::RwLock::new(Vec::new()),
@@ -231,6 +233,7 @@ pub struct InMemorySnapshotRepository {
 }
 
 impl InMemorySnapshotRepository {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             snapshots: tokio::sync::RwLock::new(Vec::new()),

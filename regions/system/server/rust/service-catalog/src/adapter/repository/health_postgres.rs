@@ -35,7 +35,7 @@ impl From<HealthRow> for HealthStatus {
     }
 }
 
-/// HealthPostgresRepository は PostgreSQL ベースのヘルスステータスリポジトリ。
+/// `HealthPostgresRepository` は `PostgreSQL` ベースのヘルスステータスリポジトリ。
 pub struct HealthPostgresRepository {
     pool: PgPool,
     metrics: Option<Arc<k1s0_telemetry::metrics::Metrics>>,
@@ -43,6 +43,7 @@ pub struct HealthPostgresRepository {
 
 impl HealthPostgresRepository {
     #[allow(dead_code)]
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -50,6 +51,7 @@ impl HealthPostgresRepository {
         }
     }
 
+    #[must_use] 
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -79,7 +81,7 @@ impl HealthRepository for HealthPostgresRepository {
             );
         }
 
-        Ok(row.map(|r| r.into()))
+        Ok(row.map(std::convert::Into::into))
     }
 
     async fn upsert(&self, health: &HealthStatus) -> anyhow::Result<()> {
@@ -128,6 +130,6 @@ impl HealthRepository for HealthPostgresRepository {
             );
         }
 
-        Ok(rows.into_iter().map(|r| r.into()).collect())
+        Ok(rows.into_iter().map(std::convert::Into::into).collect())
     }
 }

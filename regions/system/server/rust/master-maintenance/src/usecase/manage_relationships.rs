@@ -110,7 +110,7 @@ impl ManageRelationshipsUseCase {
         if let Some(display_name) = input.get("display_name").and_then(|v| v.as_str()) {
             relationship.display_name = Some(display_name.to_string());
         }
-        if let Some(cascade) = input.get("is_cascade_delete").and_then(|v| v.as_bool()) {
+        if let Some(cascade) = input.get("is_cascade_delete").and_then(serde_json::Value::as_bool) {
             relationship.is_cascade_delete = cascade;
         }
         if let Some(rel_type) = input.get("relationship_type") {
@@ -162,13 +162,13 @@ impl ManageRelationshipsUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
         let table_columns = self.column_repo.find_by_table_id(table.id).await?;
         let current_record = self
             .record_repo
             .find_by_id(&table, &table_columns, record_id)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Record '{}' not found", record_id))?;
+            .ok_or_else(|| anyhow::anyhow!("Record '{record_id}' not found"))?;
 
         // Find relationships where this table is the source
         let relationships = self.relationship_repo.find_by_table_id(table.id).await?;
@@ -237,7 +237,7 @@ impl ManageRelationshipsUseCase {
         self.column_repo
             .find_by_table_and_column(table_id, column_name)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Column '{}' not found", column_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Column '{column_name}' not found"))?;
         Ok(())
     }
 }

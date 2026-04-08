@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::RateLimitRule;
 use crate::domain::repository::RateLimitRepository;
 
-/// GetRuleError はルール取得に関するエラー。
+/// `GetRuleError` はルール取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum GetRuleError {
     #[error("rule not found: {0}")]
@@ -19,7 +19,7 @@ pub enum GetRuleError {
     Internal(String),
 }
 
-/// GetRuleUseCase はルール取得ユースケース。
+/// `GetRuleUseCase` はルール取得ユースケース。
 pub struct GetRuleUseCase {
     repo: Arc<dyn RateLimitRepository>,
 }
@@ -29,7 +29,7 @@ impl GetRuleUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを取得する。
     pub async fn execute(&self, rule_id: &str, tenant_id: &str) -> Result<RateLimitRule, GetRuleError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetRuleError::InvalidRuleId(rule_id.to_string()))?;

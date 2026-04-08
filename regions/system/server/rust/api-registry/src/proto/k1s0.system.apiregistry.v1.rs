@@ -232,7 +232,7 @@ pub mod api_registry_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with ApiRegistryServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `ApiRegistryServiceServer`.
     #[async_trait]
     pub trait ApiRegistryService: std::marker::Send + std::marker::Sync + 'static {
         async fn list_schemas(

@@ -19,6 +19,7 @@ pub struct RoutingRule {
 
 impl RoutingRule {
     /// 新しいルーティングルールインスタンスを生成する。
+    #[must_use] 
     pub fn new(id: String, model_id: String, priority: i32, strategy: String) -> Self {
         Self {
             id,

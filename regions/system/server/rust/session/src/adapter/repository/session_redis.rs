@@ -6,7 +6,7 @@ use crate::domain::entity::session::Session;
 use crate::domain::repository::SessionRepository;
 use crate::error::SessionError;
 
-/// RedisSessionRepository は Redis ベースのセッションリポジトリ。
+/// `RedisSessionRepository` は Redis ベースのセッションリポジトリ。
 ///
 /// キー設計:
 ///   - `session:{id}` — セッション JSON
@@ -18,6 +18,7 @@ pub struct RedisSessionRepository {
 }
 
 impl RedisSessionRepository {
+    #[must_use] 
     pub fn new(conn: ConnectionManager) -> Self {
         Self {
             conn,
@@ -44,7 +45,7 @@ impl RedisSessionRepository {
         format!("{}user:{}", self.prefix, user_id)
     }
 
-    /// expires_at から TTL 秒数を計算する。最小 1 秒。
+    /// `expires_at` から TTL 秒数を計算する。最小 1 秒。
     fn ttl_seconds(session: &Session) -> i64 {
         let ttl = (session.expires_at - chrono::Utc::now()).num_seconds();
         if ttl < 1 {
@@ -56,7 +57,7 @@ impl RedisSessionRepository {
 
     /// JWT トークンの jti を Redis 失効リストに登録する内部実装。
     /// HIGH-002 対応: ログアウト後のJWT再利用防止のため、jti を Redis SET EX で登録する。
-    /// TTL は JWT の残余有効期限（最大 remaining_secs 秒）に設定し、自動的に期限切れとなるようにする。
+    /// TTL は JWT の残余有効期限（最大 `remaining_secs` 秒）に設定し、自動的に期限切れとなるようにする。
     /// TTL 設定により Redis のメモリを無駄に消費せず、期限切れトークンのクリーンアップが不要となる。
     async fn revoke_jti_inner(&self, jti: &str, remaining_secs: u64) -> Result<(), SessionError> {
         let mut conn = self.conn.clone();
@@ -65,7 +66,7 @@ impl RedisSessionRepository {
         let key = format!("{}revoked:jti:{}", self.prefix, jti);
         conn.set_ex::<_, _, ()>(&key, "1", remaining_secs.max(1))
             .await
-            .map_err(|e| SessionError::Internal(format!("redis SET jti revoked error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis SET jti revoked error: {e}")))?;
         Ok(())
     }
 
@@ -94,28 +95,28 @@ impl SessionRepository for RedisSessionRepository {
         let ttl = Self::ttl_seconds(session);
 
         let json = serde_json::to_string(session)
-            .map_err(|e| SessionError::Internal(format!("serialization error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("serialization error: {e}")))?;
 
         // SET session:{id} with TTL
         conn.set_ex::<_, _, ()>(&session_key, &json, ttl as u64)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis SET error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis SET error: {e}")))?;
 
         // SET session:token:{token} → id with TTL
         conn.set_ex::<_, _, ()>(&token_key, &session.id, ttl as u64)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis SET token error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis SET token error: {e}")))?;
 
         // SADD session:user:{user_id} id
         conn.sadd::<_, _, ()>(&user_key, &session.id)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis SADD error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis SADD error: {e}")))?;
 
         // session:user:{user_id} SET にも TTL を設定する（メモリリーク防止）
         // セッション本体（session:id:{id}）と同じ TTL を使用する
         conn.expire::<_, ()>(&user_key, ttl)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis EXPIRE error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis EXPIRE error: {e}")))?;
 
         Ok(())
     }
@@ -127,12 +128,12 @@ impl SessionRepository for RedisSessionRepository {
         let value: Option<String> = conn
             .get(&key)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis GET error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis GET error: {e}")))?;
 
         match value {
             Some(json) => {
                 let session: Session = serde_json::from_str(&json)
-                    .map_err(|e| SessionError::Internal(format!("deserialization error: {}", e)))?;
+                    .map_err(|e| SessionError::Internal(format!("deserialization error: {e}")))?;
                 Ok(Some(session))
             }
             None => Ok(None),
@@ -146,7 +147,7 @@ impl SessionRepository for RedisSessionRepository {
         let session_id: Option<String> = conn
             .get(&token_key)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis GET token error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis GET token error: {e}")))?;
 
         match session_id {
             Some(id) => self.find_by_id(&id).await,
@@ -162,7 +163,7 @@ impl SessionRepository for RedisSessionRepository {
         let session_ids: Vec<String> = conn
             .smembers(&user_key)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis SMEMBERS error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis SMEMBERS error: {e}")))?;
 
         // セッション ID が存在しない場合は早期リターンする
         if session_ids.is_empty() {
@@ -176,14 +177,14 @@ impl SessionRepository for RedisSessionRepository {
         let values: Vec<Option<String>> = conn
             .mget(&keys)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis MGET error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis MGET error: {e}")))?;
 
         // None（TTL 切れ等で消滅したセッション）を除外しデシリアライズする
         // flatten() で Option の None を除去し、Some の値のみを処理する（manual_flatten 対応）
         let mut sessions = Vec::new();
         for json in values.into_iter().flatten() {
             let session: Session = serde_json::from_str(&json)
-                .map_err(|e| SessionError::Internal(format!("deserialization error: {}", e)))?;
+                .map_err(|e| SessionError::Internal(format!("deserialization error: {e}")))?;
             sessions.push(session);
         }
 
@@ -215,7 +216,7 @@ impl SessionRepository for RedisSessionRepository {
         // スクリプトはセッションが存在しない場合は 0 を、削除した場合は 1 を返す。
         // redis::Script::new は const/static では使えないため、呼び出しごとに生成する。
         let script = redis::Script::new(
-            r#"
+            r"
 local session_json = redis.call('GET', KEYS[1])
 if session_json == false then
   return 0
@@ -224,7 +225,7 @@ redis.call('DEL', KEYS[1])
 redis.call('DEL', KEYS[2])
 redis.call('SREM', KEYS[3], ARGV[1])
 return 1
-"#,
+",
         );
 
         // セッション JSON を取得してキーを構築するため、まず GET のみ実行する。
@@ -232,11 +233,11 @@ return 1
         let value: Option<String> = conn
             .get(&session_key)
             .await
-            .map_err(|e| SessionError::Internal(format!("redis GET error: {}", e)))?;
+            .map_err(|e| SessionError::Internal(format!("redis GET error: {e}")))?;
 
         if let Some(json) = value {
             let session: Session = serde_json::from_str(&json)
-                .map_err(|e| SessionError::Internal(format!("deserialization error: {}", e)))?;
+                .map_err(|e| SessionError::Internal(format!("deserialization error: {e}")))?;
 
             let token_key = self.token_key(&session.token);
             let user_key = self.user_key(&session.user_id);
@@ -250,7 +251,7 @@ return 1
                 .arg(id)
                 .invoke_async::<i32>(&mut conn)
                 .await
-                .map_err(|e| SessionError::Internal(format!("redis Lua delete error: {}", e)))?;
+                .map_err(|e| SessionError::Internal(format!("redis Lua delete error: {e}")))?;
         }
 
         Ok(())

@@ -9,6 +9,8 @@ function createMockAuthValue(overrides: Partial<AuthContextValue> = {}): AuthCon
   return {
     user: null,
     isAuthenticated: false,
+    // CRIT-003 監査対応: AuthContextValue の loading フィールドは必須のため false を設定する
+    loading: false,
     login: vi.fn(),
     logout: vi.fn(),
     ...overrides,

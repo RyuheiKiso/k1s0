@@ -18,8 +18,13 @@ pub struct HttpAiClient {
 }
 
 impl HttpAiClient {
-    /// 新しいHttpAiClientインスタンスを生成する。
+    /// `新しいHttpAiClientインスタンスを生成する`。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
+    ///
+    /// # Panics
+    ///
+    /// TLS 設定など `reqwest::Client` の初期化に失敗した場合にパニックする（通常は発生しない）。
+    #[must_use]
     pub fn new(base_url: String, api_key: String) -> Self {
         // タイムアウト付きでreqwestクライアントを初期化する
         let client = reqwest::Client::builder()
@@ -53,8 +58,7 @@ impl AiClient for HttpAiClient {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(AiClientError::HttpError(format!(
-                "status={}, body={}",
-                status, body
+                "status={status}, body={body}"
             )));
         }
 
@@ -82,8 +86,7 @@ impl AiClient for HttpAiClient {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(AiClientError::HttpError(format!(
-                "status={}, body={}",
-                status, body
+                "status={status}, body={body}"
             )));
         }
 
@@ -110,8 +113,7 @@ impl AiClient for HttpAiClient {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
             return Err(AiClientError::HttpError(format!(
-                "status={}, body={}",
-                status, body
+                "status={status}, body={body}"
             )));
         }
 

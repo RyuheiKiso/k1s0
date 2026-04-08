@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::domain::entity::api_key::ApiKeySummary;
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// GetApiKeyError は API キー取得に関するエラー。
+/// `GetApiKeyError` は API キー取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum GetApiKeyError {
     #[error("api key not found: {0}")]
@@ -15,7 +15,7 @@ pub enum GetApiKeyError {
     Internal(String),
 }
 
-/// GetApiKeyUseCase は API キー取得ユースケース。
+/// `GetApiKeyUseCase` は API キー取得ユースケース。
 pub struct GetApiKeyUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }

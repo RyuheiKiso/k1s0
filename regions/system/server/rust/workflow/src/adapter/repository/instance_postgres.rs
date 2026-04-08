@@ -14,6 +14,7 @@ pub struct InstancePostgresRepository {
 }
 
 impl InstancePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -42,8 +43,8 @@ impl From<InstanceRow> for WorkflowInstance {
             Some(r.current_step_id)
         };
         WorkflowInstance {
-            id: r.id.to_string(),
-            workflow_id: r.definition_id.to_string(),
+            id: r.id.clone(),
+            workflow_id: r.definition_id.clone(),
             workflow_name: r.workflow_name,
             title: r.title,
             initiator_id: r.initiator_id,
@@ -94,8 +95,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<WorkflowInstance>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // データ取得クエリを QueryBuilder で構築する
         // SELECT 句は固定、WHERE 句は動的に push_bind() で条件を追加する

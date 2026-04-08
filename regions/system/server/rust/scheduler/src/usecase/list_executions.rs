@@ -28,7 +28,7 @@ impl ListExecutionsUseCase {
         }
     }
 
-    /// CRIT-005 対応: job_id の存在確認に tenant_id を渡してテナント分離を行う。
+    /// CRIT-005 対応: `job_id` の存在確認に `tenant_id` を渡してテナント分離を行う。
     pub async fn execute(
         &self,
         job_id: &str,

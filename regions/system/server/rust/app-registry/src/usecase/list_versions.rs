@@ -13,7 +13,7 @@ pub enum ListVersionsError {
     Internal(String),
 }
 
-/// ListVersionsUseCase はアプリバージョン一覧取得ユースケース。
+/// `ListVersionsUseCase` はアプリバージョン一覧取得ユースケース。
 pub struct ListVersionsUseCase {
     app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,
@@ -27,10 +27,11 @@ impl ListVersionsUseCase {
         }
     }
 
-    pub async fn execute(&self, app_id: &str) -> Result<Vec<AppVersion>, ListVersionsError> {
+    // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
+    pub async fn execute(&self, tenant_id: &str, app_id: &str) -> Result<Vec<AppVersion>, ListVersionsError> {
         let app: Option<App> = self
             .app_repo
-            .find_by_id(app_id)
+            .find_by_id(tenant_id, app_id)
             .await
             .map_err(|e| ListVersionsError::Internal(e.to_string()))?;
 
@@ -56,7 +57,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_versions_success() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| {
+        app_repo.expect_find_by_id().returning(|_, _| {
             Ok(Some(crate::domain::entity::app::App {
                 id: "cli".to_string(),
                 name: "CLI".to_string(),
@@ -83,13 +84,14 @@ mod tests {
                     storage_key: "cli/1.0.0/linux/amd64/k1s0".to_string(),
                     release_notes: None,
                     mandatory: false,
+                    cosign_signature: None,
                     published_at: chrono::Utc::now(),
                     created_at: chrono::Utc::now(),
                 }])
             });
 
         let uc = ListVersionsUseCase::new(Arc::new(app_repo), Arc::new(mock));
-        let result = uc.execute("cli").await.unwrap();
+        let result = uc.execute("tenant-1", "cli").await.unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].version, "1.0.0");
     }
@@ -97,12 +99,12 @@ mod tests {
     #[tokio::test]
     async fn test_list_versions_app_not_found() {
         let mut app_repo = MockAppRepository::new();
-        app_repo.expect_find_by_id().returning(|_| Ok(None));
+        app_repo.expect_find_by_id().returning(|_, _| Ok(None));
 
         let mock = MockVersionRepository::new();
         let uc = ListVersionsUseCase::new(Arc::new(app_repo), Arc::new(mock));
 
-        let result = uc.execute("missing").await;
+        let result = uc.execute("tenant-1", "missing").await;
         assert!(matches!(result, Err(ListVersionsError::AppNotFound(_))));
     }
 }

@@ -25,7 +25,7 @@ use crate::usecase::{
     RevokeApiKeyUseCase, SearchAuditLogsUseCase, ValidateApiKeyUseCase, ValidateTokenUseCase,
 };
 
-/// AppState はアプリケーション全体の共有状態を表す。
+/// `AppState` はアプリケーション全体の共有状態を表す。
 #[derive(Clone)]
 pub struct AppState {
     pub validate_token_uc: Arc<ValidateTokenUseCase>,

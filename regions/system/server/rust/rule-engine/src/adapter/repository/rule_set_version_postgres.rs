@@ -13,12 +13,13 @@ pub struct RuleSetVersionPostgresRepository {
 }
 
 impl RuleSetVersionPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
 }
 
-/// CRITICAL-RUST-001 監査対応: tenant_id カラムを含む row 構造体（migration 003 対応）。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` カラムを含む row 構造体（migration 003 対応）。
 #[derive(sqlx::FromRow)]
 struct RuleSetVersionRow {
     id: Uuid,
@@ -106,9 +107,7 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        let tenant_id = rule_set_tenant
-            .map(|(tid,)| tid)
-            .unwrap_or_else(|| "system".to_string());
+        let tenant_id = rule_set_tenant.map_or_else(|| "system".to_string(), |(tid,)| tid);
 
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(&tenant_id)

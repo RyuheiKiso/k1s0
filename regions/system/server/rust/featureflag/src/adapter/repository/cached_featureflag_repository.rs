@@ -7,11 +7,11 @@ use crate::domain::entity::feature_flag::FeatureFlag;
 use crate::domain::repository::FeatureFlagRepository;
 use crate::infrastructure::cache::FlagCache;
 
-/// CachedFeatureFlagRepository は FeatureFlagRepository をキャッシュでラップする。
-/// find_by_key でキャッシュヒット時はDBアクセスをスキップする。
+/// `CachedFeatureFlagRepository` は `FeatureFlagRepository` をキャッシュでラップする。
+/// `find_by_key` でキャッシュヒット時はDBアクセスをスキップする。
 /// update / delete / create 時はキャッシュを invalidate して整合性を保つ。
-/// STATIC-CRITICAL-001 監査対応: 全メソッドに tenant_id パラメータを追加。
-/// HIGH-005 対応: tenant_id は &str 型（migration 006 で DB の TEXT 型に変更済み）。
+/// STATIC-CRITICAL-001 監査対応: 全メソッドに `tenant_id` パラメータを追加。
+/// HIGH-005 対応: `tenant_id` は &str 型（migration 006 で DB の TEXT 型に変更済み）。
 pub struct CachedFeatureFlagRepository {
     inner: Arc<dyn FeatureFlagRepository>,
     cache: Arc<FlagCache>,
@@ -19,7 +19,7 @@ pub struct CachedFeatureFlagRepository {
 }
 
 impl CachedFeatureFlagRepository {
-    /// 新しい CachedFeatureFlagRepository を作成する。
+    /// 新しい `CachedFeatureFlagRepository` を作成する。
     #[allow(dead_code)]
     pub fn new(inner: Arc<dyn FeatureFlagRepository>, cache: Arc<FlagCache>) -> Self {
         Self {
@@ -29,7 +29,7 @@ impl CachedFeatureFlagRepository {
         }
     }
 
-    /// メトリクス付きの CachedFeatureFlagRepository を作成する。
+    /// メトリクス付きの `CachedFeatureFlagRepository` を作成する。
     pub fn with_metrics(
         inner: Arc<dyn FeatureFlagRepository>,
         cache: Arc<FlagCache>,
@@ -69,7 +69,7 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
         Ok(flag)
     }
 
-    /// find_all はキャッシュを使わず inner に委譲する。
+    /// `find_all` はキャッシュを使わず inner に委譲する。
     async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<FeatureFlag>> {
         self.inner.find_all(tenant_id).await
     }
@@ -90,7 +90,7 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
     }
 
     /// delete は inner に委譲し、成功時はキャッシュ全体を invalidate する。
-    /// （ID から flag_key への逆引きがキャッシュにないため invalidate_all を使用）
+    /// （ID から `flag_key` への逆引きがキャッシュにないため `invalidate_all` を使用）
     async fn delete(&self, tenant_id: &str, id: &Uuid) -> anyhow::Result<bool> {
         let deleted = self.inner.delete(tenant_id, id).await?;
 
@@ -102,7 +102,7 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
         Ok(deleted)
     }
 
-    /// exists_by_key はキャッシュを使わず inner に委譲する。
+    /// `exists_by_key` はキャッシュを使わず inner に委譲する。
     async fn exists_by_key(&self, tenant_id: &str, flag_key: &str) -> anyhow::Result<bool> {
         // テナントスコープでキャッシュに存在する場合は true を即返却
         if self.cache.get(tenant_id, flag_key).await.is_some() {

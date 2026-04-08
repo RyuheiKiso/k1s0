@@ -1,7 +1,7 @@
 //! Integration tests for k1s0-correlation.
 //!
-//! Tests the public API for CorrelationId, TraceId, CorrelationContext,
-//! and CorrelationHeaders from the consumer perspective (external crate).
+//! Tests the public API for `CorrelationId`, `TraceId`, `CorrelationContext`,
+//! and `CorrelationHeaders` from the consumer perspective (external crate).
 #![allow(clippy::unwrap_used)]
 
 use k1s0_correlation::{CorrelationContext, CorrelationHeaders, CorrelationId, TraceId};
@@ -33,7 +33,7 @@ fn correlation_id_new_generates_unique_ids() {
 fn correlation_id_from_string_preserves_value() {
     let id = CorrelationId::from_string("req-abc-123");
     assert_eq!(id.as_str(), "req-abc-123");
-    assert_eq!(format!("{}", id), "req-abc-123");
+    assert_eq!(format!("{id}"), "req-abc-123");
 }
 
 // Default 実装で生成した CorrelationId が空でないことを確認する。
@@ -163,7 +163,7 @@ fn trace_id_default_is_valid() {
 fn trace_id_display() {
     let raw = "4bf92f3577b34da6a3ce929d0e0e4736";
     let id = TraceId::from_string(raw).unwrap();
-    assert_eq!(format!("{}", id), raw);
+    assert_eq!(format!("{id}"), raw);
 }
 
 // TraceId のシリアライズ・デシリアライズが元の値を保持することを確認する。

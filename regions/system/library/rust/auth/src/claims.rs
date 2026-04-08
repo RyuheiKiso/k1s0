@@ -3,14 +3,14 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 
-/// RealmAccess は Keycloak の realm_access Claim を表す。
+/// `RealmAccess` は Keycloak の `realm_access` Claim を表す。
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RealmAccess {
     #[serde(default)]
     pub roles: Vec<String>,
 }
 
-/// RoleSet はリソースアクセスのロール一覧を表す。
+/// `RoleSet` はリソースアクセスのロール一覧を表す。
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RoleSet {
     #[serde(default)]
@@ -127,58 +127,62 @@ impl<'de> Deserialize<'de> for Audience {
 
 impl Claims {
     /// 最初のオーディエンスを返す。
+    #[must_use]
     pub fn audience(&self) -> Option<&str> {
-        self.aud.0.first().map(|s| s.as_str())
+        self.aud.0.first().map(String::as_str)
     }
 
-    /// realm_access のロール一覧を返す。
+    /// `realm_access` のロール一覧を返す。
+    #[must_use]
     pub fn realm_roles(&self) -> &[String] {
         self.realm_access
             .as_ref()
-            .map(|ra| ra.roles.as_slice())
-            .unwrap_or(&[])
+            .map_or(&[], |ra| ra.roles.as_slice())
     }
 
     /// 指定リソースのロール一覧を返す。
+    #[must_use]
     pub fn resource_roles(&self, resource: &str) -> &[String] {
         self.resource_access
             .as_ref()
             .and_then(|ra| ra.get(resource))
-            .map(|a| a.roles.as_slice())
-            .unwrap_or(&[])
+            .map_or(&[], |a| a.roles.as_slice())
     }
 
-    /// tier_access を返す。
+    /// `tier_access` を返す。
+    #[must_use]
     pub fn tier_access_list(&self) -> &[String] {
         self.tier_access.as_deref().unwrap_or(&[])
     }
 
     /// Claims からテナント ID を取得する。
     ///
-    /// tenant_id カスタムクレーム（Keycloak Protocol Mapper で設定） > 空文字列時は "system" の優先順。
+    /// `tenant_id` カスタムクレーム（Keycloak Protocol Mapper で設定） > 空文字列時は "system" の優先順。
     /// iss は以前テナント ID として誤用されていたが、全テナントで共通値のため使用しない。
+    #[must_use]
     pub fn tenant_id(&self) -> &str {
-        if !self.tenant_id.is_empty() {
-            self.tenant_id.as_str()
-        } else {
+        if self.tenant_id.is_empty() {
             "system"
+        } else {
+            self.tenant_id.as_str()
         }
     }
 
     /// Claims からアクター名を取得する。
     ///
-    /// preferred_username > email > sub の優先順位で非空の値を返す。
+    /// `preferred_username` > email > sub の優先順位で非空の値を返す。
     /// いずれも空の場合は None を返す。
+    #[must_use]
     pub fn actor(&self) -> Option<&str> {
         self.preferred_username
             .as_ref()
             .filter(|v| !v.is_empty())
-            .map(|v| v.as_str())
+            .map(String::as_str)
             .or_else(|| {
                 self.email
                     .as_ref()
                     .filter(|v| !v.is_empty())
-                    .map(|v| v.as_str())
+                    .map(String::as_str)
             })
             .or_else(|| (!self.sub.is_empty()).then_some(self.sub.as_str()))
     }
@@ -188,6 +192,7 @@ impl Claims {
 ///
 /// Claims がない場合は "system" を返す。
 /// DRY: 各サービスの `actor_from_claims` を統一するための共通関数。
+#[must_use]
 pub fn actor_from_claims(claims: Option<&Claims>) -> String {
     claims
         .and_then(|c| c.actor())

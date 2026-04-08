@@ -15,6 +15,7 @@ pub struct InMemoryEventStore {
 }
 
 impl InMemoryEventStore {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             streams: Arc::new(RwLock::new(HashMap::new())),
@@ -40,7 +41,7 @@ impl EventStore for InMemoryEventStore {
         let key = stream_id.to_string();
         let stream = streams.entry(key).or_default();
 
-        let current_version = stream.last().map(|e| e.version).unwrap_or(0);
+        let current_version = stream.last().map_or(0, |e| e.version);
 
         if let Some(expected) = expected_version {
             if expected != current_version {
@@ -98,8 +99,7 @@ impl EventStore for InMemoryEventStore {
         Ok(streams
             .get(&key)
             .and_then(|events| events.last())
-            .map(|e| e.version)
-            .unwrap_or(0))
+            .map_or(0, |e| e.version))
     }
 }
 
@@ -108,6 +108,7 @@ pub struct InMemorySnapshotStore {
 }
 
 impl InMemorySnapshotStore {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             snapshots: Arc::new(RwLock::new(HashMap::new())),

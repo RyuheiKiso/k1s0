@@ -30,7 +30,7 @@ impl GetQuotaUsageUseCase {
         }
     }
 
-    /// CRITICAL-RUST-001 監査対応: tenant_id を受け取り各リポジトリに渡して RLS を有効にする。
+    /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り各リポジトリに渡して RLS を有効にする。
     pub async fn execute(
         &self,
         quota_id: &str,

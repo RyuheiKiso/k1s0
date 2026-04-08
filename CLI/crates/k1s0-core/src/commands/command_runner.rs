@@ -136,12 +136,9 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let mut logs = Vec::new();
 
-        run_streaming_command(
-            "git",
-            &["--version".to_string()],
-            tmp.path(),
-            |message| logs.push(message),
-        )
+        run_streaming_command("git", &["--version".to_string()], tmp.path(), |message| {
+            logs.push(message)
+        })
         .unwrap();
 
         assert!(logs.iter().any(|message| message.contains("git")));

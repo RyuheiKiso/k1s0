@@ -11,6 +11,7 @@ pub struct SmsDeliveryClient {
 }
 
 impl SmsDeliveryClient {
+    #[must_use] 
     pub fn new(endpoint: String, api_key: Option<String>) -> Self {
         Self {
             endpoint,
@@ -46,8 +47,7 @@ impl DeliveryClient for SmsDeliveryClient {
                 .await
                 .unwrap_or_else(|_| "unknown".to_string());
             return Err(DeliveryError::Rejected(format!(
-                "SMS provider returned {}: {}",
-                status, body_text
+                "SMS provider returned {status}: {body_text}"
             )));
         }
 

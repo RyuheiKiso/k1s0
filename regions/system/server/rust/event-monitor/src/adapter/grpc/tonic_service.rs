@@ -105,6 +105,7 @@ pub struct EventMonitorServiceTonic {
 }
 
 impl EventMonitorServiceTonic {
+    #[must_use] 
     pub fn new(inner: Arc<EventMonitorGrpcService>) -> Self {
         Self { inner }
     }
@@ -119,8 +120,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
 
         let (events, total_count, has_next) = self
             .inner
@@ -219,8 +219,7 @@ impl EventMonitorService for EventMonitorServiceTonic {
         let inner = request.into_inner();
         let (page, page_size) = inner
             .pagination
-            .map(|p| (p.page, p.page_size))
-            .unwrap_or((1, 20));
+            .map_or((1, 20), |p| (p.page, p.page_size));
 
         let (flows, total_count, has_next) = self
             .inner
@@ -290,15 +289,14 @@ impl EventMonitorService for EventMonitorServiceTonic {
                 .collect(),
             slo: inner
                 .slo
-                .map(|s| crate::domain::entity::flow_definition::FlowSlo {
-                    target_completion_seconds: s.target_completion_seconds,
-                    target_success_rate: s.target_success_rate,
-                    alert_on_violation: s.alert_on_violation,
-                })
-                .unwrap_or(crate::domain::entity::flow_definition::FlowSlo {
+                .map_or(crate::domain::entity::flow_definition::FlowSlo {
                     target_completion_seconds: 300,
                     target_success_rate: 0.995,
                     alert_on_violation: true,
+                }, |s| crate::domain::entity::flow_definition::FlowSlo {
+                    target_completion_seconds: s.target_completion_seconds,
+                    target_success_rate: s.target_success_rate,
+                    alert_on_violation: s.alert_on_violation,
                 }),
         };
 

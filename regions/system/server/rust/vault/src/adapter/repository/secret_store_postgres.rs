@@ -11,14 +11,15 @@ use crate::domain::entity::secret::{Secret, SecretValue, SecretVersion};
 use crate::domain::repository::SecretStore;
 use crate::infrastructure::encryption::MasterKey;
 
-/// SecretStorePostgresRepository は PostgreSQL を使った SecretStore の実装。
-/// すべてのシークレットデータは MasterKey で暗号化された状態で保存される。
+/// `SecretStorePostgresRepository` は `PostgreSQL` を使った `SecretStore` の実装。
+/// すべてのシークレットデータは `MasterKey` で暗号化された状態で保存される。
 pub struct SecretStorePostgresRepository {
     pool: Arc<PgPool>,
     master_key: Arc<MasterKey>,
 }
 
 impl SecretStorePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>, master_key: Arc<MasterKey>) -> Self {
         Self { pool, master_key }
     }
@@ -36,7 +37,7 @@ struct SecretRow {
     updated_at: DateTime<Utc>,
 }
 
-/// vault.secret_versions テーブルの行を表す構造体。
+/// `vault.secret_versions` テーブルの行を表す構造体。
 #[derive(sqlx::FromRow)]
 struct SecretVersionRow {
     #[allow(dead_code)]
@@ -49,8 +50,8 @@ struct SecretVersionRow {
     created_at: DateTime<Utc>,
 }
 
-/// ADR-0109 対応: key_path の先頭セグメントからテナント ID を抽出する。
-/// key_path は "{tenant_id}/..." の形式であること。
+/// ADR-0109 対応: `key_path` の先頭セグメントからテナント ID を抽出する。
+/// `key_path` は "{`tenant_id`}/..." の形式であること。
 /// 先頭セグメントが取れない場合はフォールバックとして "system" を返す。
 fn extract_tenant_id(path: &str) -> &str {
     path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
@@ -76,7 +77,7 @@ impl SecretStore for SecretStorePostgresRepository {
         .bind(path)
         .fetch_optional(self.pool.as_ref())
         .await?
-        .ok_or_else(|| anyhow::anyhow!("secret not found: {}", path))?;
+        .ok_or_else(|| anyhow::anyhow!("secret not found: {path}"))?;
 
         // バージョン行を取得（指定バージョンがあればそれだけ、なければ全バージョン）
         let version_rows: Vec<SecretVersionRow> = if let Some(v) = version {
@@ -103,9 +104,7 @@ impl SecretStore for SecretStorePostgresRepository {
         if let Some(v) = version {
             if version_rows.is_empty() {
                 return Err(anyhow::anyhow!(
-                    "version {} not found for secret: {}",
-                    v,
-                    path
+                    "version {v} not found for secret: {path}"
                 ));
             }
         }
@@ -119,7 +118,7 @@ impl SecretStore for SecretStorePostgresRepository {
                 .decrypt(&row.encrypted_data, &row.nonce, path.as_bytes())?;
             let data: HashMap<String, String> = serde_json::from_slice(&plaintext)?;
             versions.push(SecretVersion {
-                version: row.version as i64,
+                version: i64::from(row.version),
                 value: SecretValue { data },
                 created_at: row.created_at,
                 destroyed: false,
@@ -128,7 +127,7 @@ impl SecretStore for SecretStorePostgresRepository {
 
         Ok(Secret {
             path: secret_row.key_path,
-            current_version: secret_row.current_version as i64,
+            current_version: i64::from(secret_row.current_version),
             versions,
             created_at: secret_row.created_at,
             updated_at: secret_row.updated_at,
@@ -197,7 +196,7 @@ impl SecretStore for SecretStorePostgresRepository {
 
         tx.commit().await?;
 
-        Ok(new_version as i64)
+        Ok(i64::from(new_version))
     }
 
     async fn delete(&self, path: &str, versions: Vec<i64>) -> anyhow::Result<()> {
@@ -216,7 +215,7 @@ impl SecretStore for SecretStorePostgresRepository {
                 .await?;
 
         let (secret_id,) =
-            secret_row.ok_or_else(|| anyhow::anyhow!("secret not found: {}", path))?;
+            secret_row.ok_or_else(|| anyhow::anyhow!("secret not found: {path}"))?;
 
         if versions.is_empty() {
             // 全バージョン削除 → CASCADE で secret_versions も削除される

@@ -8,6 +8,7 @@ pub struct EvaluationContext {
 }
 
 impl EvaluationContext {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }

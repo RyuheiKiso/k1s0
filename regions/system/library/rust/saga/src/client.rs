@@ -3,14 +3,15 @@ use reqwest::Client;
 use crate::error::SagaError;
 use crate::types::{SagaState, StartSagaRequest, StartSagaResponse};
 
-/// SagaClient は Saga サービスへの HTTP REST クライアント。
+/// `SagaClient` は Saga サービスへの HTTP REST クライアント。
 pub struct SagaClient {
     endpoint: String,
     http_client: Client,
 }
 
 impl SagaClient {
-    /// 新しい SagaClient を作成する。
+    /// 新しい `SagaClient` を作成する。
+    #[must_use] 
     pub fn new(endpoint: &str) -> Self {
         Self {
             endpoint: endpoint.trim_end_matches('/').to_string(),

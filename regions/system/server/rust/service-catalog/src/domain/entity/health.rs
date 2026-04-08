@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// HealthStatus はサービスのヘルスチェック結果を表す。
+/// `HealthStatus` はサービスのヘルスチェック結果を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct HealthStatus {
     pub service_id: Uuid,
@@ -13,7 +13,7 @@ pub struct HealthStatus {
     pub checked_at: DateTime<Utc>,
 }
 
-/// HealthState はサービスのヘルス状態を表す。
+/// `HealthState` はサービスのヘルス状態を表す。
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum HealthState {

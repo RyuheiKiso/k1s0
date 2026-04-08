@@ -17,7 +17,7 @@ use serde_json::Value;
 use std::collections::HashSet;
 use std::sync::Arc;
 
-/// RecordValidationError は domain 層で定義されているが、後方互換性のため usecase からも公開する。
+/// `RecordValidationError` は domain 層で定義されているが、後方互換性のため usecase からも公開する。
 /// 既存のコードが `usecase::crud_records::RecordValidationError` で参照できるようにする。
 pub use crate::domain::error::RecordValidationError;
 
@@ -50,7 +50,7 @@ pub struct ListRecordsOutput {
 }
 
 impl CrudRecordsUseCase {
-    /// 依存リポジトリと rule_engine を注入して usecase を構築する。
+    /// 依存リポジトリと `rule_engine` を注入して usecase を構築する。
     pub fn new(
         table_repo: Arc<dyn TableDefinitionRepository>,
         column_repo: Arc<dyn ColumnDefinitionRepository>,
@@ -76,7 +76,7 @@ impl CrudRecordsUseCase {
         }
     }
 
-    /// 保存前ルールを評価して RuleResult の一覧を返す。
+    /// 保存前ルールを評価して `RuleResult` の一覧を返す。
     async fn evaluate_before_save_rules(
         &self,
         table: &crate::domain::entity::table_definition::TableDefinition,
@@ -104,7 +104,7 @@ impl CrudRecordsUseCase {
         Ok(results)
     }
 
-    /// ルール評価結果を検査し、エラーがあれば RecordValidation エラーを返す。
+    /// ルール評価結果を検査し、エラーがあれば `RecordValidation` エラーを返す。
     /// エラーがない場合は警告リストを返す。
     fn fail_on_rule_errors(
         results: &[RuleResult],
@@ -130,7 +130,7 @@ impl CrudRecordsUseCase {
         }
     }
 
-    /// レコード一覧を取得する。selected_columns で返却カラムを絞り込める。
+    /// `レコード一覧を取得する。selected_columns` で返却カラムを絞り込める。
     #[allow(clippy::too_many_arguments)]
     pub async fn list_records(
         &self,
@@ -165,11 +165,16 @@ impl CrudRecordsUseCase {
         if let Some(raw_columns) = selected_columns {
             let selected: HashSet<String> = raw_columns
                 .split(',')
-                .map(|c| c.trim())
+                .map(str::trim)
                 .filter(|c| !c.is_empty())
                 .map(ToString::to_string)
                 .collect();
-            if !selected.is_empty() {
+            if selected.is_empty() {
+                for record in &mut records {
+                    *record =
+                        filter_record_by_mode(record, &column_defs, RecordVisibility::List, None);
+                }
+            } else {
                 for record in &mut records {
                     *record = filter_record_by_mode(
                         record,
@@ -177,11 +182,6 @@ impl CrudRecordsUseCase {
                         RecordVisibility::List,
                         Some(&selected),
                     );
-                }
-            } else {
-                for record in &mut records {
-                    *record =
-                        filter_record_by_mode(record, &column_defs, RecordVisibility::List, None);
                 }
             }
         } else {
@@ -302,7 +302,7 @@ impl CrudRecordsUseCase {
             changed_by: created_by.to_string(),
             change_reason: None,
             trace_id,
-            domain_scope: domain_scope.map(|s| s.to_string()),
+            domain_scope: domain_scope.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;
@@ -375,7 +375,7 @@ impl CrudRecordsUseCase {
             changed_by: updated_by.to_string(),
             change_reason: None,
             trace_id,
-            domain_scope: domain_scope.map(|s| s.to_string()),
+            domain_scope: domain_scope.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;
@@ -437,7 +437,7 @@ impl CrudRecordsUseCase {
             changed_by: deleted_by.to_string(),
             change_reason: None,
             trace_id,
-            domain_scope: domain_scope.map(|s| s.to_string()),
+            domain_scope: domain_scope.map(std::string::ToString::to_string),
             created_at: chrono::Utc::now(),
         };
         let _ = self.change_log_repo.create(&log).await;
@@ -468,7 +468,7 @@ fn allowed_columns(
         .collect()
 }
 
-/// レコードを表示モードと selected_columns でフィルタリングした新しい Value を返す。
+/// レコードを表示モードと `selected_columns` でフィルタリングした新しい Value を返す。
 fn filter_record_by_mode(
     record: &Value,
     columns: &[crate::domain::entity::column_definition::ColumnDefinition],
@@ -527,10 +527,10 @@ fn changed_columns_for_update(
         .filter_map(|column| {
             let before_value = before_object.and_then(|value| value.get(&column.column_name));
             let after_value = after_object.and_then(|value| value.get(&column.column_name));
-            if before_value != after_value {
-                Some(column.column_name.clone())
-            } else {
+            if before_value == after_value {
                 None
+            } else {
+                Some(column.column_name.clone())
             }
         })
         .collect()

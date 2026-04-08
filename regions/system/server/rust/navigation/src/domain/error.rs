@@ -20,7 +20,7 @@ pub enum NavigationError {
     Internal(String),
 }
 
-/// NavigationError から ServiceError への変換実装
+/// `NavigationError` から `ServiceError` への変換実装
 impl From<NavigationError> for ServiceError {
     fn from(err: NavigationError) -> Self {
         match err {

@@ -11,6 +11,7 @@ pub struct ProtobufSubprocessValidator {
 }
 
 impl ProtobufSubprocessValidator {
+    #[must_use] 
     pub fn new(buf_path: String, timeout_secs: u64) -> Self {
         Self {
             buf_path,

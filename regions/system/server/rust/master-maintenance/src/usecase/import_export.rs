@@ -32,6 +32,7 @@ pub struct ExportRecordsOutput {
 }
 
 impl ExportRecordsOutput {
+    #[must_use] 
     pub fn as_json(&self) -> Value {
         serde_json::json!({
             "table": self.table,
@@ -75,7 +76,7 @@ impl ImportExportUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let columns = self.column_repo.find_by_table_id(table.id).await?;
         let records = self.parse_import_records(data, &columns)?;
@@ -162,7 +163,7 @@ impl ImportExportUseCase {
             .table_repo
             .find_by_name(table_name, domain_scope)
             .await?
-            .ok_or_else(|| anyhow::anyhow!("Table '{}' not found", table_name))?;
+            .ok_or_else(|| anyhow::anyhow!("Table '{table_name}' not found"))?;
 
         let columns = self.column_repo.find_by_table_id(table.id).await?;
         let export_columns: Vec<ColumnDefinition> = columns
@@ -184,12 +185,12 @@ impl ImportExportUseCase {
         let file = match normalized_format {
             "json" => None,
             "csv" => Some(ExportedFile {
-                file_name: format!("{}.csv", table_name),
+                file_name: format!("{table_name}.csv"),
                 content_type: "text/csv; charset=utf-8",
                 bytes: Self::export_as_csv(&export_columns, &records)?.into_bytes(),
             }),
             "xlsx" => Some(ExportedFile {
-                file_name: format!("{}.xlsx", table_name),
+                file_name: format!("{table_name}.xlsx"),
                 content_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 bytes: Self::export_as_xlsx(&export_columns, &records)?,
             }),
@@ -219,9 +220,7 @@ impl ImportExportUseCase {
     ) -> anyhow::Result<ImportJob> {
         let extension = file_name
             .rsplit('.')
-            .next()
-            .map(|value| value.to_ascii_lowercase())
-            .unwrap_or_else(|| "csv".to_string());
+            .next().map_or_else(|| "csv".to_string(), str::to_ascii_lowercase);
 
         let data = match extension.as_str() {
             "csv" => serde_json::json!({
@@ -233,7 +232,7 @@ impl ImportExportUseCase {
                 "file_name": file_name,
                 "records": self.parse_excel_records(content)?,
             }),
-            other => anyhow::bail!("unsupported import file extension: {}", other),
+            other => anyhow::bail!("unsupported import file extension: {other}"),
         };
 
         self.import_records(table_name, &data, started_by, domain_scope)
@@ -261,7 +260,7 @@ impl ImportExportUseCase {
                     .ok_or_else(|| anyhow::anyhow!("'content' field must be a CSV string"))?;
                 self.parse_csv_records(content, columns)
             }
-            other => anyhow::bail!("unsupported import format: {}", other),
+            other => anyhow::bail!("unsupported import format: {other}"),
         }
     }
 
@@ -313,7 +312,7 @@ impl ImportExportUseCase {
             .next()
             .ok_or_else(|| anyhow::anyhow!("worksheet is empty"))?
             .iter()
-            .map(|cell| cell.to_string())
+            .map(std::string::ToString::to_string)
             .collect();
 
         if headers.is_empty() {
@@ -441,7 +440,7 @@ fn normalize_export_format(format: Option<&str>) -> anyhow::Result<&'static str>
         "" | "json" => Ok("json"),
         "csv" => Ok("csv"),
         "xlsx" | "xls" => Ok("xlsx"),
-        other => anyhow::bail!("unsupported export format: {}", other),
+        other => anyhow::bail!("unsupported export format: {other}"),
     }
 }
 
@@ -464,7 +463,7 @@ fn parse_scalar_value(value: &str, data_type: &str) -> anyhow::Result<Value> {
         "integer" => Value::Number(value.parse::<i64>()?.into()),
         "decimal" => serde_json::Number::from_f64(value.parse::<f64>()?)
             .map(Value::Number)
-            .ok_or_else(|| anyhow::anyhow!("invalid decimal value: {}", value))?,
+            .ok_or_else(|| anyhow::anyhow!("invalid decimal value: {value}"))?,
         "boolean" => Value::Bool(value.parse::<bool>()?),
         "jsonb" => serde_json::from_str(value)?,
         _ => Value::String(value.to_string()),
@@ -486,8 +485,7 @@ fn excel_cell_to_json(cell: &calamine::Data) -> Value {
         calamine::Data::Empty => Value::Null,
         calamine::Data::Int(value) => Value::Number((*value).into()),
         calamine::Data::Float(value) => serde_json::Number::from_f64(*value)
-            .map(Value::Number)
-            .unwrap_or(Value::Null),
+            .map_or(Value::Null, Value::Number),
         calamine::Data::String(value) => Value::String(value.clone()),
         calamine::Data::Bool(value) => Value::Bool(*value),
         calamine::Data::DateTimeIso(value) | calamine::Data::DurationIso(value) => {

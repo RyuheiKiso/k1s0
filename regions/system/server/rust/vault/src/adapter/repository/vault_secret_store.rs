@@ -7,12 +7,13 @@ use crate::adapter::gateway::VaultKvClient;
 use crate::domain::entity::secret::{Secret, SecretValue, SecretVersion};
 use crate::domain::repository::SecretStore;
 
-/// HashiCorp Vault KV v2 をバックエンドとする SecretStore 実装。
+/// `HashiCorp` Vault KV v2 をバックエンドとする `SecretStore` 実装。
 pub struct VaultSecretStore {
     client: Arc<VaultKvClient>,
 }
 
 impl VaultSecretStore {
+    #[must_use] 
     pub fn new(client: Arc<VaultKvClient>) -> Self {
         Self { client }
     }

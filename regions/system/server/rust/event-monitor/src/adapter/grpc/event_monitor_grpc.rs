@@ -53,6 +53,7 @@ pub struct EventMonitorGrpcService {
 
 impl EventMonitorGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn new(
         list_events_uc: Arc<ListEventsUseCase>,
         trace_by_correlation_uc: Arc<TraceByCorrelationUseCase>,
@@ -141,7 +142,7 @@ impl EventMonitorGrpcService {
 
     pub async fn get_flow(&self, id: &str) -> Result<FlowDefinition, GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {id}")))?;
         self.get_flow_uc.execute(&uuid).await.map_err(|e| match e {
             GetFlowError::NotFound(id) => GrpcError::NotFound(id),
             GetFlowError::Internal(msg) => GrpcError::Internal(msg),
@@ -160,7 +161,7 @@ impl EventMonitorGrpcService {
 
     pub async fn delete_flow(&self, id: &str) -> Result<(), GrpcError> {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {id}")))?;
         self.delete_flow_uc
             .execute(&uuid)
             .await
@@ -198,7 +199,7 @@ impl EventMonitorGrpcService {
         period: Option<String>,
     ) -> Result<crate::usecase::get_flow_kpi::GetFlowKpiOutput, GrpcError> {
         let uuid = Uuid::parse_str(flow_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", flow_id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {flow_id}")))?;
         let period = period.as_deref().unwrap_or("1h");
         self.get_flow_kpi_uc
             .execute(&uuid, period)
@@ -234,7 +235,7 @@ impl EventMonitorGrpcService {
         flow_id: &str,
     ) -> Result<crate::usecase::get_slo_burn_rate::GetSloBurnRateOutput, GrpcError> {
         let uuid = Uuid::parse_str(flow_id)
-            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {}", flow_id)))?;
+            .map_err(|_| GrpcError::InvalidArgument(format!("invalid flow id: {flow_id}")))?;
         self.get_slo_burn_rate_uc
             .execute(&uuid)
             .await

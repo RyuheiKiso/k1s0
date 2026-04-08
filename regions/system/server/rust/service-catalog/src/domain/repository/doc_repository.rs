@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::domain::entity::service_doc::ServiceDoc;
 
-/// DocRepository はサービスドキュメントの永続化トレイト。
+/// `DocRepository` はサービスドキュメントの永続化トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait DocRepository: Send + Sync {

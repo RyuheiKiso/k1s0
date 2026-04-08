@@ -44,11 +44,13 @@ pub struct UpdateCheckResult {
 
 impl UpdateCheckResult {
     /// アップデートが必要かどうかを返す
+    #[must_use] 
     pub fn needs_update(&self) -> bool {
         self.update_type != UpdateType::None
     }
 
     /// 強制アップデートかどうかを返す
+    #[must_use] 
     pub fn is_mandatory(&self) -> bool {
         self.update_type == UpdateType::Mandatory
     }

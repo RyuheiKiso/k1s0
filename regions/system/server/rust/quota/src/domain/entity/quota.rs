@@ -9,6 +9,7 @@ pub enum SubjectType {
 }
 
 impl SubjectType {
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             SubjectType::Tenant => "tenant",
@@ -18,6 +19,7 @@ impl SubjectType {
     }
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use] 
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "tenant" => Some(SubjectType::Tenant),
@@ -35,6 +37,7 @@ pub enum Period {
 }
 
 impl Period {
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             Period::Daily => "daily",
@@ -43,6 +46,7 @@ impl Period {
     }
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use] 
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "daily" => Some(Period::Daily),
@@ -56,7 +60,7 @@ impl Period {
 pub struct QuotaPolicy {
     pub id: String,
     /// CRITICAL-RUST-001 監査対応: テナント分離のために追加したテナント識別子。
-    /// RLS ポリシーの app.current_tenant_id セッション変数と対応する。
+    /// RLS ポリシーの `app.current_tenant_id` セッション変数と対応する。
     pub tenant_id: String,
     pub name: String,
     pub subject_type: SubjectType,
@@ -70,6 +74,7 @@ pub struct QuotaPolicy {
 }
 
 impl QuotaPolicy {
+    #[must_use] 
     pub fn new(
         tenant_id: String,
         name: String,
@@ -115,6 +120,7 @@ pub struct QuotaUsage {
 }
 
 impl QuotaUsage {
+    #[must_use] 
     pub fn new(
         policy: &QuotaPolicy,
         used: u64,

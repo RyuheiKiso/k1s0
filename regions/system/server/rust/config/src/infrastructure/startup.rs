@@ -17,6 +17,8 @@ use crate::adapter::repository::config_schema_postgres::ConfigSchemaPostgresRepo
 use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
 use k1s0_server_common::middleware::rbac::Tier;
 
+// HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する
+#[allow(clippy::too_many_lines, clippy::items_after_statements)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =
@@ -39,7 +41,7 @@ pub async fn run() -> anyhow::Result<()> {
         log_format: cfg.observability.log.format.clone(),
     };
     k1s0_telemetry::init_telemetry(&telemetry_cfg)
-        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("テレメトリの初期化に失敗: {e}"))?;
 
     // Config
 
@@ -103,10 +105,9 @@ pub async fn run() -> anyhow::Result<()> {
         let env = cfg.app.environment.as_str();
         if !matches!(env, "dev" | "development" | "local" | "test") {
             anyhow::bail!(
-                "本番環境（environment={}）では config_server.encryption.enabled = true が必須です。\
+                "本番環境（environment={env}）では config_server.encryption.enabled = true が必須です。\
                 config/config.prod.yaml の encryption.enabled を true に設定し、\
-                CONFIG_ENCRYPTION_KEY 環境変数に 32 バイト（base64 エンコード）の鍵を設定してください。",
-                env
+                CONFIG_ENCRYPTION_KEY 環境変数に 32 バイト（base64 エンコード）の鍵を設定してください。"
             );
         }
         info!("設定値暗号化は無効です（environment={}: 開発環境のみ許可）", env);
@@ -410,7 +411,7 @@ pub async fn run() -> anyhow::Result<()> {
                 let _ = grpc_shutdown.await;
             })
             .await
-            .map_err(|e| anyhow::anyhow!("gRPC server error: {}", e))
+            .map_err(|e| anyhow::anyhow!("gRPC server error: {e}"))
     };
 
     // REST server
@@ -445,7 +446,7 @@ pub async fn run() -> anyhow::Result<()> {
 }
 
 /// gRPC メソッド名から必要な RBAC アクション文字列を返す。
-/// UpdateConfig / DeleteConfig / UpsertConfigSchema は write、それ以外は read。
+/// `UpdateConfig` / `DeleteConfig` / `UpsertConfigSchema` は write、それ以外は read。
 fn config_grpc_action(method: &str) -> &'static str {
     match method {
         "UpdateConfig" | "DeleteConfig" | "UpsertConfigSchema" => "write",
@@ -464,7 +465,7 @@ use crate::domain::error::ConfigRepositoryError;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-/// InMemoryConfigRepository は開発用のインメモリ設定リポジトリ。
+/// `InMemoryConfigRepository` は開発用のインメモリ設定リポジトリ。
 struct InMemoryConfigRepository {
     entries: RwLock<Vec<ConfigEntry>>,
 }
@@ -480,7 +481,7 @@ impl InMemoryConfigRepository {
 #[async_trait::async_trait]
 impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     /// namespace と key で設定値を取得する（インメモリ実装）。
-    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    /// STATIC-CRITICAL-001: `tenant_id` は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn find_by_namespace_and_key(
         &self,
         _tenant_id: Uuid,
@@ -495,7 +496,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// namespace 内の設定値一覧を取得する（インメモリ実装）。
-    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    /// STATIC-CRITICAL-001: `tenant_id` は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn list_by_namespace(
         &self,
         _tenant_id: Uuid,
@@ -540,7 +541,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// 設定値を更新する（インメモリ実装、楽観的排他制御付き）。
-    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    /// STATIC-CRITICAL-001: `tenant_id` は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn update(
         &self,
         _tenant_id: Uuid,
@@ -583,7 +584,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// 設定値を削除する（インメモリ実装）。
-    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    /// STATIC-CRITICAL-001: `tenant_id` は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn delete(
         &self,
         _tenant_id: Uuid,
@@ -597,7 +598,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 
     /// サービス名に紐づく設定値を一括取得する（インメモリ実装）。
-    /// STATIC-CRITICAL-001: tenant_id は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
+    /// STATIC-CRITICAL-001: `tenant_id` は受け取るが、インメモリ実装はテナント分離を行わない（開発用）。
     async fn find_by_service_name(
         &self,
         _tenant_id: Uuid,
@@ -639,7 +640,7 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
     }
 }
 
-/// InMemoryConfigSchemaRepository は開発用のインメモリ設定スキーマリポジトリ。
+/// `InMemoryConfigSchemaRepository` は開発用のインメモリ設定スキーマリポジトリ。
 struct InMemoryConfigSchemaRepository {
     schemas: RwLock<Vec<ConfigSchema>>,
 }

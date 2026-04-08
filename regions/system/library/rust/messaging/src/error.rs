@@ -1,4 +1,4 @@
-/// MessagingError はメッセージング操作に関するエラーを表す。
+/// `MessagingError` はメッセージング操作に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum MessagingError {
     #[error("producer error: {0}")]

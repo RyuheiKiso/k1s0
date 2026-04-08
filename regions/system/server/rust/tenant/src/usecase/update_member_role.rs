@@ -6,14 +6,14 @@ use crate::domain::entity::tenant_member::MemberRole;
 use crate::domain::entity::TenantMember;
 use crate::domain::repository::{MemberRepository, TenantRepository};
 
-/// UpdateMemberRoleInput はメンバーロール更新の入力パラメータ。
+/// `UpdateMemberRoleInput` はメンバーロール更新の入力パラメータ。
 pub struct UpdateMemberRoleInput {
     pub tenant_id: Uuid,
     pub user_id: Uuid,
     pub role: String,
 }
 
-/// UpdateMemberRoleError はメンバーロール更新に関するエラーを表す。
+/// `UpdateMemberRoleError` はメンバーロール更新に関するエラーを表す。
 #[derive(Debug, thiserror::Error)]
 pub enum UpdateMemberRoleError {
     #[error("member not found")]
@@ -29,7 +29,7 @@ pub enum UpdateMemberRoleError {
     Internal(String),
 }
 
-/// UpdateMemberRoleUseCase はメンバーロール更新ユースケース。
+/// `UpdateMemberRoleUseCase` はメンバーロール更新ユースケース。
 pub struct UpdateMemberRoleUseCase {
     member_repo: Arc<dyn MemberRepository>,
     tenant_repo: Arc<dyn TenantRepository>,

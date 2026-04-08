@@ -45,8 +45,8 @@ pub enum AppendEventsError {
     Internal(String),
 }
 
-/// AppendEventsUseCase はイベントの追記ユースケースを実装する。
-/// TransactionalAppendPort が設定されている場合は REPEATABLE READ トランザクションを
+/// `AppendEventsUseCase` はイベントの追記ユースケースを実装する。
+/// `TransactionalAppendPort` が設定されている場合は REPEATABLE READ トランザクションを
 /// 使用してストリーム作成・イベント追記・バージョン更新を単一の原子操作として実行する。
 /// usecase 層は domain トレイトにのみ依存し、infrastructure 具体型には依存しない。
 pub struct AppendEventsUseCase {
@@ -69,8 +69,8 @@ impl AppendEventsUseCase {
         }
     }
 
-    /// TransactionalAppendPort を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
-    /// transactional_port が設定されている場合、execute() は REPEATABLE READ トランザクションで
+    /// `TransactionalAppendPort` を受け取るコンストラクタ（PostgreSQL 使用時はこちらを使用）。
+    /// `transactional_port` `が設定されている場合、execute()` は REPEATABLE READ トランザクションで
     /// ストリーム作成・イベント追記・バージョン更新を単一操作として実行する。
     /// domain トレイトを介することで usecase 層の infrastructure 依存を排除する。
     pub fn new_with_transactional_port(
@@ -85,8 +85,8 @@ impl AppendEventsUseCase {
         }
     }
 
-    /// 後方互換のために PgPool を受け取るコンストラクタを維持する。
-    /// 内部で TransactionalAppendAdapter を生成して transactional_port に設定する。
+    /// 後方互換のために `PgPool` を受け取るコンストラクタを維持する。
+    /// 内部で `TransactionalAppendAdapter` を生成して `transactional_port` に設定する。
     #[deprecated(
         since = "0.2.0",
         note = "代わりに new_with_transactional_port を使用してください"
@@ -127,7 +127,7 @@ impl AppendEventsUseCase {
 
     /// TransactionalAppendPort（domain トレイト）を介してトランザクション内で実行する。
     /// infrastructure 具体型には依存せず、クリーンアーキテクチャの依存方向を維持する。
-    /// テナント分離のため、tenant_id を全リポジトリ呼び出しに渡す（ADR-0106）。
+    /// `テナント分離のため、tenant_id` を全リポジトリ呼び出しに渡す（ADR-0106）。
     async fn execute_with_port(
         &self,
         input: &AppendEventsInput,
@@ -227,7 +227,7 @@ impl AppendEventsUseCase {
     }
 
     /// トランザクションなし（インメモリリポジトリ）で実行する。
-    /// テナント分離のため、tenant_id を全リポジトリ呼び出しに渡す（ADR-0106）。
+    /// `テナント分離のため、tenant_id` を全リポジトリ呼び出しに渡す（ADR-0106）。
     async fn execute_without_tx(
         &self,
         input: &AppendEventsInput,

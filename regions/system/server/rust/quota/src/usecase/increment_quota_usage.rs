@@ -9,7 +9,7 @@ use crate::infrastructure::kafka_producer::{
     QuotaEventPublisher, QuotaExceededEvent, QuotaThresholdReachedEvent,
 };
 
-/// CRITICAL-RUST-001 監査対応: tenant_id を追加して RLS テナント分離を有効にする。
+/// CRITICAL-RUST-001 監査対応: `tenant_id` を追加して RLS テナント分離を有効にする。
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct IncrementQuotaUsageInput {
@@ -99,7 +99,7 @@ impl IncrementQuotaUsageUseCase {
                 limit: policy.limit,
                 used,
                 exceeded_at: chrono::Utc::now().to_rfc3339(),
-                reset_at: "".to_string(),
+                reset_at: String::new(),
             };
             let _ = self.event_publisher.publish_quota_exceeded(&event).await;
 
@@ -122,7 +122,7 @@ impl IncrementQuotaUsageUseCase {
             } else {
                 ((used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
             };
-            if usage_percent >= threshold as f64 && prev_percent < threshold as f64 {
+            if usage_percent >= f64::from(threshold) && prev_percent < f64::from(threshold) {
                 let event = QuotaThresholdReachedEvent {
                     event_type: "QUOTA_THRESHOLD_REACHED".to_string(),
                     quota_id: policy.id.clone(),

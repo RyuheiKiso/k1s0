@@ -11,6 +11,7 @@ pub struct PushDeliveryClient {
 }
 
 impl PushDeliveryClient {
+    #[must_use] 
     pub fn new(endpoint: String, auth_token: Option<String>) -> Self {
         Self {
             endpoint,
@@ -46,8 +47,7 @@ impl DeliveryClient for PushDeliveryClient {
                 .await
                 .unwrap_or_else(|_| "unknown".to_string());
             return Err(DeliveryError::Rejected(format!(
-                "Push provider returned {}: {}",
-                status, body_text
+                "Push provider returned {status}: {body_text}"
             )));
         }
 

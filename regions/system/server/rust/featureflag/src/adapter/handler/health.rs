@@ -6,11 +6,11 @@ use axum::Json;
 use super::AppState;
 
 /// システムテナントUUID: readyz の DB 疎通確認に使用するフォールバックテナントID。
-/// STATIC-CRITICAL-001 監査対応: find_all の第1引数として使用する。
+/// STATIC-CRITICAL-001 監査対応: `find_all` の第1引数として使用する。
 /// HIGH-005 対応: &str 型で直接使用する（migration 006 で DB の TEXT 型に変更済み）。
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
-/// MED-001 監査対応: StatusCode を明示的に返すタプルパターンを使用し、
+/// MED-001 監査対応: `StatusCode` を明示的に返すタプルパターンを使用し、
 /// Content-Type: application/json と HTTP 200 が確実に返されることを保証する
 pub async fn healthz() -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({"status": "ok"})))
@@ -28,7 +28,7 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         }
     };
     let kafka_ok = match state.event_publisher.health_check().await {
-        Ok(_) => true,
+        Ok(()) => true,
         Err(e) => {
             tracing::error!(error = %e, "readyz: Kafka health check failed");
             false

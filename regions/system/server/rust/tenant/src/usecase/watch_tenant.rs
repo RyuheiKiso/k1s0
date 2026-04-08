@@ -1,6 +1,6 @@
 use tokio::sync::broadcast;
 
-/// TenantChangeEvent はテナント変更イベント。broadcast チャンネル経由で配信される。
+/// `TenantChangeEvent` はテナント変更イベント。broadcast チャンネル経由で配信される。
 #[derive(Debug, Clone)]
 pub struct TenantChangeEvent {
     pub tenant_id: String,
@@ -11,15 +11,16 @@ pub struct TenantChangeEvent {
     pub tenant_plan: String,
 }
 
-/// WatchTenantUseCase はテナント変更の publish/subscribe を管理するユースケース。
+/// `WatchTenantUseCase` はテナント変更の publish/subscribe を管理するユースケース。
 #[allow(dead_code)]
 pub struct WatchTenantUseCase {
     sender: broadcast::Sender<TenantChangeEvent>,
 }
 
 impl WatchTenantUseCase {
-    /// 新しい WatchTenantUseCase を生成する。
-    /// broadcast::Sender も返し、更新系ユースケースが変更通知を発行できるようにする。
+    /// 新しい `WatchTenantUseCase` を生成する。
+    /// `broadcast::Sender` も返し、更新系ユースケースが変更通知を発行できるようにする。
+    #[must_use] 
     pub fn new() -> (Self, broadcast::Sender<TenantChangeEvent>) {
         let (tx, _) = broadcast::channel(256);
         let sender = tx.clone();
@@ -28,6 +29,7 @@ impl WatchTenantUseCase {
 
     /// 新しい Receiver を返す。各ストリーミング接続が個別に subscribe する。
     #[allow(dead_code)]
+    #[must_use] 
     pub fn subscribe(&self) -> broadcast::Receiver<TenantChangeEvent> {
         self.sender.subscribe()
     }

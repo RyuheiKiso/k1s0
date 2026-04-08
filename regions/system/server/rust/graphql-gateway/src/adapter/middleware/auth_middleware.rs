@@ -28,6 +28,7 @@ pub struct Claims {
 }
 
 impl Claims {
+    #[must_use] 
     pub fn roles(&self) -> Vec<String> {
         self.realm_access
             .as_ref()
@@ -63,13 +64,14 @@ fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
     }
 }
 
-/// AuthMiddlewareLayer は JwksVerifier を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
+/// `AuthMiddlewareLayer` は `JwksVerifier` を保持し、JWT 検証ミドルウェアを提供する Tower Layer。
 #[derive(Clone)]
 pub struct AuthMiddlewareLayer {
     verifier: Arc<JwksVerifier>,
 }
 
 impl AuthMiddlewareLayer {
+    #[must_use] 
     pub fn new(verifier: Arc<JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -86,7 +88,7 @@ impl<S> tower::Layer<S> for AuthMiddlewareLayer {
     }
 }
 
-/// AuthMiddlewareService は JWT 検証を行う Tower Service。
+/// `AuthMiddlewareService` は JWT 検証を行う Tower Service。
 #[derive(Clone)]
 pub struct AuthMiddlewareService<S> {
     inner: S,
@@ -117,22 +119,19 @@ where
         Box::pin(async move {
             let token = extract_bearer_token(req.headers());
 
-            let token = match token {
-                Some(t) => t,
-                None => {
-                    let request_id = uuid::Uuid::new_v4().to_string();
-                    return Ok((
-                        StatusCode::UNAUTHORIZED,
-                        Json(serde_json::json!({
-                            "error": {
-                                "code": "SYS_AUTH_TOKEN_MISSING",
-                                "message": "missing Authorization header",
-                                "request_id": request_id
-                            }
-                        })),
-                    )
-                        .into_response());
-                }
+            let token = if let Some(t) = token { t } else {
+                let request_id = uuid::Uuid::new_v4().to_string();
+                return Ok((
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_AUTH_TOKEN_MISSING",
+                            "message": "missing Authorization header",
+                            "request_id": request_id
+                        }
+                    })),
+                )
+                    .into_response());
             };
 
             // LOW-014 監査対応: JWT 検証エラーを種別ごとに区別し、クライアントに

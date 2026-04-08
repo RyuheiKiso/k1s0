@@ -52,8 +52,8 @@ impl GetUsageUseCase {
             .await;
 
         // 集計
-        let total_prompt_tokens: i64 = records.iter().map(|r| r.prompt_tokens as i64).sum();
-        let total_completion_tokens: i64 = records.iter().map(|r| r.completion_tokens as i64).sum();
+        let total_prompt_tokens: i64 = records.iter().map(|r| i64::from(r.prompt_tokens)).sum();
+        let total_completion_tokens: i64 = records.iter().map(|r| i64::from(r.completion_tokens)).sum();
         let total_cost_usd: f64 = records.iter().map(|r| r.cost_usd).sum();
 
         GetUsageOutput {

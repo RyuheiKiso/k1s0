@@ -12,6 +12,7 @@ pub struct FlowInstancePostgresRepository {
 }
 
 impl FlowInstancePostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -26,10 +27,10 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
         let row = sqlx::query_as::<_, FlowInstanceRow>(
-            r#"
+            r"
             SELECT id, tenant_id, flow_id, correlation_id, status, current_step_index, started_at, completed_at, duration_ms
             FROM event_monitor.flow_instances WHERE id = $1
-            "#,
+            ",
         )
         .bind(id)
         .fetch_optional(&mut *tx)
@@ -48,10 +49,10 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
         let row = sqlx::query_as::<_, FlowInstanceRow>(
-            r#"
+            r"
             SELECT id, tenant_id, flow_id, correlation_id, status, current_step_index, started_at, completed_at, duration_ms
             FROM event_monitor.flow_instances WHERE correlation_id = $1
-            "#,
+            ",
         )
         .bind(correlation_id)
         .fetch_optional(&mut *tx)
@@ -66,8 +67,8 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<FlowInstance>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // "system" テナントコンテキストでフロー別インスタンスを取得する
         let mut tx = self.pool.begin().await?;
@@ -76,13 +77,13 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .await?;
 
         let rows = sqlx::query_as::<_, FlowInstanceRow>(
-            r#"
+            r"
             SELECT id, tenant_id, flow_id, correlation_id, status, current_step_index, started_at, completed_at, duration_ms
             FROM event_monitor.flow_instances
             WHERE flow_id = $1
             ORDER BY started_at DESC
             LIMIT $2 OFFSET $3
-            "#,
+            ",
         )
         .bind(flow_id)
         .bind(limit)
@@ -107,10 +108,10 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
         let rows = sqlx::query_as::<_, FlowInstanceRow>(
-            r#"
+            r"
             SELECT id, tenant_id, flow_id, correlation_id, status, current_step_index, started_at, completed_at, duration_ms
             FROM event_monitor.flow_instances WHERE status = 'in_progress'
-            "#,
+            ",
         )
         .fetch_all(&mut *tx)
         .await?;
@@ -126,11 +127,11 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            r#"
+            r"
             INSERT INTO event_monitor.flow_instances
                 (id, tenant_id, flow_id, correlation_id, status, current_step_index, started_at, completed_at, duration_ms)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            "#,
+            ",
         )
         .bind(instance.id)
         .bind(&instance.tenant_id)
@@ -155,11 +156,11 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            r#"
+            r"
             UPDATE event_monitor.flow_instances SET
                 status = $2, current_step_index = $3, completed_at = $4, duration_ms = $5
             WHERE id = $1
-            "#,
+            ",
         )
         .bind(instance.id)
         .bind(instance.status.as_str())
@@ -173,7 +174,7 @@ impl FlowInstanceRepository for FlowInstancePostgresRepository {
     }
 }
 
-/// DB から取得したフローインスタンスの中間表現。tenant_id を含む。
+/// DB `から取得したフローインスタンスの中間表現。tenant_id` を含む。
 #[derive(sqlx::FromRow)]
 struct FlowInstanceRow {
     id: Uuid,
@@ -187,7 +188,7 @@ struct FlowInstanceRow {
     duration_ms: Option<i64>,
 }
 
-/// FlowInstanceRow からドメインエンティティへ変換する。tenant_id を含める。
+/// `FlowInstanceRow` `からドメインエンティティへ変換する。tenant_id` を含める。
 impl From<FlowInstanceRow> for FlowInstance {
     fn from(row: FlowInstanceRow) -> Self {
         Self {

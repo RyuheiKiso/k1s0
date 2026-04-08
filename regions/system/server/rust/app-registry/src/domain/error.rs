@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// AppRegistry ドメイン固有のエラー型。
+/// `AppRegistry` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum AppRegistryError {
     /// アプリが見つからない
@@ -28,7 +28,7 @@ pub enum AppRegistryError {
     Internal(String),
 }
 
-/// AppRegistryError から ServiceError への変換実装
+/// `AppRegistryError` から `ServiceError` への変換実装
 impl From<AppRegistryError> for ServiceError {
     fn from(err: AppRegistryError) -> Self {
         match err {

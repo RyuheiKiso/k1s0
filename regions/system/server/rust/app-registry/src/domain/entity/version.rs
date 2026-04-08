@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use super::platform::Platform;
 
-/// AppVersion はアプリの特定バージョン・プラットフォーム向けのリリースを表すドメインエンティティ。
+/// `AppVersion` はアプリの特定バージョン・プラットフォーム向けのリリースを表すドメインエンティティ。
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct AppVersion {
     pub id: Uuid,

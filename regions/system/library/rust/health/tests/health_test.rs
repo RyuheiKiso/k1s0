@@ -13,6 +13,8 @@ struct AlwaysHealthy;
 
 #[async_trait]
 impl HealthCheck for AlwaysHealthy {
+    // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "always-healthy"
     }
@@ -25,6 +27,8 @@ struct AlwaysUnhealthy;
 
 #[async_trait]
 impl HealthCheck for AlwaysUnhealthy {
+    // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "always-unhealthy"
     }
@@ -67,6 +71,8 @@ struct SlowCheck {
 
 #[async_trait]
 impl HealthCheck for SlowCheck {
+    // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "slow-check"
     }
@@ -82,6 +88,8 @@ struct TimeoutCheck {
 
 #[async_trait]
 impl HealthCheck for TimeoutCheck {
+    // リテラル文字列を返すためライフタイム束縛は不要だが、トレイトの定義に合わせた実装
+    #[allow(clippy::unnecessary_literal_bound)]
     fn name(&self) -> &str {
         "timeout-check"
     }
@@ -361,17 +369,17 @@ fn health_error_display() {
 
 // ─── Timestamp ──────────────────────────────────────────────────────────────
 
-// ヘルスチェック実行後のレスポンスにタイムスタンプが含まれ、数値として解析できることを確認する。
+// ヘルスチェック実行後のレスポンスにタイムスタンプが含まれ、RFC3339 形式であることを確認する。
 #[tokio::test]
 async fn response_has_non_empty_timestamp() {
     let checker = CompositeHealthChecker::new();
     let response = checker.run_all().await;
     assert!(!response.timestamp.is_empty());
-    // Should be parseable as a number (unix timestamp seconds)
-    let _ts: u64 = response
-        .timestamp
-        .parse()
-        .expect("timestamp should be numeric");
+    // RFC3339 形式（例: "2026-04-08T10:00:00+00:00"）であることを確認
+    assert!(
+        response.timestamp.contains('T'),
+        "timestamp should be in RFC3339 format"
+    );
 }
 
 // ─── Check Result Message ───────────────────────────────────────────────────

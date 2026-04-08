@@ -4,7 +4,7 @@
 
 use k1s0_server_common::error::{ErrorCode, ServiceError};
 
-/// ApiRegistry ドメイン固有のエラー型。
+/// `ApiRegistry` ドメイン固有のエラー型。
 #[derive(Debug, thiserror::Error)]
 pub enum ApiRegistryError {
     /// API が見つからない
@@ -32,7 +32,7 @@ pub enum ApiRegistryError {
     Internal(String),
 }
 
-/// ApiRegistryError から ServiceError への変換実装
+/// `ApiRegistryError` から `ServiceError` への変換実装
 impl From<ApiRegistryError> for ServiceError {
     fn from(err: ApiRegistryError) -> Self {
         match err {

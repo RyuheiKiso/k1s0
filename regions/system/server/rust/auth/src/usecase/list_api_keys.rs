@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::api_key::ApiKeySummary;
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
-/// ListApiKeysError は API キー一覧取得に関するエラー。
+/// `ListApiKeysError` は API キー一覧取得に関するエラー。
 #[derive(Debug, thiserror::Error)]
 pub enum ListApiKeysError {
     #[error("validation error: {0}")]
@@ -13,7 +13,7 @@ pub enum ListApiKeysError {
     Internal(String),
 }
 
-/// ListApiKeysUseCase は テナントの API キー一覧取得ユースケース。
+/// `ListApiKeysUseCase` は テナントの API キー一覧取得ユースケース。
 pub struct ListApiKeysUseCase {
     repo: Arc<dyn ApiKeyRepository>,
 }

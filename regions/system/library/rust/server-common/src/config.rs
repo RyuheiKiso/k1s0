@@ -73,7 +73,7 @@ pub struct TraceConfig {
 }
 
 impl Default for TraceConfig {
-    /// デフォルト値: enabled=true, endpoint=DEFAULT_OTEL_ENDPOINT, sample_rate=1.0
+    /// デフォルト値: enabled=true, `endpoint=DEFAULT_OTEL_ENDPOINT`, `sample_rate=1.0`
     fn default() -> Self {
         Self {
             enabled: default_trace_enabled(),
@@ -129,7 +129,7 @@ fn default_trace_enabled() -> bool {
 }
 
 /// トレースエンドポイントのデフォルト値を返す。
-/// lib.rs の DEFAULT_OTEL_ENDPOINT 定数を使用し、エンドポイント変更を一箇所に集約する。
+/// lib.rs の `DEFAULT_OTEL_ENDPOINT` 定数を使用し、エンドポイント変更を一箇所に集約する。
 fn default_trace_endpoint() -> String {
     DEFAULT_OTEL_ENDPOINT.to_string()
 }
@@ -153,7 +153,7 @@ fn default_metrics_path() -> String {
 // ObservabilityFields への変換 — startup モジュールとの連携
 // ---------------------------------------------------------------------------
 
-/// ObservabilityConfig から startup::ObservabilityFields への変換。
+/// `ObservabilityConfig` から `startup::ObservabilityFields` への変換。
 /// サーバーの startup.rs で手動変換していたコードを不要にする。
 #[cfg(feature = "startup")]
 impl From<&ObservabilityConfig> for crate::startup::ObservabilityFields {

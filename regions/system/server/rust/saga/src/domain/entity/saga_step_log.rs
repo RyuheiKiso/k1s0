@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// StepAction はステップの実行アクションを表す。
+/// `StepAction` はステップの実行アクションを表す。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StepAction {
@@ -19,7 +19,7 @@ impl std::fmt::Display for StepAction {
     }
 }
 
-/// StepStatus はステップの実行結果を表す。
+/// `StepStatus` はステップの実行結果を表す。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum StepStatus {
@@ -40,7 +40,7 @@ impl std::fmt::Display for StepStatus {
     }
 }
 
-/// SagaStepLog はSagaステップの実行ログを表す。
+/// `SagaStepLog` はSagaステップの実行ログを表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SagaStepLog {
     pub id: Uuid,
@@ -58,6 +58,7 @@ pub struct SagaStepLog {
 
 impl SagaStepLog {
     /// 実行ログを作成する。
+    #[must_use] 
     pub fn new_execute(
         saga_id: Uuid,
         step_index: i32,
@@ -80,6 +81,7 @@ impl SagaStepLog {
     }
 
     /// 補償ログを作成する。
+    #[must_use] 
     pub fn new_compensate(
         saga_id: Uuid,
         step_index: i32,
@@ -115,7 +117,7 @@ impl SagaStepLog {
         self.completed_at = Some(Utc::now());
     }
 
-    /// タイムアウトにマークする。execute_saga usecase でステップタイムアウト時に使用する。
+    /// `タイムアウトにマークする。execute_saga` usecase でステップタイムアウト時に使用する。
     // H-02 監査対応: ステップタイムアウト処理の実装に備えて保持する
     #[allow(dead_code)]
     pub fn mark_timeout(&mut self) {

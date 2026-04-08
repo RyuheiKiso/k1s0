@@ -4,9 +4,9 @@ use crate::infrastructure::config::KafkaConfig;
 use crate::usecase::delete_document::{DeleteDocumentInput, DeleteDocumentUseCase};
 use crate::usecase::index_document::{IndexDocumentInput, IndexDocumentUseCase};
 
-/// IndexRequestEvent は Kafka から受信するインデックス登録リクエストイベント。
-/// CRIT-002 対応: tenant_id フィールドを追加し、送信元サービスから正しいテナントを受け取れるようにする。
-/// tenant_id が省略されている古いメッセージとの後方互換性のため serde(default) を使用する。
+/// `IndexRequestEvent` は Kafka から受信するインデックス登録リクエストイベント。
+/// CRIT-002 対応: `tenant_id` フィールドを追加し、送信元サービスから正しいテナントを受け取れるようにする。
+/// `tenant_id` が省略されている古いメッセージとの後方互換性のため serde(default) を使用する。
 #[derive(Debug, serde::Deserialize)]
 #[allow(dead_code)]
 pub struct IndexRequestEvent {
@@ -31,7 +31,7 @@ pub struct IndexRequestEvent {
     pub tenant_id: Option<String>,
 }
 
-/// SearchKafkaConsumer はインデックス登録リクエストトピックを購読してメッセージを処理する。
+/// `SearchKafkaConsumer` はインデックス登録リクエストトピックを購読してメッセージを処理する。
 pub struct SearchKafkaConsumer {
     consumer: rdkafka::consumer::StreamConsumer,
     index_use_case: Arc<IndexDocumentUseCase>,
@@ -41,7 +41,7 @@ pub struct SearchKafkaConsumer {
 }
 
 impl SearchKafkaConsumer {
-    /// 新しい SearchKafkaConsumer を作成する。
+    /// 新しい `SearchKafkaConsumer` を作成する。
     pub fn new(
         config: &KafkaConfig,
         index_use_case: Arc<IndexDocumentUseCase>,
@@ -77,6 +77,7 @@ impl SearchKafkaConsumer {
     }
 
     /// メトリクスを設定する。
+    #[must_use] 
     pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
@@ -98,12 +99,9 @@ impl SearchKafkaConsumer {
                         m.record_kafka_message_consumed(&topic, &self.consumer_group);
                     }
 
-                    let payload = match msg.payload() {
-                        Some(bytes) => bytes,
-                        None => {
-                            tracing::warn!("received kafka message with empty payload");
-                            continue;
-                        }
+                    let payload = if let Some(bytes) = msg.payload() { bytes } else {
+                        tracing::warn!("received kafka message with empty payload");
+                        continue;
                     };
 
                     let event: IndexRequestEvent = match serde_json::from_slice(payload) {

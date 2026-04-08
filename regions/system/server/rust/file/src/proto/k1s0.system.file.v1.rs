@@ -147,7 +147,7 @@ pub mod file_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with FileServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `FileServiceServer`.
     #[async_trait]
     pub trait FileService: std::marker::Send + std::marker::Sync + 'static {
         async fn get_file_metadata(

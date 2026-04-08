@@ -16,7 +16,7 @@ struct EventStoreEnvelope {
     stored_at: String,
 }
 
-/// EventPublisher はイベントストアからの Kafka イベント発行用トレイト。
+/// `EventPublisher` はイベントストアからの Kafka イベント発行用トレイト。
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait EventPublisher: Send + Sync {
@@ -29,7 +29,7 @@ pub trait EventPublisher: Send + Sync {
     }
 }
 
-/// EventStoreKafkaProducer は rdkafka FutureProducer を使った Kafka プロデューサー。
+/// `EventStoreKafkaProducer` は rdkafka `FutureProducer` を使った Kafka プロデューサー。
 pub struct EventStoreKafkaProducer {
     producer: rdkafka::producer::FutureProducer,
     topic: String,
@@ -37,7 +37,7 @@ pub struct EventStoreKafkaProducer {
 }
 
 impl EventStoreKafkaProducer {
-    /// 新しい EventStoreKafkaProducer を作成する。
+    /// 新しい `EventStoreKafkaProducer` を作成する。
     pub fn new(config: &KafkaConfig) -> anyhow::Result<Self> {
         use rdkafka::config::ClientConfig;
 
@@ -64,6 +64,7 @@ impl EventStoreKafkaProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
+    #[must_use] 
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -117,11 +118,11 @@ impl EventPublisher for EventStoreKafkaProducer {
             .client()
             .fetch_metadata(None, std::time::Duration::from_secs(2))
             .map(|_| ())
-            .map_err(|e| anyhow::anyhow!("kafka health check failed: {}", e))
+            .map_err(|e| anyhow::anyhow!("kafka health check failed: {e}"))
     }
 }
 
-/// NoopEventPublisher は何もしないダミープロデューサー（Kafka無効時に使う）。
+/// `NoopEventPublisher` は何もしないダミープロデューサー（Kafka無効時に使う）。
 pub struct NoopEventPublisher;
 
 #[async_trait]

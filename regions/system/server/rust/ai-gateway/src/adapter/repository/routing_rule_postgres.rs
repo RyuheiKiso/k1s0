@@ -9,18 +9,20 @@ use sqlx::PgPool;
 use crate::domain::entity::routing_rule::RoutingRule;
 use crate::domain::repository::RoutingRuleRepository;
 
-/// PostgreSQLベースのルーティングルールリポジトリ。
+/// `PostgreSQLベースのルーティングルールリポジトリ`。
 pub struct RoutingRulePostgresRepository {
     pool: Option<Arc<PgPool>>,
 }
 
 impl RoutingRulePostgresRepository {
     /// データベースプール付きでリポジトリを生成する。
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool: Some(pool) }
     }
 
     /// インメモリフォールバック用リポジトリを生成する。
+    #[must_use] 
     pub fn in_memory() -> Self {
         Self { pool: None }
     }
@@ -40,7 +42,7 @@ impl RoutingRuleRepository for RoutingRulePostgresRepository {
             .await;
 
             match row {
-                Ok(row) => row.map(|r| r.into()),
+                Ok(row) => row.map(std::convert::Into::into),
                 Err(e) => {
                     tracing::warn!(error = %e, "ルーティングルールのDB取得に失敗");
                     None

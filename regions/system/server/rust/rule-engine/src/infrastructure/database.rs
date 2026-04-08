@@ -12,9 +12,9 @@ pub async fn connect(cfg: &DatabaseConfig) -> anyhow::Result<PgPool> {
     Ok(pool)
 }
 
-/// MED-007 監査対応: Config または DATABASE_URL 環境変数から PostgreSQL に接続を試みる。
+/// MED-007 監査対応: Config または `DATABASE_URL` 環境変数から `PostgreSQL` に接続を試みる。
 /// 接続に失敗した場合は None を返し、in-memory フォールバックを許容する。
-/// serde_yaml はシェル変数を展開しないため、DATABASE_URL 環境変数が設定されている場合は常に優先する。
+/// `serde_yaml` `はシェル変数を展開しないため、DATABASE_URL` 環境変数が設定されている場合は常に優先する。
 pub async fn connect_optional(cfg: &Config) -> Option<PgPool> {
     // DATABASE_URL 環境変数が設定されている場合は最優先で使用する。
     // config.docker.yaml の password フィールドは serde_yaml がシェル変数を展開しないため
@@ -30,8 +30,7 @@ pub async fn connect_optional(cfg: &Config) -> Option<PgPool> {
     let max_connections = cfg
         .database
         .as_ref()
-        .map(|db| db.max_open_conns)
-        .unwrap_or(5);
+        .map_or(5, |db| db.max_open_conns);
 
     match sqlx::postgres::PgPoolOptions::new()
         .max_connections(max_connections)

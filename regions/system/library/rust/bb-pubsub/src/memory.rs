@@ -15,7 +15,7 @@ struct Subscription {
     handler: Box<dyn MessageHandler>,
 }
 
-/// InMemoryPubSub はテスト・開発用のインメモリ PubSub 実装。
+/// `InMemoryPubSub` はテスト・開発用のインメモリ `PubSub` 実装。
 pub struct InMemoryPubSub {
     name: String,
     status: RwLock<ComponentStatus>,
@@ -38,7 +38,7 @@ impl Component for InMemoryPubSub {
         &self.name
     }
 
-    fn component_type(&self) -> &str {
+    fn component_type(&self) -> &'static str {
         "pubsub"
     }
 

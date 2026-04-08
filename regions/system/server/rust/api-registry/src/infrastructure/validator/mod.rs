@@ -44,6 +44,7 @@ pub struct ConfigurableSchemaValidatorFactory {
 }
 
 impl ConfigurableSchemaValidatorFactory {
+    #[must_use] 
     pub fn new(openapi_validator_path: String, buf_path: String, timeout_secs: u64) -> Self {
         Self {
             openapi_validator_path,

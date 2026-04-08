@@ -137,15 +137,14 @@ impl EvaluateUseCase {
         let parts: Vec<&str> = rule_set_ref.splitn(2, '.').collect();
         if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
             return Err(EvaluateError::EvaluationError(format!(
-                "rule_set must be in '{{domain}}.{{name}}' format, got: '{}'",
-                rule_set_ref
+                "rule_set must be in '{{domain}}.{{name}}' format, got: '{rule_set_ref}'"
             )));
         }
         Ok((parts[0].to_string(), parts[1].to_string()))
     }
 
     /// ルール評価ループ。ConditionEvaluator のキャッシュを再利用するためインスタンスメソッドとする
-    /// L-002 監査対応: ConditionEvaluator::evaluate が async になったため async fn にする
+    /// L-002 監査対応: `ConditionEvaluator::evaluate` が async になったため async fn にする
     async fn evaluate_rules(
         &self,
         rules: &[Rule],
@@ -202,7 +201,7 @@ impl EvaluateUseCase {
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 mod hex {

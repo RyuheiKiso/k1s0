@@ -3,6 +3,7 @@ use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
 
+#[must_use] 
 pub fn generate_signature(secret: &str, body: &[u8]) -> String {
     let mut mac =
         HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
@@ -11,6 +12,7 @@ pub fn generate_signature(secret: &str, body: &[u8]) -> String {
     hex::encode(result.into_bytes())
 }
 
+#[must_use] 
 pub fn verify_signature(secret: &str, body: &[u8], signature: &str) -> bool {
     let expected = generate_signature(secret, body);
     constant_time_eq(expected.as_bytes(), signature.as_bytes())

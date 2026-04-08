@@ -185,6 +185,7 @@ pub struct RateLimitGrpcService {
 
 impl RateLimitGrpcService {
     #[allow(clippy::too_many_arguments)]
+    #[must_use] 
     pub fn new(
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,
@@ -241,7 +242,7 @@ impl RateLimitGrpcService {
                     GrpcError::InvalidArgument(msg)
                 }
                 crate::usecase::check_rate_limit::CheckRateLimitError::RuleDisabled(msg) => {
-                    GrpcError::InvalidArgument(format!("rule is disabled: {}", msg))
+                    GrpcError::InvalidArgument(format!("rule is disabled: {msg}"))
                 }
                 crate::usecase::check_rate_limit::CheckRateLimitError::Internal(msg) => {
                     GrpcError::Internal(msg)
@@ -261,7 +262,7 @@ impl RateLimitGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを作成する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを作成する。
     pub async fn create_rule(
         &self,
         req: CreateRuleRequest,
@@ -283,7 +284,7 @@ impl RateLimitGrpcService {
 
         let rule = self.create_uc.execute(&input).await.map_err(|e| match e {
             crate::usecase::create_rule::CreateRuleError::AlreadyExists(msg) => {
-                GrpcError::AlreadyExists(format!("rule already exists: {}", msg))
+                GrpcError::AlreadyExists(format!("rule already exists: {msg}"))
             }
             crate::usecase::create_rule::CreateRuleError::InvalidAlgorithm(msg) => {
                 GrpcError::InvalidArgument(msg)
@@ -316,7 +317,7 @@ impl RateLimitGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを取得する。
     pub async fn get_rule(&self, req: GetRuleRequest) -> Result<GetRuleResponse, GrpcError> {
         if req.rule_id.is_empty() {
             return Err(GrpcError::InvalidArgument(
@@ -398,7 +399,7 @@ impl RateLimitGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを更新する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを更新する。
     pub async fn update_rule(
         &self,
         req: UpdateRuleRequest,
@@ -452,7 +453,7 @@ impl RateLimitGrpcService {
         })
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルールを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを削除する。
     pub async fn delete_rule(
         &self,
         req: DeleteRuleRequest,
@@ -475,7 +476,7 @@ impl RateLimitGrpcService {
         Ok(DeleteRuleResponse { success: true })
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからルール一覧を取得する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルール一覧を取得する。
     pub async fn list_rules(&self, req: ListRulesRequest) -> Result<ListRulesResponse, GrpcError> {
         let page = if req.page == 0 { 1 } else { req.page };
         let page_size = if req.page_size == 0 {

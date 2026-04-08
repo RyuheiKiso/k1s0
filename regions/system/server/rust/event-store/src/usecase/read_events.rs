@@ -79,7 +79,7 @@ impl ReadEventsUseCase {
             .await
             .map_err(|e| ReadEventsError::Internal(e.to_string()))?;
 
-        let has_next = (page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(page) * u64::from(page_size) < total_count;
 
         Ok(ReadEventsOutput {
             stream_id: input.stream_id.clone(),

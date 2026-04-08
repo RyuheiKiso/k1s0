@@ -18,7 +18,7 @@ pub struct KeycloakAdminClient {
 }
 
 impl KeycloakAdminClient {
-    /// 新しい KeycloakAdminClient を生成する。
+    /// 新しい `KeycloakAdminClient` を生成する。
     /// デフォルトタイムアウト30秒でHTTPクライアントを構築する。
     /// TLS バックエンドの初期化に失敗した場合は Err を返す。
     pub fn new(config: KeycloakAdminConfig) -> anyhow::Result<Self> {
@@ -26,7 +26,7 @@ impl KeycloakAdminClient {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("HTTP クライアントの構築に失敗: {e}"))?;
         Ok(Self {
             config,
             http_client,
@@ -34,6 +34,7 @@ impl KeycloakAdminClient {
     }
 
     #[allow(dead_code)]
+    #[must_use] 
     pub fn config(&self) -> &KeycloakAdminConfig {
         &self.config
     }
@@ -63,7 +64,7 @@ impl KeycloakAdminClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            anyhow::bail!("failed to get keycloak admin token: {} {}", status, body);
+            anyhow::bail!("failed to get keycloak admin token: {status} {body}");
         }
 
         let token: TokenResponse = response.json().await?;
@@ -107,10 +108,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         anyhow::bail!(
-            "failed to create keycloak realm '{}': {} {}",
-            realm_name,
-            status,
-            body
+            "failed to create keycloak realm '{realm_name}': {status} {body}"
         );
     }
 
@@ -135,10 +133,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         anyhow::bail!(
-            "failed to delete keycloak realm '{}': {} {}",
-            realm_name,
-            status,
-            body
+            "failed to delete keycloak realm '{realm_name}': {status} {body}"
         );
     }
 
@@ -165,11 +160,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         anyhow::bail!(
-            "failed to add user '{}' to realm '{}': {} {}",
-            user_id,
-            realm_name,
-            status,
-            body
+            "failed to add user '{user_id}' to realm '{realm_name}': {status} {body}"
         );
     }
 
@@ -195,11 +186,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
         anyhow::bail!(
-            "failed to remove user '{}' from realm '{}': {} {}",
-            user_id,
-            realm_name,
-            status,
-            body
+            "failed to remove user '{user_id}' from realm '{realm_name}': {status} {body}"
         );
     }
 }

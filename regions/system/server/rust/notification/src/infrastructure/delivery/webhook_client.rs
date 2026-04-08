@@ -27,7 +27,7 @@ impl WebhookDeliveryClient {
             .connect_timeout(Duration::from_secs(5))
             .build()
             .map_err(|e| {
-                DeliveryError::Other(format!("HTTPクライアントの初期化に失敗しました: {}", e))
+                DeliveryError::Other(format!("HTTPクライアントの初期化に失敗しました: {e}"))
             })?;
         Ok(Self {
             url,
@@ -64,8 +64,7 @@ impl DeliveryClient for WebhookDeliveryClient {
                 .await
                 .unwrap_or_else(|_| "unknown".to_string());
             return Err(DeliveryError::Rejected(format!(
-                "Webhook returned {}: {}",
-                status, body_text
+                "Webhook returned {status}: {body_text}"
             )));
         }
 

@@ -195,7 +195,7 @@ pub mod event_store_service_server {
         clippy::let_unit_value,
     )]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with EventStoreServiceServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with `EventStoreServiceServer`.
     #[async_trait]
     pub trait EventStoreService: std::marker::Send + std::marker::Sync + 'static {
         async fn list_streams(

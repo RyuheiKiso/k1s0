@@ -5,7 +5,7 @@ use crate::domain::repository::NotificationChannelRepository;
 use crate::domain::repository::NotificationLogRepository;
 use crate::domain::service::NotificationDomainService;
 
-/// MEDIUM-RUST-001 監査対応: tenant_id を追加してチャンネル検索時の RLS を有効化する。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` を追加してチャンネル検索時の RLS を有効化する。
 #[derive(Debug, Clone)]
 pub struct RetryNotificationInput {
     pub notification_id: String,
@@ -44,7 +44,7 @@ impl RetryNotificationUseCase {
         }
     }
 
-    /// MEDIUM-RUST-001 監査対応: tenant_id を input から受け取りチャンネル検索時の RLS を有効化する。
+    /// MEDIUM-RUST-001 監査対応: `tenant_id` を input から受け取りチャンネル検索時の RLS を有効化する。
     pub async fn execute(
         &self,
         input: &RetryNotificationInput,

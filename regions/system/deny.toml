@@ -43,11 +43,8 @@ ignore = [
     # 解消目標: 2026-09-30 または修正版リリース時
     { id = "RUSTSEC-2026-0002", reason = "修正版なし。rule-engine のキャッシュのみで使用。代替クレート評価中" },
 
-    # HIGH-021 監査対応: RUSTSEC-2026-0049 rustls-webpki の証明書検証脆弱性
-    # rustls-webpki 0.103.10+ で修正済み。CLI の依存関係グラフ上の制約により即時アップデートが困難
-    # 対応方針: cargo update rustls-webpki を次回メンテナンスで実施する
-    # 解消目標: 2026-06-30 または次回 cargo update 実施時
-    { id = "RUSTSEC-2026-0049", reason = "rustls-webpki 0.103.10+ で修正済み。cargo update でアップデート予定" },
+    # LOW-008 監査対応: RUSTSEC-2026-0049 を削除する
+    # rustls-webpki 0.103.10+ での修正を適用済みのため ignore エントリは不要となった
 ]
 
 [licenses]

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::domain::entity::notification_channel::NotificationChannel;
 use crate::domain::repository::NotificationChannelRepository;
 
-/// MEDIUM-RUST-001 監査対応: tenant_id フィールドを追加してテナント分離を有効化する。
+/// MEDIUM-RUST-001 監査対応: `tenant_id` フィールドを追加してテナント分離を有効化する。
 #[derive(Debug, Clone)]
 pub struct UpdateChannelInput {
     pub id: String,
@@ -31,7 +31,7 @@ impl UpdateChannelUseCase {
         Self { repo }
     }
 
-    /// MEDIUM-RUST-001 監査対応: input.tenant_id をリポジトリに伝播して RLS を有効化する。
+    /// MEDIUM-RUST-001 監査対応: `input.tenant_id` をリポジトリに伝播して RLS を有効化する。
     pub async fn execute(
         &self,
         input: &UpdateChannelInput,

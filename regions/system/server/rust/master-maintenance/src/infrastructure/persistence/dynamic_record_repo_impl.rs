@@ -12,6 +12,7 @@ pub struct DynamicRecordPostgresRepository {
 }
 
 impl DynamicRecordPostgresRepository {
+    #[must_use] 
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -24,14 +25,14 @@ fn quote_identifier(name: &str) -> String {
 }
 
 /// Validate that a name is a safe SQL identifier (ASCII alphanumeric + underscore).
-/// MED-16 監査対応: is_alphanumeric() は Unicode の数字・文字も許容するため、
-/// SQL 識別子として安全な ASCII 英数字のみに限定する is_ascii_alphanumeric() に統一する。
+/// MED-16 監査対応: `is_alphanumeric()` は Unicode の数字・文字も許容するため、
+/// SQL 識別子として安全な ASCII 英数字のみに限定する `is_ascii_alphanumeric()` に統一する。
 fn validate_identifier(name: &str) -> anyhow::Result<()> {
     if name.is_empty() {
         anyhow::bail!("Identifier cannot be empty");
     }
     if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        anyhow::bail!("Invalid identifier: {}", name);
+        anyhow::bail!("Invalid identifier: {name}");
     }
     Ok(())
 }
@@ -66,7 +67,7 @@ fn postgres_cast_type(data_type: &str) -> anyhow::Result<&'static str> {
         | "timestamp without time zone"
         | "datetime" => Ok("timestamptz"),
         "text" => Ok("text"),
-        other => anyhow::bail!("unsupported column data type for SQL casting: {}", other),
+        other => anyhow::bail!("unsupported column data type for SQL casting: {other}"),
     }
 }
 
@@ -86,7 +87,7 @@ fn find_primary_key_column(columns: &[ColumnDefinition]) -> anyhow::Result<&Colu
         .ok_or_else(|| anyhow::anyhow!("No primary key column found"))
 }
 
-/// Convert a PgRow to a serde_json::Value object using column definitions.
+/// Convert a `PgRow` to a `serde_json::Value` object using column definitions.
 fn row_to_json(row: &PgRow, columns: &[ColumnDefinition]) -> Value {
     let mut map = serde_json::Map::new();
     for col in columns {
@@ -116,17 +117,15 @@ fn row_to_json(row: &PgRow, columns: &[ColumnDefinition]) -> Value {
             "real" | "float4" => row
                 .try_get::<f32, _>(col_name)
                 .map(|v| {
-                    serde_json::Number::from_f64(v as f64)
-                        .map(Value::Number)
-                        .unwrap_or(Value::Null)
+                    serde_json::Number::from_f64(f64::from(v))
+                        .map_or(Value::Null, Value::Number)
                 })
                 .unwrap_or(Value::Null),
             "double precision" | "float8" | "numeric" | "decimal" => row
                 .try_get::<f64, _>(col_name)
                 .map(|v| {
                     serde_json::Number::from_f64(v)
-                        .map(Value::Number)
-                        .unwrap_or(Value::Null)
+                        .map_or(Value::Null, Value::Number)
                 })
                 .unwrap_or(Value::Null),
             "json" | "jsonb" => row.try_get::<Value, _>(col_name).unwrap_or(Value::Null),
@@ -197,7 +196,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
                             .iter()
                             .find(|c| c.column_name == col_name)
                             .ok_or_else(|| {
-                                anyhow::anyhow!("カラム '{}' が定義に見つかりません", col_name)
+                                anyhow::anyhow!("カラム '{col_name}' が定義に見つかりません")
                             })?;
                         validate_identifier(col_name)?;
                         where_clauses.push(format!(
@@ -269,7 +268,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         };
 
         // Count query
-        let count_sql = format!("SELECT COUNT(*) FROM {}{}", table_name, where_sql);
+        let count_sql = format!("SELECT COUNT(*) FROM {table_name}{where_sql}");
         let mut count_q = sqlx::query_scalar::<_, i64>(&count_sql);
         for val in &bind_values {
             count_q = count_q.bind(val.clone());
@@ -282,8 +281,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
         // SQL インジェクションは発生しない。識別子（table_name, 列名）は validate_identifier() +
         // quote_identifier() で ASCII 英数字＋アンダースコアのみに制限・ダブルクォートエスケープ済み。
         let data_sql = format!(
-            "SELECT {} FROM {}{}{} LIMIT {} OFFSET {}",
-            select_cols, table_name, where_sql, order_sql, page_size, offset
+            "SELECT {select_cols} FROM {table_name}{where_sql}{order_sql} LIMIT {page_size} OFFSET {offset}"
         );
         let mut data_q = sqlx::query(&data_sql);
         for val in &bind_values {
@@ -491,7 +489,7 @@ impl DynamicRecordRepository for DynamicRecordPostgresRepository {
 }
 
 /// JSON 値を SQL バインド用の文字列に変換する。
-/// Value::Null の場合は None を返し、呼び出し元が SQL NULL としてバインドする。
+/// `Value::Null` の場合は None を返し、呼び出し元が SQL NULL としてバインドする。
 fn json_value_to_string(val: &Value) -> Option<String> {
     match val {
         Value::Null => None,

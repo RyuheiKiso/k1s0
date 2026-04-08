@@ -92,7 +92,7 @@ impl EventStoreGrpcService {
         }
     }
 
-    /// テナント分離のため、全メソッドに tenant_id を引数として受け取る（ADR-0106）。
+    /// テナント分離のため、全メソッドに `tenant_id` を引数として受け取る（ADR-0106）。
     pub async fn list_streams(
         &self,
         req: ProtoListStreamsRequest,
@@ -123,7 +123,7 @@ impl EventStoreGrpcService {
             .list_all(tenant_id, input.page, input.page_size)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
-        let has_next = (page as u64) * (page_size as u64) < total_count;
+        let has_next = u64::from(page) * u64::from(page_size) < total_count;
 
         Ok(ProtoListStreamsResponse {
             streams: streams
@@ -157,8 +157,7 @@ impl EventStoreGrpcService {
             .map(|e| {
                 let payload = serde_json::from_slice(&e.payload).map_err(|err| {
                     GrpcError::InvalidArgument(format!(
-                        "イベントペイロードが不正なJSONです: {}",
-                        err
+                        "イベントペイロードが不正なJSONです: {err}"
                     ))
                 })?;
                 let metadata = e.metadata.unwrap_or_default();
@@ -209,18 +208,17 @@ impl EventStoreGrpcService {
                 })
             }
             Err(AppendEventsError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(AppendEventsError::StreamAlreadyExists(id)) => Err(GrpcError::AlreadyExists(
-                format!("stream already exists: {}", id),
+                format!("stream already exists: {id}"),
             )),
             Err(AppendEventsError::VersionConflict {
                 stream_id,
                 expected,
                 actual,
             }) => Err(GrpcError::Aborted(format!(
-                "version conflict for stream {}: expected {}, actual {}",
-                stream_id, expected, actual
+                "version conflict for stream {stream_id}: expected {expected}, actual {actual}"
             ))),
             Err(AppendEventsError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -276,7 +274,7 @@ impl EventStoreGrpcService {
                 })
             }
             Err(ReadEventsError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -302,14 +300,13 @@ impl EventStoreGrpcService {
                 })
             }
             Err(ReadEventBySequenceError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(ReadEventBySequenceError::EventNotFound {
                 stream_id,
                 sequence,
             }) => Err(GrpcError::NotFound(format!(
-                "event not found: stream={}, sequence={}",
-                stream_id, sequence
+                "event not found: stream={stream_id}, sequence={sequence}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -323,8 +320,7 @@ impl EventStoreGrpcService {
         // スナップショット状態のJSONデシリアライズ失敗をINVALID_ARGUMENTとして伝播する
         let state = serde_json::from_slice(&req.state).map_err(|err| {
             GrpcError::InvalidArgument(format!(
-                "スナップショット状態が不正なJSONです: {}",
-                err
+                "スナップショット状態が不正なJSONです: {err}"
             ))
         })?;
 
@@ -346,7 +342,7 @@ impl EventStoreGrpcService {
                 aggregate_type: output.aggregate_type,
             }),
             Err(CreateSnapshotError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(CreateSnapshotError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
@@ -369,8 +365,7 @@ impl EventStoreGrpcService {
                 // スナップショット状態のシリアライズ失敗はINTERNALエラーとして伝播する
                 let state = serde_json::to_vec(&snapshot.state).map_err(|err| {
                     GrpcError::Internal(format!(
-                        "スナップショット状態のシリアライズに失敗しました: {}",
-                        err
+                        "スナップショット状態のシリアライズに失敗しました: {err}"
                     ))
                 })?;
                 Ok(ProtoGetLatestSnapshotResponse {
@@ -385,11 +380,10 @@ impl EventStoreGrpcService {
                 })
             }
             Err(GetLatestSnapshotError::StreamNotFound(id)) => {
-                Err(GrpcError::NotFound(format!("stream not found: {}", id)))
+                Err(GrpcError::NotFound(format!("stream not found: {id}")))
             }
             Err(GetLatestSnapshotError::SnapshotNotFound(id)) => Err(GrpcError::NotFound(format!(
-                "snapshot not found for stream: {}",
-                id
+                "snapshot not found for stream: {id}"
             ))),
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
@@ -410,7 +404,7 @@ impl EventStoreGrpcService {
             .await
             .map_err(|e| match e {
                 DeleteStreamError::StreamNotFound(id) => {
-                    GrpcError::NotFound(format!("stream not found: {}", id))
+                    GrpcError::NotFound(format!("stream not found: {id}"))
                 }
                 DeleteStreamError::Internal(msg) => GrpcError::Internal(msg),
             })?;
@@ -422,7 +416,7 @@ impl EventStoreGrpcService {
     }
 }
 
-/// chrono::DateTime<Utc> を Proto の Timestamp メッセージに変換する。
+/// `chrono::DateTime`<Utc> を Proto の Timestamp メッセージに変換する。
 /// 他サーバー（api-registry, event-monitor, config）と同一のパターンを使用。
 fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
@@ -431,7 +425,7 @@ fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
     })
 }
 
-/// StoredEvent を Proto メッセージに変換する。
+/// `StoredEvent` を Proto メッセージに変換する。
 /// ペイロードのシリアライズ失敗はINTERNALエラーとして伝播する。
 fn stored_event_to_proto(
     e: crate::domain::entity::event::StoredEvent,
@@ -439,8 +433,7 @@ fn stored_event_to_proto(
     // ペイロードのシリアライズ失敗をサイレントに無視せず、INTERNALエラーとして伝播する
     let payload = serde_json::to_vec(&e.payload).map_err(|err| {
         GrpcError::Internal(format!(
-            "イベントペイロードのシリアライズに失敗しました: {}",
-            err
+            "イベントペイロードのシリアライズに失敗しました: {err}"
         ))
     })?;
     Ok(ProtoStoredEvent {

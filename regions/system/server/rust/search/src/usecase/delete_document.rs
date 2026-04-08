@@ -28,7 +28,7 @@ impl DeleteDocumentUseCase {
         Self { repo }
     }
 
-    /// CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定してからドキュメントを削除する。
+    /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからドキュメントを削除する。
     pub async fn execute(&self, input: &DeleteDocumentInput) -> Result<bool, DeleteDocumentError> {
         let deleted = self
             .repo

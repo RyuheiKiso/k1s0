@@ -33,7 +33,7 @@ impl Config {
     }
 }
 
-/// AuthConfig は認証設定を保持する（nested 形式: jwt + jwks）。
+/// `AuthConfig` は認証設定を保持する（nested 形式: jwt + jwks）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     /// JWT トークンの検証に使用する issuer / audience 設定
@@ -43,7 +43,7 @@ pub struct AuthConfig {
     pub jwks: Option<JwksConfig>,
 }
 
-/// JwtConfig は JWT トークン検証の issuer / audience を保持する。
+/// `JwtConfig` は JWT トークン検証の issuer / audience を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwtConfig {
     /// JWT 発行者（issuer）
@@ -52,7 +52,7 @@ pub struct JwtConfig {
     pub audience: String,
 }
 
-/// JwksConfig は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
+/// `JwksConfig` は JWKS エンドポイントの URL とキャッシュ TTL を保持する。
 #[derive(Debug, Clone, Deserialize)]
 pub struct JwksConfig {
     /// JWKS エンドポイント URL
@@ -219,6 +219,7 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
@@ -253,19 +254,22 @@ fn default_db_ssl_mode() -> String {
     "disable".to_string()
 }
 
+#[must_use] 
 pub fn default_max_connections() -> u32 {
     25
 }
 
+#[must_use] 
 pub fn default_max_idle_conns() -> u32 {
     5
 }
 
+#[must_use] 
 pub fn default_conn_max_lifetime() -> String {
     "5m".to_string()
 }
 
-/// テナントキャッシュの設定。find_by_id / find_by_name の結果をインメモリにキャッシュする。
+/// `テナントキャッシュの設定。find_by_id` / `find_by_name` の結果をインメモリにキャッシュする。
 #[derive(Debug, Clone, Deserialize)]
 pub struct CacheConfig {
     /// キャッシュエントリの有効期限（秒）。デフォルト60秒。

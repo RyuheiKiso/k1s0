@@ -230,7 +230,7 @@ pub async fn check_quota(
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -292,7 +292,7 @@ pub async fn delete_quota(
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteQuotaPolicyError::NotFound(id)) => {
             let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteQuotaPolicyError::Internal(msg)) => {
@@ -321,7 +321,7 @@ pub async fn get_usage(
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
             let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -397,7 +397,7 @@ pub async fn reset_usage(
         Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(ResetQuotaUsageError::NotFound(id)) => {
             let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {}", id));
+                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Validation(msg)) => {
@@ -444,6 +444,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
+    #[must_use] 
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -455,6 +456,7 @@ impl ErrorResponse {
         }
     }
 
+    #[must_use] 
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

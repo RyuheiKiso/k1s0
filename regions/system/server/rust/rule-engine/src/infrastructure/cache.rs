@@ -13,6 +13,7 @@ pub struct RuleCache {
 }
 
 impl RuleCache {
+    #[must_use] 
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let ttl = Duration::from_secs(ttl_secs);
         let rules = Cache::builder()

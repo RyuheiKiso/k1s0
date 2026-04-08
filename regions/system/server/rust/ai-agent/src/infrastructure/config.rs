@@ -63,7 +63,7 @@ impl Config {
     }
 }
 
-/// AppConfig はアプリケーション基本情報
+/// `AppConfig` はアプリケーション基本情報
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     pub name: String,
@@ -82,7 +82,7 @@ fn default_environment() -> String {
     "dev".to_string()
 }
 
-/// ServerConfig はサーバーのホスト・ポート設定
+/// `ServerConfig` はサーバーのホスト・ポート設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     #[serde(default = "default_host")]
@@ -106,7 +106,7 @@ fn default_grpc_port() -> u16 {
     50051
 }
 
-/// DatabaseConfig はデータベース接続の設定を表す
+/// `DatabaseConfig` はデータベース接続の設定を表す
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub host: String,
@@ -143,7 +143,8 @@ fn default_conn_max_lifetime() -> String {
 }
 
 impl DatabaseConfig {
-    /// PostgreSQL 接続URL を生成する。戻り値はパスワードを含むためログに出力しないこと。
+    /// `PostgreSQL` 接続URL を生成する。戻り値はパスワードを含むためログに出力しないこと。
+    #[must_use] 
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -158,13 +159,13 @@ impl DatabaseConfig {
     }
 }
 
-/// AiGatewayConfig はAI Gatewayサーバーへの接続設定
+/// `AiGatewayConfig` はAI Gatewayサーバーへの接続設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct AiGatewayConfig {
     pub internal_endpoint: String,
 }
 
-/// ObservabilityConfig はオブザーバビリティ設定
+/// `ObservabilityConfig` はオブザーバビリティ設定
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct ObservabilityConfig {
     #[serde(default)]
@@ -175,7 +176,7 @@ pub struct ObservabilityConfig {
     pub metrics: MetricsConfig,
 }
 
-/// LogConfig はログ出力設定
+/// `LogConfig` はログ出力設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogConfig {
     #[serde(default = "default_log_level")]
@@ -193,7 +194,7 @@ impl Default for LogConfig {
     }
 }
 
-/// TraceConfig はトレーシング設定
+/// `TraceConfig` はトレーシング設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct TraceConfig {
     #[serde(default = "default_trace_enabled")]
@@ -214,7 +215,7 @@ impl Default for TraceConfig {
     }
 }
 
-/// MetricsConfig はメトリクス設定
+/// `MetricsConfig` はメトリクス設定
 #[derive(Debug, Clone, Deserialize)]
 pub struct MetricsConfig {
     #[serde(default = "default_metrics_enabled")]

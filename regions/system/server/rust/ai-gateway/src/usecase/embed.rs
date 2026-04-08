@@ -40,6 +40,7 @@ pub struct EmbedUseCase {
 
 impl EmbedUseCase {
     /// 新しいエンベディングユースケースを生成する。
+    #[must_use] 
     pub fn new(llm_client: Arc<LlmClient>) -> Self {
         Self { llm_client }
     }

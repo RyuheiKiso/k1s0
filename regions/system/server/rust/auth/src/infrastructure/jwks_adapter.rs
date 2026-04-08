@@ -5,12 +5,13 @@ use async_trait::async_trait;
 use crate::domain::entity::claims::{Claims, RealmAccess, ResourceAccess};
 use crate::infrastructure::TokenVerifier;
 
-/// JwksVerifierAdapter はライブラリの JwksVerifier をサーバーの TokenVerifier に適合させる。
+/// `JwksVerifierAdapter` はライブラリの `JwksVerifier` をサーバーの `TokenVerifier` に適合させる。
 pub struct JwksVerifierAdapter {
     verifier: Arc<k1s0_auth::JwksVerifier>,
 }
 
 impl JwksVerifierAdapter {
+    #[must_use] 
     pub fn new(verifier: Arc<k1s0_auth::JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -23,7 +24,7 @@ impl TokenVerifier for JwksVerifierAdapter {
             .verifier
             .verify_token(token)
             .await
-            .map_err(|e| anyhow::anyhow!("{}", e))?;
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         Ok(convert_claims(lib_claims))
     }
 }

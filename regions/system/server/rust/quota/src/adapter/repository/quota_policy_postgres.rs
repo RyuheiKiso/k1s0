@@ -7,14 +7,15 @@ use sqlx::PgPool;
 use crate::domain::entity::quota::{Period, QuotaPolicy, SubjectType};
 use crate::domain::repository::QuotaPolicyRepository;
 
-/// QuotaPolicyPostgresRepository は QuotaPolicyRepository の PostgreSQL 実装。
+/// `QuotaPolicyPostgresRepository` は `QuotaPolicyRepository` の `PostgreSQL` 実装。
 /// CRITICAL-RUST-001 監査対応: 全 DB 操作前に RLS テナント分離のための
-/// set_config('app.current_tenant_id', ...) を呼び出す。
+/// `set_config`('`app.current_tenant_id`', ...) を呼び出す。
 pub struct QuotaPolicyPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl QuotaPolicyPostgresRepository {
+    #[must_use] 
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -81,8 +82,8 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         page_size: u32,
         tenant_id: &str,
     ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
-        let offset = (page.saturating_sub(1) * page_size) as i64;
-        let limit = page_size as i64;
+        let offset = i64::from(page.saturating_sub(1) * page_size);
+        let limit = i64::from(page_size);
 
         // CRITICAL-RUST-001 監査対応: SELECT 前に RLS テナント分離のためセッション変数を設定する。
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -130,7 +131,7 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(policy.limit as i64)
         .bind(policy.period.as_str())
         .bind(policy.enabled)
-        .bind(policy.alert_threshold_percent.unwrap_or(80) as i16)
+        .bind(i16::from(policy.alert_threshold_percent.unwrap_or(80)))
         .bind(policy.created_at)
         .bind(policy.updated_at)
         .execute(self.pool.as_ref())
@@ -159,7 +160,7 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(policy.limit as i64)
         .bind(policy.period.as_str())
         .bind(policy.enabled)
-        .bind(policy.alert_threshold_percent.unwrap_or(80) as i16)
+        .bind(i16::from(policy.alert_threshold_percent.unwrap_or(80)))
         .bind(policy.updated_at)
         .execute(self.pool.as_ref())
         .await?;

@@ -48,7 +48,8 @@ class _WipLimitScreenState extends ConsumerState<WipLimitScreen> {
   @override
   Widget build(BuildContext context) {
     /// ボードカラム一覧の状態を監視する
-    final columnsAsync = ref.watch(boardColumnListProvider(widget.projectId));
+    /// 非ファミリープロバイダーのため引数なしで参照する
+    final columnsAsync = ref.watch(boardColumnListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -210,7 +211,7 @@ class _WipLimitScreenState extends ConsumerState<WipLimitScreen> {
     final input = UpdateWipLimitInput(wipLimit: limit);
 
     ref
-        .read(boardColumnListProvider(widget.projectId).notifier)
+        .read(boardColumnListProvider.notifier)
         .updateWipLimit(widget.projectId, column.statusCode, input);
 
     ScaffoldMessenger.of(context).showSnackBar(
