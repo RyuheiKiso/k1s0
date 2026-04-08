@@ -6,7 +6,7 @@ description = "k1s0 shared core library"
 
 [dependencies]
 # secrecy クレートでパスワード等の機密情報を Secret<T> でラップし、Debug 出力への漏洩を防ぐ（H-20 監査対応）
-secrecy = { version = "0.8", features = ["serde"] }
+secrecy = { version = "0.10", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
