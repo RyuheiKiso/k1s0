@@ -134,7 +134,7 @@ testcontainers-modules = { version = "0.12", features = ["postgres"] }
 # インメモリキャッシュ: 複数サービスで同一バージョン・feature を使用するため workspace で一元管理する（L-04 監査対応）
 moka = { version = "0.12", features = ["future"] }
 # ハッシュアルゴリズム: 複数サービスで同一バージョンを使用するため workspace で一元管理する（L-04 監査対応）
-sha2 = "0.10"
+sha2 = "0.11"
 # 16進数エンコード/デコード: 複数サービスで同一バージョンを使用するため workspace で一元管理する（L-04 監査対応）
 hex = "0.4"
 # Redis クライアント: 複数サービスで同一バージョンを使用するため workspace で一元管理する（L-04 監査対応）
