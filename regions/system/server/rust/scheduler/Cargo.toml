@@ -45,7 +45,7 @@ utoipa = {workspace = true}
 utoipa-swagger-ui = {workspace = true}
 rdkafka = { version = "0.39", features = ["cmake-build"] }
 moka = {workspace = true}
-cron = "0.15"
+cron = "0.16"
 tokio-util = { version = "0.7", features = ["rt"] }
 k1s0-distributed-lock = { path = "../../../library/rust/distributed-lock", features = ["postgres"] }
 reqwest = {workspace = true}
