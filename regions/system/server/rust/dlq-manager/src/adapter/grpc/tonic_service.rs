@@ -2,7 +2,13 @@
 
 // §2.2 監査対応: ADR-0034 dual-write パターンで deprecated な status 文字列フィールドと
 // 新 status_enum フィールドを同時設定するため、このファイル全体で deprecated 警告を抑制する。
-#![allow(deprecated)]
+// HIGH-001 監査対応: protoとのデータ変換で必要なキャストを許容する
+#![allow(
+    deprecated,
+    clippy::cast_possible_wrap,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
 
 use std::sync::Arc;
 
