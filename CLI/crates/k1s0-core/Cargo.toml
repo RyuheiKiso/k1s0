@@ -19,7 +19,7 @@ walkdir = "2"
 ureq = { version = "3", features = ["json"] }
 sha2 = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
-jsonschema = "0.18"
+jsonschema = "0.45"
 similar = "2"
 # L-14 監査対応: tempfile は本番コード（template_migrate/planner.rs の RenderedTemplateTree 構造体）で
 # 一時ディレクトリを保持するために使用しているため [dependencies] に配置している（[dev-dependencies] 不可）。
