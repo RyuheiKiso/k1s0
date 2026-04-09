@@ -26,7 +26,7 @@ pub struct ResiliencyDecorator {
 }
 
 impl ResiliencyDecorator {
-    #[must_use] 
+    #[must_use]
     pub fn new(policy: ResiliencyPolicy) -> Self {
         let bulkhead = policy
             .bulkhead
@@ -81,10 +81,14 @@ impl ResiliencyDecorator {
 
         for attempt in 0..max_attempts {
             let result = match self.policy.timeout {
-                Some(timeout_dur) => if let Ok(r) = tokio::time::timeout(timeout_dur, f()).await { r.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>) } else {
-                    self.metrics.record_timeout();
-                    return Err(ResiliencyError::Timeout { after: timeout_dur });
-                },
+                Some(timeout_dur) => {
+                    if let Ok(r) = tokio::time::timeout(timeout_dur, f()).await {
+                        r.map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+                    } else {
+                        self.metrics.record_timeout();
+                        return Err(ResiliencyError::Timeout { after: timeout_dur });
+                    }
+                }
                 None => f()
                     .await
                     .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
@@ -113,10 +117,10 @@ impl ResiliencyDecorator {
                         if let Some(ref retry_cfg) = retry_config {
                             self.metrics.record_retry_attempt();
 
-                            let delay = self
-                                .policy
-                                .backoff
-                                .as_ref().map_or_else(|| retry_cfg.compute_delay(attempt), |b| b.compute_delay(attempt, retry_cfg.multiplier));
+                            let delay = self.policy.backoff.as_ref().map_or_else(
+                                || retry_cfg.compute_delay(attempt),
+                                |b| b.compute_delay(attempt, retry_cfg.multiplier),
+                            );
                             tokio::time::sleep(delay).await;
                         }
                     }

@@ -717,8 +717,9 @@ async fn test_increment_multiple_times() {
 
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
-    // スタブはステートレスなので各 oneshot 呼び出しは独立。2回目は count=1 になる
-    assert_eq!(json["task_count"], 1);
+    // app.clone() は同じ Arc<RwLock<Vec>> を共有するため、1回目・2回目が同一リポジトリに書き込まれる。
+    // 2回 increment した後の task_count は 2 になる。
+    assert_eq!(json["task_count"], 2);
 }
 
 /// 異なるプロジェクトへの increment が独立して動作することを確認する

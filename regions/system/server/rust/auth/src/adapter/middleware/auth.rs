@@ -17,10 +17,10 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 /// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 /// 成功した場合はトークン文字列を返す。ヘッダーがない・形式が違う場合は None を返す。
 pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
-    let auth_header = req.headers().get(axum::http::header::AUTHORIZATION)?;
-    let auth_str = auth_header.to_str().ok()?;
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_header = req.headers().get(axum::http::header::AUTHORIZATION)?;
+    let auth_str = auth_header.to_str().ok()?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -42,7 +42,8 @@ fn tier_level(tiers: &[String], tier: &str) -> Option<u8> {
     tiers
         .iter()
         .position(|t| t.eq_ignore_ascii_case(tier))
-        .map(|i| i as u8)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .map(|i| u8::try_from(i).unwrap_or(u8::MAX))
 }
 
 /// LOW-13 監査対応: 設定駆動の Tier 階層を用いて `tier_access` から `required_tier` へのアクセス可否を判定する。
@@ -51,14 +52,13 @@ fn tier_level(tiers: &[String], tier: &str) -> Option<u8> {
 /// - 上位 Tier（インデックスが小さい）を持つユーザーは、それ以下の全 Tier にアクセス可能
 /// - 設定ファイルの `tier_hierarchy.tiers` に存在しない Tier は拒否される
 fn has_tier_access(tiers: &[String], tier_access: &[String], required_tier: &str) -> bool {
-    let required_level = match tier_level(tiers, required_tier) {
-        Some(level) => level,
-        None => return false,
+    // 要求されたTierが設定済み階層に存在しない場合はアクセス拒否
+    let Some(required_level) = tier_level(tiers, required_tier) else {
+        return false;
     };
 
     tier_access.iter().any(|user_tier| {
-        tier_level(tiers, user_tier)
-            .is_some_and(|user_level| user_level <= required_level)
+        tier_level(tiers, user_tier).is_some_and(|user_level| user_level <= required_level)
     })
 }
 
@@ -69,15 +69,13 @@ pub async fn auth_middleware(
     mut req: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    let token = match extract_bearer_token(&req) {
-        Some(t) => t,
-        None => {
-            return error_response(
-                StatusCode::UNAUTHORIZED,
-                "SYS_AUTH_MISSING_TOKEN",
-                "Authorization header with Bearer token is required",
-            );
-        }
+    // Bearerトークンが存在しない場合は401エラーを返す
+    let Some(token) = extract_bearer_token(&req) else {
+        return error_response(
+            StatusCode::UNAUTHORIZED,
+            "SYS_AUTH_MISSING_TOKEN",
+            "Authorization header with Bearer token is required",
+        );
     };
 
     match state.validate_token_uc.execute(&token).await {

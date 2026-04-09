@@ -44,6 +44,8 @@ fn is_safe_url(url: &reqwest::Url) -> bool {
         }
 
         // .local / .internal ドメインも拒否する（内部 DNS 解決の可能性）
+        // lower はすでに to_lowercase() 済みのため case_sensitive_file_extension_comparisons は誤検知
+        #[allow(clippy::case_sensitive_file_extension_comparisons)]
         if lower.ends_with(".local") || lower.ends_with(".internal") {
             return false;
         }
@@ -151,7 +153,11 @@ impl HealthCollector {
     async fn collect(&self) {
         // ヘルスコレクターは全テナントのサービスを対象とするため、システム用の空文字列を使用する。
         // RLS の set_config('app.current_tenant_id', '', true) は全テナントを返すポリシーが必要。
-        let services = match self.service_repo.list("", ServiceListFilters::default()).await {
+        let services = match self
+            .service_repo
+            .list("", ServiceListFilters::default())
+            .await
+        {
             Ok(s) => s,
             Err(e) => {
                 warn!(error = %e, "failed to list services for health check");
@@ -192,7 +198,8 @@ impl HealthCollector {
             let (state, message, response_time_ms) =
                 match self.http_client.get(&healthcheck_url).send().await {
                     Ok(resp) => {
-                        let elapsed = start.elapsed().as_millis() as i64;
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        let elapsed = i64::try_from(start.elapsed().as_millis()).unwrap_or(i64::MAX);
                         if resp.status().is_success() {
                             (HealthState::Healthy, None, Some(elapsed))
                         } else {
@@ -204,7 +211,8 @@ impl HealthCollector {
                         }
                     }
                     Err(e) => {
-                        let elapsed = start.elapsed().as_millis() as i64;
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        let elapsed = i64::try_from(start.elapsed().as_millis()).unwrap_or(i64::MAX);
                         (HealthState::Unhealthy, Some(e.to_string()), Some(elapsed))
                     }
                 };

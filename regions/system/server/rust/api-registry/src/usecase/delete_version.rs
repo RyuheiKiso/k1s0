@@ -100,7 +100,8 @@ impl DeleteVersionUseCase {
             .ok_or_else(|| DeleteVersionError::Internal("latest version not found".to_string()))?;
 
         let mut updated_schema = schema.clone();
-        updated_schema.version_count = remaining_count as u32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        updated_schema.version_count = u32::try_from(remaining_count).unwrap_or(0);
         updated_schema.latest_version = latest.version;
         updated_schema.updated_at = chrono::Utc::now();
 
@@ -162,17 +163,19 @@ mod tests {
             }
         });
         version_mock.expect_delete().returning(|_, _, _| Ok(true));
-        version_mock.expect_find_latest_by_name().returning(|_, name| {
-            Ok(Some(
-                crate::domain::entity::api_registration::ApiSchemaVersion::new(
-                    name.to_string(),
-                    2,
-                    SchemaType::OpenApi,
-                    "{}".to_string(),
-                    "tester".to_string(),
-                ),
-            ))
-        });
+        version_mock
+            .expect_find_latest_by_name()
+            .returning(|_, name| {
+                Ok(Some(
+                    crate::domain::entity::api_registration::ApiSchemaVersion::new(
+                        name.to_string(),
+                        2,
+                        SchemaType::OpenApi,
+                        "{}".to_string(),
+                        "tester".to_string(),
+                    ),
+                ))
+            });
 
         let uc = DeleteVersionUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let result = uc.execute("tenant-a", "test-api", 1, None).await;

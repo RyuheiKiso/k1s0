@@ -43,7 +43,7 @@ pub struct EventStoreGrpcAuthState {
 }
 
 impl EventStoreServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         inner: Arc<EventStoreGrpcService>,
         auth_state: Option<EventStoreGrpcAuthState>,
@@ -58,6 +58,9 @@ impl EventStoreServiceTonic {
         request: &Request<T>,
         action: &str,
     ) -> Result<String, Status> {
+        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
         let Some(auth_state) = &self.auth_state else {
             // 認証なし（開発環境）: フォールバックのテナント ID を返す
             return Ok("system".to_string());
@@ -70,13 +73,12 @@ impl EventStoreServiceTonic {
         let auth_header = auth_header
             .to_str()
             .map_err(|_| Status::unauthenticated("invalid Authorization metadata"))?;
-        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
-        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
-        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
         if auth_header.len() < BEARER_PREFIX_LEN
             || !auth_header[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ")
         {
-            return Err(Status::unauthenticated("Authorization must be Bearer token"));
+            return Err(Status::unauthenticated(
+                "Authorization must be Bearer token",
+            ));
         }
         let token = &auth_header[BEARER_PREFIX_LEN..];
 

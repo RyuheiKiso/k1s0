@@ -227,6 +227,237 @@ ADR-0005 に基づき、k1s0 の全サービスで使用するエラーコード
 
 ---
 
+---
+
+## dlq-manager サービス (`SYS_DLQ_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_DLQ_NOT_FOUND` | 404 | DLQ メッセージ未発見 |
+| `SYS_DLQ_CONFLICT` | 409 | メッセージ処理済み（AlreadyProcessed） |
+| `SYS_DLQ_VALIDATION_ERROR` | 400 | バリデーションエラー |
+| `SYS_DLQ_PROCESS_FAILED` | 500 | メッセージ再処理失敗 |
+| `SYS_DLQ_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## featureflag サービス (`SYS_FF_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_FF_NOT_FOUND` | 404 | フィーチャーフラグ未発見 |
+| `SYS_FF_ALREADY_EXISTS` | 409 | フィーチャーフラグ重複 |
+| `SYS_FF_EVALUATE_FAILED` | 500 | フラグ評価失敗 |
+| `SYS_FF_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_FF_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## event-monitor サービス (`SYS_EVMON_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_EVMON_NOT_FOUND` | 404 | イベント未発見 |
+| `SYS_EVMON_ALERT_RULE_NOT_FOUND` | 404 | アラートルール未発見 |
+| `SYS_EVMON_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_EVMON_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## event-store サービス (`SYS_EVSTORE_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_EVSTORE_STREAM_NOT_FOUND` | 404 | ストリーム未発見 |
+| `SYS_EVSTORE_EVENT_NOT_FOUND` | 404 | イベント未発見 |
+| `SYS_EVSTORE_SNAPSHOT_NOT_FOUND` | 404 | スナップショット未発見 |
+| `SYS_EVSTORE_STREAM_ALREADY_EXISTS` | 409 | ストリーム重複 |
+| `SYS_EVSTORE_VERSION_CONFLICT` | 409 | バージョン競合（楽観的ロック） |
+| `SYS_EVSTORE_VALIDATION_FAILED` | 400 | バリデーションエラー（domain/error.rs） |
+| `SYS_EVSTORE_VALIDATION_ERROR` | 400 | バリデーションエラー（adapter/handler/error.rs） |
+| `SYS_EVSTORE_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## graphql-gateway サービス (`SYS_GQLGW_*`)
+
+GraphQL レスポンスのエラーは `errors[].extensions.code` フィールドに設定される。
+
+| コード | HTTP / GraphQL | 説明 |
+|--------|----------------|------|
+| `SYS_GQLGW_NOT_FOUND` | 404 | スキーマ未発見 |
+| `SYS_GQLGW_QUERY_PARSE_FAILED` | 400 | クエリ解析失敗 |
+| `SYS_GQLGW_UPSTREAM_ERROR` | 503 | 上流サービスへのリクエスト失敗 |
+| `SYS_GQLGW_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_GQLGW_INTERNAL_ERROR` | 500 | 内部エラー |
+| `UNAUTHENTICATED` | GraphQL拡張 | gRPC Unauthenticated に対応（GraphQL extensions.code） |
+| `FORBIDDEN` | GraphQL拡張 | gRPC PermissionDenied に対応（GraphQL extensions.code） |
+| `VALIDATION_ERROR` | GraphQL拡張 | gRPC InvalidArgument/FailedPrecondition/OutOfRange に対応 |
+| `BACKEND_ERROR` | GraphQL拡張 | gRPC その他エラーに対応 |
+
+---
+
+## master-maintenance サービス (`SYS_MM_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_MM_TABLE_NOT_FOUND` | 404 | テーブル定義未発見 |
+| `SYS_MM_RECORD_NOT_FOUND` | 404 | レコード未発見 |
+| `SYS_MM_RULE_NOT_FOUND` | 404 | 整合性ルール未発見 |
+| `SYS_MM_DISPLAY_CONFIG_NOT_FOUND` | 404 | 表示設定未発見 |
+| `SYS_MM_IMPORT_JOB_NOT_FOUND` | 404 | インポートジョブ未発見 |
+| `SYS_MM_RELATIONSHIP_NOT_FOUND` | 404 | テーブルリレーションシップ未発見 |
+| `SYS_MM_COLUMN_NOT_FOUND` | 404 | カラム定義未発見 |
+| `SYS_MM_OPERATION_NOT_ALLOWED` | 403 | テーブルへの操作権限なし（Create/Update/Delete 禁止） |
+| `SYS_MM_DUPLICATE_TABLE` | 409 | テーブル名重複 |
+| `SYS_MM_DUPLICATE_COLUMN` | 409 | カラム名重複 |
+| `SYS_MM_VERSION_CONFLICT` | 409 | バージョン競合（楽観的ロック） |
+| `SYS_MM_INVALID_RULE` | 400 | 整合性ルール無効 |
+| `SYS_MM_IMPORT_FAILED` | 400 | インポート処理失敗 |
+| `SYS_MM_VALIDATION_ERROR` | 400 | バリデーションエラー（ValidationFailed / RecordValidation 両方） |
+| `SYS_MM_INTERNAL_ERROR` | 500 | 内部エラー（SqlBuildError / Internal 両方。詳細はサーバーログのみ） |
+
+---
+
+## navigation サービス (`SYS_NAV_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_NAV_NOT_FOUND` | 404 | ナビゲーション項目未発見 |
+| `SYS_NAV_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_NAV_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## notification サービス (`SYS_NOTIFY_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_NOTIFY_NOT_FOUND` | 404 | 通知未発見 |
+| `SYS_NOTIFY_CHANNEL_NOT_FOUND` | 404 | 通知チャンネル未発見 |
+| `SYS_NOTIFY_TEMPLATE_NOT_FOUND` | 404 | 通知テンプレート未発見 |
+| `SYS_NOTIFY_ALREADY_SENT` | 409 | 通知送信済み |
+| `SYS_NOTIFY_CHANNEL_DISABLED` | 400 | 通知チャンネル無効化 |
+| `SYS_NOTIFY_SEND_FAILED` | 500 | 通知送信失敗 |
+| `SYS_NOTIFY_VALIDATION_ERROR` | 400 | バリデーションエラー |
+| `SYS_NOTIFY_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## policy サービス (`SYS_POLICY_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_POLICY_NOT_FOUND` | 404 | ポリシー未発見 |
+| `SYS_POLICY_ALREADY_EXISTS` | 409 | ポリシー重複 |
+| `SYS_POLICY_EVALUATION_FAILED` | 500 | ポリシー評価失敗 |
+| `SYS_POLICY_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_POLICY_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## rule-engine サービス (`SYS_RULE_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_RULE_NOT_FOUND` | 404 | ルール未発見 |
+| `SYS_RULE_ALREADY_EXISTS` | 409 | ルール重複 |
+| `SYS_RULE_EVALUATION_FAILED` | 500 | ルール評価失敗 |
+| `SYS_RULE_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_RULE_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## saga サービス (`SYS_SAGA_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_SAGA_NOT_FOUND` | 404 | サガ未発見 |
+| `SYS_SAGA_INVALID_STATUS_TRANSITION` | 400 | 無効なサガ状態遷移（domain/error.rs） |
+| `SYS_SAGA_VALIDATION_ERROR` | 400 | バリデーションエラー（adapter/handler/error.rs） |
+| `SYS_SAGA_VALIDATION_FAILED` | 400 | バリデーションエラー（domain/error.rs） |
+| `SYS_SAGA_CONFLICT` | 409 | 競合（adapter/handler/error.rs） |
+| `SYS_SAGA_COMPENSATION_FAILED` | 500 | 補償処理失敗 |
+| `SYS_SAGA_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## scheduler サービス (`SYS_SCHED_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_SCHED_NOT_FOUND` | 404 | ジョブ未発見 |
+| `SYS_SCHED_ALREADY_EXISTS` | 409 | ジョブ重複 |
+| `SYS_SCHED_INVALID_SCHEDULE` | 400 | 無効なスケジュール式 |
+| `SYS_SCHED_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_SCHED_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## search サービス (`SYS_SEARCH_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_SEARCH_NOT_FOUND` | 404 | 検索インデックス未発見 |
+| `SYS_SEARCH_INVALID_QUERY` | 400 | クエリ構文無効 |
+| `SYS_SEARCH_INDEXING_FAILED` | 500 | インデックス作成失敗 |
+| `SYS_SEARCH_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_SEARCH_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## service-catalog サービス (`SYS_SVCCAT_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_SVCCAT_NOT_FOUND` | 404 | サービス未発見 |
+| `SYS_SVCCAT_ALREADY_EXISTS` | 409 | サービス重複 |
+| `SYS_SVCCAT_VERSION_CONFLICT` | 409 | バージョン競合 |
+| `SYS_SVCCAT_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_SVCCAT_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## workflow サービス (`SYS_WORKFLOW_*`)
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_WORKFLOW_NOT_FOUND` | 404 | ワークフロー未発見 |
+| `SYS_WORKFLOW_ALREADY_EXISTS` | 409 | ワークフロー重複 |
+| `SYS_WORKFLOW_INVALID_STATUS_TRANSITION` | 400 | 無効なワークフロー状態遷移 |
+| `SYS_WORKFLOW_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_WORKFLOW_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## ai-agent サービス (`SYS_AIAGENT_*`) — experimental
+
+> このサービスは experimental ステータスです。エラーコードは今後変更される可能性があります。
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_AIAGENT_NOT_FOUND` | 404 | エージェント未発見 |
+| `SYS_AIAGENT_ALREADY_EXISTS` | 409 | エージェント重複 |
+| `SYS_AIAGENT_EXECUTION_FAILED` | 500 | エージェント実行失敗 |
+| `SYS_AIAGENT_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_AIAGENT_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
+## ai-gateway サービス (`SYS_AIGW_*`) — experimental
+
+> このサービスは experimental ステータスです。エラーコードは今後変更される可能性があります。
+
+| コード | HTTP | 説明 |
+|--------|------|------|
+| `SYS_AIGW_NOT_FOUND` | 404 | モデル未発見 |
+| `SYS_AIGW_MODEL_REQUEST_FAILED` | 503 | モデルへのリクエスト失敗 |
+| `SYS_AIGW_RATE_LIMIT_EXCEEDED` | 429 | レートリミット超過 |
+| `SYS_AIGW_VALIDATION_FAILED` | 400 | バリデーションエラー |
+| `SYS_AIGW_INTERNAL_ERROR` | 500 | 内部エラー |
+
+---
+
 ## エラーレスポンスフォーマット
 
 ADR-0005 に準拠した JSON エラーレスポンス形式:

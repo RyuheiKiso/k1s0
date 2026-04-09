@@ -12,7 +12,7 @@ pub struct VersionPostgresRepository {
 }
 
 impl VersionPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -39,7 +39,8 @@ impl From<ApiSchemaVersionRow> for ApiSchemaVersion {
             .unwrap_or_default();
         ApiSchemaVersion {
             name: r.name,
-            version: r.version as u32,
+            // LOW-008: 安全な型変換（バージョン番号は非負であることが前提）
+            version: u32::try_from(r.version).unwrap_or(0),
             schema_type: SchemaType::from_str(&r.schema_type),
             content: r.content,
             content_hash: r.content_hash,
@@ -72,7 +73,8 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         )
         .bind(tenant_id)
         .bind(name)
-        .bind(version as i32)
+        // LOW-008: 安全な型変換（バージョン番号は i32 範囲内が前提）
+        .bind(i32::try_from(version).unwrap_or(i32::MAX))
         .fetch_optional(&mut *tx)
         .await?;
         tx.commit().await?;
@@ -80,7 +82,11 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
     }
 
     // テナントスコープで set_config を設定した後に最新バージョンを取得する。
-    async fn find_latest_by_name(&self, tenant_id: &str, name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(
+        &self,
+        tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         // トランザクション内で RLS 用セッション変数を設定する
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
@@ -134,7 +140,8 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（COUNT(*) は非負であることが前提）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     // テナントスコープで set_config を設定した後にバージョンを作成する。
@@ -155,7 +162,8 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         )
         .bind(tenant_id)
         .bind(&version.name)
-        .bind(version.version as i32)
+        // LOW-008: 安全な型変換（バージョン番号は i32 範囲内が前提）
+        .bind(i32::try_from(version.version).unwrap_or(i32::MAX))
         .bind(version.schema_type.to_string())
         .bind(&version.content)
         .bind(&version.content_hash)
@@ -183,7 +191,8 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         )
         .bind(tenant_id)
         .bind(name)
-        .bind(version as i32)
+        // LOW-008: 安全な型変換（バージョン番号は i32 範囲内が前提）
+        .bind(i32::try_from(version).unwrap_or(i32::MAX))
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;
@@ -207,6 +216,7 @@ impl ApiSchemaVersionRepository for VersionPostgresRepository {
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok(count.0 as u64)
+        // LOW-008: 安全な型変換（COUNT(*) は非負であることが前提）
+        Ok(u64::try_from(count.0).unwrap_or(0))
     }
 }

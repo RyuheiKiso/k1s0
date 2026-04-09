@@ -21,7 +21,7 @@ pub struct UserPostgresRepository {
 impl UserPostgresRepository {
     // メトリクス不要の簡易コンストラクタ（テストやスクリプト用途で使用予定のため dead_code を許可）
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -29,7 +29,7 @@ impl UserPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,

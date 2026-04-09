@@ -7,7 +7,7 @@ pub enum VersionSelectionError {
     Ambiguous,
 }
 
-#[must_use] 
+#[must_use]
 pub fn normalize_arch(arch: &str) -> String {
     match arch.trim().to_lowercase().as_str() {
         "x64" | "x86_64" | "amd64" => "amd64".to_string(),
@@ -36,7 +36,7 @@ pub fn filter_versions<'a>(
         .collect()
 }
 
-#[must_use] 
+#[must_use]
 pub fn select_latest(
     versions: &[AppVersion],
     platform: Option<&Platform>,

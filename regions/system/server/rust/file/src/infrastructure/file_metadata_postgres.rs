@@ -260,6 +260,8 @@ fn sanitize_schema(schema: &str) -> anyhow::Result<&str> {
 
 /// migration 003 で `tenant_id` カラムが追加されたためフィルタを有効化する
 /// RLS の `set_config` と組み合わせることで二重のテナント境界を実現する
+// フィルタパラメータは QueryBuilder への条件追加のために参照が必要（変更不可）
+#[allow(clippy::ref_option)]
 fn apply_filters(
     qb: &mut QueryBuilder<'_, Postgres>,
     tenant_id: &Option<String>,

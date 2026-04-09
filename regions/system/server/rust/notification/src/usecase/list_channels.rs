@@ -20,7 +20,10 @@ impl ListChannelsUseCase {
 
     /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取りリポジトリに伝播して RLS を有効化する。
     #[allow(dead_code)]
-    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<NotificationChannel>, ListChannelsError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+    ) -> Result<Vec<NotificationChannel>, ListChannelsError> {
         self.repo
             .find_all(tenant_id)
             .await

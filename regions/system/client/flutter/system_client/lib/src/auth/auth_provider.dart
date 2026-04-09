@@ -251,10 +251,13 @@ class AuthNotifier extends Notifier<AuthState> {
         // clearSession() は非同期メソッドのため await が必須
         await _sessionCookieInterceptor.clearSession();
       }
-      // MED-009 監査対応: async 処理後に Provider が dispose されている場合、
-      // state 更新で例外が発生するため ref.mounted チェックを追加する。
-      if (!ref.mounted) return;
-      state = const AuthUnauthenticated();
+      // MED-012: finally ブロック内での return は Dart の control_flow_in_finally 警告対象のため
+      // 条件を肯定形に変換して return を除去する。
+      // async 処理後に Provider が dispose されている場合、state 更新で例外が発生するため
+      // ref.mounted チェックで安全に state 更新を行う。
+      if (ref.mounted) {
+        state = const AuthUnauthenticated();
+      }
     }
   }
 }

@@ -193,7 +193,8 @@ impl AppendEventsUseCase {
                     input.tenant_id.clone(),
                     0, // sequence は INSERT の RETURNING で採番される
                     data.event_type.clone(),
-                    base_version + (i as i64) + 1,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    base_version + i64::try_from(i).unwrap_or(i64::MAX) + 1,
                     data.payload.clone(),
                     EventMetadata::new(
                         data.metadata.actor_id.clone(),
@@ -204,7 +205,8 @@ impl AppendEventsUseCase {
             })
             .collect();
 
-        let new_version = base_version + input.events.len() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let new_version = base_version + i64::try_from(input.events.len()).unwrap_or(i64::MAX);
 
         // TransactionalAppendPort を介してトランザクション内で原子操作を実行する
         // テナント分離のため tenant_id を渡す（ADR-0106）
@@ -291,7 +293,8 @@ impl AppendEventsUseCase {
                     input.tenant_id.clone(),
                     0, // sequence assigned by storage
                     data.event_type.clone(),
-                    base_version + (i as i64) + 1,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    base_version + i64::try_from(i).unwrap_or(i64::MAX) + 1,
                     data.payload.clone(),
                     EventMetadata::new(
                         data.metadata.actor_id.clone(),
@@ -302,7 +305,8 @@ impl AppendEventsUseCase {
             })
             .collect();
 
-        let new_version = base_version + input.events.len() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let new_version = base_version + i64::try_from(input.events.len()).unwrap_or(i64::MAX);
 
         // テナント分離のため tenant_id を渡す（ADR-0106）
         let persisted = self
@@ -370,17 +374,20 @@ mod tests {
             .expect_update_version()
             .returning(|_, _, _| Ok(()));
 
-        event_repo.expect_append().returning(|_, stream_id, events| {
-            Ok(events
-                .into_iter()
-                .enumerate()
-                .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 1;
-                    e.stream_id = stream_id.to_string();
-                    e
-                })
-                .collect())
-        });
+        event_repo
+            .expect_append()
+            .returning(|_, stream_id, events| {
+                Ok(events
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, mut e)| {
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(1);
+                        e.stream_id = stream_id.to_string();
+                        e
+                    })
+                    .collect())
+            });
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", -1);
@@ -404,17 +411,20 @@ mod tests {
             .expect_update_version()
             .returning(|_, _, _| Ok(()));
 
-        event_repo.expect_append().returning(|_, stream_id, events| {
-            Ok(events
-                .into_iter()
-                .enumerate()
-                .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 10;
-                    e.stream_id = stream_id.to_string();
-                    e
-                })
-                .collect())
-        });
+        event_repo
+            .expect_append()
+            .returning(|_, stream_id, events| {
+                Ok(events
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, mut e)| {
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(10);
+                        e.stream_id = stream_id.to_string();
+                        e
+                    })
+                    .collect())
+            });
 
         let uc = AppendEventsUseCase::new(Arc::new(stream_repo), Arc::new(event_repo));
         let input = make_input("stream-001", 2);

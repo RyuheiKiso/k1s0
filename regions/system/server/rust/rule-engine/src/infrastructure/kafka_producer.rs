@@ -16,7 +16,7 @@ pub struct RuleChangedEvent {
 }
 
 impl RuleChangedEvent {
-    #[must_use] 
+    #[must_use]
     pub fn rule_created(rule: &crate::domain::entity::rule::Rule) -> Self {
         Self {
             event_type: "RULE_CHANGED".to_string(),
@@ -33,7 +33,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_updated(rule: &crate::domain::entity::rule::Rule) -> Self {
         Self {
             event_type: "RULE_CHANGED".to_string(),
@@ -50,7 +50,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_deleted(rule: &crate::domain::entity::rule::Rule) -> Self {
         Self {
             event_type: "RULE_CHANGED".to_string(),
@@ -67,7 +67,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_set_created(rs: &crate::domain::entity::rule::RuleSet) -> Self {
         Self {
             event_type: "RULE_SET_CHANGED".to_string(),
@@ -84,7 +84,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_set_updated(rs: &crate::domain::entity::rule::RuleSet) -> Self {
         Self {
             event_type: "RULE_SET_CHANGED".to_string(),
@@ -101,7 +101,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_set_deleted(rs: &crate::domain::entity::rule::RuleSet) -> Self {
         Self {
             event_type: "RULE_SET_CHANGED".to_string(),
@@ -118,7 +118,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_set_published(
         rs: &crate::domain::entity::rule::RuleSet,
         new_version: u32,
@@ -139,7 +139,7 @@ impl RuleChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn rule_set_rolled_back(
         rs: &crate::domain::entity::rule::RuleSet,
         rolled_back_to: u32,
@@ -211,7 +211,7 @@ impl KafkaRuleProducer {
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,

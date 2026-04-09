@@ -18,7 +18,7 @@ pub struct RedisSessionRepository {
 }
 
 impl RedisSessionRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(conn: ConnectionManager) -> Self {
         Self {
             conn,
@@ -79,9 +79,7 @@ impl RedisSessionRepository {
         let key = format!("{}revoked:jti:{}", self.prefix, jti);
         // EXISTS コマンドは存在する場合 1、しない場合 0 を返す。
         // エラー時は false を返して Redis 障害時のサービス停止を防ぐ。
-        conn.exists::<_, bool>(&key)
-            .await
-            .unwrap_or(false)
+        conn.exists::<_, bool>(&key).await.unwrap_or(false)
     }
 }
 
@@ -98,12 +96,13 @@ impl SessionRepository for RedisSessionRepository {
             .map_err(|e| SessionError::Internal(format!("serialization error: {e}")))?;
 
         // SET session:{id} with TTL
-        conn.set_ex::<_, _, ()>(&session_key, &json, ttl as u64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        conn.set_ex::<_, _, ()>(&session_key, &json, u64::try_from(ttl).unwrap_or(1))
             .await
             .map_err(|e| SessionError::Internal(format!("redis SET error: {e}")))?;
 
         // SET session:token:{token} → id with TTL
-        conn.set_ex::<_, _, ()>(&token_key, &session.id, ttl as u64)
+        conn.set_ex::<_, _, ()>(&token_key, &session.id, u64::try_from(ttl).unwrap_or(1))
             .await
             .map_err(|e| SessionError::Internal(format!("redis SET token error: {e}")))?;
 
@@ -278,7 +277,10 @@ mod tests {
         let expected_hash = hex::encode(Sha256::digest(token.as_bytes()));
         let token_key = format!("{}token:{}", prefix, expected_hash);
         assert!(token_key.starts_with("session:token:"));
-        assert!(!token_key.contains("tok-xyz"), "トークン値がキーに含まれてはならない");
+        assert!(
+            !token_key.contains("tok-xyz"),
+            "トークン値がキーに含まれてはならない"
+        );
 
         let user_key = format!("{}user:{}", prefix, "user-1");
         assert_eq!(user_key, "session:user:user-1");

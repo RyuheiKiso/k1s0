@@ -16,7 +16,7 @@ impl Default for ZenEngineAdapter {
 }
 
 impl ZenEngineAdapter {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
@@ -97,28 +97,29 @@ impl ZenEngineAdapter {
         let response = runtime.block_on(async { decision.evaluate(record_data).await })?;
         let result = response.result;
 
-        Self::map_rule_result(rule, &result)
+        Ok(Self::map_rule_result(rule, &result))
     }
 
     /// ZEN エンジンの結果を `RuleResult` にマッピングする。
-    fn map_rule_result(rule: &ConsistencyRule, result: &Value) -> anyhow::Result<RuleResult> {
+    // 常に成功するため Result を返す必要はない（Clippy: unnecessary_wraps）
+    fn map_rule_result(rule: &ConsistencyRule, result: &Value) -> RuleResult {
         match result.get("_result").and_then(|v| v.as_str()) {
-            Some("fail") => Ok(Self::result_with_severity(
+            Some("fail") => Self::result_with_severity(
                 rule,
                 false,
                 Self::message_from_result(result, &rule.error_message_template),
-            )),
-            Some("warning") => Ok(Self::result_with_severity(
+            ),
+            Some("warning") => Self::result_with_severity(
                 rule,
                 true,
                 Self::message_from_result(result, &rule.error_message_template),
-            )),
-            Some("pass") | None => Ok(Self::result_with_severity(rule, true, None)),
-            Some(other) => Ok(Self::result_with_severity(
+            ),
+            Some("pass") | None => Self::result_with_severity(rule, true, None),
+            Some(other) => Self::result_with_severity(
                 rule,
                 other.eq_ignore_ascii_case("pass"),
                 Self::message_from_result(result, &rule.error_message_template),
-            )),
+            ),
         }
     }
 }

@@ -158,7 +158,7 @@ impl KafkaProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -168,13 +168,13 @@ impl KafkaProducer {
     }
 
     /// 配信先トピック名を返す。
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.access_topic
     }
 
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn rotation_topic(&self) -> &str {
         &self.rotation_topic
     }
@@ -219,9 +219,7 @@ impl VaultEventPublisher for KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish vault rotation event: {err}")
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish vault rotation event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.rotation_topic);

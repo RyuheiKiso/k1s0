@@ -23,9 +23,9 @@ use super::{error::ApiError, AppState};
 
 // JWT Claims から tenant_id を取得するヘルパー関数
 // Claims が存在しない場合は "system" を返す
-fn extract_tenant_id(claims: &Option<axum::extract::Extension<k1s0_auth::Claims>>) -> String {
+fn extract_tenant_id(claims: Option<&axum::extract::Extension<k1s0_auth::Claims>>) -> String {
     claims
-        .as_ref().map_or_else(|| "system".to_string(), |c| c.0.tenant_id().to_string())
+        .map_or_else(|| "system".to_string(), |c| c.0.tenant_id().to_string())
 }
 
 // Request types
@@ -80,7 +80,7 @@ pub async fn list_schemas(
     Query(query): Query<ListSchemasQuery>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = ListSchemasInput {
         tenant_id,
         schema_type: query.schema_type,
@@ -121,7 +121,7 @@ pub async fn register_schema(
     Json(body): Json<RegisterSchemaRequest>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = RegisterSchemaInput {
         tenant_id,
         name: body.name,
@@ -165,7 +165,7 @@ pub async fn get_schema(
     Path(name): Path<String>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     match state.get_schema_uc.execute(&tenant_id, &name).await {
         Ok(output) => {
             let latest_content = output
@@ -208,7 +208,7 @@ pub async fn list_versions(
     Query(query): Query<ListVersionsQuery>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = ListVersionsInput {
         tenant_id,
         name,
@@ -253,7 +253,7 @@ pub async fn register_version(
     Json(body): Json<RegisterVersionRequest>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = RegisterVersionInput {
         tenant_id,
         name,
@@ -296,8 +296,12 @@ pub async fn get_schema_version(
     Path((name, version)): Path<(String, u32)>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
-    match state.get_schema_version_uc.execute(&tenant_id, &name, version).await {
+    let tenant_id = extract_tenant_id(claims.as_ref());
+    match state
+        .get_schema_version_uc
+        .execute(&tenant_id, &name, version)
+        .await
+    {
         Ok(v) => (
             StatusCode::OK,
             Json(serde_json::json!({
@@ -328,7 +332,7 @@ pub async fn delete_version(
     claims: Option<axum::extract::Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id と削除者情報を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let deleted_by = claims.map(|c| c.0.sub);
     match state
         .delete_version_uc
@@ -359,7 +363,7 @@ pub async fn check_compatibility(
     Json(body): Json<CheckCompatibilityRequest>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = CheckCompatibilityInput {
         tenant_id,
         name,
@@ -397,7 +401,7 @@ pub async fn get_diff(
     Query(query): Query<GetDiffQuery>,
 ) -> impl IntoResponse {
     // JWT Claims から tenant_id を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = GetDiffInput {
         tenant_id,
         name,

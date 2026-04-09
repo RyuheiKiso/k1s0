@@ -44,10 +44,13 @@ impl From<GrpcError> for Status {
     }
 }
 
+// プロトの Timestamp フィールドは Option<ProtoTimestamp> 型を要求するため Option でラップする
+#[allow(clippy::unnecessary_wraps)]
 fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
@@ -87,7 +90,7 @@ pub struct RuleEngineServiceTonic {
 }
 
 impl RuleEngineServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<RuleEngineGrpcService>) -> Self {
         Self { inner }
     }
@@ -115,9 +118,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         request: Request<ProtoListRulesRequest>,
     ) -> Result<Response<ProtoListRulesResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map_or((1, 20), |p| (p.page, p.page_size));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
 
         let (rules, total_count, p, ps, has_next) = self
             .inner
@@ -128,7 +129,8 @@ impl RuleEngineService for RuleEngineServiceTonic {
         Ok(Response::new(ProtoListRulesResponse {
             rules: rules.into_iter().map(to_proto_rule).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
                 page: p,
                 page_size: ps,
                 has_next,
@@ -220,9 +222,7 @@ impl RuleEngineService for RuleEngineServiceTonic {
         request: Request<ProtoListRuleSetsRequest>,
     ) -> Result<Response<ProtoListRuleSetsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map_or((1, 20), |p| (p.page, p.page_size));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
 
         let (rule_sets, total_count, p, ps, has_next) = self
             .inner
@@ -233,7 +233,8 @@ impl RuleEngineService for RuleEngineServiceTonic {
         Ok(Response::new(ProtoListRuleSetsResponse {
             rule_sets: rule_sets.into_iter().map(to_proto_rule_set).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
                 page: p,
                 page_size: ps,
                 has_next,
@@ -359,7 +360,13 @@ impl RuleEngineService for RuleEngineServiceTonic {
         let inner = request.into_inner();
         let output = self
             .inner
-            .evaluate(tenant_id, inner.rule_set, inner.input_json, inner.context_json, false)
+            .evaluate(
+                tenant_id,
+                inner.rule_set,
+                inner.input_json,
+                inner.context_json,
+                false,
+            )
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(to_proto_evaluate_response(output)))
@@ -379,7 +386,13 @@ impl RuleEngineService for RuleEngineServiceTonic {
         let inner = request.into_inner();
         let output = self
             .inner
-            .evaluate(tenant_id, inner.rule_set, inner.input_json, inner.context_json, true)
+            .evaluate(
+                tenant_id,
+                inner.rule_set,
+                inner.input_json,
+                inner.context_json,
+                true,
+            )
             .await
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(to_proto_evaluate_dry_run_response(output)))

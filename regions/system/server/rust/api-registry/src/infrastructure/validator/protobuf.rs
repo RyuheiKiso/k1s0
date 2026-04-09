@@ -11,7 +11,7 @@ pub struct ProtobufSubprocessValidator {
 }
 
 impl ProtobufSubprocessValidator {
-    #[must_use] 
+    #[must_use]
     pub fn new(buf_path: String, timeout_secs: u64) -> Self {
         Self {
             buf_path,
@@ -65,6 +65,8 @@ impl SchemaValidator for ProtobufSubprocessValidator {
     }
 }
 
+// 戻り値は常に Ok だが、呼び出し元の ? 演算子との一貫性のため Result を維持する
+#[allow(clippy::unnecessary_wraps)]
 fn validate_proto_syntax(content: &str) -> anyhow::Result<Vec<ValidationError>> {
     if !content.contains("syntax") {
         return Ok(vec![ValidationError {

@@ -27,18 +27,18 @@ impl Default for WatchConfigUseCase {
 
 impl WatchConfigUseCase {
     /// 新しい `WatchConfigUseCase` を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn sender(&self) -> broadcast::Sender<ConfigChangeEvent> {
         self.sender.clone()
     }
 
     /// 変更通知を受け取る Receiver を購読する。
-    #[must_use] 
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<ConfigChangeEvent> {
         self.sender.subscribe()
     }

@@ -7,9 +7,17 @@ use crate::domain::entity::workflow_definition::WorkflowDefinition;
 #[async_trait]
 pub trait WorkflowDefinitionRepository: Send + Sync {
     // テナントスコープでIDによるワークフロー定義検索を行う
-    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowDefinition>>;
+    async fn find_by_id(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>>;
     // テナントスコープで名前によるワークフロー定義検索を行う
-    async fn find_by_name(&self, tenant_id: &str, name: &str) -> anyhow::Result<Option<WorkflowDefinition>>;
+    async fn find_by_name(
+        &self,
+        tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>>;
     // テナントスコープでフィルタ付きワークフロー定義一覧を取得する
     async fn find_all(
         &self,

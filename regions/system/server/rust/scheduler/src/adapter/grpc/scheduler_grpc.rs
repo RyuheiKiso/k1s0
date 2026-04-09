@@ -313,10 +313,14 @@ impl SchedulerGrpcService {
     pub async fn get_job(&self, req: GetJobRequest) -> Result<GetJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡して RLS セッション変数を設定する
-        let job = self.get_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
-            GetJobError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let job = self
+            .get_job_uc
+            .execute(&id, &req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                GetJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
+                GetJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(GetJobResponse {
             job: to_job_data(job),
@@ -324,11 +328,12 @@ impl SchedulerGrpcService {
     }
 
     pub async fn list_jobs(&self, req: ListJobsRequest) -> Result<ListJobsResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // CRIT-005 対応: tenant_id を ListJobsInput に設定してテナントでフィルタリングする
         let output = self
@@ -350,8 +355,9 @@ impl SchedulerGrpcService {
         Ok(ListJobsResponse {
             jobs: output.jobs.into_iter().map(to_job_data).collect(),
             total_count: output.total_count,
-            page: output.page as i32,
-            page_size: output.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(output.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
             has_next: output.has_next,
         })
     }
@@ -392,9 +398,7 @@ impl SchedulerGrpcService {
             })
             .await
             .map_err(|e| match e {
-                UpdateJobError::NotFound(id) => {
-                    GrpcError::NotFound(format!("job not found: {id}"))
-                }
+                UpdateJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
                 UpdateJobError::InvalidCron(expr) => {
                     GrpcError::InvalidArgument(format!("invalid cron expression: {expr}"))
                 }
@@ -412,13 +416,16 @@ impl SchedulerGrpcService {
     pub async fn delete_job(&self, req: DeleteJobRequest) -> Result<DeleteJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
-        self.delete_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
-            DeleteJobError::JobRunning(id) => {
-                GrpcError::Aborted(format!("job is currently running: {id}"))
-            }
-            DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        self.delete_job_uc
+            .execute(&id, &req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                DeleteJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
+                DeleteJobError::JobRunning(id) => {
+                    GrpcError::Aborted(format!("job is currently running: {id}"))
+                }
+                DeleteJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(DeleteJobResponse {
             success: true,
@@ -429,10 +436,14 @@ impl SchedulerGrpcService {
     pub async fn pause_job(&self, req: PauseJobRequest) -> Result<PauseJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
-        let job = self.pause_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
-            PauseJobError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let job = self
+            .pause_job_uc
+            .execute(&id, &req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                PauseJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
+                PauseJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
         Ok(PauseJobResponse {
             job: to_job_data(job),
         })
@@ -441,10 +452,14 @@ impl SchedulerGrpcService {
     pub async fn resume_job(&self, req: ResumeJobRequest) -> Result<ResumeJobResponse, GrpcError> {
         let id = parse_uuid(&req.job_id, "job_id")?;
         // CRIT-005 対応: tenant_id を渡してテナント分離を行う
-        let job = self.resume_job_uc.execute(&id, &req.tenant_id).await.map_err(|e| match e {
-            ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
-            ResumeJobError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let job = self
+            .resume_job_uc
+            .execute(&id, &req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                ResumeJobError::NotFound(id) => GrpcError::NotFound(format!("job not found: {id}")),
+                ResumeJobError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
         Ok(ResumeJobResponse {
             job: to_job_data(job),
         })
@@ -518,23 +533,26 @@ impl SchedulerGrpcService {
             executions.retain(|exec| exec.started_at <= to);
         }
 
-        let page = if req.page <= 0 { 1 } else { req.page as usize };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1usize } else { usize::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
-            20
+            20usize
         } else {
-            req.page_size as usize
+            usize::try_from(req.page_size).unwrap_or(20)
         };
-        let total_count = executions.len() as u64;
+        // LOW-008: 安全な型変換。usize は u64 に収まる（64bit プラットフォームでは同サイズ）。
+        let total_count = u64::try_from(executions.len()).unwrap_or(u64::MAX);
         let start = (page - 1) * page_size;
         let page_items: Vec<SchedulerExecution> =
             executions.into_iter().skip(start).take(page_size).collect();
-        let has_next = start + page_items.len() < total_count as usize;
+        let has_next = start + page_items.len() < usize::try_from(total_count).unwrap_or(0);
 
         Ok(ListExecutionsResponse {
             executions: page_items.into_iter().map(to_execution_data).collect(),
             total_count,
-            page: page as i32,
-            page_size: page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
             has_next,
         })
     }
@@ -579,8 +597,10 @@ fn to_job_data(job: SchedulerJob) -> JobData {
 fn to_execution_data(execution: SchedulerExecution) -> JobExecutionData {
     let duration_ms = execution.finished_at.and_then(|finished_at| {
         let duration = finished_at - execution.started_at;
-        if duration.num_milliseconds() >= 0 {
-            Some(duration.num_milliseconds() as u64)
+        // LOW-008: 安全な型変換。ガード条件 >= 0 により非負の値のみが変換される。
+        let ms = duration.num_milliseconds();
+        if ms >= 0 {
+            u64::try_from(ms).ok()
         } else {
             None
         }

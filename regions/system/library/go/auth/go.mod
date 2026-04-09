@@ -1,6 +1,6 @@
 module github.com/k1s0-platform/system-library-go-auth
 
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/gin-gonic/gin v1.11.0

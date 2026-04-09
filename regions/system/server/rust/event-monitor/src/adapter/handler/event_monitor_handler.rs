@@ -103,7 +103,8 @@ pub async fn trace_by_correlation(
                     "event_type": event.event_type,
                     "source": event.source,
                     "timestamp": event.timestamp.to_rfc3339(),
-                    "step_index": event.flow_step_index.unwrap_or(i as i32),
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    "step_index": event.flow_step_index.unwrap_or_else(|| i32::try_from(i).unwrap_or(i32::MAX)),
                     "status": event.status,
                     "duration_from_previous_ms": duration_from_prev
                 }));
@@ -212,10 +213,8 @@ pub async fn get_flow(State(state): State<AppState>, Path(id): Path<Uuid>) -> im
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::get_flow::GetFlowError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {id}"),
-            );
+            let err =
+                ErrorResponse::new("SYS_EVMON_FLOW_NOT_FOUND", &format!("flow not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -305,10 +304,8 @@ pub async fn update_flow(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(crate::usecase::update_flow::UpdateFlowError::NotFound(id)) => {
-            let err = ErrorResponse::new(
-                "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {id}"),
-            );
+            let err =
+                ErrorResponse::new("SYS_EVMON_FLOW_NOT_FOUND", &format!("flow not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -329,10 +326,8 @@ pub async fn delete_flow(State(state): State<AppState>, Path(id): Path<Uuid>) ->
         )
             .into_response(),
         Err(crate::usecase::delete_flow::DeleteFlowError::NotFound(_)) => {
-            let err = ErrorResponse::new(
-                "SYS_EVMON_FLOW_NOT_FOUND",
-                &format!("flow not found: {id}"),
-            );
+            let err =
+                ErrorResponse::new("SYS_EVMON_FLOW_NOT_FOUND", &format!("flow not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(e) => {
@@ -428,18 +423,19 @@ pub async fn get_flow_kpi(
 
     match state.get_flow_kpi_uc.execute(&flow_id, period).await {
         Ok(output) => {
-            let bottleneck = output
-                .kpi
-                .bottleneck_step
-                .as_ref()
-                .map_or(serde_json::Value::Null, |b| {
-                    serde_json::json!({
-                        "event_type": b.event_type,
-                        "step_index": b.step_index,
-                        "avg_duration_seconds": b.avg_duration_seconds,
-                        "timeout_rate": b.timeout_rate
-                    })
-                });
+            let bottleneck =
+                output
+                    .kpi
+                    .bottleneck_step
+                    .as_ref()
+                    .map_or(serde_json::Value::Null, |b| {
+                        serde_json::json!({
+                            "event_type": b.event_type,
+                            "step_index": b.step_index,
+                            "avg_duration_seconds": b.avg_duration_seconds,
+                            "timeout_rate": b.timeout_rate
+                        })
+                    });
 
             (
                 StatusCode::OK,
@@ -811,7 +807,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    #[must_use] 
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

@@ -8,7 +8,7 @@ pub struct ChangeLogPostgresRepository {
 }
 
 impl ChangeLogPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -66,7 +66,10 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok((rows.into_iter().map(std::convert::Into::into).collect(), total.0))
+        Ok((
+            rows.into_iter().map(std::convert::Into::into).collect(),
+            total.0,
+        ))
     }
 
     async fn find_by_record(
@@ -97,7 +100,10 @@ impl ChangeLogRepository for ChangeLogPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        Ok((rows.into_iter().map(std::convert::Into::into).collect(), total.0))
+        Ok((
+            rows.into_iter().map(std::convert::Into::into).collect(),
+            total.0,
+        ))
     }
 }
 

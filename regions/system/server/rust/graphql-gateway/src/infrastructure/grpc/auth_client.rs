@@ -87,10 +87,8 @@ impl AuthGrpcClient {
 
         match resp {
             Ok(resp) => {
-                let u = match resp.into_inner().user {
-                    Some(u) => u,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(u) = resp.into_inner().user else { return Ok(None) };
                 Ok(Some(user_from_proto(u)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -227,10 +225,14 @@ impl AuthGrpcClient {
                 page_size: page_size.unwrap_or(50),
             }),
             user_id: user_id.unwrap_or_default().to_owned(),
-            event_type_enum: event_type
-                .map_or(proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32, domain_event_type_to_proto_i32),
-            result_enum: result
-                .map_or(proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32, domain_result_to_proto_i32),
+            event_type_enum: event_type.map_or(
+                proto::k1s0::system::auth::v1::AuditEventType::Unspecified as i32,
+                domain_event_type_to_proto_i32,
+            ),
+            result_enum: result.map_or(
+                proto::k1s0::system::auth::v1::AuditResult::Unspecified as i32,
+                domain_result_to_proto_i32,
+            ),
             from: None,
             to: None,
         });
@@ -302,9 +304,7 @@ fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog 
     let event_type_str = event_type_enum
         .map_or("", audit_event_type_to_str)
         .to_string();
-    let result_str = result_enum
-        .map_or("", audit_result_to_str)
-        .to_string();
+    let result_str = result_enum.map_or("", audit_result_to_str).to_string();
     AuditLog {
         id: l.id,
         event_type: event_type_str,
@@ -323,7 +323,8 @@ fn audit_log_from_proto(l: proto::k1s0::system::auth::v1::AuditLog) -> AuditLog 
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

@@ -13,7 +13,7 @@ pub struct VaultSecretStore {
 }
 
 impl VaultSecretStore {
-    #[must_use] 
+    #[must_use]
     pub fn new(client: Arc<VaultKvClient>) -> Self {
         Self { client }
     }

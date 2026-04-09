@@ -127,7 +127,7 @@ fn default_max_open_conns() -> u32 {
 
 impl DatabaseConfig {
     /// `PostgreSQL` 謗･邯・URL 繧堤函謌舌☆繧九・
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",

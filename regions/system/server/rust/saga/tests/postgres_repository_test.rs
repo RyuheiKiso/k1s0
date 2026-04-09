@@ -473,7 +473,7 @@ mod tests {
         // keyset ページネーション専用テスト:
         // all_sagas の最新レコードから cursor を作成し、keyset で取得する
         let newest = &all_sagas[0]; // DESC ソート済みの先頭
-        // newest より1ms新しい仮の cursor を作成（実際の keyset 最初のページ相当）
+                                    // newest より1ms新しい仮の cursor を作成（実際の keyset 最初のページ相当）
         let fake_ts_ms = newest.created_at.timestamp_millis() + 1;
         let fake_cursor = format!("{}_{}", fake_ts_ms, uuid::Uuid::max());
 
@@ -485,7 +485,11 @@ mod tests {
         };
         let (keyset_page, _) = repo.list(&params_keyset).await.unwrap();
         // newest より古いレコードが全件返る（page_size=3 なので最大3件）
-        assert_eq!(keyset_page.len(), 3, "keyset: newest 以前のレコードが3件返る");
+        assert_eq!(
+            keyset_page.len(),
+            3,
+            "keyset: newest 以前のレコードが3件返る"
+        );
 
         // 次の cursor でさらに取得する
         let last = keyset_page.last().unwrap();
@@ -504,10 +508,7 @@ mod tests {
         let keyset1_ids: Vec<_> = keyset_page.iter().map(|s| s.saga_id).collect();
         let keyset2_ids: Vec<_> = keyset_page2.iter().map(|s| s.saga_id).collect();
         for id in &keyset1_ids {
-            assert!(
-                !keyset2_ids.contains(id),
-                "keyset ページ間でIDが重複しない"
-            );
+            assert!(!keyset2_ids.contains(id), "keyset ページ間でIDが重複しない");
         }
     }
 

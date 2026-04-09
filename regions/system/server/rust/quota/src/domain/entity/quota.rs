@@ -9,7 +9,7 @@ pub enum SubjectType {
 }
 
 impl SubjectType {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             SubjectType::Tenant => "tenant",
@@ -19,7 +19,7 @@ impl SubjectType {
     }
 
     #[allow(clippy::should_implement_trait)]
-    #[must_use] 
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "tenant" => Some(SubjectType::Tenant),
@@ -37,7 +37,7 @@ pub enum Period {
 }
 
 impl Period {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             Period::Daily => "daily",
@@ -46,7 +46,7 @@ impl Period {
     }
 
     #[allow(clippy::should_implement_trait)]
-    #[must_use] 
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "daily" => Some(Period::Daily),
@@ -74,7 +74,9 @@ pub struct QuotaPolicy {
 }
 
 impl QuotaPolicy {
-    #[must_use] 
+    // ポリシー作成には複数のドメインフィールドが必要なため引数制限を緩める
+    #[allow(clippy::too_many_arguments)]
+    #[must_use]
     pub fn new(
         tenant_id: String,
         name: String,
@@ -120,7 +122,7 @@ pub struct QuotaUsage {
 }
 
 impl QuotaUsage {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         policy: &QuotaPolicy,
         used: u64,
@@ -130,6 +132,8 @@ impl QuotaUsage {
     ) -> Self {
         // 使用量が制限を超えた場合は0、それ以外は残量を計算
         let remaining = policy.limit.saturating_sub(used);
+        // LOW-008: u64 → f64 の精度損失は許容（クォータ使用率の近似値計算のため）
+        #[allow(clippy::cast_precision_loss)]
         let usage_percent = if policy.limit == 0 {
             100.0
         } else {

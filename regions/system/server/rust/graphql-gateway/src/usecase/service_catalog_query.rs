@@ -13,7 +13,7 @@ pub struct ServiceCatalogQueryResolver {
 }
 
 impl ServiceCatalogQueryResolver {
-    #[must_use] 
+    #[must_use]
     pub fn new(client: Arc<ServiceCatalogHttpClient>) -> Self {
         Self { client }
     }

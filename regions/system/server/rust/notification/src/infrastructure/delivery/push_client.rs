@@ -11,7 +11,7 @@ pub struct PushDeliveryClient {
 }
 
 impl PushDeliveryClient {
-    #[must_use] 
+    #[must_use]
     pub fn new(endpoint: String, auth_token: Option<String>) -> Self {
         Self {
             endpoint,

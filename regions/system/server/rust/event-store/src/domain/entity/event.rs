@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+// イベントメタデータフィールドの _id サフィックスはドメイン上の意図的な命名規則
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventMetadata {
     pub actor_id: Option<String>,
@@ -9,7 +11,7 @@ pub struct EventMetadata {
 }
 
 impl EventMetadata {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         actor_id: Option<String>,
         correlation_id: Option<String>,
@@ -36,7 +38,7 @@ pub struct EventStream {
 
 impl EventStream {
     /// テナントIDを含む新規ストリームを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(id: String, aggregate_type: String, tenant_id: String) -> Self {
         let now = Utc::now();
         Self {
@@ -66,7 +68,7 @@ pub struct StoredEvent {
 
 impl StoredEvent {
     /// テナントIDを含む新規イベントを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         stream_id: String,
         tenant_id: String,
@@ -91,6 +93,8 @@ impl StoredEvent {
     }
 }
 
+// snapshot_version は Proto/DB スキーマとの整合性のためフィールド名に構造体名を含む
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
     pub id: String,
@@ -105,7 +109,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     /// テナントIDを含む新規スナップショットを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         id: String,
         stream_id: String,
@@ -132,7 +136,7 @@ impl StoredEvent {
     /// version フィールドに基づいて、古いスキーマから新しいスキーマへの
     /// マイグレーションを段階的に適用する。
     /// 未知のバージョンの場合はそのまま返す（前方互換性を維持する）。
-    #[must_use] 
+    #[must_use]
     pub fn upcast(mut self, target_version: i64) -> Self {
         // 既に最新バージョン以上の場合はそのまま返す
         while self.version < target_version {
@@ -195,8 +199,7 @@ mod tests {
 
     #[test]
     fn event_stream_new() {
-        let stream =
-            EventStream::new("task-001".to_string(), "Task".to_string(), "t1".to_string());
+        let stream = EventStream::new("task-001".to_string(), "Task".to_string(), "t1".to_string());
         assert_eq!(stream.id, "task-001");
         assert_eq!(stream.aggregate_type, "Task");
         assert_eq!(stream.tenant_id, "t1");

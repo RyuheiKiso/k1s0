@@ -80,7 +80,11 @@ impl SearchRepository for StubSearchRepository {
         Ok(())
     }
 
-    async fn find_index(&self, name: &str, _tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
+    async fn find_index(
+        &self,
+        name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SearchIndex>> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }
@@ -171,7 +175,12 @@ impl SearchRepository for StubSearchRepository {
         })
     }
 
-    async fn delete_document(&self, index_name: &str, doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         if let Some(ref msg) = self.force_error {
             return Err(anyhow::anyhow!("{}", msg));
         }

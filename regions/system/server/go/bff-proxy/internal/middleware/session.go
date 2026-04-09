@@ -24,7 +24,7 @@ var (
 )
 
 const (
-	// SessionDataKey is the gin context key where SessionData is stored.
+	// SessionDataKey は session.Data を gin コンテキストに格納するためのキー。
 	SessionDataKey = "bff_session"
 
 	// SessionIDKey is the gin context key where the session ID is stored.
@@ -111,13 +111,13 @@ func SessionMiddleware(store session.Store, cookieName string, ttl time.Duration
 	}
 }
 
-// GetSessionData retrieves SessionData from the gin context.
-func GetSessionData(c *gin.Context) (*session.SessionData, bool) {
+// GetSessionData は gin コンテキストからセッションデータを取得する。
+func GetSessionData(c *gin.Context) (*session.Data, bool) {
 	val, exists := c.Get(SessionDataKey)
 	if !exists {
 		return nil, false
 	}
-	sess, ok := val.(*session.SessionData)
+	sess, ok := val.(*session.Data)
 	return sess, ok
 }
 

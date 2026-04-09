@@ -14,7 +14,7 @@ pub struct SpanHandle {
 }
 
 impl SpanHandle {
-    #[must_use] 
+    #[must_use]
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -26,14 +26,17 @@ impl SpanHandle {
     }
 }
 
-pub fn add_event(handle: &mut SpanHandle, name: &str, attributes: HashMap<String, String>) {
+/// スパンにイベントを追加する。
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+/// 内部では `SpanEvent` のデフォルトハッシャー型に合わせて再収集する。
+pub fn add_event<S: std::hash::BuildHasher>(handle: &mut SpanHandle, name: &str, attributes: HashMap<String, String, S>) {
     handle.events.push(SpanEvent {
         name: name.to_string(),
-        attributes,
+        attributes: attributes.into_iter().collect(),
     });
 }
 
-#[must_use] 
+#[must_use]
 pub fn start_span(name: &str) -> SpanHandle {
     SpanHandle::new(name)
 }

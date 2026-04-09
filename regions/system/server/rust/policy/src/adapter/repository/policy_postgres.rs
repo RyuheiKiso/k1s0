@@ -14,7 +14,7 @@ pub struct PolicyPostgresRepository {
 }
 
 impl PolicyPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -44,7 +44,8 @@ impl From<PolicyRow> for Policy {
             rego_content: r.rego_content,
             package_path: r.package_path,
             bundle_id: r.bundle_id,
-            version: r.version as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: u32::try_from(r.version).unwrap_or(0),
             enabled: r.enabled,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -164,7 +165,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         tx.commit().await?;
         Ok((
             rows.into_iter().map(Into::into).collect(),
-            total_count as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            u64::try_from(total_count).unwrap_or(0),
         ))
     }
 
@@ -189,7 +191,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         .bind(&policy.package_path)
         .bind(policy.bundle_id)
         .bind(policy.enabled)
-        .bind(policy.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(policy.version).unwrap_or(i32::MAX))
         .bind(policy.created_at)
         .bind(policy.updated_at)
         .bind(&policy.tenant_id)
@@ -220,7 +223,8 @@ impl PolicyRepository for PolicyPostgresRepository {
         .bind(&policy.package_path)
         .bind(policy.bundle_id)
         .bind(policy.enabled)
-        .bind(policy.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(policy.version).unwrap_or(i32::MAX))
         .bind(policy.updated_at)
         .bind(&policy.tenant_id)
         .execute(&mut *tx)
@@ -258,12 +262,13 @@ impl PolicyRepository for PolicyPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let row: (bool,) =
-            sqlx::query_as("SELECT EXISTS(SELECT 1 FROM policy.policies WHERE name = $1 AND tenant_id = $2)")
-                .bind(name)
-                .bind(tenant_id)
-                .fetch_one(&mut *tx)
-                .await?;
+        let row: (bool,) = sqlx::query_as(
+            "SELECT EXISTS(SELECT 1 FROM policy.policies WHERE name = $1 AND tenant_id = $2)",
+        )
+        .bind(name)
+        .bind(tenant_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
         tx.commit().await?;
         Ok(row.0)

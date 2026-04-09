@@ -27,10 +27,7 @@ pub async fn connect_optional(cfg: &Config) -> Option<PgPool> {
         return None;
     };
 
-    let max_connections = cfg
-        .database
-        .as_ref()
-        .map_or(5, |db| db.max_open_conns);
+    let max_connections = cfg.database.as_ref().map_or(5, |db| db.max_open_conns);
 
     match sqlx::postgres::PgPoolOptions::new()
         .max_connections(max_connections)

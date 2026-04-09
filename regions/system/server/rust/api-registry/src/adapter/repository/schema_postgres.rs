@@ -12,7 +12,7 @@ pub struct SchemaPostgresRepository {
 }
 
 impl SchemaPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -35,8 +35,10 @@ impl From<ApiSchemaRow> for ApiSchema {
             name: r.name,
             description: r.description,
             schema_type: SchemaType::from_str(&r.schema_type),
-            latest_version: r.latest_version as u32,
-            version_count: r.version_count as u32,
+            // LOW-008: 安全な型変換（バージョン番号は非負であることが前提）
+            latest_version: u32::try_from(r.latest_version).unwrap_or(0),
+            // LOW-008: 安全な型変換（バージョン数は非負であることが前提）
+            version_count: u32::try_from(r.version_count).unwrap_or(0),
             created_at: r.created_at,
             updated_at: r.updated_at,
         }
@@ -109,15 +111,15 @@ impl ApiSchemaRepository for SchemaPostgresRepository {
         };
 
         // カウントクエリにも tenant_id フィルタを適用する
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM apiregistry.api_schemas WHERE tenant_id = $1",
-        )
-        .bind(tenant_id)
-        .fetch_one(&mut *tx)
-        .await?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM apiregistry.api_schemas WHERE tenant_id = $1")
+                .bind(tenant_id)
+                .fetch_one(&mut *tx)
+                .await?;
 
         tx.commit().await?;
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（COUNT(*) は非負であることが前提）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     // テナントスコープで set_config を設定した後にスキーマを作成する。
@@ -138,8 +140,10 @@ impl ApiSchemaRepository for SchemaPostgresRepository {
         .bind(&schema.name)
         .bind(&schema.description)
         .bind(schema.schema_type.to_string())
-        .bind(schema.latest_version as i32)
-        .bind(schema.version_count as i32)
+        // LOW-008: 安全な型変換（バージョン番号は i32 範囲内が前提）
+        .bind(i32::try_from(schema.latest_version).unwrap_or(i32::MAX))
+        // LOW-008: 安全な型変換（バージョン数は i32 範囲内が前提）
+        .bind(i32::try_from(schema.version_count).unwrap_or(i32::MAX))
         .bind(schema.created_at)
         .bind(schema.updated_at)
         .execute(&mut *tx)
@@ -165,8 +169,10 @@ impl ApiSchemaRepository for SchemaPostgresRepository {
         .bind(tenant_id)
         .bind(&schema.name)
         .bind(&schema.description)
-        .bind(schema.latest_version as i32)
-        .bind(schema.version_count as i32)
+        // LOW-008: 安全な型変換（バージョン番号は i32 範囲内が前提）
+        .bind(i32::try_from(schema.latest_version).unwrap_or(i32::MAX))
+        // LOW-008: 安全な型変換（バージョン数は i32 範囲内が前提）
+        .bind(i32::try_from(schema.version_count).unwrap_or(i32::MAX))
         .bind(schema.updated_at)
         .execute(&mut *tx)
         .await?;

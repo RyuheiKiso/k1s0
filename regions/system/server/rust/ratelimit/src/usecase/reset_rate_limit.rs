@@ -73,9 +73,7 @@ mod tests {
         state_store
             .expect_reset()
             // STATIC-CRITICAL-001: テナントIDプレフィックスが正しく使われることを確認する
-            .withf(|key| {
-                key == "ratelimit:00000000-0000-0000-0000-000000000001:service:user-123"
-            })
+            .withf(|key| key == "ratelimit:00000000-0000-0000-0000-000000000001:service:user-123")
             .once()
             .returning(|_| Ok(()));
 

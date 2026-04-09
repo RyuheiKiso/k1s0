@@ -2,7 +2,7 @@ module github.com/k1s0-platform/system-server-go-bff-proxy
 
 // H-020 監査対応: Dockerfile のベースイメージ（golang@sha256:2389...）は go1.26.1 であるため
 // go.mod のバージョン宣言を実際のビルドツールバージョンと一致させる
-go 1.26.1
+go 1.26.2
 
 require (
 	github.com/coreos/go-oidc/v3 v3.17.0

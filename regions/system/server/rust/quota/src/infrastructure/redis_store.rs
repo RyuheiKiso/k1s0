@@ -14,7 +14,7 @@ pub struct RedisQuotaUsageRepository {
 }
 
 impl RedisQuotaUsageRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(conn: ConnectionManager, key_prefix: String) -> Self {
         Self { conn, key_prefix }
     }
@@ -35,7 +35,12 @@ impl QuotaUsageRepository for RedisQuotaUsageRepository {
         Ok(result)
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64, _tenant_id: &str) -> anyhow::Result<u64> {
+    async fn increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        _tenant_id: &str,
+    ) -> anyhow::Result<u64> {
         let key = self.make_key(quota_id);
         let mut conn = self.conn.clone();
         let new_total: u64 = redis::cmd("INCRBY")

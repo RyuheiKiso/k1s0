@@ -111,7 +111,7 @@ pub struct TenantServiceTonic {
 }
 
 impl TenantServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<TenantGrpcService>) -> Self {
         Self { inner }
     }

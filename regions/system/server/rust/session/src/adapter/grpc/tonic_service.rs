@@ -46,7 +46,7 @@ pub struct SessionServiceTonic {
 }
 
 impl SessionServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<SessionGrpcService>) -> Self {
         Self { inner }
     }
@@ -65,7 +65,8 @@ impl SessionService for SessionServiceTonic {
         // gRPC Extensions から Claims を取得して tenant_id を抽出する
         let tenant_id = request
             .extensions()
-            .get::<k1s0_auth::Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string());
+            .get::<k1s0_auth::Claims>()
+            .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string());
 
         let inner = request.into_inner();
         let req = CreateSessionRequest {
@@ -229,6 +230,8 @@ impl SessionService for SessionServiceTonic {
 
 /// セッション状態文字列を proto `SessionStatus` enum の i32 値に変換する。
 /// ドメイン層の文字列表現（"active", "revoked"）を protobuf の整数 enum 値にマッピングする。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn status_str_to_proto(s: &str) -> i32 {
     use crate::proto::k1s0::system::session::v1::SessionStatus;
     match s {
@@ -267,7 +270,8 @@ fn parse_rfc3339_to_proto_timestamp(v: &str) -> Option<ProtoTimestamp> {
         .ok()
         .map(|dt| ProtoTimestamp {
             seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         })
 }
 

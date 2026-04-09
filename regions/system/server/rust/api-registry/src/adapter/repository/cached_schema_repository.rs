@@ -86,7 +86,9 @@ impl ApiSchemaRepository for CachedSchemaRepository {
         page: u32,
         page_size: u32,
     ) -> anyhow::Result<(Vec<ApiSchema>, u64)> {
-        self.inner.find_all(tenant_id, schema_type, page, page_size).await
+        self.inner
+            .find_all(tenant_id, schema_type, page, page_size)
+            .await
     }
 
     /// create は inner に委譲し、成功時にキャッシュを invalidate する。
@@ -172,7 +174,10 @@ mod tests {
         cache.insert(Arc::new(cache_schema)).await;
 
         let repo = CachedSchemaRepository::new(Arc::new(mock), cache);
-        let result = repo.find_by_name("tenant-a", "k1s0-tenant-api").await.unwrap();
+        let result = repo
+            .find_by_name("tenant-a", "k1s0-tenant-api")
+            .await
+            .unwrap();
 
         assert!(result.is_some());
     }
@@ -193,7 +198,10 @@ mod tests {
         let repo = CachedSchemaRepository::new(Arc::new(mock), cache.clone());
 
         // 1回目: キャッシュミス → DBから取得
-        let result = repo.find_by_name("tenant-a", "k1s0-tenant-api").await.unwrap();
+        let result = repo
+            .find_by_name("tenant-a", "k1s0-tenant-api")
+            .await
+            .unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().name, "k1s0-tenant-api");
 
@@ -216,7 +224,10 @@ mod tests {
         let cache = make_cache();
         // 事前にキャッシュに古い（ステール）エントリを挿入（再作成シナリオを模倣）
         cache.insert(Arc::new(schema_stale)).await;
-        assert!(cache.get("tenant-a:k1s0-new-api").await.is_some(), "前提: キャッシュに古いエントリが存在する");
+        assert!(
+            cache.get("tenant-a:k1s0-new-api").await.is_some(),
+            "前提: キャッシュに古いエントリが存在する"
+        );
 
         let repo = CachedSchemaRepository::new(Arc::new(mock), cache.clone());
 
@@ -256,10 +267,7 @@ mod tests {
 
         // DB エラー時はキャッシュが invalidate されないことを確認
         let cached = cache.get("tenant-a:k1s0-new-api").await;
-        assert!(
-            cached.is_some(),
-            "DB エラー時はキャッシュが保持されるべき"
-        );
+        assert!(cached.is_some(), "DB エラー時はキャッシュが保持されるべき");
     }
 
     /// update 後にキャッシュが invalidate される。

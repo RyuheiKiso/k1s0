@@ -17,6 +17,8 @@ use crate::domain::repository::{FileMetadataRepository, FileStorageRepository};
 use crate::proto::k1s0::system::file::v1::file_service_server::FileServiceServer;
 use crate::usecase;
 
+// run 関数はサーバー起動の全設定（DB・ストレージ・gRPC・HTTP）を含むため行数が多い
+#[allow(clippy::too_many_lines)]
 pub async fn run() -> anyhow::Result<()> {
     // Telemetry
     let config_path =

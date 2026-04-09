@@ -103,16 +103,18 @@ impl WorkflowDefinition {
     /// `指定ステップのタイムアウト期間を返す。execute_saga` usecase でのタイムアウト計算に使用する。
     // H-02 監査対応: タイムアウト計算の将来実装に備えて保持する
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn timeout_duration(&self, step_idx: usize) -> Duration {
-        self.steps
-            .get(step_idx).map_or_else(|| Duration::from_secs(30), |s| Duration::from_secs(s.timeout_secs))
+        self.steps.get(step_idx).map_or_else(
+            || Duration::from_secs(30),
+            |s| Duration::from_secs(s.timeout_secs),
+        )
     }
 }
 
 impl RetryConfig {
     /// 指定リトライ回数のバックオフ遅延を計算する。
-    #[must_use] 
+    #[must_use]
     pub fn delay_for_attempt(&self, attempt: u32) -> Duration {
         let base_ms = self.initial_interval_ms;
         let delay_ms = base_ms * 2u64.pow(attempt);

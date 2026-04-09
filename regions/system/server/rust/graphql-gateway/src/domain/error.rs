@@ -50,7 +50,7 @@ pub enum GrpcErrorCategory {
 impl GrpcErrorCategory {
     /// `tonic::Status` から `GrpcErrorCategory` に変換する。
     /// usecase 層または adapter 層で `tonic::Status` を直接受け取った場合に使用する。
-    #[must_use] 
+    #[must_use]
     pub fn from_tonic_code(code: tonic::Code) -> Self {
         match code {
             tonic::Code::Unauthenticated => GrpcErrorCategory::Unauthenticated,
@@ -64,8 +64,9 @@ impl GrpcErrorCategory {
 
     /// GraphQL エラーコード文字列を返す。
     /// `graphql_handler.rs` の `gql_error()` に渡す &'static str として使用する。
-    #[must_use] 
-    pub fn as_graphql_code(&self) -> &'static str {
+    // enum は 1 バイトのため、参照渡しより値渡しが効率的（Clippy: trivially_copy_pass_by_ref）
+    #[must_use]
+    pub fn as_graphql_code(self) -> &'static str {
         match self {
             GrpcErrorCategory::Unauthenticated => "UNAUTHENTICATED",
             GrpcErrorCategory::Forbidden => "FORBIDDEN",

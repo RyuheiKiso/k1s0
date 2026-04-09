@@ -10,7 +10,7 @@ pub struct TableRelationshipPostgresRepository {
 }
 
 impl TableRelationshipPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -122,9 +122,9 @@ struct TableRelationshipRow {
 
 impl From<TableRelationshipRow> for TableRelationship {
     fn from(row: TableRelationshipRow) -> Self {
+        // "one_to_many" アームと wildcard アームが同一の返り値のため統合する
         let rel_type = match row.relationship_type.as_str() {
             "one_to_one" => RelationshipType::OneToOne,
-            "one_to_many" => RelationshipType::OneToMany,
             "many_to_one" => RelationshipType::ManyToOne,
             "many_to_many" => RelationshipType::ManyToMany,
             _ => RelationshipType::OneToMany,

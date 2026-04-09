@@ -80,6 +80,8 @@ impl SearchOpenSearchRepository {
     }
 }
 
+// SearchRepository 実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl SearchRepository for SearchOpenSearchRepository {
     /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
@@ -229,6 +231,8 @@ impl SearchRepository for SearchOpenSearchRepository {
                         id: hit["_id"].as_str().unwrap_or("").to_string(),
                         index_name: query.index_name.clone(),
                         content: hit["_source"].clone(),
+                        // LOW-008: f64 → f32 の精度損失は許容（スコアの近似値として使用）
+                        #[allow(clippy::cast_possible_truncation)]
                         score: hit["_score"].as_f64().unwrap_or(0.0) as f32,
                         indexed_at: Utc::now(),
                     })
@@ -259,7 +263,8 @@ impl SearchRepository for SearchOpenSearchRepository {
 
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (u64::from(query.from) + hits.len() as u64);
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let has_next = total > (u64::from(query.from) + u64::try_from(hits.len()).unwrap_or(u64::MAX));
 
         Ok(SearchResult {
             total,
@@ -275,7 +280,12 @@ impl SearchRepository for SearchOpenSearchRepository {
     }
 
     /// `OpenSearch実装`: `tenant_id` はトレイト定義に合わせて引数を受け取る（将来的なテナント分離に備えて保持）。
-    async fn delete_document(&self, index_name: &str, doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let idx_name = self.index_name(index_name);
         let response = self
             .client

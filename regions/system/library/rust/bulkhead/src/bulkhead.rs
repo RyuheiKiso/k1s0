@@ -14,7 +14,7 @@ pub struct Bulkhead {
 }
 
 impl Bulkhead {
-    #[must_use] 
+    #[must_use]
     pub fn new(config: BulkheadConfig) -> Self {
         let semaphore = Arc::new(Semaphore::new(config.max_concurrent_calls));
         let metrics = BulkheadMetricsRecorder::new();

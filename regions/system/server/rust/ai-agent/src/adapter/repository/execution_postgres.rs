@@ -17,7 +17,7 @@ pub struct ExecutionPostgresRepository {
 
 impl ExecutionPostgresRepository {
     /// `新しいExecutionPostgresRepositoryを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }

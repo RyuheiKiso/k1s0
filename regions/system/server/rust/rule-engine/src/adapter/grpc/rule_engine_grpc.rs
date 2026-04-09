@@ -65,6 +65,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct RuleEngineGrpcService {
     create_rule_uc: Arc<CreateRuleUseCase>,
     get_rule_uc: Arc<GetRuleUseCase>,
@@ -136,8 +138,9 @@ impl RuleEngineGrpcService {
         rule_set_id: Option<String>,
         domain: Option<String>,
     ) -> Result<(Vec<RuleData>, u64, i32, i32, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(0) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(0) };
 
         let rule_set_uuid =
             match rule_set_id.as_deref() {
@@ -163,8 +166,9 @@ impl RuleEngineGrpcService {
         Ok((
             output.rules.into_iter().map(to_rule_data).collect(),
             output.total_count,
-            output.page as i32,
-            output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            i32::try_from(output.page).unwrap_or(i32::MAX),
+            i32::try_from(output.page_size).unwrap_or(i32::MAX),
             output.has_next,
         ))
     }
@@ -206,8 +210,8 @@ impl RuleEngineGrpcService {
                 CreateRuleError::AlreadyExists(name) => {
                     GrpcError::AlreadyExists(format!("rule already exists: {name}"))
                 }
-                CreateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                CreateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
+                // Validation と InvalidCondition は同じエラーに変換するためアームを統合する
+                CreateRuleError::Validation(msg) | CreateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 CreateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -256,8 +260,8 @@ impl RuleEngineGrpcService {
                 UpdateRuleError::NotFound(id) => {
                     GrpcError::NotFound(format!("rule not found: {id}"))
                 }
-                UpdateRuleError::Validation(msg) => GrpcError::InvalidArgument(msg),
-                UpdateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
+                // Validation と InvalidCondition は同じエラーに変換するためアームを統合する
+                UpdateRuleError::Validation(msg) | UpdateRuleError::InvalidCondition(msg) => GrpcError::InvalidArgument(msg),
                 UpdateRuleError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
@@ -301,8 +305,9 @@ impl RuleEngineGrpcService {
         page_size: i32,
         domain: Option<String>,
     ) -> Result<(Vec<RuleSetData>, u64, i32, i32, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(0) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(0) };
 
         let output = self
             .list_rule_sets_uc
@@ -319,12 +324,15 @@ impl RuleEngineGrpcService {
         Ok((
             output.rule_sets.into_iter().map(to_rule_set_data).collect(),
             output.total_count,
-            output.page as i32,
-            output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            i32::try_from(output.page).unwrap_or(i32::MAX),
+            i32::try_from(output.page_size).unwrap_or(i32::MAX),
             output.has_next,
         ))
     }
 
+    // RuleSet 作成には proto 由来のフィールドが多くなるため引数制限を緩める
+    #[allow(clippy::too_many_arguments)]
     pub async fn create_rule_set(
         &self,
         tenant_id: String,
@@ -531,8 +539,8 @@ impl RuleEngineGrpcService {
                 EvaluateError::RuleSetNotFound(name) => {
                     GrpcError::NotFound(format!("rule set not found: {name}"))
                 }
-                EvaluateError::EvaluationError(msg) => GrpcError::Internal(msg),
-                EvaluateError::Internal(msg) => GrpcError::Internal(msg),
+                // EvaluationError と Internal は同じエラーに変換するためアームを統合する
+                EvaluateError::EvaluationError(msg) | EvaluateError::Internal(msg) => GrpcError::Internal(msg),
             })
     }
 }
@@ -560,7 +568,11 @@ fn to_rule_set_data(rs: RuleSet) -> RuleSetData {
         domain: rs.domain,
         evaluation_mode: rs.evaluation_mode.as_str().to_string(),
         default_result_json: serde_json::to_vec(&rs.default_result).unwrap_or_default(),
-        rule_ids: rs.rule_ids.iter().map(std::string::ToString::to_string).collect(),
+        rule_ids: rs
+            .rule_ids
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect(),
         current_version: rs.current_version,
         enabled: rs.enabled,
         created_at: rs.created_at,

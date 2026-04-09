@@ -11,7 +11,7 @@ pub struct StreamPostgresRepository {
 }
 
 impl StreamPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -19,9 +19,9 @@ impl StreamPostgresRepository {
     /// トランザクション内でイベントストリームを作成する内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、INSERTを実行する。
     /// `tenant_id` カラムを明示指定してテナント分離を保証する。
-    pub async fn create_in_tx<'a>(
+    pub async fn create_in_tx(
         stream: &EventStream,
-        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query(
             r"
@@ -44,10 +44,10 @@ impl StreamPostgresRepository {
 
     /// トランザクション内でイベントストリームのバージョンを更新する内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、UPDATEを実行する。
-    pub async fn update_version_in_tx<'a>(
+    pub async fn update_version_in_tx(
         id: &str,
         new_version: i64,
-        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> anyhow::Result<()> {
         sqlx::query(
             r"
@@ -131,10 +131,9 @@ impl EventStreamRepository for StreamPostgresRepository {
             .execute(&mut *tx)
             .await?;
 
-        let total: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.event_streams")
-                .fetch_one(&mut *tx)
-                .await?;
+        let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM eventstore.event_streams")
+            .fetch_one(&mut *tx)
+            .await?;
 
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
@@ -156,7 +155,8 @@ impl EventStreamRepository for StreamPostgresRepository {
         tx.commit().await?;
 
         let streams: Vec<EventStream> = rows.into_iter().map(Into::into).collect();
-        Ok((streams, total as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((streams, u64::try_from(total).unwrap_or(0)))
     }
 
     /// テナント ID を含む `EventStream` を INSERT する。

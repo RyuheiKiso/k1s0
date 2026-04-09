@@ -179,12 +179,12 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
     match err.downcast::<SagaError>() {
         Ok(domain_err) => {
             let msg = domain_err.to_string();
+            // CompensationFailed と Internal は同じエラーに変換するためアームを統合する
             match domain_err {
                 SagaError::NotFound(_) => GrpcError::NotFound(msg),
                 SagaError::InvalidStatusTransition { .. } => GrpcError::FailedPrecondition(msg),
-                SagaError::CompensationFailed(_) => GrpcError::Internal(msg),
                 SagaError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
-                SagaError::Internal(_) => GrpcError::Internal(msg),
+                SagaError::CompensationFailed(_) | SagaError::Internal(_) => GrpcError::Internal(msg),
             }
         }
         Err(err) => GrpcError::Internal(err.to_string()),
@@ -196,12 +196,12 @@ fn map_anyhow_to_grpc_error(err: anyhow::Error) -> GrpcError {
 fn map_domain_saga_error_to_grpc_error(err: crate::domain::error::SagaError) -> GrpcError {
     use crate::domain::error::SagaError;
     let msg = err.to_string();
+    // CompensationFailed と Internal は同じエラーに変換するためアームを統合する
     match err {
         SagaError::NotFound(_) => GrpcError::NotFound(msg),
         SagaError::InvalidStatusTransition { .. } => GrpcError::FailedPrecondition(msg),
-        SagaError::CompensationFailed(_) => GrpcError::Internal(msg),
         SagaError::ValidationFailed(_) => GrpcError::InvalidArgument(msg),
-        SagaError::Internal(_) => GrpcError::Internal(msg),
+        SagaError::CompensationFailed(_) | SagaError::Internal(_) => GrpcError::Internal(msg),
     }
 }
 
@@ -219,6 +219,8 @@ fn map_cancel_error_to_grpc_error(err: CancelSagaError) -> GrpcError {
 // --- SagaGrpcService ---
 
 /// `SagaGrpcService` `はgRPC` Sagaサービスの実装。
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct SagaGrpcService {
     pub start_saga_uc: Arc<StartSagaUseCase>,
     pub get_saga_uc: Arc<GetSagaUseCase>,
@@ -230,7 +232,7 @@ pub struct SagaGrpcService {
 }
 
 impl SagaGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         start_saga_uc: Arc<StartSagaUseCase>,
         get_saga_uc: Arc<GetSagaUseCase>,
@@ -275,7 +277,13 @@ impl SagaGrpcService {
         // CRIT-005 対応: tenant_id をリクエストから取得して usecase に渡す
         let saga_id = self
             .start_saga_uc
-            .execute(req.workflow_name, json_payload, correlation, initiator, req.tenant_id)
+            .execute(
+                req.workflow_name,
+                json_payload,
+                correlation,
+                initiator,
+                req.tenant_id,
+            )
             .await
             .map_err(map_domain_saga_error_to_grpc_error)?;
 
@@ -506,7 +514,8 @@ impl SagaGrpcService {
 
         Ok(RegisterWorkflowResponse {
             name,
-            step_count: step_count as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            step_count: i32::try_from(step_count).unwrap_or(i32::MAX),
         })
     }
 
@@ -525,7 +534,8 @@ impl SagaGrpcService {
             .into_iter()
             .map(|wf| {
                 let step_names: Vec<String> = wf.steps.iter().map(|s| s.name.clone()).collect();
-                let step_count = step_names.len() as i32;
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                let step_count = i32::try_from(step_names.len()).unwrap_or(i32::MAX);
                 WorkflowSummary {
                     name: wf.name,
                     step_count,

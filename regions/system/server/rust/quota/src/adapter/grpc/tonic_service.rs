@@ -87,7 +87,8 @@ fn to_proto_timestamp(
 ) -> crate::proto::k1s0::system::common::v1::Timestamp {
     crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
@@ -99,7 +100,7 @@ pub struct QuotaServiceTonic {
 }
 
 impl QuotaServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<QuotaGrpcService>) -> Self {
         Self { inner }
     }
@@ -127,7 +128,8 @@ impl QuotaService for QuotaServiceTonic {
             limit: inner.limit,
             period: inner.period,
             enabled: inner.enabled,
-            alert_threshold_percent: inner.alert_threshold_percent.map(|v| v as u8),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            alert_threshold_percent: inner.alert_threshold_percent.map(|v| u8::try_from(v).unwrap_or(100)),
         };
         let policy = self
             .inner
@@ -178,15 +180,16 @@ impl QuotaService for QuotaServiceTonic {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListPoliciesRequest {
+            // LOW-008: 安全な型変換（オーバーフロー防止）
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
             subject_type: inner.subject_type,
             subject_id: inner.subject_id,
@@ -389,8 +392,10 @@ mod tests {
         ResetQuotaUsageUseCase, UpdateQuotaPolicyUseCase,
     };
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> QuotaPolicy {
         QuotaPolicy::new(
+            "test-tenant".to_string(),
             "test-policy".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

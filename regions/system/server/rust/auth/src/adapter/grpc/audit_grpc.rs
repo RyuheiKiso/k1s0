@@ -19,7 +19,7 @@ pub struct AuditGrpcService {
 }
 
 impl AuditGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         record_audit_log_uc: Arc<RecordAuditLogUseCase>,
         search_audit_logs_uc: Arc<SearchAuditLogsUseCase>,
@@ -74,7 +74,8 @@ impl AuditGrpcService {
                 id: response.id.to_string(),
                 created_at: Some(Timestamp {
                     seconds: response.created_at.timestamp(),
-                    nanos: response.created_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    nanos: i32::try_from(response.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
             }),
             Err(RecordAuditLogError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
@@ -91,13 +92,15 @@ impl AuditGrpcService {
         let page_size = req.pagination.as_ref().map(|p| p.page_size);
 
         let from_str = req.from.as_ref().map(|t| {
-            chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            chrono::DateTime::from_timestamp(t.seconds, u32::try_from(t.nanos).unwrap_or(0))
                 .unwrap_or_default()
                 .to_rfc3339()
         });
 
         let to_str = req.to.as_ref().map(|t| {
-            chrono::DateTime::from_timestamp(t.seconds, t.nanos as u32)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            chrono::DateTime::from_timestamp(t.seconds, u32::try_from(t.nanos).unwrap_or(0))
                 .unwrap_or_default()
                 .to_rfc3339()
         });
@@ -148,6 +151,8 @@ impl AuditGrpcService {
 
 /// ドメインのイベントタイプ文字列を `AuditEventType` enum の i32 値に変換する。
 /// 未知の文字列は Unspecified (0) にフォールバックする。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn event_type_str_to_enum(s: &str) -> i32 {
     match s {
         s if s.starts_with("LOGIN") => AuditEventType::Login as i32,
@@ -161,6 +166,8 @@ fn event_type_str_to_enum(s: &str) -> i32 {
 }
 
 /// ドメインの結果文字列を `AuditResult` enum の i32 値に変換する。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn result_str_to_enum(s: &str) -> i32 {
     match s {
         "SUCCESS" => AuditResult::Success as i32,
@@ -189,7 +196,8 @@ fn domain_audit_log_to_proto(log: &AuditLog) -> ProtoAuditLog {
         trace_id: log.trace_id.clone().unwrap_or_default(),
         created_at: Some(Timestamp {
             seconds: log.created_at.timestamp(),
-            nanos: log.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(log.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
     }
 }
@@ -205,9 +213,9 @@ fn prost_struct_to_json(s: prost_types::Struct) -> serde_json::Value {
 }
 
 fn prost_value_to_json(v: prost_types::Value) -> serde_json::Value {
+    // None と NullValue は同じ返り値のためアームを統合する
     match v.kind {
-        None => serde_json::Value::Null,
-        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
+        None | Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
         Some(prost_types::value::Kind::BoolValue(b)) => serde_json::Value::Bool(b),
         Some(prost_types::value::Kind::NumberValue(n)) => serde_json::Value::Number(
             serde_json::Number::from_f64(n).unwrap_or(serde_json::Number::from(0)),

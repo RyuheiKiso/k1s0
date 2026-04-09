@@ -136,6 +136,8 @@ pub struct ListUserSessionsResponse {
     #[prost(uint32, tag = "2")]
     pub total_count: u32,
 }
+// プロトバッファ自動生成コード: session_id は Session のプロトフィールド名として必要
+#[allow(clippy::struct_field_names)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Session {
     #[prost(string, tag = "1")]

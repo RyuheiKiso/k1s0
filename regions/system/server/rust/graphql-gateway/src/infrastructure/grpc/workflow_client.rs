@@ -66,7 +66,8 @@ impl WorkflowGrpcClient {
             name: s.name,
             step_type: s.step_type,
             assignee_role: s.assignee_role.filter(|v| !v.is_empty()),
-            timeout_hours: s.timeout_hours.map(|v| v as i32),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            timeout_hours: s.timeout_hours.map(|v| i32::try_from(v).unwrap_or(i32::MAX)),
             on_approve: s.on_approve.filter(|v| !v.is_empty()),
             on_reject: s.on_reject.filter(|v| !v.is_empty()),
         }
@@ -79,7 +80,8 @@ impl WorkflowGrpcClient {
             id: d.id,
             name: d.name,
             description: d.description,
-            version: d.version as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: i32::try_from(d.version).unwrap_or(i32::MAX),
             enabled: d.enabled,
             steps: d.steps.into_iter().map(Self::step_from_proto).collect(),
             created_at: timestamp_to_rfc3339(d.created_at),
@@ -146,7 +148,8 @@ impl WorkflowGrpcClient {
                 name: s.name.clone(),
                 step_type: s.step_type.clone(),
                 assignee_role: s.assignee_role.clone(),
-                timeout_hours: s.timeout_hours.map(|v| v as u32),
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                timeout_hours: s.timeout_hours.map(|v| u32::try_from(v).unwrap_or(0)),
                 on_approve: s.on_approve.clone(),
                 on_reject: s.on_reject.clone(),
                 // 後方互換フィールド（0 = UNSPECIFIED）
@@ -168,9 +171,9 @@ impl WorkflowGrpcClient {
 
         match self.client.clone().get_workflow(request).await {
             Ok(resp) => {
-                let d = match resp.into_inner().workflow {
-                    Some(d) => d,
-                    None => return Ok(None),
+                // ワークフロー定義が存在しない場合は None を返す
+                let Some(d) = resp.into_inner().workflow else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::definition_from_proto(d)))
             }
@@ -354,9 +357,9 @@ impl WorkflowGrpcClient {
 
         match self.client.clone().get_instance(request).await {
             Ok(resp) => {
-                let i = match resp.into_inner().instance {
-                    Some(i) => i,
-                    None => return Ok(None),
+                // インスタンスが存在しない場合は None を返す
+                let Some(i) = resp.into_inner().instance else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::instance_from_proto(i)?))
             }
@@ -570,7 +573,8 @@ impl WorkflowGrpcClient {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }
@@ -578,6 +582,7 @@ fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) 
 fn optional_timestamp_to_rfc3339(
     ts: Option<proto::k1s0::system::common::v1::Timestamp>,
 ) -> Option<String> {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
 }

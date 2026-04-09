@@ -80,7 +80,8 @@ impl StubPolicyRepository {
 
 #[async_trait]
 impl QuotaPolicyRepository for StubPolicyRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
+    // テナントスコープでIDによるポリシー検索（テスト用スタブ）
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<QuotaPolicy>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("db connection error"));
         }
@@ -88,7 +89,13 @@ impl QuotaPolicyRepository for StubPolicyRepository {
         Ok(policies.get(id).cloned())
     }
 
-    async fn find_all(&self, page: u32, page_size: u32) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
+    // テナントスコープでフィルタ付きポリシー一覧取得（テスト用スタブ）
+    async fn find_all(
+        &self,
+        page: u32,
+        page_size: u32,
+        _tenant_id: &str,
+    ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         if self.should_fail {
             return Err(anyhow::anyhow!("db connection error"));
         }
@@ -104,6 +111,7 @@ impl QuotaPolicyRepository for StubPolicyRepository {
         Ok((items, total))
     }
 
+    // ポリシーを新規作成（テスト用スタブ）
     async fn create(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
         if self.should_fail {
             return Err(anyhow::anyhow!("db connection error"));
@@ -113,6 +121,7 @@ impl QuotaPolicyRepository for StubPolicyRepository {
         Ok(())
     }
 
+    // ポリシーを更新（テスト用スタブ）
     async fn update(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
         if self.should_fail {
             return Err(anyhow::anyhow!("db connection error"));
@@ -122,7 +131,8 @@ impl QuotaPolicyRepository for StubPolicyRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでポリシーを削除（テスト用スタブ）
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         if self.should_fail {
             return Err(anyhow::anyhow!("db connection error"));
         }
@@ -167,7 +177,8 @@ impl StubUsageRepository {
 
 #[async_trait]
 impl QuotaUsageRepository for StubUsageRepository {
-    async fn get_usage(&self, quota_id: &str) -> anyhow::Result<Option<u64>> {
+    // テナントスコープで使用量を取得（テスト用スタブ）
+    async fn get_usage(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<Option<u64>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("redis connection error"));
         }
@@ -175,7 +186,13 @@ impl QuotaUsageRepository for StubUsageRepository {
         Ok(usages.get(quota_id).copied())
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64) -> anyhow::Result<u64> {
+    // テナントスコープで使用量を増分（テスト用スタブ）
+    async fn increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        _tenant_id: &str,
+    ) -> anyhow::Result<u64> {
         if self.should_fail {
             return Err(anyhow::anyhow!("redis connection error"));
         }
@@ -185,7 +202,8 @@ impl QuotaUsageRepository for StubUsageRepository {
         Ok(*entry)
     }
 
-    async fn reset(&self, quota_id: &str) -> anyhow::Result<()> {
+    // テナントスコープで使用量をリセット（テスト用スタブ）
+    async fn reset(&self, quota_id: &str, _tenant_id: &str) -> anyhow::Result<()> {
         if self.should_fail {
             return Err(anyhow::anyhow!("redis connection error"));
         }
@@ -194,11 +212,13 @@ impl QuotaUsageRepository for StubUsageRepository {
         Ok(())
     }
 
+    // テナントスコープでアトミックなcheck-and-increment操作（テスト用スタブ）
     async fn check_and_increment(
         &self,
         quota_id: &str,
         amount: u64,
         limit: u64,
+        _tenant_id: &str,
     ) -> anyhow::Result<CheckAndIncrementResult> {
         if self.should_fail {
             return Err(anyhow::anyhow!("redis connection error"));
@@ -262,8 +282,10 @@ impl QuotaEventPublisher for StubEventPublisher {
 // Helpers
 // ---------------------------------------------------------------------------
 
+// テナント分離対応: QuotaPolicy のサンプルデータを生成するヘルパー関数（テスト用固定 tenant_id を使用）
 fn sample_policy() -> QuotaPolicy {
     QuotaPolicy::new(
+        "test-tenant".to_string(),
         "Standard Plan".to_string(),
         SubjectType::Tenant,
         "tenant-abc".to_string(),
@@ -274,8 +296,10 @@ fn sample_policy() -> QuotaPolicy {
     )
 }
 
+// テナント分離対応: 月次プランのサンプルポリシーを生成するヘルパー関数
 fn sample_policy_monthly() -> QuotaPolicy {
     QuotaPolicy::new(
+        "test-tenant".to_string(),
         "Monthly Plan".to_string(),
         SubjectType::User,
         "user-1".to_string(),
@@ -286,8 +310,10 @@ fn sample_policy_monthly() -> QuotaPolicy {
     )
 }
 
+// テナント分離対応: 無効化ポリシーのサンプルを生成するヘルパー関数
 fn sample_disabled_policy() -> QuotaPolicy {
     QuotaPolicy::new(
+        "test-tenant".to_string(),
         "Disabled Plan".to_string(),
         SubjectType::ApiKey,
         "key-1".to_string(),
@@ -311,6 +337,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo.clone());
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "Standard Plan".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "tenant-abc".to_string(),
@@ -344,6 +372,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "User Quota".to_string(),
             subject_type: "user".to_string(),
             subject_id: "user-123".to_string(),
@@ -369,6 +399,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "API Key Quota".to_string(),
             subject_type: "api_key".to_string(),
             subject_id: "key-xyz".to_string(),
@@ -389,6 +421,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             subject_type: "organization".to_string(),
             subject_id: "id".to_string(),
@@ -412,6 +446,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -435,6 +471,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -458,6 +496,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -483,6 +523,8 @@ mod create_quota_policy {
         let uc = CreateQuotaPolicyUseCase::new(repo);
 
         let input = CreateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "id".to_string(),
@@ -514,7 +556,7 @@ mod get_quota_policy {
         let repo = Arc::new(StubPolicyRepository::with_policy(&policy).await);
         let uc = GetQuotaPolicyUseCase::new(repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_ok());
 
         let found = result.unwrap();
@@ -528,7 +570,7 @@ mod get_quota_policy {
         let repo = Arc::new(StubPolicyRepository::new());
         let uc = GetQuotaPolicyUseCase::new(repo);
 
-        let result = uc.execute("nonexistent-id").await;
+        let result = uc.execute("nonexistent-id", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaPolicyError::NotFound(id) => assert_eq!(id, "nonexistent-id"),
@@ -541,7 +583,7 @@ mod get_quota_policy {
         let repo = Arc::new(StubPolicyRepository::with_error());
         let uc = GetQuotaPolicyUseCase::new(repo);
 
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaPolicyError::Internal(msg) => assert!(msg.contains("db connection error")),
@@ -565,6 +607,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo.clone());
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: policy_id.clone(),
             name: "Updated Plan".to_string(),
             subject_type: "user".to_string(),
@@ -600,6 +644,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo);
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "nonexistent".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
@@ -624,6 +670,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo);
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             subject_type: "invalid".to_string(),
@@ -648,6 +696,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo);
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
@@ -672,6 +722,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo);
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
@@ -696,6 +748,8 @@ mod update_quota_policy {
         let uc = UpdateQuotaPolicyUseCase::new(repo);
 
         let input = UpdateQuotaPolicyInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             subject_type: "tenant".to_string(),
@@ -729,7 +783,7 @@ mod delete_quota_policy {
         let repo = Arc::new(StubPolicyRepository::with_policy(&policy).await);
         let uc = DeleteQuotaPolicyUseCase::new(repo.clone());
 
-        let result = uc.execute(&policy_id).await;
+        let result = uc.execute(&policy_id, "test-tenant").await;
         assert!(result.is_ok());
 
         // Verify removed from repository
@@ -742,7 +796,7 @@ mod delete_quota_policy {
         let repo = Arc::new(StubPolicyRepository::new());
         let uc = DeleteQuotaPolicyUseCase::new(repo);
 
-        let result = uc.execute("nonexistent-id").await;
+        let result = uc.execute("nonexistent-id", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteQuotaPolicyError::NotFound(id) => assert_eq!(id, "nonexistent-id"),
@@ -755,7 +809,7 @@ mod delete_quota_policy {
         let repo = Arc::new(StubPolicyRepository::with_error());
         let uc = DeleteQuotaPolicyUseCase::new(repo);
 
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteQuotaPolicyError::Internal(msg) => assert!(msg.contains("db connection error")),
@@ -779,6 +833,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: None,
@@ -803,6 +859,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: None,
@@ -826,6 +884,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: Some("tenant".to_string()),
@@ -849,6 +909,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: None,
@@ -872,6 +934,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: None,
@@ -893,6 +957,8 @@ mod list_quota_policies {
         let uc = ListQuotaPoliciesUseCase::new(repo);
 
         let input = ListQuotaPoliciesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             page: 1,
             page_size: 20,
             subject_type: None,
@@ -922,7 +988,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 7500).await);
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();
@@ -940,7 +1006,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::new()); // no usage data
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();
@@ -956,7 +1022,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 10000).await);
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();
@@ -972,7 +1038,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::with_usage(&policy.id, 2000).await);
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_ok());
 
         let usage = result.unwrap();
@@ -987,7 +1053,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::new());
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaUsageError::NotFound(id) => assert_eq!(id, "nonexistent"),
@@ -1001,7 +1067,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::new());
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute("some-id").await;
+        let result = uc.execute("some-id", "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaUsageError::Internal(msg) => assert!(msg.contains("db connection error")),
@@ -1016,7 +1082,7 @@ mod get_quota_usage {
         let usage_repo = Arc::new(StubUsageRepository::with_error());
         let uc = GetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
-        let result = uc.execute(&policy.id).await;
+        let result = uc.execute(&policy.id, "test-tenant").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetQuotaUsageError::Internal(msg) => assert!(msg.contains("redis connection error")),
@@ -1041,6 +1107,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 100,
             request_id: None,
@@ -1068,6 +1136,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
@@ -1091,6 +1161,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
@@ -1127,6 +1199,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 20, // 9990 + 20 > 10000
             request_id: None,
@@ -1149,6 +1223,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1, // 9999 + 1 = 10000 (exactly at limit)
             request_id: None,
@@ -1166,7 +1242,9 @@ mod increment_quota_usage {
     #[tokio::test]
     async fn success_threshold_event_published_when_crossing() {
         // Create policy with limit=100, threshold=80%
+        // テナント分離対応: テナントIDを先頭引数に追加
         let policy = QuotaPolicy::new(
+            "test-tenant".to_string(),
             "Threshold Test".to_string(),
             SubjectType::Tenant,
             "tenant-thr".to_string(),
@@ -1182,6 +1260,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
@@ -1200,7 +1280,9 @@ mod increment_quota_usage {
     async fn success_no_threshold_event_when_already_above() {
         // Policy: limit=100, threshold=80%. Usage already at 85, increment by 1 => 86.
         // Since prev was already above 80%, no threshold event should fire.
+        // テナント分離対応: テナントIDを先頭引数に追加
         let policy = QuotaPolicy::new(
+            "test-tenant".to_string(),
             "Above Threshold".to_string(),
             SubjectType::Tenant,
             "tenant-above".to_string(),
@@ -1215,6 +1297,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub.clone());
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
@@ -1235,6 +1319,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: "nonexistent".to_string(),
             amount: 1,
             request_id: None,
@@ -1256,6 +1342,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: "some-id".to_string(),
             amount: 1,
             request_id: None,
@@ -1280,6 +1368,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new(policy_repo, usage_repo, event_pub);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: None,
@@ -1303,6 +1393,8 @@ mod increment_quota_usage {
         let uc = IncrementQuotaUsageUseCase::new_without_publisher(policy_repo, usage_repo);
 
         let input = IncrementQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 1,
             request_id: Some("req-123".to_string()),
@@ -1329,6 +1421,8 @@ mod reset_quota_usage {
         let uc = ResetQuotaUsageUseCase::new(policy_repo, usage_repo.clone());
 
         let input = ResetQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             reason: "plan upgrade".to_string(),
             reset_by: "admin@example.com".to_string(),
@@ -1355,6 +1449,8 @@ mod reset_quota_usage {
         let uc = ResetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
         let input = ResetQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: "some-id".to_string(),
             reason: "".to_string(),
             reset_by: "admin".to_string(),
@@ -1375,6 +1471,8 @@ mod reset_quota_usage {
         let uc = ResetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
         let input = ResetQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: "nonexistent".to_string(),
             reason: "test reason".to_string(),
             reset_by: "admin".to_string(),
@@ -1395,6 +1493,8 @@ mod reset_quota_usage {
         let uc = ResetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
         let input = ResetQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: "some-id".to_string(),
             reason: "test reason".to_string(),
             reset_by: "admin".to_string(),
@@ -1416,6 +1516,8 @@ mod reset_quota_usage {
         let uc = ResetQuotaUsageUseCase::new(policy_repo, usage_repo);
 
         let input = ResetQuotaUsageInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             reason: "test reason".to_string(),
             reset_by: "admin".to_string(),
@@ -1445,7 +1547,9 @@ mod e2e_flow {
 
         // 1. Create a policy
         let create_uc = CreateQuotaPolicyUseCase::new(policy_repo.clone());
+        // テナント識別子を含むクォータポリシー作成インプット（E2Eテスト用）
         let create_input = CreateQuotaPolicyInput {
+            tenant_id: "test-tenant".to_string(),
             name: "E2E Plan".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "tenant-e2e".to_string(),
@@ -1458,7 +1562,7 @@ mod e2e_flow {
 
         // 2. Get the policy
         let get_uc = GetQuotaPolicyUseCase::new(policy_repo.clone());
-        let fetched = get_uc.execute(&policy.id).await.unwrap();
+        let fetched = get_uc.execute(&policy.id, "test-tenant").await.unwrap();
         assert_eq!(fetched.name, "E2E Plan");
 
         // 3. Increment usage
@@ -1467,7 +1571,9 @@ mod e2e_flow {
             usage_repo.clone(),
             event_pub.clone(),
         );
+        // テナント識別子を含む使用量増分インプット（E2Eテスト用）
         let inc_input = IncrementQuotaUsageInput {
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 50,
             request_id: None,
@@ -1478,12 +1584,14 @@ mod e2e_flow {
 
         // 4. Get usage
         let usage_uc = GetQuotaUsageUseCase::new(policy_repo.clone(), usage_repo.clone());
-        let usage = usage_uc.execute(&policy.id).await.unwrap();
+        let usage = usage_uc.execute(&policy.id, "test-tenant").await.unwrap();
         assert_eq!(usage.used, 50);
         assert_eq!(usage.remaining, 50);
 
         // 5. Increment to cross threshold (80%)
+        // テナント識別子を含む使用量増分インプット2（E2Eテスト用）
         let inc_input2 = IncrementQuotaUsageInput {
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 30, // 50 + 30 = 80 => exactly at 80% threshold
             request_id: None,
@@ -1497,7 +1605,9 @@ mod e2e_flow {
         drop(threshold_events);
 
         // 6. Try to exceed limit
+        // テナント識別子を含む使用量増分インプット3（E2Eテスト用）
         let inc_input3 = IncrementQuotaUsageInput {
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             amount: 21, // 80 + 21 = 101 > 100
             request_id: None,
@@ -1507,7 +1617,9 @@ mod e2e_flow {
 
         // 7. Reset usage
         let reset_uc = ResetQuotaUsageUseCase::new(policy_repo.clone(), usage_repo.clone());
+        // テナント識別子を含むリセットインプット（E2Eテスト用）
         let reset_input = ResetQuotaUsageInput {
+            tenant_id: "test-tenant".to_string(),
             quota_id: policy.id.clone(),
             reason: "billing cycle reset".to_string(),
             reset_by: "system".to_string(),
@@ -1516,14 +1628,16 @@ mod e2e_flow {
         assert_eq!(reset_result.used, 0);
 
         // 8. Verify usage is reset
-        let usage_after = usage_uc.execute(&policy.id).await.unwrap();
+        let usage_after = usage_uc.execute(&policy.id, "test-tenant").await.unwrap();
         assert_eq!(usage_after.used, 0);
         assert_eq!(usage_after.remaining, 100);
 
         // 9. Update the policy
         let update_uc = UpdateQuotaPolicyUseCase::new(policy_repo.clone());
+        // テナント識別子を含む更新インプット（E2Eテスト用）
         let update_input = UpdateQuotaPolicyInput {
             id: policy.id.clone(),
+            tenant_id: "test-tenant".to_string(),
             name: "E2E Plan v2".to_string(),
             subject_type: "tenant".to_string(),
             subject_id: "tenant-e2e".to_string(),
@@ -1538,10 +1652,10 @@ mod e2e_flow {
 
         // 10. Delete the policy
         let delete_uc = DeleteQuotaPolicyUseCase::new(policy_repo.clone());
-        delete_uc.execute(&policy.id).await.unwrap();
+        delete_uc.execute(&policy.id, "test-tenant").await.unwrap();
 
         // 11. Verify policy is gone
-        let get_result = get_uc.execute(&policy.id).await;
+        let get_result = get_uc.execute(&policy.id, "test-tenant").await;
         assert!(matches!(get_result, Err(GetQuotaPolicyError::NotFound(_))));
     }
 }

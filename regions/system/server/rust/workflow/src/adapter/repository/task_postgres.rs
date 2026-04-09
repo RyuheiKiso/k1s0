@@ -14,7 +14,7 @@ pub struct TaskPostgresRepository {
 }
 
 impl TaskPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -185,7 +185,8 @@ impl WorkflowTaskRepository for TaskPostgresRepository {
 
         tx.commit().await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     // 期限超過タスク一覧を全テナント対象で取得する（スケジューラ用）

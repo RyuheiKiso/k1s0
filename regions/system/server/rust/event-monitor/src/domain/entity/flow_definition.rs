@@ -37,7 +37,7 @@ pub struct FlowDefinition {
 
 impl FlowDefinition {
     /// `新しいフロー定義を生成する。tenant_id` はシステム管理者が管理するため通常 "system" を使用する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         tenant_id: String,
         name: String,

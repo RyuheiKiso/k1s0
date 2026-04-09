@@ -167,8 +167,12 @@ pub async fn get_download_stats(
     Extension(claims): Extension<Claims>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    match state.get_download_stats_uc.execute(&claims.tenant_id, &id).await {
-        Ok(stats) => (StatusCode::OK, Json(stats)).into_response(),
+    match state
+        .get_download_stats_uc
+        .execute(&claims.tenant_id, &id)
+        .await
+    {
+        Ok(download_stats) => (StatusCode::OK, Json(download_stats)).into_response(),
         Err(crate::usecase::get_download_stats::GetDownloadStatsError::AppNotFound(_)) => {
             let err =
                 ErrorResponse::new("SYS_APPS_APP_NOT_FOUND", "The specified app was not found");

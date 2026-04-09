@@ -42,7 +42,7 @@ pub struct InMemoryTenantClient {
 }
 
 impl InMemoryTenantClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             // 空の HashMap で tokio::sync::Mutex を初期化する
@@ -52,7 +52,7 @@ impl InMemoryTenantClient {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_tenants(tenants: Vec<Tenant>) -> Self {
         let map: HashMap<String, Tenant> = tenants.into_iter().map(|t| (t.id.clone(), t)).collect();
         Self {
@@ -339,9 +339,7 @@ impl HttpTenantClient {
         let body = resp.text().await.unwrap_or_default();
         match status.as_u16() {
             404 => Err(TenantError::NotFound(tenant_id.to_string())),
-            _ => Err(TenantError::ServerError(format!(
-                "HTTP {status}: {body}"
-            ))),
+            _ => Err(TenantError::ServerError(format!("HTTP {status}: {body}"))),
         }
     }
 
@@ -482,9 +480,7 @@ impl TenantClient for HttpTenantClient {
     async fn remove_member(&self, tenant_id: &str, user_id: &str) -> Result<(), TenantError> {
         let resp = self
             .http
-            .delete(self.url(&format!(
-                "/api/v1/tenants/{tenant_id}/members/{user_id}"
-            )))
+            .delete(self.url(&format!("/api/v1/tenants/{tenant_id}/members/{user_id}")))
             .send()
             .await
             .map_err(Self::map_request_error)?;
@@ -513,9 +509,7 @@ impl TenantClient for HttpTenantClient {
     ) -> Result<ProvisioningStatus, TenantError> {
         let resp = self
             .http
-            .get(self.url(&format!(
-                "/api/v1/tenants/{tenant_id}/provisioning-status"
-            )))
+            .get(self.url(&format!("/api/v1/tenants/{tenant_id}/provisioning-status")))
             .send()
             .await
             .map_err(Self::map_request_error)?;

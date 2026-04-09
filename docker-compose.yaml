@@ -269,7 +269,8 @@ services:
   # Kafka の JMX ポート 9999 に接続し、ブローカーメトリクス・リクエストレイテンシ等を収集する。
   # Prometheus は http://kafka-jmx-exporter:9101/metrics をスクレイプする。
   kafka-jmx-exporter:
-    image: ghcr.io/prometheus/jmx-exporter:1.0.1
+    # LOW-006 監査対応: latest タグは再現性がなくセキュリティリスクがあるため固定バージョンに変更する
+    image: bitnami/jmx-exporter:1.0.1
     profiles: [infra]
     restart: unless-stopped
     mem_limit: 256m
@@ -1531,9 +1532,10 @@ services:
     # /tmp:noexec のままでは起動不能（CRIT-001 誤対応の根本原因）。
     # CRIT-001 対応: /tmp:noexec は維持し、/var/tmp を exec 許可で追加する。
     # JAVA_TOOL_OPTIONS で java.io.tmpdir=/var/tmp を設定し libzstd-jni の展開先を変更する。
+    # Docker Desktop (WSL2) では tmpfs が常に noexec でマウントされるため、exec を明示指定する。
     tmpfs:
       - /tmp:noexec
-      - /var/tmp
+      - /var/tmp:exec
     depends_on:
       kafka:
         condition: service_healthy
@@ -1584,6 +1586,10 @@ services:
     # --profile system 単独起動時に jaeger が見つからず依存解決に失敗する問題を修正する
     # HIGH-001/MEDIUM-001 対応: Windows Docker Desktop ヘルスチェックタイムアウト問題を避けるため
     # jaeger 依存条件を service_healthy → service_started に変更済み
+    #
+    # MED-008: jaeger は system と observability の両プロファイルに含める（設計意図）
+    # system プロファイル単体でもトレーシングが利用できるようにするため二重登録している
+    # observability プロファイルでは grafana/prometheus と合わせた全観測スタックを起動する
     profiles: [system, observability]
     # 再起動ポリシー: クラッシュ時に自動復旧する（明示的に停止するまで再起動）
     restart: unless-stopped

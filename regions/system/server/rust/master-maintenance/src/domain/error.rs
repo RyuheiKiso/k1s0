@@ -167,7 +167,8 @@ impl From<MasterMaintenanceError> for ServiceError {
                 message: msg,
                 details: vec![],
             },
-            MasterMaintenanceError::SqlBuildError(msg) => ServiceError::Internal {
+            // SqlBuildError と Internal は同じエラーに変換するためアームを統合する
+            MasterMaintenanceError::SqlBuildError(msg) | MasterMaintenanceError::Internal(msg) => ServiceError::Internal {
                 code: ErrorCode::new("SYS_MM_INTERNAL_ERROR"),
                 message: msg,
             },
@@ -185,10 +186,6 @@ impl From<MasterMaintenanceError> for ServiceError {
                 code: ErrorCode::new("SYS_MM_VERSION_CONFLICT"),
                 message: msg,
                 details: vec![],
-            },
-            MasterMaintenanceError::Internal(msg) => ServiceError::Internal {
-                code: ErrorCode::new("SYS_MM_INTERNAL_ERROR"),
-                message: msg,
             },
         }
     }

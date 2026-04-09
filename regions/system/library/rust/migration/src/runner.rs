@@ -64,7 +64,7 @@ impl InMemoryMigrationRunner {
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn from_migrations(
         config: MigrationConfig,
         up_sqls: Vec<(String, String, String)>,

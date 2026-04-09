@@ -35,14 +35,14 @@ pub struct AppState {
 }
 
 impl AppState {
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_spiffe(mut self, spiffe_state: SpiffeAuthState) -> Self {
         self.spiffe_state = Some(spiffe_state);
         self
@@ -137,11 +137,12 @@ fn internal_error_response(msg: &str) -> (StatusCode, Json<ErrorResponse>) {
         msg
     } else {
         // 内部エラー詳細は隠蔽し、エラーコードのみクライアントに返す
+        // SYS_VAULT_CACHE_ERROR と未知コードは同じメッセージを返すためアームを統合する
         match code {
             "SYS_VAULT_ACCESS_DENIED" => "access denied",
-            "SYS_VAULT_CACHE_ERROR" => "internal server error",
             "SYS_VAULT_VALIDATION_ERROR" => "invalid request",
             "SYS_VAULT_UPSTREAM_ERROR" => "upstream service error",
+            // SYS_VAULT_CACHE_ERROR および未知コードは同じメッセージを返す（_ のみで全マッチ）
             _ => "internal server error",
         }
     };
@@ -170,7 +171,9 @@ pub async fn create_secret(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<SetSecretRequest>,
 ) -> impl IntoResponse {
-    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: req.path.clone(),
         data: req.data,
@@ -239,7 +242,9 @@ pub async fn update_secret(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<UpdateSecretRequest>,
 ) -> impl IntoResponse {
-    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = SetSecretInput {
         path: key.clone(),
         data: req.data,
@@ -266,7 +271,9 @@ pub async fn delete_secret(
     // MED-011 対応: Claims から tenant_id を抽出してアクセスログに伝播する。
     claims: Option<Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
-    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = DeleteSecretInput {
         path: key.clone(),
         versions: vec![], // delete all versions
@@ -288,6 +295,8 @@ pub async fn delete_secret(
 }
 
 /// GET /api/v1/secrets
+/// axum の Query 型制約により `HashMap` 型パラメータの汎化は不可のため、警告を抑制する。
+#[allow(clippy::implicit_hasher)]
 pub async fn list_secrets(
     State(state): State<AppState>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -392,6 +401,8 @@ pub async fn list_audit_logs(
 }
 
 /// POST /api/v1/secrets/:key/rotate
+/// axum の Json 型制約により `HashMap` 型パラメータの汎化は不可のため、警告を抑制する。
+#[allow(clippy::implicit_hasher)]
 pub async fn rotate_secret(
     State(state): State<AppState>,
     Path(key): Path<String>,
@@ -399,7 +410,9 @@ pub async fn rotate_secret(
     claims: Option<Extension<k1s0_auth::Claims>>,
     Json(req): Json<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let tenant_id = claims.as_ref().map(|Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims
+        .as_ref()
+        .map(|Extension(c)| c.tenant_id().to_string());
     let input = RotateSecretInput {
         path: key.clone(),
         data: req,

@@ -119,7 +119,8 @@ mod tests {
         StoredEvent::new(
             "order-001".to_string(),
             "tenant-test".to_string(),
-            version as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            u64::try_from(version).unwrap_or(0),
             "OrderPlaced".to_string(),
             version,
             serde_json::json!({}),

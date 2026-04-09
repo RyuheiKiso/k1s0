@@ -21,7 +21,11 @@ impl GetPolicyUseCase {
     }
 
     /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからポリシーを取得する。
-    pub async fn execute(&self, id: &Uuid, tenant_id: &str) -> Result<Option<Policy>, GetPolicyError> {
+    pub async fn execute(
+        &self,
+        id: &Uuid,
+        tenant_id: &str,
+    ) -> Result<Option<Policy>, GetPolicyError> {
         self.repo
             .find_by_id(id, tenant_id)
             .await

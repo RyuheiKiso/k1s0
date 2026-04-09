@@ -231,7 +231,8 @@ impl VaultGrpcClient {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

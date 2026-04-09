@@ -24,7 +24,7 @@ pub struct InMemoryWsClient {
 }
 
 impl InMemoryWsClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             connection_state: ConnectionState::Disconnected,

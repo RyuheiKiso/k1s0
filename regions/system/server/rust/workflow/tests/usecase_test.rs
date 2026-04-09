@@ -65,7 +65,12 @@ impl StubDefinitionRepo {
 
 #[async_trait]
 impl WorkflowDefinitionRepository for StubDefinitionRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    // テナントスコープでIDによるワークフロー定義検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -73,7 +78,12 @@ impl WorkflowDefinitionRepository for StubDefinitionRepo {
         Ok(defs.iter().find(|d| d.id == id).cloned())
     }
 
-    async fn find_by_name(&self, name: &str) -> anyhow::Result<Option<WorkflowDefinition>> {
+    // テナントスコープで名前によるワークフロー定義検索（テスト用スタブ）
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<WorkflowDefinition>> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -81,8 +91,10 @@ impl WorkflowDefinitionRepository for StubDefinitionRepo {
         Ok(defs.iter().find(|d| d.name == name).cloned())
     }
 
+    // テナントスコープでフィルタ付きワークフロー定義一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         enabled_only: bool,
         _page: u32,
         _page_size: u32,
@@ -100,7 +112,12 @@ impl WorkflowDefinitionRepository for StubDefinitionRepo {
         Ok((filtered, total))
     }
 
-    async fn create(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    // テナントスコープでワークフロー定義を新規作成（テスト用スタブ）
+    async fn create(
+        &self,
+        _tenant_id: &str,
+        definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -108,7 +125,12 @@ impl WorkflowDefinitionRepository for StubDefinitionRepo {
         Ok(())
     }
 
-    async fn update(&self, definition: &WorkflowDefinition) -> anyhow::Result<()> {
+    // テナントスコープでワークフロー定義を更新（テスト用スタブ）
+    async fn update(
+        &self,
+        _tenant_id: &str,
+        definition: &WorkflowDefinition,
+    ) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -119,7 +141,8 @@ impl WorkflowDefinitionRepository for StubDefinitionRepo {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでワークフロー定義を削除（テスト用スタブ）
+    async fn delete(&self, _tenant_id: &str, id: &str) -> anyhow::Result<bool> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -161,7 +184,12 @@ impl StubInstanceRepo {
 
 #[async_trait]
 impl WorkflowInstanceRepository for StubInstanceRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    // テナントスコープでIDによるインスタンス検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -169,8 +197,10 @@ impl WorkflowInstanceRepository for StubInstanceRepo {
         Ok(instances.iter().find(|i| i.id == id).cloned())
     }
 
+    // テナントスコープでフィルタ付きインスタンス一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         status: Option<String>,
         workflow_id: Option<String>,
         initiator_id: Option<String>,
@@ -207,7 +237,8 @@ impl WorkflowInstanceRepository for StubInstanceRepo {
         Ok((filtered, total))
     }
 
-    async fn create(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // テナントスコープでインスタンスを新規作成（テスト用スタブ）
+    async fn create(&self, _tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -215,7 +246,8 @@ impl WorkflowInstanceRepository for StubInstanceRepo {
         Ok(())
     }
 
-    async fn update(&self, instance: &WorkflowInstance) -> anyhow::Result<()> {
+    // テナントスコープでインスタンスを更新（テスト用スタブ）
+    async fn update(&self, _tenant_id: &str, instance: &WorkflowInstance) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -258,7 +290,8 @@ impl StubTaskRepo {
 
 #[async_trait]
 impl WorkflowTaskRepository for StubTaskRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
+    // テナントスコープでIDによるタスク検索（テスト用スタブ）
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowTask>> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -266,8 +299,10 @@ impl WorkflowTaskRepository for StubTaskRepo {
         Ok(tasks.iter().find(|t| t.id == id).cloned())
     }
 
+    // テナントスコープでフィルタ付きタスク一覧取得（テスト用スタブ）
     async fn find_all(
         &self,
+        _tenant_id: &str,
         assignee_id: Option<String>,
         status: Option<String>,
         instance_id: Option<String>,
@@ -316,7 +351,8 @@ impl WorkflowTaskRepository for StubTaskRepo {
         Ok(tasks.iter().filter(|t| t.is_overdue()).cloned().collect())
     }
 
-    async fn create(&self, task: &WorkflowTask) -> anyhow::Result<()> {
+    // テナントスコープでタスクを新規作成（テスト用スタブ）
+    async fn create(&self, _tenant_id: &str, task: &WorkflowTask) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -324,7 +360,8 @@ impl WorkflowTaskRepository for StubTaskRepo {
         Ok(())
     }
 
-    async fn update(&self, task: &WorkflowTask) -> anyhow::Result<()> {
+    // テナントスコープでタスクを更新（テスト用スタブ）
+    async fn update(&self, _tenant_id: &str, task: &WorkflowTask) -> anyhow::Result<()> {
         if self.should_error {
             return Err(anyhow::anyhow!("stub db error"));
         }
@@ -534,6 +571,8 @@ mod create_workflow {
         let uc = CreateWorkflowUseCase::new(repo.clone());
 
         let input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "purchase-approval".to_string(),
             description: "Purchase flow".to_string(),
             enabled: true,
@@ -564,6 +603,8 @@ mod create_workflow {
         let uc = CreateWorkflowUseCase::new(repo);
 
         let input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "simple-approval".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -582,6 +623,8 @@ mod create_workflow {
         let uc = CreateWorkflowUseCase::new(repo);
 
         let input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -600,6 +643,8 @@ mod create_workflow {
         let uc = CreateWorkflowUseCase::new(repo);
 
         let input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -618,6 +663,8 @@ mod create_workflow {
         let uc = CreateWorkflowUseCase::new(repo);
 
         let input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "test".to_string(),
             description: "".to_string(),
             enabled: true,
@@ -645,6 +692,8 @@ mod get_workflow {
         let uc = GetWorkflowUseCase::new(repo);
 
         let input = GetWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_002".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -658,6 +707,8 @@ mod get_workflow {
         let uc = GetWorkflowUseCase::new(repo);
 
         let input = GetWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_nonexistent".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -672,6 +723,8 @@ mod get_workflow {
         let uc = GetWorkflowUseCase::new(repo);
 
         let input = GetWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -695,6 +748,8 @@ mod update_workflow {
         let uc = UpdateWorkflowUseCase::new(repo.clone());
 
         let input = UpdateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_002".to_string(),
             name: Some("updated-name".to_string()),
             description: None,
@@ -723,6 +778,8 @@ mod update_workflow {
         let uc = UpdateWorkflowUseCase::new(repo);
 
         let input = UpdateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_002".to_string(),
             name: None,
             description: Some("new description".to_string()),
@@ -745,6 +802,8 @@ mod update_workflow {
         let uc = UpdateWorkflowUseCase::new(repo);
 
         let input = UpdateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_missing".to_string(),
             name: Some("x".to_string()),
             description: None,
@@ -764,6 +823,8 @@ mod update_workflow {
         let uc = UpdateWorkflowUseCase::new(repo);
 
         let input = UpdateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
             name: None,
             description: None,
@@ -792,6 +853,8 @@ mod delete_workflow {
         let uc = DeleteWorkflowUseCase::new(repo.clone());
 
         let input = DeleteWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_002".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -807,6 +870,8 @@ mod delete_workflow {
         let uc = DeleteWorkflowUseCase::new(repo);
 
         let input = DeleteWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_missing".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -821,6 +886,8 @@ mod delete_workflow {
         let uc = DeleteWorkflowUseCase::new(repo);
 
         let input = DeleteWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "wf_001".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -844,6 +911,8 @@ mod list_workflows {
         let uc = ListWorkflowsUseCase::new(repo);
 
         let input = ListWorkflowsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,
@@ -863,6 +932,8 @@ mod list_workflows {
         let uc = ListWorkflowsUseCase::new(repo);
 
         let input = ListWorkflowsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             enabled_only: true,
             page: 1,
             page_size: 20,
@@ -881,6 +952,8 @@ mod list_workflows {
         let uc = ListWorkflowsUseCase::new(repo);
 
         let input = ListWorkflowsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,
@@ -900,6 +973,8 @@ mod list_workflows {
         let uc = ListWorkflowsUseCase::new(repo);
 
         let input = ListWorkflowsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             enabled_only: false,
             page: 1,
             page_size: 20,
@@ -928,6 +1003,8 @@ mod start_instance {
             StartInstanceUseCase::new(def_repo, inst_repo.clone(), task_repo.clone(), publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "PC Purchase".to_string(),
             initiator_id: "user-001".to_string(),
@@ -969,6 +1046,8 @@ mod start_instance {
         let uc = StartInstanceUseCase::new(def_repo, inst_repo, task_repo, publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_nonexistent".to_string(),
             title: "Test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -992,6 +1071,8 @@ mod start_instance {
         let uc = StartInstanceUseCase::new(def_repo, inst_repo, task_repo, publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_disabled".to_string(),
             title: "Test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -1015,6 +1096,8 @@ mod start_instance {
         let uc = StartInstanceUseCase::new(def_repo, inst_repo, task_repo, publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_empty".to_string(),
             title: "Test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -1037,6 +1120,8 @@ mod start_instance {
         let uc = StartInstanceUseCase::new(def_repo, inst_repo, task_repo, publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "Test".to_string(),
             initiator_id: "user-001".to_string(),
@@ -1060,6 +1145,8 @@ mod start_instance {
         let uc = StartInstanceUseCase::new(def_repo, inst_repo, task_repo, publisher);
 
         let input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: "wf_001".to_string(),
             title: "PC Purchase".to_string(),
             initiator_id: "user-001".to_string(),
@@ -1085,6 +1172,8 @@ mod get_instance {
         let uc = GetInstanceUseCase::new(repo);
 
         let input = GetInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -1101,6 +1190,8 @@ mod get_instance {
         let uc = GetInstanceUseCase::new(repo);
 
         let input = GetInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_missing".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -1115,6 +1206,8 @@ mod get_instance {
         let uc = GetInstanceUseCase::new(repo);
 
         let input = GetInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
         };
         let result = uc.execute(&input).await;
@@ -1138,6 +1231,8 @@ mod list_instances {
         let uc = ListInstancesUseCase::new(repo);
 
         let input = ListInstancesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             workflow_id: None,
             initiator_id: None,
@@ -1159,6 +1254,8 @@ mod list_instances {
         let uc = ListInstancesUseCase::new(repo);
 
         let input = ListInstancesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: Some("running".to_string()),
             workflow_id: None,
             initiator_id: None,
@@ -1179,6 +1276,8 @@ mod list_instances {
         let uc = ListInstancesUseCase::new(repo);
 
         let input = ListInstancesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             workflow_id: None,
             initiator_id: None,
@@ -1196,6 +1295,8 @@ mod list_instances {
         let uc = ListInstancesUseCase::new(repo);
 
         let input = ListInstancesInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             workflow_id: None,
             initiator_id: None,
@@ -1221,6 +1322,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo.clone());
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: Some("no longer needed".to_string()),
         };
@@ -1244,6 +1347,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo);
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_missing".to_string(),
             reason: None,
         };
@@ -1261,6 +1366,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo);
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_completed".to_string(),
             reason: None,
         };
@@ -1279,6 +1386,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo);
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: None,
         };
@@ -1297,6 +1406,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo);
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: None,
         };
@@ -1313,6 +1424,8 @@ mod cancel_instance {
         let uc = CancelInstanceUseCase::new(repo);
 
         let input = CancelInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "inst_001".to_string(),
             reason: None,
         };
@@ -1345,6 +1458,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo.clone(), inst_repo.clone(), def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("Approved".to_string()),
@@ -1394,6 +1509,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo.clone(), def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-003".to_string(),
             comment: None,
@@ -1444,6 +1561,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_single".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("OK".to_string()),
@@ -1467,6 +1586,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_missing".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1491,6 +1612,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1515,6 +1638,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1536,6 +1661,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1561,6 +1688,8 @@ mod approve_task {
         let uc = ApproveTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("Approved".to_string()),
@@ -1593,6 +1722,8 @@ mod reject_task {
         let uc = RejectTaskUseCase::new(task_repo, inst_repo.clone(), def_repo, publisher);
 
         let input = RejectTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("Too expensive".to_string()),
@@ -1633,6 +1764,8 @@ mod reject_task {
         let uc = RejectTaskUseCase::new(task_repo.clone(), inst_repo.clone(), def_repo, publisher);
 
         let input = RejectTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-003".to_string(),
             comment: Some("Budget exceeded".to_string()),
@@ -1670,6 +1803,8 @@ mod reject_task {
         let uc = RejectTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = RejectTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_missing".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1694,6 +1829,8 @@ mod reject_task {
         let uc = RejectTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = RejectTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: None,
@@ -1719,6 +1856,8 @@ mod reject_task {
         let uc = RejectTaskUseCase::new(task_repo, inst_repo, def_repo, publisher);
 
         let input = RejectTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             actor_id: "user-002".to_string(),
             comment: Some("Rejected".to_string()),
@@ -1743,6 +1882,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo.clone());
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: Some("on vacation".to_string()),
@@ -1769,6 +1910,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo);
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_002".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -1790,6 +1933,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo);
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_missing".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -1811,6 +1956,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo);
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -1832,6 +1979,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo);
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -1850,6 +1999,8 @@ mod reassign_task {
         let uc = ReassignTaskUseCase::new(repo);
 
         let input = ReassignTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: "task_001".to_string(),
             new_assignee_id: "user-003".to_string(),
             reason: None,
@@ -1877,6 +2028,8 @@ mod list_tasks {
         let uc = ListTasksUseCase::new(repo);
 
         let input = ListTasksInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             assignee_id: None,
             status: None,
             instance_id: None,
@@ -1900,6 +2053,8 @@ mod list_tasks {
         let uc = ListTasksUseCase::new(repo);
 
         let input = ListTasksInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             assignee_id: Some("user-002".to_string()),
             status: None,
             instance_id: None,
@@ -1922,6 +2077,8 @@ mod list_tasks {
         let uc = ListTasksUseCase::new(repo);
 
         let input = ListTasksInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             assignee_id: None,
             status: None,
             instance_id: None,
@@ -1941,6 +2098,8 @@ mod list_tasks {
         let uc = ListTasksUseCase::new(repo);
 
         let input = ListTasksInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             assignee_id: None,
             status: None,
             instance_id: None,
@@ -2034,6 +2193,8 @@ mod workflow_state_transitions {
         let create_uc = CreateWorkflowUseCase::new(def_repo.clone());
 
         let create_input = CreateWorkflowInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "leave-request".to_string(),
             description: "Leave request approval".to_string(),
             enabled: true,
@@ -2056,6 +2217,8 @@ mod workflow_state_transitions {
         );
 
         let start_input = StartInstanceInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             workflow_id: def.id.clone(),
             title: "Summer Vacation".to_string(),
             initiator_id: "user-001".to_string(),
@@ -2075,6 +2238,8 @@ mod workflow_state_transitions {
         );
 
         let approve_input = ApproveTaskInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             task_id: first_task.id.clone(),
             actor_id: "manager-001".to_string(),
             comment: Some("Enjoy your vacation!".to_string()),
@@ -2111,6 +2276,8 @@ mod workflow_state_transitions {
 
         let start_output = start_uc
             .execute(&StartInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 workflow_id: "wf_001".to_string(),
                 title: "PC Purchase".to_string(),
                 initiator_id: "user-001".to_string(),
@@ -2132,6 +2299,8 @@ mod workflow_state_transitions {
 
         let approve1_output = approve_uc
             .execute(&ApproveTaskInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 task_id: task1.id.clone(),
                 actor_id: "manager-001".to_string(),
                 comment: None,
@@ -2146,6 +2315,8 @@ mod workflow_state_transitions {
         // Approve step-2
         let approve2_output = approve_uc
             .execute(&ApproveTaskInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 task_id: task2.id.clone(),
                 actor_id: "finance-001".to_string(),
                 comment: Some("Budget approved".to_string()),
@@ -2177,6 +2348,8 @@ mod workflow_state_transitions {
 
         let start_output = start_uc
             .execute(&StartInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 workflow_id: "wf_001".to_string(),
                 title: "PC Purchase".to_string(),
                 initiator_id: "user-001".to_string(),
@@ -2197,6 +2370,8 @@ mod workflow_state_transitions {
 
         let reject_output = reject_uc
             .execute(&RejectTaskInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 task_id: task1.id.clone(),
                 actor_id: "manager-001".to_string(),
                 comment: Some("Not justified".to_string()),
@@ -2228,6 +2403,8 @@ mod workflow_state_transitions {
 
         let start_output = start_uc
             .execute(&StartInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 workflow_id: "wf_001".to_string(),
                 title: "Equipment".to_string(),
                 initiator_id: "user-001".to_string(),
@@ -2248,6 +2425,8 @@ mod workflow_state_transitions {
 
         let approve_output = approve_uc
             .execute(&ApproveTaskInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 task_id: task1.id.clone(),
                 actor_id: "manager-001".to_string(),
                 comment: None,
@@ -2268,6 +2447,8 @@ mod workflow_state_transitions {
 
         let reject_output = reject_uc
             .execute(&RejectTaskInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 task_id: task2.id.clone(),
                 actor_id: "finance-001".to_string(),
                 comment: Some("Budget issue".to_string()),
@@ -2304,6 +2485,8 @@ mod workflow_state_transitions {
 
         let start_output = start_uc
             .execute(&StartInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 workflow_id: "wf_002".to_string(),
                 title: "Test".to_string(),
                 initiator_id: "user-001".to_string(),
@@ -2318,6 +2501,8 @@ mod workflow_state_transitions {
         let cancel_uc = CancelInstanceUseCase::new(inst_repo.clone());
         let cancel_result = cancel_uc
             .execute(&CancelInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 id: instance_id.clone(),
                 reason: Some("changed my mind".to_string()),
             })
@@ -2330,6 +2515,8 @@ mod workflow_state_transitions {
         // Cannot cancel again
         let cancel_again = cancel_uc
             .execute(&CancelInstanceInput {
+                // テナント識別子（テスト用固定値）
+                tenant_id: "test-tenant".to_string(),
                 id: instance_id,
                 reason: None,
             })

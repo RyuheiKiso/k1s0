@@ -100,7 +100,8 @@ pub async fn run() -> anyhow::Result<()> {
                 let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
                     let prefix = cfg
                         .redis
-                        .as_ref().map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
+                        .as_ref()
+                        .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
                     info!("using Redis for usage counters (prefix={})", prefix);
                     Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                         cm.clone(),
@@ -127,7 +128,8 @@ pub async fn run() -> anyhow::Result<()> {
                 let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
                     let prefix = cfg
                         .redis
-                        .as_ref().map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
+                        .as_ref()
+                        .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
                     Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                         cm.clone(),
                         prefix,
@@ -155,7 +157,8 @@ pub async fn run() -> anyhow::Result<()> {
         let usage_repo: Arc<dyn QuotaUsageRepository> = if let Some(ref cm) = redis_conn {
             let prefix = cfg
                 .redis
-                .as_ref().map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
+                .as_ref()
+                .map_or_else(|| "quota:".to_string(), |r| r.key_prefix.clone());
             Arc::new(infrastructure::redis_store::RedisQuotaUsageRepository::new(
                 cm.clone(),
                 prefix,
@@ -256,7 +259,14 @@ pub async fn run() -> anyhow::Result<()> {
         // 最大リトライ到達時に false にセットさせることで readyz に連携する
         let cron_healthy_flag = Arc::clone(&cron_healthy);
         tokio::spawn(async move {
-            run_reset_cron(daily_cron, monthly_cron, cron_reset_uc, cron_list_uc, cron_healthy_flag).await;
+            run_reset_cron(
+                daily_cron,
+                monthly_cron,
+                cron_reset_uc,
+                cron_list_uc,
+                cron_healthy_flag,
+            )
+            .await;
         });
     }
 
@@ -413,25 +423,27 @@ async fn run_reset_cron(
         ("monthly", monthly_expr.as_str()),
     ]
     .into_iter()
-    .filter_map(|(label, expr)| match croner::Cron::new(expr).with_seconds_required().parse() {
-        Ok(cron) => {
-            info!(
-                schedule = label,
-                expression = expr,
-                "cron schedule registered"
-            );
-            Some((label, cron))
-        }
-        Err(e) => {
-            tracing::error!(
-                schedule = label,
-                expression = expr,
-                error = %e,
-                "failed to parse cron expression, skipping"
-            );
-            None
-        }
-    })
+    .filter_map(
+        |(label, expr)| match croner::Cron::new(expr).with_seconds_required().parse() {
+            Ok(cron) => {
+                info!(
+                    schedule = label,
+                    expression = expr,
+                    "cron schedule registered"
+                );
+                Some((label, cron))
+            }
+            Err(e) => {
+                tracing::error!(
+                    schedule = label,
+                    expression = expr,
+                    error = %e,
+                    "failed to parse cron expression, skipping"
+                );
+                None
+            }
+        },
+    )
     .collect();
 
     // 有効なスケジュールが1件もない場合はタスクを終了する
@@ -603,12 +615,14 @@ impl QuotaPolicyRepository for InMemoryQuotaPolicyRepository {
     ) -> anyhow::Result<(Vec<QuotaPolicy>, u64)> {
         let policies = self.policies.read().await;
         let all: Vec<QuotaPolicy> = policies.values().cloned().collect();
-        let total = all.len() as u64;
-        let start = ((page - 1) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(all.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<QuotaPolicy> = all
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -651,7 +665,12 @@ impl QuotaUsageRepository for InMemoryQuotaUsageRepository {
         Ok(counters.get(quota_id).copied())
     }
 
-    async fn increment(&self, quota_id: &str, amount: u64, _tenant_id: &str) -> anyhow::Result<u64> {
+    async fn increment(
+        &self,
+        quota_id: &str,
+        amount: u64,
+        _tenant_id: &str,
+    ) -> anyhow::Result<u64> {
         let mut counters = self.counters.write().await;
         let counter = counters.entry(quota_id.to_string()).or_insert(0);
         *counter += amount;

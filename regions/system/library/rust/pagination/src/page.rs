@@ -33,19 +33,19 @@ impl Default for PageRequest {
 }
 
 impl PageRequest {
-    #[must_use] 
+    #[must_use]
     pub fn offset(&self) -> u64 {
         (u64::from(self.page) - 1) * u64::from(self.per_page)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn has_next(&self, total: u64) -> bool {
         u64::from(self.page) * u64::from(self.per_page) < total
     }
 }
 
 /// Returns a default page request (`page = 1`, `per_page = 20`).
-#[must_use] 
+#[must_use]
 pub fn default_page_request() -> PageRequest {
     PageRequest::default()
 }
@@ -69,12 +69,15 @@ pub struct PageResponse<T> {
 }
 
 impl<T> PageResponse<T> {
-    #[must_use] 
+    #[must_use]
     pub fn new(items: Vec<T>, total: u64, request: &PageRequest) -> Self {
+        // LOW-008: 整数演算による切り上げ除算でキャストを回避する
         let total_pages = if request.per_page == 0 {
             0
         } else {
-            ((total as f64) / f64::from(request.per_page)).ceil() as u32
+            let per_page_u64 = u64::from(request.per_page);
+            // div_ceil で切り上げ除算を実装する（std の div_ceil は u64 で利用可能）
+            u32::try_from(total.div_ceil(per_page_u64)).unwrap_or(u32::MAX)
         };
         Self {
             items,
@@ -86,7 +89,7 @@ impl<T> PageResponse<T> {
     }
 
     /// Return the pagination metadata for this response.
-    #[must_use] 
+    #[must_use]
     pub fn meta(&self) -> PaginationMeta {
         PaginationMeta {
             total: self.total,

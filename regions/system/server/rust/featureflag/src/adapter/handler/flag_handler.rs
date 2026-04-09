@@ -21,9 +21,8 @@ const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 /// JWT クレームからテナントIDを抽出するヘルパー。
 /// クレームがない場合はシステムテナントIDをフォールバックとして使用する。
 /// HIGH-005 対応: String 型を返す（migration 006 で DB の TEXT 型に変更済み）。
-fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
+fn extract_tenant_id(claims: Option<&Extension<k1s0_auth::Claims>>) -> String {
     claims
-        .as_ref()
         .map(|ext| ext.0.tenant_id.clone())
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| SYSTEM_TENANT_ID.to_string())
@@ -35,7 +34,7 @@ pub async fn list_flags(
     claims: Option<Extension<k1s0_auth::Claims>>,
 ) -> impl IntoResponse {
     // STATIC-CRITICAL-001: テナントスコープでフラグ一覧を取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     match state.list_flags_uc.execute(&tenant_id).await {
         Ok(flags) => {
             let items: Vec<FlagResponse> = flags.into_iter().map(FlagResponse::from).collect();
@@ -56,7 +55,7 @@ pub async fn get_flag(
     Path(key): Path<String>,
 ) -> impl IntoResponse {
     // STATIC-CRITICAL-001: テナントスコープでフラグを取得する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     match state.get_flag_uc.execute(&tenant_id, &key).await {
         Ok(flag) => {
             // フラグレスポンスを直接 Json<FlagResponse> として返す（.expect() 排除）
@@ -64,12 +63,18 @@ pub async fn get_flag(
             (StatusCode::OK, Json(resp)).into_response()
         }
         // M-005 監査対応: 文字列マッチングから型付きエラー enum へ移行する
-        Err(GetFlagError::NotFound(key)) => {
-            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
-        }
+        Err(GetFlagError::NotFound(key)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::featureflag::not_found(),
+            format!("flag not found: {key}"),
+        ),
         Err(GetFlagError::Internal(msg)) => {
             tracing::error!("get_flag internal error: {msg}");
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::get_failed(), "Internal server error")
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                codes::featureflag::get_failed(),
+                "Internal server error",
+            )
         }
     }
 }
@@ -81,7 +86,7 @@ pub async fn create_flag(
     Json(req): Json<CreateFlagRequest>,
 ) -> impl IntoResponse {
     // STATIC-CRITICAL-001: テナントスコープでフラグを作成する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = CreateFlagInput {
         tenant_id: tenant_id.clone(),
         flag_key: req.flag_key,
@@ -97,12 +102,18 @@ pub async fn create_flag(
             (StatusCode::CREATED, Json(resp)).into_response()
         }
         // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
-        Err(CreateFlagError::AlreadyExists(key)) => {
-            error_response(StatusCode::CONFLICT, codes::featureflag::already_exists(), format!("flag already exists: {key}"))
-        }
+        Err(CreateFlagError::AlreadyExists(key)) => error_response(
+            StatusCode::CONFLICT,
+            codes::featureflag::already_exists(),
+            format!("flag already exists: {key}"),
+        ),
         Err(CreateFlagError::Internal(msg)) => {
             tracing::error!("create_flag internal error: {msg}");
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::create_failed(), "Internal server error")
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                codes::featureflag::create_failed(),
+                "Internal server error",
+            )
         }
     }
 }
@@ -115,7 +126,7 @@ pub async fn update_flag(
     Json(req): Json<UpdateFlagRequest>,
 ) -> impl IntoResponse {
     // STATIC-CRITICAL-001: テナントスコープでフラグを更新する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = UpdateFlagInput {
         tenant_id: tenant_id.clone(),
         flag_key: key,
@@ -132,12 +143,18 @@ pub async fn update_flag(
             (StatusCode::OK, Json(resp)).into_response()
         }
         // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
-        Err(UpdateFlagError::NotFound(key)) => {
-            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
-        }
+        Err(UpdateFlagError::NotFound(key)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::featureflag::not_found(),
+            format!("flag not found: {key}"),
+        ),
         Err(UpdateFlagError::Internal(msg)) => {
             tracing::error!("update_flag internal error: {msg}");
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::update_failed(), "Internal server error")
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                codes::featureflag::update_failed(),
+                "Internal server error",
+            )
         }
     }
 }
@@ -151,17 +168,25 @@ pub async fn delete_flag(
     use crate::usecase::delete_flag::DeleteFlagError;
 
     // STATIC-CRITICAL-001: テナントスコープでフラグを削除する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
     let flag = match state.get_flag_uc.execute(&tenant_id, &key).await {
         Ok(f) => f,
         Err(GetFlagError::NotFound(k)) => {
-            return error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {k}"));
+            return error_response(
+                StatusCode::NOT_FOUND,
+                codes::featureflag::not_found(),
+                format!("flag not found: {k}"),
+            );
         }
         Err(GetFlagError::Internal(msg)) => {
             tracing::error!("delete_flag get_flag internal error: {msg}");
-            return error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::get_failed(), "Internal server error");
+            return error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                codes::featureflag::get_failed(),
+                "Internal server error",
+            );
         }
     };
 
@@ -195,7 +220,7 @@ pub async fn evaluate_flag(
     use crate::usecase::evaluate_flag::EvaluateFlagInput;
 
     // STATIC-CRITICAL-001: テナントスコープでフラグを評価する
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
     let input = EvaluateFlagInput {
         tenant_id: tenant_id.clone(),
         flag_key: key,
@@ -218,12 +243,18 @@ pub async fn evaluate_flag(
         )
             .into_response(),
         // M-005 監査対応: 型付きエラー enum で分岐する（文字列マッチング廃止）
-        Err(EvaluateFlagError::FlagNotFound(key)) => {
-            error_response(StatusCode::NOT_FOUND, codes::featureflag::not_found(), format!("flag not found: {key}"))
-        }
+        Err(EvaluateFlagError::FlagNotFound(key)) => error_response(
+            StatusCode::NOT_FOUND,
+            codes::featureflag::not_found(),
+            format!("flag not found: {key}"),
+        ),
         Err(EvaluateFlagError::Internal(msg)) => {
             tracing::error!("evaluate_flag internal error: {msg}");
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, codes::featureflag::evaluate_failed(), "Internal server error")
+            error_response(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                codes::featureflag::evaluate_failed(),
+                "Internal server error",
+            )
         }
     }
 }

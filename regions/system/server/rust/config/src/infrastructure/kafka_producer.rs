@@ -118,7 +118,7 @@ impl KafkaProducer {
     }
 
     /// メトリクスを設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -128,7 +128,8 @@ impl KafkaProducer {
     }
 
     /// シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）。
-    pub async fn close(&self) -> anyhow::Result<()> {
+    // async は不要（flush は同期呼び出しのため async キーワードを削除する）
+    pub fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(std::time::Duration::from_secs(10))?;
         Ok(())
@@ -149,9 +150,7 @@ impl KafkaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish config changed event: {err}")
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish config changed event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);

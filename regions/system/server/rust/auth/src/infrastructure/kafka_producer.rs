@@ -114,13 +114,13 @@ impl KafkaProducer {
 
     /// Return the default topic name.
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     /// Resolve a topic by event type prefix, falling back to the default topic.
-    #[must_use] 
+    #[must_use]
     pub fn resolve_topic(&self, event_type: &str) -> &str {
         let prefix = event_type.split('_').next().unwrap_or("");
         self.topic_map

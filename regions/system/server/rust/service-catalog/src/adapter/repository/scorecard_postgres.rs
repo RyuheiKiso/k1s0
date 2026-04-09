@@ -41,7 +41,7 @@ pub struct ScorecardPostgresRepository {
 
 impl ScorecardPostgresRepository {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -49,7 +49,7 @@ impl ScorecardPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,

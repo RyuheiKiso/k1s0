@@ -312,7 +312,10 @@ async fn check_rate_limit_with_stub_single_rule_allowed() {
 
     let uc = CheckRateLimitUseCase::new(repo, state);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
-    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-1", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -333,7 +336,10 @@ async fn check_rate_limit_exact_match_takes_priority_over_wildcard() {
     let uc = CheckRateLimitUseCase::new(repo, state);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // user-vip は FixedWindow のルールにマッチするはず
-    let decision = uc.execute("test-tenant", "api", "user-vip", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-vip", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
     // FixedWindowのcheck_fixed_windowが呼ばれることを間接的に検証
@@ -354,7 +360,10 @@ async fn check_rate_limit_falls_back_to_wildcard_when_no_exact_match() {
     let uc = CheckRateLimitUseCase::new(repo, state);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 通常ユーザーはワイルドカードルールにフォールバック
-    let decision = uc.execute("test-tenant", "api", "normal-user", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "normal-user", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
     assert_eq!(decision.scope, "api");
@@ -371,7 +380,10 @@ async fn check_rate_limit_disabled_rule_skipped() {
     let uc = CheckRateLimitUseCase::new(repo, state);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
     // 無効ルールはスキップされ、デフォルトが使用される
-    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-1", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
     // rule_id はマッチしないルールなので空文字列
@@ -400,7 +412,10 @@ async fn check_rate_limit_fail_open_with_matched_rule() {
 
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 100, 60);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
-    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-1", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
     assert!(decision.reason.contains("fail-open"));
@@ -428,7 +443,10 @@ async fn check_rate_limit_leaky_bucket_algorithm() {
 
     let uc = CheckRateLimitUseCase::new(repo, state);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
-    let decision = uc.execute("test-tenant", "api", "user-1", 30).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-1", 30)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
 }
@@ -442,7 +460,10 @@ async fn check_rate_limit_fallback_policy_zero_limit_clamped_to_one() {
     // limit=0, window=0 は内部で max(1) に矯正される
     let uc = CheckRateLimitUseCase::with_fallback_policy(repo, state, true, 0, 0);
     // STATIC-CRITICAL-001: テナントスコープでレートリミットをチェックする
-    let decision = uc.execute("test-tenant", "api", "user-1", 60).await.unwrap();
+    let decision = uc
+        .execute("test-tenant", "api", "user-1", 60)
+        .await
+        .unwrap();
 
     assert!(decision.allowed);
 }
@@ -681,10 +702,7 @@ async fn get_rule_with_stub_success() {
     let repo = Arc::new(StubRateLimitRepository::with_rules(vec![rule]));
     let uc = GetRuleUseCase::new(repo);
 
-    let found = uc
-        .execute(&rule_id.to_string(), "tenant-a")
-        .await
-        .unwrap();
+    let found = uc.execute(&rule_id.to_string(), "tenant-a").await.unwrap();
     assert_eq!(found.id, rule_id);
     assert_eq!(found.scope, "api");
 }
@@ -821,7 +839,10 @@ async fn get_usage_with_state_store_returns_snapshot() {
 
     let uc = GetUsageUseCase::with_state_store(repo, state);
     // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
-    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
+    let info = uc
+        .execute("test-tenant", &rule_id.to_string())
+        .await
+        .unwrap();
 
     assert_eq!(info.limit, 100);
     assert_eq!(info.used, Some(25));
@@ -838,7 +859,10 @@ async fn get_usage_without_state_store_returns_none_values() {
 
     let uc = GetUsageUseCase::new(repo);
     // STATIC-CRITICAL-001: テナントスコープのレートリミット使用状況を取得する
-    let info = uc.execute("test-tenant", &rule_id.to_string()).await.unwrap();
+    let info = uc
+        .execute("test-tenant", &rule_id.to_string())
+        .await
+        .unwrap();
 
     assert_eq!(info.limit, 100);
     assert!(info.used.is_none());

@@ -22,7 +22,10 @@ impl ListConfigSchemasUseCase {
 
     /// 指定テナントの全ての設定スキーマを一覧取得する。
     // CRITICAL-RUST-001 監査対応: テナント分離のために tenant_id 引数を追加する。
-    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<ConfigSchema>, ListConfigSchemasError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+    ) -> Result<Vec<ConfigSchema>, ListConfigSchemasError> {
         self.schema_repo
             .list_all(tenant_id)
             .await

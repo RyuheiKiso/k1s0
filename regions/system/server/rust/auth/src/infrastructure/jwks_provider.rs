@@ -29,7 +29,7 @@ struct CachedJwks {
 }
 
 impl JwksProvider {
-    #[must_use] 
+    #[must_use]
     pub fn new(url: String, ttl: Duration) -> Self {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(3))

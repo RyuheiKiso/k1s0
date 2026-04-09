@@ -49,7 +49,7 @@ impl ServerBuilder {
     }
 
     /// サービス名を取得する。
-    #[must_use] 
+    #[must_use]
     pub fn service_name(&self) -> &str {
         &self.service_name
     }
@@ -84,7 +84,7 @@ impl ServerBuilder {
 
     /// Metrics インスタンスを生成する。
     /// `service_name` をラベルとして使用し、全メトリクスをサービス単位で識別する。
-    #[must_use] 
+    #[must_use]
     pub fn create_metrics(&self) -> Arc<k1s0_telemetry::metrics::Metrics> {
         Arc::new(k1s0_telemetry::metrics::Metrics::new(&self.service_name))
     }

@@ -7,7 +7,11 @@ use crate::domain::entity::workflow_instance::WorkflowInstance;
 #[async_trait]
 pub trait WorkflowInstanceRepository: Send + Sync {
     // テナントスコープでIDによるインスタンス検索を行う
-    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>>;
+    async fn find_by_id(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>>;
     // テナントスコープでフィルタ付きインスタンス一覧を取得する
     async fn find_all(
         &self,

@@ -98,18 +98,20 @@ mod tests {
         });
 
         let mut version_mock = MockApiSchemaVersionRepository::new();
-        version_mock.expect_find_all_by_name().returning(|_, _, _, _| {
-            Ok((
-                vec![ApiSchemaVersion::new(
-                    "test-api".to_string(),
+        version_mock
+            .expect_find_all_by_name()
+            .returning(|_, _, _, _| {
+                Ok((
+                    vec![ApiSchemaVersion::new(
+                        "test-api".to_string(),
+                        1,
+                        SchemaType::OpenApi,
+                        "openapi: 3.0.3".to_string(),
+                        "user-001".to_string(),
+                    )],
                     1,
-                    SchemaType::OpenApi,
-                    "openapi: 3.0.3".to_string(),
-                    "user-001".to_string(),
-                )],
-                1,
-            ))
-        });
+                ))
+            });
 
         let uc = ListVersionsUseCase::new(Arc::new(schema_mock), Arc::new(version_mock));
         let input = ListVersionsInput {

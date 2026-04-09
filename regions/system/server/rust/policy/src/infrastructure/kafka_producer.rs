@@ -26,7 +26,7 @@ impl PolicyChangedEvent {
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn created(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -41,7 +41,7 @@ impl PolicyChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn updated(before: &Policy, after: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -56,7 +56,7 @@ impl PolicyChangedEvent {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn deleted(policy: &Policy) -> Self {
         Self {
             event_type: "POLICY_CHANGED".to_string(),
@@ -127,7 +127,7 @@ impl KafkaPolicyProducer {
     }
 
     /// メトリクスを設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -151,9 +151,7 @@ impl PolicyEventPublisher for KafkaPolicyProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish policy changed event: {err}")
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish policy changed event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);
@@ -174,21 +172,27 @@ impl PolicyEventPublisher for KafkaPolicyProducer {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_policy_changed_event_created() {
-        let policy = Policy {
+    /// テスト用ポリシーを生成するヘルパー。tenant_id フィールドを含む。
+    fn make_test_policy(name: &str, version: u32) -> Policy {
+        Policy {
             id: uuid::Uuid::new_v4(),
-            name: "allow-read".to_string(),
+            name: name.to_string(),
             description: "desc".to_string(),
             rego_content: "package authz".to_string(),
             package_path: String::new(),
             bundle_id: None,
-            version: 1,
+            version,
             enabled: true,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
-        };
+            tenant_id: "test-tenant".to_string(),
+        }
+    }
 
+    #[test]
+    fn test_policy_changed_event_created() {
+        // CREATED イベントが正しいアクション・名前・バージョンを持つことを確認する
+        let policy = make_test_policy("allow-read", 1);
         let event = PolicyChangedEvent::created(&policy);
         assert_eq!(event.action, "CREATED");
         assert_eq!(event.policy_name, "allow-read");
@@ -197,18 +201,8 @@ mod tests {
 
     #[test]
     fn test_policy_changed_event_updated() {
-        let before = Policy {
-            id: uuid::Uuid::new_v4(),
-            name: "allow-read".to_string(),
-            description: "desc".to_string(),
-            rego_content: "package authz".to_string(),
-            package_path: String::new(),
-            bundle_id: None,
-            version: 2,
-            enabled: true,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        // UPDATED イベントが before/after の差分を正しく保持することを確認する
+        let before = make_test_policy("allow-read", 2);
         let mut after = before.clone();
         after.version = 3;
         after.enabled = false;
@@ -220,39 +214,19 @@ mod tests {
 
     #[test]
     fn test_policy_changed_event_deleted() {
-        let policy = Policy {
-            id: uuid::Uuid::new_v4(),
-            name: "allow-read".to_string(),
-            description: "desc".to_string(),
-            rego_content: "package authz".to_string(),
-            package_path: String::new(),
-            bundle_id: None,
-            version: 4,
-            enabled: true,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
+        // DELETED イベントが正しい policy_id とバージョンを持つことを確認する
+        let policy = make_test_policy("allow-read", 4);
+        let policy_id = policy.id.to_string();
         let event = PolicyChangedEvent::deleted(&policy);
         assert_eq!(event.action, "DELETED");
-        assert_eq!(event.policy_id, policy.id.to_string());
+        assert_eq!(event.policy_id, policy_id);
         assert_eq!(event.version, 4);
     }
 
     #[test]
     fn test_policy_changed_event_serialization() {
-        let policy = Policy {
-            id: uuid::Uuid::new_v4(),
-            name: "allow-read".to_string(),
-            description: "desc".to_string(),
-            rego_content: "package authz".to_string(),
-            package_path: String::new(),
-            bundle_id: None,
-            version: 1,
-            enabled: true,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-
+        // PolicyChangedEvent が JSON にシリアライズできることを確認する
+        let policy = make_test_policy("allow-read", 1);
         let event = PolicyChangedEvent::created(&policy);
         let json = serde_json::to_value(&event).unwrap();
         assert_eq!(json["action"], "CREATED");
@@ -262,20 +236,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_noop_publisher() {
+        // NoopPolicyEventPublisher は常に Ok を返すことを確認する
         let publisher = NoopPolicyEventPublisher;
-        let policy = Policy {
-            id: uuid::Uuid::new_v4(),
-            name: "test".to_string(),
-            description: "test".to_string(),
-            rego_content: "package test".to_string(),
-            package_path: String::new(),
-            bundle_id: None,
-            version: 1,
-            enabled: true,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-
+        let policy = make_test_policy("test", 1);
         let event = PolicyChangedEvent::created(&policy);
         assert!(publisher.publish_policy_changed(&event).await.is_ok());
         assert!(publisher.close().await.is_ok());
@@ -283,23 +246,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_publisher() {
+        // MockPolicyEventPublisher が期待通りに動作することを確認する
         let mut mock = MockPolicyEventPublisher::new();
         mock.expect_publish_policy_changed().returning(|_| Ok(()));
         mock.expect_close().returning(|| Ok(()));
 
-        let policy = Policy {
-            id: uuid::Uuid::new_v4(),
-            name: "test".to_string(),
-            description: "test".to_string(),
-            rego_content: "package test".to_string(),
-            package_path: String::new(),
-            bundle_id: None,
-            version: 1,
-            enabled: true,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        };
-
+        let policy = make_test_policy("test", 1);
         let event = PolicyChangedEvent::created(&policy);
         assert!(mock.publish_policy_changed(&event).await.is_ok());
         assert!(mock.close().await.is_ok());

@@ -96,7 +96,10 @@ pub async fn run() -> anyhow::Result<()> {
 
         let mut key = [0u8; 32];
         key.copy_from_slice(&key_bytes);
-        info!("設定値暗号化を有効化しました（対象 namespace: {:?}）", cfg.config_server.encryption.sensitive_namespaces);
+        info!(
+            "設定値暗号化を有効化しました（対象 namespace: {:?}）",
+            cfg.config_server.encryption.sensitive_namespaces
+        );
         Some(key)
     } else {
         // 本番環境（dev/development/local/test 以外）では暗号化を必須とする（MED-001 監査対応）
@@ -110,7 +113,10 @@ pub async fn run() -> anyhow::Result<()> {
                 CONFIG_ENCRYPTION_KEY 環境変数に 32 バイト（base64 エンコード）の鍵を設定してください。"
             );
         }
-        info!("設定値暗号化は無効です（environment={}: 開発環境のみ許可）", env);
+        info!(
+            "設定値暗号化は無効です（environment={}: 開発環境のみ許可）",
+            env
+        );
         None
     };
 
@@ -141,7 +147,10 @@ pub async fn run() -> anyhow::Result<()> {
         // STATIC-HIGH-002: 暗号化が有効な場合は暗号化鍵を設定する
         let base_pg_repo = ConfigPostgresRepository::with_metrics(pool.clone(), metrics.clone());
         let pg_repo = Arc::new(if let Some(key) = encryption_key {
-            base_pg_repo.set_encryption(key, cfg.config_server.encryption.sensitive_namespaces.clone())
+            base_pg_repo.set_encryption(
+                key,
+                cfg.config_server.encryption.sensitive_namespaces.clone(),
+            )
         } else {
             base_pg_repo
         });
@@ -154,8 +163,9 @@ pub async fn run() -> anyhow::Result<()> {
             60
         });
 
+        // LOW-008: 安全な型変換（max_entries は非負であることが前提）
         let cache = Arc::new(super::cache::ConfigCache::new(
-            cfg.config_server.cache.max_entries as u64,
+            u64::try_from(cfg.config_server.cache.max_entries).unwrap_or(0),
             cache_ttl_seconds,
         ));
         info!(
@@ -190,7 +200,10 @@ pub async fn run() -> anyhow::Result<()> {
         // STATIC-HIGH-002: 暗号化が有効な場合は暗号化鍵を設定する
         let base_pg_repo = ConfigPostgresRepository::with_metrics(pool.clone(), metrics.clone());
         let pg_repo = Arc::new(if let Some(key) = encryption_key {
-            base_pg_repo.set_encryption(key, cfg.config_server.encryption.sensitive_namespaces.clone())
+            base_pg_repo.set_encryption(
+                key,
+                cfg.config_server.encryption.sensitive_namespaces.clone(),
+            )
         } else {
             base_pg_repo
         });
@@ -203,8 +216,9 @@ pub async fn run() -> anyhow::Result<()> {
             60
         });
 
+        // LOW-008: 安全な型変換（max_entries は非負であることが前提）
         let cache = Arc::new(super::cache::ConfigCache::new(
-            cfg.config_server.cache.max_entries as u64,
+            u64::try_from(cfg.config_server.cache.max_entries).unwrap_or(0),
             cache_ttl_seconds,
         ));
         info!(
@@ -522,12 +536,15 @@ impl crate::domain::repository::ConfigRepository for InMemoryConfigRepository {
             .cloned()
             .collect();
 
-        let total_count = filtered.len() as i64;
-        let offset = ((page - 1) * page_size) as usize;
-        let limit = page_size as usize;
+        // LOW-008: 安全な型変換（filtered.len() は i64 範囲内が前提）
+        let total_count = i64::try_from(filtered.len()).unwrap_or(i64::MAX);
+        // LOW-008: 安全な型変換（page/page_size は正の値、offset は usize 範囲内が前提）
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let limit = usize::try_from(page_size).unwrap_or(0);
 
         filtered = filtered.into_iter().skip(offset).take(limit).collect();
-        let has_next = (offset + limit) < total_count as usize;
+        // LOW-008: 安全な型変換（total_count は非負であることが前提）
+        let has_next = (offset + limit) < usize::try_from(total_count).unwrap_or(0);
 
         Ok(ConfigListResult {
             entries: filtered,
@@ -693,9 +710,11 @@ impl crate::domain::repository::ConfigSchemaRepository for InMemoryConfigSchemaR
             .iter_mut()
             .find(|s| s.service_name == schema.service_name)
         {
-            existing.namespace_prefix = schema.namespace_prefix.clone();
-            existing.schema_json = schema.schema_json.clone();
-            existing.updated_by = schema.updated_by.clone();
+            // clone_from はアロケーション再利用のため clone よりも効率的
+            existing.namespace_prefix.clone_from(&schema.namespace_prefix);
+            existing.schema_json.clone_from(&schema.schema_json);
+            // clone_from はアロケーション再利用のため clone よりも効率的
+            existing.updated_by.clone_from(&schema.updated_by);
             existing.updated_at = chrono::Utc::now();
             Ok(existing.clone())
         } else {

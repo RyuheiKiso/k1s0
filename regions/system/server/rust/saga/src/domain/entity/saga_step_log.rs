@@ -58,7 +58,7 @@ pub struct SagaStepLog {
 
 impl SagaStepLog {
     /// 実行ログを作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new_execute(
         saga_id: Uuid,
         step_index: i32,
@@ -81,7 +81,7 @@ impl SagaStepLog {
     }
 
     /// 補償ログを作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new_compensate(
         saga_id: Uuid,
         step_index: i32,

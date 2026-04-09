@@ -144,7 +144,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     /// `PostgreSQL` 接続URL を生成する。戻り値はパスワードを含むためログに出力しないこと。
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",

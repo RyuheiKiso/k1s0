@@ -21,6 +21,8 @@ pub enum GetDownloadStatsError {
     Internal(String),
 }
 
+// リポジトリフィールドの命名規則として _repo サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct GetDownloadStatsUseCase {
     app_repo: Arc<dyn AppRepository>,
     version_repo: Arc<dyn VersionRepository>,

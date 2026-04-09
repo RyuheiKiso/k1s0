@@ -29,9 +29,10 @@ pub struct WatchConfigStreamHandler {
 
 impl std::fmt::Debug for WatchConfigStreamHandler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // receiver は Debug 非対応のため省略し、フィルタ情報のみ出力する
         f.debug_struct("WatchConfigStreamHandler")
             .field("namespace_filters", &self.namespace_filters)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
@@ -41,7 +42,7 @@ impl WatchConfigStreamHandler {
     /// - `receiver`: `WatchConfigUseCase::subscribe()` で得た Receiver。
     /// - `namespace_filters`: プレフィックス一覧を指定すると、いずれかのプレフィックスに
     ///   一致する namespace の変更通知のみを返す。空の場合は全通知を返す。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         receiver: broadcast::Receiver<ConfigChangeEvent>,
         namespace_filters: Vec<String>,
@@ -77,10 +78,8 @@ impl WatchConfigStreamHandler {
                         updated_by: event.updated_by,
                     });
                 }
-                Err(broadcast::error::RecvError::Lagged(_)) => {
-                    // 遅延分のメッセージを読み飛ばして次を待つ
-                    continue;
-                }
+                // 遅延分のメッセージを読み飛ばして次を待つ
+                Err(broadcast::error::RecvError::Lagged(_)) => {}
                 Err(broadcast::error::RecvError::Closed) => {
                     return None;
                 }

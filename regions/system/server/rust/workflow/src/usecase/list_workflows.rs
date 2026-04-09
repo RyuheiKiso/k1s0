@@ -105,7 +105,8 @@ mod tests {
     #[tokio::test]
     async fn has_next_page() {
         let mut mock = MockWorkflowDefinitionRepository::new();
-        mock.expect_find_all().returning(|_, _, _, _| Ok((vec![], 50)));
+        mock.expect_find_all()
+            .returning(|_, _, _, _| Ok((vec![], 50)));
 
         let uc = ListWorkflowsUseCase::new(Arc::new(mock));
         let input = ListWorkflowsInput {

@@ -16,8 +16,8 @@ func TestNoOpStore_Create(t *testing.T) {
 	store := NewNoOpStore()
 	ctx := context.Background()
 
-	// 任意の SessionData で Create を呼んでもエラーにならない
-	id, err := store.Create(ctx, &SessionData{AccessToken: "token"}, 10*time.Minute)
+	// 任意の Data で Create を呼んでもエラーにならない
+	id, err := store.Create(ctx, &Data{AccessToken: "token"}, 10*time.Minute)
 	require.NoError(t, err)
 	assert.NotEmpty(t, id)
 }
@@ -28,7 +28,7 @@ func TestNoOpStore_Get(t *testing.T) {
 	ctx := context.Background()
 
 	// Create した後でも Get は nil を返す（データを保持しない）
-	_, err := store.Create(ctx, &SessionData{}, time.Minute)
+	_, err := store.Create(ctx, &Data{}, time.Minute)
 	require.NoError(t, err)
 
 	got, err := store.Get(ctx, "any-session-id")
@@ -41,7 +41,7 @@ func TestNoOpStore_Update(t *testing.T) {
 	store := NewNoOpStore()
 	ctx := context.Background()
 
-	err := store.Update(ctx, "any-id", &SessionData{AccessToken: "new"}, time.Minute)
+	err := store.Update(ctx, "any-id", &Data{AccessToken: "new"}, time.Minute)
 	require.NoError(t, err)
 }
 

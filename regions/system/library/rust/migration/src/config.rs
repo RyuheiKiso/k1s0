@@ -12,7 +12,7 @@ pub struct MigrationConfig {
 }
 
 impl MigrationConfig {
-    #[must_use] 
+    #[must_use]
     pub fn new(migrations_dir: PathBuf, database_url: String) -> Self {
         Self {
             migrations_dir,
@@ -22,7 +22,7 @@ impl MigrationConfig {
     }
 
     /// テーブル名を返す。外部からの直接書き換えを防ぐため getter を通じてのみアクセスする。
-    #[must_use] 
+    #[must_use]
     pub fn table_name(&self) -> &str {
         &self.table_name
     }

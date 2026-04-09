@@ -51,12 +51,27 @@ pub trait SchemaManager: Send + Sync {
     ) -> anyhow::Result<()>;
 }
 
+/// RUST-002 監査対応: `on_delete` を enum 型で定義し、型安全性を確保する
+enum OnDeleteAction {
+    Cascade,
+    Restrict,
+}
+
+impl OnDeleteAction {
+    fn as_sql(&self) -> &'static str {
+        match self {
+            Self::Cascade => "CASCADE",
+            Self::Restrict => "RESTRICT",
+        }
+    }
+}
+
 pub struct PhysicalSchemaManager {
     pool: PgPool,
 }
 
 impl PhysicalSchemaManager {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -172,22 +187,16 @@ impl PhysicalSchemaManager {
                     "ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} SET DEFAULT {default_sql}"
                 )
             } else {
-                format!(
-                    "ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP DEFAULT"
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP DEFAULT")
             };
             sqlx::query(&sql).execute(&self.pool).await?;
         }
 
         if existing.is_nullable != input.is_nullable.unwrap_or(existing.is_nullable) {
             let sql = if input.is_nullable.unwrap_or(existing.is_nullable) {
-                format!(
-                    "ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP NOT NULL"
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} DROP NOT NULL")
             } else {
-                format!(
-                    "ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} SET NOT NULL"
-                )
+                format!("ALTER TABLE {qualified_table} ALTER COLUMN {quoted_column} SET NOT NULL")
             };
             sqlx::query(&sql).execute(&self.pool).await?;
         }
@@ -222,15 +231,11 @@ impl PhysicalSchemaManager {
         validate_identifier(&relationship.target_column)?;
         let target_table_name = qualified_table_name(target_table)?;
         let constraint_name = relationship_constraint_name(relationship.id);
-        // RUST-002 監査対応: on_delete を enum 型で定義し、将来の変更でバリデーション漏れが
-        // 発生しないよう型安全性を確保する。文字列リテラルをそのまま使わない。
-        enum OnDeleteAction { Cascade, Restrict }
-        impl OnDeleteAction {
-            fn as_sql(&self) -> &'static str {
-                match self { Self::Cascade => "CASCADE", Self::Restrict => "RESTRICT" }
-            }
-        }
-        let on_delete = if relationship.is_cascade_delete { OnDeleteAction::Cascade } else { OnDeleteAction::Restrict };
+        let on_delete = if relationship.is_cascade_delete {
+            OnDeleteAction::Cascade
+        } else {
+            OnDeleteAction::Restrict
+        };
         let sql = format!(
             "ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY ({}) REFERENCES {} ({}) ON DELETE {}",
             source_table_name,

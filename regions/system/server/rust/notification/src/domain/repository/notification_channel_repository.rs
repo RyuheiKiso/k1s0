@@ -9,7 +9,11 @@ use crate::domain::entity::notification_channel::NotificationChannel;
 #[async_trait]
 pub trait NotificationChannelRepository: Send + Sync {
     /// 指定テナントのチャンネルを ID で検索する
-    async fn find_by_id(&self, id: &str, tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>>;
+    async fn find_by_id(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>>;
     /// 指定テナントの全チャンネルを取得する
     #[allow(dead_code)]
     async fn find_all(&self, tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>>;

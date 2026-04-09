@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -6,9 +7,9 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 // HIGH-003 監査対応: ILIKE 検索前に %_\ をエスケープして意図しない全件マッチを防止する
-use k1s0_server_common::escape_like_pattern;
 use crate::domain::entity::service::{Service, ServiceLifecycle, ServiceTier};
 use crate::domain::repository::service_repository::{ServiceListFilters, ServiceRepository};
+use k1s0_server_common::escape_like_pattern;
 
 /// `ServiceRow` は `service_catalog.services` テーブルの行を表す中間構造体。
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -66,7 +67,7 @@ pub struct ServicePostgresRepository {
 
 impl ServicePostgresRepository {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -74,7 +75,7 @@ impl ServicePostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -87,7 +88,11 @@ impl ServicePostgresRepository {
 impl ServiceRepository for ServicePostgresRepository {
     // CRIT-004 監査対応: RLS テナント分離のため set_config をトランザクション内で設定する。
     // defense-in-depth として WHERE 句にも tenant_id 条件を追加する。
-    async fn list(&self, tenant_id: &str, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
+    async fn list(
+        &self,
+        tenant_id: &str,
+        filters: ServiceListFilters,
+    ) -> anyhow::Result<Vec<Service>> {
         let start = std::time::Instant::now();
 
         // トランザクション内で RLS 用セッション変数を設定する
@@ -106,19 +111,20 @@ impl ServiceRepository for ServicePostgresRepository {
         let mut param_idx = 2u32;
 
         if filters.team_id.is_some() {
-            query.push_str(&format!(" AND team_id = ${param_idx}"));
+            // format! を避け write! でアロケーションを削減する
+            write!(query, " AND team_id = ${param_idx}").ok();
             param_idx += 1;
         }
         if filters.tier.is_some() {
-            query.push_str(&format!(" AND tier = ${param_idx}"));
+            write!(query, " AND tier = ${param_idx}").ok();
             param_idx += 1;
         }
         if filters.lifecycle.is_some() {
-            query.push_str(&format!(" AND lifecycle = ${param_idx}"));
+            write!(query, " AND lifecycle = ${param_idx}").ok();
             param_idx += 1;
         }
         if filters.tag.is_some() {
-            query.push_str(&format!(" AND tags @> ${param_idx}::jsonb"));
+            write!(query, " AND tags @> ${param_idx}::jsonb").ok();
             // param_idx += 1; // 最後のパラメータ
         }
 
@@ -321,17 +327,19 @@ impl ServiceRepository for ServicePostgresRepository {
 
         if query.is_some() {
             // HIGH-003 監査対応: ILIKE のワイルドカード特殊文字をエスケープし、ESCAPE '\' を指定する
-            sql.push_str(&format!(
+            // format! を避け write! でアロケーションを削減する
+            write!(
+                sql,
                 " AND (name ILIKE '%' || ${param_idx} || '%' ESCAPE '\\' OR description ILIKE '%' || ${param_idx} || '%' ESCAPE '\\')"
-            ));
+            ).ok();
             param_idx += 1;
         }
         if tags.is_some() {
-            sql.push_str(&format!(" AND tags @> ${param_idx}::jsonb"));
+            write!(sql, " AND tags @> ${param_idx}::jsonb").ok();
             param_idx += 1;
         }
         if tier.is_some() {
-            sql.push_str(&format!(" AND tier = ${param_idx}"));
+            write!(sql, " AND tier = ${param_idx}").ok();
             // param_idx += 1;
         }
 

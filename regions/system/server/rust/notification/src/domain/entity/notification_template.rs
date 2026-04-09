@@ -13,7 +13,7 @@ pub struct NotificationTemplate {
 }
 
 impl NotificationTemplate {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         name: String,
         channel_type: String,

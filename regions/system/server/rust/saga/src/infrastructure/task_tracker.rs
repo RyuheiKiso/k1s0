@@ -22,7 +22,7 @@ pub struct SagaTaskTracker {
 
 impl SagaTaskTracker {
     /// 新しい `SagaTaskTracker` を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             active: Arc::new(AtomicUsize::new(0)),
@@ -49,7 +49,7 @@ impl SagaTaskTracker {
     }
 
     /// 実行中のタスク数を返す。
-    #[must_use] 
+    #[must_use]
     pub fn active_count(&self) -> usize {
         self.active.load(Ordering::Acquire)
     }

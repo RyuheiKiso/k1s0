@@ -192,7 +192,7 @@ fn error_lease_expired_variant() {
 #[tokio::test]
 async fn inmemory_get_secret_success() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("system/db/primary"));
+    client.put_secret(make_secret("system/db/primary")).await;
 
     let secret = client.get_secret("system/db/primary").await.unwrap();
     assert_eq!(secret.path, "system/db/primary");
@@ -211,7 +211,7 @@ async fn inmemory_get_secret_not_found() {
 #[tokio::test]
 async fn inmemory_get_secret_value_success() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("system/db"));
+    client.put_secret(make_secret("system/db")).await;
 
     let val = client
         .get_secret_value("system/db", "username")
@@ -224,7 +224,7 @@ async fn inmemory_get_secret_value_success() {
 #[tokio::test]
 async fn inmemory_get_secret_value_key_not_found() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("system/db"));
+    client.put_secret(make_secret("system/db")).await;
 
     let err = client
         .get_secret_value("system/db", "nonexistent")
@@ -248,9 +248,9 @@ async fn inmemory_get_secret_value_path_not_found() {
 #[tokio::test]
 async fn inmemory_list_secrets_with_prefix() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("system/db/primary"));
-    client.put_secret(make_secret("system/db/replica"));
-    client.put_secret(make_secret("business/cache/redis"));
+    client.put_secret(make_secret("system/db/primary")).await;
+    client.put_secret(make_secret("system/db/replica")).await;
+    client.put_secret(make_secret("business/cache/redis")).await;
 
     let paths = client.list_secrets("system/db/").await.unwrap();
     assert_eq!(paths.len(), 2);
@@ -261,7 +261,7 @@ async fn inmemory_list_secrets_with_prefix() {
 #[tokio::test]
 async fn inmemory_list_secrets_empty_result() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("system/db"));
+    client.put_secret(make_secret("system/db")).await;
 
     let paths = client.list_secrets("nothing/").await.unwrap();
     assert!(paths.is_empty());
@@ -271,9 +271,9 @@ async fn inmemory_list_secrets_empty_result() {
 #[tokio::test]
 async fn inmemory_list_secrets_all() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret("a/1"));
-    client.put_secret(make_secret("b/2"));
-    client.put_secret(make_secret("c/3"));
+    client.put_secret(make_secret("a/1")).await;
+    client.put_secret(make_secret("b/2")).await;
+    client.put_secret(make_secret("c/3")).await;
 
     // empty prefix matches everything
     let paths = client.list_secrets("").await.unwrap();
@@ -284,8 +284,8 @@ async fn inmemory_list_secrets_all() {
 #[tokio::test]
 async fn inmemory_put_overwrites_existing_secret() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret_with_data("system/db", &[("password", "old")]));
-    client.put_secret(make_secret_with_data("system/db", &[("password", "new")]));
+    client.put_secret(make_secret_with_data("system/db", &[("password", "old")])).await;
+    client.put_secret(make_secret_with_data("system/db", &[("password", "new")])).await;
 
     let secret = client.get_secret("system/db").await.unwrap();
     assert_eq!(secret.data.get("password").unwrap(), "new");
@@ -330,8 +330,8 @@ fn inmemory_with_config_stores_config() {
 #[tokio::test]
 async fn inmemory_multiple_secrets_independent() {
     let client = InMemoryVaultClient::with_config(make_config());
-    client.put_secret(make_secret_with_data("a", &[("key", "val_a")]));
-    client.put_secret(make_secret_with_data("b", &[("key", "val_b")]));
+    client.put_secret(make_secret_with_data("a", &[("key", "val_a")])).await;
+    client.put_secret(make_secret_with_data("b", &[("key", "val_b")])).await;
 
     let a = client.get_secret_value("a", "key").await.unwrap();
     let b = client.get_secret_value("b", "key").await.unwrap();
@@ -350,7 +350,7 @@ async fn inmemory_secret_with_many_keys() {
         ("password", "s3cret"),
         ("dbname", "mydb"),
     ];
-    client.put_secret(make_secret_with_data("system/postgres", &pairs));
+    client.put_secret(make_secret_with_data("system/postgres", &pairs)).await;
 
     for (k, v) in &pairs {
         let val = client.get_secret_value("system/postgres", k).await.unwrap();
@@ -425,13 +425,14 @@ async fn fetch_secrets_with_fallback_success() {
     use k1s0_vault_client::fetch_secrets_with_fallback;
 
     let client = InMemoryVaultClient::new();
+    // put_secret は async のため .await が必要（シークレットを実際に格納するため）
     client.put_secret(make_secret_with_data(
         "system/order/secrets",
         &[
             ("database.password", "vault-pw"),
             ("redis.password", "redis-pw"),
         ],
-    ));
+    )).await;
 
     let result = fetch_secrets_with_fallback(
         &client,

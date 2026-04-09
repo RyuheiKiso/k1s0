@@ -191,20 +191,30 @@ pub async fn delete_version(
     Query(params): Query<DeleteVersionQuery>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => if let Ok(platform) = platform.parse::<Platform>() { Some(platform) } else {
-            let err = ErrorResponse::new(
-                "SYS_APPS_INVALID_PLATFORM",
-                "Invalid platform. Use: windows, linux, macos",
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        },
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
+                let err = ErrorResponse::new(
+                    "SYS_APPS_INVALID_PLATFORM",
+                    "Invalid platform. Use: windows, linux, macos",
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
 
     match state
         .delete_version_uc
-        .execute(&claims.tenant_id, &id, &version, platform.as_ref(), arch.as_deref())
+        .execute(
+            &claims.tenant_id,
+            &id,
+            &version,
+            platform.as_ref(),
+            arch.as_deref(),
+        )
         .await
     {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),

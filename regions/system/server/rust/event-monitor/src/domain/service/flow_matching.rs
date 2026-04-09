@@ -6,7 +6,7 @@ use crate::domain::entity::flow_definition::FlowDefinition;
 pub struct FlowMatchingService;
 
 impl FlowMatchingService {
-    #[must_use] 
+    #[must_use]
     pub fn match_event(
         event: &EventRecord,
         flow_definitions: &[FlowDefinition],
@@ -26,7 +26,8 @@ impl FlowMatchingService {
                     None => true, // skip source check when no filter specified
                 };
                 if step.event_type == event.event_type && source_matches {
-                    return Some((flow.id, index as i32));
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    return Some((flow.id, i32::try_from(index).unwrap_or(i32::MAX)));
                 }
             }
         }

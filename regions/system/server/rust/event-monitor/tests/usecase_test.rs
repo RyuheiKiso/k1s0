@@ -473,7 +473,9 @@ fn make_slo() -> FlowSlo {
 }
 
 fn make_flow(name: &str, domain: &str) -> FlowDefinition {
+    // テスト用フロー定義: tenant_id は "system" を使用する
     FlowDefinition::new(
+        "system".to_string(),
         name.to_string(),
         format!("{} flow description", name),
         domain.to_string(),
@@ -487,8 +489,10 @@ fn make_flow(name: &str, domain: &str) -> FlowDefinition {
 
 fn make_flow_with_id(id: Uuid, name: &str, domain: &str) -> FlowDefinition {
     let now = Utc::now();
+    // テスト用フロー定義: tenant_id は "system" を使用する
     FlowDefinition {
         id,
+        tenant_id: "system".to_string(),
         name: name.to_string(),
         description: format!("{} flow description", name),
         domain: domain.to_string(),
@@ -509,7 +513,9 @@ fn make_event_record(
     source: &str,
     domain: &str,
 ) -> EventRecord {
+    // テスト用イベント記録: tenant_id は "system" を使用する
     EventRecord::new(
+        "system".to_string(),
         correlation_id.to_string(),
         event_type.to_string(),
         source.to_string(),
@@ -534,8 +540,10 @@ fn make_event_record_with_flow(
 }
 
 fn make_instance(flow_id: Uuid, correlation_id: &str, status: FlowInstanceStatus) -> FlowInstance {
+    // テスト用フローインスタンス: tenant_id は "system" を使用する
     FlowInstance {
         id: Uuid::new_v4(),
+        tenant_id: "system".to_string(),
         flow_id,
         correlation_id: correlation_id.to_string(),
         status,
@@ -551,8 +559,10 @@ fn make_instance_with_duration(
     status: FlowInstanceStatus,
     duration_ms: i64,
 ) -> FlowInstance {
+    // テスト用フローインスタンス（継続時間付き）: tenant_id は "system" を使用する
     FlowInstance {
         id: Uuid::new_v4(),
+        tenant_id: "system".to_string(),
         flow_id,
         correlation_id: format!("corr-{}", Uuid::new_v4()),
         status,
@@ -569,8 +579,10 @@ fn make_instance_with_id(
     correlation_id: &str,
     status: FlowInstanceStatus,
 ) -> FlowInstance {
+    // テスト用フローインスタンス（ID指定）: tenant_id は "system" を使用する
     FlowInstance {
         id,
+        tenant_id: "system".to_string(),
         flow_id,
         correlation_id: correlation_id.to_string(),
         status,
@@ -591,7 +603,9 @@ async fn test_create_flow_success() {
 
     let uc = CreateFlowUseCase::new(repo.clone());
 
+    // テスト用入力: tenant_id は "system" を使用する
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "Task assignment flow".to_string(),
         domain: "service.task".to_string(),
@@ -620,7 +634,9 @@ async fn test_create_flow_already_exists() {
 
     let uc = CreateFlowUseCase::new(repo);
 
+    // テスト用入力: tenant_id は "system" を使用する
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "duplicate".to_string(),
         domain: "service.task".to_string(),
@@ -642,7 +658,9 @@ async fn test_create_flow_validation_empty_name() {
 
     let uc = CreateFlowUseCase::new(repo);
 
+    // テスト用入力（名前が空のバリデーションエラーケース）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "".to_string(),
         description: "test".to_string(),
         domain: "service.task".to_string(),
@@ -664,7 +682,9 @@ async fn test_create_flow_validation_empty_steps() {
 
     let uc = CreateFlowUseCase::new(repo);
 
+    // テスト用入力（ステップが空のバリデーションエラーケース）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "test".to_string(),
         domain: "service.task".to_string(),
@@ -686,7 +706,9 @@ async fn test_create_flow_internal_error() {
 
     let uc = CreateFlowUseCase::new(repo);
 
+    // テスト用入力（内部エラーケース）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "test".to_string(),
         domain: "service.task".to_string(),
@@ -1969,7 +1991,9 @@ async fn test_create_then_get_flow_roundtrip() {
     let create_uc = CreateFlowUseCase::new(repo.clone());
     let get_uc = GetFlowUseCase::new(repo.clone());
 
+    // テスト用入力（ラウンドトリップ検証）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "test flow".to_string(),
         domain: "service.task".to_string(),
@@ -1992,8 +2016,9 @@ async fn test_create_update_then_get_flow() {
     let update_uc = UpdateFlowUseCase::new(repo.clone());
     let get_uc = GetFlowUseCase::new(repo.clone());
 
-    // Create
+    // Create: テスト用入力（更新後取得検証）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "original".to_string(),
         domain: "service.task".to_string(),
@@ -2026,8 +2051,9 @@ async fn test_create_then_delete_then_get_fails() {
     let delete_uc = DeleteFlowUseCase::new(repo.clone());
     let get_uc = GetFlowUseCase::new(repo.clone());
 
-    // Create
+    // Create: テスト用入力（削除後取得失敗検証）
     let input = CreateFlowInput {
+        tenant_id: "system".to_string(),
         name: "task_flow".to_string(),
         description: "test".to_string(),
         domain: "service.task".to_string(),

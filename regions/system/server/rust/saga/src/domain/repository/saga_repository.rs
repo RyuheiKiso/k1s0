@@ -45,10 +45,15 @@ pub trait SagaRepository: Send + Sync {
     ) -> anyhow::Result<()>;
 
     /// `IDでSagaを検索する。tenant_id` を引数で受け取りRLS設定を行う。
-    async fn find_by_id(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Option<SagaState>>;
+    async fn find_by_id(&self, saga_id: Uuid, tenant_id: &str)
+        -> anyhow::Result<Option<SagaState>>;
 
     /// `SagaのステップログをSteps取得する。tenant_id` を引数で受け取りRLS設定を行う。
-    async fn find_step_logs(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>>;
+    async fn find_step_logs(
+        &self,
+        saga_id: Uuid,
+        tenant_id: &str,
+    ) -> anyhow::Result<Vec<SagaStepLog>>;
 
     /// Saga一覧を取得する。SagaListParams に `tenant_id` が含まれる。
     async fn list(&self, params: &SagaListParams) -> anyhow::Result<(Vec<SagaState>, i32)>;

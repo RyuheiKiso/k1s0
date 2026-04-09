@@ -16,9 +16,20 @@
 ///
 /// 使用例:
 ///   cargo run --bin migrate-secrets
-
 use sqlx::PgPool;
 
+/// 全シークレットバージョンの行データ（再暗号化対象）
+#[derive(sqlx::FromRow)]
+struct SecretVersionRecord {
+    id: uuid::Uuid,
+    key_path: String,
+    version: i32,
+    encrypted_data: Vec<u8>,
+    nonce: Vec<u8>,
+}
+
+// シークレット再暗号化の全工程を1つの関数内に収めるため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // ロギング初期化
@@ -52,15 +63,6 @@ async fn main() -> anyhow::Result<()> {
     // 全シークレットバージョンをパスと共に取得する
     // sqlx::query_as! マクロは DATABASE_URL が必要なため、
     // 実行時型マッピングを使う sqlx::query_as 関数を使用する
-    #[derive(sqlx::FromRow)]
-    struct SecretVersionRecord {
-        id: uuid::Uuid,
-        key_path: String,
-        version: i32,
-        encrypted_data: Vec<u8>,
-        nonce: Vec<u8>,
-    }
-
     let rows: Vec<SecretVersionRecord> = sqlx::query_as(
         "SELECT sv.id, s.key_path, sv.version, sv.encrypted_data, sv.nonce \
          FROM vault.secret_versions sv \
@@ -80,7 +82,10 @@ async fn main() -> anyhow::Result<()> {
         let aad = row.key_path.as_bytes();
 
         // まず新形式（AAD あり）で復号を試みる: 成功すれば既に新形式のためスキップ
-        if master_key.decrypt(&row.encrypted_data, &row.nonce, aad).is_ok() {
+        if master_key
+            .decrypt(&row.encrypted_data, &row.nonce, aad)
+            .is_ok()
+        {
             already_new_format += 1;
             continue;
         }
@@ -148,9 +153,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // RLS を元に戻す
-    sqlx::query("SET row_security = on")
-        .execute(&pool)
-        .await?;
+    sqlx::query("SET row_security = on").execute(&pool).await?;
 
     tracing::info!(
         migrated = migrated,
@@ -165,9 +168,7 @@ async fn main() -> anyhow::Result<()> {
         ));
     }
 
-    println!(
-        "完了: {migrated} 件を再暗号化, {already_new_format} 件はすでに新形式"
-    );
+    println!("完了: {migrated} 件を再暗号化, {already_new_format} 件はすでに新形式");
 
     Ok(())
 }

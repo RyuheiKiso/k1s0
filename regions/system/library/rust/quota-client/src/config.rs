@@ -16,13 +16,13 @@ impl QuotaClientConfig {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_policy_cache_ttl(mut self, ttl: Duration) -> Self {
         self.policy_cache_ttl = ttl;
         self

@@ -19,6 +19,8 @@ pub enum GrpcError {
 }
 
 /// `DlqGrpcService` は DLQ gRPC サービスのビジネスロジック層。
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct DlqGrpcService {
     pub list_messages_uc: Arc<ListMessagesUseCase>,
     pub get_message_uc: Arc<GetMessageUseCase>,
@@ -28,7 +30,7 @@ pub struct DlqGrpcService {
 }
 
 impl DlqGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         list_messages_uc: Arc<ListMessagesUseCase>,
         get_message_uc: Arc<GetMessageUseCase>,

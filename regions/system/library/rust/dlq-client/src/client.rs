@@ -13,7 +13,7 @@ pub struct DlqClient {
 
 impl DlqClient {
     /// 新しい `DlqClient` を作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(endpoint: &str) -> Self {
         Self {
             endpoint: endpoint.trim_end_matches('/').to_string(),

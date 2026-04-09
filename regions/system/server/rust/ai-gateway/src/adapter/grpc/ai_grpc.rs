@@ -63,7 +63,7 @@ pub struct AiGatewayGrpcService {
 #[allow(dead_code)]
 impl AiGatewayGrpcService {
     /// `新しいgRPCサービスを生成する`。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         complete_uc: Arc<CompleteUseCase>,
         embed_uc: Arc<EmbedUseCase>,
@@ -99,9 +99,7 @@ impl AiGatewayGrpcService {
             CompleteError::GuardrailViolation(msg) => GrpcError::InvalidArgument(msg),
             CompleteError::ModelNotFound(msg) => GrpcError::NotFound(msg),
             // HIGH-001 監査対応: 同一ボディのmatchアームをORパターンで結合
-            CompleteError::LlmError(msg) | CompleteError::Internal(msg) => {
-                GrpcError::Internal(msg)
-            }
+            CompleteError::LlmError(msg) | CompleteError::Internal(msg) => GrpcError::Internal(msg),
         })
     }
 

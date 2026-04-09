@@ -8,8 +8,31 @@ use crate::adapter::grpc::master_maintenance_grpc::MasterMaintenanceGrpcService;
 use crate::domain::value_object::domain_filter::DomainFilter;
 use crate::proto::k1s0::system::common::v1::{PaginationResult, Timestamp as ProtoTimestamp};
 use crate::proto::k1s0::system::mastermaintenance::v1::{
-    master_maintenance_service_server::MasterMaintenanceService,
-    ColumnDefinition as ProtoColumnDefinition, TableRelationship as ProtoTableRelationship, GetTableDefinitionResponse, ConsistencyRule, ValidationWarning, CreateTableDefinitionRequest, CreateTableDefinitionResponse, UpdateTableDefinitionRequest, UpdateTableDefinitionResponse, DeleteTableDefinitionRequest, DeleteTableDefinitionResponse, GetTableDefinitionRequest, ListTableDefinitionsRequest, ListTableDefinitionsResponse, GetRecordRequest, GetRecordResponse, ListRecordsRequest, ListRecordsResponse, CreateRecordRequest, CreateRecordResponse, UpdateRecordRequest, UpdateRecordResponse, DeleteRecordRequest, DeleteRecordResponse, CheckConsistencyRequest, CheckConsistencyResponse, ConsistencyResult, CreateRuleRequest, CreateRuleResponse, GetRuleRequest, GetRuleResponse, UpdateRuleRequest, UpdateRuleResponse, DeleteRuleRequest, DeleteRuleResponse, ListRulesRequest, ListRulesResponse, ExecuteRuleRequest, ExecuteRuleResponse, GetTableSchemaRequest, GetTableSchemaResponse, ListColumnsRequest, ListColumnsResponse, CreateColumnsRequest, CreateColumnsResponse, UpdateColumnRequest, UpdateColumnResponse, DeleteColumnRequest, DeleteColumnResponse, ListRelationshipsRequest, ListRelationshipsResponse, CreateRelationshipRequest, CreateRelationshipResponse, UpdateRelationshipRequest, UpdateRelationshipResponse, DeleteRelationshipRequest, DeleteRelationshipResponse, ImportRecordsRequest, ImportRecordsResponse, ExportRecordsRequest, ExportRecordsResponse, GetImportJobRequest, GetImportJobResponse, ListDisplayConfigsRequest, ListDisplayConfigsResponse, GetDisplayConfigRequest, GetDisplayConfigResponse, CreateDisplayConfigRequest, CreateDisplayConfigResponse, UpdateDisplayConfigRequest, UpdateDisplayConfigResponse, DeleteDisplayConfigRequest, DeleteDisplayConfigResponse, ListTableAuditLogsRequest, ListTableAuditLogsResponse, ListRecordAuditLogsRequest, ListRecordAuditLogsResponse, ListDomainsRequest, ListDomainsResponse, DomainInfo, DisplayConfig, ImportJob, AuditLogEntry,
+    master_maintenance_service_server::MasterMaintenanceService, AuditLogEntry,
+    CheckConsistencyRequest, CheckConsistencyResponse, ColumnDefinition as ProtoColumnDefinition,
+    ConsistencyResult, ConsistencyRule, CreateColumnsRequest, CreateColumnsResponse,
+    CreateDisplayConfigRequest, CreateDisplayConfigResponse, CreateRecordRequest,
+    CreateRecordResponse, CreateRelationshipRequest, CreateRelationshipResponse, CreateRuleRequest,
+    CreateRuleResponse, CreateTableDefinitionRequest, CreateTableDefinitionResponse,
+    DeleteColumnRequest, DeleteColumnResponse, DeleteDisplayConfigRequest,
+    DeleteDisplayConfigResponse, DeleteRecordRequest, DeleteRecordResponse,
+    DeleteRelationshipRequest, DeleteRelationshipResponse, DeleteRuleRequest, DeleteRuleResponse,
+    DeleteTableDefinitionRequest, DeleteTableDefinitionResponse, DisplayConfig, DomainInfo,
+    ExecuteRuleRequest, ExecuteRuleResponse, ExportRecordsRequest, ExportRecordsResponse,
+    GetDisplayConfigRequest, GetDisplayConfigResponse, GetImportJobRequest, GetImportJobResponse,
+    GetRecordRequest, GetRecordResponse, GetRuleRequest, GetRuleResponse,
+    GetTableDefinitionRequest, GetTableDefinitionResponse, GetTableSchemaRequest,
+    GetTableSchemaResponse, ImportJob, ImportRecordsRequest, ImportRecordsResponse,
+    ListColumnsRequest, ListColumnsResponse, ListDisplayConfigsRequest, ListDisplayConfigsResponse,
+    ListDomainsRequest, ListDomainsResponse, ListRecordAuditLogsRequest,
+    ListRecordAuditLogsResponse, ListRecordsRequest, ListRecordsResponse, ListRelationshipsRequest,
+    ListRelationshipsResponse, ListRulesRequest, ListRulesResponse, ListTableAuditLogsRequest,
+    ListTableAuditLogsResponse, ListTableDefinitionsRequest, ListTableDefinitionsResponse,
+    TableRelationship as ProtoTableRelationship, UpdateColumnRequest, UpdateColumnResponse,
+    UpdateDisplayConfigRequest, UpdateDisplayConfigResponse, UpdateRecordRequest,
+    UpdateRecordResponse, UpdateRelationshipRequest, UpdateRelationshipResponse, UpdateRuleRequest,
+    UpdateRuleResponse, UpdateTableDefinitionRequest, UpdateTableDefinitionResponse,
+    ValidationWarning,
 };
 
 // --- serde_json::Value <-> prost_types 変換ヘルパー ---
@@ -60,8 +83,8 @@ fn struct_to_json(s: &prost_types::Struct) -> serde_json::Value {
 }
 
 fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
+    // NullValue と None は同じ返り値のためアームを統合する
     match &value.kind {
-        Some(prost_types::value::Kind::NullValue(_)) => serde_json::Value::Null,
         Some(prost_types::value::Kind::BoolValue(b)) => serde_json::Value::Bool(*b),
         Some(prost_types::value::Kind::NumberValue(n)) => {
             serde_json::json!(*n)
@@ -72,7 +95,7 @@ fn prost_value_to_json(value: &prost_types::Value) -> serde_json::Value {
             serde_json::Value::Array(arr)
         }
         Some(prost_types::value::Kind::StructValue(s)) => struct_to_json(s),
-        None => serde_json::Value::Null,
+        Some(prost_types::value::Kind::NullValue(_)) | None => serde_json::Value::Null,
     }
 }
 
@@ -148,11 +171,13 @@ fn domain_table_to_proto(
         created_by: table.created_by.clone(),
         created_at: Some(ProtoTimestamp {
             seconds: table.created_at.timestamp(),
-            nanos: table.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(table.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
         updated_at: Some(ProtoTimestamp {
             seconds: table.updated_at.timestamp(),
-            nanos: table.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(table.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
         domain_scope: table.domain_scope.clone().unwrap_or_default(),
         read_roles: table.read_roles.clone(),
@@ -201,11 +226,13 @@ fn domain_consistency_rule_to_proto(
         created_by: rule.created_by.clone(),
         created_at: Some(ProtoTimestamp {
             seconds: rule.created_at.timestamp(),
-            nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(rule.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
         updated_at: Some(ProtoTimestamp {
             seconds: rule.updated_at.timestamp(),
-            nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(rule.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
     }
 }
@@ -400,7 +427,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .get_table_by_id(rel.target_table_id)
                 .await
                 .ok()
-                .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
+                .flatten()
+                .map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
             proto_relationships.push(domain_relationship_to_proto(rel, &target_name));
         }
 
@@ -447,15 +475,16 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                     page_size: 100,
                 });
 
-        let total_count = tables.len() as i64;
-        let start = ((pagination.page - 1) * pagination.page_size) as usize;
+        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+        let total_count = i64::try_from(tables.len()).unwrap_or(i64::MAX);
+        let start = usize::try_from((pagination.page - 1) * pagination.page_size).unwrap_or(0);
         let page_tables: Vec<_> = tables
             .into_iter()
             .skip(start)
-            .take(pagination.page_size as usize)
+            .take(usize::try_from(pagination.page_size).unwrap_or(0))
             .collect();
 
-        let has_next = (start + page_tables.len()) < total_count as usize;
+        let has_next = (start + page_tables.len()) < usize::try_from(total_count).unwrap_or(0);
 
         let mut proto_tables = Vec::new();
         for table in &page_tables {
@@ -488,7 +517,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                     .get_table_by_id(rel.target_table_id)
                     .await
                     .ok()
-                    .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
+                    .flatten()
+                    .map_or_else(|| rel.target_table_id.to_string(), |t| t.name.clone());
                 proto_relationships.push(domain_relationship_to_proto(rel, &target_name));
             }
 
@@ -600,7 +630,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
         let proto_records: Vec<prost_types::Struct> =
             result.records.iter().filter_map(json_to_struct).collect();
 
-        let total_count = result.total as i64;
+        // result.total は既に i64 型のため変換不要
+        let total_count = result.total;
         let has_next = (i64::from(pagination.page) * i64::from(pagination.page_size)) < total_count;
 
         Ok(Response::new(ListRecordsResponse {
@@ -753,12 +784,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 Status::internal("内部エラーが発生しました")
             })?;
 
-        let total_checked = results.len() as i32;
-        let error_count = results
-            .iter()
-            .filter(|r| !r.passed && r.severity == "error")
-            .count() as i32;
-        let warning_count = results.iter().filter(|r| r.severity == "warning").count() as i32;
+        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+        let total_checked = i32::try_from(results.len()).unwrap_or(i32::MAX);
+        let error_count = i32::try_from(
+            results
+                .iter()
+                .filter(|r| !r.passed && r.severity == "error")
+                .count(),
+        )
+        .unwrap_or(i32::MAX);
+        let warning_count = i32::try_from(
+            results.iter().filter(|r| r.severity == "warning").count(),
+        )
+        .unwrap_or(i32::MAX);
 
         let proto_results: Vec<ConsistencyResult> = results
             .iter()
@@ -904,14 +942,15 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 tracing::error!(error = %e, "内部エラー");
                 Status::internal("内部エラーが発生しました")
             })?;
-        let total_count = rules.len() as i64;
-        let start = ((pagination.page - 1) * pagination.page_size) as usize;
+        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+        let total_count = i64::try_from(rules.len()).unwrap_or(i64::MAX);
+        let start = usize::try_from((pagination.page - 1) * pagination.page_size).unwrap_or(0);
         let paged: Vec<_> = rules
             .iter()
             .skip(start)
-            .take(pagination.page_size as usize)
+            .take(usize::try_from(pagination.page_size).unwrap_or(0))
             .collect();
-        let has_next = (start + paged.len()) < total_count as usize;
+        let has_next = (start + paged.len()) < usize::try_from(total_count).unwrap_or(0);
 
         Ok(Response::new(ListRulesResponse {
             rules: paged
@@ -944,12 +983,19 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 Status::internal("内部エラーが発生しました")
             })?;
 
-        let total_checked = results.len() as i32;
-        let error_count = results
-            .iter()
-            .filter(|r| !r.passed && r.severity == "error")
-            .count() as i32;
-        let warning_count = results.iter().filter(|r| r.severity == "warning").count() as i32;
+        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+        let total_checked = i32::try_from(results.len()).unwrap_or(i32::MAX);
+        let error_count = i32::try_from(
+            results
+                .iter()
+                .filter(|r| !r.passed && r.severity == "error")
+                .count(),
+        )
+        .unwrap_or(i32::MAX);
+        let warning_count = i32::try_from(
+            results.iter().filter(|r| r.severity == "warning").count(),
+        )
+        .unwrap_or(i32::MAX);
 
         Ok(Response::new(ExecuteRuleResponse {
             results: results
@@ -1116,7 +1162,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
                 .get_table_by_id(rel.target_table_id)
                 .await
                 .ok()
-                .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
+                .flatten()
+                .map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
             proto.push(domain_relationship_to_proto(rel, &target_name));
         }
         Ok(Response::new(ListRelationshipsResponse {
@@ -1147,7 +1194,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table_by_id(rel.target_table_id)
             .await
             .ok()
-            .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
+            .flatten()
+            .map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
         Ok(Response::new(CreateRelationshipResponse {
             relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
         }))
@@ -1178,7 +1226,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .get_table_by_id(rel.target_table_id)
             .await
             .ok()
-            .flatten().map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
+            .flatten()
+            .map_or_else(|| rel.target_table_id.to_string(), |t| t.name);
         Ok(Response::new(UpdateRelationshipResponse {
             relationship: Some(domain_relationship_to_proto(&rel, &target_name)),
         }))
@@ -1477,7 +1526,8 @@ impl MasterMaintenanceService for MasterMaintenanceGrpcService {
             .into_iter()
             .map(|(domain_scope, table_count)| DomainInfo {
                 domain_scope,
-                table_count: table_count as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                table_count: i32::try_from(table_count).unwrap_or(i32::MAX),
             })
             .collect();
 

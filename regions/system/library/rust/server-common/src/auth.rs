@@ -22,7 +22,7 @@ pub fn allow_insecure_no_auth(environment: &str) -> bool {
 /// 本番ビルド用（dev-auth-bypass フィーチャー無効かつテスト実行外）: 認証バイパスは常に不許可。
 /// プロダクションバイナリおよび通常のデバッグビルドからバイパスロジックを完全に除去する。
 #[cfg(not(any(test, feature = "dev-auth-bypass")))]
-#[must_use] 
+#[must_use]
 pub fn allow_insecure_no_auth(_environment: &str) -> bool {
     false
 }

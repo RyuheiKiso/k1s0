@@ -34,7 +34,7 @@ impl KeycloakAdminClient {
     }
 
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn config(&self) -> &KeycloakAdminConfig {
         &self.config
     }
@@ -107,9 +107,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
 
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!(
-            "failed to create keycloak realm '{realm_name}': {status} {body}"
-        );
+        anyhow::bail!("failed to create keycloak realm '{realm_name}': {status} {body}");
     }
 
     async fn delete_realm(&self, realm_name: &str) -> Result<()> {
@@ -132,9 +130,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
 
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!(
-            "failed to delete keycloak realm '{realm_name}': {status} {body}"
-        );
+        anyhow::bail!("failed to delete keycloak realm '{realm_name}': {status} {body}");
     }
 
     async fn add_user(&self, realm_name: &str, user_id: &str) -> Result<()> {
@@ -159,9 +155,7 @@ impl KeycloakAdmin for KeycloakAdminClient {
 
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!(
-            "failed to add user '{user_id}' to realm '{realm_name}': {status} {body}"
-        );
+        anyhow::bail!("failed to add user '{user_id}' to realm '{realm_name}': {status} {body}");
     }
 
     async fn remove_user(&self, realm_name: &str, user_id: &str) -> Result<()> {

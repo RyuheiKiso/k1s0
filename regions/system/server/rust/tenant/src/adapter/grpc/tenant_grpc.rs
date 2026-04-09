@@ -238,7 +238,7 @@ pub struct TenantGrpcService {
 impl TenantGrpcService {
     #[allow(dead_code)]
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
@@ -272,7 +272,7 @@ impl TenantGrpcService {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new_with_watch(
         create_tenant_uc: Arc<CreateTenantUseCase>,
         get_tenant_uc: Arc<GetTenantUseCase>,
@@ -578,9 +578,9 @@ impl TenantGrpcService {
             Err(UpdateMemberRoleError::TenantNotFound) => {
                 Err(GrpcError::NotFound("tenant not found".to_string()))
             }
-            Err(UpdateMemberRoleError::InvalidRole(role)) => Err(GrpcError::InvalidArgument(
-                format!("invalid role: {role}"),
-            )),
+            Err(UpdateMemberRoleError::InvalidRole(role)) => {
+                Err(GrpcError::InvalidArgument(format!("invalid role: {role}")))
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -628,11 +628,13 @@ fn domain_tenant_to_pb(t: &Tenant) -> PbTenant {
         db_schema: t.db_schema.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: t.created_at.timestamp(),
-            nanos: t.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(t.created_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         updated_at: Some(PbTimestamp {
             seconds: t.updated_at.timestamp(),
-            nanos: t.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(t.updated_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }
@@ -645,7 +647,8 @@ fn domain_member_to_pb(m: &TenantMember) -> PbTenantMember {
         role: m.role.clone(),
         joined_at: Some(PbTimestamp {
             seconds: m.joined_at.timestamp(),
-            nanos: m.joined_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(m.joined_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }
@@ -659,11 +662,13 @@ fn domain_job_to_pb(j: &ProvisioningJob) -> PbProvisioningJob {
         error_message: j.error_message.clone().unwrap_or_default(),
         created_at: Some(PbTimestamp {
             seconds: j.created_at.timestamp(),
-            nanos: j.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(j.created_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         updated_at: Some(PbTimestamp {
             seconds: j.updated_at.timestamp(),
-            nanos: j.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(j.updated_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
     }
 }

@@ -17,7 +17,7 @@ pub struct SearchPostgresRepository {
 }
 
 impl SearchPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -79,6 +79,8 @@ struct FacetRow {
     cnt: i64,
 }
 
+// SearchRepository 実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl SearchRepository for SearchPostgresRepository {
     /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからインデックスを作成する。
@@ -248,11 +250,12 @@ impl SearchRepository for SearchPostgresRepository {
 
         let count: (i64,) = count_qb.build_query_as().fetch_one(&mut *tx).await?;
 
-        let total = count.0.max(0) as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(count.0.max(0)).unwrap_or(0);
         let hits: Vec<SearchDocument> = rows.into_iter().map(Into::into).collect();
         let page_size = query.size.max(1);
         let page = (query.from / page_size) + 1;
-        let has_next = total > (u64::from(query.from) + hits.len() as u64);
+        let has_next = total > (u64::from(query.from) + u64::try_from(hits.len()).unwrap_or(u64::MAX));
 
         // --- ファセット集計: query.facets で指定されたフィールドごとに GROUP BY ---
         let mut facets: HashMap<String, HashMap<String, u64>> = HashMap::new();
@@ -290,7 +293,8 @@ impl SearchRepository for SearchPostgresRepository {
 
             let field_counts: HashMap<String, u64> = facet_rows
                 .into_iter()
-                .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                .filter_map(|r| r.val.map(|v| (v, u64::try_from(r.cnt.max(0)).unwrap_or(0))))
                 .collect();
 
             facets.insert(facet_field.clone(), field_counts);
@@ -312,7 +316,12 @@ impl SearchRepository for SearchPostgresRepository {
     }
 
     /// CRIT-005 対応: トランザクション内で `set_config` を呼び出してテナント分離してからドキュメントを削除する。
-    async fn delete_document(&self, index_name: &str, doc_id: &str, tenant_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('app.current_tenant_id', $1, true)")
             .bind(tenant_id)
@@ -326,7 +335,9 @@ impl SearchRepository for SearchPostgresRepository {
                 .fetch_optional(&mut *tx)
                 .await?;
 
-        let index_id = if let Some(row) = index_row { row.0 } else {
+        let index_id = if let Some(row) = index_row {
+            row.0
+        } else {
             tx.commit().await?;
             return Ok(false);
         };
@@ -438,7 +449,8 @@ mod tests {
         ];
         let map: HashMap<String, u64> = rows
             .into_iter()
-            .filter_map(|r| r.val.map(|v| (v, r.cnt.max(0) as u64)))
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .filter_map(|r| r.val.map(|v| (v, u64::try_from(r.cnt.max(0)).unwrap_or(0))))
             .collect();
         assert_eq!(map.get("electronics"), Some(&5u64));
         assert_eq!(map.get("books"), Some(&2u64));

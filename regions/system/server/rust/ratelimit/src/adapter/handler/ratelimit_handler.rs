@@ -12,11 +12,11 @@ use super::{AppState, ErrorDetail, ErrorResponse};
 
 /// JWT クレームからテナントIDを文字列として抽出するヘルパー。
 /// クレームが存在しない場合、または `tenant_id` が無効な UUID の場合は 401 を返す。
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
 fn extract_tenant_id_str(
-    claims: &Option<Extension<k1s0_auth::Claims>>,
+    claims: Option<&Extension<k1s0_auth::Claims>>,
 ) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     let tenant_id_str = claims
-        .as_ref()
         .map(|ext| ext.0.tenant_id.as_str())
         .filter(|s| !s.is_empty())
         .ok_or_else(|| {
@@ -67,7 +67,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut overall_ok = true;
 
     if let Some(ref pool) = state.db_pool {
-        if let Ok(_) = sqlx::query("SELECT 1").execute(pool).await { db_status = "ok" } else {
+        // is_ok() を使って冗長なパターンマッチを避ける
+        if sqlx::query("SELECT 1").execute(pool).await.is_ok() {
+            db_status = "ok";
+        } else {
             db_status = "error";
             overall_ok = false;
         }
@@ -134,8 +137,9 @@ pub struct CheckRateLimitResponse {
 /// 以前は `unwrap_or(60)` でサイレントにデフォルト値を返していたが、
 /// 不正なフォーマット（例: "abc", "60x"）は 400 Bad Request として返すべき。
 /// None の場合はデフォルト値 60 秒を返す（省略可能フィールドのため）。
+// Option<&str> の方が &Option<String> よりも慣用的（Clippy: ref_option）
 fn parse_window_secs(
-    window: &Option<String>,
+    window: Option<&str>,
 ) -> Result<i64, (StatusCode, Json<serde_json::Value>)> {
     match window {
         Some(w) => {
@@ -176,12 +180,12 @@ pub async fn check_rate_limit(
     Json(req): Json<CheckRateLimitRequest>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
     // MED-019 監査対応: window パースエラーは 400 Bad Request として返す
-    let window_secs = match parse_window_secs(&req.window) {
+    let window_secs = match parse_window_secs(req.window.as_deref()) {
         Ok(secs) => secs,
         Err(err) => return err.into_response(),
     };
@@ -265,7 +269,7 @@ pub async fn reset_rate_limit(
     use crate::usecase::reset_rate_limit::ResetRateLimitInput;
 
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -341,7 +345,7 @@ pub async fn create_rule(
     Json(req): Json<CreateRuleRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -423,26 +427,28 @@ pub async fn get_rule(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    if let Ok(rule) = state.get_uc.execute(&id, &tenant_id).await { (
-        StatusCode::OK,
-        Json(RuleResponse {
-            id: rule.id.to_string(),
-            name: rule.name,
-            scope: rule.scope,
-            identifier_pattern: rule.identifier_pattern,
-            limit: rule.limit,
-            window_seconds: rule.window_seconds,
-            algorithm: rule.algorithm.as_str().to_string(),
-            enabled: rule.enabled,
-            created_at: rule.created_at.to_rfc3339(),
-            updated_at: rule.updated_at.to_rfc3339(),
-        }),
-    )
-        .into_response() } else {
+    if let Ok(rule) = state.get_uc.execute(&id, &tenant_id).await {
+        (
+            StatusCode::OK,
+            Json(RuleResponse {
+                id: rule.id.to_string(),
+                name: rule.name,
+                scope: rule.scope,
+                identifier_pattern: rule.identifier_pattern,
+                limit: rule.limit,
+                window_seconds: rule.window_seconds,
+                algorithm: rule.algorithm.as_str().to_string(),
+                enabled: rule.enabled,
+                created_at: rule.created_at.to_rfc3339(),
+                updated_at: rule.updated_at.to_rfc3339(),
+            }),
+        )
+            .into_response()
+    } else {
         let err = ErrorResponse::new(
             "SYS_RATELIMIT_RULE_NOT_FOUND",
             "The specified rule was not found",
@@ -503,7 +509,7 @@ pub async fn list_rules(
     axum::extract::Query(query): axum::extract::Query<ListRulesQuery>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -576,7 +582,7 @@ pub async fn update_rule(
 ) -> impl IntoResponse {
     use crate::usecase::update_rule::{UpdateRuleError, UpdateRuleInput};
     // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -659,7 +665,7 @@ pub async fn delete_rule(
     use crate::usecase::delete_rule::DeleteRuleError;
 
     // CRIT-005 対応: テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -679,6 +685,8 @@ pub async fn delete_rule(
     }
 }
 
+/// axum の Query 型制約により `HashMap` 型パラメータの汎化は不可のため、警告を抑制する。
+#[allow(clippy::implicit_hasher)]
 #[utoipa::path(
     get,
     path = "/api/v1/ratelimit/usage",
@@ -696,11 +704,13 @@ pub async fn get_usage(
     use crate::usecase::get_usage::GetUsageError;
 
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id_str(&claims) {
+    let tenant_id = match extract_tenant_id_str(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    let rule_id = if let Some(id) = params.get("rule_id") { id.clone() } else {
+    let rule_id = if let Some(id) = params.get("rule_id") {
+        id.clone()
+    } else {
         let err = ErrorResponse::new("SYS_RATELIMIT_VALIDATION_ERROR", "rule_id is required");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     };
@@ -883,7 +893,8 @@ mod tests {
             .expect("レスポンスボディの読み取りに失敗");
         let json: serde_json::Value =
             serde_json::from_slice(&body).expect("レスポンスのJSONパースに失敗");
-        assert_eq!(json["status"], "ready");
+        // ADR-0068 対応: status は "ready" ではなく "healthy" に統一されている
+        assert_eq!(json["status"], "healthy");
     }
 
     #[tokio::test]

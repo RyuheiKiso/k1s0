@@ -146,7 +146,9 @@ impl ConfigRepository for CachedConfigRepository {
         tenant_id: Uuid,
         service_name: &str,
     ) -> Result<ServiceConfigResult, ConfigRepositoryError> {
-        self.inner.find_by_service_name(tenant_id, service_name).await
+        self.inner
+            .find_by_service_name(tenant_id, service_name)
+            .await
     }
 
     /// `record_change_log` はキャッシュを使わず inner に委譲する。

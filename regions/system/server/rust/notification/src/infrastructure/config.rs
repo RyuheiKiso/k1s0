@@ -107,7 +107,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     /// `PostgreSQL` 謗･邯・URL 繧堤函謌舌☆繧九・
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",

@@ -33,7 +33,11 @@ struct StubChannelRepo;
 
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        _id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         Ok(None)
     }
     async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationChannel>> {

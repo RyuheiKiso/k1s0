@@ -22,7 +22,7 @@ struct InMemoryState {
 impl InMemoryRateLimitClient {
     /// 新しい `InMemoryRateLimitClient` を生成する。
     /// デフォルトポリシー（limit=100, `window_secs=3600`, `algorithm=token_bucket）が設定される`。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         let mut policies = HashMap::new();
         policies.insert(

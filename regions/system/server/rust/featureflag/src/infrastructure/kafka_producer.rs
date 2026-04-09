@@ -86,7 +86,7 @@ impl KafkaFlagProducer {
     }
 
     /// メトリクスを設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -97,7 +97,7 @@ impl KafkaFlagProducer {
 
     /// 配信先トピック名を返す。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }

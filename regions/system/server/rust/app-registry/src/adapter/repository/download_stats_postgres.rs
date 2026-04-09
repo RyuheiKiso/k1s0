@@ -22,7 +22,7 @@ impl DownloadStatsPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -34,7 +34,8 @@ impl DownloadStatsPostgresRepository {
 #[async_trait]
 impl DownloadStatsRepository for DownloadStatsPostgresRepository {
     async fn record(&self, stat: &DownloadStat) -> anyhow::Result<()> {
-        let start = std::time::Instant::now();
+        // クエリ計測開始時刻（stat という引数名との類似を避けるため query_start と命名）
+        let query_start = std::time::Instant::now();
         sqlx::query(
             r"
             INSERT INTO app_registry.download_stats
@@ -51,7 +52,11 @@ impl DownloadStatsRepository for DownloadStatsPostgresRepository {
         .await?;
 
         if let Some(ref m) = self.metrics {
-            m.record_db_query_duration("record", "download_stats", start.elapsed().as_secs_f64());
+            m.record_db_query_duration(
+                "record",
+                "download_stats",
+                query_start.elapsed().as_secs_f64(),
+            );
         }
 
         Ok(())

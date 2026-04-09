@@ -17,7 +17,7 @@ pub struct InMemoryAgentRepository {
 
 impl InMemoryAgentRepository {
     /// `新しいInMemoryAgentRepositoryを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             agents: Arc::new(RwLock::new(Vec::new())),
@@ -65,7 +65,7 @@ pub struct InMemoryExecutionRepository {
 
 impl InMemoryExecutionRepository {
     /// `新しいInMemoryExecutionRepositoryを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             executions: Arc::new(RwLock::new(Vec::new())),

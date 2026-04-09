@@ -54,7 +54,7 @@ impl ServiceAuthConfig {
     /// 最小限の設定で `ServiceAuthConfig` を生成する。
     ///
     /// `refresh_before_secs` と `timeout_secs` はデフォルト値が使用される。
-    #[must_use] 
+    #[must_use]
     pub fn new(token_endpoint: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
             token_endpoint: token_endpoint.to_string(),
@@ -68,28 +68,28 @@ impl ServiceAuthConfig {
     }
 
     /// JWKS URI を設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_jwks_uri(mut self, jwks_uri: &str) -> Self {
         self.jwks_uri = Some(jwks_uri.to_string());
         self
     }
 
     /// リフレッシュ秒数を設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_refresh_before_secs(mut self, secs: u64) -> Self {
         self.refresh_before_secs = secs;
         self
     }
 
     /// タイムアウト秒数を設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_timeout_secs(mut self, secs: u64) -> Self {
         self.timeout_secs = secs;
         self
     }
 
     /// オーディエンスを設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_audience(mut self, audience: &str) -> Self {
         self.audience = audience.to_string();
         self

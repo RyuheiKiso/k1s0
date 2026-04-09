@@ -28,7 +28,11 @@ impl ListVersionsUseCase {
     }
 
     // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
-    pub async fn execute(&self, tenant_id: &str, app_id: &str) -> Result<Vec<AppVersion>, ListVersionsError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        app_id: &str,
+    ) -> Result<Vec<AppVersion>, ListVersionsError> {
         let app: Option<App> = self
             .app_repo
             .find_by_id(tenant_id, app_id)

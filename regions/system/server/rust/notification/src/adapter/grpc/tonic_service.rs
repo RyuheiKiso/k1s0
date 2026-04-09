@@ -61,12 +61,15 @@ fn str_to_ts(s: &str) -> Option<ProtoTimestamp> {
         .ok()
         .map(|dt| ProtoTimestamp {
             seconds: dt.timestamp(),
-            nanos: dt.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+            nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         })
 }
 
 /// ドメインのステータス文字列を `NotificationStatus` enum の i32 値に変換する。
 /// 未知の文字列は Unspecified (0) にフォールバックする。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn status_str_to_enum(s: &str) -> i32 {
     match s {
         "pending" => NotificationStatus::Pending as i32,
@@ -81,11 +84,11 @@ fn status_str_to_enum(s: &str) -> i32 {
 
 impl From<GrpcError> for Status {
     fn from(e: GrpcError) -> Self {
+        // FailedPrecondition と ChannelDisabled は同じ Status に変換するためアームを統合する
         match e {
             GrpcError::NotFound(msg) => Status::not_found(msg),
             GrpcError::InvalidArgument(msg) => Status::invalid_argument(msg),
-            GrpcError::FailedPrecondition(msg) => Status::failed_precondition(msg),
-            GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
+            GrpcError::FailedPrecondition(msg) | GrpcError::ChannelDisabled(msg) => Status::failed_precondition(msg),
             GrpcError::Internal(msg) => Status::internal(msg),
         }
     }
@@ -128,7 +131,7 @@ pub struct NotificationServiceTonic {
 }
 
 impl NotificationServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<NotificationGrpcService>) -> Self {
         Self { inner }
     }
@@ -257,15 +260,16 @@ impl NotificationService for NotificationServiceTonic {
         let req = ListNotificationsRequest {
             channel_id: inner.channel_id,
             status: inner.status,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -298,9 +302,11 @@ impl NotificationService for NotificationServiceTonic {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))
@@ -319,15 +325,16 @@ impl NotificationService for NotificationServiceTonic {
             tenant_id,
             channel_type: inner.channel_type,
             enabled_only: inner.enabled_only,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -338,9 +345,11 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListChannelsResponse {
             channels: resp.channels.iter().map(channel_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))
@@ -451,15 +460,16 @@ impl NotificationService for NotificationServiceTonic {
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListTemplatesRequest {
             channel_type: inner.channel_type,
+            // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
                 1
             } else {
-                pagination.page as u32
+                u32::try_from(pagination.page).unwrap_or(1)
             },
             page_size: if pagination.page_size <= 0 {
                 20
             } else {
-                pagination.page_size as u32
+                u32::try_from(pagination.page_size).unwrap_or(20)
             },
         };
         let resp = self
@@ -470,9 +480,11 @@ impl NotificationService for NotificationServiceTonic {
         Ok(Response::new(ProtoListTemplatesResponse {
             templates: resp.templates.iter().map(template_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(resp.total).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
         }))

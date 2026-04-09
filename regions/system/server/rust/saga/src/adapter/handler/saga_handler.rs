@@ -220,7 +220,8 @@ pub async fn start_saga(
 
     // テナント ID を Claims から取得する。Claims がない場合は "system" を使用する
     let tenant_id = claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
+        .as_ref()
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     // ドメインエラー（SagaError）をアダプタ層のハンドラーエラー型に型安全に変換する
     let saga_id = state
@@ -284,7 +285,8 @@ pub async fn list_sagas(
 
     // テナント ID を Claims から取得する
     let tenant_id = claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
+        .as_ref()
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     // cursor が指定された場合は keyset ページネーション、未指定の場合は OFFSET を使用する
     let params = SagaListParams {
@@ -316,7 +318,8 @@ pub async fn list_sagas(
     let page_size_i32 = query.page_size;
     let has_next = if query.cursor.is_some() {
         // keyset ページネーション: 取得件数が page_size と同じなら次ページあり
-        sagas.len() as i32 == page_size_i32 && next_cursor.is_some()
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        i32::try_from(sagas.len()).unwrap_or(i32::MAX) == page_size_i32 && next_cursor.is_some()
     } else {
         // OFFSET ページネーション: 従来通りの計算
         (i64::from(query.page) * i64::from(query.page_size)) < total_i64
@@ -375,7 +378,8 @@ pub async fn get_saga(
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
+        .as_ref()
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     let (saga, step_logs) = state
         .get_saga_uc
@@ -439,7 +443,8 @@ pub async fn cancel_saga(
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
+        .as_ref()
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     state
         .cancel_saga_uc
@@ -478,16 +483,17 @@ pub async fn compensate_saga(
         .map_err(|_| SagaError::Validation(format!("invalid saga_id: {saga_id}")))?;
 
     let tenant_id = claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
+        .as_ref()
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string());
 
     let updated = state
         .execute_saga_uc
         .trigger_compensate(id, &tenant_id)
         .await
+        // NotFound と WorkflowNotFound は同じエラーに変換するためアームを統合する
         .map_err(|e| match e {
-            CompensateSagaError::NotFound(_) => SagaError::NotFound(e.to_string()),
+            CompensateSagaError::NotFound(_) | CompensateSagaError::WorkflowNotFound(_) => SagaError::NotFound(e.to_string()),
             CompensateSagaError::AlreadyTerminal(_) => SagaError::Conflict(e.to_string()),
-            CompensateSagaError::WorkflowNotFound(_) => SagaError::NotFound(e.to_string()),
             CompensateSagaError::Internal(_) => SagaError::Internal(e.to_string()),
         })?;
 

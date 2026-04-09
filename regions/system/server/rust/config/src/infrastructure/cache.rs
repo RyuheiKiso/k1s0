@@ -17,7 +17,7 @@ impl ConfigCache {
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
-    #[must_use] 
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -27,7 +27,7 @@ impl ConfigCache {
     }
 
     /// "namespace:key" 形式のキャッシュキーを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn cache_key(namespace: &str, key: &str) -> String {
         format!("{namespace}:{key}")
     }

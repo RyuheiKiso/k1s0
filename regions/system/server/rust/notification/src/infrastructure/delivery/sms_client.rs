@@ -11,7 +11,7 @@ pub struct SmsDeliveryClient {
 }
 
 impl SmsDeliveryClient {
-    #[must_use] 
+    #[must_use]
     pub fn new(endpoint: String, api_key: Option<String>) -> Self {
         Self {
             endpoint,

@@ -16,7 +16,7 @@ pub struct JwksNavigationTokenVerifier {
 }
 
 impl JwksNavigationTokenVerifier {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<k1s0_auth::JwksVerifier>) -> Self {
         Self { inner }
     }

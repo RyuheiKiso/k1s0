@@ -16,7 +16,9 @@ impl MasterKey {
     /// 本番環境ではゼロ鍵での起動を拒否する。
     pub fn from_env() -> anyhow::Result<Self> {
         let environment = std::env::var("APP_ENVIRONMENT").unwrap_or_default();
-        let key_hex = if let Ok(key) = std::env::var("VAULT_MASTER_KEY") { key } else {
+        let key_hex = if let Ok(key) = std::env::var("VAULT_MASTER_KEY") {
+            key
+        } else {
             // 本番・ステージング環境では VAULT_MASTER_KEY が必須
             // 大文字小文字を無視して比較（"Production", "PRODUCTION" 等のバイパスを防止）
             let env_lower = environment.to_lowercase();
@@ -56,7 +58,13 @@ impl MasterKey {
         let nonce = Nonce::from_slice(&nonce_bytes);
         // CRIT-003 監査対応: AAD を Payload に含めて暗号化し、認証タグがコンテキストを保証する
         let ciphertext = cipher
-            .encrypt(nonce, Payload { msg: plaintext, aad })
+            .encrypt(
+                nonce,
+                Payload {
+                    msg: plaintext,
+                    aad,
+                },
+            )
             .map_err(|e| anyhow::anyhow!("encryption failed: {e}"))?;
         Ok((ciphertext, nonce_bytes.to_vec()))
     }
@@ -70,7 +78,13 @@ impl MasterKey {
         let nonce = Nonce::from_slice(nonce);
         // CRIT-003 監査対応: AAD を Payload に含めて復号することでコンテキスト認証を実施する
         cipher
-            .decrypt(nonce, Payload { msg: ciphertext, aad })
+            .decrypt(
+                nonce,
+                Payload {
+                    msg: ciphertext,
+                    aad,
+                },
+            )
             .map_err(|e| anyhow::anyhow!("decryption failed: {e}"))
     }
 }

@@ -41,7 +41,7 @@ pub struct TeamPostgresRepository {
 
 impl TeamPostgresRepository {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -49,7 +49,7 @@ impl TeamPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,

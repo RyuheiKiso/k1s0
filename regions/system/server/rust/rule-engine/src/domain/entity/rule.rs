@@ -20,7 +20,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         tenant_id: String,
         name: String,
@@ -64,7 +64,7 @@ pub struct RuleSet {
 }
 
 impl RuleSet {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         tenant_id: String,
         name: String,
@@ -100,7 +100,7 @@ pub enum EvaluationMode {
 }
 
 impl EvaluationMode {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             EvaluationMode::FirstMatch => "first_match",
@@ -109,7 +109,7 @@ impl EvaluationMode {
     }
 
     #[allow(clippy::should_implement_trait)]
-    #[must_use] 
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "first_match" => Some(EvaluationMode::FirstMatch),
@@ -132,7 +132,7 @@ pub struct RuleSetVersion {
 }
 
 impl RuleSetVersion {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         rule_set_id: Uuid,
         version: u32,

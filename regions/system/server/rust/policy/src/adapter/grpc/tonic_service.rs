@@ -43,10 +43,13 @@ impl From<GrpcError> for Status {
     }
 }
 
+// Proto フィールドの型が Option<Timestamp> であるため Option を返す必要がある（変更不可）
+#[allow(clippy::unnecessary_wraps)]
 fn to_proto_timestamp(dt: chrono::DateTime<chrono::Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
@@ -82,7 +85,8 @@ fn to_proto_bundle(bundle: PolicyBundleData) -> ProtoPolicyBundle {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
+        .get::<Claims>()
+        .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct PolicyServiceTonic {
@@ -90,7 +94,7 @@ pub struct PolicyServiceTonic {
 }
 
 impl PolicyServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<PolicyGrpcService>) -> Self {
         Self { inner }
     }
@@ -151,9 +155,7 @@ impl PolicyService for PolicyServiceTonic {
         // CRIT-005 対応: JWT Claims からテナント ID を抽出してリクエストに設定する。
         let tenant_id = tenant_id_from_request(&request);
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map_or((1, 20), |p| (p.page, p.page_size));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_policies(ListPoliciesRequest {
@@ -169,7 +171,8 @@ impl PolicyService for PolicyServiceTonic {
         Ok(Response::new(ProtoListPoliciesResponse {
             policies: resp.policies.into_iter().map(to_proto_policy).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,

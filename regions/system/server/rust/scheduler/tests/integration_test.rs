@@ -27,26 +27,36 @@ struct StubJobRepository;
 
 #[async_trait]
 impl SchedulerJobRepository for StubJobRepository {
-    async fn find_by_id(&self, _id: &str) -> anyhow::Result<Option<SchedulerJob>> {
+    // テナントスコープでIDによるジョブ検索（テスト用スタブ）
+    async fn find_by_id(
+        &self,
+        _id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SchedulerJob>> {
         Ok(None)
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<SchedulerJob>> {
+    // テナントスコープで全ジョブを取得（テスト用スタブ）
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<SchedulerJob>> {
         Ok(vec![])
     }
 
+    // ジョブを新規作成（テスト用スタブ）
     async fn create(&self, _job: &SchedulerJob) -> anyhow::Result<()> {
         Ok(())
     }
 
+    // ジョブを更新（テスト用スタブ）
     async fn update(&self, _job: &SchedulerJob) -> anyhow::Result<()> {
         Ok(())
     }
 
-    async fn delete(&self, _id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでジョブを削除（テスト用スタブ）
+    async fn delete(&self, _id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(true)
     }
 
+    // アクティブなジョブを全テナント横断で取得（テスト用スタブ）
     async fn find_active_jobs(&self) -> anyhow::Result<Vec<SchedulerJob>> {
         Ok(vec![])
     }
@@ -105,6 +115,8 @@ fn make_test_app() -> axum::Router {
             "k1s0-scheduler-server-test",
         )),
         auth_state: None,
+        // DB プールはテスト環境では不要のため None を設定する
+        db_pool: None,
     };
     router(state)
 }

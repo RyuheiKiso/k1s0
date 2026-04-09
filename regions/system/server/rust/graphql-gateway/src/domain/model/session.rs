@@ -9,8 +9,8 @@ pub enum SessionStatus {
 
 impl From<&str> for SessionStatus {
     fn from(s: &str) -> Self {
+        // "active" アームと wildcard アームが同一の返り値のため統合する
         match s.to_ascii_lowercase().as_str() {
-            "active" => SessionStatus::Active,
             "revoked" => SessionStatus::Revoked,
             _ => SessionStatus::Active,
         }
@@ -18,6 +18,8 @@ impl From<&str> for SessionStatus {
 }
 
 /// セッション情報（token はlist/getでは省略）
+// session_id は Proto/API との整合性のため構造体名と同じプレフィックスを使用する
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, SimpleObject)]
 pub struct Session {
     pub session_id: String,

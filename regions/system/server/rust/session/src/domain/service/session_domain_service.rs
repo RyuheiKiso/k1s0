@@ -29,7 +29,7 @@ impl SessionDomainService {
         Ok(())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn compute_revoke_count(active_sessions: usize, max_devices: usize) -> usize {
         if active_sessions < max_devices {
             return 0;

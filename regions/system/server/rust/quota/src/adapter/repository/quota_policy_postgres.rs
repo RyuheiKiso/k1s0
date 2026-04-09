@@ -15,7 +15,7 @@ pub struct QuotaPolicyPostgresRepository {
 }
 
 impl QuotaPolicyPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -43,10 +43,12 @@ impl From<QuotaPolicyRow> for QuotaPolicy {
             name: r.name,
             subject_type: SubjectType::from_str(&r.subject_type).unwrap_or(SubjectType::Tenant),
             subject_id: r.subject_id,
-            limit: r.quota_limit as u64,
+            // LOW-008: 安全な型変換（quota_limit は非負であることが前提）
+            limit: u64::try_from(r.quota_limit).unwrap_or(0),
             period: Period::from_str(&r.period).unwrap_or(Period::Daily),
             enabled: r.enabled,
-            alert_threshold_percent: Some(r.alert_threshold_percent as u8),
+            // LOW-008: 安全な型変換（alert_threshold_percent は 0-100 の範囲で u8 に収まる）
+            alert_threshold_percent: Some(u8::try_from(r.alert_threshold_percent).unwrap_or(0)),
             created_at: r.created_at,
             updated_at: r.updated_at,
             tenant_id: r.tenant_id,
@@ -105,7 +107,8 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
             .fetch_one(self.pool.as_ref())
             .await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（COUNT(*) は非負であることが前提）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     async fn create(&self, policy: &QuotaPolicy) -> anyhow::Result<()> {
@@ -128,7 +131,8 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(&policy.name)
         .bind(policy.subject_type.as_str())
         .bind(&policy.subject_id)
-        .bind(policy.limit as i64)
+        // LOW-008: 安全な型変換（quota limit は i64 範囲内が前提）
+        .bind(i64::try_from(policy.limit).unwrap_or(i64::MAX))
         .bind(policy.period.as_str())
         .bind(policy.enabled)
         .bind(i16::from(policy.alert_threshold_percent.unwrap_or(80)))
@@ -157,7 +161,8 @@ impl QuotaPolicyRepository for QuotaPolicyPostgresRepository {
         .bind(&policy.name)
         .bind(policy.subject_type.as_str())
         .bind(&policy.subject_id)
-        .bind(policy.limit as i64)
+        // LOW-008: 安全な型変換（quota limit は i64 範囲内が前提）
+        .bind(i64::try_from(policy.limit).unwrap_or(i64::MAX))
         .bind(policy.period.as_str())
         .bind(policy.enabled)
         .bind(i16::from(policy.alert_threshold_percent.unwrap_or(80)))

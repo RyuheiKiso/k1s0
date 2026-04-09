@@ -34,9 +34,10 @@ impl Default for IdempotencyConfig {
 }
 
 impl IdempotencyConfig {
-    #[must_use] 
+    #[must_use]
     pub fn with_ttl(mut self, ttl: Duration) -> Self {
-        self.ttl_secs = Some(ttl.as_secs() as i64);
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        self.ttl_secs = Some(i64::try_from(ttl.as_secs()).unwrap_or(i64::MAX));
         self
     }
 }
@@ -74,7 +75,7 @@ impl IdempotencyMiddleware {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn state(&self) -> IdempotencyState {
         self.state.clone()
     }
@@ -87,9 +88,9 @@ async fn process_request(state: &IdempotencyState, req: Request<Body>, next: Nex
         .and_then(|v| v.to_str().ok())
         .map(ToOwned::to_owned);
 
-    let key = match idempotency_key {
-        Some(k) => k,
-        None => return next.run(req).await,
+    // let-else: キーが存在しない場合はそのまま次のミドルウェアへ渡す
+    let Some(key) = idempotency_key else {
+        return next.run(req).await;
     };
 
     // Replay if already completed, reject while pending, retry if failed.
@@ -134,7 +135,9 @@ async fn process_request(state: &IdempotencyState, req: Request<Body>, next: Nex
 
     let response = next.run(req).await;
     let (parts, body) = response.into_parts();
-    let body_bytes = if let Ok(collected) = body.collect().await { collected.to_bytes() } else {
+    let body_bytes = if let Ok(collected) = body.collect().await {
+        collected.to_bytes()
+    } else {
         let _ = state.store.mark_failed(&key, None, None).await;
         return Response::from_parts(parts, Body::empty());
     };

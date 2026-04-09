@@ -20,7 +20,7 @@ pub struct NotificationChannel {
 
 impl NotificationChannel {
     /// テナント ID を指定してチャンネルを作成する
-    #[must_use] 
+    #[must_use]
     pub fn new(
         name: String,
         channel_type: String,
@@ -43,7 +43,7 @@ impl NotificationChannel {
 
     /// `システムチャンネル（tenant_id` = "system"）として作成する（テスト・将来用）
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new_system(
         name: String,
         channel_type: String,

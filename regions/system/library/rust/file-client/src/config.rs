@@ -20,7 +20,7 @@ impl FileClientConfig {
     }
 
     /// タイムアウト時間を設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self

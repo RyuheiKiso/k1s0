@@ -19,7 +19,7 @@ pub struct TransactionalAppendAdapter {
 
 impl TransactionalAppendAdapter {
     /// `PgPool` からアダプターを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

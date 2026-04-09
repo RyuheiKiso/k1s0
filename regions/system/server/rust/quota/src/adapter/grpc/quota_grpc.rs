@@ -149,6 +149,8 @@ pub struct PaginationResult {
 }
 
 /// `QuotaGrpcService` はクォータ gRPC サービスのビジネスロジック層。
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct QuotaGrpcService {
     pub create_policy_uc: Arc<CreateQuotaPolicyUseCase>,
     pub get_policy_uc: Arc<GetQuotaPolicyUseCase>,
@@ -162,7 +164,7 @@ pub struct QuotaGrpcService {
 
 impl QuotaGrpcService {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         create_policy_uc: Arc<CreateQuotaPolicyUseCase>,
         get_policy_uc: Arc<GetQuotaPolicyUseCase>,
@@ -231,9 +233,10 @@ impl QuotaGrpcService {
         Ok(ListPoliciesResult {
             policies: output.quotas,
             pagination: PaginationResult {
-                total_count: output.total_count as i64,
-                page: output.page.min(i32::MAX as u32) as i32,
-                page_size: output.page_size.min(i32::MAX as u32) as i32,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(output.total_count).unwrap_or(i64::MAX),
+                page: i32::try_from(output.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
                 has_next: output.has_next,
             },
         })
@@ -288,7 +291,11 @@ impl QuotaGrpcService {
     }
 
     /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り RLS テナント分離を有効にする。
-    pub async fn get_usage(&self, quota_id: &str, tenant_id: &str) -> Result<QuotaUsage, GrpcError> {
+    pub async fn get_usage(
+        &self,
+        quota_id: &str,
+        tenant_id: &str,
+    ) -> Result<QuotaUsage, GrpcError> {
         self.get_usage_uc
             .execute(quota_id, tenant_id)
             .await
@@ -296,7 +303,11 @@ impl QuotaGrpcService {
     }
 
     /// CRITICAL-RUST-001 監査対応: `tenant_id` を受け取り RLS テナント分離を有効にする。
-    pub async fn check_quota(&self, quota_id: &str, tenant_id: &str) -> Result<QuotaUsage, GrpcError> {
+    pub async fn check_quota(
+        &self,
+        quota_id: &str,
+        tenant_id: &str,
+    ) -> Result<QuotaUsage, GrpcError> {
         self.get_usage(quota_id, tenant_id).await
     }
 

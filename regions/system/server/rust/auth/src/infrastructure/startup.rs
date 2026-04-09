@@ -391,8 +391,11 @@ pub async fn run() -> anyhow::Result<()> {
             None
         };
     // require_auth_state は dev/test 以外で auth_state=None の場合にエラーを返す
-    let grpc_auth_state =
-        k1s0_server_common::require_auth_state("auth-server", &cfg.app.environment, grpc_auth_state)?;
+    let grpc_auth_state = k1s0_server_common::require_auth_state(
+        "auth-server",
+        &cfg.app.environment,
+        grpc_auth_state,
+    )?;
     // gRPC メソッドに対応するアクションを決定するレイヤーを構築する
     let grpc_auth_layer = GrpcAuthLayer::new(grpc_auth_state, Tier::System, auth_grpc_action);
 
@@ -641,9 +644,10 @@ impl crate::domain::repository::AuditLogRepository for InMemoryAuditLogRepositor
             .cloned()
             .collect();
 
-        let total = filtered.len() as i64;
-        let offset = ((params.page - 1) * params.page_size) as usize;
-        let limit = params.page_size as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i64::try_from(filtered.len()).unwrap_or(i64::MAX);
+        let offset = usize::try_from((params.page - 1) * params.page_size).unwrap_or(0);
+        let limit = usize::try_from(params.page_size).unwrap_or(0);
 
         filtered = filtered.into_iter().skip(offset).take(limit).collect();
 

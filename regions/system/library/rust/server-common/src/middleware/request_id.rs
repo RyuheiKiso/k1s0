@@ -10,7 +10,7 @@ use uuid::Uuid;
 pub struct RequestIdLayer;
 
 impl RequestIdLayer {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

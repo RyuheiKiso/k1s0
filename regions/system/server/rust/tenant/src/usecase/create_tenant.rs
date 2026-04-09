@@ -42,22 +42,28 @@ impl CreateTenantUseCase {
         }
     }
 
+    /// Saga クライアントを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_saga_client(mut self, saga_client: Arc<dyn SagaClient>) -> Self {
         self.saga_client = saga_client;
         self
     }
 
+    /// イベントパブリッシャーを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
         self.event_publisher = event_publisher;
         self
     }
 
+    /// Keycloak 管理クライアントを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_keycloak_admin(mut self, keycloak_admin: Arc<dyn KeycloakAdmin>) -> Self {
         self.keycloak_admin = keycloak_admin;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,

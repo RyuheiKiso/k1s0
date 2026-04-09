@@ -25,9 +25,7 @@ use crate::error::SessionError;
 /// Redis に接続済みの場合は jti 失効確認コールバックを返す。
 /// コールバックは同期 Fn であるため、tokio の `block_in_place` を使って非同期処理をブロッキングで実行する。
 /// auth ライブラリが同期コールバックを要求しているため、この変換が必要となる。
-fn build_jti_checker(
-    redis_repo: Arc<RedisSessionRepository>,
-) -> k1s0_auth::JtiRevokedChecker {
+fn build_jti_checker(redis_repo: Arc<RedisSessionRepository>) -> k1s0_auth::JtiRevokedChecker {
     Arc::new(move |jti: &str| {
         let repo = Arc::clone(&redis_repo);
         let jti = jti.to_string();
@@ -35,9 +33,8 @@ fn build_jti_checker(
         // block_on で非同期の is_jti_revoked を同期的に実行する。
         // block_in_place を使い tokio スレッドプールをブロックしないようにする。
         tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async move {
-                repo.is_jti_revoked(&jti).await
-            })
+            tokio::runtime::Handle::current()
+                .block_on(async move { repo.is_jti_revoked(&jti).await })
         })
     })
 }

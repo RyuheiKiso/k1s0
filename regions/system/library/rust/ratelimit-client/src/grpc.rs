@@ -138,9 +138,10 @@ mod inner {
                 return Err(map_error_response(resp, "check").await);
             }
 
-            let result: CheckResponse = resp.json().await.map_err(|e| {
-                RateLimitError::ServerError(format!("check: decode response: {e}"))
-            })?;
+            let result: CheckResponse = resp
+                .json()
+                .await
+                .map_err(|e| RateLimitError::ServerError(format!("check: decode response: {e}")))?;
 
             Ok(RateLimitStatus {
                 allowed: result.allowed,

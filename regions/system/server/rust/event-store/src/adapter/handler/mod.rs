@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod error;
 pub mod event_handler;
 pub mod health;
@@ -33,6 +35,8 @@ pub struct AppState {
     pub create_snapshot_uc: Arc<CreateSnapshotUseCase>,
     pub get_latest_snapshot_uc: Arc<GetLatestSnapshotUseCase>,
     pub delete_stream_uc: Arc<DeleteStreamUseCase>,
+    // stream_repo は将来のダイレクトクエリ拡張のために保持する（現在は delete_stream_uc 経由で間接使用）
+    #[allow(dead_code)]
     pub stream_repo: Arc<dyn crate::domain::repository::EventStreamRepository>,
     pub event_publisher: Arc<dyn EventPublisher>,
     pub metrics: Arc<k1s0_telemetry::metrics::Metrics>,
@@ -42,13 +46,15 @@ pub struct AppState {
 }
 
 impl AppState {
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
     }
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -191,7 +197,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    #[must_use] 
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {

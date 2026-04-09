@@ -186,6 +186,8 @@ fn make_test_app() -> axum::Router {
         auth_state: None,
         // テスト用: DLQクライアントはNoopなのでtrueを設定
         dlq_noop: true,
+        // テスト用: DB接続プールは不要なのでNoneを設定
+        db_pool: None,
     };
 
     router(state)
@@ -279,6 +281,8 @@ async fn test_unauthorized_without_token() {
         auth_state: Some(auth_state),
         // テスト用: DLQクライアントはNoopなのでtrueを設定
         dlq_noop: true,
+        // テスト用: DB接続プールは不要なのでNoneを設定
+        db_pool: None,
     };
 
     let app = router(state);

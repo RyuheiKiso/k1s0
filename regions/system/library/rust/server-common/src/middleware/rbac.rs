@@ -50,7 +50,7 @@ async fn rbac_check(
 }
 
 /// ロールベースの権限チェック。Tier に応じてロールプレフィックスを切り替える。
-#[must_use] 
+#[must_use]
 pub fn check_permission(tier: Tier, roles: &[String], action: &str) -> bool {
     for role in roles {
         match tier {

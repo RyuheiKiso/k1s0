@@ -187,6 +187,7 @@ async fn test_append_multiple_events_increments_version() {
     let loaded = store.load(&stream_id).await.unwrap();
     assert_eq!(loaded.len(), 4);
     for (i, event) in loaded.iter().enumerate() {
-        assert_eq!(event.version, (i + 1) as u64);
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        assert_eq!(event.version, u64::try_from(i + 1).unwrap_or(u64::MAX));
     }
 }

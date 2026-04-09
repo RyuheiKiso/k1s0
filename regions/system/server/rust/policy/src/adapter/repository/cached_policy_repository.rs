@@ -210,7 +210,11 @@ mod tests {
         cached_repo.update(&policy).await.unwrap();
 
         // キャッシュからは更新後のデータが取れる
-        let result = cached_repo.find_by_id(&id, "tenant-a").await.unwrap().unwrap();
+        let result = cached_repo
+            .find_by_id(&id, "tenant-a")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(result.description, "updated");
         assert_eq!(result.version, 2);
     }

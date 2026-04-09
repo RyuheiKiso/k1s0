@@ -46,6 +46,7 @@ impl ExecuteSagaUseCase {
     }
 
     /// `WorkflowRepository` を設定する。
+    #[must_use]
     pub fn with_workflow_repo(
         mut self,
         repo: Arc<dyn crate::domain::repository::WorkflowRepository>,
@@ -57,10 +58,22 @@ impl ExecuteSagaUseCase {
     /// `Sagaを実行する。ステータスに応じてforward_executeまたはcompensateを実行する`。
     /// `WorkflowDefinition` の `total_timeout_secs` でSaga全体にタイムアウトを適用する。
     /// CRIT-005 対応: `tenant_id` を引数で受け取り RLS 分離に使用する。
-    pub async fn run(&self, saga_id: Uuid, workflow: &WorkflowDefinition, tenant_id: &str) -> anyhow::Result<()> {
+    pub async fn run(
+        &self,
+        saga_id: Uuid,
+        workflow: &WorkflowDefinition,
+        tenant_id: &str,
+    ) -> anyhow::Result<()> {
         let timeout_duration = std::time::Duration::from_secs(workflow.total_timeout_secs);
 
-        if let Ok(result) = tokio::time::timeout(timeout_duration, self.run_inner(saga_id, workflow, tenant_id)).await { result } else {
+        if let Ok(result) = tokio::time::timeout(
+            timeout_duration,
+            self.run_inner(saga_id, workflow, tenant_id),
+        )
+        .await
+        {
+            result
+        } else {
             error!(
                 saga_id = %saga_id,
                 timeout_secs = workflow.total_timeout_secs,
@@ -80,7 +93,12 @@ impl ExecuteSagaUseCase {
                 );
                 state.start_compensation(error_msg);
                 self.saga_repo
-                    .update_status(state.saga_id, &state.status, state.error_message.clone(), &state.tenant_id)
+                    .update_status(
+                        state.saga_id,
+                        &state.status,
+                        state.error_message.clone(),
+                        &state.tenant_id,
+                    )
                     .await?;
                 self.publish_event(&state, "SAGA_COMPENSATING").await;
                 self.compensate(&mut state, workflow).await?;
@@ -95,7 +113,12 @@ impl ExecuteSagaUseCase {
     }
 
     /// run の内部実装。タイムアウトラッパーから呼び出される。
-    async fn run_inner(&self, saga_id: Uuid, workflow: &WorkflowDefinition, tenant_id: &str) -> anyhow::Result<()> {
+    async fn run_inner(
+        &self,
+        saga_id: Uuid,
+        workflow: &WorkflowDefinition,
+        tenant_id: &str,
+    ) -> anyhow::Result<()> {
         let state = self
             .saga_repo
             .find_by_id(saga_id, tenant_id)
@@ -156,7 +179,12 @@ impl ExecuteSagaUseCase {
 
         saga.start_compensation("manual compensate triggered".to_string());
         self.saga_repo
-            .update_status(saga.saga_id, &saga.status, saga.error_message.clone(), &saga.tenant_id)
+            .update_status(
+                saga.saga_id,
+                &saga.status,
+                saga.error_message.clone(),
+                &saga.tenant_id,
+            )
             .await
             .map_err(CompensateSagaError::Internal)?;
 
@@ -193,8 +221,10 @@ impl ExecuteSagaUseCase {
 
         let total_steps = workflow.steps.len();
 
-        while (state.current_step as usize) < total_steps {
-            let step_idx = state.current_step as usize;
+        // LOW-008: 安全な型変換（current_step は非負であることが前提）
+        while (usize::try_from(state.current_step).unwrap_or(0)) < total_steps {
+            // LOW-008: 安全な型変換（current_step は非負であることが前提）
+            let step_idx = usize::try_from(state.current_step).unwrap_or(0);
             let step = &workflow.steps[step_idx];
 
             info!(
@@ -282,7 +312,8 @@ impl ExecuteSagaUseCase {
                 info!(
                     step_name = %step.name,
                     attempt = attempt + 1,
-                    delay_ms = delay.as_millis() as u64,
+                    // LOW-008: 安全な型変換（ミリ秒は u64 範囲内が前提）
+                    delay_ms = u64::try_from(delay.as_millis()).unwrap_or(u64::MAX),
                     "retrying step"
                 );
                 tokio::time::sleep(delay).await;
@@ -338,7 +369,8 @@ impl ExecuteSagaUseCase {
         state: &mut SagaState,
         workflow: &WorkflowDefinition,
     ) -> anyhow::Result<()> {
-        let comp_start = (state.current_step as usize).min(workflow.steps.len());
+        // LOW-008: 安全な型変換（current_step は非負であることが前提）
+        let comp_start = usize::try_from(state.current_step).unwrap_or(0).min(workflow.steps.len());
         // 補償失敗カウンター
         let mut compensation_failures: u32 = 0;
 
@@ -353,7 +385,8 @@ impl ExecuteSagaUseCase {
         for step_idx in (0..comp_start).rev() {
             let step = &workflow.steps[step_idx];
 
-            let compensate_method = if let Some(method) = &step.compensate { method } else {
+            // let-else: 補償メソッドが未定義の場合はスキップして次のステップへ
+            let Some(compensate_method) = &step.compensate else {
                 info!(
                     saga_id = %state.saga_id,
                     step = step_idx,
@@ -362,7 +395,8 @@ impl ExecuteSagaUseCase {
                 );
                 let mut step_log = SagaStepLog::new_compensate(
                     state.saga_id,
-                    step_idx as i32,
+                    // LOW-008: 安全な型変換（step_idx は i32 範囲内が前提）
+                    i32::try_from(step_idx).unwrap_or(i32::MAX),
                     step.name.clone(),
                     None,
                 );
@@ -383,7 +417,8 @@ impl ExecuteSagaUseCase {
 
             let mut step_log = SagaStepLog::new_compensate(
                 state.saga_id,
-                step_idx as i32,
+                // LOW-008: 安全な型変換（step_idx は i32 範囲内が前提）
+                i32::try_from(step_idx).unwrap_or(i32::MAX),
                 step.name.clone(),
                 Some(state.payload.clone()),
             );
@@ -443,7 +478,12 @@ impl ExecuteSagaUseCase {
         let original_error = state.error_message.clone().unwrap_or_default();
         state.fail(original_error);
         self.saga_repo
-            .update_status(state.saga_id, &state.status, state.error_message.clone(), &state.tenant_id)
+            .update_status(
+                state.saga_id,
+                &state.status,
+                state.error_message.clone(),
+                &state.tenant_id,
+            )
             .await?;
 
         self.publish_event(state, "SAGA_FAILED").await;
@@ -546,7 +586,9 @@ steps:
         mock_repo
             .expect_find_by_id()
             .returning(move |_, _| Ok(Some(saga_clone.clone())));
-        mock_repo.expect_update_status().returning(|_, _, _, _| Ok(()));
+        mock_repo
+            .expect_update_status()
+            .returning(|_, _, _, _| Ok(()));
         mock_repo
             .expect_update_with_step_log()
             .returning(|_, _| Ok(()));
@@ -576,7 +618,9 @@ steps:
             s.advance_step(); // step 0 done, now at step 1
             Ok(Some(s))
         });
-        mock_repo.expect_update_status().returning(|_, _, _, _| Ok(()));
+        mock_repo
+            .expect_update_status()
+            .returning(|_, _, _, _| Ok(()));
         mock_repo
             .expect_update_with_step_log()
             .returning(|_, _| Ok(()));

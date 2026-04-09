@@ -13,7 +13,7 @@ pub struct SchedulerExecutionPostgresRepository {
 }
 
 impl SchedulerExecutionPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }

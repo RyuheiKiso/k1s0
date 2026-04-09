@@ -11,7 +11,7 @@ pub struct SnapshotPostgresRepository {
 }
 
 impl SnapshotPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

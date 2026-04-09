@@ -35,7 +35,11 @@ pub trait ApiSchemaVersionRepository: Send + Sync {
         version: u32,
     ) -> anyhow::Result<Option<ApiSchemaVersion>>;
     // テナントスコープで最新バージョンを取得する
-    async fn find_latest_by_name(&self, tenant_id: &str, name: &str) -> anyhow::Result<Option<ApiSchemaVersion>>;
+    async fn find_latest_by_name(
+        &self,
+        tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>>;
     // テナントスコープでバージョン一覧を取得する
     async fn find_all_by_name(
         &self,

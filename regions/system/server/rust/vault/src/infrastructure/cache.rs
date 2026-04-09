@@ -18,7 +18,7 @@ impl SecretCache {
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
-    #[must_use] 
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -28,7 +28,7 @@ impl SecretCache {
     }
 
     /// キャッシュキーを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn cache_key(path: &str, version: Option<i64>) -> String {
         match version {
             Some(v) => format!("{path}:{v}"),

@@ -17,7 +17,7 @@ pub struct LocalFsStorageRepository {
 impl LocalFsStorageRepository {
     /// 新しい `LocalFsStorageRepository` を作成する。
     /// `root_path` `にファイルを保存し、base_url` を使って URL を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(root_path: PathBuf, base_url: String) -> Self {
         Self {
             root_path,
@@ -109,7 +109,8 @@ impl FileStorageRepository for LocalFsStorageRepository {
         let head_bytes = tokio::fs::read(&full_path).await?;
 
         // infer によるマジックバイト検出を優先する
-        let content_type = infer::get(&head_bytes).map_or_else(|| {
+        let content_type = infer::get(&head_bytes).map_or_else(
+            || {
                 // フォールバック: 拡張子から許可リスト内のコンテンツタイプを推定する
                 full_path
                     .extension()
@@ -128,7 +129,9 @@ impl FileStorageRepository for LocalFsStorageRepository {
                         _ => "application/octet-stream",
                     })
                     .to_string()
-            }, |t| t.mime_type().to_string());
+            },
+            |t| t.mime_type().to_string(),
+        );
 
         result.insert("content_type".to_string(), content_type);
         Ok(result)

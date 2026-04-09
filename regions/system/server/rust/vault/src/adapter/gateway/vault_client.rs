@@ -25,6 +25,7 @@ impl VaultKvClient {
 
     /// KV マウントパスを設定する。
     #[allow(dead_code)]
+    #[must_use]
     pub fn with_mount(mut self, mount: impl Into<String>) -> Self {
         self.mount = mount.into();
         self

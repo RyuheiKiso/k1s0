@@ -48,8 +48,12 @@ pub struct DecrementColumnRequest {
 }
 
 /// WIP 制限更新リクエスト
+/// column_id はパスパラメータ（PUT /api/v1/board-columns/{id}）から取得するため、
+/// JSON ボディのデシリアライズ対象から除外する。ハンドラーで req.column_id = column_id にて上書きする。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateWipLimitRequest {
+    // パスパラメータから設定されるため JSON デシリアライズをスキップする
+    #[serde(skip_deserializing, default)]
     pub column_id: Uuid,
     pub wip_limit: i32,
     pub expected_version: i32,

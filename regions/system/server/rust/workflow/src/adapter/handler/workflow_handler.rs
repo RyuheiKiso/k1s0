@@ -112,7 +112,10 @@ pub async fn get_workflow(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetWorkflowInput { tenant_id, id: id.clone() };
+    let input = GetWorkflowInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_workflow_uc.execute(&input).await {
         Ok(def) => {
@@ -293,7 +296,10 @@ pub async fn delete_workflow(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = DeleteWorkflowInput { tenant_id, id: id.clone() };
+    let input = DeleteWorkflowInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.delete_workflow_uc.execute(&input).await {
         // 成功時はコンテンツなしで204を返す

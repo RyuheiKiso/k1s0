@@ -13,7 +13,7 @@ pub struct ExponentialBackoff {
 }
 
 impl ExponentialBackoff {
-    #[must_use] 
+    #[must_use]
     pub fn new(initial_delay: Duration, max_delay: Duration) -> Self {
         Self {
             initial_delay,
@@ -52,12 +52,12 @@ pub struct ResiliencyPolicy {
 }
 
 impl ResiliencyPolicy {
-    #[must_use] 
+    #[must_use]
     pub fn builder() -> ResiliencyPolicyBuilder {
         ResiliencyPolicyBuilder::default()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn decorate(self) -> ResiliencyDecorator {
         ResiliencyDecorator::new(self)
     }
@@ -74,31 +74,31 @@ pub struct ResiliencyPolicyBuilder {
 }
 
 impl ResiliencyPolicyBuilder {
-    #[must_use] 
+    #[must_use]
     pub fn retry(mut self, config: RetryConfig) -> Self {
         self.retry = Some(config);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn circuit_breaker(mut self, config: CircuitBreakerConfig) -> Self {
         self.circuit_breaker = Some(config);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn bulkhead(mut self, config: BulkheadConfig) -> Self {
         self.bulkhead = Some(config);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn timeout(mut self, duration: Duration) -> Self {
         self.timeout = Some(duration);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn backoff(mut self, backoff: ExponentialBackoff) -> Self {
         self.backoff = Some(backoff);
         self
@@ -115,7 +115,7 @@ impl ResiliencyPolicyBuilder {
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn build(self) -> ResiliencyPolicy {
         ResiliencyPolicy {
             retry: self.retry,

@@ -13,7 +13,7 @@ pub struct InMemoryWorkflowRepository {
 
 impl InMemoryWorkflowRepository {
     /// `新しいInMemoryWorkflowRepositoryを作成する`。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             workflows: RwLock::new(HashMap::new()),

@@ -84,7 +84,7 @@ pub struct K1s0App {
 }
 
 impl K1s0App {
-    #[must_use] 
+    #[must_use]
     pub fn new(telemetry_config: TelemetryConfig) -> Self {
         Self {
             telemetry_config,
@@ -101,25 +101,25 @@ impl K1s0App {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn profile(mut self, profile: Profile) -> Self {
         self.profile = Some(profile);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn add_health_check(mut self, check: Box<dyn HealthCheck>) -> Self {
         self.health_checks.push(check);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn without_correlation(mut self) -> Self {
         self.skip_correlation = true;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn without_request_id(mut self) -> Self {
         self.skip_request_id = true;
         self
@@ -138,7 +138,7 @@ impl K1s0App {
     }
 
     #[cfg(feature = "auth")]
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_config: AuthConfig) -> Self {
         self.auth_config = Some(auth_config);
         self
@@ -219,22 +219,22 @@ pub struct K1s0AppReady {
 }
 
 impl K1s0AppReady {
-    #[must_use] 
+    #[must_use]
     pub fn service_name(&self) -> &str {
         &self.service_name
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn profile(&self) -> &Profile {
         &self.profile
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn metrics(&self) -> Arc<Metrics> {
         self.metrics.clone()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn health_checker(&self) -> Arc<CompositeHealthChecker> {
         self.health_checker.clone()
     }
@@ -245,7 +245,7 @@ impl K1s0AppReady {
     }
 
     #[cfg(feature = "auth")]
-    #[must_use] 
+    #[must_use]
     pub fn auth_config(&self) -> Option<&AuthConfig> {
         self.auth_config.as_ref()
     }

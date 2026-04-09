@@ -1,5 +1,14 @@
 # Rust build artifacts
+# **/target/ はルート直下の target/ および任意のサブディレクトリの target/ にマッチする
 **/target/
+
+# Node.js / npm / pnpm の依存パッケージ（Rustビルドに不要・4.3GB+を除外）
+# library/typescript/**/node_modules および client/react/**/node_modules を除外する
+**/node_modules/
+
+# Flutter/Dart ビルド成果物（Rustビルドに不要）
+**/.dart_tool/
+**/build/
 
 # Git
 **/.git/
@@ -31,3 +40,10 @@
 
 # ベンチマークコードはビルドコンテキストに不要のため除外する
 **/benches/
+
+# クライアント・TypeScriptライブラリのソースはRustビルドに不要のため除外する
+# （Rustサービスは library/rust のみ参照する）
+client/
+library/typescript/
+library/dart/
+library/go/

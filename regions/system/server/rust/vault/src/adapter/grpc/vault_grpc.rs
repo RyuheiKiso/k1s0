@@ -148,7 +148,8 @@ pub enum GrpcError {
 /// ADR-0109 対応: `key_path` がリクエスト元テナントのパスプレフィックスで始まることを検証する。
 /// `tenant_id` が Some `で空でない場合、key_path` は必ず "{`tenant_id`}/" で始まらなければならない。
 /// これにより RLS の代替として vault-db のテナント境界を application 層で強制する。
-fn validate_key_path_for_tenant(path: &str, tenant_id: &Option<String>) -> Result<(), GrpcError> {
+// Option<&str> の方が &Option<String> よりも慣用的（Clippy: ref_option）
+fn validate_key_path_for_tenant(path: &str, tenant_id: Option<&str>) -> Result<(), GrpcError> {
     if let Some(tid) = tenant_id {
         if !tid.is_empty() {
             let expected_prefix = format!("{tid}/");
@@ -169,6 +170,8 @@ fn validate_key_path_for_tenant(path: &str, tenant_id: &Option<String>) -> Resul
 
 // --- VaultGrpcService ---
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct VaultGrpcService {
     get_secret_uc: Arc<GetSecretUseCase>,
     set_secret_uc: Arc<SetSecretUseCase>,
@@ -179,7 +182,7 @@ pub struct VaultGrpcService {
 }
 
 impl VaultGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         get_secret_uc: Arc<GetSecretUseCase>,
         set_secret_uc: Arc<SetSecretUseCase>,
@@ -203,7 +206,7 @@ impl VaultGrpcService {
             return Err(GrpcError::InvalidArgument("path is required".to_string()));
         }
         // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
-        validate_key_path_for_tenant(&req.path, &req.tenant_id)?;
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let input = GetSecretInput {
             path: req.path.clone(),
@@ -234,7 +237,7 @@ impl VaultGrpcService {
 
     pub async fn set_secret(&self, req: SetSecretRequest) -> Result<SetSecretResponse, GrpcError> {
         // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
-        validate_key_path_for_tenant(&req.path, &req.tenant_id)?;
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let input = SetSecretInput {
             path: req.path,
             data: req.data,
@@ -257,7 +260,7 @@ impl VaultGrpcService {
         req: RotateSecretRequest,
     ) -> Result<RotateSecretResponse, GrpcError> {
         // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
-        validate_key_path_for_tenant(&req.path, &req.tenant_id)?;
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let output = self
             .rotate_secret_uc
             .execute(&RotateSecretInput {
@@ -284,7 +287,7 @@ impl VaultGrpcService {
         req: DeleteSecretRequest,
     ) -> Result<DeleteSecretResponse, GrpcError> {
         // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
-        validate_key_path_for_tenant(&req.path, &req.tenant_id)?;
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         let input = DeleteSecretInput {
             path: req.path,
             versions: req.versions,
@@ -314,7 +317,7 @@ impl VaultGrpcService {
         req: GetSecretMetadataRequest,
     ) -> Result<GetSecretMetadataResponse, GrpcError> {
         // ADR-0109 対応: key_path がテナントプレフィックスで始まることを検証する（RLS 代替措置）
-        validate_key_path_for_tenant(&req.path, &req.tenant_id)?;
+        validate_key_path_for_tenant(&req.path, req.tenant_id.as_deref())?;
         // MED-011 対応: tonic_service で Claims から抽出した tenant_id をアクセスログ記録に使用する。
         let secret = self
             .get_secret_uc
@@ -326,13 +329,14 @@ impl VaultGrpcService {
             .await
             .map_err(|e| match e {
                 GetSecretError::NotFound(path) => GrpcError::NotFound(path),
-                _ => GrpcError::Internal(e.to_string()),
+                GetSecretError::Internal(_) => GrpcError::Internal(e.to_string()),
             })?;
 
         Ok(GetSecretMetadataResponse {
             path: secret.path,
             current_version: secret.current_version,
-            version_count: secret.versions.len() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version_count: i32::try_from(secret.versions.len()).unwrap_or(i32::MAX),
             created_at: secret.created_at,
             updated_at: secret.updated_at,
         })

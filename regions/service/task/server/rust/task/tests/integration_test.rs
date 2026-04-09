@@ -1,5 +1,5 @@
 // service tier 統合テスト: スタブリポジトリを使いHTTPレイヤーを検証する。
-// auth パターンに倣い AppState をスタブで構築し、認証なしモードで動作確認を行う。
+// ハンドラーは Claims が必須のため、テスト用の fake Claims 注入ミドルウェアを使用する。
 // 実 DB 接続テストは #[cfg(feature = "db-tests")] で区分けする。
 use std::sync::Arc;
 
@@ -15,6 +15,38 @@ use k1s0_task_server::domain::entity::task::{
 };
 use k1s0_task_server::domain::error::TaskError;
 use k1s0_task_server::domain::repository::task_repository::TaskRepository;
+
+/// テスト用の fake Claims 注入ミドルウェア。
+/// ハンドラーは `Option<Extension<Claims>>` が None の場合に 401 を返すため、
+/// テスト環境でも Claims を Extension として挿入する必要がある。
+async fn fake_claims_middleware(
+    mut req: axum::http::Request<Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use std::collections::HashMap;
+    // テスト用の Claims を生成して Extension として挿入する
+    let claims = k1s0_auth::Claims {
+        sub: "test-user-uuid".to_string(),
+        iss: "test-issuer".to_string(),
+        aud: k1s0_auth::Audience(vec!["test-audience".to_string()]),
+        exp: u64::MAX,
+        iat: 0,
+        jti: None,
+        typ: None,
+        azp: None,
+        scope: None,
+        preferred_username: Some("test-user".to_string()),
+        email: None,
+        realm_access: Some(k1s0_auth::RealmAccess {
+            roles: vec!["service_user".to_string()],
+        }),
+        resource_access: Some(HashMap::new()),
+        tier_access: Some(vec!["service".to_string()]),
+        tenant_id: "test-tenant".to_string(),
+    };
+    req.extensions_mut().insert(claims);
+    next.run(req).await
+}
 
 // --- テスト用スタブリポジトリ ---
 
@@ -158,7 +190,7 @@ impl TaskRepository for StubTaskRepository {
     }
 }
 
-/// スタブを使ってテスト用 AppState を構築する
+/// スタブを使ってテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app() -> axum::Router {
     let repo = Arc::new(StubTaskRepository::new());
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("task-test"));
@@ -202,10 +234,11 @@ fn make_test_app() -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
-/// スタブにタスクを1件含んだ状態でテスト用 AppState を構築する
+/// スタブにタスクを1件含んだ状態でテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app_with_task(task: Task) -> axum::Router {
     let repo = Arc::new(StubTaskRepository::with_tasks(vec![task]));
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("task-test"));
@@ -249,7 +282,8 @@ fn make_test_app_with_task(task: Task) -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
 // --- 統合テスト ---
@@ -561,7 +595,8 @@ async fn test_update_task_title() {
     let task_id = task.id;
     let app = make_test_app_with_task(task);
 
-    let body = serde_json::json!({"title": "更新後タイトル"});
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"title": "更新後タイトル", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}", task_id))
@@ -580,7 +615,8 @@ async fn test_update_task_title() {
 async fn test_update_task_not_found() {
     let app = make_test_app();
 
-    let body = serde_json::json!({"title": "更新後タイトル"});
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"title": "更新後タイトル", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}", uuid::Uuid::new_v4()))
@@ -598,7 +634,8 @@ async fn test_update_task_status_to_in_progress() {
     let task_id = task.id;
     let app = make_test_app_with_task(task);
 
-    let body = serde_json::json!({"status": "in_progress"});
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "in_progress", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}/status", task_id))
@@ -613,13 +650,17 @@ async fn test_update_task_status_to_in_progress() {
 }
 
 /// ステータス更新で done に遷移できることを確認する
+/// Review → Done は有効な遷移なので、review 状態のタスクを使用する
 #[tokio::test]
 async fn test_update_task_status_to_done() {
-    let task = sample_task();
+    // Open → Done は無効な遷移のため、review 状態のタスクを作成する
+    let mut task = sample_task();
+    task.status = TaskStatus::Review;
     let task_id = task.id;
     let app = make_test_app_with_task(task);
 
-    let body = serde_json::json!({"status": "done"});
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "done", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}/status", task_id))
@@ -638,7 +679,8 @@ async fn test_update_task_status_to_done() {
 async fn test_update_task_status_not_found() {
     let app = make_test_app();
 
-    let body = serde_json::json!({"status": "done"});
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    let body = serde_json::json!({"status": "done", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}/status", uuid::Uuid::new_v4()))
@@ -668,7 +710,9 @@ async fn test_list_tasks_total_count_matches_array() {
         auth_state: None,
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test").expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    let app = k1s0_task_server::adapter::handler::router(state);
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    let app = k1s0_task_server::adapter::handler::router(state)
+        .layer(axum::middleware::from_fn(fake_claims_middleware));
 
     let req = Request::builder()
         .uri("/api/v1/tasks")
@@ -696,8 +740,9 @@ async fn test_get_checklist_empty() {
     let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
     assert_eq!(resp.status(), StatusCode::OK);
     let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
+    // ハンドラーは {"checklist": [...]} 形式で返すため、"checklist" キーで取得する
     let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
-    assert!(json.as_array().expect("チェックリストが配列でない").is_empty());
+    assert!(json["checklist"].as_array().expect("checklist フィールドが配列でない").is_empty());
 }
 
 /// チェックリストアイテム追加（POST /api/v1/tasks/{id}/checklist）が 201 を返すことを確認する
@@ -873,7 +918,8 @@ async fn test_update_task_description() {
     let task_id = task.id;
     let app = make_test_app_with_task(task);
 
-    let body = serde_json::json!({"description": "更新後の説明"});
+    // UpdateTask は expected_version が必須フィールド（楽観ロック用）
+    let body = serde_json::json!({"description": "更新後の説明", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}", task_id))
@@ -984,14 +1030,17 @@ async fn test_list_tasks_items_have_status() {
     assert!(tasks_arr[0]["status"].is_string());
 }
 
-/// ステータス更新で closed に遷移できることを確認する
+/// ステータス更新で存在しないステータス "closed" を指定するとバリデーションエラーを返すことを確認する
+/// TaskStatus は open/in_progress/review/done/cancelled のみ有効で、"closed" は無効
 #[tokio::test]
 async fn test_update_task_status_to_closed() {
     let task = sample_task();
     let task_id = task.id;
     let app = make_test_app_with_task(task);
 
-    let body = serde_json::json!({"status": "closed"});
+    // UpdateTaskStatus は status と expected_version の両方が必須フィールド
+    // "closed" は TaskStatus に存在しないため 422 Unprocessable Entity を返す
+    let body = serde_json::json!({"status": "closed", "expected_version": 1});
     let req = Request::builder()
         .method("PUT")
         .uri(format!("/api/v1/tasks/{}/status", task_id))
@@ -999,10 +1048,8 @@ async fn test_update_task_status_to_closed() {
         .body(Body::from(serde_json::to_string(&body).expect("JSON シリアライズに失敗")))
         .expect("リクエストの構築に失敗");
     let resp = app.oneshot(req).await.expect("リクエストの送信に失敗");
-    assert_eq!(resp.status(), StatusCode::OK);
-    let body = axum::body::to_bytes(resp.into_body(), usize::MAX).await.expect("ボディの読み取りに失敗");
-    let json: serde_json::Value = serde_json::from_slice(&body).expect("JSON パースに失敗");
-    assert_eq!(json["status"], "closed");
+    // "closed" は存在しないステータスのため 422 Unprocessable Entity が返る（正常なバリデーション）
+    assert_eq!(resp.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 /// タスク取得レスポンスに priority フィールドが含まれることを確認する

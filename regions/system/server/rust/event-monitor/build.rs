@@ -46,9 +46,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // prost-build 生成の .rs ファイルをコピー（メッセージ型定義）
             let src_rs = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
             let dst_rs = out_path.join(format!("{pkg}.rs"));
-            fs::copy(&src_rs, &dst_rs).map_err(|e| {
-                format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e)
-            })?;
+            fs::copy(&src_rs, &dst_rs)
+                .map_err(|e| format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e))?;
 
             // tonic-build 生成の .tonic.rs ファイルをコピー（gRPC スタブ）
             let src_tonic = format!("{gen_rust_base}/{subdir}/{pkg}.tonic.rs");
@@ -96,9 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("cargo:warning=tonic-build succeeded for event_monitor proto");
             }
             Err(e) => {
-                println!(
-                    "cargo:warning=tonic-build failed (protoc may not be installed): {e}"
-                );
+                println!("cargo:warning=tonic-build failed (protoc may not be installed): {e}");
             }
         }
 

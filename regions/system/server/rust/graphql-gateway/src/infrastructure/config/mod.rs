@@ -399,9 +399,13 @@ mod tests {
     use super::*;
 
     /// config.docker.yaml が正しくデシリアライズできることを検証する（回帰テスト・H-005 監査対応）
+    /// HIGH-010 監査対応: include_str! のパスを修正。
+    /// mod.rs の場所: src/infrastructure/config/mod.rs
+    /// config.docker.yaml の場所: config/config.docker.yaml（graphql-gateway ルート直下）
+    /// 相対パス: ../../../config/config.docker.yaml（3階層上がって config/ へ）
     #[test]
     fn config_docker_yaml_deserializes_correctly() {
-        let yaml = include_str!("../../config/config.docker.yaml");
+        let yaml = include_str!("../../../config/config.docker.yaml");
         let _config: Config =
             serde_yaml::from_str(yaml).expect("config.docker.yaml のデシリアライズに失敗しました");
     }

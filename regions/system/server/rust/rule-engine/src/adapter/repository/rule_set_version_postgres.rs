@@ -13,7 +13,7 @@ pub struct RuleSetVersionPostgresRepository {
 }
 
 impl RuleSetVersionPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -45,7 +45,8 @@ impl From<RuleSetVersionRow> for RuleSetVersion {
         RuleSetVersion {
             id: r.id,
             rule_set_id: r.rule_set_id,
-            version: r.version as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            version: u32::try_from(r.version).unwrap_or(0),
             rule_ids_snapshot,
             default_result_snapshot: serde_json::Value::Null, // not in DB schema
             published_at: r.published_at.unwrap_or(r.created_at),
@@ -69,7 +70,8 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
              WHERE rule_set_id = $1 AND version = $2",
         )
         .bind(rule_set_id)
-        .bind(version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(version).unwrap_or(i32::MAX))
         .fetch_optional(self.pool.as_ref())
         .await?;
 
@@ -100,12 +102,11 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
 
         // CRITICAL-RUST-001 監査対応: RLS テナント分離のためセッション変数を設定する。
         // rule_set から tenant_id を取得するため、rule_set_id で引いて取得する。
-        let rule_set_tenant: Option<(String,)> = sqlx::query_as(
-            "SELECT tenant_id FROM rule_engine.rule_sets WHERE id = $1",
-        )
-        .bind(version.rule_set_id)
-        .fetch_optional(self.pool.as_ref())
-        .await?;
+        let rule_set_tenant: Option<(String,)> =
+            sqlx::query_as("SELECT tenant_id FROM rule_engine.rule_sets WHERE id = $1")
+                .bind(version.rule_set_id)
+                .fetch_optional(self.pool.as_ref())
+                .await?;
 
         let tenant_id = rule_set_tenant.map_or_else(|| "system".to_string(), |(tid,)| tid);
 
@@ -123,7 +124,8 @@ impl RuleSetVersionRepository for RuleSetVersionPostgresRepository {
         .bind(version.id)
         .bind(version.rule_set_id)
         .bind(&tenant_id)
-        .bind(version.version as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(version.version).unwrap_or(i32::MAX))
         .bind(&rules_json)
         .bind(version.published_at)
         .bind(version.published_at) // created_at = published_at

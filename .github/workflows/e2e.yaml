@@ -52,14 +52,16 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       # Node.js をセットアップする（Playwright 実行用）
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b1b1a4260a52bd7c62e5cc9caa6ef44a # v4
         with:
           node-version: "20"
 
       # pnpm をセットアップする
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a7487ba4e4d65379b04c8ab506cb7ac1a8b8a143 # v4
         with:
           version: "9"
 
@@ -139,18 +141,20 @@ jobs:
         run: pnpm exec playwright test
 
       # テスト結果（HTML レポート）を artifact として保存する
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report-${{ github.run_id }}
           path: tests/e2e/playwright-report/
           retention-days: 7
 
       # テスト失敗時のスクリーンショットを artifact として保存する
+      # サードパーティアクションのSHAピン留め（サプライチェーン攻撃防止）
       - name: Upload test screenshots on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-screenshots-${{ github.run_id }}
           path: tests/e2e/test-results/

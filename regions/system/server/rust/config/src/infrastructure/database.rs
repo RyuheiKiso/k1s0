@@ -41,7 +41,7 @@ fn default_conn_max_lifetime() -> String {
 impl DatabaseConfig {
     /// `PostgreSQL` 接続 URL を生成する。
     /// `search_path=config` を設定し、config スキーマのテーブルに直接アクセスできるようにする。
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}&options=-c search_path%3Dconfig,public",

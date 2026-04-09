@@ -18,9 +18,10 @@ use crate::usecase::read_events::{ReadEventsError, ReadEventsInput};
 
 /// JWT クレームからテナント ID を抽出するヘルパー。
 /// クレームが存在しない場合（開発環境など）はフォールバック値 "system" を返す。
-fn extract_tenant_id(claims: &Option<Extension<k1s0_auth::Claims>>) -> String {
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<k1s0_auth::Claims>>) -> String {
     claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.0.tenant_id().to_string())
+        .map_or_else(|| "system".to_string(), |ext| ext.0.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -41,6 +42,8 @@ pub struct EventDataRequest {
     pub metadata: MetadataRequest,
 }
 
+// イベントメタデータフィールドの _id サフィックスはドメイン上の意図的な命名規則
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Default, Deserialize, utoipa::ToSchema)]
 pub struct MetadataRequest {
     pub actor_id: Option<String>,
@@ -67,6 +70,8 @@ pub struct StoredEventResponse {
     pub stored_at: String,
 }
 
+// イベントメタデータレスポンスフィールドの _id サフィックスはドメイン上の意図的な命名規則
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct MetadataResponse {
     pub actor_id: Option<String>,
@@ -148,7 +153,8 @@ pub(crate) fn spawn_publish_events_with_retry(
                         stream_id = %stream_id,
                         attempts = attempt,
                         max_attempts = MAX_PUBLISH_RETRY_ATTEMPTS,
-                        next_retry_ms = retry_delay.as_millis() as u64,
+                        // LOW-008: 安全な型変換（オーバーフロー防止）
+                        next_retry_ms = u64::try_from(retry_delay.as_millis()).unwrap_or(u64::MAX),
                         "failed to publish events to kafka, will retry"
                     );
 
@@ -283,7 +289,7 @@ pub async fn append_events(
     Json(req): Json<AppendEventsRequest>,
 ) -> Result<(axum::http::StatusCode, Json<AppendEventsResponse>), EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let events: Vec<EventData> = req
         .events
@@ -372,7 +378,7 @@ pub async fn read_events(
     Query(query): Query<ReadEventsQuery>,
 ) -> Result<Json<ReadEventsResponse>, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = ReadEventsInput {
         stream_id,
@@ -430,7 +436,7 @@ pub async fn read_event_by_sequence(
     Path((stream_id, sequence)): Path<(String, u64)>,
 ) -> Result<Json<StoredEventResponse>, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = ReadEventBySequenceInput {
         stream_id,
@@ -477,7 +483,7 @@ pub async fn list_events(
     Query(query): Query<ListEventsQuery>,
 ) -> Result<Json<ListEventsResponse>, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = ListEventsInput {
         tenant_id,
@@ -526,7 +532,7 @@ pub async fn list_streams(
     Query(query): Query<ListStreamsQuery>,
 ) -> Result<Json<ListStreamsResponse>, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = ListStreamsInput {
         tenant_id,
@@ -572,7 +578,7 @@ pub async fn get_snapshot(
     Path(stream_id): Path<String>,
 ) -> Result<Json<SnapshotResponse>, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = GetLatestSnapshotInput {
         stream_id,
@@ -622,7 +628,7 @@ pub async fn create_snapshot(
     Json(req): Json<CreateSnapshotRequest>,
 ) -> Result<(axum::http::StatusCode, Json<SnapshotResponse>), EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let response_state = req.state.clone();
     let input = CreateSnapshotInput {
@@ -674,7 +680,7 @@ pub async fn delete_stream(
     Path(stream_id): Path<String>,
 ) -> Result<impl axum::response::IntoResponse, EventStoreError> {
     // テナント分離のため Claims から tenant_id を取得する（ADR-0106）
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = DeleteStreamInput {
         stream_id,
@@ -758,6 +764,8 @@ mod tests {
                 "k1s0-event-store-server-test",
             )),
             auth_state: None,
+            // インメモリ（dev/test）モードでは DB 接続不要のため None を設定する
+            db_pool: None,
         }
     }
 
@@ -778,7 +786,8 @@ mod tests {
             "system".to_string(),
             seq,
             "OrderPlaced".to_string(),
-            seq as i64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            i64::try_from(seq).unwrap_or(i64::MAX),
             serde_json::json!({}),
             DomainMeta::new(None, None, None),
         )
@@ -851,7 +860,8 @@ mod tests {
                 .into_iter()
                 .enumerate()
                 .map(|(i, mut e)| {
-                    e.sequence = (i as u64) + 1;
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    e.sequence = u64::try_from(i).unwrap_or(u64::MAX).saturating_add(1);
                     e.stream_id = sid.to_string();
                     e
                 })

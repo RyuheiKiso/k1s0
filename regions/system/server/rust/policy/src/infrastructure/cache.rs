@@ -17,7 +17,7 @@ impl PolicyCache {
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
-    #[must_use] 
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -59,6 +59,7 @@ mod tests {
     use uuid::Uuid;
 
     fn make_policy(name: &str) -> Arc<Policy> {
+        // テスト用ポリシーを生成する。tenant_id はテスト用固定値を使用する。
         Arc::new(Policy {
             id: Uuid::new_v4(),
             name: name.to_string(),
@@ -70,6 +71,7 @@ mod tests {
             enabled: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "test-tenant".to_string(),
         })
     }
 
@@ -128,6 +130,7 @@ mod tests {
         let cache = PolicyCache::new(100, 60);
         let id = Uuid::new_v4();
 
+        // v1 ポリシー: 上書き前の古いバージョン
         let p1 = Arc::new(Policy {
             id,
             name: "v1".to_string(),
@@ -139,8 +142,10 @@ mod tests {
             enabled: true,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "test-tenant".to_string(),
         });
 
+        // v2 ポリシー: 上書き後の新しいバージョン
         let p2 = Arc::new(Policy {
             id,
             name: "v2".to_string(),
@@ -152,6 +157,7 @@ mod tests {
             enabled: false,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            tenant_id: "test-tenant".to_string(),
         });
 
         cache.insert(p1).await;

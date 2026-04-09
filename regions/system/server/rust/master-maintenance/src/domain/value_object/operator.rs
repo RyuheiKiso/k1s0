@@ -18,7 +18,7 @@ pub enum Operator {
 }
 
 impl Operator {
-    #[must_use] 
+    #[must_use]
     pub fn to_sql(&self) -> &'static str {
         match self {
             Self::Eq => "=",

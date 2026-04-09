@@ -54,7 +54,10 @@ mod tests {
                 }))
             });
 
-        let result = mock.find_by_service_name("auth-server", "test-tenant").await.unwrap();
+        let result = mock
+            .find_by_service_name("auth-server", "test-tenant")
+            .await
+            .unwrap();
         assert!(result.is_some());
         assert_eq!(result.unwrap().service_name, "auth-server");
     }
@@ -62,9 +65,13 @@ mod tests {
     #[tokio::test]
     async fn test_mock_find_by_service_name_not_found() {
         let mut mock = MockConfigSchemaRepository::new();
-        mock.expect_find_by_service_name().returning(|_, _| Ok(None));
+        mock.expect_find_by_service_name()
+            .returning(|_, _| Ok(None));
 
-        let result = mock.find_by_service_name("nonexistent", "test-tenant").await.unwrap();
+        let result = mock
+            .find_by_service_name("nonexistent", "test-tenant")
+            .await
+            .unwrap();
         assert!(result.is_none());
     }
 

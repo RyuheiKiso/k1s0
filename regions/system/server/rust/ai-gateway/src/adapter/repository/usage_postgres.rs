@@ -16,13 +16,13 @@ pub struct UsagePostgresRepository {
 
 impl UsagePostgresRepository {
     /// データベースプール付きでリポジトリを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool: Some(pool) }
     }
 
     /// インメモリフォールバック用リポジトリを生成する（保存は無操作）。
-    #[must_use] 
+    #[must_use]
     pub fn in_memory() -> Self {
         Self { pool: None }
     }

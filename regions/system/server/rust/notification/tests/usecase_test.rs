@@ -50,7 +50,11 @@ impl StubChannelRepo {
 /// _tenant_id 引数はスタブ実装ではフィルタリングに使用しない（テスト環境向け）。
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         let channels = self.channels.read().await;
         Ok(channels.iter().find(|c| c.id == id).cloned())
     }
@@ -655,12 +659,18 @@ mod list_channels {
         let uc = ListChannelsUseCase::new(repo);
 
         // Page 1, size 2
-        let (items, total) = uc.execute_paginated("tenant_test", 1, 2, None, false).await.unwrap();
+        let (items, total) = uc
+            .execute_paginated("tenant_test", 1, 2, None, false)
+            .await
+            .unwrap();
         assert_eq!(total, 3);
         assert_eq!(items.len(), 2);
 
         // Page 2, size 2
-        let (items, _) = uc.execute_paginated("tenant_test", 2, 2, None, false).await.unwrap();
+        let (items, _) = uc
+            .execute_paginated("tenant_test", 2, 2, None, false)
+            .await
+            .unwrap();
         assert_eq!(items.len(), 1);
     }
 }

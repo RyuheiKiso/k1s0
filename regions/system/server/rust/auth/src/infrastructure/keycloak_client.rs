@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -44,10 +45,7 @@ impl KeycloakConfig {
             ("grant_type", "client_credentials".to_string()),
             ("client_id", self.client_id.clone()),
             // expose_secret() でクライアントシークレットを取り出してフォームに設定する
-            (
-                "client_secret",
-                self.client_secret.expose_secret().clone(),
-            ),
+            ("client_secret", self.client_secret.expose_secret().clone()),
         ]
     }
 }
@@ -79,7 +77,10 @@ impl KeycloakClient {
     /// 「サービス障害」と誤認してオープン状態に遷移する問題を防止する。
     /// 403 は設定ミス（realm-management スコープ不足）であり、再試行しても無意味なため
     /// サーキットブレーカーを開かせるべきではない。
-    fn check_keycloak_response(resp: reqwest::Response, url: &str) -> anyhow::Result<reqwest::Response> {
+    fn check_keycloak_response(
+        resp: reqwest::Response,
+        url: &str,
+    ) -> anyhow::Result<reqwest::Response> {
         if resp.status() == reqwest::StatusCode::FORBIDDEN {
             tracing::error!(
                 url = %url,
@@ -123,7 +124,8 @@ impl KeycloakClient {
     /// サーキットブレーカーで保護し、Keycloak 停止時の不要なリクエストを抑制する。
     /// LOW-06 対応: `AppState` に Arc<KeycloakClient> が追加された場合は healthz/readyz から呼び出すこと。
     /// 現状は `AppState` が `http_client+keycloak_url` で直接確認しているため `dead_code` となっているが、
-    /// TODO(LOW-06): `AppState` への `KeycloakClient` 組み込み後にこのアトリビュートを削除すること。
+    /// TODO(future-work): `AppState` への `KeycloakClient` 組み込み後にこのアトリビュートを削除すること。
+    /// 優先度: `LOW。auth_handler.rs` の healthz ハンドラと合わせて対応すること。ADR 作成必須。
     #[allow(dead_code)]
     pub async fn healthy(&self) -> anyhow::Result<()> {
         let url = format!("{}/realms/{}", self.config.base_url, self.config.realm);
@@ -194,7 +196,9 @@ impl KeycloakClient {
             .to_string();
         // Keycloak レスポンスに expires_in が含まれない場合はデフォルト 300 秒にフォールバックする
         // フォールバック使用時は警告ログを出力し、Keycloak 設定の確認を促す（HIGH-CODE-01 監査対応）
-        let expires_in = if let Some(v) = body["expires_in"].as_i64() { v } else {
+        let expires_in = if let Some(v) = body["expires_in"].as_i64() {
+            v
+        } else {
             tracing::warn!(
                 "Keycloak トークンレスポンスに expires_in が含まれていません。デフォルト値 300 秒を使用します。Keycloak の設定を確認してください。"
             );
@@ -229,9 +233,7 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(
-                AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into(),
-            );
+            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into());
         }
 
         // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
@@ -258,10 +260,11 @@ impl UserRepository for KeycloakClient {
 
         if let Some(ref q) = search {
             // CRIT-07 対応: search パラメータを URL エンコードしてインジェクションを防止する
-            url.push_str(&format!("&search={}", urlencoding::encode(q)));
+            // format! を避け write! でアロケーションを削減する
+            write!(url, "&search={}", urlencoding::encode(q)).ok();
         }
         if let Some(e) = enabled {
-            url.push_str(&format!("&enabled={e}"));
+            write!(url, "&enabled={e}").ok();
         }
 
         // サーキットブレーカーでユーザー一覧取得リクエストを保護する
@@ -287,13 +290,14 @@ impl UserRepository for KeycloakClient {
         );
         let mut count_first_param = true;
         if let Some(ref q) = search {
+            // format! を避け write! でアロケーションを削減する
             count_url.push_str(if count_first_param { "?" } else { "&" });
-            count_url.push_str(&format!("search={}", urlencoding::encode(q)));
+            write!(count_url, "search={}", urlencoding::encode(q)).ok();
             count_first_param = false;
         }
         if let Some(e) = enabled {
             count_url.push_str(if count_first_param { "?" } else { "&" });
-            count_url.push_str(&format!("enabled={e}"));
+            write!(count_url, "enabled={e}").ok();
         }
         let count_token = self.get_admin_token().await?;
         // サーキットブレーカーでユーザー数取得リクエストを保護する
@@ -340,9 +344,7 @@ impl UserRepository for KeycloakClient {
 
         if resp.status() == reqwest::StatusCode::NOT_FOUND {
             // M-10 対応: 型安全なドメインエラーを使用して適切な HTTP ステータスコードに変換する
-            return Err(
-                AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into(),
-            );
+            return Err(AuthError::NotFound(format!("ユーザーが見つかりません: {user_id}")).into());
         }
 
         // M-004 監査対応: 403 を権限不足エラーとして明示的に処理する
@@ -353,7 +355,10 @@ impl UserRepository for KeycloakClient {
 
         Ok(UserRoles {
             user_id: user_id.to_string(),
-            realm_roles: realm_roles.into_iter().map(std::convert::Into::into).collect(),
+            realm_roles: realm_roles
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             client_roles: std::collections::HashMap::new(),
         })
     }
@@ -515,10 +520,23 @@ client_secret: "service-account-secret"
         };
 
         let form = config.admin_token_form();
-        let grant_type = form.iter().find(|(k, _)| *k == "grant_type").map(|(_, v)| v.as_str());
-        assert_eq!(grant_type, Some("client_credentials"), "Client Credentials Grant を使用するべき");
+        let grant_type = form
+            .iter()
+            .find(|(k, _)| *k == "grant_type")
+            .map(|(_, v)| v.as_str());
+        assert_eq!(
+            grant_type,
+            Some("client_credentials"),
+            "Client Credentials Grant を使用するべき"
+        );
         // ROPC フィールドが含まれていないことを確認する
-        assert!(!form.iter().any(|(k, _)| *k == "username"), "username フィールドは含まれないべき");
-        assert!(!form.iter().any(|(k, _)| *k == "password"), "password フィールドは含まれないべき");
+        assert!(
+            !form.iter().any(|(k, _)| *k == "username"),
+            "username フィールドは含まれないべき"
+        );
+        assert!(
+            !form.iter().any(|(k, _)| *k == "password"),
+            "password フィールドは含まれないべき"
+        );
     }
 }

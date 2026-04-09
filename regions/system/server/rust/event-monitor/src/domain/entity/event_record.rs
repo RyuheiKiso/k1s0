@@ -21,7 +21,7 @@ pub struct EventRecord {
 
 impl EventRecord {
     /// `新しいイベント記録を生成する。tenant_id` は Kafka ヘッダー "x-tenant-id" から取得する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         tenant_id: String,
         correlation_id: String,

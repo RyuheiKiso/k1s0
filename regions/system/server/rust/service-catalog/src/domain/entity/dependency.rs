@@ -11,6 +11,8 @@ pub enum ParseError {
 }
 
 /// Dependency はサービス間の依存関係を表す。
+// dependency_type フィールド名は型名 Dependency とプレフィクスが一致するが、ドメインの命名規則に従う
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Dependency {
     pub source_service_id: Uuid,

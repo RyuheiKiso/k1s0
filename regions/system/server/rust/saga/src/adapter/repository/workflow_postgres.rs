@@ -10,7 +10,7 @@ pub struct WorkflowPostgresRepository {
 }
 
 impl WorkflowPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -119,7 +119,9 @@ impl WorkflowRepository for WorkflowPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        rows.into_iter().map(std::convert::TryInto::try_into).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 }
 

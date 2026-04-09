@@ -22,7 +22,7 @@ impl FileDomainService {
     /// STATIC-HIGH-003 監査対応: 指定されたコンテンツタイプが許可リストに含まれるかを確認する。
     /// "Content-Type: image/png; charset=utf-8" のようなパラメーター付きでも正しく動作するよう
     /// セミコロン区切りでベースタイプのみを抽出して比較する。
-    #[must_use] 
+    #[must_use]
     pub fn is_allowed_content_type(content_type: &str) -> bool {
         let base_type = content_type.split(';').next().unwrap_or("").trim();
         Self::ALLOWED_CONTENT_TYPES.contains(&base_type)
@@ -37,7 +37,7 @@ impl FileDomainService {
         Ok(())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn can_access_tenant_resource(resource_tenant_id: &str, requester_tenant_id: &str) -> bool {
         !requester_tenant_id.is_empty() && resource_tenant_id == requester_tenant_id
     }
@@ -47,7 +47,7 @@ impl FileDomainService {
     /// 最初の '/' より前のセグメントがテナントIDとなる。
     /// MED-03: 抽出したセグメントが '..' や空文字でないことを検証し、
     /// パストラバーサルを利用したテナント境界突破を防止する。
-    #[must_use] 
+    #[must_use]
     pub fn tenant_id_from_storage_path(storage_path: &str) -> Option<&str> {
         storage_path
             .split('/')

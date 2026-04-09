@@ -10,7 +10,7 @@ pub struct CacheEntry {
 }
 
 impl CacheEntry {
-    #[must_use] 
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         self.expires_at
             .is_some_and(|exp| exp <= std::time::Instant::now())

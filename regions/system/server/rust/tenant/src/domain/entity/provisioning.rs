@@ -10,7 +10,7 @@ pub enum ProvisioningStatus {
 }
 
 impl ProvisioningStatus {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             ProvisioningStatus::Pending => "pending",

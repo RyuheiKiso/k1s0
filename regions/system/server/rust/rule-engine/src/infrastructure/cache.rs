@@ -13,7 +13,7 @@ pub struct RuleCache {
 }
 
 impl RuleCache {
-    #[must_use] 
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let ttl = Duration::from_secs(ttl_secs);
         let rules = Cache::builder()
@@ -80,8 +80,10 @@ mod tests {
     use crate::domain::entity::rule::{EvaluationMode, Rule, RuleSet};
     use uuid::Uuid;
 
+    /// テスト用ルール生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を第1引数に追加する。
     fn make_rule(name: &str) -> Rule {
         Rule::new(
+            "test-tenant".to_string(),
             name.to_string(),
             "test".to_string(),
             1,
@@ -90,8 +92,10 @@ mod tests {
         )
     }
 
+    /// テスト用ルールセット生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を第1引数に追加する。
     fn make_rule_set(name: &str) -> RuleSet {
         RuleSet::new(
+            "test-tenant".to_string(),
             name.to_string(),
             "test".to_string(),
             "domain".to_string(),

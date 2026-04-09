@@ -12,7 +12,7 @@ pub struct YamlNavigationConfigLoader {
 }
 
 impl YamlNavigationConfigLoader {
-    #[must_use] 
+    #[must_use]
     pub fn new(path: &str) -> Self {
         Self {
             path: path.to_string(),

@@ -32,7 +32,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         }
     } else {
         // backend_kind が postgres だが db_pool が None（設定ミス）
-        tracing::error!("readyz: backend_kind is '{}' but db_pool is None", state.backend_kind);
+        tracing::error!(
+            "readyz: backend_kind is '{}' but db_pool is None",
+            state.backend_kind
+        );
         ("unhealthy", "misconfigured")
     };
 

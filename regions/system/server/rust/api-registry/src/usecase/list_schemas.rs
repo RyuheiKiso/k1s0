@@ -43,7 +43,12 @@ impl ListSchemasUseCase {
         // テナントスコープでリポジトリを呼び出す
         let (schemas, total_count) = self
             .schema_repo
-            .find_all(&input.tenant_id, input.schema_type.clone(), input.page, input.page_size)
+            .find_all(
+                &input.tenant_id,
+                input.schema_type.clone(),
+                input.page,
+                input.page_size,
+            )
             .await
             .map_err(|e| ListSchemasError::Internal(e.to_string()))?;
 

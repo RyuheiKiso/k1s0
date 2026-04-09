@@ -43,24 +43,24 @@ impl RateLimitDomainService {
     /// サーバー側の `default_window_seconds` を採用する。
     /// これにより、クライアントが任意のウィンドウを指定してレートリミットを迂回することを防ぐ。
     /// ルールが設定されている場合は、ルール側の `window_seconds` が常に優先される。
-    #[must_use] 
+    #[must_use]
     pub fn effective_limit_and_window(
         matched_rule: Option<&RateLimitRule>,
         default_limit: u32,
         default_window_seconds: u32,
         _requested_window_seconds: i64,
     ) -> (u32, u32) {
-        matched_rule
-            .map_or((default_limit, default_window_seconds), |rule| (rule.limit, rule.window_seconds))
+        matched_rule.map_or((default_limit, default_window_seconds), |rule| {
+            (rule.limit, rule.window_seconds)
+        })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn resolve_algorithm(matched_rule: Option<&RateLimitRule>) -> Algorithm {
-        matched_rule
-            .map_or(Algorithm::TokenBucket, |rule| rule.algorithm.clone())
+        matched_rule.map_or(Algorithm::TokenBucket, |rule| rule.algorithm.clone())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn fail_open_decision(
         scope: &str,
         identifier: &str,

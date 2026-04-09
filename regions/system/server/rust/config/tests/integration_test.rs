@@ -249,18 +249,26 @@ struct TestConfigSchemaRepository;
 
 #[async_trait]
 impl ConfigSchemaRepository for TestConfigSchemaRepository {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
     async fn find_by_service_name(
         &self,
         _service_name: &str,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<ConfigSchema>> {
         Ok(None)
     }
 
-    async fn find_by_namespace(&self, _namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
+    async fn find_by_namespace(
+        &self,
+        _namespace: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
         Ok(None)
     }
 
-    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
+    async fn list_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>> {
         Ok(vec![])
     }
 
@@ -281,9 +289,11 @@ impl StaticConfigSchemaRepository {
 
 #[async_trait]
 impl ConfigSchemaRepository for StaticConfigSchemaRepository {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
     async fn find_by_service_name(
         &self,
         service_name: &str,
+        _tenant_id: &str,
     ) -> anyhow::Result<Option<ConfigSchema>> {
         Ok(self
             .schemas
@@ -292,7 +302,12 @@ impl ConfigSchemaRepository for StaticConfigSchemaRepository {
             .cloned())
     }
 
-    async fn find_by_namespace(&self, namespace: &str) -> anyhow::Result<Option<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
+    async fn find_by_namespace(
+        &self,
+        namespace: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<ConfigSchema>> {
         Ok(self
             .schemas
             .iter()
@@ -300,7 +315,8 @@ impl ConfigSchemaRepository for StaticConfigSchemaRepository {
             .cloned())
     }
 
-    async fn list_all(&self) -> anyhow::Result<Vec<ConfigSchema>> {
+    // CRITICAL-RUST-001 監査対応: tenant_id パラメータを追加（テスト用のため分離しない）
+    async fn list_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<ConfigSchema>> {
         Ok(self.schemas.clone())
     }
 
@@ -333,6 +349,8 @@ fn make_app_with_schemas(schemas: Vec<ConfigSchema>) -> axum::Router {
 fn make_test_schema(service_name: &str, namespace_prefix: &str) -> ConfigSchema {
     ConfigSchema {
         id: Uuid::new_v4(),
+        // CRITICAL-RUST-001 監査対応: テナント分離のため tenant_id を設定する
+        tenant_id: "system".to_string(),
         service_name: service_name.to_string(),
         namespace_prefix: namespace_prefix.to_string(),
         schema_json: serde_json::json!({

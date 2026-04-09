@@ -19,7 +19,7 @@ pub struct SecretStorePostgresRepository {
 }
 
 impl SecretStorePostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>, master_key: Arc<MasterKey>) -> Self {
         Self { pool, master_key }
     }
@@ -54,7 +54,10 @@ struct SecretVersionRow {
 /// `key_path` は "{`tenant_id`}/..." の形式であること。
 /// 先頭セグメントが取れない場合はフォールバックとして "system" を返す。
 fn extract_tenant_id(path: &str) -> &str {
-    path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
+    path.split('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("system")
 }
 
 #[async_trait]
@@ -87,7 +90,8 @@ impl SecretStore for SecretStorePostgresRepository {
                  ORDER BY version ASC",
             )
             .bind(secret_row.id)
-            .bind(v as i32)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .bind(i32::try_from(v).unwrap_or(i32::MAX))
             .fetch_all(self.pool.as_ref())
             .await?
         } else {
@@ -103,9 +107,7 @@ impl SecretStore for SecretStorePostgresRepository {
 
         if let Some(v) = version {
             if version_rows.is_empty() {
-                return Err(anyhow::anyhow!(
-                    "version {v} not found for secret: {path}"
-                ));
+                return Err(anyhow::anyhow!("version {v} not found for secret: {path}"));
             }
         }
 
@@ -113,9 +115,9 @@ impl SecretStore for SecretStorePostgresRepository {
         // HIGH-RUST-001 Phase B 完了: decrypt_with_legacy_fallback を削除し decrypt に統一した
         let mut versions = Vec::with_capacity(version_rows.len());
         for row in &version_rows {
-            let plaintext = self
-                .master_key
-                .decrypt(&row.encrypted_data, &row.nonce, path.as_bytes())?;
+            let plaintext =
+                self.master_key
+                    .decrypt(&row.encrypted_data, &row.nonce, path.as_bytes())?;
             let data: HashMap<String, String> = serde_json::from_slice(&plaintext)?;
             versions.push(SecretVersion {
                 version: i64::from(row.version),
@@ -161,11 +163,13 @@ impl SecretStore for SecretStorePostgresRepository {
 
         let (secret_id, new_version) = if let Some((id, current)) = row {
             let new_ver = current + 1;
-            sqlx::query("UPDATE vault.secrets SET current_version = $2, updated_at = NOW() WHERE id = $1")
-                .bind(id)
-                .bind(new_ver)
-                .execute(&mut *tx)
-                .await?;
+            sqlx::query(
+                "UPDATE vault.secrets SET current_version = $2, updated_at = NOW() WHERE id = $1",
+            )
+            .bind(id)
+            .bind(new_ver)
+            .execute(&mut *tx)
+            .await?;
             (id, new_ver)
         } else {
             // migration 007 で tenant_id NOT NULL DEFAULT 削除済み: INSERT に明示指定が必要
@@ -214,8 +218,7 @@ impl SecretStore for SecretStorePostgresRepository {
                 .fetch_optional(self.pool.as_ref())
                 .await?;
 
-        let (secret_id,) =
-            secret_row.ok_or_else(|| anyhow::anyhow!("secret not found: {path}"))?;
+        let (secret_id,) = secret_row.ok_or_else(|| anyhow::anyhow!("secret not found: {path}"))?;
 
         if versions.is_empty() {
             // 全バージョン削除 → CASCADE で secret_versions も削除される
@@ -225,7 +228,8 @@ impl SecretStore for SecretStorePostgresRepository {
                 .await?;
         } else {
             // 指定バージョンのみ削除
-            let version_ints: Vec<i32> = versions.iter().map(|v| *v as i32).collect();
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            let version_ints: Vec<i32> = versions.iter().map(|v| i32::try_from(*v).unwrap_or(i32::MAX)).collect();
             sqlx::query(
                 "DELETE FROM vault.secret_versions \
                  WHERE secret_id = $1 AND version = ANY($2)",

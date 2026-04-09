@@ -3,9 +3,16 @@
 library;
 
 import 'dart:convert';
+// CRIT-001 対応: JWK の base64url バイト列を BigInt に変換するために dart:typed_data を使用する。
+// _base64UrlToBigInt 関数内で Uint8List を扱うために必要。
+import 'dart:typed_data';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:http/http.dart' as http;
+// CRIT-001 対応: JWK の n/e コンポーネントから RSA 公開鍵を構築するために pointycastle を使用する。
+// dart_jsonwebtoken ^2.14.0 では RSAPublicKey.fromComponents(n, e) が廃止され、
+// RSAPublicKey.raw(pc.RSAPublicKey) で pointycastle オブジェクトを直接受け取る形式に変更された。
+import 'package:pointycastle/asymmetric/api.dart' as pc;
 
 import 'pkce.dart';
 import 'token_store.dart';
@@ -379,7 +386,12 @@ class AuthClient {
     final n = matchedKey['n'] as String;
     final e = matchedKey['e'] as String;
     try {
-      final publicKey = RSAPublicKey.fromComponents(n, e);
+      // CRIT-001 対応: RSAPublicKey.fromComponents(n, e) は dart_jsonwebtoken ^2.14.0 に存在しない。
+      // JWK の base64url 文字列を BigInt に変換し、pointycastle の RSAPublicKey を経由して
+      // dart_jsonwebtoken の RSAPublicKey.raw() で公開鍵オブジェクトを構築する。
+      final modulus = _base64UrlToBigInt(n);
+      final exponent = _base64UrlToBigInt(e);
+      final publicKey = RSAPublicKey.raw(pc.RSAPublicKey(modulus, exponent));
       final jwt = JWT.verify(
         idToken,
         publicKey,
@@ -475,4 +487,23 @@ class AuthClient {
       'Discovery fetch failed after $maxAttempts attempts: ${lastResponse?.statusCode}',
     );
   }
+}
+
+/// Base64URLエンコードされたバイト列をBigIntに変換する（JWK RSA鍵コンポーネント用）。
+/// JWK の n（modulus）と e（public exponent）の変換に使用する。
+/// JWK 仕様（RFC 7518 §6.3）では n/e はパディングなし Base64URL でエンコードされるため、
+/// デコード前にパディングを補完する必要がある。
+BigInt _base64UrlToBigInt(String base64UrlStr) {
+  // Base64URL パディングを補完する（JWK はパディングなしが標準）
+  final padded = base64UrlStr.padRight(
+    base64UrlStr.length + (4 - base64UrlStr.length % 4) % 4,
+    '=',
+  );
+  // Base64URL 文字列をバイト列にデコードする
+  final Uint8List bytes = base64Url.decode(padded);
+  // ビッグエンディアンバイト列を BigInt に変換する（JWK は常にビッグエンディアン）
+  return bytes.fold(
+    BigInt.zero,
+    (acc, byte) => (acc << 8) | BigInt.from(byte),
+  );
 }

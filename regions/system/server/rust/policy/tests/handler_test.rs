@@ -35,13 +35,15 @@ impl StubPolicyRepo {
     }
 }
 
+/// CRIT-005 対応: PolicyRepository スタブ。tenant_id パラメータを受け取るが、
+/// インメモリ実装のためテナント分離は行わない。シグネチャを本番 trait に合わせる。
 #[async_trait]
 impl PolicyRepository for StubPolicyRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<Policy>> {
+    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<Policy>> {
         let policies = self.policies.read().await;
         Ok(policies.iter().find(|p| p.id == *id).cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<Policy>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<Policy>> {
         Ok(self.policies.read().await.clone())
     }
     async fn find_all_paginated(
@@ -50,6 +52,7 @@ impl PolicyRepository for StubPolicyRepo {
         _page_size: u32,
         _bundle_id: Option<Uuid>,
         _enabled_only: bool,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<Policy>, u64)> {
         let p = self.policies.read().await.clone();
         let n = p.len() as u64;
@@ -66,13 +69,13 @@ impl PolicyRepository for StubPolicyRepo {
         }
         Ok(())
     }
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut policies = self.policies.write().await;
         let before = policies.len();
         policies.retain(|p| p.id != *id);
         Ok(policies.len() < before)
     }
-    async fn exists_by_name(&self, name: &str) -> anyhow::Result<bool> {
+    async fn exists_by_name(&self, name: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         Ok(self.policies.read().await.iter().any(|p| p.name == name))
     }
 }
@@ -93,9 +96,15 @@ impl StubBundleRepo {
     }
 }
 
+/// CRIT-005 対応: PolicyBundleRepository スタブ。tenant_id パラメータを受け取るが、
+/// インメモリ実装のためテナント分離は行わない。シグネチャを本番 trait に合わせる。
 #[async_trait]
 impl PolicyBundleRepository for StubBundleRepo {
-    async fn find_by_id(&self, id: &Uuid) -> anyhow::Result<Option<PolicyBundle>> {
+    async fn find_by_id(
+        &self,
+        id: &Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<PolicyBundle>> {
         Ok(self
             .bundles
             .read()
@@ -104,14 +113,14 @@ impl PolicyBundleRepository for StubBundleRepo {
             .find(|b| b.id == *id)
             .cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<PolicyBundle>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<PolicyBundle>> {
         Ok(self.bundles.read().await.clone())
     }
     async fn create(&self, bundle: &PolicyBundle) -> anyhow::Result<()> {
         self.bundles.write().await.push(bundle.clone());
         Ok(())
     }
-    async fn delete(&self, id: &Uuid) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut bundles = self.bundles.write().await;
         let before = bundles.len();
         bundles.retain(|b| b.id != *id);
@@ -157,6 +166,7 @@ async fn healthz_returns_ok() {
 }
 
 /// GET /readyz は in-memory バックエンドで "degraded" を返す
+/// ADR-0068 準拠: checks.policy_backend フィールドでバックエンド種別を確認する
 #[tokio::test]
 async fn readyz_in_memory_returns_degraded() {
     let server = TestServer::new(router(build_state())).unwrap();
@@ -164,7 +174,8 @@ async fn readyz_in_memory_returns_degraded() {
     resp.assert_status_ok();
     let body = resp.json::<serde_json::Value>();
     assert_eq!(body["status"], "degraded");
-    assert_eq!(body["backend"], "in-memory");
+    // ADR-0068 準拠形式: checks.policy_backend でバックエンド種別を確認する
+    assert_eq!(body["checks"]["policy_backend"], "in-memory");
 }
 
 /// GET /api/v1/policies は空リストを返す（認証なしモード）

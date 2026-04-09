@@ -31,43 +31,43 @@ impl ErrorCode {
     }
 
     /// Create a standard "not found" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn not_found(service: &str) -> Self {
         Self(format!("SYS_{}_NOT_FOUND", service.to_uppercase()))
     }
 
     /// Create a standard "validation failed" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn validation(service: &str) -> Self {
         Self(format!("SYS_{}_VALIDATION_FAILED", service.to_uppercase()))
     }
 
     /// Create a standard "internal error" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn internal(service: &str) -> Self {
         Self(format!("SYS_{}_INTERNAL_ERROR", service.to_uppercase()))
     }
 
     /// Create a standard "unauthorized" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn unauthorized(service: &str) -> Self {
         Self(format!("SYS_{}_UNAUTHORIZED", service.to_uppercase()))
     }
 
     /// Create a standard "forbidden" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn forbidden(service: &str) -> Self {
         Self(format!("SYS_{}_PERMISSION_DENIED", service.to_uppercase()))
     }
 
     /// Create a standard "conflict" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn conflict(service: &str) -> Self {
         Self(format!("SYS_{}_CONFLICT", service.to_uppercase()))
     }
 
     /// Create a standard "unprocessable entity" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn unprocessable(service: &str) -> Self {
         Self(format!(
             "SYS_{}_BUSINESS_RULE_VIOLATION",
@@ -76,13 +76,13 @@ impl ErrorCode {
     }
 
     /// Create a standard "rate exceeded" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn rate_exceeded(service: &str) -> Self {
         Self(format!("SYS_{}_RATE_EXCEEDED", service.to_uppercase()))
     }
 
     /// Create a standard "service unavailable" error code for a service.
-    #[must_use] 
+    #[must_use]
     pub fn service_unavailable(service: &str) -> Self {
         Self(format!(
             "SYS_{}_SERVICE_UNAVAILABLE",
@@ -91,31 +91,31 @@ impl ErrorCode {
     }
 
     /// Create a standard "not found" error code for a business tier service.
-    #[must_use] 
+    #[must_use]
     pub fn biz_not_found(service: &str) -> Self {
         Self(format!("BIZ_{}_NOT_FOUND", service.to_uppercase()))
     }
 
     /// Create a standard "validation failed" error code for a business tier service.
-    #[must_use] 
+    #[must_use]
     pub fn biz_validation(service: &str) -> Self {
         Self(format!("BIZ_{}_VALIDATION_FAILED", service.to_uppercase()))
     }
 
     /// Create a standard "not found" error code for a service tier service.
-    #[must_use] 
+    #[must_use]
     pub fn svc_not_found(service: &str) -> Self {
         Self(format!("SVC_{}_NOT_FOUND", service.to_uppercase()))
     }
 
     /// Create a standard "validation failed" error code for a service tier service.
-    #[must_use] 
+    #[must_use]
     pub fn svc_validation(service: &str) -> Self {
         Self(format!("SVC_{}_VALIDATION_FAILED", service.to_uppercase()))
     }
 
     /// Return the error code string.
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -378,7 +378,7 @@ impl ServiceError {
     }
 
     /// Convert to an `ErrorResponse`.
-    #[must_use] 
+    #[must_use]
     pub fn to_error_response(&self) -> ErrorResponse {
         match self {
             ServiceError::NotFound { code, message }
@@ -499,7 +499,7 @@ impl IntoGrpcStatus for ServiceError {
 /// let status = map_anyhow_to_grpc_status::<MyDomainError>(anyhow_err);
 /// ```
 #[cfg(feature = "grpc-auth")]
-#[must_use] 
+#[must_use]
 pub fn map_anyhow_to_grpc_status<E>(err: anyhow::Error) -> tonic::Status
 where
     E: std::error::Error + Send + Sync + 'static + Into<ServiceError>,
@@ -519,37 +519,37 @@ where
 pub mod auth {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn missing_claims() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_MISSING_CLAIMS")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn permission_denied() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_PERMISSION_DENIED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn unauthorized() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_UNAUTHORIZED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn token_expired() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_TOKEN_EXPIRED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn invalid_token() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_INVALID_TOKEN")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn jwks_fetch_failed() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_JWKS_FETCH_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn audit_validation() -> ErrorCode {
         ErrorCode::new("SYS_AUTH_AUDIT_VALIDATION")
     }
@@ -559,32 +559,32 @@ pub mod auth {
 pub mod config {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn key_not_found() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_KEY_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn service_not_found() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_SERVICE_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn schema_not_found() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_SCHEMA_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn version_conflict() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_VERSION_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_failed() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_VALIDATION_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_CONFIG_INTERNAL_ERROR")
     }
@@ -594,27 +594,27 @@ pub mod config {
 pub mod dlq {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_DLQ_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_error() -> ErrorCode {
         ErrorCode::new("SYS_DLQ_VALIDATION_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn conflict() -> ErrorCode {
         ErrorCode::new("SYS_DLQ_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn process_failed() -> ErrorCode {
         ErrorCode::new("SYS_DLQ_PROCESS_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_DLQ_INTERNAL_ERROR")
     }
@@ -624,42 +624,42 @@ pub mod dlq {
 pub mod tenant {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn name_conflict() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_NAME_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn invalid_status() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_INVALID_STATUS")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn invalid_input() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_INVALID_INPUT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_error() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_VALIDATION_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn member_conflict() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_MEMBER_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn member_not_found() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_MEMBER_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_TENANT_INTERNAL_ERROR")
     }
@@ -669,37 +669,37 @@ pub mod tenant {
 pub mod session {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn expired() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_EXPIRED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn already_revoked() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_ALREADY_REVOKED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_error() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_VALIDATION_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn max_devices_exceeded() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_MAX_DEVICES_EXCEEDED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn forbidden() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_FORBIDDEN")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_SESSION_INTERNAL_ERROR")
     }
@@ -709,57 +709,57 @@ pub mod session {
 pub mod api_registry {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn bad_request() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_VALIDATION_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn conflict() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn unauthorized() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_UNAUTHORIZED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn schema_invalid() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_SCHEMA_INVALID")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_INTERNAL_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validator_error() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_VALIDATOR_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn schema_not_found() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_SCHEMA_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn version_not_found() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_VERSION_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn cannot_delete_latest() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_CANNOT_DELETE_LATEST")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn already_exists() -> ErrorCode {
         ErrorCode::new("SYS_APIREG_ALREADY_EXISTS")
     }
@@ -769,27 +769,27 @@ pub mod api_registry {
 pub mod event_store {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn stream_not_found() -> ErrorCode {
         ErrorCode::new("SYS_EVSTORE_STREAM_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn event_not_found() -> ErrorCode {
         ErrorCode::new("SYS_EVSTORE_EVENT_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn snapshot_not_found() -> ErrorCode {
         ErrorCode::new("SYS_EVSTORE_SNAPSHOT_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn version_conflict() -> ErrorCode {
         ErrorCode::new("SYS_EVSTORE_VERSION_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn stream_already_exists() -> ErrorCode {
         ErrorCode::new("SYS_EVSTORE_STREAM_ALREADY_EXISTS")
     }
@@ -799,72 +799,72 @@ pub mod event_store {
 pub mod file {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn validation() -> ErrorCode {
         ErrorCode::new("SYS_FILE_VALIDATION")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_FILE_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn already_completed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_ALREADY_COMPLETED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn not_available() -> ErrorCode {
         ErrorCode::new("SYS_FILE_NOT_AVAILABLE")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn access_denied() -> ErrorCode {
         ErrorCode::new("SYS_FILE_ACCESS_DENIED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn storage_error() -> ErrorCode {
         ErrorCode::new("SYS_FILE_STORAGE_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn size_exceeded() -> ErrorCode {
         ErrorCode::new("SYS_FILE_SIZE_EXCEEDED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn upload_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_UPLOAD_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_GET_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn list_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_LIST_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn delete_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_DELETE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn complete_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_COMPLETE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn download_url_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_DOWNLOAD_URL_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn tags_update_failed() -> ErrorCode {
         ErrorCode::new("SYS_FILE_TAGS_UPDATE_FAILED")
     }
@@ -874,7 +874,7 @@ pub mod file {
 pub mod scheduler {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn already_exists() -> ErrorCode {
         ErrorCode::new("SYS_SCHED_ALREADY_EXISTS")
     }
@@ -884,112 +884,112 @@ pub mod scheduler {
 pub mod notification {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn invalid_id() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_INVALID_ID")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_error() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_VALIDATION_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_not_found() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_not_found() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn already_sent() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_ALREADY_SENT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_disabled() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_DISABLED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_INTERNAL_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn send_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_SEND_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn list_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_LIST_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_GET_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn retry_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_RETRY_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_create_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_CREATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_list_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_LIST_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_get_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_GET_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_update_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_UPDATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn channel_delete_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_CHANNEL_DELETE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_create_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_CREATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_list_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_LIST_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_get_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_GET_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_update_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_UPDATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn template_delete_failed() -> ErrorCode {
         ErrorCode::new("SYS_NOTIFY_TEMPLATE_DELETE_FAILED")
     }
@@ -999,27 +999,27 @@ pub mod notification {
 pub mod task {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SVC_TASK_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn validation_failed() -> ErrorCode {
         ErrorCode::new("SVC_TASK_VALIDATION_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn invalid_status_transition() -> ErrorCode {
         ErrorCode::new("SVC_TASK_INVALID_STATUS_TRANSITION")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn version_conflict() -> ErrorCode {
         ErrorCode::new("SVC_TASK_VERSION_CONFLICT")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SVC_TASK_INTERNAL_ERROR")
     }
@@ -1029,47 +1029,47 @@ pub mod task {
 pub mod featureflag {
     use super::ErrorCode;
 
-    #[must_use] 
+    #[must_use]
     pub fn internal_error() -> ErrorCode {
         ErrorCode::new("SYS_FF_INTERNAL_ERROR")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn not_found() -> ErrorCode {
         ErrorCode::new("SYS_FF_NOT_FOUND")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn already_exists() -> ErrorCode {
         ErrorCode::new("SYS_FF_ALREADY_EXISTS")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn list_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_LIST_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_GET_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn create_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_CREATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn update_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_UPDATE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn delete_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_DELETE_FAILED")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn evaluate_failed() -> ErrorCode {
         ErrorCode::new("SYS_FF_EVALUATE_FAILED")
     }

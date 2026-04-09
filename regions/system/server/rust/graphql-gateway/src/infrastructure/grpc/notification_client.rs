@@ -71,7 +71,8 @@ impl NotificationGrpcClient {
             subject: n.subject.filter(|s| !s.is_empty()),
             body: n.body,
             status: n.status,
-            retry_count: n.retry_count as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            retry_count: i32::try_from(n.retry_count).unwrap_or(i32::MAX),
             error_message: n.error_message.filter(|s| !s.is_empty()),
             sent_at: n.sent_at.filter(|s| !s.is_empty()),
             created_at: n.created_at,
@@ -125,9 +126,9 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_notification(request).await {
             Ok(resp) => {
-                let n = match resp.into_inner().notification {
-                    Some(n) => n,
-                    None => return Ok(None),
+                // 通知が存在しない場合は None を返す
+                let Some(n) = resp.into_inner().notification else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::log_from_proto(n)))
             }
@@ -242,9 +243,9 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_channel(request).await {
             Ok(resp) => {
-                let c = match resp.into_inner().channel {
-                    Some(c) => c,
-                    None => return Ok(None),
+                // チャンネルが存在しない場合は None を返す
+                let Some(c) = resp.into_inner().channel else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::channel_from_proto(c)))
             }
@@ -377,9 +378,9 @@ impl NotificationGrpcClient {
 
         match self.client.clone().get_template(request).await {
             Ok(resp) => {
-                let t = match resp.into_inner().template {
-                    Some(t) => t,
-                    None => return Ok(None),
+                // テンプレートが存在しない場合は None を返す
+                let Some(t) = resp.into_inner().template else {
+                    return Ok(None);
                 };
                 Ok(Some(Self::template_from_proto(t)))
             }

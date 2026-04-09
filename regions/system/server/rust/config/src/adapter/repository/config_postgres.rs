@@ -37,7 +37,7 @@ impl ConfigPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -48,7 +48,7 @@ impl ConfigPostgresRepository {
     }
 
     /// STATIC-HIGH-002: 暗号化鍵と機密 namespace リストを設定するビルダーメソッド。
-    #[must_use] 
+    #[must_use]
     pub fn set_encryption(mut self, key: [u8; 32], sensitive_namespaces: Vec<String>) -> Self {
         self.encryption_key = Some(key);
         self.sensitive_namespaces = sensitive_namespaces;
@@ -84,15 +84,16 @@ impl ConfigPostgresRepository {
             let key = self.encryption_key.as_ref().unwrap(); // is_sensitive_namespace で Some を確認済み
             let plaintext = value_json.to_string();
             // C-001 監査対応: AAD に namespace を指定し、namespace をまたいだ ciphertext の流用を防ぐ
-            let ciphertext = k1s0_encryption::aes_encrypt(key, plaintext.as_bytes(), namespace.as_bytes())
-                .map_err(|e| {
-                    ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
-                        "設定値の暗号化に失敗: {e}"
-                    ))
-                })?;
+            let ciphertext =
+                k1s0_encryption::aes_encrypt(key, plaintext.as_bytes(), namespace.as_bytes())
+                    .map_err(|e| {
+                        ConfigRepositoryError::Infrastructure(anyhow::anyhow!(
+                            "設定値の暗号化に失敗: {e}"
+                        ))
+                    })?;
             // 暗号化済みエントリの value_json は空 JSON を格納し、実値は encrypted_value に保持する
             Ok((
-                serde_json::Value::Object(Default::default()),
+                serde_json::Value::Object(serde_json::Map::default()),
                 Some(ciphertext),
                 true,
             ))
@@ -219,7 +220,10 @@ impl ConfigPostgresRepository {
         }
 
         match row {
-            Some(row) => Ok(Some(row_to_config_entry(row, self.encryption_key.as_ref())?)),
+            Some(row) => Ok(Some(row_to_config_entry(
+                row,
+                self.encryption_key.as_ref(),
+            )?)),
             None => Ok(None),
         }
     }
@@ -243,15 +247,13 @@ fn row_to_config_entry(
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
                 // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
-                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!("設定値の復号に失敗: {e}")
-                })?;
-                serde_json::from_slice(&plaintext).map_err(|e| {
-                    anyhow::anyhow!("復号後の JSON パースに失敗: {e}")
-                })?
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("設定値の復号に失敗: {e}"))?;
+                serde_json::from_slice(&plaintext)
+                    .map_err(|e| anyhow::anyhow!("復号後の JSON パースに失敗: {e}"))?
             }
             // 暗号化フラグが true だが鍵がない場合は空 JSON を返す（設定ミス対策）
-            _ => serde_json::Value::Object(Default::default()),
+            _ => serde_json::Value::Object(serde_json::Map::default()),
         }
     } else {
         row.try_get("value_json")?
@@ -287,14 +289,12 @@ fn row_to_service_config_entry(
         match (encryption_key, encrypted_value.as_deref()) {
             (Some(key), Some(ciphertext)) => {
                 // ADR-0104: Phase B（バッチ再暗号化）完了後、aes_decrypt のみで復号する
-                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes()).map_err(|e| {
-                    anyhow::anyhow!("サービス設定値の復号に失敗: {e}")
-                })?;
-                serde_json::from_slice(&plaintext).map_err(|e| {
-                    anyhow::anyhow!("復号後の JSON パースに失敗: {e}")
-                })?
+                let plaintext = k1s0_encryption::aes_decrypt(key, ciphertext, namespace.as_bytes())
+                    .map_err(|e| anyhow::anyhow!("サービス設定値の復号に失敗: {e}"))?;
+                serde_json::from_slice(&plaintext)
+                    .map_err(|e| anyhow::anyhow!("復号後の JSON パースに失敗: {e}"))?
             }
-            _ => serde_json::Value::Object(Default::default()),
+            _ => serde_json::Value::Object(serde_json::Map::default()),
         }
     } else {
         row.try_get("value_json")?
@@ -308,6 +308,8 @@ fn row_to_service_config_entry(
     })
 }
 
+// ConfigRepository の実装は多数のメソッドを持つため行数が多くなる
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl ConfigRepository for ConfigPostgresRepository {
     /// STATIC-CRITICAL-001 監査対応: `tenant_id` + namespace + key で設定値を取得する。
@@ -565,8 +567,10 @@ impl ConfigRepository for ConfigPostgresRepository {
             m.record_db_query_duration("update", "config_entries", start.elapsed().as_secs_f64());
         }
 
-        if let Some(row) = row { row_to_config_entry(row, self.encryption_key.as_ref())
-        .map_err(ConfigRepositoryError::Infrastructure) } else {
+        if let Some(row) = row {
+            row_to_config_entry(row, self.encryption_key.as_ref())
+                .map_err(ConfigRepositoryError::Infrastructure)
+        } else {
             // バージョン不一致か、キーが存在しないかを確認
             let exists: Option<(i32,)> = sqlx::query_as(
                 "SELECT version FROM config_entries WHERE tenant_id = $1 AND namespace = $2 AND key = $3",

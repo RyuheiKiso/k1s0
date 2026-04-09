@@ -41,7 +41,8 @@ impl HttpVaultClient {
     #[must_use]
     pub fn new(config: VaultClientConfig) -> Self {
         let cache = Cache::builder()
-            .max_capacity(config.cache_max_capacity as u64)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .max_capacity(u64::try_from(config.cache_max_capacity).unwrap_or(u64::MAX))
             .time_to_live(config.cache_ttl)
             .build();
         let http = reqwest::Client::builder()

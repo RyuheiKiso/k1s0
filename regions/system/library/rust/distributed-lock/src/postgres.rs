@@ -20,7 +20,7 @@ pub struct PostgresDistributedLock {
 
 impl PostgresDistributedLock {
     /// `PgPool` から新しい `PostgresDistributedLock` を作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -104,7 +104,7 @@ impl DistributedLock for PostgresDistributedLock {
 }
 
 /// ヘルパー: ロックキーのフォーマット（テスト用に公開）。
-#[must_use] 
+#[must_use]
 pub fn format_lock_key(prefix: &str, key: &str) -> String {
     format!("{prefix}:{key}")
 }

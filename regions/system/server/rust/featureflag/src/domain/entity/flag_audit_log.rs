@@ -22,7 +22,7 @@ pub struct FlagAuditLog {
 
 impl FlagAuditLog {
     /// HIGH-005 対応: `tenant_id` は String 型（DB の TEXT 型に対応）。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         tenant_id: String,
         flag_id: Uuid,

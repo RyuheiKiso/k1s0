@@ -18,10 +18,20 @@ pub struct ConditionEvaluator {
     regex_cache: Mutex<LruCache<String, regex::Regex>>,
 }
 
+// Default トレイトを実装することで Default::default() を使った生成ができるようにする
+impl Default for ConditionEvaluator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConditionEvaluator {
     /// `ConditionEvaluator` を生成する。
     /// キャッシュサイズは 256 パターン（メモリ効率とヒット率のバランス）
-    #[must_use] 
+    ///
+    /// # Panics
+    /// 内部で使用する `NonZeroUsize::new(256)` は必ず成功するため、実際にはパニックしない。
+    #[must_use]
     pub fn new() -> Self {
         Self {
             regex_cache: Mutex::new(LruCache::new(
@@ -49,7 +59,8 @@ impl ConditionEvaluator {
         condition: &'a ConditionNode,
         context: &'a serde_json::Value,
         depth: usize,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, String>> + Send + 'a>> {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, String>> + Send + 'a>>
+    {
         Box::pin(async move {
             // 再帰深度が上限を超えた場合はエラーを返し、スタックオーバーフローを防止する
             if depth > MAX_EVALUATION_DEPTH {
@@ -248,90 +259,123 @@ mod tests {
 
     #[tokio::test]
     async fn test_eq_match() {
-        assert!(eval(
-            serde_json::json!({"field": "status", "operator": "eq", "value": "active"}),
-            serde_json::json!({"status": "active"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "status", "operator": "eq", "value": "active"}),
+                serde_json::json!({"status": "active"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_eq_no_match() {
-        assert!(!eval(
-            serde_json::json!({"field": "status", "operator": "eq", "value": "active"}),
-            serde_json::json!({"status": "inactive"}),
-        ).await);
+        assert!(
+            !eval(
+                serde_json::json!({"field": "status", "operator": "eq", "value": "active"}),
+                serde_json::json!({"status": "inactive"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_ne() {
-        assert!(eval(
-            serde_json::json!({"field": "status", "operator": "ne", "value": "deleted"}),
-            serde_json::json!({"status": "active"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "status", "operator": "ne", "value": "deleted"}),
+                serde_json::json!({"status": "active"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_gt() {
-        assert!(eval(
-            serde_json::json!({"field": "amount", "operator": "gt", "value": 100}),
-            serde_json::json!({"amount": 200}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "amount", "operator": "gt", "value": 100}),
+                serde_json::json!({"amount": 200}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_gte() {
-        assert!(eval(
-            serde_json::json!({"field": "amount", "operator": "gte", "value": 100}),
-            serde_json::json!({"amount": 100}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "amount", "operator": "gte", "value": 100}),
+                serde_json::json!({"amount": 100}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_lt() {
-        assert!(eval(
-            serde_json::json!({"field": "score", "operator": "lt", "value": 50}),
-            serde_json::json!({"score": 30}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "score", "operator": "lt", "value": 50}),
+                serde_json::json!({"score": 30}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_lte() {
-        assert!(eval(
-            serde_json::json!({"field": "score", "operator": "lte", "value": 50}),
-            serde_json::json!({"score": 50}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "score", "operator": "lte", "value": 50}),
+                serde_json::json!({"score": 50}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_in() {
-        assert!(eval(
-            serde_json::json!({"field": "region", "operator": "in", "value": ["JP", "US"]}),
-            serde_json::json!({"region": "JP"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "region", "operator": "in", "value": ["JP", "US"]}),
+                serde_json::json!({"region": "JP"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_not_in() {
-        assert!(eval(
-            serde_json::json!({"field": "region", "operator": "not_in", "value": ["JP", "US"]}),
-            serde_json::json!({"region": "UK"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "region", "operator": "not_in", "value": ["JP", "US"]}),
+                serde_json::json!({"region": "UK"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_contains() {
-        assert!(eval(
-            serde_json::json!({"field": "name", "operator": "contains", "value": "special"}),
-            serde_json::json!({"name": "this is special item"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "name", "operator": "contains", "value": "special"}),
+                serde_json::json!({"name": "this is special item"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_regex() {
-        assert!(eval(
-            serde_json::json!({"field": "code", "operator": "regex", "value": "^TAX-\\d{4}$"}),
-            serde_json::json!({"code": "TAX-1234"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "code", "operator": "regex", "value": "^TAX-\\d{4}$"}),
+                serde_json::json!({"code": "TAX-1234"}),
+            )
+            .await
+        );
     }
 
     /// 正規表現キャッシュが同じパターンで再利用されることを確認する
@@ -365,70 +409,88 @@ mod tests {
 
     #[tokio::test]
     async fn test_nested_field_dot_notation() {
-        assert!(eval(
-            serde_json::json!({"field": "item.category", "operator": "eq", "value": "food"}),
-            serde_json::json!({"item": {"category": "food"}}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({"field": "item.category", "operator": "eq", "value": "food"}),
+                serde_json::json!({"item": {"category": "food"}}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_all_combinator() {
-        assert!(eval(
-            serde_json::json!({
-                "all": [
-                    {"field": "item.category", "operator": "eq", "value": "food"},
-                    {"field": "item.is_takeout", "operator": "eq", "value": true}
-                ]
-            }),
-            serde_json::json!({"item": {"category": "food", "is_takeout": true}}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({
+                    "all": [
+                        {"field": "item.category", "operator": "eq", "value": "food"},
+                        {"field": "item.is_takeout", "operator": "eq", "value": true}
+                    ]
+                }),
+                serde_json::json!({"item": {"category": "food", "is_takeout": true}}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_all_combinator_fail() {
-        assert!(!eval(
-            serde_json::json!({
-                "all": [
-                    {"field": "item.category", "operator": "eq", "value": "food"},
-                    {"field": "item.is_takeout", "operator": "eq", "value": true}
-                ]
-            }),
-            serde_json::json!({"item": {"category": "food", "is_takeout": false}}),
-        ).await);
+        assert!(
+            !eval(
+                serde_json::json!({
+                    "all": [
+                        {"field": "item.category", "operator": "eq", "value": "food"},
+                        {"field": "item.is_takeout", "operator": "eq", "value": true}
+                    ]
+                }),
+                serde_json::json!({"item": {"category": "food", "is_takeout": false}}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_any_combinator() {
-        assert!(eval(
-            serde_json::json!({
-                "any": [
-                    {"field": "status", "operator": "eq", "value": "active"},
-                    {"field": "status", "operator": "eq", "value": "pending"}
-                ]
-            }),
-            serde_json::json!({"status": "pending"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({
+                    "any": [
+                        {"field": "status", "operator": "eq", "value": "active"},
+                        {"field": "status", "operator": "eq", "value": "pending"}
+                    ]
+                }),
+                serde_json::json!({"status": "pending"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_none_combinator() {
-        assert!(eval(
-            serde_json::json!({
-                "none": [
-                    {"field": "status", "operator": "eq", "value": "deleted"},
-                    {"field": "status", "operator": "eq", "value": "banned"}
-                ]
-            }),
-            serde_json::json!({"status": "active"}),
-        ).await);
+        assert!(
+            eval(
+                serde_json::json!({
+                    "none": [
+                        {"field": "status", "operator": "eq", "value": "deleted"},
+                        {"field": "status", "operator": "eq", "value": "banned"}
+                    ]
+                }),
+                serde_json::json!({"status": "active"}),
+            )
+            .await
+        );
     }
 
     #[tokio::test]
     async fn test_missing_field_returns_none() {
-        assert!(!eval(
-            serde_json::json!({"field": "nonexistent", "operator": "eq", "value": "x"}),
-            serde_json::json!({"status": "active"}),
-        ).await);
+        assert!(
+            !eval(
+                serde_json::json!({"field": "nonexistent", "operator": "eq", "value": "x"}),
+                serde_json::json!({"status": "active"}),
+            )
+            .await
+        );
     }
 
     /// 33段以上のネストでエラーになることを検証する（スタックオーバーフロー防止テスト）

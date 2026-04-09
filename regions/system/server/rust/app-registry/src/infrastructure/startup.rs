@@ -7,10 +7,12 @@ use tracing::info;
 use super::config::{parse_pool_duration, Config};
 use super::file_storage::FileStorage;
 use crate::adapter::handler::{self, AppState, ValidateTokenUseCase};
-use crate::infrastructure::signature_verifier::{CosignVerifier, StubCosignVerifier, SubprocessCosignVerifier};
 use crate::adapter::repository::app_postgres::AppPostgresRepository;
 use crate::adapter::repository::download_stats_postgres::DownloadStatsPostgresRepository;
 use crate::adapter::repository::version_postgres::VersionPostgresRepository;
+use crate::infrastructure::signature_verifier::{
+    CosignVerifier, StubCosignVerifier, SubprocessCosignVerifier,
+};
 use crate::usecase;
 
 // HIGH-001 監査対応: 起動処理は構造上行数が多くなるため許容する

@@ -60,7 +60,7 @@ pub struct SagaState {
 
 impl SagaState {
     /// `新しいSagaStateを作成する`。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         workflow_name: String,
         payload: serde_json::Value,
@@ -121,7 +121,7 @@ impl SagaState {
     }
 
     /// 終端状態かどうかを返す。
-    #[must_use] 
+    #[must_use]
     pub fn is_terminal(&self) -> bool {
         matches!(
             self.status,

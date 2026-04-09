@@ -48,7 +48,8 @@ impl GetSecretUseCase {
         match &result {
             Ok(_) => {
                 // MED-011 監査対応: tenant_id を access_log に設定して監査ログのテナント分離を実現する
-                let mut log = SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, true);
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Read, None, true);
                 log.tenant_id = input.tenant_id.clone();
                 let _ = self.audit.record(&log).await;
                 let _ = self

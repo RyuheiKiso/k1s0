@@ -16,8 +16,9 @@ use crate::adapter::presentation::{
 const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// CRITICAL-RUST-001 監査対応: HTTP リクエストから `tenant_id` を取得する。
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
 fn extract_tenant_id_http(
-    claims: &Option<Extension<k1s0_auth::Claims>>,
+    claims: Option<&Extension<k1s0_auth::Claims>>,
     headers: &HeaderMap,
 ) -> String {
     // Claims の tenant_id を優先する
@@ -50,7 +51,7 @@ pub async fn list_config_schemas(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
-    let tenant_id = extract_tenant_id_http(&claims, &headers);
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
     match state.list_config_schemas_uc.execute(&tenant_id).await {
         Ok(schemas) => match schemas
             .iter()
@@ -87,8 +88,12 @@ pub async fn get_config_schema(
     Path(service_name): Path<String>,
 ) -> impl IntoResponse {
     // CRITICAL-RUST-001 監査対応: テナントIDを取得して RLS セッション変数に設定する。
-    let tenant_id = extract_tenant_id_http(&claims, &headers);
-    match state.get_config_schema_uc.execute(&service_name, &tenant_id).await {
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
+    match state
+        .get_config_schema_uc
+        .execute(&service_name, &tenant_id)
+        .await
+    {
         Ok(schema) => match ConfigEditorSchemaDto::try_from(&schema) {
             Ok(response) => (StatusCode::OK, Json(response)).into_response(),
             Err(err) => (
@@ -133,7 +138,7 @@ pub async fn upsert_config_schema(
     }
 
     // CRITICAL-RUST-001 監査対応: テナントIDと更新者を Claims から取得する。
-    let tenant_id = extract_tenant_id_http(&claims, &headers);
+    let tenant_id = extract_tenant_id_http(claims.as_ref(), &headers);
     let updated_by = claims
         .as_ref()
         .and_then(|Extension(c)| c.preferred_username.clone())

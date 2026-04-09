@@ -74,9 +74,10 @@ impl FileEventPublisher for FileKafkaProducer {
         }
 
         let payload_bytes = serde_json::to_vec(&message)?;
-        let key = payload
-            .get("file_id")
-            .and_then(|v| v.as_str()).map_or_else(|| uuid::Uuid::new_v4().to_string(), std::string::ToString::to_string);
+        let key = payload.get("file_id").and_then(|v| v.as_str()).map_or_else(
+            || uuid::Uuid::new_v4().to_string(),
+            std::string::ToString::to_string,
+        );
 
         let record = FutureRecord::to(&self.topic)
             .key(&key)

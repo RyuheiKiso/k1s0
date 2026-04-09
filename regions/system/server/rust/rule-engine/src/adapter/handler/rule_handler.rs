@@ -26,11 +26,15 @@ pub async fn list_rules(
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let rule_set_id = match params.rule_set_id {
-        Some(ref id) => if let Ok(uid) = Uuid::parse_str(id) { Some(uid) } else {
-            let err =
-                ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_set_id format");
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        },
+        Some(ref id) => {
+            if let Ok(uid) = Uuid::parse_str(id) {
+                Some(uid)
+            } else {
+                let err =
+                    ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_set_id format");
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
         None => None,
     };
 
@@ -272,7 +276,8 @@ pub async fn create_rule_set(
         .unwrap_or("system")
         .to_string();
     let rule_ids: Result<Vec<Uuid>, _> = req.rule_ids.iter().map(|s| Uuid::parse_str(s)).collect();
-    let rule_ids = if let Ok(ids) = rule_ids { ids } else {
+    // let-else: UUIDパースエラーの場合は400を返す
+    let Ok(rule_ids) = rule_ids else {
         let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     };
@@ -318,7 +323,9 @@ pub async fn update_rule_set(
     let rule_ids = match req.rule_ids {
         Some(ref ids) => {
             let parsed: Result<Vec<Uuid>, _> = ids.iter().map(|s| Uuid::parse_str(s)).collect();
-            if let Ok(uuids) = parsed { Some(uuids) } else {
+            if let Ok(uuids) = parsed {
+                Some(uuids)
+            } else {
                 let err =
                     ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid rule_ids format");
                 return (StatusCode::BAD_REQUEST, Json(err)).into_response();
@@ -561,7 +568,9 @@ pub async fn list_evaluation_logs(
 ) -> impl IntoResponse {
     // M-003 監査対応: 不正な日付形式は 400 Bad Request で返す（サイレント無視を修正）
     let from = if let Some(ref s) = params.from {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) { Some(dt.with_timezone(&chrono::Utc)) } else {
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
+            Some(dt.with_timezone(&chrono::Utc))
+        } else {
             let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'from' date format");
             return (StatusCode::BAD_REQUEST, Json(err)).into_response();
         }
@@ -569,7 +578,9 @@ pub async fn list_evaluation_logs(
         None
     };
     let to = if let Some(ref s) = params.to {
-        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) { Some(dt.with_timezone(&chrono::Utc)) } else {
+        if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(s) {
+            Some(dt.with_timezone(&chrono::Utc))
+        } else {
             let err = ErrorResponse::new("SYS_RULE_VALIDATION_ERROR", "invalid 'to' date format");
             return (StatusCode::BAD_REQUEST, Json(err)).into_response();
         }
@@ -760,7 +771,11 @@ impl From<crate::domain::entity::rule::RuleSet> for RuleSetResponse {
             domain: rs.domain,
             evaluation_mode: rs.evaluation_mode.as_str().to_string(),
             default_result: rs.default_result,
-            rule_ids: rs.rule_ids.iter().map(std::string::ToString::to_string).collect(),
+            rule_ids: rs
+                .rule_ids
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             current_version: rs.current_version,
             enabled: rs.enabled,
             created_at: rs.created_at.to_rfc3339(),
@@ -789,7 +804,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    #[must_use] 
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -802,7 +817,7 @@ impl ErrorResponse {
     }
 
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

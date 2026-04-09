@@ -25,7 +25,7 @@ pub struct AiModel {
 
 impl AiModel {
     /// 新しいAIモデルインスタンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         id: String,
         name: String,

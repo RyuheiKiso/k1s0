@@ -19,7 +19,7 @@ pub struct InMemoryEventBus {
 }
 
 impl InMemoryEventBus {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             handlers: Arc::new(RwLock::new(HashMap::new())),
@@ -76,7 +76,7 @@ pub struct EventBus {
 
 impl EventBus {
     /// 設定を指定して新しい `EventBus` を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(config: EventBusConfig) -> Self {
         Self {
             config,
@@ -86,7 +86,7 @@ impl EventBus {
     }
 
     /// 設定を取得する。
-    #[must_use] 
+    #[must_use]
     pub fn config(&self) -> &EventBusConfig {
         &self.config
     }

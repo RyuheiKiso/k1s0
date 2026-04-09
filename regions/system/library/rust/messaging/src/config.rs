@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// `MessagingConfig` は Kafka 接続設定を表す。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessagingConfig {
-    /// Kafka ブローカーアドレスのリスト（例: ["kafka:9092"]）
+    /// Kafka ブローカーアドレスのリスト（例: `["kafka:9092"]`）
     pub brokers: Vec<String>,
     /// セキュリティプロトコル（PLAINTEXT / SSL / `SASL_PLAINTEXT` / `SASL_SSL`）
     #[serde(default = "default_security_protocol")]
@@ -36,7 +36,7 @@ fn default_batch_size() -> usize {
 
 impl MessagingConfig {
     /// ブローカーアドレスをカンマ区切り文字列で返す（rdkafka 用）。
-    #[must_use] 
+    #[must_use]
     pub fn brokers_string(&self) -> String {
         self.brokers.join(",")
     }

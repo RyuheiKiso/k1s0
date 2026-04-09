@@ -11,7 +11,7 @@ pub struct DlqPostgresRepository {
 }
 
 impl DlqPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -83,8 +83,10 @@ impl DlqMessageRepository for DlqPostgresRepository {
 
         tx.commit().await?;
 
-        let messages: anyhow::Result<Vec<DlqMessage>> =
-            rows.into_iter().map(std::convert::TryInto::try_into).collect();
+        let messages: anyhow::Result<Vec<DlqMessage>> = rows
+            .into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect();
 
         Ok((messages?, total))
     }

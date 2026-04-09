@@ -74,7 +74,8 @@ mod tests {
             "tenant-test".to_string(),
             seq,
             "OrderPlaced".to_string(),
-            seq as i64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            i64::try_from(seq).unwrap_or(i64::MAX),
             serde_json::json!({}),
             EventMetadata::new(None, None, None),
         )

@@ -58,7 +58,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_saga_success() {
-        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
+        let saga = SagaState::new(
+            "test".to_string(),
+            serde_json::json!({}),
+            None,
+            None,
+            "system".to_string(),
+        );
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
 
@@ -83,7 +89,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_cancel_saga_already_terminal() {
-        let mut saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
+        let mut saga = SagaState::new(
+            "test".to_string(),
+            serde_json::json!({}),
+            None,
+            None,
+            "system".to_string(),
+        );
         saga.complete();
         let saga_id = saga.saga_id;
 

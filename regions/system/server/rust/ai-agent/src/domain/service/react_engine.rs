@@ -17,7 +17,7 @@ pub struct ReActEngine {
 
 impl ReActEngine {
     /// `新しいReActEngineを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(tool_registry: ToolRegistry) -> Self {
         Self { tool_registry }
     }

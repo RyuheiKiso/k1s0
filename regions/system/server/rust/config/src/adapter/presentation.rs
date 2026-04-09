@@ -19,7 +19,7 @@ pub enum ConfigFieldType {
 }
 
 impl ConfigFieldType {
-    #[must_use] 
+    #[must_use]
     pub fn from_legacy_number(value: i64) -> Option<Self> {
         match value {
             1 => Some(Self::String),
@@ -33,7 +33,7 @@ impl ConfigFieldType {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn to_legacy_number(self) -> i32 {
         match self {
             Self::String => 1,
@@ -46,7 +46,7 @@ impl ConfigFieldType {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn from_schema_value(value: &Value) -> Option<Self> {
         value
             .as_str()
@@ -118,14 +118,14 @@ pub struct UpsertConfigSchemaRequestDto {
 }
 
 impl UpsertConfigSchemaRequestDto {
-    #[must_use] 
+    #[must_use]
     pub fn into_schema_json(self) -> Value {
         categories_to_schema_json(self.categories)
     }
 }
 
 impl ConfigEditorSchemaDto {
-    #[must_use] 
+    #[must_use]
     pub fn into_schema_json(self) -> Value {
         categories_to_schema_json(self.categories)
     }
@@ -373,12 +373,14 @@ fn categories_to_schema_json(categories: Vec<ConfigCategorySchemaDto>) -> Value 
 fn datetime_to_proto_timestamp(value: DateTime<Utc>) -> ProtoTimestamp {
     ProtoTimestamp {
         seconds: value.timestamp(),
-        nanos: value.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(value.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
 fn proto_timestamp_to_datetime(value: &ProtoTimestamp) -> Option<DateTime<Utc>> {
-    DateTime::<Utc>::from_timestamp(value.seconds, value.nanos as u32)
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    DateTime::<Utc>::from_timestamp(value.seconds, u32::try_from(value.nanos).unwrap_or(0))
 }
 
 fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, anyhow::Error> {
@@ -392,6 +394,8 @@ fn optional_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
 }
 
+// serde の skip_serializing_if は &T の関数シグネチャを要求するため参照渡しが必要
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_zero(value: &i64) -> bool {
     *value == 0
 }
@@ -416,6 +420,8 @@ mod tests {
     fn domain_schema_maps_to_rest_dto_with_legacy_shape() {
         let schema = ConfigSchema {
             id: Uuid::new_v4(),
+            // CRITICAL-RUST-001 監査対応: テナント分離のため tenant_id を設定する
+            tenant_id: "system".to_string(),
             service_name: "task-server".to_string(),
             namespace_prefix: "service.task".to_string(),
             schema_json: serde_json::json!({

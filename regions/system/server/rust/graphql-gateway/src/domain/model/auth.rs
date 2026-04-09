@@ -32,7 +32,7 @@ pub enum AuditResult {
 }
 
 /// `AuditEventType` enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
-#[must_use] 
+#[must_use]
 pub fn audit_event_type_to_str(e: AuditEventType) -> &'static str {
     match e {
         AuditEventType::Login => "LOGIN",
@@ -52,7 +52,7 @@ pub fn audit_event_type_to_str(e: AuditEventType) -> &'static str {
 }
 
 /// `AuditResult` enum → 後方互換文字列表現（GraphQL deprecated string フィールド向け）
-#[must_use] 
+#[must_use]
 pub fn audit_result_to_str(e: AuditResult) -> &'static str {
     match e {
         AuditResult::Success => "SUCCESS",

@@ -39,7 +39,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -227,7 +227,8 @@ pub async fn revoke_session(
         // Claims から jti と残余有効期限（秒）を取得する。
         // exp は Unix タイムスタンプ（秒）。現在時刻との差分が残余有効期限となる。
         jwt_jti = claims.jti.clone();
-        let now_secs = chrono::Utc::now().timestamp() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let now_secs = u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0);
         if claims.exp > now_secs {
             jwt_remaining_secs = Some(claims.exp - now_secs);
         }
@@ -259,7 +260,8 @@ pub async fn list_user_sessions(
     let input = ListUserSessionsInput { user_id };
     match state.list_uc.execute(&input).await {
         Ok(output) => {
-            let total_count = output.sessions.len() as u32;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            let total_count = u32::try_from(output.sessions.len()).unwrap_or(u32::MAX);
             let mapped = ListSessionsHttpResponse {
                 sessions: output
                     .sessions

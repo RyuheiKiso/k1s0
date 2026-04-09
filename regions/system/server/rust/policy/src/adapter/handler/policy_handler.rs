@@ -17,9 +17,10 @@ use crate::usecase::update_policy::UpdatePolicyInput;
 
 /// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
-fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<Claims>>) -> String {
     claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 /// GET /api/v1/policies
@@ -29,13 +30,15 @@ pub async fn list_policies(
     Query(params): Query<ListPoliciesParams>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let enabled_only = params.enabled_only.unwrap_or(false);
     let bundle_id = if let Some(bundle_id) = params.bundle_id {
-        if let Ok(id) = Uuid::parse_str(&bundle_id) { Some(id) } else {
+        if let Ok(id) = Uuid::parse_str(&bundle_id) {
+            Some(id)
+        } else {
             let err = ErrorResponse::with_details(
                 "SYS_POLICY_INVALID_BUNDLE_ID",
                 "invalid bundle_id format",
@@ -95,7 +98,7 @@ pub async fn get_policy(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     match state.get_policy_uc.execute(&id, &tenant_id).await {
         Ok(Some(policy)) => {
@@ -123,7 +126,7 @@ pub async fn create_policy(
     Json(req): Json<CreatePolicyRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let CreatePolicyRequest {
         name,
@@ -134,17 +137,21 @@ pub async fn create_policy(
     } = req;
 
     let bundle_id = match bundle_id_raw {
-        Some(bundle_id) => if let Ok(id) = Uuid::parse_str(&bundle_id) { Some(id) } else {
-            let err = ErrorResponse::with_details(
-                "SYS_POLICY_INVALID_BUNDLE_ID",
-                "invalid bundle_id format",
-                vec![ErrorDetail {
-                    field: "bundle_id".to_string(),
-                    message: "must be a valid UUID".to_string(),
-                }],
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        },
+        Some(bundle_id) => {
+            if let Ok(id) = Uuid::parse_str(&bundle_id) {
+                Some(id)
+            } else {
+                let err = ErrorResponse::with_details(
+                    "SYS_POLICY_INVALID_BUNDLE_ID",
+                    "invalid bundle_id format",
+                    vec![ErrorDetail {
+                        field: "bundle_id".to_string(),
+                        message: "must be a valid UUID".to_string(),
+                    }],
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
         None => None,
     };
 
@@ -190,7 +197,7 @@ pub async fn update_policy(
     Json(req): Json<UpdatePolicyRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = UpdatePolicyInput {
         id,
@@ -206,7 +213,9 @@ pub async fn update_policy(
             (StatusCode::OK, Json(resp)).into_response()
         }
         Err(e) => {
-            // M-005 TODO: 型付きエラー enum への移行が望ましい（現状は文字列マッチングで代替）
+            // TODO(future-work): 型付きエラー enum への移行が望ましい（現状は文字列マッチングで代替）。
+            // 優先度: LOW。domain::error::PolicyError enum を定義し、use_case から伝播させること。
+            // 対応時は全ハンドラの Err(e) パターンを統一的に修正し、ADR を作成すること。
             let msg = e.to_string();
             if msg.contains("not found") {
                 let err = ErrorResponse::new("SYS_POLICY_NOT_FOUND", &msg);
@@ -230,7 +239,7 @@ pub async fn delete_policy(
     use crate::usecase::delete_policy::DeletePolicyError;
 
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     match state.delete_policy_uc.execute(&id, &tenant_id).await {
         Ok(()) => (
@@ -263,7 +272,7 @@ pub async fn evaluate_policy(
     Json(req): Json<EvaluatePolicyRequest>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let input = EvaluatePolicyInput {
         policy_id: Some(id),
@@ -304,7 +313,7 @@ pub async fn list_bundles(
     claims: Option<Extension<Claims>>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     match state.list_bundles_uc.execute(&tenant_id).await {
         Ok(bundles) => {
@@ -332,7 +341,7 @@ pub async fn get_bundle(
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     match state.get_bundle_uc.execute(&id, &tenant_id).await {
         Ok(bundle) => {
@@ -362,12 +371,13 @@ pub async fn create_bundle(
     use crate::usecase::create_bundle::CreateBundleInput;
 
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let policy_ids: Result<Vec<Uuid>, _> =
         req.policy_ids.iter().map(|s| Uuid::parse_str(s)).collect();
 
-    let policy_ids = if let Ok(ids) = policy_ids { ids } else {
+    // let-else: UUIDパースエラーの場合は400を返す
+    let Ok(policy_ids) = policy_ids else {
         let err = ErrorResponse::new("SYS_POLICY_INVALID_ID", "invalid policy_id format");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     };
@@ -454,7 +464,11 @@ impl From<crate::domain::entity::policy_bundle::PolicyBundle> for BundleResponse
             description: b.description,
             enabled: b.enabled,
             policy_count: b.policy_ids.len(),
-            policy_ids: b.policy_ids.iter().map(std::string::ToString::to_string).collect(),
+            policy_ids: b
+                .policy_ids
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
             created_at: b.created_at.to_rfc3339(),
             updated_at: b.updated_at.to_rfc3339(),
         }
@@ -512,7 +526,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    #[must_use] 
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -524,7 +538,7 @@ impl ErrorResponse {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

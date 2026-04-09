@@ -20,7 +20,7 @@ impl FlagCache {
     /// # Arguments
     /// * `max_capacity` - キャッシュに保持する最大エントリ数
     /// * `ttl_secs` - エントリの有効期間（秒）
-    #[must_use] 
+    #[must_use]
     pub fn new(max_capacity: u64, ttl_secs: u64) -> Self {
         let inner = Cache::builder()
             .max_capacity(max_capacity)
@@ -56,7 +56,8 @@ impl FlagCache {
     }
 
     /// すべてのキャッシュエントリを削除する。
-    pub async fn invalidate_all(&self) {
+    // async は不要（.await 呼び出しがないため同期関数に変換する）
+    pub fn invalidate_all(&self) {
         self.inner.invalidate_all();
     }
 }
@@ -153,7 +154,8 @@ mod tests {
         cache.insert(flag1).await;
         cache.insert(flag2).await;
 
-        cache.invalidate_all().await;
+        // invalidate_all は同期関数のため .await 不要
+        cache.invalidate_all();
 
         assert!(cache.get(tid, "feature.dark-mode").await.is_none());
         assert!(cache.get(tid, "feature.new-ui").await.is_none());

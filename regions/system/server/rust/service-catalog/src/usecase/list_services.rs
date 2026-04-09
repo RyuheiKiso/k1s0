@@ -15,7 +15,11 @@ impl ListServicesUseCase {
     }
 
     // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
-    pub async fn execute(&self, tenant_id: &str, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        filters: ServiceListFilters,
+    ) -> anyhow::Result<Vec<Service>> {
         self.service_repo.list(tenant_id, filters).await
     }
 }
@@ -55,7 +59,10 @@ mod tests {
         mock.expect_list().returning(|_, _| Ok(vec![]));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
-        let result = uc.execute("tenant-1", ServiceListFilters::default()).await.unwrap();
+        let result = uc
+            .execute("tenant-1", ServiceListFilters::default())
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -69,7 +76,10 @@ mod tests {
             .returning(move |_, _| Ok(services_clone.clone()));
 
         let uc = ListServicesUseCase::new(Arc::new(mock));
-        let result = uc.execute("tenant-1", ServiceListFilters::default()).await.unwrap();
+        let result = uc
+            .execute("tenant-1", ServiceListFilters::default())
+            .await
+            .unwrap();
         assert_eq!(result.len(), 3);
     }
 }

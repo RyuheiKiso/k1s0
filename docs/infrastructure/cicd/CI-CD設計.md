@@ -413,6 +413,24 @@ jobs:
 
 ### Deploy ワークフロー（deploy.yaml）
 
+> **MED-013 監査対応（2026-04-09）**: デプロイワークフローへの concurrency 設定追加
+>
+> `deploy.yaml` および個別サービスデプロイワークフロー（`auth-deploy.yaml` 等）に `concurrency` を設定し、
+> 同一ブランチへの複数コミットが短期間にマージされた場合のデプロイ競合を防止する。
+>
+> **設定方針:**
+> - `group: deploy-${{ github.workflow }}-${{ github.ref }}`: ワークフローとブランチの組み合わせごとに独立したキューを持つ。複数サービスが同時デプロイされても互いの実行はブロックしない。
+> - `cancel-in-progress: false`: 進行中のデプロイを強制キャンセルせず、完了後に次のデプロイを実行する。途中キャンセルによる不整合（イメージビルド完了・クラスター反映未完了など）を防ぐ。
+>
+> **対象ファイル:**
+> - `.github/workflows/deploy.yaml`（全サービス共通デプロイ）
+> - `.github/workflows/auth-deploy.yaml`
+> - `.github/workflows/app-registry-deploy.yaml`
+> - `.github/workflows/config-deploy.yaml`
+> - `.github/workflows/saga-deploy.yaml`
+> - `.github/workflows/dlq-manager-deploy.yaml`
+> - `.github/workflows/bff-proxy-deploy.yaml`
+
 > **H-008 監査対応（2026-04-04）**: REGISTRY を GitHub Secret に移行
 >
 > `env.REGISTRY` に直接記載していた `harbor.internal.example.com` プレースホルダーを廃止し、

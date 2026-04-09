@@ -172,6 +172,8 @@ pub struct PbTimestamp {
     pub nanos: i32,
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct RateLimitGrpcService {
     check_uc: Arc<CheckRateLimitUseCase>,
     create_uc: Arc<CreateRuleUseCase>,
@@ -185,7 +187,7 @@ pub struct RateLimitGrpcService {
 
 impl RateLimitGrpcService {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         check_uc: Arc<CheckRateLimitUseCase>,
         create_uc: Arc<CreateRuleUseCase>,
@@ -212,6 +214,9 @@ impl RateLimitGrpcService {
         &self,
         req: CheckRateLimitRequest,
     ) -> Result<CheckRateLimitResponse, GrpcError> {
+        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
+        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
+        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
         if req.scope.is_empty() {
             return Err(GrpcError::InvalidArgument("scope is required".to_string()));
         }
@@ -220,10 +225,6 @@ impl RateLimitGrpcService {
                 "identifier is required".to_string(),
             ));
         }
-
-        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
-        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
-        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
         let tenant_id = req
             .tenant_id
             .filter(|id| !id.is_empty())
@@ -286,10 +287,9 @@ impl RateLimitGrpcService {
             crate::usecase::create_rule::CreateRuleError::AlreadyExists(msg) => {
                 GrpcError::AlreadyExists(format!("rule already exists: {msg}"))
             }
-            crate::usecase::create_rule::CreateRuleError::InvalidAlgorithm(msg) => {
-                GrpcError::InvalidArgument(msg)
-            }
-            crate::usecase::create_rule::CreateRuleError::Validation(msg) => {
+            // InvalidAlgorithm と Validation は同じエラーに変換するためアームを統合する
+            crate::usecase::create_rule::CreateRuleError::InvalidAlgorithm(msg)
+            | crate::usecase::create_rule::CreateRuleError::Validation(msg) => {
                 GrpcError::InvalidArgument(msg)
             }
             crate::usecase::create_rule::CreateRuleError::Internal(msg) => GrpcError::Internal(msg),
@@ -307,11 +307,13 @@ impl RateLimitGrpcService {
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
                     seconds: rule.created_at.timestamp(),
-                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
                 updated_at: Some(PbTimestamp {
                     seconds: rule.updated_at.timestamp(),
-                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
             },
         })
@@ -349,26 +351,27 @@ impl RateLimitGrpcService {
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
                     seconds: rule.created_at.timestamp(),
-                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
                 updated_at: Some(PbTimestamp {
                     seconds: rule.updated_at.timestamp(),
-                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
             },
         })
     }
 
     pub async fn get_usage(&self, req: GetUsageRequest) -> Result<GetUsageResponse, GrpcError> {
+        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
+        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
+        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
         if req.rule_id.is_empty() {
             return Err(GrpcError::InvalidArgument(
                 "rule_id is required".to_string(),
             ));
         }
-
-        // STATIC-CRITICAL-001: gRPC は JWT ベアラートークンを持たないため、
-        // tenant_id が未指定の場合はシステムテナントUUID をフォールバックとして使用する。
-        const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
         let tenant_id = req
             .tenant_id
             .filter(|id| !id.is_empty())
@@ -422,10 +425,9 @@ impl RateLimitGrpcService {
 
         let rule = self.update_uc.execute(&input).await.map_err(|e| match e {
             crate::usecase::update_rule::UpdateRuleError::NotFound(msg) => GrpcError::NotFound(msg),
-            crate::usecase::update_rule::UpdateRuleError::Validation(msg) => {
-                GrpcError::InvalidArgument(msg)
-            }
-            crate::usecase::update_rule::UpdateRuleError::InvalidAlgorithm(msg) => {
+            // Validation と InvalidAlgorithm は同じエラーに変換するためアームを統合する
+            crate::usecase::update_rule::UpdateRuleError::Validation(msg)
+            | crate::usecase::update_rule::UpdateRuleError::InvalidAlgorithm(msg) => {
                 GrpcError::InvalidArgument(msg)
             }
             crate::usecase::update_rule::UpdateRuleError::Internal(msg) => GrpcError::Internal(msg),
@@ -443,11 +445,13 @@ impl RateLimitGrpcService {
                 enabled: rule.enabled,
                 created_at: Some(PbTimestamp {
                     seconds: rule.created_at.timestamp(),
-                    nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
                 updated_at: Some(PbTimestamp {
                     seconds: rule.updated_at.timestamp(),
-                    nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                    // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                    nanos: i32::try_from(rule.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                 }),
             },
         })
@@ -520,18 +524,22 @@ impl RateLimitGrpcService {
                     enabled: rule.enabled,
                     created_at: Some(PbTimestamp {
                         seconds: rule.created_at.timestamp(),
-                        nanos: rule.created_at.timestamp_subsec_nanos() as i32,
+                        // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                        nanos: i32::try_from(rule.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                     }),
                     updated_at: Some(PbTimestamp {
                         seconds: rule.updated_at.timestamp(),
-                        nanos: rule.updated_at.timestamp_subsec_nanos() as i32,
+                        // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+                        nanos: i32::try_from(rule.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
                     }),
                 })
                 .collect(),
             pagination: PaginationResponse {
-                total_count: output.total_count as i64,
-                page: output.page.min(i32::MAX as u32) as i32,
-                page_size: output.page_size.min(i32::MAX as u32) as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(output.total_count).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。u32 を i32 上限でクランプしてから変換する。
+                page: i32::try_from(output.page.min(2_147_483_647_u32)).unwrap_or(i32::MAX),
+                page_size: i32::try_from(output.page_size.min(2_147_483_647_u32)).unwrap_or(i32::MAX),
                 has_next: output.has_next,
             },
         })
@@ -639,7 +647,9 @@ mod tests {
         let create_uc = Arc::new(CreateRuleUseCase::new(Arc::new(
             MockRateLimitRepository::new(),
         )));
-        let get_uc = Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new())));
+        let get_uc = Arc::new(GetRuleUseCase::new(
+            Arc::new(MockRateLimitRepository::new()),
+        ));
 
         let svc = make_service_with(check_uc, create_uc, get_uc);
         let result = svc
@@ -668,7 +678,9 @@ mod tests {
             Arc::new(CreateRuleUseCase::new(Arc::new(
                 MockRateLimitRepository::new(),
             ))),
-            Arc::new(GetRuleUseCase::new(Arc::new(MockRateLimitRepository::new()))),
+            Arc::new(GetRuleUseCase::new(
+                Arc::new(MockRateLimitRepository::new()),
+            )),
         );
 
         let result = svc

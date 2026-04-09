@@ -12,7 +12,7 @@ pub struct TemplatePostgresRepository {
 }
 
 impl TemplatePostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -93,9 +93,7 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM notification.templates {where_clause}"
-        );
+        let count_query = format!("SELECT COUNT(*) FROM notification.templates {where_clause}");
         let data_query = format!(
             "SELECT id, name, channel_type, subject_template, body_template, created_at, updated_at \
              FROM notification.templates {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
@@ -117,9 +115,10 @@ impl NotificationTemplateRepository for TemplatePostgresRepository {
 
         let rows: Vec<TemplateRow> = data_q.fetch_all(self.pool.as_ref()).await?;
 
+        // LOW-008: 安全な型変換（オーバーフロー防止）
         Ok((
             rows.into_iter().map(Into::into).collect(),
-            total_count as u64,
+            u64::try_from(total_count).unwrap_or(0),
         ))
     }
 

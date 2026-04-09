@@ -8,12 +8,32 @@ use uuid::Uuid;
 use crate::domain::entity::rule::EvaluationLog;
 use crate::domain::repository::EvaluationLogRepository;
 
+/// 評価ログのJOINクエリ結果行（pagination用内部データ型）
+#[derive(sqlx::FromRow)]
+struct EvalLogJoinedRow {
+    id: Uuid,
+    tenant_id: String,
+    #[allow(dead_code)]
+    rule_set_id: Uuid,
+    rule_id: Option<Uuid>,
+    input: serde_json::Value,
+    output: Option<serde_json::Value>,
+    #[allow(dead_code)]
+    matched: bool,
+    #[allow(dead_code)]
+    execution_time_ms: Option<i32>,
+    #[allow(dead_code)]
+    error_message: Option<String>,
+    created_at: DateTime<Utc>,
+    rule_set_name: String,
+}
+
 pub struct EvaluationLogPostgresRepository {
     pool: Arc<PgPool>,
 }
 
 impl EvaluationLogPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -30,12 +50,11 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
             .await?;
 
         // We need a rule_set_id for the FK. Look up by name.
-        let rule_set_id: Option<(Uuid,)> = sqlx::query_as(
-            "SELECT id FROM rule_engine.rule_sets WHERE name = $1 LIMIT 1",
-        )
-        .bind(&log.rule_set_name)
-        .fetch_optional(self.pool.as_ref())
-        .await?;
+        let rule_set_id: Option<(Uuid,)> =
+            sqlx::query_as("SELECT id FROM rule_engine.rule_sets WHERE name = $1 LIMIT 1")
+                .bind(&log.rule_set_name)
+                .fetch_optional(self.pool.as_ref())
+                .await?;
 
         let rule_set_id = rule_set_id
             .map(|r| r.0)
@@ -131,26 +150,6 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
              {count_where_sql}"
         );
 
-        // Use a joined row struct
-        #[derive(sqlx::FromRow)]
-        struct EvalLogJoinedRow {
-            id: Uuid,
-            tenant_id: String,
-            #[allow(dead_code)]
-            rule_set_id: Uuid,
-            rule_id: Option<Uuid>,
-            input: serde_json::Value,
-            output: Option<serde_json::Value>,
-            #[allow(dead_code)]
-            matched: bool,
-            #[allow(dead_code)]
-            execution_time_ms: Option<i32>,
-            #[allow(dead_code)]
-            error_message: Option<String>,
-            created_at: DateTime<Utc>,
-            rule_set_name: String,
-        }
-
         let mut query = sqlx::query_as::<_, EvalLogJoinedRow>(&query_sql)
             .bind(limit)
             .bind(offset);
@@ -196,6 +195,7 @@ impl EvaluationLogRepository for EvaluationLogPostgresRepository {
             })
             .collect();
 
-        Ok((logs, count.0 as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((logs, u64::try_from(count.0).unwrap_or(0)))
     }
 }

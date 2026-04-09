@@ -200,10 +200,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map_or(300, |j| j.cache_ttl_secs);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for saga-server");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -395,8 +392,9 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
         error_message: Option<String>,
         _tenant_id: &str,
     ) -> anyhow::Result<()> {
-        let mut states = self.states.write().await;
-        if let Some(s) = states.iter_mut().find(|s| s.saga_id == saga_id) {
+        // status との名前衝突を避けるため state_list と命名する（Clippy: similar_names）
+        let mut state_list = self.states.write().await;
+        if let Some(s) = state_list.iter_mut().find(|s| s.saga_id == saga_id) {
             s.status = status.clone();
             s.error_message = error_message;
             s.updated_at = chrono::Utc::now();
@@ -456,11 +454,12 @@ impl domain::repository::SagaRepository for InMemorySagaRepository {
             .cloned()
             .collect();
 
-        let total = filtered.len() as i32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i32::try_from(filtered.len()).unwrap_or(i32::MAX);
         let page = params.page.max(1);
         let page_size = params.page_size.max(1);
-        let offset = ((page - 1) * page_size) as usize;
-        let limit = page_size as usize;
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let limit = usize::try_from(page_size).unwrap_or(0);
         let paged: Vec<_> = filtered.into_iter().skip(offset).take(limit).collect();
 
         Ok((paged, total))

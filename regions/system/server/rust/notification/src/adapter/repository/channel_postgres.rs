@@ -24,7 +24,7 @@ pub struct ChannelPostgresRepository {
 impl ChannelPostgresRepository {
     /// 暗号化キー付きでリポジトリを作成する
     /// `encryption_key` が None の場合、設定は平文で保存される（開発環境のみ許可）
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>, encryption_key: Option<[u8; 32]>) -> Self {
         Self {
             pool,
@@ -49,7 +49,11 @@ impl ChannelPostgresRepository {
     /// C-001 監査対応: AAD にチャンネル ID を使用し、異なるチャンネル間での
     /// ciphertext 流用（swap attack）を防止する。
     /// 暗号化キーが設定されていない場合は None を返す（平文 config カラムを使用）
-    fn encrypt_config(&self, channel_id: &str, config: &serde_json::Value) -> anyhow::Result<Option<String>> {
+    fn encrypt_config(
+        &self,
+        channel_id: &str,
+        config: &serde_json::Value,
+    ) -> anyhow::Result<Option<String>> {
         match &self.encryption_key {
             Some(key) => {
                 let plaintext = serde_json::to_vec(config)
@@ -65,7 +69,11 @@ impl ChannelPostgresRepository {
 
     /// 暗号化済み設定を復号化して `serde_json::Value` に変換する。
     /// ADR-0104: Phase `B（バッチ再暗号化）完了後、aes_decrypt` のみで AAD 付き復号を行う。
-    fn decrypt_config(&self, channel_id: &str, encrypted: &str) -> anyhow::Result<serde_json::Value> {
+    fn decrypt_config(
+        &self,
+        channel_id: &str,
+        encrypted: &str,
+    ) -> anyhow::Result<serde_json::Value> {
         match &self.encryption_key {
             Some(key) => {
                 // ADR-0104: AAD にチャンネル ID を指定して復号する（旧形式フォールバックなし）
@@ -127,7 +135,11 @@ struct ChannelRow {
 impl NotificationChannelRepository for ChannelPostgresRepository {
     /// MEDIUM-RUST-001 監査対応: `tenant_id` を受け取り RLS セッション変数を設定する。
     /// "system" ハードコードを廃止し、ユースケース層から渡されたテナント ID を使用する。
-    async fn find_by_id(&self, id: &str, tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         // H-010: トランザクション内で RLS セッション変数を設定する
         let mut tx = self.pool.begin().await?;
         Self::set_tenant_context(&mut tx, tenant_id).await?;
@@ -190,9 +202,7 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM notification.channels {where_clause}"
-        );
+        let count_query = format!("SELECT COUNT(*) FROM notification.channels {where_clause}");
         let data_query = format!(
             "SELECT id, name, channel_type, config, encrypted_config, tenant_id, enabled, created_at, updated_at \
              FROM notification.channels {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
@@ -223,7 +233,8 @@ impl NotificationChannelRepository for ChannelPostgresRepository {
 
         let channels: anyhow::Result<Vec<NotificationChannel>> =
             rows.into_iter().map(|r| self.row_to_channel(r)).collect();
-        Ok((channels?, total_count as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((channels?, u64::try_from(total_count).unwrap_or(0)))
     }
 
     async fn create(&self, channel: &NotificationChannel) -> anyhow::Result<()> {

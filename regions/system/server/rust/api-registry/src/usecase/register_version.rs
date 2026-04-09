@@ -65,6 +65,8 @@ impl RegisterVersionUseCase {
         }
     }
 
+    /// スキーマバリデーターファクトリを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_validator(mut self, factory: Arc<dyn SchemaValidatorFactory>) -> Self {
         self.validator_factory = Some(factory);
         self

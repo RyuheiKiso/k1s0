@@ -6,6 +6,8 @@ use tracing::instrument;
 use crate::domain::model::{ConfigEntry, FeatureFlag, Tenant};
 use crate::infrastructure::grpc::{ConfigGrpcClient, FeatureFlagGrpcClient, TenantGrpcClient};
 
+// gRPC クライアントの種別を明示する _client サフィックスは意図的な命名規則
+#[allow(clippy::struct_field_names)]
 pub struct SubscriptionResolver {
     config_client: Arc<ConfigGrpcClient>,
     tenant_client: Arc<TenantGrpcClient>,

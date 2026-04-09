@@ -15,7 +15,7 @@ pub struct InMemoryEventStore {
 }
 
 impl InMemoryEventStore {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             streams: Arc::new(RwLock::new(HashMap::new())),
@@ -108,7 +108,7 @@ pub struct InMemorySnapshotStore {
 }
 
 impl InMemorySnapshotStore {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             snapshots: Arc::new(RwLock::new(HashMap::new())),

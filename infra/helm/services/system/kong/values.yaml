@@ -127,7 +127,8 @@ autoscaling:
   minReplicas: 2
   maxReplicas: 5
   targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 70
+  # HIGH-005 監査対応: 設計書定義に従い 70% から 60% に修正する
+  targetMemoryUtilizationPercentage: 60
 
 pdb:
   enabled: true

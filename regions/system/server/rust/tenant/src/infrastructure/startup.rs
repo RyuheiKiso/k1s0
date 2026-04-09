@@ -168,8 +168,8 @@ pub async fn run() -> anyhow::Result<()> {
                 brokers,
                 consumer_group: String::new(),
                 security_protocol: "PLAINTEXT".to_string(),
-                sasl: Default::default(),
-                topics: Default::default(),
+                sasl: super::kafka_producer::SaslConfig::default(),
+                topics: super::kafka_producer::TopicsConfig::default(),
             };
             let publisher = super::kafka_producer::KafkaTenantEventPublisher::new(&kafka_cfg)?;
             info!(topic = %publisher.topic(), "Kafka event publisher initialized");
@@ -447,12 +447,13 @@ impl TenantRepository for InMemoryTenantRepository {
 
     async fn list(&self, page: i32, page_size: i32) -> anyhow::Result<(Vec<Tenant>, i64)> {
         let tenants = self.tenants.read().await;
-        let total = tenants.len() as i64;
-        let offset = ((page - 1) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i64::try_from(tenants.len()).unwrap_or(i64::MAX);
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
         let result: Vec<_> = tenants
             .iter()
             .skip(offset)
-            .take(page_size as usize)
+            .take(usize::try_from(page_size).unwrap_or(0))
             .cloned()
             .collect();
         Ok((result, total))

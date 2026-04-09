@@ -32,8 +32,8 @@ impl CosignVerifier for StubCosignVerifier {
 /// `SubprocessCosignVerifier` は cosign CLI を通じてアーティファクト署名を検証する実装。
 /// 事前に cosign バイナリが PATH 上にインストールされている必要がある。
 ///
-/// 検証コマンド例:
-/// ```
+/// 検証コマンド例（シェルスクリプト）:
+/// ```bash
 /// cosign verify-blob \
 ///   --key <public_key_path> \
 ///   --signature <signature_file> \
@@ -45,7 +45,7 @@ pub struct SubprocessCosignVerifier {
 }
 
 impl SubprocessCosignVerifier {
-    #[must_use] 
+    #[must_use]
     pub fn new(public_key_path: String) -> Self {
         Self { public_key_path }
     }

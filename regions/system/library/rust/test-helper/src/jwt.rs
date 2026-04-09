@@ -34,7 +34,7 @@ pub struct JwtTestHelper {
 }
 
 impl JwtTestHelper {
-    #[must_use] 
+    #[must_use]
     pub fn new_hs256(secret: &str) -> Self {
         Self {
             secret: secret.to_string(),
@@ -42,13 +42,13 @@ impl JwtTestHelper {
     }
 
     /// Backward-compatible alias.
-    #[must_use] 
+    #[must_use]
     pub fn new(secret: &str) -> Self {
         Self::new_hs256(secret)
     }
 
     /// 管理者トークンを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn create_admin_token(&self) -> String {
         let claims = TestClaims {
             sub: "admin".to_string(),
@@ -59,7 +59,7 @@ impl JwtTestHelper {
     }
 
     /// ユーザートークンを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn create_user_token(&self, user_id: &str, roles: Vec<String>) -> String {
         let claims = TestClaims {
             sub: user_id.to_string(),
@@ -72,7 +72,10 @@ impl JwtTestHelper {
     /// カスタムクレームでトークンを生成する。
     ///
     /// テスト用簡易 JWT: header.payload.signature の形式。
-    #[must_use] 
+    ///
+    /// # Panics
+    /// クレームの JSON シリアライズに失敗した場合にパニックする（通常は発生しない）。
+    #[must_use]
     pub fn create_token(&self, claims: &TestClaims) -> String {
         let header = base64url_encode(r#"{"alg":"HS256","typ":"JWT"}"#.as_bytes());
         let payload_json = serde_json::to_string(claims).expect("claims serialization");
@@ -83,7 +86,7 @@ impl JwtTestHelper {
     }
 
     /// トークンのペイロードをデコードしてクレームを返す。
-    #[must_use] 
+    #[must_use]
     pub fn decode_claims(&self, token: &str) -> Option<TestClaims> {
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() != 3 {
@@ -94,10 +97,13 @@ impl JwtTestHelper {
     }
 }
 
+/// LOW-008: Base64URLエンコード。マスク後のインデックスは必ず0..=63の範囲であり、u8→charは常に安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
 fn base64url_encode(data: &[u8]) -> String {
     use std::fmt::Write;
-    let mut result = String::new();
+    // Base64URL エンコードテーブル（RFC 4648 §5 準拠）
     static TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut result = String::new();
     let mut i = 0;
     while i + 2 < data.len() {
         let n = (u32::from(data[i]) << 16) | (u32::from(data[i + 1]) << 8) | u32::from(data[i + 2]);
@@ -152,7 +158,8 @@ fn base64url_decode(input: &str) -> Option<Vec<u8>> {
         bits += 6;
         if bits >= 8 {
             bits -= 8;
-            data.push((buf >> bits) as u8);
+            // LOW-008: 安全な型変換（上位24ビットは0のため切り捨て安全）
+            data.push(u8::try_from((buf >> bits) & 0xFF).unwrap_or(0));
             buf &= (1 << bits) - 1;
         }
     }

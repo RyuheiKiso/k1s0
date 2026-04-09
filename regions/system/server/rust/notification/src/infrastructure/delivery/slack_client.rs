@@ -10,7 +10,7 @@ pub struct SlackDeliveryClient {
 }
 
 impl SlackDeliveryClient {
-    #[must_use] 
+    #[must_use]
     pub fn new(webhook_url: String) -> Self {
         Self {
             webhook_url,

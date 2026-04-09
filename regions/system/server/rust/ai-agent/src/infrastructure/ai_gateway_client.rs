@@ -18,7 +18,7 @@ pub struct AiGatewayClient {
 impl AiGatewayClient {
     /// `新しいAiGatewayClientを生成する`
     /// endpointはAI `GatewayサーバーのベースURL`
-    #[must_use] 
+    #[must_use]
     pub fn new(endpoint: &str) -> Self {
         // API Keyは内部通信のため空文字列を使用する
         let inner = HttpAiClient::new(endpoint.to_string(), String::new());

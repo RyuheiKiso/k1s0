@@ -22,7 +22,7 @@ pub struct InMemorySchedulerClient {
 }
 
 impl InMemorySchedulerClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: Mutex::new(MemoryState::default()),

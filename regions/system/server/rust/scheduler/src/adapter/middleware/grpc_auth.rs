@@ -14,7 +14,7 @@ pub struct GrpcAuthLayer {
 }
 
 impl GrpcAuthLayer {
-    #[must_use] 
+    #[must_use]
     pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }
@@ -67,24 +67,20 @@ where
             }
 
             if let Some(auth_state) = auth_state {
-                let token = match extract_bearer_token(&req) {
-                    Some(token) => token,
-                    None => {
-                        return Ok(unauthenticated_response(
-                            "SYS_AUTH_MISSING_TOKEN",
-                            "Authorization metadata with Bearer token is required",
-                        ));
-                    }
+                // Bearerトークンが存在しない場合は認証エラーを返す
+                let Some(token) = extract_bearer_token(&req) else {
+                    return Ok(unauthenticated_response(
+                        "SYS_AUTH_MISSING_TOKEN",
+                        "Authorization metadata with Bearer token is required",
+                    ));
                 };
 
-                let claims = match auth_state.verifier.verify_token(&token).await {
-                    Ok(claims) => claims,
-                    Err(_) => {
-                        return Ok(unauthenticated_response(
-                            "SYS_AUTH_TOKEN_INVALID",
-                            "Token validation failed",
-                        ));
-                    }
+                // トークン検証に失敗した場合は認証エラーを返す
+                let Ok(claims) = auth_state.verifier.verify_token(&token).await else {
+                    return Ok(unauthenticated_response(
+                        "SYS_AUTH_TOKEN_INVALID",
+                        "Token validation failed",
+                    ));
                 };
 
                 if !claims_have_system_tier(&claims) {
@@ -113,11 +109,11 @@ where
 }
 
 fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
-    let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
-    let auth_str = auth_header.to_str().ok()?;
     // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_header = req.headers().get(http::header::AUTHORIZATION)?;
+    let auth_str = auth_header.to_str().ok()?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }

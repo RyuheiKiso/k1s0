@@ -20,7 +20,7 @@ pub struct GrpcAuthLayer {
 
 impl GrpcAuthLayer {
     /// `新しいGrpcAuthLayerを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(auth_state: Option<AuthState>) -> Self {
         Self { auth_state }
     }

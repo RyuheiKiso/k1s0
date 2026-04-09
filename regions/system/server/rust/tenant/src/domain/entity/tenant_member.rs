@@ -12,7 +12,7 @@ pub enum MemberRole {
 
 impl MemberRole {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             MemberRole::Owner => "owner",
@@ -33,7 +33,7 @@ pub struct TenantMember {
 }
 
 impl TenantMember {
-    #[must_use] 
+    #[must_use]
     pub fn new(tenant_id: Uuid, user_id: Uuid, role: String) -> Self {
         Self {
             id: Uuid::new_v4(),

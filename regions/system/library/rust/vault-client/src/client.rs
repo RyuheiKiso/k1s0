@@ -31,12 +31,12 @@ impl Default for InMemoryVaultClient {
 }
 
 impl InMemoryVaultClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::with_config(VaultClientConfig::default())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_config(config: VaultClientConfig) -> Self {
         Self {
             config,

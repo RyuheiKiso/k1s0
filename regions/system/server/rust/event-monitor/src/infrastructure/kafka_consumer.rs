@@ -83,6 +83,8 @@ impl EventKafkaConsumer {
         Ok(())
     }
 
+    // Kafka メッセージのパース・保存・エラーハンドリングを含むため行数が多い
+    #[allow(clippy::too_many_lines)]
     async fn process_message(
         &self,
         msg: &rdkafka::message::BorrowedMessage<'_>,
@@ -192,7 +194,8 @@ impl EventKafkaConsumer {
 
                 // Check if flow is complete
                 if let Some(flow) = flow_defs.iter().find(|f| f.id == flow_id) {
-                    if step_index as usize >= flow.steps.len() - 1 {
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    if usize::try_from(step_index).unwrap_or(0) >= flow.steps.len() - 1 {
                         instance.status = FlowInstanceStatus::Completed;
                         let completed_at = chrono::Utc::now();
                         instance.completed_at = Some(completed_at);

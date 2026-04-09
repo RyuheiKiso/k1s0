@@ -22,9 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("cargo:warning=tonic-build succeeded for notification proto");
         }
         Err(e) => {
-            println!(
-                "cargo:warning=tonic-build failed (protoc may not be installed): {e}"
-            );
+            println!("cargo:warning=tonic-build failed (protoc may not be installed): {e}");
         }
     }
     Ok(())

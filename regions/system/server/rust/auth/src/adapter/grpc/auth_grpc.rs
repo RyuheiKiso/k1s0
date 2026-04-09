@@ -35,6 +35,8 @@ pub enum GrpcError {
 
 // --- AuthGrpcService ---
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct AuthGrpcService {
     validate_token_uc: Arc<ValidateTokenUseCase>,
     get_user_uc: Arc<GetUserUseCase>,
@@ -44,7 +46,7 @@ pub struct AuthGrpcService {
 }
 
 impl AuthGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         validate_token_uc: Arc<ValidateTokenUseCase>,
         get_user_uc: Arc<GetUserUseCase>,
@@ -245,7 +247,8 @@ fn domain_user_to_proto(u: &User) -> proto_auth::User {
         email_verified: u.email_verified,
         created_at: Some(Timestamp {
             seconds: u.created_at.timestamp(),
-            nanos: u.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(u.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
         attributes,
     }

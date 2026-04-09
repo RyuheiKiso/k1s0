@@ -68,7 +68,10 @@ pub fn generate(
 
     for (rel_path, children) in &mod_files {
         let mut mod_ctx = ctx.clone();
-        let children_vec: Vec<String> = children.iter().map(std::string::ToString::to_string).collect();
+        let children_vec: Vec<String> = children
+            .iter()
+            .map(std::string::ToString::to_string)
+            .collect();
         mod_ctx.insert("children", &children_vec);
         render_file(&tera, "mod_rs", &mod_ctx, output_dir, rel_path, &mut result)?;
     }

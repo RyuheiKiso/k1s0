@@ -92,6 +92,7 @@ impl UpdateConfigUseCase {
     }
 
     /// スキーマリポジトリを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_schema_repo(mut self, schema_repo: Arc<dyn ConfigSchemaRepository>) -> Self {
         self.config_schema_repo = Some(schema_repo);
         self
@@ -101,6 +102,8 @@ impl UpdateConfigUseCase {
     /// 更新成功後、Kafka プロデューサーが設定されていれば変更イベントを発行する。
     /// Kafka への通知はベストエフォートであり、失敗してもエラーにしない。
     /// 監査ログも記録する（ベストエフォート）。
+    // DB操作・Kafkaイベント発行・監査ログ記録を含むため行数が多い
+    #[allow(clippy::too_many_lines)]
     pub async fn execute(
         &self,
         input: &UpdateConfigInput,
@@ -121,7 +124,10 @@ impl UpdateConfigUseCase {
         // スキーマ検証（設定済みの場合のみ）
         // CRITICAL-RUST-001 監査対応: tenant_id を渡して RLS テナント分離を保証する。
         if let Some(ref schema_repo) = self.config_schema_repo {
-            if let Ok(Some(schema)) = schema_repo.find_by_namespace(&input.namespace, &input.tenant_id.to_string()).await {
+            if let Ok(Some(schema)) = schema_repo
+                .find_by_namespace(&input.namespace, &input.tenant_id.to_string())
+                .await
+            {
                 validate_value_against_schema(&input.key, &input.value, &schema.schema_json)?;
             }
         }
@@ -229,15 +235,15 @@ fn validate_value_against_schema(
     value: &serde_json::Value,
     schema_json: &serde_json::Value,
 ) -> Result<(), UpdateConfigError> {
-    let categories = match schema_json.get("categories").and_then(|c| c.as_array()) {
-        Some(cats) => cats,
-        None => return Ok(()),
+    // カテゴリーリストが存在しない場合はバリデーションをスキップする
+    let Some(categories) = schema_json.get("categories").and_then(|c| c.as_array()) else {
+        return Ok(());
     };
 
     for category in categories {
-        let fields = match category.get("fields").and_then(|f| f.as_array()) {
-            Some(f) => f,
-            None => continue,
+        // フィールドリストが存在しないカテゴリーはスキップする
+        let Some(fields) = category.get("fields").and_then(|f| f.as_array()) else {
+            continue;
         };
         for field in fields {
             let field_key = field.get("key").and_then(|k| k.as_str()).unwrap_or("");

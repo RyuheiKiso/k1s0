@@ -67,7 +67,8 @@ impl EvaluatePolicyUseCase {
         // When policy_id is provided, always prioritize the package path resolved
         // from the policy record to avoid caller-supplied path drift.
         let resolved_package_path = resolved_policy
-            .as_ref().map_or_else(|| input.package_path.clone(), |p| p.package_path.clone());
+            .as_ref()
+            .map_or_else(|| input.package_path.clone(), |p| p.package_path.clone());
 
         // OPA client available: evaluate via OPA HTTP API
         if let Some(ref opa) = self.opa_client {

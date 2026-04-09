@@ -120,7 +120,13 @@ mod tests {
 
         let uc = DeleteVersionUseCase::new(Arc::new(app_repo), Arc::new(mock));
         let result = uc
-            .execute("tenant-1", "cli", "1.0.0", Some(&Platform::Linux), Some("amd64"))
+            .execute(
+                "tenant-1",
+                "cli",
+                "1.0.0",
+                Some(&Platform::Linux),
+                Some("amd64"),
+            )
             .await;
         assert!(result.is_ok());
     }

@@ -164,10 +164,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map_or(300, |j| j.cache_ttl_secs);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for dlq-manager");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(
@@ -311,11 +308,12 @@ impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepos
             .cloned()
             .collect();
 
-        let total = filtered.len() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = i64::try_from(filtered.len()).unwrap_or(i64::MAX);
         let page = page.max(1);
         let page_size = page_size.max(1);
-        let offset = ((page - 1) * page_size) as usize;
-        let limit = page_size as usize;
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let limit = usize::try_from(page_size).unwrap_or(0);
         let paged: Vec<_> = filtered.into_iter().skip(offset).take(limit).collect();
 
         Ok((paged, total))
@@ -348,6 +346,7 @@ impl crate::domain::repository::DlqMessageRepository for InMemoryDlqMessageRepos
             .iter()
             .filter(|m| m.original_topic == topic)
             .count();
-        Ok(count as i64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok(i64::try_from(count).unwrap_or(i64::MAX))
     }
 }

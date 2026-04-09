@@ -99,6 +99,11 @@ describe('validateURLNotPrivate (M-010)', () => {
     expect(() => validateURLNotPrivate('http://[::1]')).toThrow(ValidationError);
   });
 
+  it('IPv4-mapped IPv6 loopback を拒否する', () => {
+    // CRIT-002 対応: ::ffff:127.x.x.x 形式の IPv4-mapped loopback も拒否する
+    expect(() => validateURLNotPrivate('http://[::ffff:127.0.0.1]')).toThrow(ValidationError);
+  });
+
   it('link-local アドレスを拒否する', () => {
     // M-010 監査対応: 169.254.x.x（APIPA）を拒否する
     expect(() => validateURLNotPrivate('http://169.254.0.1')).toThrow(ValidationError);

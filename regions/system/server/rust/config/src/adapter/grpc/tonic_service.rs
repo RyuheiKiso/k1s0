@@ -49,7 +49,7 @@ pub struct ConfigServiceTonic {
 }
 
 impl ConfigServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<ConfigGrpcService>) -> Self {
         Self { inner }
     }

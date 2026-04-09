@@ -40,16 +40,19 @@ impl InMemoryDlqRepo {
 
 #[async_trait]
 impl DlqMessageRepository for InMemoryDlqRepo {
-    async fn find_by_id(&self, id: Uuid) -> anyhow::Result<Option<DlqMessage>> {
+    /// CRIT-005 対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn find_by_id(&self, id: Uuid, _tenant_id: &str) -> anyhow::Result<Option<DlqMessage>> {
         let msgs = self.messages.read().await;
         Ok(msgs.iter().find(|m| m.id == id).cloned())
     }
 
+    /// CRIT-005 対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
     async fn find_by_topic(
         &self,
         topic: &str,
         page: i32,
         page_size: i32,
+        _tenant_id: &str,
     ) -> anyhow::Result<(Vec<DlqMessage>, i64)> {
         let msgs = self.messages.read().await;
         let filtered: Vec<_> = msgs
@@ -67,11 +70,13 @@ impl DlqMessageRepository for InMemoryDlqRepo {
         Ok((page_items, total))
     }
 
+    /// DLQ メッセージを作成する。
     async fn create(&self, message: &DlqMessage) -> anyhow::Result<()> {
         self.messages.write().await.push(message.clone());
         Ok(())
     }
 
+    /// DLQ メッセージを更新する。
     async fn update(&self, message: &DlqMessage) -> anyhow::Result<()> {
         let mut msgs = self.messages.write().await;
         if let Some(m) = msgs.iter_mut().find(|m| m.id == message.id) {
@@ -80,13 +85,15 @@ impl DlqMessageRepository for InMemoryDlqRepo {
         Ok(())
     }
 
-    async fn delete(&self, id: Uuid) -> anyhow::Result<()> {
+    /// CRIT-005 対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn delete(&self, id: Uuid, _tenant_id: &str) -> anyhow::Result<()> {
         let mut msgs = self.messages.write().await;
         msgs.retain(|m| m.id != id);
         Ok(())
     }
 
-    async fn count_by_topic(&self, topic: &str) -> anyhow::Result<i64> {
+    /// CRIT-005 対応: tenant_id を受け取るが、テスト用インメモリ実装では使用しない。
+    async fn count_by_topic(&self, topic: &str, _tenant_id: &str) -> anyhow::Result<i64> {
         let msgs = self.messages.read().await;
         let count = msgs
             .iter()

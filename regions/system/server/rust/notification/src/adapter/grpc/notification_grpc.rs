@@ -267,6 +267,9 @@ pub struct DeleteTemplateResponse {
 
 // --- gRPC Error ---
 
+// result_large_err: GrpcError のバリアントには複数の String フィールドが含まれるが、
+// gRPC レイヤーのエラー表現に必要な設計であり、サイズ削減のためにボクシングは行わない
+#[allow(clippy::result_large_err)]
 #[derive(Debug, thiserror::Error)]
 pub enum GrpcError {
     #[error("not found: {0}")]
@@ -292,7 +295,11 @@ pub enum GrpcError {
 /// x-tenant-id が存在しない場合は UNAUTHENTICATED エラーを返し、
 /// `認証ミドルウェアの設定漏れを即座に検出できるようにする（task_grpc.rs` の実装に統一）。
 /// （旧フォールバック値 `SYSTEM_TENANT_ID` は廃止）
-pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<String, tonic::Status> {
+// tonic::Status は 176 バイトだが、gRPC エラー伝播の標準型であり変更できない
+#[allow(clippy::result_large_err)]
+pub fn tenant_id_from_metadata(
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, tonic::Status> {
     metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
@@ -385,6 +392,8 @@ impl NotificationGrpcService {
         }
     }
 
+    // Option<&T> の方が慣用的だが Arc<T> の所有権を返す必要があるため &Option<Arc<T>> を使用する
+    #[allow(clippy::ref_option)]
     fn require<T>(opt: &Option<Arc<T>>, name: &str) -> Result<Arc<T>, GrpcError> {
         opt.clone()
             .ok_or_else(|| GrpcError::Internal(format!("{name} usecase is not configured")))
@@ -562,7 +571,13 @@ impl NotificationGrpcService {
         };
         // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播してテナント固有チャンネルのみ返す
         let (channels, total) = uc
-            .execute_paginated(&req.tenant_id, page, page_size, req.channel_type, req.enabled_only)
+            .execute_paginated(
+                &req.tenant_id,
+                page,
+                page_size,
+                req.channel_type,
+                req.enabled_only,
+            )
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         Ok(ListChannelsResponse {
@@ -628,13 +643,13 @@ impl NotificationGrpcService {
         req: UpdateChannelRequest,
     ) -> Result<UpdateChannelResponse, GrpcError> {
         let uc = Self::require(&self.update_channel_uc, "update_channel")?;
-        let config =
-            match req.config_json {
-                Some(raw) => Some(serde_json::from_str::<serde_json::Value>(&raw).map_err(
-                    |e| GrpcError::InvalidArgument(format!("invalid config_json: {e}")),
-                )?),
-                None => None,
-            };
+        let config = match req.config_json {
+            Some(raw) => Some(
+                serde_json::from_str::<serde_json::Value>(&raw)
+                    .map_err(|e| GrpcError::InvalidArgument(format!("invalid config_json: {e}")))?,
+            ),
+            None => None,
+        };
         // MEDIUM-RUST-001 監査対応: req.tenant_id を伝播して RLS を有効化する
         let input = UpdateChannelInput {
             id: req.id,

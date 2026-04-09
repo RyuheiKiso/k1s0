@@ -125,7 +125,7 @@ pub struct DatabaseConfig {
 
 impl DatabaseConfig {
     /// `PostgreSQL` 接続 URL を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
@@ -139,7 +139,7 @@ impl DatabaseConfig {
         )
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn migrations_path() -> &'static Path {
         Path::new("../../../database/master-maintenance-db/migrations")
     }
@@ -252,7 +252,7 @@ fn default_max_file_size() -> usize {
     50
 }
 fn default_max_rows() -> usize {
-    100000
+    100_000
 }
 fn default_batch_size() -> usize {
     500

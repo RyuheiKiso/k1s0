@@ -20,7 +20,7 @@ pub struct InMemoryAiClient {
 
 impl InMemoryAiClient {
     /// `固定レスポンスを持つInMemoryAiClientを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(responses: Vec<CompleteResponse>, embed_responses: Vec<EmbedResponse>) -> Self {
         Self {
             responses: Mutex::new(responses),
@@ -30,7 +30,7 @@ impl InMemoryAiClient {
     }
 
     /// `モデル一覧付きのInMemoryAiClientを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn with_models(
         responses: Vec<CompleteResponse>,
         embed_responses: Vec<EmbedResponse>,

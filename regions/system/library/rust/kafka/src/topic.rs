@@ -36,7 +36,7 @@ fn default_partitions() -> u32 {
 /// - system tier: 6 パーティション
 /// - business tier: 6 パーティション
 /// - service tier / その他: 3 パーティション
-#[must_use] 
+#[must_use]
 pub fn default_partitions_for_tier(tier: &str) -> u32 {
     match tier {
         "system" | "business" => 6,
@@ -81,7 +81,7 @@ impl TopicConfig {
 
     /// トピック名から tier を判定し、tier 別デフォルトパーティション数を設定した `TopicConfig` を返す。
     /// パーティション数が明示指定されていない（デフォルト値 3 のまま）場合に tier 別の値で上書きする。
-    #[must_use] 
+    #[must_use]
     pub fn with_tier_defaults(mut self) -> Self {
         let tier = self.tier().to_string();
         if !tier.is_empty() {

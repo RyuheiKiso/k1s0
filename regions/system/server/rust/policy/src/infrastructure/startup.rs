@@ -336,12 +336,14 @@ impl PolicyRepository for InMemoryPolicyRepository {
             .cloned()
             .collect();
         filtered.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-        let total = filtered.len() as u64;
-        let start = ((page.saturating_sub(1)) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let items: Vec<Policy> = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((items, total))
     }
@@ -388,7 +390,11 @@ impl InMemoryPolicyBundleRepository {
 #[async_trait::async_trait]
 impl PolicyBundleRepository for InMemoryPolicyBundleRepository {
     /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
-    async fn find_by_id(&self, id: &Uuid, _tenant_id: &str) -> anyhow::Result<Option<PolicyBundle>> {
+    async fn find_by_id(
+        &self,
+        id: &Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<PolicyBundle>> {
         let bundles = self.bundles.read().await;
         Ok(bundles.get(id).cloned())
     }

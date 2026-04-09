@@ -37,7 +37,7 @@ pub struct InMemoryGraphQlClient {
 }
 
 impl InMemoryGraphQlClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             responses: Arc::new(tokio::sync::RwLock::new(HashMap::new())),

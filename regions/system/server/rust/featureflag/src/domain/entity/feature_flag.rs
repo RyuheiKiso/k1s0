@@ -36,7 +36,7 @@ pub struct FeatureFlag {
 
 impl FeatureFlag {
     /// HIGH-005 対応: `tenant_id` は String 型（DB の TEXT 型に対応）。
-    #[must_use] 
+    #[must_use]
     pub fn new(tenant_id: String, flag_key: String, description: String, enabled: bool) -> Self {
         let now = Utc::now();
         Self {

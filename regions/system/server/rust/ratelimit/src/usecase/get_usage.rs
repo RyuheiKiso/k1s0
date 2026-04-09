@@ -58,7 +58,11 @@ impl GetUsageUseCase {
     }
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープのレートリミット使用状況を取得する。
-    pub async fn execute(&self, tenant_id: &str, rule_id: &str) -> Result<UsageInfo, GetUsageError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        rule_id: &str,
+    ) -> Result<UsageInfo, GetUsageError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetUsageError::InvalidRuleId(rule_id.to_string()))?;
 

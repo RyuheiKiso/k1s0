@@ -10,7 +10,7 @@ pub struct BufferedAuditClient {
 }
 
 impl BufferedAuditClient {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             buffer: Mutex::new(Vec::new()),

@@ -35,11 +35,15 @@ pub async fn auth_middleware(
             // トークン有効期限切れ: クライアントにリフレッシュを促す
             AuthError::TokenExpired => ServiceError::unauthorized("AUTH", "Token has expired"),
             // 署名不正: トークン改ざんの可能性
-            AuthError::InvalidToken(ref msg) if msg.contains("signature") || msg.contains("InvalidSignature") => {
+            AuthError::InvalidToken(ref msg)
+                if msg.contains("signature") || msg.contains("InvalidSignature") =>
+            {
                 ServiceError::unauthorized("AUTH", "Invalid token signature")
             }
             // クレーム不正（iss/aud/nbf 等の検証失敗）
-            AuthError::InvalidToken(ref msg) if msg.contains("aud") || msg.contains("iss") || msg.contains("nbf") => {
+            AuthError::InvalidToken(ref msg)
+                if msg.contains("aud") || msg.contains("iss") || msg.contains("nbf") =>
+            {
                 ServiceError::unauthorized("AUTH", "Token claims validation failed")
             }
             // JWKS 取得失敗: 一時的なサービス障害

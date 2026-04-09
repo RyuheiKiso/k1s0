@@ -38,7 +38,7 @@ pub struct AppState {
 
 impl AppState {
     /// 認証状態を設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self

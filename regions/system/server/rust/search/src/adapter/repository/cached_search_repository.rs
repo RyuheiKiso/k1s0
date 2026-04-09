@@ -52,8 +52,15 @@ impl SearchRepository for CachedSearchRepository {
     }
 
     /// CRIT-005 対応: `tenant_id` を delegate に渡し RLS を有効にしてドキュメントを削除する。
-    async fn delete_document(&self, index_name: &str, doc_id: &str, tenant_id: &str) -> anyhow::Result<bool> {
-        self.inner.delete_document(index_name, doc_id, tenant_id).await
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        tenant_id: &str,
+    ) -> anyhow::Result<bool> {
+        self.inner
+            .delete_document(index_name, doc_id, tenant_id)
+            .await
     }
 
     /// CRIT-005 対応: `tenant_id` を delegate に渡し RLS を有効にして全インデックスを取得する。

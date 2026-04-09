@@ -103,25 +103,25 @@ pub struct RbacMiddlewareLayer {
 }
 
 impl RbacMiddlewareLayer {
-    #[must_use] 
+    #[must_use]
     pub fn new(action: NavigationAction) -> Self {
         Self { action }
     }
 
     /// `読み取り権限（sys_auditor` 以上）を要求するレイヤーを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn read() -> Self {
         Self::new(NavigationAction::Read)
     }
 
     /// `書き込み権限（sys_operator` 以上）を要求するレイヤーを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn write() -> Self {
         Self::new(NavigationAction::Write)
     }
 
     /// `管理権限（sys_admin` のみ）を要求するレイヤーを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn admin() -> Self {
         Self::new(NavigationAction::Admin)
     }

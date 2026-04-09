@@ -128,7 +128,7 @@ func TestEncryptedStore_CreateAndGet(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{
+	data := &Data{
 		AccessToken:  "access-token-secret",
 		RefreshToken: "refresh-token-secret",
 		Subject:      "user-sub-001",
@@ -173,11 +173,11 @@ func TestEncryptedStore_Update(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	original := &SessionData{AccessToken: "old-token", Subject: "user-001"}
+	original := &Data{AccessToken: "old-token", Subject: "user-001"}
 	id, err := store.Create(ctx, original, 30*time.Minute)
 	require.NoError(t, err)
 
-	updated := &SessionData{AccessToken: "new-token", Subject: "user-001"}
+	updated := &Data{AccessToken: "new-token", Subject: "user-001"}
 	err = store.Update(ctx, id, updated, 30*time.Minute)
 	require.NoError(t, err)
 
@@ -194,7 +194,7 @@ func TestEncryptedStore_Delete(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{AccessToken: "token-to-delete"}
+	data := &Data{AccessToken: "token-to-delete"}
 	id, err := store.Create(ctx, data, 30*time.Minute)
 	require.NoError(t, err)
 
@@ -214,7 +214,7 @@ func TestEncryptedStore_Touch(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{AccessToken: "token-to-touch"}
+	data := &Data{AccessToken: "token-to-touch"}
 	id, err := store.Create(ctx, data, 5*time.Minute)
 	require.NoError(t, err)
 
@@ -235,7 +235,7 @@ func TestEncryptedStore_TamperedCiphertext(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{AccessToken: "secret-token"}
+	data := &Data{AccessToken: "secret-token"}
 	id, err := store.Create(ctx, data, 30*time.Minute)
 	require.NoError(t, err)
 
@@ -269,7 +269,7 @@ func TestEncryptedStore_KeyIsolation(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{AccessToken: "secret-with-key1"}
+	data := &Data{AccessToken: "secret-with-key1"}
 	id, err := store1.Create(ctx, data, 30*time.Minute)
 	require.NoError(t, err)
 
@@ -286,7 +286,7 @@ func TestEncryptedStore_DefaultPrefix(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	data := &SessionData{AccessToken: "token"}
+	data := &Data{AccessToken: "token"}
 	id, err := store.Create(ctx, data, 30*time.Minute)
 	require.NoError(t, err)
 

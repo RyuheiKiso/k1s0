@@ -84,7 +84,12 @@ impl IncrementQuotaUsageUseCase {
         // 2. アトミックに check-and-increment を実行（RLS のため tenant_id を渡す）
         let CheckAndIncrementResult { used, allowed } = self
             .usage_repo
-            .check_and_increment(&input.quota_id, input.amount, policy.limit, &input.tenant_id)
+            .check_and_increment(
+                &input.quota_id,
+                input.amount,
+                policy.limit,
+                &input.tenant_id,
+            )
             .await
             .map_err(|e| IncrementQuotaUsageError::Internal(e.to_string()))?;
 
@@ -120,7 +125,10 @@ impl IncrementQuotaUsageUseCase {
             let prev_percent = if policy.limit == 0 {
                 100.0
             } else {
-                ((used.saturating_sub(input.amount)) as f64 / policy.limit as f64) * 100.0
+                // LOW-008: u64 → f64 の精度損失は許容（クォータ閾値判定の近似値計算のため）
+                #[allow(clippy::cast_precision_loss)]
+                let prev = (used.saturating_sub(input.amount)) as f64 / policy.limit as f64 * 100.0;
+                prev
             };
             if usage_percent >= f64::from(threshold) && prev_percent < f64::from(threshold) {
                 let event = QuotaThresholdReachedEvent {
@@ -159,8 +167,10 @@ mod tests {
         MockQuotaPolicyRepository, MockQuotaUsageRepository,
     };
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> crate::domain::entity::quota::QuotaPolicy {
         crate::domain::entity::quota::QuotaPolicy::new(
+            "test-tenant".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-abc".to_string(),

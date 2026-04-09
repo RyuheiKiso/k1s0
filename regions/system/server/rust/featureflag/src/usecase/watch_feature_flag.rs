@@ -18,7 +18,7 @@ pub struct WatchFeatureFlagUseCase {
 impl WatchFeatureFlagUseCase {
     /// 新しい `WatchFeatureFlagUseCase` を生成する。
     /// `broadcast::Sender` も返し、更新系ユースケースが変更通知を発行できるようにする。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> (Self, broadcast::Sender<FeatureFlagChangeEvent>) {
         let (tx, _) = broadcast::channel(256);
         let sender = tx.clone();
@@ -27,7 +27,7 @@ impl WatchFeatureFlagUseCase {
 
     /// 新しい Receiver を返す。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<FeatureFlagChangeEvent> {
         self.sender.subscribe()
     }

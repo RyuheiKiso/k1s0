@@ -16,7 +16,7 @@ pub struct ApiKeyPostgresRepository {
 
 impl ApiKeyPostgresRepository {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self {
             pool,
@@ -24,7 +24,7 @@ impl ApiKeyPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -163,11 +163,10 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         // FORCE ROW LEVEL SECURITY が有効なため直接 UPDATE では RLS に遮断される。
         // 関数がオーナー権限で実行されることで RLS をバイパスして失効処理を実行する。
         // 更新された行の id を返す: 0 行 → キーが存在しない（NotFound）。
-        let updated_id: Option<Uuid> =
-            sqlx::query_scalar("SELECT id FROM auth.api_key_revoke($1)")
-                .bind(id)
-                .fetch_optional(&self.pool)
-                .await?;
+        let updated_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM auth.api_key_revoke($1)")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("revoke", "api_keys", start.elapsed().as_secs_f64());
@@ -186,11 +185,10 @@ impl ApiKeyRepository for ApiKeyPostgresRepository {
         // CRITICAL-RUST-001 監査対応: auth.api_key_delete は SECURITY DEFINER 関数（migration 022）。
         // FORCE ROW LEVEL SECURITY が有効なため直接 DELETE では RLS に遮断される。
         // 削除された行の id を返す: 0 行 → キーが存在しない（NotFound）。
-        let deleted_id: Option<Uuid> =
-            sqlx::query_scalar("SELECT id FROM auth.api_key_delete($1)")
-                .bind(id)
-                .fetch_optional(&self.pool)
-                .await?;
+        let deleted_id: Option<Uuid> = sqlx::query_scalar("SELECT id FROM auth.api_key_delete($1)")
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if let Some(ref m) = self.metrics {
             m.record_db_query_duration("delete", "api_keys", start.elapsed().as_secs_f64());

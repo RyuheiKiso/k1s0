@@ -35,8 +35,9 @@ impl OutboxStore for PostgresOutboxStore {
         .bind(&message.partition_key)
         .bind(&message.payload)
         .bind(message.status.as_str())
-        .bind(message.retry_count as i32)
-        .bind(message.max_retries as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(message.retry_count).unwrap_or(i32::MAX))
+        .bind(i32::try_from(message.max_retries).unwrap_or(i32::MAX))
         .bind(&message.last_error)
         .bind(message.created_at)
         .bind(message.process_after)
@@ -56,7 +57,8 @@ impl OutboxStore for PostgresOutboxStore {
                ORDER BY created_at ASC
                LIMIT $1"#,
         )
-        .bind(limit as i64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i64::try_from(limit).unwrap_or(i64::MAX))
         .fetch_all(&self.pool)
         .await
         .map_err(|e| OutboxError::StoreError(e.to_string()))?;
@@ -71,7 +73,8 @@ impl OutboxStore for PostgresOutboxStore {
                WHERE id = $5"#,
         )
         .bind(message.status.as_str())
-        .bind(message.retry_count as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(message.retry_count).unwrap_or(i32::MAX))
         .bind(&message.last_error)
         .bind(message.process_after)
         .bind(message.id)
@@ -87,7 +90,8 @@ impl OutboxStore for PostgresOutboxStore {
                WHERE status = 'DELIVERED'
                AND created_at < NOW() - ($1 || ' days')::interval"#,
         )
-        .bind(older_than_days as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(older_than_days).unwrap_or(i32::MAX))
         .execute(&self.pool)
         .await
         .map_err(|e| OutboxError::StoreError(e.to_string()))?;
@@ -103,7 +107,8 @@ impl OutboxStore for PostgresOutboxStore {
                WHERE status = 'PROCESSING'
                AND process_after < NOW() - ($1 || ' minutes')::interval"#,
         )
-        .bind(stale_minutes as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(stale_minutes).unwrap_or(i32::MAX))
         .execute(&self.pool)
         .await
         .map_err(|e| OutboxError::StoreError(e.to_string()))?;
@@ -136,8 +141,9 @@ impl From<OutboxRow> for OutboxMessage {
             partition_key: row.partition_key,
             payload: row.payload,
             status: OutboxStatus::from_str(&row.status),
-            retry_count: row.retry_count as u32,
-            max_retries: row.max_retries as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            retry_count: u32::try_from(row.retry_count).unwrap_or(0),
+            max_retries: u32::try_from(row.max_retries).unwrap_or(0),
             last_error: row.last_error,
             created_at: row.created_at,
             process_after: row.process_after,

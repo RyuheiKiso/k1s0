@@ -31,6 +31,8 @@ impl From<GrpcError> for tonic::Status {
     }
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct FileGrpcService {
     get_file_metadata_uc: Arc<GetFileMetadataUseCase>,
     list_files_uc: Arc<ListFilesUseCase>,
@@ -42,7 +44,7 @@ pub struct FileGrpcService {
 }
 
 impl FileGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         get_file_metadata_uc: Arc<GetFileMetadataUseCase>,
         list_files_uc: Arc<ListFilesUseCase>,
@@ -139,7 +141,8 @@ impl FileGrpcService {
         }
         let input = GenerateUploadUrlInput {
             filename,
-            size_bytes: size_bytes as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            size_bytes: u64::try_from(size_bytes).unwrap_or(0),
             content_type,
             tenant_id,
             uploaded_by,

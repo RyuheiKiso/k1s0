@@ -17,11 +17,11 @@ const SYSTEM_TENANT_ID: &str = "00000000-0000-0000-0000-000000000001";
 
 /// JWT クレームからテナントIDを抽出する。
 /// クレームが存在しない場合、または `tenant_id` が無効な UUID の場合は 401 を返す。
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
 fn extract_tenant_id(
-    claims: &Option<Extension<k1s0_auth::Claims>>,
+    claims: Option<&Extension<k1s0_auth::Claims>>,
 ) -> Result<Uuid, (StatusCode, Json<serde_json::Value>)> {
     let tenant_id_str = claims
-        .as_ref()
         .map(|Extension(c)| c.tenant_id.as_str())
         .filter(|s| !s.is_empty())
         .ok_or_else(|| {
@@ -50,6 +50,8 @@ pub async fn healthz() -> impl IntoResponse {
     Json(serde_json::json!({"status": "ok"}))
 }
 
+/// # Panics
+/// 定数 `SYSTEM_TENANT_ID` が有効な UUID でない場合にパニックする（設計上発生しない）。
 #[utoipa::path(get, path = "/readyz", responses((status = 200, description = "Ready"), (status = 503, description = "Not ready")))]
 pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // システムテナントで軽量クエリを実行して DB 接続確認を行う
@@ -126,11 +128,15 @@ pub async fn get_config(
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id(&claims) {
+    let tenant_id = match extract_tenant_id(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
-    match state.get_config_uc.execute(tenant_id, &namespace, &key).await {
+    match state
+        .get_config_uc
+        .execute(tenant_id, &namespace, &key)
+        .await
+    {
         Ok(entry) => {
             let resp = serde_json::json!({
                 "id": entry.id,
@@ -167,7 +173,7 @@ pub async fn list_configs(
     Query(params): Query<ListConfigsParams>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id(&claims) {
+    let tenant_id = match extract_tenant_id(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -217,7 +223,7 @@ pub async fn update_config(
     Json(req): Json<UpdateConfigRequest>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id(&claims) {
+    let tenant_id = match extract_tenant_id(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -271,7 +277,7 @@ pub async fn delete_config(
     Path((namespace, key)): Path<(String, String)>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id(&claims) {
+    let tenant_id = match extract_tenant_id(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -308,7 +314,7 @@ pub async fn get_service_config(
     Query(query): Query<ServiceConfigQuery>,
 ) -> impl IntoResponse {
     // テナントIDが無効な場合は 401 を返す
-    let tenant_id = match extract_tenant_id(&claims) {
+    let tenant_id = match extract_tenant_id(claims.as_ref()) {
         Ok(id) => id,
         Err(err) => return err.into_response(),
     };
@@ -400,9 +406,10 @@ mod tests {
 
     fn make_app_state(mock: MockConfigRepository) -> AppState {
         let mut schema_mock = MockConfigSchemaRepository::new();
+        // CRITICAL-RUST-001 監査対応: tenant_id パラメータが追加されたため 2 引数のクロージャを使用する
         schema_mock
             .expect_find_by_namespace()
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
         AppState::new(Arc::new(mock), Arc::new(schema_mock))
     }
 

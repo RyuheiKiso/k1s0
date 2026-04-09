@@ -67,7 +67,7 @@ pub struct SessionMetadataPostgresRepository {
 }
 
 impl SessionMetadataPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -320,9 +320,6 @@ mod tests {
             .await
             .unwrap()
             .is_empty());
-        assert!(repo
-            .mark_revoked(Uuid::new_v4(), "tenant-a")
-            .await
-            .is_ok());
+        assert!(repo.mark_revoked(Uuid::new_v4(), "tenant-a").await.is_ok());
     }
 }

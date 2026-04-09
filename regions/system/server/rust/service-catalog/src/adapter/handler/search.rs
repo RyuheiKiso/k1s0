@@ -44,7 +44,11 @@ pub async fn search_services(
         .map(|t| t.split(',').map(|s| s.trim().to_string()).collect());
     let tier = params.tier.and_then(|t| t.parse::<ServiceTier>().ok());
 
-    match state.search_services_uc.execute(&claims.tenant_id, params.q, tags, tier).await {
+    match state
+        .search_services_uc
+        .execute(&claims.tenant_id, params.q, tags, tier)
+        .await
+    {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());

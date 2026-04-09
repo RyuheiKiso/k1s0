@@ -87,8 +87,10 @@ mod tests {
     use crate::domain::entity::quota::{Period, SubjectType};
     use crate::domain::repository::quota_repository::MockQuotaPolicyRepository;
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> QuotaPolicy {
         QuotaPolicy::new(
+            "test-tenant".to_string(),
             "original".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

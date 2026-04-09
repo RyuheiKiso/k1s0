@@ -36,6 +36,8 @@ pub fn load(base_path: &str, env_path: Option<&str>) -> Result<Config, ConfigErr
 }
 
 /// 設定値のバリデーション。
+// バリデーション項目が多いため行数が多くなる
+#[allow(clippy::too_many_lines)]
 pub fn validate(config: &Config) -> Result<(), ConfigError> {
     require_non_empty("app.name", &config.app.name)?;
     require_non_empty("app.version", &config.app.version)?;

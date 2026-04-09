@@ -30,7 +30,10 @@ pub async fn send_notification(
 
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
     // 認証なし環境（開発・テスト）では "system" にフォールバックする。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     let channel_id = req.channel_id;
     let template_id = req.template_id;
@@ -127,11 +130,18 @@ pub async fn get_notification(
 ) -> impl IntoResponse {
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
     // チャンネル情報取得時にテナント分離を強制するために使用する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     match state.log_repo.find_by_id(&id).await {
         Ok(Some(log)) => {
-            let channel_type = match state.get_channel_uc.execute(&log.channel_id, &tenant_id).await {
+            let channel_type = match state
+                .get_channel_uc
+                .execute(&log.channel_id, &tenant_id)
+                .await
+            {
                 Ok(channel) => Some(channel.channel_type),
                 Err(_) => None,
             };
@@ -178,7 +188,10 @@ pub async fn retry_notification(
     use crate::usecase::retry_notification::RetryNotificationInput;
 
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     let input = RetryNotificationInput {
         notification_id: id,
@@ -245,7 +258,10 @@ pub async fn create_channel(
     // 認証ミドルウェアが Claims を Extension として挿入するため、
     // Option<Extension<Claims>> で取得し、存在すれば Claims の tenant_id() メソッドを使用する。
     // 認証なし環境（開発・テスト）では "system" にフォールバックする。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     let input = CreateChannelInput {
         name: req.name,
@@ -295,11 +311,20 @@ pub async fn list_channels(
     let enabled_only = params.enabled_only.unwrap_or(false);
 
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     match state
         .list_channels_uc
-        .execute_paginated(&tenant_id, page, page_size, params.channel_type, enabled_only)
+        .execute_paginated(
+            &tenant_id,
+            page,
+            page_size,
+            params.channel_type,
+            enabled_only,
+        )
         .await
     {
         Ok((channels, total_count)) => {
@@ -346,7 +371,10 @@ pub async fn get_channel(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     match state.get_channel_uc.execute(&id, &tenant_id).await {
         Ok(channel) => (
@@ -392,7 +420,10 @@ pub async fn update_channel(
     use crate::usecase::update_channel::UpdateChannelInput;
 
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     let input = UpdateChannelInput {
         id,
@@ -441,7 +472,10 @@ pub async fn delete_channel(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     // MEDIUM-RUST-001 監査対応: JWT クレームから tenant_id を取得する。
-    let tenant_id = claims.map_or_else(|| "system".to_string(), |Extension(c)| c.tenant_id().to_string());
+    let tenant_id = claims.map_or_else(
+        || "system".to_string(),
+        |Extension(c)| c.tenant_id().to_string(),
+    );
 
     match state.delete_channel_uc.execute(&id, &tenant_id).await {
         Ok(()) => (

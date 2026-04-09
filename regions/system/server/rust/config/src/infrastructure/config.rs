@@ -200,10 +200,7 @@ impl Default for EncryptionConfig {
 }
 
 fn default_sensitive_namespaces() -> Vec<String> {
-    vec![
-        "system.auth".to_string(),
-        "system.database".to_string(),
-    ]
+    vec!["system.auth".to_string(), "system.database".to_string()]
 }
 
 /// `AppConfig` 縺ｯ繧｢繝励Μ繧ｱ繝ｼ繧ｷ繝ｧ繝ｳ蝓ｺ譛ｬ險ｭ螳壹ｒ陦ｨ縺吶・

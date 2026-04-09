@@ -415,40 +415,13 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// HIGH-GO-001 監査対応: Prometheus メトリクスを内部専用ポートで公開する。
-	// クラスター内の Prometheus のみがスクレイプできるよう、公開ルーターとは別サーバーを起動する。
+	// HIGH-GO-001 監査対応: Prometheus メトリクスを内部専用ポートで起動し、公開ルーターから分離する。
 	// InternalPort が 0 の場合はデフォルト 9090 を使用する。
 	internalPort := cfg.Server.InternalPort
 	if internalPort == 0 {
 		internalPort = 9090
 	}
-	var internalSrv *http.Server
-	if cfg.Observability.Metrics.Enabled {
-		metricsPath := cfg.Observability.Metrics.Path
-		if metricsPath == "" {
-			metricsPath = "/metrics"
-		}
-		// DY-003 修正: Prometheus が同一 Pod 内のサイドカーではなく別 Pod からスクレイプするため、
-		// 0.0.0.0 にバインドして Pod の IP アドレスでアクセスできるようにする。
-		// NetworkPolicy で k1s0-observability namespace からの接続のみを許可し、外部露出を防止する。
-		internalMux := http.NewServeMux()
-		// メトリクスエンドポイントのみを内部サーバーに登録する
-		internalMux.Handle(metricsPath, promhttp.Handler())
-		internalAddr := fmt.Sprintf("0.0.0.0:%d", internalPort)
-		internalSrv = &http.Server{
-			Addr:              internalAddr,
-			Handler:           internalMux,
-			ReadTimeout:       10 * time.Second,
-			WriteTimeout:      10 * time.Second,
-			ReadHeaderTimeout: 5 * time.Second,
-		}
-		go func() {
-			logger.Info("内部メトリクスサーバーを起動します", slog.String("addr", internalAddr), slog.String("path", metricsPath))
-			if err := internalSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				logger.Error("内部メトリクスサーバーがエラーで終了しました", slog.String("error", err.Error()))
-			}
-		}()
-	}
+	internalSrv := startInternalMetricsServer(cfg, internalPort, logger)
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -485,6 +458,42 @@ func startServer(ctx context.Context, cfg *config.BFFConfig, router *gin.Engine,
 	oidcWg.Wait()
 	logger.Info("BFF Proxy stopped")
 	return nil
+}
+
+// startInternalMetricsServer は Prometheus メトリクス専用の内部サーバーをセットアップして起動する。
+// HIGH-GO-001 監査対応: メトリクスを公開ルーターから分離し、クラスター内 Prometheus のみがアクセスできる
+// 専用ポートで公開する。メトリクスが無効の場合は nil を返す。
+func startInternalMetricsServer(cfg *config.BFFConfig, internalPort int, logger *slog.Logger) *http.Server {
+	if !cfg.Observability.Metrics.Enabled {
+		return nil
+	}
+
+	metricsPath := cfg.Observability.Metrics.Path
+	if metricsPath == "" {
+		metricsPath = "/metrics"
+	}
+
+	// DY-003 修正: Prometheus が同一 Pod 内のサイドカーではなく別 Pod からスクレイプするため、
+	// 0.0.0.0 にバインドして Pod の IP アドレスでアクセスできるようにする。
+	// NetworkPolicy で k1s0-observability namespace からの接続のみを許可し、外部露出を防止する。
+	internalMux := http.NewServeMux()
+	// メトリクスエンドポイントのみを内部サーバーに登録する
+	internalMux.Handle(metricsPath, promhttp.Handler())
+	internalAddr := fmt.Sprintf("0.0.0.0:%d", internalPort)
+	internalSrv := &http.Server{
+		Addr:              internalAddr,
+		Handler:           internalMux,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	go func() {
+		logger.Info("内部メトリクスサーバーを起動します", slog.String("addr", internalAddr), slog.String("path", metricsPath))
+		if err := internalSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("内部メトリクスサーバーがエラーで終了しました", slog.String("error", err.Error()))
+		}
+	}()
+	return internalSrv
 }
 
 func initTracerProvider(

@@ -72,7 +72,11 @@ pub async fn get_team_services(
         ..Default::default()
     };
 
-    match state.list_services_uc.execute(&claims.tenant_id, filters).await {
+    match state
+        .list_services_uc
+        .execute(&claims.tenant_id, filters)
+        .await
+    {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());

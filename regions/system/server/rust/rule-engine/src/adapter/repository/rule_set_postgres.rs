@@ -13,7 +13,7 @@ pub struct RuleSetPostgresRepository {
 }
 
 impl RuleSetPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -40,11 +40,11 @@ impl From<RuleSetRow> for RuleSet {
             tenant_id: r.tenant_id,
             name: r.name,
             description: r.description.unwrap_or_default(),
-            domain: String::new(),                        // not in DB schema
-            evaluation_mode: EvaluationMode::FirstMatch,  // not in DB schema
-            default_result: serde_json::Value::Null,      // not in DB schema
-            rule_ids: Vec::new(),                          // loaded separately via versions
-            current_version: 0,                            // not in DB schema
+            domain: String::new(),                       // not in DB schema
+            evaluation_mode: EvaluationMode::FirstMatch, // not in DB schema
+            default_result: serde_json::Value::Null,     // not in DB schema
+            rule_ids: Vec::new(),                        // loaded separately via versions
+            current_version: 0,                          // not in DB schema
             enabled: r.status == "active",
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -106,7 +106,8 @@ impl RuleSetRepository for RuleSetPostgresRepository {
             .fetch_one(self.pool.as_ref())
             .await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     async fn find_by_domain_and_name(

@@ -67,9 +67,21 @@ impl TenantGrpcClient {
             plan: t.plan,
             owner_id: t.owner_id,
             // 空文字列の場合は None に変換する（proto の optional フィールドと GraphQL nullable の整合）
-            settings: if t.settings.is_empty() { None } else { Some(t.settings) },
-            db_schema: if t.db_schema.is_empty() { None } else { Some(t.db_schema) },
-            keycloak_realm: if t.keycloak_realm.is_empty() { None } else { Some(t.keycloak_realm) },
+            settings: if t.settings.is_empty() {
+                None
+            } else {
+                Some(t.settings)
+            },
+            db_schema: if t.db_schema.is_empty() {
+                None
+            } else {
+                Some(t.db_schema)
+            },
+            keycloak_realm: if t.keycloak_realm.is_empty() {
+                None
+            } else {
+                Some(t.keycloak_realm)
+            },
             created_at: timestamp_to_rfc3339(t.created_at),
             updated_at: timestamp_to_rfc3339(t.updated_at),
         }
@@ -115,10 +127,8 @@ impl TenantGrpcClient {
 
         match self.client.clone().get_tenant(request).await {
             Ok(resp) => {
-                let t = match resp.into_inner().tenant {
-                    Some(t) => t,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(t) = resp.into_inner().tenant else { return Ok(None) };
                 Ok(Some(Self::tenant_from_proto(t)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -334,7 +344,8 @@ impl TenantPort for TenantGrpcClient {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

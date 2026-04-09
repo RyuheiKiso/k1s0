@@ -15,7 +15,7 @@ pub struct FeatureFlagPostgresRepository {
 
 impl FeatureFlagPostgresRepository {
     /// 新しい `FeatureFlagPostgresRepository` を作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }

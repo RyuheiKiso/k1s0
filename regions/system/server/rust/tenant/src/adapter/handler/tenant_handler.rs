@@ -79,7 +79,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    #[must_use] 
+    #[must_use]
     pub fn with_auth(mut self, auth_state: AuthState) -> Self {
         self.auth_state = Some(auth_state);
         self
@@ -157,9 +157,10 @@ fn default_page_size() -> i32 {
 /// テナント一覧レスポンス。
 /// LOW-10 確認: ページネーション形式は他サービスと統一されている。
 /// auth サーバーの Pagination `構造体（total_count`, page, `page_size`, `has_next）と同一形式`。
-/// TODO(LOW-10): cursor `ベースのページネーション（after_cursor` フィールド等）への移行を検討すること。
+/// TODO(future-work): cursor `ベースのページネーション（after_cursor` フィールド等）への移行を検討すること。
 ///   大規模データ取得時に OFFSET ベースではパフォーマンス劣化が発生するため、
 ///   keyset ページネーション化が推奨される（vault の `list_audit_logs` と同様の課題）。
+///   優先度: LOW。対応時は DB クエリ・API レスポンス・クライアント側の変更が必要となるため ADR を作成すること。
 #[derive(Debug, Serialize)]
 pub struct ListTenantsResponse {
     pub tenants: Vec<TenantResponse>,
@@ -332,15 +333,13 @@ pub async fn get_tenant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
     match state.get_tenant_uc.execute(tenant_id).await {
@@ -371,26 +370,23 @@ pub async fn create_tenant(
     State(state): State<AppState>,
     Json(req): Json<CreateTenantRequest>,
 ) -> impl IntoResponse {
-    let owner_id = match Uuid::parse_str(&req.owner_id) {
-        Ok(id) => Some(id),
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid owner id: {}", req.owner_id),
-            )
-            .into_response()
-        }
+    // オーナーIDのUUIDパース失敗時は400エラーを返す
+    let Ok(owner_uuid) = Uuid::parse_str(&req.owner_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid owner id: {}", req.owner_id),
+        )
+        .into_response();
     };
+    let owner_id = Some(owner_uuid);
 
-    let plan = match req.plan.parse::<Plan>() {
-        Ok(plan) => plan,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid plan: {}", req.plan),
-            )
-            .into_response()
-        }
+    // プランの文字列パース失敗時は400エラーを返す
+    let Ok(plan) = req.plan.parse::<Plan>() else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid plan: {}", req.plan),
+        )
+        .into_response();
     };
 
     let input = CreateTenantInput {
@@ -432,26 +428,22 @@ pub async fn update_tenant(
     Path(id): Path<String>,
     Json(req): Json<UpdateTenantRequest>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
-    let plan = match req.plan.parse::<Plan>() {
-        Ok(plan) => plan,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid plan: {}", req.plan),
-            )
-            .into_response()
-        }
+    // プランの文字列パース失敗時は400エラーを返す
+    let Ok(plan) = req.plan.parse::<Plan>() else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid plan: {}", req.plan),
+        )
+        .into_response();
     };
 
     let input = UpdateTenantInput {
@@ -492,15 +484,13 @@ pub async fn delete_tenant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
     match state.delete_tenant_uc.execute(tenant_id).await {
@@ -535,15 +525,13 @@ pub async fn suspend_tenant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
     match state.suspend_tenant_uc.execute(tenant_id).await {
@@ -578,15 +566,13 @@ pub async fn activate_tenant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
     match state.activate_tenant_uc.execute(tenant_id).await {
@@ -621,15 +607,13 @@ pub async fn list_members(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
     match state.list_members_uc.execute(tenant_id).await {
@@ -659,26 +643,22 @@ pub async fn add_member(
     Path(id): Path<String>,
     Json(req): Json<AddMemberRequest>,
 ) -> impl IntoResponse {
-    let tenant_id = match Uuid::parse_str(&id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_id) = Uuid::parse_str(&id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {id}"),
+        )
+        .into_response();
     };
 
-    let user_id = match Uuid::parse_str(&req.user_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid user id: {}", req.user_id),
-            )
-            .into_response()
-        }
+    // ユーザーIDのUUIDパース失敗時は400エラーを返す
+    let Ok(user_id) = Uuid::parse_str(&req.user_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid user id: {}", req.user_id),
+        )
+        .into_response();
     };
 
     let input = AddMemberInput {
@@ -711,26 +691,22 @@ pub async fn remove_member(
     State(state): State<AppState>,
     Path((tenant_id, user_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
-    let tenant_uuid = match Uuid::parse_str(&tenant_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {tenant_id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_uuid) = Uuid::parse_str(&tenant_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {tenant_id}"),
+        )
+        .into_response();
     };
 
-    let user_uuid = match Uuid::parse_str(&user_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid user id: {user_id}"),
-            )
-            .into_response()
-        }
+    // ユーザーIDのUUIDパース失敗時は400エラーを返す
+    let Ok(user_uuid) = Uuid::parse_str(&user_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid user id: {user_id}"),
+        )
+        .into_response();
     };
 
     match state.remove_member_uc.execute(tenant_uuid, user_uuid).await {
@@ -748,26 +724,22 @@ pub async fn update_member_role(
     Path((tenant_id, user_id)): Path<(String, String)>,
     Json(req): Json<UpdateMemberRoleRequest>,
 ) -> impl IntoResponse {
-    let tenant_uuid = match Uuid::parse_str(&tenant_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid tenant id: {tenant_id}"),
-            )
-            .into_response()
-        }
+    // UUIDパース失敗時は即座に400エラーを返す
+    let Ok(tenant_uuid) = Uuid::parse_str(&tenant_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid tenant id: {tenant_id}"),
+        )
+        .into_response();
     };
 
-    let user_uuid = match Uuid::parse_str(&user_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return bad_request_response(
-                codes::tenant::validation_error(),
-                format!("invalid user id: {user_id}"),
-            )
-            .into_response()
-        }
+    // ユーザーIDのUUIDパース失敗時は400エラーを返す
+    let Ok(user_uuid) = Uuid::parse_str(&user_id) else {
+        return bad_request_response(
+            codes::tenant::validation_error(),
+            format!("invalid user id: {user_id}"),
+        )
+        .into_response();
     };
 
     let input = UpdateMemberRoleInput {

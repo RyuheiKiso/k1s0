@@ -360,7 +360,11 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
     }
 
     /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
-    async fn find_by_id(&self, id: &uuid::Uuid, _tenant_id: &str) -> anyhow::Result<domain::entity::RateLimitRule> {
+    async fn find_by_id(
+        &self,
+        id: &uuid::Uuid,
+        _tenant_id: &str,
+    ) -> anyhow::Result<domain::entity::RateLimitRule> {
         let rules = self.rules.read().await;
         rules
             .iter()
@@ -390,7 +394,10 @@ impl domain::repository::RateLimitRepository for InMemoryRateLimitRepository {
     }
 
     /// CRIT-005 対応: `tenant_id` を受け取るが `InMemory` 実装では無視する。
-    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
+    async fn find_all(
+        &self,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Vec<domain::entity::RateLimitRule>> {
         let rules = self.rules.read().await;
         Ok(rules.clone())
     }

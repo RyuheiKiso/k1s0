@@ -96,7 +96,8 @@ impl FeatureFlagRepository for CachedFeatureFlagRepository {
 
         if deleted {
             // ID から flag_key が分からないため、関連エントリを確実に除去するために全クリア
-            self.cache.invalidate_all().await;
+            // invalidate_all は同期関数のため .await 不要
+            self.cache.invalidate_all();
         }
 
         Ok(deleted)

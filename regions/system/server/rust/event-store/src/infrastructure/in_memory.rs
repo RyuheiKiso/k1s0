@@ -10,7 +10,7 @@ pub struct InMemoryEventStreamRepository {
 }
 
 impl InMemoryEventStreamRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             streams: tokio::sync::RwLock::new(HashMap::new()),
@@ -49,14 +49,16 @@ impl EventStreamRepository for InMemoryEventStreamRepository {
             .filter(|s| s.tenant_id == tenant_id)
             .cloned()
             .collect();
-        let total = all.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(all.len()).unwrap_or(u64::MAX);
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as usize;
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let paged: Vec<EventStream> = all
             .into_iter()
             .skip(offset)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((paged, total))
     }
@@ -102,7 +104,7 @@ pub struct InMemoryEventRepository {
 }
 
 impl InMemoryEventRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             events: tokio::sync::RwLock::new(Vec::new()),
@@ -162,12 +164,14 @@ impl EventRepository for InMemoryEventRepository {
             })
             .cloned()
             .collect();
-        let total = filtered.len() as u64;
-        let offset = ((page - 1) * page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let paged: Vec<_> = filtered
             .into_iter()
             .skip(offset)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((paged, total))
     }
@@ -184,19 +188,20 @@ impl EventRepository for InMemoryEventRepository {
         let filtered: Vec<_> = all_events
             .iter()
             .filter(|e| {
-                e.tenant_id == tenant_id
-                    && event_type.as_ref().is_none_or(|et| e.event_type == *et)
+                e.tenant_id == tenant_id && event_type.as_ref().is_none_or(|et| e.event_type == *et)
             })
             .cloned()
             .collect();
-        let total = filtered.len() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
         let page = page.max(1);
         let page_size = page_size.clamp(1, 200);
-        let offset = ((page - 1) * page_size) as usize;
+        let offset = usize::try_from((page - 1) * page_size).unwrap_or(0);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         let paged: Vec<_> = filtered
             .into_iter()
             .skip(offset)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((paged, total))
     }
@@ -212,9 +217,7 @@ impl EventRepository for InMemoryEventRepository {
         Ok(all_events
             .iter()
             .find(|e| {
-                e.tenant_id == tenant_id
-                    && e.stream_id == stream_id
-                    && e.sequence == sequence
+                e.tenant_id == tenant_id && e.stream_id == stream_id && e.sequence == sequence
             })
             .cloned())
     }
@@ -224,7 +227,8 @@ impl EventRepository for InMemoryEventRepository {
         let mut all_events = self.events.write().await;
         let before = all_events.len();
         all_events.retain(|e| !(e.tenant_id == tenant_id && e.stream_id == stream_id));
-        Ok((before - all_events.len()) as u64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok(u64::try_from(before - all_events.len()).unwrap_or(0))
     }
 }
 
@@ -233,7 +237,7 @@ pub struct InMemorySnapshotRepository {
 }
 
 impl InMemorySnapshotRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             snapshots: tokio::sync::RwLock::new(Vec::new()),
@@ -275,6 +279,7 @@ impl SnapshotRepository for InMemorySnapshotRepository {
         let mut snapshots = self.snapshots.write().await;
         let before = snapshots.len();
         snapshots.retain(|s| !(s.tenant_id == tenant_id && s.stream_id == stream_id));
-        Ok((before - snapshots.len()) as u64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok(u64::try_from(before - snapshots.len()).unwrap_or(0))
     }
 }

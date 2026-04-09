@@ -115,6 +115,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct SearchGrpcService {
     create_index_uc: Arc<CreateIndexUseCase>,
     list_indices_uc: Arc<ListIndicesUseCase>,
@@ -124,7 +126,7 @@ pub struct SearchGrpcService {
 }
 
 impl SearchGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         create_index_uc: Arc<CreateIndexUseCase>,
         list_indices_uc: Arc<ListIndicesUseCase>,
@@ -214,7 +216,7 @@ impl SearchGrpcService {
         req: IndexDocumentRequest,
     ) -> Result<IndexDocumentResponse, GrpcError> {
         let content: serde_json::Value = if req.document_json.is_empty() {
-            serde_json::Value::Object(Default::default())
+            serde_json::Value::Object(serde_json::Map::default())
         } else {
             serde_json::from_slice(&req.document_json)
                 .map_err(|e| GrpcError::InvalidArgument(format!("invalid document_json: {e}")))?
@@ -362,7 +364,11 @@ mod tests {
     async fn test_index_document_success() {
         let mut mock = MockSearchRepository::new();
         // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_find_index()
@@ -388,7 +394,11 @@ mod tests {
     async fn test_search_success() {
         let mut mock = MockSearchRepository::new();
         // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_find_index()

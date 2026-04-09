@@ -86,8 +86,13 @@ export function validateURLNotPrivate(url: string): void {
     /^192\.168\./,
     // loopback: 自ループバックアドレス
     /^127\./,
-    // IPv6 loopback
-    /^::1$/,
+    // IPv6 loopback: Node.js WHATWG URL API は URL.hostname に [::1]（ブラケット付き）を返す
+    // CRIT-002 対応: ::1 と [::1] の両形式に対応し、SSRF 保護の穴を塞ぐ
+    /^::1$|^\[::1\]$/,
+    // IPv4-mapped IPv6 ループバックの 16 進数短縮形（例: [::ffff:7f00:1] は 127.0.0.1 と等価）
+    // Node.js URL API は ::ffff:127.0.0.1 を ::ffff:7f00:1 に正規化し [::ffff:7f00:1] を返す
+    // 0x7f = 127 であるため、[::ffff:7fXX:] パターンをすべて拒否する
+    /^\[::ffff:7f[0-9a-f]{2}:/i,
     // link-local: リンクローカルアドレス（169.254.0.0/16）
     /^169\.254\./,
     // IPv6 ULA（Unique Local Address, fc00::/7）

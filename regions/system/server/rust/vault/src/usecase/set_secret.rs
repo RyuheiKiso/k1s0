@@ -53,7 +53,8 @@ impl SetSecretUseCase {
         match result {
             Ok(version) => {
                 // MED-011 対応: アクセスログに tenant_id を設定する。
-                let mut log = SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, true);
+                let mut log =
+                    SecretAccessLog::new(input.path.clone(), AccessAction::Write, None, true);
                 log.tenant_id = input.tenant_id.clone();
                 let _ = self.audit.record(&log).await;
                 let _ = self

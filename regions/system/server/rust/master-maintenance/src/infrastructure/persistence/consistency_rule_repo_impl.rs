@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::domain::entity::consistency_rule::ConsistencyRule;
 use crate::domain::entity::rule_condition::RuleCondition;
 use crate::domain::repository::consistency_rule_repository::ConsistencyRuleRepository;
@@ -10,7 +12,7 @@ pub struct ConsistencyRulePostgresRepository {
 }
 
 impl ConsistencyRulePostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -31,17 +33,18 @@ impl ConsistencyRuleRepository for ConsistencyRulePostgresRepository {
         let mut bind_values: Vec<String> = Vec::new();
 
         if let Some(tid) = table_id {
-            query.push_str(&format!(" AND source_table_id = ${param_idx}"));
+            // format! を避け write! でアロケーションを削減する
+            write!(query, " AND source_table_id = ${param_idx}").ok();
             bind_values.push(tid.to_string());
             param_idx += 1;
         }
         if let Some(rt) = rule_type {
-            query.push_str(&format!(" AND rule_type = ${param_idx}"));
+            write!(query, " AND rule_type = ${param_idx}").ok();
             bind_values.push(rt.to_string());
             param_idx += 1;
         }
         if let Some(sev) = severity {
-            query.push_str(&format!(" AND severity = ${param_idx}"));
+            write!(query, " AND severity = ${param_idx}").ok();
             bind_values.push(sev.to_string());
         }
         query.push_str(" ORDER BY name");

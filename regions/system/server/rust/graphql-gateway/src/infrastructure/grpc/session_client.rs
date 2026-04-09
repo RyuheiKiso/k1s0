@@ -65,10 +65,8 @@ impl SessionGrpcClient {
 
         match self.client.clone().get_session(request).await {
             Ok(resp) => {
-                let s = match resp.into_inner().session {
-                    Some(s) => s,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(s) = resp.into_inner().session else { return Ok(None) };
                 Ok(Some(session_from_proto(s)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -113,9 +111,10 @@ impl SessionGrpcClient {
             device_type: device_type.map(std::borrow::ToOwned::to_owned),
             user_agent: user_agent.map(std::borrow::ToOwned::to_owned),
             ip_address: ip_address.map(std::borrow::ToOwned::to_owned),
-            ttl_seconds: ttl_seconds.map(|t| t as u32),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            ttl_seconds: ttl_seconds.map(|t| u32::try_from(t).unwrap_or(0)),
             max_devices: None,
-            metadata: Default::default(),
+            metadata: std::collections::HashMap::default(),
         });
 
         let resp = self
@@ -136,7 +135,7 @@ impl SessionGrpcClient {
             user_agent: resp.user_agent.filter(|s| !s.is_empty()),
             ip_address: resp.ip_address.filter(|s| !s.is_empty()),
             // proto の i32 ステータス値をドメインモデルの SessionStatus に変換する
-            status: proto_status_to_domain_str(&resp.status),
+            status: proto_status_to_domain_str(resp.status),
             expires_at: timestamp_to_rfc3339(resp.expires_at),
             created_at: timestamp_to_rfc3339(resp.created_at),
             last_accessed_at: None,
@@ -154,7 +153,8 @@ impl SessionGrpcClient {
         let request =
             tonic::Request::new(proto::k1s0::system::session::v1::RefreshSessionRequest {
                 session_id: session_id.to_owned(),
-                ttl_seconds: ttl_seconds.map(|t| t as u32),
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                ttl_seconds: ttl_seconds.map(|t| u32::try_from(t).unwrap_or(0)),
             });
 
         let resp = self
@@ -175,7 +175,7 @@ impl SessionGrpcClient {
             user_agent: resp.user_agent.filter(|s| !s.is_empty()),
             ip_address: resp.ip_address.filter(|s| !s.is_empty()),
             // proto の i32 ステータス値をドメインモデルの SessionStatus に変換する
-            status: proto_status_to_domain_str(&resp.status),
+            status: proto_status_to_domain_str(resp.status),
             expires_at: timestamp_to_rfc3339(resp.expires_at),
             created_at: timestamp_to_rfc3339(resp.created_at),
             last_accessed_at: resp
@@ -245,7 +245,8 @@ impl SessionGrpcClient {
 /// proto の `SessionStatus` i32 値をドメインモデルの `SessionStatus` に変換する。
 /// buf generate 後の生成コードでは status フィールドは i32 型（enumeration）になる。
 /// proto enum: Unspecified = 0, Active = 1, Revoked = 2
-fn proto_status_to_domain_str(v: &i32) -> SessionStatus {
+// i32 は 4 バイトなので参照でなく値渡しが効率的（Clippy: trivially_copy_pass_by_ref）
+fn proto_status_to_domain_str(v: i32) -> SessionStatus {
     match v {
         // 2 = SESSION_STATUS_REVOKED
         2 => SessionStatus::Revoked,
@@ -256,7 +257,7 @@ fn proto_status_to_domain_str(v: &i32) -> SessionStatus {
 
 fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
     // buf generate 後の status フィールドは i32 型（enumeration）
-    let status = proto_status_to_domain_str(&s.status);
+    let status = proto_status_to_domain_str(s.status);
     Session {
         session_id: s.session_id,
         user_id: s.user_id,
@@ -270,7 +271,8 @@ fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
         expires_at: timestamp_to_rfc3339(s.expires_at),
         created_at: timestamp_to_rfc3339(s.created_at),
         last_accessed_at: s.last_accessed_at.map(|ts| {
-            DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32)
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0))
                 .map(|dt| dt.to_rfc3339())
                 .unwrap_or_default()
         }),
@@ -278,7 +280,8 @@ fn session_from_proto(s: proto::k1s0::system::session::v1::Session) -> Session {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

@@ -193,10 +193,7 @@ pub async fn run() -> anyhow::Result<()> {
                     .as_ref()
                     .map(|j| j.url.as_str())
                     .unwrap_or_default();
-                let cache_ttl = auth_cfg
-                    .jwks
-                    .as_ref()
-                    .map_or(300, |j| j.cache_ttl_secs);
+                let cache_ttl = auth_cfg.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
                 info!(jwks_url = %jwks_url, "initializing JWKS verifier for event-store");
                 let jwks_verifier = Arc::new(
                     k1s0_auth::JwksVerifier::new(

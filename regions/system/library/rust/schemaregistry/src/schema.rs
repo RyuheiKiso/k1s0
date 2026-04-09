@@ -28,7 +28,7 @@ pub enum SchemaType {
 
 impl SchemaType {
     /// Confluent Schema Registry API で使用する文字列表現を返す。
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             SchemaType::Avro => "AVRO",

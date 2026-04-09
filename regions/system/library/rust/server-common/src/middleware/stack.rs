@@ -19,7 +19,7 @@ pub enum Profile {
 }
 
 impl Profile {
-    #[must_use] 
+    #[must_use]
     pub fn from_env(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "prod" | "production" => Self::Prod,
@@ -41,7 +41,7 @@ pub struct K1s0Stack {
 }
 
 impl K1s0Stack {
-    #[must_use] 
+    #[must_use]
     pub fn new(service_name: &str) -> Self {
         Self {
             service_name: service_name.to_string(),
@@ -53,31 +53,31 @@ impl K1s0Stack {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn profile(mut self, profile: Profile) -> Self {
         self.profile = profile;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn metrics(mut self, metrics: Arc<Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn health_checker(mut self, checker: Arc<CompositeHealthChecker>) -> Self {
         self.health_checker = Some(checker);
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn without_correlation(mut self) -> Self {
         self.correlation = false;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn without_request_id(mut self) -> Self {
         self.request_id = false;
         self

@@ -50,6 +50,8 @@ fn pb_timestamp(ts: &super::ratelimit_grpc::PbTimestamp) -> ProtoTimestamp {
 
 /// アルゴリズム文字列を `RateLimitAlgorithm` enum の i32 値に変換する。
 /// dual-write パターンで旧文字列フィールドと新 enum フィールドを同時設定するために使用する。
+/// LOW-008: prost enum は i32 型として定義されているため、as i32 変換は安全
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 fn algorithm_str_to_enum(s: &str) -> i32 {
     match s {
         "sliding_window" => RateLimitAlgorithm::SlidingWindow as i32,
@@ -78,7 +80,7 @@ pub struct RateLimitServiceTonic {
 }
 
 impl RateLimitServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<RateLimitGrpcService>) -> Self {
         Self { inner }
     }
@@ -325,15 +327,16 @@ impl RateLimitService for RateLimitServiceTonic {
             .list_rules(ListRulesRequest {
                 scope: inner.scope,
                 enabled_only: inner.enabled_only,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
                 page: if pagination.page <= 0 {
                     1
                 } else {
-                    pagination.page as u32
+                    u32::try_from(pagination.page).unwrap_or(1)
                 },
                 page_size: if pagination.page_size <= 0 {
                     20
                 } else {
-                    pagination.page_size as u32
+                    u32::try_from(pagination.page_size).unwrap_or(20)
                 },
                 tenant_id,
             })

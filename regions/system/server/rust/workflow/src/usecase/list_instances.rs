@@ -105,8 +105,9 @@ mod tests {
     #[tokio::test]
     async fn has_next_page() {
         let mut mock = MockWorkflowInstanceRepository::new();
+        // tenant_id が追加されたため6引数でパターンマッチする
         mock.expect_find_all()
-            .returning(|_, _, _, _, _| Ok((vec![], 50)));
+            .returning(|_, _, _, _, _, _| Ok((vec![], 50)));
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {
@@ -124,8 +125,9 @@ mod tests {
     #[tokio::test]
     async fn internal_error() {
         let mut mock = MockWorkflowInstanceRepository::new();
+        // tenant_id が追加されたため6引数でパターンマッチする
         mock.expect_find_all()
-            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("db error")));
+            .returning(|_, _, _, _, _, _| Err(anyhow::anyhow!("db error")));
 
         let uc = ListInstancesUseCase::new(Arc::new(mock));
         let input = ListInstancesInput {

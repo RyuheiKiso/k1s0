@@ -77,7 +77,7 @@ impl SearchKafkaConsumer {
     }
 
     /// メトリクスを設定する。
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(mut self, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         self.metrics = Some(metrics);
         self
@@ -99,7 +99,8 @@ impl SearchKafkaConsumer {
                         m.record_kafka_message_consumed(&topic, &self.consumer_group);
                     }
 
-                    let payload = if let Some(bytes) = msg.payload() { bytes } else {
+                    // let-else: ペイロードが空の場合はスキップ
+                    let Some(payload) = msg.payload() else {
                         tracing::warn!("received kafka message with empty payload");
                         continue;
                     };

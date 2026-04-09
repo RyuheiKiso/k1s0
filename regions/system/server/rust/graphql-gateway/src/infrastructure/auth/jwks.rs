@@ -101,7 +101,7 @@ impl JwksVerifier {
     /// JWKS キャッシュの TTL を設定する。
     /// config の `cache_ttl_secs` を渡すことで、設定ファイルの値をキャッシュ有効期限に反映する。
     /// デフォルト値は 600 秒（10 分）。
-    #[must_use] 
+    #[must_use]
     pub fn with_cache_ttl(mut self, ttl_secs: u64) -> Self {
         self.cache_ttl = Duration::from_secs(ttl_secs);
         self
@@ -109,7 +109,7 @@ impl JwksVerifier {
 
     /// issuer/audience 検証を設定する。
     /// `AuthConfig` の値を渡すことで JWT クレームの厳密な検証が有効になる。
-    #[must_use] 
+    #[must_use]
     pub fn with_issuer_audience(
         mut self,
         issuer: Option<String>,

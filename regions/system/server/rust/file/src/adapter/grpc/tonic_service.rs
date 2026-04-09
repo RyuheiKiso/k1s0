@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use tonic::{Request, Response, Status};
 
-use crate::proto::k1s0::system::common::v1::{PaginationResult as ProtoPaginationResult, Timestamp};
+use crate::proto::k1s0::system::common::v1::{
+    PaginationResult as ProtoPaginationResult, Timestamp,
+};
 use crate::proto::k1s0::system::file::v1::{
     file_service_server::FileService, CompleteUploadRequest, CompleteUploadResponse,
     DeleteFileRequest, DeleteFileResponse, FileMetadata as ProtoFileMetadata,
@@ -18,7 +20,7 @@ pub struct FileServiceTonic {
 }
 
 impl FileServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<FileGrpcService>) -> Self {
         Self { inner }
     }
@@ -31,7 +33,8 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         id: file.id.clone(),
         filename: file.filename.clone(),
         content_type: file.content_type.clone(),
-        size_bytes: file.size_bytes as i64,
+        // LOW-008: 安全な型変換（ファイルサイズは i64::MAX を超えない前提）
+        size_bytes: i64::try_from(file.size_bytes).unwrap_or(i64::MAX),
         // テナント分離: エンティティの tenant_id フィールドを proto に渡す
         tenant_id: file.tenant_id.clone(),
         uploaded_by: file.uploaded_by.clone(),
@@ -39,11 +42,13 @@ fn domain_to_proto(file: &crate::domain::entity::file::FileMetadata) -> ProtoFil
         // DateTime<Utc> を Timestamp（seconds/nanos）へ変換
         created_at: Some(Timestamp {
             seconds: file.created_at.timestamp(),
-            nanos: file.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(file.created_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         updated_at: Some(Timestamp {
             seconds: file.updated_at.timestamp(),
-            nanos: file.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（subsec_nanos は 0..999_999_999 の範囲で i32 に収まる）
+            nanos: i32::try_from(file.updated_at.timestamp_subsec_nanos()).unwrap_or(0),
         }),
         tags: file.tags.clone(),
         storage_key: file.storage_path.clone(),
@@ -75,15 +80,16 @@ impl FileService for FileServiceTonic {
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
         let page = if pagination.page <= 0 {
             1
         } else {
-            pagination.page as u32
+            u32::try_from(pagination.page).unwrap_or(0)
         };
         let page_size = if pagination.page_size <= 0 {
             20
         } else {
-            pagination.page_size as u32
+            u32::try_from(pagination.page_size).unwrap_or(0)
         };
         let (files, total) = self
             .inner
@@ -98,13 +104,15 @@ impl FileService for FileServiceTonic {
             .await
             .map_err(Into::<Status>::into)?;
         let has_next = u64::from(page * page_size) < total;
-        let total_count = total as i64;
+        // LOW-008: 安全な型変換（u64 → i64: ファイル総数は i64::MAX を超えない前提）
+        let total_count = i64::try_from(total).unwrap_or(i64::MAX);
         Ok(Response::new(ListFilesResponse {
             files: files.iter().map(domain_to_proto).collect(),
             pagination: Some(ProtoPaginationResult {
                 total_count,
-                page: page as i32,
-                page_size: page_size as i32,
+                // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+                page: i32::try_from(page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
                 has_next,
             }),
         }))
@@ -162,7 +170,8 @@ impl FileService for FileServiceTonic {
             .map_err(Into::<Status>::into)?;
         Ok(Response::new(GenerateDownloadUrlResponse {
             download_url,
-            expires_in_seconds: expires_in_seconds as i32,
+            // LOW-008: 安全な型変換（有効期限秒数は i32 範囲内が前提）
+            expires_in_seconds: i32::try_from(expires_in_seconds).unwrap_or(i32::MAX),
         }))
     }
 

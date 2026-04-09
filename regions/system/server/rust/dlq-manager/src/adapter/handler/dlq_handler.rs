@@ -11,9 +11,10 @@ use super::AppState;
 
 /// CRIT-005 対応: Option<Extension<Claims>> からテナント ID を抽出するヘルパー関数。
 /// Claims が存在しない場合（認証なし環境）はデフォルト値 "system" を返す。
-fn extract_tenant_id(claims: &Option<Extension<Claims>>) -> String {
+// Option<&T> の方が &Option<T> よりも慣用的（Clippy: ref_option）
+fn extract_tenant_id(claims: Option<&Extension<Claims>>) -> String {
     claims
-        .as_ref().map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
+        .map_or_else(|| "system".to_string(), |ext| ext.tenant_id().to_string())
 }
 
 // --- Request / Response DTOs ---
@@ -176,7 +177,7 @@ pub async fn list_messages(
     Query(query): Query<ListMessagesQuery>,
 ) -> Result<Json<ListMessagesResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let (messages, total) = state
         .list_messages_uc
@@ -216,7 +217,7 @@ pub async fn get_message(
     Path(id): Path<String>,
 ) -> Result<Json<DlqMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
@@ -253,7 +254,7 @@ pub async fn retry_message(
     Path(id): Path<String>,
 ) -> Result<Json<RetryMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
@@ -292,7 +293,7 @@ pub async fn delete_message(
     Path(id): Path<String>,
 ) -> Result<Json<DeleteMessageResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let uuid = Uuid::parse_str(&id)
         .map_err(|_| DlqError::Validation(format!("invalid message id: {id}")))?;
@@ -321,7 +322,7 @@ pub async fn retry_all(
     Path(topic): Path<String>,
 ) -> Result<Json<RetryAllResponse>, DlqError> {
     // CRIT-005 対応: JWT Claims からテナント ID を取得してユースケースに渡す。
-    let tenant_id = extract_tenant_id(&claims);
+    let tenant_id = extract_tenant_id(claims.as_ref());
 
     let retried = state
         .retry_all_uc

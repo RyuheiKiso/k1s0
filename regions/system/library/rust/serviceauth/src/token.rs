@@ -24,7 +24,7 @@ pub struct ServiceToken {
 
 impl ServiceToken {
     /// 新しい `ServiceToken` を生成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(access_token: String, token_type: String, expires_in: u64) -> Self {
         Self {
             access_token,
@@ -35,18 +35,19 @@ impl ServiceToken {
     }
 
     /// トークンが有効期限切れかどうかを返す。
-    #[must_use] 
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         let elapsed = Utc::now()
             .signed_duration_since(self.acquired_at)
             .num_seconds();
-        elapsed < 0 || elapsed as u64 >= self.expires_in
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        elapsed < 0 || u64::try_from(elapsed).unwrap_or(0) >= self.expires_in
     }
 
     /// 指定秒数前にリフレッシュすべきかどうかを返す。
     ///
     /// `refresh_before_secs` 秒以内に有効期限が切れる場合は `true` を返す。
-    #[must_use] 
+    #[must_use]
     pub fn should_refresh(&self, refresh_before_secs: u64) -> bool {
         let elapsed = Utc::now()
             .signed_duration_since(self.acquired_at)
@@ -54,13 +55,14 @@ impl ServiceToken {
         if elapsed < 0 {
             return false;
         }
-        let elapsed_u64 = elapsed as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let elapsed_u64 = u64::try_from(elapsed).unwrap_or(0);
         // expires_in より refresh_before_secs だけ早いタイミングを閾値とする
         elapsed_u64 + refresh_before_secs >= self.expires_in
     }
 
     /// Authorization ヘッダー用の Bearer 文字列を返す。
-    #[must_use] 
+    #[must_use]
     pub fn bearer_header(&self) -> String {
         format!("Bearer {}", self.access_token)
     }
@@ -130,7 +132,7 @@ impl SpiffeId {
     }
 
     /// SPIFFE URI 文字列に変換する。
-    #[must_use] 
+    #[must_use]
     pub fn to_uri(&self) -> String {
         format!(
             "spiffe://{}/ns/{}/sa/{}",
@@ -148,7 +150,7 @@ impl SpiffeId {
     /// | system     | system, business, service |
     /// | business   | business, service    |
     /// | service    | service のみ         |
-    #[must_use] 
+    #[must_use]
     pub fn allows_tier_access(&self, target_tier: &str) -> bool {
         match self.namespace.as_str() {
             "system" => matches!(target_tier, "system" | "business" | "service"),

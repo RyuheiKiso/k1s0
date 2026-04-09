@@ -32,8 +32,8 @@ pub enum TenantStatus {
 
 impl From<String> for TenantStatus {
     fn from(s: String) -> Self {
+        // "ACTIVE" アームと wildcard アームが同一の返り値のため統合する
         match s.as_str() {
-            "ACTIVE" => TenantStatus::Active,
             "SUSPENDED" => TenantStatus::Suspended,
             "DELETED" => TenantStatus::Deleted,
             _ => TenantStatus::Active,
@@ -63,14 +63,14 @@ pub struct PageInfo {
 }
 
 /// カーソルエンコード: オフセットを base64 エンコードする
-#[must_use] 
+#[must_use]
 pub fn encode_cursor(offset: usize) -> String {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.encode(format!("cursor:{offset}"))
 }
 
 /// カーソルデコード: base64 カーソルからオフセットを復元する
-#[must_use] 
+#[must_use]
 pub fn decode_cursor(cursor: &str) -> Option<usize> {
     use base64::Engine;
     let decoded = base64::engine::general_purpose::STANDARD

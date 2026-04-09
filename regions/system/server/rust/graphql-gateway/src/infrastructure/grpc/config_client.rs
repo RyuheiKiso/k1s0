@@ -92,10 +92,8 @@ impl ConfigGrpcClient {
 
         match self.client.clone().get_config(request).await {
             Ok(resp) => {
-                let entry = match resp.into_inner().entry {
-                    Some(e) => e,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(entry) = resp.into_inner().entry else { return Ok(None) };
                 // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
                 let value_str = String::from_utf8(entry.value).map_err(|e| {
                     warn!(namespace = %entry.namespace, key = %entry.key, "config value is not valid UTF-8: {}", e);
@@ -140,8 +138,10 @@ impl ConfigGrpcClient {
                 });
             match self.client.clone().list_configs(request).await {
                 Ok(resp) => {
-                    let target_set: std::collections::HashSet<&str> =
-                        target_keys.iter().map(std::string::String::as_str).collect();
+                    let target_set: std::collections::HashSet<&str> = target_keys
+                        .iter()
+                        .map(std::string::String::as_str)
+                        .collect();
                     for entry in resp.into_inner().entries {
                         if target_set.contains(entry.key.as_str()) {
                             // UTF-8 デコード失敗時はエラーを伝播する（サイレントな空文字列化を避ける）
@@ -236,7 +236,8 @@ impl ConfigPort for ConfigGrpcClient {
 }
 
 fn timestamp_to_rfc3339(ts: Option<proto::k1s0::system::common::v1::Timestamp>) -> String {
-    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, ts.nanos as u32))
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    ts.and_then(|ts| DateTime::<Utc>::from_timestamp(ts.seconds, u32::try_from(ts.nanos).unwrap_or(0)))
         .map(|dt| dt.to_rfc3339())
         .unwrap_or_default()
 }

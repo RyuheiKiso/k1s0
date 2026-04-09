@@ -9,7 +9,7 @@ pub struct ColumnDefinitionPostgresRepository {
 }
 
 impl ColumnDefinitionPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -75,7 +75,8 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
             .bind(col.min_value)
             .bind(col.max_value)
             .bind(&col.regex_pattern)
-            .bind(col.display_order.unwrap_or(i as i32))
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            .bind(col.display_order.unwrap_or(i32::try_from(i).unwrap_or(i32::MAX)))
             .bind(col.is_searchable.unwrap_or(false))
             .bind(col.is_sortable.unwrap_or(true))
             .bind(col.is_filterable.unwrap_or(false))
@@ -160,6 +161,8 @@ impl ColumnDefinitionRepository for ColumnDefinitionPostgresRepository {
     }
 }
 
+// sqlx FromRow マッピング用の内部構造体（DBスキーマに合わせて多数の bool フィールドが必要）
+#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow)]
 struct ColumnDefinitionRow {
     id: Uuid,

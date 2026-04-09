@@ -54,7 +54,7 @@ pub struct DlqMessage {
 
 impl DlqMessage {
     /// 新しい `DlqMessage` を作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(
         original_topic: String,
         error_message: String,
@@ -99,7 +99,7 @@ impl DlqMessage {
     }
 
     /// リトライ可能かどうかを返す。
-    #[must_use] 
+    #[must_use]
     pub fn is_retryable(&self) -> bool {
         matches!(self.status, DlqStatus::Pending | DlqStatus::Retrying)
             && self.retry_count < self.max_retries

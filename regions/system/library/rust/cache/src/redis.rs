@@ -68,7 +68,8 @@ impl CacheClient for RedisCacheClient {
         let full_key = self.prefixed_key(key);
         match ttl {
             Some(duration) => {
-                let millis = duration.as_millis() as u64;
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                let millis = u64::try_from(duration.as_millis()).unwrap_or(u64::MAX);
                 if millis == 0 {
                     conn.set::<_, _, ()>(&full_key, value)
                         .await
@@ -105,7 +106,8 @@ impl CacheClient for RedisCacheClient {
     async fn set_nx(&self, key: &str, value: &str, ttl: Duration) -> Result<bool, CacheError> {
         let mut conn = self.conn.clone();
         let full_key = self.prefixed_key(key);
-        let millis = ttl.as_millis() as u64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let millis = u64::try_from(ttl.as_millis()).unwrap_or(u64::MAX);
 
         // Use SET with NX and PX for atomic set-if-not-exists with TTL
         let result: Option<String> = redis::cmd("SET")
@@ -124,7 +126,8 @@ impl CacheClient for RedisCacheClient {
     async fn expire(&self, key: &str, ttl: Duration) -> Result<bool, CacheError> {
         let mut conn = self.conn.clone();
         let full_key = self.prefixed_key(key);
-        let millis = ttl.as_millis() as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let millis = i64::try_from(ttl.as_millis()).unwrap_or(i64::MAX);
         let result: bool = conn
             .pexpire(&full_key, millis)
             .await

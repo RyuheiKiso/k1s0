@@ -25,7 +25,7 @@ pub struct SecretAccessLog {
 }
 
 impl SecretAccessLog {
-    #[must_use] 
+    #[must_use]
     pub fn new(path: String, action: AccessAction, subject: Option<String>, success: bool) -> Self {
         Self {
             id: Uuid::new_v4(),

@@ -37,7 +37,7 @@ type SessionOptions struct {
 // CreateTestSession はテスト用の SessionData を生成するヘルパー。
 // opts で指定されたフィールドを上書きし、省略されたフィールドはデフォルト値を使う。
 // 各テストケースで繰り返し作成するセッションデータの定型コードを削減する。
-func CreateTestSession(opts SessionOptions) *session.SessionData {
+func CreateTestSession(opts SessionOptions) *session.Data {
 	// デフォルト値を設定する
 	accessToken := opts.AccessToken
 	if accessToken == "" {
@@ -84,7 +84,7 @@ func CreateTestSession(opts SessionOptions) *session.SessionData {
 	}
 	expiresAt := time.Now().Add(ttl).Unix()
 
-	return &session.SessionData{
+	return &session.Data{
 		AccessToken:        accessToken,
 		RefreshToken:       refreshToken,
 		IDToken:            idToken,
@@ -98,7 +98,7 @@ func CreateTestSession(opts SessionOptions) *session.SessionData {
 
 // CreateExpiredSession は期限切れの SessionData を生成するヘルパー。
 // セッション期限切れに関するテストケースで使用する。
-func CreateExpiredSession(subject, csrfToken string) *session.SessionData {
+func CreateExpiredSession(subject, csrfToken string) *session.Data {
 	return CreateTestSession(SessionOptions{
 		Subject:   subject,
 		CSRFToken: csrfToken,

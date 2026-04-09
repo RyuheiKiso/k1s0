@@ -6,10 +6,11 @@
 
 // RUST-CRIT-001 対応: テナント分離のため各 TX 操作に tenant_id を追加する
 
-// TODO(RUST-MED-001): RLS テナント分離の統合テストが不足している。
-// 異なる tenant_id でのクロステナントアクセス拒否を検証するテストを追加すること。
+// TODO(future-work): RLS テナント分離の統合テストが不足している。
+// 優先度: MEDIUM。異なる tenant_id でのクロステナントアクセス拒否を検証するテストを追加すること。
 // テストケース: tenant_A でINSERT → tenant_B でSELECT → 0件を確認
 // 実装には testcontainers か sqlx::test を使用し、マイグレーション適用後に RLS ポリシーを有効化する。
+// 対応時は integration-test.yaml CI ワークフローに組み込み、ADR を作成すること。
 
 use crate::domain::entity::workflow_instance::WorkflowInstance;
 use crate::domain::entity::workflow_task::WorkflowTask;

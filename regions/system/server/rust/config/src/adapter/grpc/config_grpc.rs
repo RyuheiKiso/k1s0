@@ -35,6 +35,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct ConfigGrpcService {
     get_config_uc: Arc<GetConfigUseCase>,
     list_configs_uc: Arc<ListConfigsUseCase>,
@@ -48,7 +50,7 @@ pub struct ConfigGrpcService {
 }
 
 impl ConfigGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new_with_watch(
         get_config_uc: Arc<GetConfigUseCase>,
         list_configs_uc: Arc<ListConfigsUseCase>,
@@ -70,7 +72,7 @@ impl ConfigGrpcService {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_schema_usecases(
         mut self,
         get_config_schema_uc: Arc<GetConfigSchemaUseCase>,
@@ -95,13 +97,17 @@ impl ConfigGrpcService {
             ));
         }
 
-        match self.get_config_uc.execute(tenant_id, &req.namespace, &req.key).await {
+        match self
+            .get_config_uc
+            .execute(tenant_id, &req.namespace, &req.key)
+            .await
+        {
             Ok(entry) => Ok(pb::GetConfigResponse {
                 entry: Some(domain_config_to_pb(&entry)),
             }),
-            Err(GetConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {ns}/{key}"
-            ))),
+            Err(GetConfigError::NotFound(ns, key)) => {
+                Err(GrpcError::NotFound(format!("config not found: {ns}/{key}")))
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -128,7 +134,11 @@ impl ConfigGrpcService {
             },
         };
 
-        match self.list_configs_uc.execute(tenant_id, &req.namespace, &params).await {
+        match self
+            .list_configs_uc
+            .execute(tenant_id, &req.namespace, &params)
+            .await
+        {
             Ok(result) => Ok(pb::ListConfigsResponse {
                 entries: result.entries.iter().map(domain_config_to_pb).collect(),
                 pagination: Some(ProtoPaginationResult {
@@ -155,7 +165,11 @@ impl ConfigGrpcService {
             ));
         }
 
-        match self.get_service_config_uc.execute(tenant_id, &req.service_name).await {
+        match self
+            .get_service_config_uc
+            .execute(tenant_id, &req.service_name)
+            .await
+        {
             Ok(result) => Ok(pb::GetServiceConfigResponse {
                 entries: result
                     .entries
@@ -210,11 +224,11 @@ impl ConfigGrpcService {
             Ok(entry) => Ok(pb::UpdateConfigResponse {
                 entry: Some(domain_config_to_pb(&entry)),
             }),
-            Err(UpdateConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {ns}/{key}"
-            ))),
-            Err(UpdateConfigError::Validation(msg)) => Err(GrpcError::InvalidArgument(msg)),
-            Err(UpdateConfigError::SchemaValidation(msg)) => Err(GrpcError::InvalidArgument(msg)),
+            Err(UpdateConfigError::NotFound(ns, key)) => {
+                Err(GrpcError::NotFound(format!("config not found: {ns}/{key}")))
+            }
+            // Validation と SchemaValidation は同じエラーに変換するためアームを統合する
+            Err(UpdateConfigError::Validation(msg) | UpdateConfigError::SchemaValidation(msg)) => Err(GrpcError::InvalidArgument(msg)),
             Err(UpdateConfigError::VersionConflict { expected, current }) => {
                 Err(GrpcError::Aborted(format!(
                     "version conflict: expected={expected}, current={current}"
@@ -248,9 +262,9 @@ impl ConfigGrpcService {
             .await
         {
             Ok(()) => Ok(pb::DeleteConfigResponse { success: true }),
-            Err(DeleteConfigError::NotFound(ns, key)) => Err(GrpcError::NotFound(format!(
-                "config not found: {ns}/{key}"
-            ))),
+            Err(DeleteConfigError::NotFound(ns, key)) => {
+                Err(GrpcError::NotFound(format!("config not found: {ns}/{key}")))
+            }
             Err(e) => Err(GrpcError::Internal(e.to_string())),
         }
     }
@@ -376,11 +390,13 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
         updated_by: e.updated_by.clone(),
         created_at: Some(ProtoTimestamp {
             seconds: e.created_at.timestamp(),
-            nanos: e.created_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(e.created_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
         updated_at: Some(ProtoTimestamp {
             seconds: e.updated_at.timestamp(),
-            nanos: e.updated_at.timestamp_subsec_nanos() as i32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(e.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
         }),
     }
 }
@@ -388,17 +404,24 @@ fn domain_config_to_pb(e: &ConfigEntry) -> pb::ConfigEntry {
 fn domain_schema_to_pb(
     schema: &crate::domain::entity::config_schema::ConfigSchema,
 ) -> pb::ConfigEditorSchema {
-    ConfigEditorSchemaDto::try_from(schema).map_or_else(|_| pb::ConfigEditorSchema {
+    ConfigEditorSchemaDto::try_from(schema).map_or_else(
+        |_| pb::ConfigEditorSchema {
             service_name: schema.service_name.clone(),
             namespace_prefix: schema.namespace_prefix.clone(),
             categories: vec![],
             updated_at: Some(ProtoTimestamp {
                 seconds: schema.updated_at.timestamp(),
-                nanos: schema.updated_at.timestamp_subsec_nanos() as i32,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+            nanos: i32::try_from(schema.updated_at.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
             }),
-        }, |dto| dto.to_pb())
+        },
+        |dto| dto.to_pb(),
+    )
 }
 
 fn pb_schema_to_json(schema: &pb::ConfigEditorSchema) -> serde_json::Value {
-    ConfigEditorSchemaDto::from_pb(schema).map_or_else(|_| serde_json::json!({ "categories": [] }), super::super::presentation::ConfigEditorSchemaDto::into_schema_json)
+    ConfigEditorSchemaDto::from_pb(schema).map_or_else(
+        |_| serde_json::json!({ "categories": [] }),
+        super::super::presentation::ConfigEditorSchemaDto::into_schema_json,
+    )
 }

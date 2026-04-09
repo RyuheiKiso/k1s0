@@ -89,14 +89,17 @@ pub async fn list_tables(
         .await?;
     let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(20).clamp(1, 100);
-    let total_count = tables.len() as u64;
-    let start = ((page - 1) * page_size) as usize;
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    let total_count = u64::try_from(tables.len()).unwrap_or(u64::MAX);
+    let start = usize::try_from((page - 1) * page_size).unwrap_or(0);
+    let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
     let paged: Vec<_> = tables
         .into_iter()
         .skip(start)
-        .take(page_size as usize)
+        .take(take_count)
         .collect();
-    let has_next = (start + paged.len()) < total_count as usize;
+    let total_count_usize = usize::try_from(total_count).unwrap_or(usize::MAX);
+    let has_next = (start + paged.len()) < total_count_usize;
 
     Ok(Json(serde_json::json!({
         "tables": paged,

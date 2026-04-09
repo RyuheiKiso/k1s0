@@ -65,7 +65,7 @@ pub struct CreateAuditLogResponse {
 
 impl AuditLog {
     /// 新しい `AuditLog` エンティティを作成する。
-    #[must_use] 
+    #[must_use]
     pub fn new(req: CreateAuditLogRequest) -> Self {
         Self {
             id: Uuid::new_v4(),

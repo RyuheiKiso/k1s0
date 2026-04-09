@@ -322,6 +322,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct WorkflowGrpcService {
     list_workflows_uc: Arc<ListWorkflowsUseCase>,
     create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -340,7 +342,7 @@ pub struct WorkflowGrpcService {
 
 impl WorkflowGrpcService {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         list_workflows_uc: Arc<ListWorkflowsUseCase>,
         create_workflow_uc: Arc<CreateWorkflowUseCase>,
@@ -377,11 +379,12 @@ impl WorkflowGrpcService {
         &self,
         req: ListWorkflowsRequest,
     ) -> Result<ListWorkflowsResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -403,8 +406,9 @@ impl WorkflowGrpcService {
                 .map(to_workflow_definition_data)
                 .collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }
@@ -587,11 +591,12 @@ impl WorkflowGrpcService {
         &self,
         req: ListInstancesRequest,
     ) -> Result<ListInstancesResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -627,8 +632,9 @@ impl WorkflowGrpcService {
                 .map(to_workflow_instance_data)
                 .collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }
@@ -661,11 +667,12 @@ impl WorkflowGrpcService {
     }
 
     pub async fn list_tasks(&self, req: ListTasksRequest) -> Result<ListTasksResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(1) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(20)
         };
         // テナント分離: リクエストから渡された tenant_id を使用してRLSを有効化する
         let out = self
@@ -699,8 +706,9 @@ impl WorkflowGrpcService {
         Ok(ListTasksResponse {
             tasks: out.tasks.into_iter().map(to_workflow_task_data).collect(),
             total_count: out.total_count,
-            page: out.page as i32,
-            page_size: out.page_size as i32,
+            // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+            page: i32::try_from(out.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(out.page_size).unwrap_or(i32::MAX),
             has_next: out.has_next,
         })
     }

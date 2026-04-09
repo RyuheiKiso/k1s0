@@ -55,8 +55,9 @@ impl FeatureFlagGrpcClient {
                 // proto Timestamp は seconds と nanos で構成される
                 // RFC3339 形式に変換するため chrono を使用する
                 use std::time::{Duration as StdDuration, UNIX_EPOCH};
-                let secs = t.seconds as u64;
-                let nanos = t.nanos as u32;
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                let secs = u64::try_from(t.seconds).unwrap_or(0);
+                let nanos = u32::try_from(t.nanos).unwrap_or(0);
                 let system_time = UNIX_EPOCH + StdDuration::new(secs, nanos);
                 // chrono の DateTime を使って RFC3339 に変換する
                 let datetime = chrono::DateTime::<chrono::Utc>::from(system_time);
@@ -164,10 +165,8 @@ impl FeatureFlagGrpcClient {
 
         match self.client.clone().get_flag(request).await {
             Ok(resp) => {
-                let flag = match resp.into_inner().flag {
-                    Some(f) => f,
-                    None => return Ok(None),
-                };
+                // let-else: Noneの場合は早期リターン
+                let Some(flag) = resp.into_inner().flag else { return Ok(None) };
                 Ok(Some(Self::to_domain_flag(flag)))
             }
             Err(status) if status.code() == tonic::Code::NotFound => Ok(None),
@@ -189,11 +188,8 @@ impl FeatureFlagGrpcClient {
             .map_err(|e| anyhow::anyhow!("FeatureFlagService.ListFlags failed: {e}"))?
             .into_inner();
 
-        let mut flags: Vec<FeatureFlag> = resp
-            .flags
-            .into_iter()
-            .map(Self::to_domain_flag)
-            .collect();
+        let mut flags: Vec<FeatureFlag> =
+            resp.flags.into_iter().map(Self::to_domain_flag).collect();
 
         // environment フィルタ: rules の attribute="environment" にマッチするフラグのみ返す
         if let Some(env) = environment {

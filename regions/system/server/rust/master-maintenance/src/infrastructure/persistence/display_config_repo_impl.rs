@@ -9,7 +9,7 @@ pub struct DisplayConfigPostgresRepository {
 }
 
 impl DisplayConfigPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

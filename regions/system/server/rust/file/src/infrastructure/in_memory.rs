@@ -16,7 +16,7 @@ impl Default for InMemoryFileMetadataRepository {
 }
 
 impl InMemoryFileMetadataRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -69,12 +69,15 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
             })
             .cloned()
             .collect();
-        let total = filtered.len() as u64;
-        let start = page.saturating_sub(1) as usize * page_size as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total = u64::try_from(filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(page.saturating_sub(1)).unwrap_or(0)
+            * usize::try_from(page_size).unwrap_or(usize::MAX);
+        let take_count = usize::try_from(page_size).unwrap_or(usize::MAX);
         filtered = filtered
             .into_iter()
             .skip(start)
-            .take(page_size as usize)
+            .take(take_count)
             .collect();
         Ok((filtered, total))
     }
@@ -107,8 +110,8 @@ impl FileMetadataRepository for InMemoryFileMetadataRepository {
         let mut files = self.files.write().await;
         // tenant_id フィールドと storage_path プレフィックスの両方でテナント境界を確認する（二重防衛）
         let matches = files.get(&id).is_some_and(|f| {
-            let tenant_ok = f.tenant_id == tenant_id_prefix
-                && f.storage_path.starts_with(&tenant_id_prefix);
+            let tenant_ok =
+                f.tenant_id == tenant_id_prefix && f.storage_path.starts_with(&tenant_id_prefix);
             // expected_uploader が None の場合は所有者チェックをスキップし、Some の場合のみ一致検証する
             let uploader_ok = expected_uploader
                 .as_deref()
@@ -134,7 +137,7 @@ impl Default for InMemoryFileStorageRepository {
 }
 
 impl InMemoryFileStorageRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }

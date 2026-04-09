@@ -50,6 +50,24 @@ CATEGORY_LANGS = {
     'client': ['ts', 'dart'],
 }
 
+# 言語別ディレクトリ名オーバーライドマッピング
+# modules.yaml の library_parity 宣言名（抽象名）と実際のディレクトリ名が異なる場合に使用する。
+# server カテゴリの Building Blocks ライブラリは言語ごとに命名規則が異なる:
+#   - Rust: "bb-" prefix を付加（例: binding -> bb-binding）
+#   - Go: 一部ハイフン区切りの別名（例: secretstore -> secret-store）
+# core カテゴリの bb-ai-client は Dart でもハイフン形式のディレクトリ名を維持している。
+LANG_DIR_OVERRIDES: dict[tuple[str, str], str] = {
+    # server カテゴリ: Rust は "bb-" prefix が付く
+    ('binding', 'rust'):    'bb-binding',
+    ('pubsub', 'rust'):     'bb-pubsub',
+    ('secretstore', 'rust'): 'bb-secretstore',
+    ('statestore', 'rust'): 'bb-statestore',
+    # server カテゴリ: Go の secretstore は "secret-store" というディレクトリ名
+    ('secretstore', 'go'):  'secret-store',
+    # core カテゴリ: Dart の bb-ai-client はハイフン形式のディレクトリ名を使用（snake_case 変換対象外）
+    ('bb-ai-client', 'dart'): 'bb-ai-client',
+}
+
 with open(modules_yaml_path) as f:
     data = yaml.safe_load(f)
 
@@ -61,7 +79,8 @@ def to_dart_dir_name(lib_name: str) -> str:
     """
     Dart パッケージのディレクトリ名は snake_case を使用する（Dart/Flutter 命名規約）。
     modules.yaml では kebab-case で宣言されているため、ハイフンをアンダースコアに変換する。
-    例: "dlq-client" -> "dlq_client", "bb-ai-client" -> "bb_ai_client"
+    例: "dlq-client" -> "dlq_client"
+    ただし LANG_DIR_OVERRIDES で明示指定されているものはオーバーライドが優先される。
     """
     return lib_name.replace('-', '_')
 
@@ -75,9 +94,11 @@ for category, libs in parity.items():
     expected_langs = CATEGORY_LANGS.get(category, [])
     for lib in libs:
         for lang in expected_langs:
-            # Dart は snake_case、他言語（Go/Rust/TypeScript）は kebab-case のディレクトリ名を使用する。
-            # modules.yaml の宣言名（kebab-case）を Dart 用に変換してパスを構築する。
-            if lang == 'dart':
+            # LANG_DIR_OVERRIDES に明示的なマッピングがある場合はそれを優先する。
+            # 次に Dart の snake_case 変換を適用し、それ以外は宣言名をそのまま使用する。
+            if (lib, lang) in LANG_DIR_OVERRIDES:
+                dir_name = LANG_DIR_OVERRIDES[(lib, lang)]
+            elif lang == 'dart':
                 dir_name = to_dart_dir_name(lib)
             else:
                 dir_name = lib

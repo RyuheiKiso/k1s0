@@ -3,10 +3,12 @@ use std::collections::HashMap;
 use crate::Config;
 
 /// Vault シークレットで設定値を上書きする。
-pub fn merge_vault_secrets(config: &mut Config, secrets: &HashMap<String, String>) {
+/// 異なるハッシャーを持つ `HashMap` にも対応するため、型パラメータを汎化する。
+pub fn merge_vault_secrets<S: std::hash::BuildHasher>(config: &mut Config, secrets: &HashMap<String, String, S>) {
     if let Some(v) = secrets.get("database.password") {
         if let Some(ref mut db) = config.database {
-            db.password = v.clone();
+            // clone_from はアロケーション再利用のため clone よりも効率的
+            db.password.clone_from(v);
         }
     }
     if let Some(v) = secrets.get("redis.password") {
@@ -17,14 +19,16 @@ pub fn merge_vault_secrets(config: &mut Config, secrets: &HashMap<String, String
     if let Some(v) = secrets.get("kafka.sasl.username") {
         if let Some(ref mut kafka) = config.kafka {
             if let Some(ref mut sasl) = kafka.sasl {
-                sasl.username = v.clone();
+                // clone_from はアロケーション再利用のため clone よりも効率的
+                sasl.username.clone_from(v);
             }
         }
     }
     if let Some(v) = secrets.get("kafka.sasl.password") {
         if let Some(ref mut kafka) = config.kafka {
             if let Some(ref mut sasl) = kafka.sasl {
-                sasl.password = v.clone();
+                // clone_from はアロケーション再利用のため clone よりも効率的
+                sasl.password.clone_from(v);
             }
         }
     }

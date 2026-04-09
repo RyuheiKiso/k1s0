@@ -11,7 +11,7 @@ pub struct QuotaUsagePostgresRepository {
 }
 
 impl QuotaUsagePostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -43,7 +43,8 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        Ok(row.map(|r| r.current_usage as u64))
+        // LOW-008: 安全な型変換（usage は非負であることが前提）
+        Ok(row.map(|r| u64::try_from(r.current_usage).unwrap_or(0)))
     }
 
     async fn increment(&self, quota_id: &str, amount: u64, tenant_id: &str) -> anyhow::Result<u64> {
@@ -72,12 +73,14 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
              RETURNING current_usage",
         )
         .bind(quota_id)
-        .bind(amount as i64)
+        // LOW-008: 安全な型変換（amount は i64 範囲内が前提）
+        .bind(i64::try_from(amount).unwrap_or(i64::MAX))
         .bind(tenant_id)
         .fetch_one(self.pool.as_ref())
         .await?;
 
-        Ok(row.0 as u64)
+        // LOW-008: 安全な型変換（current_usage は非負であることが前提）
+        Ok(u64::try_from(row.0).unwrap_or(0))
     }
 
     async fn reset(&self, quota_id: &str, tenant_id: &str) -> anyhow::Result<()> {
@@ -135,15 +138,19 @@ impl QuotaUsageRepository for QuotaUsagePostgresRepository {
              RETURNING current_usage",
         )
         .bind(quota_id)
-        .bind(amount as i64)
-        .bind(limit as i64)
+        // LOW-008: 安全な型変換（amount/limit は i64 範囲内が前提）
+        .bind(i64::try_from(amount).unwrap_or(i64::MAX))
+        .bind(i64::try_from(limit).unwrap_or(i64::MAX))
         .fetch_optional(self.pool.as_ref())
         .await?;
 
-        if let Some((new_usage,)) = row { Ok(CheckAndIncrementResult {
-            used: new_usage as u64,
-            allowed: true,
-        }) } else {
+        if let Some((new_usage,)) = row {
+            Ok(CheckAndIncrementResult {
+                // LOW-008: 安全な型変換（current_usage は非負であることが前提）
+                used: u64::try_from(new_usage).unwrap_or(0),
+                allowed: true,
+            })
+        } else {
             // UPDATE が 0 行 → リミット超過。現在の使用量を取得して返す
             let current = self.get_usage(quota_id, tenant_id).await?.unwrap_or(0);
             Ok(CheckAndIncrementResult {

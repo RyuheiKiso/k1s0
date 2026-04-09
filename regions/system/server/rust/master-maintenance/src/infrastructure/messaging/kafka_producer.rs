@@ -26,13 +26,14 @@ impl MasterMaintenanceKafkaProducer {
         })
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
 
     /// シャットダウン時に未送信メッセージをフラッシュして失われるのを防ぐ（AVAIL-005 監査対応）。
-    pub async fn close(&self) -> anyhow::Result<()> {
+    // async は不要（flush は同期呼び出しのため async キーワードを削除する）
+    pub fn close(&self) -> anyhow::Result<()> {
         use rdkafka::producer::Producer;
         self.producer.flush(Duration::from_secs(10))?;
         Ok(())

@@ -73,11 +73,8 @@ impl IntoResponse for UpdateConfigError {
                 );
                 (StatusCode::CONFLICT, Json(err)).into_response()
             }
-            UpdateConfigError::Validation(msg) => {
-                let err = ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
-                (StatusCode::BAD_REQUEST, Json(err)).into_response()
-            }
-            UpdateConfigError::SchemaValidation(msg) => {
+            // Validation と SchemaValidation は同じレスポンスを返すためアームを統合する
+            UpdateConfigError::Validation(msg) | UpdateConfigError::SchemaValidation(msg) => {
                 let err = ErrorResponse::new(codes::config::validation_failed().as_str(), &msg);
                 (StatusCode::BAD_REQUEST, Json(err)).into_response()
             }

@@ -50,7 +50,7 @@ impl OutboxProcessor {
 
     /// 並列処理数を設定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_concurrency(mut self, concurrency: usize) -> Self {
         self.concurrency = concurrency;
         self
@@ -59,7 +59,7 @@ impl OutboxProcessor {
     /// PROCESSING スタック検出閾値を設定する（M-12 監査対応）。
     /// デフォルトは `DEFAULT_STALE_PROCESSING_MINUTES` 分。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_stale_processing_minutes(mut self, minutes: u32) -> Self {
         self.stale_processing_minutes = minutes;
         self
@@ -167,10 +167,10 @@ impl OutboxProcessor {
         interval: Duration,
         cancellation_token: CancellationToken,
     ) -> Result<(), OutboxError> {
-        let mut ticker = tokio::time::interval(interval);
         // リカバリは処理インターバルの10倍周期で実行する（過剰なDB負荷を避けるため）
-        let mut recovery_tick_count: u64 = 0;
         const RECOVERY_INTERVAL_TICKS: u64 = 10;
+        let mut ticker = tokio::time::interval(interval);
+        let mut recovery_tick_count: u64 = 0;
         loop {
             tokio::select! {
                 () = cancellation_token.cancelled() => break,

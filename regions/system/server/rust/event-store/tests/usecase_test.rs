@@ -69,11 +69,7 @@ impl StubEventStreamRepository {
 
 #[async_trait]
 impl EventStreamRepository for StubEventStreamRepository {
-    async fn find_by_id(
-        &self,
-        _tenant_id: &str,
-        id: &str,
-    ) -> anyhow::Result<Option<EventStream>> {
+    async fn find_by_id(&self, _tenant_id: &str, id: &str) -> anyhow::Result<Option<EventStream>> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }
@@ -341,11 +337,7 @@ impl SnapshotRepository for StubSnapshotRepository {
             .cloned())
     }
 
-    async fn delete_by_stream(
-        &self,
-        _tenant_id: &str,
-        stream_id: &str,
-    ) -> anyhow::Result<u64> {
+    async fn delete_by_stream(&self, _tenant_id: &str, stream_id: &str) -> anyhow::Result<u64> {
         if self.should_fail {
             return Err(anyhow::anyhow!("storage backend unavailable"));
         }

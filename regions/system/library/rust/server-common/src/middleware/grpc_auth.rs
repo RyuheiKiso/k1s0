@@ -187,30 +187,21 @@ mod tests {
     fn test_extract_bearer_token_uppercase() {
         // 大文字 Bearer が正常に動作することを確認（RFC 7235 準拠）
         let req = make_request_with_auth("Bearer test-token");
-        assert_eq!(
-            extract_bearer_token(&req),
-            Some("test-token".to_string())
-        );
+        assert_eq!(extract_bearer_token(&req), Some("test-token".to_string()));
     }
 
     #[test]
     fn test_extract_bearer_token_lowercase() {
         // 小文字 bearer が受け入れられることを確認（RFC 7235: スキーム名は大文字小文字不区別）
         let req = make_request_with_auth("bearer test-token");
-        assert_eq!(
-            extract_bearer_token(&req),
-            Some("test-token".to_string())
-        );
+        assert_eq!(extract_bearer_token(&req), Some("test-token".to_string()));
     }
 
     #[test]
     fn test_extract_bearer_token_mixed_case() {
         // 混在ケース BEARER が受け入れられることを確認
         let req = make_request_with_auth("BEARER test-token");
-        assert_eq!(
-            extract_bearer_token(&req),
-            Some("test-token".to_string())
-        );
+        assert_eq!(extract_bearer_token(&req), Some("test-token".to_string()));
     }
 
     #[test]

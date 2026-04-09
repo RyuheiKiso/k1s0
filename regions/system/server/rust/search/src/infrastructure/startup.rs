@@ -430,7 +430,11 @@ impl SearchRepository for InMemorySearchRepository {
     }
 
     /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
-    async fn find_index(&self, name: &str, _tenant_id: &str) -> anyhow::Result<Option<SearchIndex>> {
+    async fn find_index(
+        &self,
+        name: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<SearchIndex>> {
         let indices = self.indices.read().await;
         Ok(indices.get(name).cloned())
     }
@@ -495,7 +499,12 @@ impl SearchRepository for InMemorySearchRepository {
     }
 
     /// `InMemory実装`: `tenant_id` はテナントフィルタに使用しないが、トレイト定義に合わせて引数を受け取る。
-    async fn delete_document(&self, index_name: &str, doc_id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
+    async fn delete_document(
+        &self,
+        index_name: &str,
+        doc_id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<bool> {
         let mut documents = self.documents.write().await;
         if let Some(docs) = documents.get_mut(index_name) {
             let len_before = docs.len();

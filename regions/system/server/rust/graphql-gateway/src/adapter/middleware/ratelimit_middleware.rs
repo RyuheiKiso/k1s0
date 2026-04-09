@@ -123,17 +123,18 @@ where
         let mut inner = self.inner.clone();
 
         Box::pin(async move {
-            // リクエストからクライアント識別子を抽出（body 分離前に実行）
-            let identifier = extract_identifier(&req);
-            // スコープと識別子を組み合わせてレート制限キーを生成
-            let rate_limit_key = format!("{scope}:{identifier}");
-
             // STATIC-MEDIUM-001 監査対応: ボディを読み取って GraphQL クエリ複雑度をコストとして推定する。
             // Alias DoS（大量エイリアスによる単一リクエストへの負荷集中）を防止する。
             // RequestBodyLimitLayer（2MB）が外側に適用されているため、ここでも 2MB を上限とする。
             const MAX_BODY_SIZE: usize = 2 * 1024 * 1024;
+
+            // リクエストからクライアント識別子を抽出（body 分離前に実行）
+            let identifier = extract_identifier(&req);
+            // スコープと識別子を組み合わせてレート制限キーを生成
+            let rate_limit_key = format!("{scope}:{identifier}");
             let (parts, body) = req.into_parts();
-            let body_bytes = if let Ok(bytes) = axum::body::to_bytes(body, MAX_BODY_SIZE).await { bytes } else {
+            // let-else: ボディ読み取り失敗時はフォールバックして後続サービスに転送する
+            let Ok(body_bytes) = axum::body::to_bytes(body, MAX_BODY_SIZE).await else {
                 // ボディ読み取り失敗時はコスト1でフォールバックし、後続サービスに転送する
                 let req = Request::from_parts(parts, Body::empty());
                 return inner.call(req).await;
@@ -230,10 +231,12 @@ fn estimate_query_cost(body: &[u8]) -> u32 {
                 && !line.starts_with('(')
                 && !line.starts_with(')')
         })
-        .count() as u32;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .count();
+    let field_count = u32::try_from(field_count).unwrap_or(u32::MAX);
 
     // コスト下限は1（最低1リクエスト消費）、上限は100（極端な巨大クエリの上限）
-    field_count.max(1).min(100)
+    field_count.clamp(1, 100)
 }
 
 /// HTTP 429 Too Many Requests レスポンスを生成する。
@@ -324,7 +327,11 @@ mod tests {
 }"#;
         let body = format!(r#"{{"query": {:?}}}"#, query);
         let cost = estimate_query_cost(body.as_bytes());
-        assert!(cost > 1, "エイリアス多用クエリはコスト1より大きいべき: {}", cost);
+        assert!(
+            cost > 1,
+            "エイリアス多用クエリはコスト1より大きいべき: {}",
+            cost
+        );
     }
 
     /// GraphQL でないリクエスト（ヘルスチェック等）はコスト1を返す

@@ -38,8 +38,10 @@ pub async fn healthz(State(state): State<AppState>) -> impl IntoResponse {
     // keycloak_client::healthy() は AppState 未保持のため、http_client 経由で直接確認する。
     // 完全な Keycloak ヘルスチェック（KeycloakClient::healthy() の利用）は
     // AppState に Arc<KeycloakClient> を追加することで実現できるが、影響範囲が大きいため
-    // TODO(LOW-06): AppState に keycloak_client: Option<Arc<KeycloakClient>> を追加し
+    // TODO(future-work): AppState に keycloak_client: Option<Arc<KeycloakClient>> を追加し
     //               KeycloakClient::healthy() を呼び出すよう移行すること。
+    //               優先度: LOW。対応時は AppState 変更の影響範囲（全ハンドラ）を精査し ADR を作成すること。
+    //               実装例: state.keycloak_client.as_ref().healthy().await の呼び出し形式に変更する。
     if let Some(ref url) = state.keycloak_url {
         match state.http_client.get(url).send().await {
             Ok(_) => {}
@@ -73,7 +75,14 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // DB check: テーブル存在確認まで行い、スキーマ未初期化でも "ready" を返す誤検知を防ぐ（MED-006 監査対応）
     // `SELECT 1` だけでは DB 接続の疎通確認のみでスキーマ未初期化を見逃すため、実テーブルを参照する
     if let Some(ref pool) = state.db_pool {
-        if let Ok(_) = sqlx::query("SELECT 1 FROM auth.users LIMIT 0").execute(pool).await { db_status = "ok" } else {
+        // is_ok() を使って冗長なパターンマッチを避ける
+        if sqlx::query("SELECT 1 FROM auth.users LIMIT 0")
+            .execute(pool)
+            .await
+            .is_ok()
+        {
+            db_status = "ok";
+        } else {
             db_status = "error";
             overall_ok = false;
         }
@@ -81,7 +90,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
 
     // Keycloak check — AppState のシングルトン HTTP クライアントを使用する
     if let Some(ref url) = state.keycloak_url {
-        if let Ok(_) = state.http_client.get(url).send().await { kc_status = "ok" } else {
+        // is_ok() を使って冗長なパターンマッチを避ける
+        if state.http_client.get(url).send().await.is_ok() {
+            kc_status = "ok";
+        } else {
             kc_status = "error";
             overall_ok = false;
         }
@@ -148,14 +160,16 @@ pub async fn validate_token(
         let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "token must not be empty");
         return (StatusCode::BAD_REQUEST, Json(err)).into_response();
     }
-    if let Ok(claims) = state.validate_token_uc.execute(&req.token).await { (
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "valid": true,
-            "claims": claims
-        })),
-    )
-        .into_response() } else {
+    if let Ok(claims) = state.validate_token_uc.execute(&req.token).await {
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "valid": true,
+                "claims": claims
+            })),
+        )
+            .into_response()
+    } else {
         let err = ErrorResponse::new("SYS_AUTH_TOKEN_INVALID", "Token validation failed");
         (StatusCode::UNAUTHORIZED, Json(err)).into_response()
     }
@@ -213,7 +227,9 @@ pub async fn introspect_token(
     security(("bearer_auth" = []))
 )]
 pub async fn get_user(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
-    if let Ok(user) = state.get_user_uc.execute(&id).await { (StatusCode::OK, Json(user)).into_response() } else {
+    if let Ok(user) = state.get_user_uc.execute(&id).await {
+        (StatusCode::OK, Json(user)).into_response()
+    } else {
         let err = ErrorResponse::new(
             "SYS_AUTH_USER_NOT_FOUND",
             "The specified user was not found",
@@ -310,7 +326,9 @@ pub async fn get_user_roles(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    if let Ok(roles) = state.get_user_roles_uc.execute(&id).await { (StatusCode::OK, Json(roles)).into_response() } else {
+    if let Ok(roles) = state.get_user_roles_uc.execute(&id).await {
+        (StatusCode::OK, Json(roles)).into_response()
+    } else {
         let err = ErrorResponse::new(
             "SYS_AUTH_USER_NOT_FOUND",
             "The specified user was not found",

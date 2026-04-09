@@ -1,7 +1,8 @@
 use aes_gcm::{
     // C-001 監査対応: Payload を追加して AAD（Additional Authenticated Data）を暗号化操作に渡す
     aead::{Aead, KeyInit, Payload},
-    Aes256Gcm, Nonce,
+    Aes256Gcm,
+    Nonce,
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
 // L-10 監査対応: OsRng は OS の乱数生成器を直接使用する暗号学的安全乱数生成器。
@@ -26,7 +27,11 @@ pub fn generate_aes_key() -> [u8; 32] {
 /// C-001 監査対応: aad（Additional Authenticated Data）を Payload に含めることで、
 /// ciphertext swap attack を防止し NIST SP 800-38D 準拠を達成する。
 /// aad には暗号化コンテキスト（namespace やチャンネル ID 等の識別子）を渡す。
-pub fn aes_encrypt(key: &[u8; 32], plaintext: &[u8], aad: &[u8]) -> Result<String, EncryptionError> {
+pub fn aes_encrypt(
+    key: &[u8; 32],
+    plaintext: &[u8],
+    aad: &[u8],
+) -> Result<String, EncryptionError> {
     let cipher = Aes256Gcm::new_from_slice(key)
         .map_err(|e| EncryptionError::EncryptFailed(e.to_string()))?;
 
@@ -37,7 +42,13 @@ pub fn aes_encrypt(key: &[u8; 32], plaintext: &[u8], aad: &[u8]) -> Result<Strin
 
     // C-001 監査対応: AAD を Payload に含めて暗号化することで認証タグがコンテキストを保証する
     let ciphertext = cipher
-        .encrypt(nonce, Payload { msg: plaintext, aad })
+        .encrypt(
+            nonce,
+            Payload {
+                msg: plaintext,
+                aad,
+            },
+        )
         .map_err(|e| EncryptionError::EncryptFailed(e.to_string()))?;
 
     // ノンス（12バイト）を暗号文の先頭に結合し Base64 エンコードして返す
@@ -50,7 +61,11 @@ pub fn aes_encrypt(key: &[u8; 32], plaintext: &[u8], aad: &[u8]) -> Result<Strin
 /// C-001 監査対応: aad（Additional Authenticated Data）を Payload に含めることで、
 /// 暗号化時と同一の AAD が指定された場合のみ復号成功となる。
 /// AAD が異なる場合は認証タグ検証に失敗し `DecryptFailed` エラーを返す。
-pub fn aes_decrypt(key: &[u8; 32], ciphertext: &str, aad: &[u8]) -> Result<Vec<u8>, EncryptionError> {
+pub fn aes_decrypt(
+    key: &[u8; 32],
+    ciphertext: &str,
+    aad: &[u8],
+) -> Result<Vec<u8>, EncryptionError> {
     let combined = STANDARD
         .decode(ciphertext)
         .map_err(|e| EncryptionError::DecryptFailed(e.to_string()))?;
@@ -69,10 +84,15 @@ pub fn aes_decrypt(key: &[u8; 32], ciphertext: &str, aad: &[u8]) -> Result<Vec<u
 
     // C-001 監査対応: AAD を Payload に含めて復号することでコンテキスト認証を実施する
     cipher
-        .decrypt(nonce, Payload { msg: encrypted, aad })
+        .decrypt(
+            nonce,
+            Payload {
+                msg: encrypted,
+                aad,
+            },
+        )
         .map_err(|e| EncryptionError::DecryptFailed(e.to_string()))
 }
-
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]

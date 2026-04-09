@@ -114,7 +114,10 @@ pub async fn get_instance_status(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetInstanceInput { tenant_id, id: id.clone() };
+    let input = GetInstanceInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {
@@ -225,7 +228,10 @@ pub async fn get_instance(
 ) -> impl IntoResponse {
     // RLS テナント分離のため Claims から tenant_id を取得する
     let tenant_id = tenant_id_from_claims(claims.as_ref().map(|e| &e.0));
-    let input = GetInstanceInput { tenant_id, id: id.clone() };
+    let input = GetInstanceInput {
+        tenant_id,
+        id: id.clone(),
+    };
 
     match state.get_instance_uc.execute(&input).await {
         Ok(inst) => {

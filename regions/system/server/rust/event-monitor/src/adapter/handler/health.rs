@@ -46,7 +46,15 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
-pub async fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
+// mod.rs の metrics_handler が使用されるため、この実装は参照されない
+#[allow(dead_code)]
+// async は不要（.await 呼び出しがないため同期関数に変換する）
+#[must_use]
+pub fn metrics_handler(State(state): State<AppState>) -> impl IntoResponse {
     let body = state.metrics.gather_metrics();
-    (StatusCode::OK, [("content-type", "text/plain; version=0.0.4; charset=utf-8")], body)
+    (
+        StatusCode::OK,
+        [("content-type", "text/plain; version=0.0.4; charset=utf-8")],
+        body,
+    )
 }

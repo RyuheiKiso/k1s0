@@ -111,8 +111,10 @@ mod tests {
         MockQuotaPolicyRepository, MockQuotaUsageRepository,
     };
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy() -> crate::domain::entity::quota::QuotaPolicy {
         crate::domain::entity::quota::QuotaPolicy::new(
+            "test-tenant".to_string(),
             "test".to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

@@ -13,7 +13,7 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             Algorithm::TokenBucket => "token_bucket",
@@ -59,7 +59,7 @@ pub struct RateLimitRule {
 }
 
 impl RateLimitRule {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         scope: String,
         identifier_pattern: String,
@@ -101,7 +101,7 @@ pub struct RateLimitDecision {
 }
 
 impl RateLimitDecision {
-    #[must_use] 
+    #[must_use]
     pub fn allowed(limit: i64, remaining: i64, reset_at: DateTime<Utc>) -> Self {
         Self {
             allowed: true,
@@ -116,7 +116,7 @@ impl RateLimitDecision {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn denied(limit: i64, remaining: i64, reset_at: DateTime<Utc>, reason: String) -> Self {
         Self {
             allowed: false,

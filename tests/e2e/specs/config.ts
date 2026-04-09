@@ -13,7 +13,8 @@ export const SERVICE_PORTS: Record<string, number> = {
   config: Number(process.env.CONFIG_PORT) || 8084,
   saga: Number(process.env.SAGA_PORT) || 8085,
   "dlq-manager": Number(process.env.DLQ_MANAGER_PORT) || 8086,
-  featureflag: Number(process.env.FEATUREFLAG_PORT) || 8087,
+  // MED-016 修正: featureflag の実際のポートは 8187（8087 は誤り）
+  featureflag: Number(process.env.FEATUREFLAG_PORT) || 8187,
   ratelimit: Number(process.env.RATELIMIT_PORT) || 8088,
   tenant: Number(process.env.TENANT_PORT) || 8089,
   vault: Number(process.env.VAULT_PORT) || 8091,

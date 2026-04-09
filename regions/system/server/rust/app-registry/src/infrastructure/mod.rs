@@ -21,7 +21,7 @@ pub struct JwksVerifierAdapter {
 }
 
 impl JwksVerifierAdapter {
-    #[must_use] 
+    #[must_use]
     pub fn new(verifier: std::sync::Arc<k1s0_auth::JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -36,8 +36,10 @@ impl TokenVerifier for JwksVerifierAdapter {
             sub: lib_claims.sub.clone(),
             iss: lib_claims.iss.clone(),
             aud: lib_claims.audience().unwrap_or_default().to_string(),
-            exp: lib_claims.exp as i64,
-            iat: lib_claims.iat as i64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            exp: i64::try_from(lib_claims.exp).unwrap_or(i64::MAX),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            iat: i64::try_from(lib_claims.iat).unwrap_or(0),
             jti: lib_claims.jti.clone().unwrap_or_default(),
             typ: lib_claims.typ.clone().unwrap_or_default(),
             azp: lib_claims.azp.clone().unwrap_or_default(),

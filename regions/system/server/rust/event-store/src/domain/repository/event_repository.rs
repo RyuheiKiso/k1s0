@@ -36,6 +36,8 @@ pub trait EventRepository: Send + Sync {
         events: Vec<StoredEvent>,
     ) -> anyhow::Result<Vec<StoredEvent>>;
 
+    // テナント分離・フィルタリング・ページングで引数が多くなるためアーキテクチャ上の制約として許容する
+    #[allow(clippy::too_many_arguments)]
     async fn find_by_stream(
         &self,
         tenant_id: &str,

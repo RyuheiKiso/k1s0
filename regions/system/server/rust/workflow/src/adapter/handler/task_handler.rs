@@ -52,12 +52,9 @@ pub async fn list_tasks(
                 .into_iter()
                 .map(|t| {
                     // 期限超過判定: 期限切れかつステータスがpendingまたはassignedの場合
-                    let is_overdue = t
-                        .due_at
-                        .is_some_and(|d| {
-                            d < chrono::Utc::now()
-                                && (t.status == "pending" || t.status == "assigned")
-                        });
+                    let is_overdue = t.due_at.is_some_and(|d| {
+                        d < chrono::Utc::now() && (t.status == "pending" || t.status == "assigned")
+                    });
                     serde_json::json!({
                         "id": t.id,
                         "instance_id": t.instance_id,

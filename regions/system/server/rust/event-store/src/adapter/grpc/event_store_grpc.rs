@@ -99,15 +99,16 @@ impl EventStoreGrpcService {
         tenant_id: &str,
     ) -> Result<ProtoListStreamsResponse, GrpcError> {
         let pagination = req.pagination.unwrap_or_default();
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
         let page = if pagination.page <= 0 {
             1
         } else {
-            pagination.page as u32
+            u32::try_from(pagination.page).unwrap_or(1)
         };
         let page_size = if pagination.page_size <= 0 {
             50
         } else {
-            pagination.page_size as u32
+            u32::try_from(pagination.page_size).unwrap_or(50)
         };
 
         // テナント分離のため ListStreamsUseCase を使用して tenant_id を渡す（ADR-0106）
@@ -137,9 +138,11 @@ impl EventStoreGrpcService {
                 })
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: total_count as i64,
-                page: page as i32,
-                page_size: page_size as i32,
+                // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                total_count: i64::try_from(total_count).unwrap_or(i64::MAX),
+                // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                page: i32::try_from(page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
                 has_next,
             }),
         })
@@ -156,9 +159,7 @@ impl EventStoreGrpcService {
             .into_iter()
             .map(|e| {
                 let payload = serde_json::from_slice(&e.payload).map_err(|err| {
-                    GrpcError::InvalidArgument(format!(
-                        "イベントペイロードが不正なJSONです: {err}"
-                    ))
+                    GrpcError::InvalidArgument(format!("イベントペイロードが不正なJSONです: {err}"))
                 })?;
                 let metadata = e.metadata.unwrap_or_default();
                 Ok(EventData {
@@ -232,15 +233,16 @@ impl EventStoreGrpcService {
     ) -> Result<ProtoReadEventsResponse, GrpcError> {
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = req.pagination.unwrap_or_default();
+        // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
         let page = if pagination.page <= 0 {
             1
         } else {
-            pagination.page as u32
+            u32::try_from(pagination.page).unwrap_or(1)
         };
         let page_size = if pagination.page_size <= 0 {
             20
         } else {
-            pagination.page_size as u32
+            u32::try_from(pagination.page_size).unwrap_or(20)
         };
         // テナント分離のため tenant_id を Input に設定する（ADR-0106）
         let input = ReadEventsInput {
@@ -266,9 +268,11 @@ impl EventStoreGrpcService {
                     events,
                     current_version: output.current_version,
                     pagination: Some(ProtoPaginationResult {
-                        total_count: output.pagination.total_count as i64,
-                        page: page as i32,
-                        page_size: page_size as i32,
+                        // LOW-008: 安全な型変換。プロト整数値は i64::MAX を超えない想定。
+                        total_count: i64::try_from(output.pagination.total_count).unwrap_or(i64::MAX),
+                        // LOW-008: 安全な型変換。プロト整数値は i32::MAX を超えない想定。
+                        page: i32::try_from(page).unwrap_or(i32::MAX),
+                        page_size: i32::try_from(page_size).unwrap_or(i32::MAX),
                         has_next: output.pagination.has_next,
                     }),
                 })
@@ -319,9 +323,7 @@ impl EventStoreGrpcService {
     ) -> Result<ProtoCreateSnapshotResponse, GrpcError> {
         // スナップショット状態のJSONデシリアライズ失敗をINVALID_ARGUMENTとして伝播する
         let state = serde_json::from_slice(&req.state).map_err(|err| {
-            GrpcError::InvalidArgument(format!(
-                "スナップショット状態が不正なJSONです: {err}"
-            ))
+            GrpcError::InvalidArgument(format!("スナップショット状態が不正なJSONです: {err}"))
         })?;
 
         // テナント分離のため tenant_id を Input に設定する（ADR-0106）
@@ -418,10 +420,13 @@ impl EventStoreGrpcService {
 
 /// `chrono::DateTime`<Utc> を Proto の Timestamp メッセージに変換する。
 /// 他サーバー（api-registry, event-monitor, config）と同一のパターンを使用。
+// Proto フィールドの型が Option<Timestamp> であるため Option を返す必要がある（変更不可）
+#[allow(clippy::unnecessary_wraps)]
 fn datetime_to_proto_timestamp(dt: DateTime<Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換。timestamp_subsec_nanos() は u32 で最大 999_999_999 のため i32 に収まる。
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
@@ -527,14 +532,12 @@ mod tests {
             stream_id: "stream-001".to_string(),
             expected_version: -1,
             aggregate_type: "TestAggregate".to_string(),
-            events: vec![
-                crate::proto::k1s0::system::eventstore::v1::EventData {
-                    event_type: "TestEvent".to_string(),
-                    // 不正なバイト列: 有効なJSONではない
-                    payload: b"not-valid-json{{{".to_vec(),
-                    metadata: None,
-                },
-            ],
+            events: vec![crate::proto::k1s0::system::eventstore::v1::EventData {
+                event_type: "TestEvent".to_string(),
+                // 不正なバイト列: 有効なJSONではない
+                payload: b"not-valid-json{{{".to_vec(),
+                metadata: None,
+            }],
         };
 
         let result = svc.append_events(req, "tenant-test").await;
@@ -565,7 +568,10 @@ mod tests {
         };
 
         let result = svc.create_snapshot(req, "tenant-test").await;
-        assert!(result.is_err(), "不正なJSONスナップショット状態はエラーを返すべき");
+        assert!(
+            result.is_err(),
+            "不正なJSONスナップショット状態はエラーを返すべき"
+        );
         match result.unwrap_err() {
             GrpcError::InvalidArgument(msg) => {
                 assert!(
@@ -586,9 +592,7 @@ mod tests {
         // MockEventStreamRepository に find_by_id の期待値を設定する必要がある。
         // make_service() とは別に個別にモックを組み立てる。
         let mut stream_repo = MockEventStreamRepository::new();
-        stream_repo
-            .expect_find_by_id()
-            .returning(|_, _| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
+        stream_repo.expect_find_by_id().returning(|_, _| Ok(None)); // ストリームが存在しない → StreamNotFound エラーになる
         let stream_repo = Arc::new(stream_repo);
 
         let event_repo = Arc::new(MockEventRepository::new());
@@ -635,20 +639,21 @@ mod tests {
             stream_id: "stream-001".to_string(),
             expected_version: 0, // 0 を指定するとストリームが存在しないため StreamNotFound になる
             aggregate_type: "TestAggregate".to_string(),
-            events: vec![
-                crate::proto::k1s0::system::eventstore::v1::EventData {
-                    event_type: "TestEvent".to_string(),
-                    // 有効なJSON
-                    payload: b"{}".to_vec(),
-                    metadata: None,
-                },
-            ],
+            events: vec![crate::proto::k1s0::system::eventstore::v1::EventData {
+                event_type: "TestEvent".to_string(),
+                // 有効なJSON
+                payload: b"{}".to_vec(),
+                metadata: None,
+            }],
         };
 
         let result = svc.append_events(req, "tenant-test").await;
         // ストリームが存在しないため StreamNotFound エラーが返るが、
         // InvalidArgument（JSONパースエラー）は返ってはいけない
-        assert!(result.is_err(), "ストリームが存在しないためエラーが返るべき");
+        assert!(
+            result.is_err(),
+            "ストリームが存在しないためエラーが返るべき"
+        );
         assert!(
             matches!(result.unwrap_err(), GrpcError::NotFound(_)),
             "有効なJSONの場合は NotFound エラーが返り、InvalidArgument は返ってはいけない"

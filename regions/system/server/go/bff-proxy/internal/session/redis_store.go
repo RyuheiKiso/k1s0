@@ -13,13 +13,13 @@ import (
 // Store is the interface for session persistence.
 type Store interface {
 	// Create persists a new session and returns its ID.
-	Create(ctx context.Context, data *SessionData, ttl time.Duration) (string, error)
+	Create(ctx context.Context, data *Data, ttl time.Duration) (string, error)
 
 	// Get retrieves a session by ID. Returns nil if not found.
-	Get(ctx context.Context, id string) (*SessionData, error)
+	Get(ctx context.Context, id string) (*Data, error)
 
 	// Update replaces session data while preserving the TTL.
-	Update(ctx context.Context, id string, data *SessionData, ttl time.Duration) error
+	Update(ctx context.Context, id string, data *Data, ttl time.Duration) error
 
 	// Delete removes a session by ID.
 	Delete(ctx context.Context, id string) error
@@ -47,7 +47,7 @@ func (s *RedisStore) key(id string) string {
 }
 
 // Create persists a new session and returns its ID.
-func (s *RedisStore) Create(ctx context.Context, data *SessionData, ttl time.Duration) (string, error) {
+func (s *RedisStore) Create(ctx context.Context, data *Data, ttl time.Duration) (string, error) {
 	id := uuid.New().String()
 	data.CreatedAt = time.Now().Unix()
 
@@ -64,7 +64,7 @@ func (s *RedisStore) Create(ctx context.Context, data *SessionData, ttl time.Dur
 }
 
 // Get retrieves a session by ID. Returns nil if not found.
-func (s *RedisStore) Get(ctx context.Context, id string) (*SessionData, error) {
+func (s *RedisStore) Get(ctx context.Context, id string) (*Data, error) {
 	val, err := s.client.Get(ctx, s.key(id)).Result()
 	if err == redis.Nil {
 		return nil, nil
@@ -73,7 +73,7 @@ func (s *RedisStore) Get(ctx context.Context, id string) (*SessionData, error) {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
 
-	var data SessionData
+	var data Data
 	if err := json.Unmarshal([]byte(val), &data); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal session: %w", err)
 	}
@@ -82,7 +82,7 @@ func (s *RedisStore) Get(ctx context.Context, id string) (*SessionData, error) {
 }
 
 // Update replaces session data while preserving the TTL.
-func (s *RedisStore) Update(ctx context.Context, id string, data *SessionData, ttl time.Duration) error {
+func (s *RedisStore) Update(ctx context.Context, id string, data *Data, ttl time.Duration) error {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal session: %w", err)
@@ -120,7 +120,7 @@ type FullStore interface {
 }
 
 // ExchangeCodeStore はモバイルフロー用ワンタイム交換コードの永続化インターフェース（H-5 監査対応）。
-// SessionData を流用せず ExchangeCodeData 専用の操作を提供する。
+// Data を流用せず ExchangeCodeData 専用の操作を提供する。
 type ExchangeCodeStore interface {
 	// CreateExchangeCode は交換コードデータを保存し、コードキーを返す。
 	CreateExchangeCode(ctx context.Context, data *ExchangeCodeData, ttl time.Duration) (string, error)

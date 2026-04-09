@@ -32,7 +32,7 @@ impl FeatureFlagDomainService {
         Ok(())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn evaluate(
         flag: &FeatureFlag,
         context: &EvaluationContext,
@@ -106,7 +106,9 @@ impl FeatureFlagDomainService {
             .as_deref()
             .or(context.tenant_id.as_deref())
             .unwrap_or("anonymous");
-        let bucket = (Self::stable_hash(seed) % (total_weight as u64)) as i64;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_weight_u64 = u64::try_from(total_weight).unwrap_or(0);
+        let bucket = i64::try_from(Self::stable_hash(seed) % total_weight_u64).unwrap_or(0);
 
         let mut cumulative = 0i64;
         for variant in weighted {

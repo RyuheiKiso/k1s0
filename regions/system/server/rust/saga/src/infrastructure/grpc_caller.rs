@@ -80,7 +80,7 @@ pub struct ServiceRegistry {
 
 impl ServiceRegistry {
     /// `新しいServiceRegistryを作成する`。
-    #[must_use] 
+    #[must_use]
     pub fn new(services: HashMap<String, ServiceEndpoint>) -> Self {
         Self { services }
     }
@@ -102,7 +102,7 @@ pub struct TonicGrpcCaller {
 
 impl TonicGrpcCaller {
     /// `新しいTonicGrpcCallerを作成する`。
-    #[must_use] 
+    #[must_use]
     pub fn new(registry: Arc<ServiceRegistry>) -> Self {
         Self {
             registry,

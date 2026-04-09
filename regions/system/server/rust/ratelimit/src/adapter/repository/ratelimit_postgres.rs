@@ -11,7 +11,7 @@ pub struct RateLimitPostgresRepository {
 }
 
 impl RateLimitPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -208,7 +208,8 @@ impl RateLimitRepository for RateLimitPostgresRepository {
             .map(RuleRow::into_rule)
             .collect::<anyhow::Result<Vec<_>>>()?;
 
-        Ok((rules, total.max(0) as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((rules, u64::try_from(total.max(0)).unwrap_or(0)))
     }
 
     /// CRIT-005 対応: トランザクション内で RLS セッション変数を設定してからルールを更新する。
@@ -246,13 +247,12 @@ impl RateLimitRepository for RateLimitPostgresRepository {
         let mut tx = self.pool.begin().await?;
         set_tenant_rls(&mut tx, tenant_id).await?;
 
-        let result = sqlx::query(
-            r"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1 AND tenant_id = $2",
-        )
-        .bind(id)
-        .bind(tenant_id)
-        .execute(&mut *tx)
-        .await?;
+        let result =
+            sqlx::query(r"DELETE FROM ratelimit.rate_limit_rules WHERE id = $1 AND tenant_id = $2")
+                .bind(id)
+                .bind(tenant_id)
+                .execute(&mut *tx)
+                .await?;
 
         tx.commit().await?;
         Ok(result.rows_affected() > 0)

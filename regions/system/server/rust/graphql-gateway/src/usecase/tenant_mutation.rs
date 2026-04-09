@@ -24,7 +24,11 @@ impl TenantMutationResolver {
         owner_id: &str,
         plan: &str,
     ) -> CreateTenantPayload {
-        match self.client.create_tenant(name, display_name, owner_id, plan).await {
+        match self
+            .client
+            .create_tenant(name, display_name, owner_id, plan)
+            .await
+        {
             Ok(tenant) => CreateTenantPayload {
                 tenant: Some(tenant),
                 errors: vec![],

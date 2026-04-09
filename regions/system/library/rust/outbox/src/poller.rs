@@ -123,8 +123,9 @@ impl OutboxEventPoller {
     /// バックグラウンドタスクとしてポーリングを開始する。
     /// `shutdown_rx` でシャットダウンシグナルを受信したら停止する。
     pub async fn run(&self, mut shutdown_rx: tokio::sync::watch::Receiver<bool>) {
+        // LOW-008: 安全な型変換（オーバーフロー防止）
         tracing::info!(
-            poll_interval_ms = self.poll_interval.as_millis() as u64,
+            poll_interval_ms = u64::try_from(self.poll_interval.as_millis()).unwrap_or(u64::MAX),
             batch_size = self.batch_size,
             "outbox poller started"
         );

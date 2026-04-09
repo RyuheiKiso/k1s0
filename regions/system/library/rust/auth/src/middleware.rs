@@ -173,7 +173,9 @@ impl AuthErrorResponse {
                 code: "SYS_AUTH_JWKS_ERROR".into(),
                 message: "Failed to connect to authentication service".into(),
             },
-            AuthError::PermissionDenied => Self::forbidden("You do not have permission to perform this action"),
+            AuthError::PermissionDenied => {
+                Self::forbidden("You do not have permission to perform this action")
+            }
             AuthError::TierAccessDenied => Self::tier_forbidden(),
             // HIGH-002 対応: ログアウト済みトークン（jti ブラックリスト）は 401 で返す。
             // 再ログインを促すため TokenExpired と同じ UNAUTHORIZED を使用する。

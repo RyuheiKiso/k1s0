@@ -44,7 +44,7 @@ impl GetFlowKpiUseCase {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_cache(mut self, cache: Arc<KpiCache>) -> Self {
         self.kpi_cache = Some(cache);
         self

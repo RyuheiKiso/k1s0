@@ -19,13 +19,10 @@ pub fn compile_service_protos(
     out_dir: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // サービス定義用 proto ファイルパス
-    let service_proto = format!(
-        "{proto_root}/k1s0/service/{service_name}/v1/{service_name}.proto"
-    );
+    let service_proto = format!("{proto_root}/k1s0/service/{service_name}/v1/{service_name}.proto");
     // イベント定義用 proto ファイルパス
-    let event_proto = format!(
-        "{proto_root}/k1s0/event/service/{service_name}/v1/{service_name}_events.proto"
-    );
+    let event_proto =
+        format!("{proto_root}/k1s0/event/service/{service_name}/v1/{service_name}_events.proto");
 
     // コンパイル対象の proto ファイルを収集（存在するもののみ）
     let mut protos = Vec::new();

@@ -164,7 +164,7 @@ pub struct RedisRateLimitStore {
 }
 
 impl RedisRateLimitStore {
-    #[must_use] 
+    #[must_use]
     pub fn new(conns: Vec<ConnectionManager>) -> Self {
         Self {
             conns,
@@ -358,6 +358,8 @@ impl RateLimitStateStore for RedisRateLimitStore {
             .await?;
 
         let tokens = match result.first().and_then(|v| v.as_ref()) {
+            // LOW-008: i64 → f64 の精度損失は許容（トークンバケット上限値の近似値として使用）
+            #[allow(clippy::cast_precision_loss)]
             Some(t) => t.parse::<f64>().unwrap_or(limit as f64),
             None => return Ok(None),
         };
@@ -367,6 +369,8 @@ impl RateLimitStateStore for RedisRateLimitStore {
             .and_then(|v| v.parse::<i64>().ok())
             .unwrap_or_else(|| chrono::Utc::now().timestamp());
 
+        // LOW-008: f64 → i64 変換（floor()後は整数値として安全）
+        #[allow(clippy::cast_possible_truncation)]
         let remaining = tokens.floor() as i64;
         let used = limit - remaining;
         let reset_at = last_refill + window_secs;

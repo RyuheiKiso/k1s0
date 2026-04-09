@@ -229,8 +229,7 @@ pub async fn check_quota(
     match state.get_usage_uc.execute(&id, &tenant_id).await {
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -291,8 +290,7 @@ pub async fn delete_quota(
     match state.delete_policy_uc.execute(&id, &tenant_id).await {
         Ok(()) => StatusCode::NO_CONTENT.into_response(),
         Err(DeleteQuotaPolicyError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(DeleteQuotaPolicyError::Internal(msg)) => {
@@ -320,8 +318,7 @@ pub async fn get_usage(
     match state.get_usage_uc.execute(&id, &tenant_id).await {
         Ok(usage) => (StatusCode::OK, Json(usage)).into_response(),
         Err(GetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(GetQuotaUsageError::Internal(msg)) => {
@@ -396,8 +393,7 @@ pub async fn reset_usage(
     match state.reset_usage_uc.execute(&input).await {
         Ok(output) => (StatusCode::OK, Json(output)).into_response(),
         Err(ResetQuotaUsageError::NotFound(id)) => {
-            let err =
-                ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
+            let err = ErrorResponse::new("SYS_QUOTA_NOT_FOUND", &format!("quota not found: {id}"));
             (StatusCode::NOT_FOUND, Json(err)).into_response()
         }
         Err(ResetQuotaUsageError::Validation(msg)) => {
@@ -444,7 +440,7 @@ pub struct ErrorDetail {
 }
 
 impl ErrorResponse {
-    #[must_use] 
+    #[must_use]
     pub fn new(code: &str, message: &str) -> Self {
         Self {
             error: ErrorBody {
@@ -456,7 +452,7 @@ impl ErrorResponse {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_details(code: &str, message: &str, details: Vec<ErrorDetail>) -> Self {
         Self {
             error: ErrorBody {

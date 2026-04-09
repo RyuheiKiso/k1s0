@@ -1,9 +1,8 @@
 #![allow(clippy::unwrap_used)]
 // ADR-0104: aes_decrypt_with_legacy_fallback は Phase B 完了後に削除済みのためインポートしない
 use k1s0_encryption::{
-    aes_decrypt, aes_encrypt, generate_aes_key,
-    generate_rsa_key_pair, hash_password, rsa_decrypt, rsa_encrypt, verify_password,
-    EncryptionError,
+    aes_decrypt, aes_encrypt, generate_aes_key, generate_rsa_key_pair, hash_password, rsa_decrypt,
+    rsa_encrypt, verify_password, EncryptionError,
 };
 
 // ─── AES ────────────────────────────────────────────────────────────────────

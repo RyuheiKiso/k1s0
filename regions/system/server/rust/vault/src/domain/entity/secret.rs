@@ -25,7 +25,7 @@ pub struct Secret {
 }
 
 impl Secret {
-    #[must_use] 
+    #[must_use]
     pub fn new(path: String, data: HashMap<String, String>) -> Self {
         let now = Utc::now();
         let version = SecretVersion {
@@ -43,7 +43,7 @@ impl Secret {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_version(&self, version: Option<i64>) -> Option<&SecretVersion> {
         let v = version.unwrap_or(self.current_version);
         self.versions
@@ -51,7 +51,7 @@ impl Secret {
             .find(|sv| sv.version == v && !sv.destroyed)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn update(mut self, data: HashMap<String, String>) -> Self {
         let new_version = self.current_version + 1;
         let now = Utc::now();

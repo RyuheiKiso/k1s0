@@ -27,7 +27,11 @@ struct StubSchemaRepo;
 #[async_trait]
 impl ApiSchemaRepository for StubSchemaRepo {
     // テスト用スタブ: tenant_id を受け取るが実際には使用しない
-    async fn find_by_name(&self, _tenant_id: &str, _name: &str) -> anyhow::Result<Option<ApiSchema>> {
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        _name: &str,
+    ) -> anyhow::Result<Option<ApiSchema>> {
         Ok(None)
     }
     async fn find_all(
@@ -63,7 +67,11 @@ impl ApiSchemaVersionRepository for StubVersionRepo {
     ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
-    async fn find_latest_by_name(&self, _tenant_id: &str, _name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(
+        &self,
+        _tenant_id: &str,
+        _name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         Ok(None)
     }
     async fn find_all_by_name(

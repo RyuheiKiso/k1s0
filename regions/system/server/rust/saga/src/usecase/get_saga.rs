@@ -44,7 +44,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_saga_found() {
-        let saga = SagaState::new("test".to_string(), serde_json::json!({}), None, None, "system".to_string());
+        let saga = SagaState::new(
+            "test".to_string(),
+            serde_json::json!({}),
+            None,
+            None,
+            "system".to_string(),
+        );
         let saga_id = saga.saga_id;
         let saga_clone = saga.clone();
 

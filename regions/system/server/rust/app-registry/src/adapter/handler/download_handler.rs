@@ -41,13 +41,17 @@ pub async fn get_latest(
     Query(params): Query<PlatformQuery>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => if let Ok(platform) = platform.parse::<Platform>() { Some(platform) } else {
-            let err = ErrorResponse::new(
-                "SYS_APPS_INVALID_PLATFORM",
-                "Invalid platform. Use: windows, linux, macos",
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        },
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
+                let err = ErrorResponse::new(
+                    "SYS_APPS_INVALID_PLATFORM",
+                    "Invalid platform. Use: windows, linux, macos",
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));
@@ -99,13 +103,17 @@ pub async fn download_version(
     Extension(claims): Extension<Claims>,
 ) -> impl IntoResponse {
     let platform = match params.platform {
-        Some(platform) => if let Ok(platform) = platform.parse::<Platform>() { Some(platform) } else {
-            let err = ErrorResponse::new(
-                "SYS_APPS_INVALID_PLATFORM",
-                "Invalid platform. Use: windows, linux, macos",
-            );
-            return (StatusCode::BAD_REQUEST, Json(err)).into_response();
-        },
+        Some(platform) => {
+            if let Ok(platform) = platform.parse::<Platform>() {
+                Some(platform)
+            } else {
+                let err = ErrorResponse::new(
+                    "SYS_APPS_INVALID_PLATFORM",
+                    "Invalid platform. Use: windows, linux, macos",
+                );
+                return (StatusCode::BAD_REQUEST, Json(err)).into_response();
+            }
+        }
         None => None,
     };
     let arch = params.arch.map(|arch| normalize_arch(&arch));

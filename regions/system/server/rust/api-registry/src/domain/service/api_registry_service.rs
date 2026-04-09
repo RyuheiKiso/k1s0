@@ -8,11 +8,11 @@ use crate::domain::entity::api_registration::{
 pub struct ApiRegistryDomainService;
 
 impl ApiRegistryDomainService {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self
     }
-    #[must_use] 
+    #[must_use]
     pub fn check_compatibility(
         &self,
         schema_type: &SchemaType,
@@ -20,12 +20,12 @@ impl ApiRegistryDomainService {
         new_content: &str,
     ) -> CompatibilityResult {
         match schema_type {
-            SchemaType::OpenApi => self.check_openapi_compatibility(old_content, new_content),
-            SchemaType::Protobuf => self.check_protobuf_compatibility(old_content, new_content),
+            SchemaType::OpenApi => Self::check_openapi_compatibility(old_content, new_content),
+            SchemaType::Protobuf => Self::check_protobuf_compatibility(old_content, new_content),
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn compute_diff(
         &self,
         schema_type: &SchemaType,
@@ -33,13 +33,13 @@ impl ApiRegistryDomainService {
         new_content: &str,
     ) -> SchemaDiff {
         match schema_type {
-            SchemaType::OpenApi => self.compute_openapi_diff(old_content, new_content),
-            SchemaType::Protobuf => self.compute_protobuf_diff(old_content, new_content),
+            SchemaType::OpenApi => Self::compute_openapi_diff(old_content, new_content),
+            SchemaType::Protobuf => Self::compute_protobuf_diff(old_content, new_content),
         }
     }
 
+    /// `OpenAPI` スキーマの後方互換性を検証する（自己参照不要のため関連関数として定義）。
     fn check_openapi_compatibility(
-        &self,
         old_content: &str,
         new_content: &str,
     ) -> CompatibilityResult {
@@ -104,8 +104,8 @@ impl ApiRegistryDomainService {
         }
     }
 
+    /// Protobuf スキーマの後方互換性を検証する（自己参照不要のため関連関数として定義）。
     fn check_protobuf_compatibility(
-        &self,
         old_content: &str,
         new_content: &str,
     ) -> CompatibilityResult {
@@ -118,9 +118,7 @@ impl ApiRegistryDomainService {
                 breaking_changes.push(BreakingChange::new(
                     "field_removed".to_string(),
                     format!("field {field_name}"),
-                    format!(
-                        "Proto field {field_name} (number {field_num}) was removed"
-                    ),
+                    format!("Proto field {field_name} (number {field_num}) was removed"),
                 ));
             }
         }
@@ -131,7 +129,8 @@ impl ApiRegistryDomainService {
         }
     }
 
-    fn compute_openapi_diff(&self, old_content: &str, new_content: &str) -> SchemaDiff {
+    /// `OpenAPI` スキーマの差分を計算する（自己参照不要のため関連関数として定義）。
+    fn compute_openapi_diff(old_content: &str, new_content: &str) -> SchemaDiff {
         let mut added = Vec::new();
         let mut modified = Vec::new();
         let removed = Vec::new();
@@ -183,7 +182,8 @@ impl ApiRegistryDomainService {
         }
     }
 
-    fn compute_protobuf_diff(&self, old_content: &str, new_content: &str) -> SchemaDiff {
+    /// Protobuf スキーマの差分を計算する（自己参照不要のため関連関数として定義）。
+    fn compute_protobuf_diff(old_content: &str, new_content: &str) -> SchemaDiff {
         let old_fields = extract_proto_fields(old_content);
         let new_fields = extract_proto_fields(new_content);
         let mut added = Vec::new();

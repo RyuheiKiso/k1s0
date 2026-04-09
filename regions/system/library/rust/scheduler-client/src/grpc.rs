@@ -78,7 +78,8 @@ fn to_schedule_json(s: &Schedule) -> ScheduleJson {
             kind: "interval".to_string(),
             cron: None,
             one_shot: None,
-            interval_secs: Some(d.as_secs() as i64),
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            interval_secs: Some(i64::try_from(d.as_secs()).unwrap_or(i64::MAX)),
         },
     }
 }
@@ -101,8 +102,9 @@ fn from_schedule_json(sj: ScheduleJson) -> Result<Schedule, SchedulerError> {
             let secs = sj.interval_secs.ok_or_else(|| {
                 SchedulerError::InvalidSchedule("interval_secs フィールドがありません".to_string())
             })?;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
             Ok(Schedule::Interval(std::time::Duration::from_secs(
-                secs as u64,
+                u64::try_from(secs).unwrap_or(0),
             )))
         }
         other => Err(SchedulerError::InvalidSchedule(format!(

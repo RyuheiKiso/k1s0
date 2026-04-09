@@ -12,7 +12,7 @@ pub struct SagaPostgresRepository {
 }
 
 impl SagaPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -148,7 +148,11 @@ impl SagaRepository for SagaPostgresRepository {
         Ok(())
     }
 
-    async fn find_by_id(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Option<SagaState>> {
+    async fn find_by_id(
+        &self,
+        saga_id: Uuid,
+        tenant_id: &str,
+    ) -> anyhow::Result<Option<SagaState>> {
         // CRIT-005 対応: トランザクション内で tenant_id をセッション変数に設定してから SELECT する
         let mut tx = self.pool.begin().await?;
 
@@ -173,7 +177,11 @@ impl SagaRepository for SagaPostgresRepository {
         row.map(std::convert::TryInto::try_into).transpose()
     }
 
-    async fn find_step_logs(&self, saga_id: Uuid, tenant_id: &str) -> anyhow::Result<Vec<SagaStepLog>> {
+    async fn find_step_logs(
+        &self,
+        saga_id: Uuid,
+        tenant_id: &str,
+    ) -> anyhow::Result<Vec<SagaStepLog>> {
         // CRIT-005 対応: トランザクション内で tenant_id をセッション変数に設定してから SELECT する
         let mut tx = self.pool.begin().await?;
 
@@ -196,7 +204,9 @@ impl SagaRepository for SagaPostgresRepository {
 
         tx.commit().await?;
 
-        rows.into_iter().map(std::convert::TryInto::try_into).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 
     /// Saga 一覧を取得する。
@@ -217,7 +227,9 @@ impl SagaRepository for SagaPostgresRepository {
         let page_size = params.page_size.max(1);
 
         // カウントクエリを QueryBuilder で構築する（keyset/OFFSET 共通）
-        let mut count_qb = sqlx::QueryBuilder::new("SELECT COUNT(*)::int4 FROM saga.saga_states WHERE tenant_id = ");
+        let mut count_qb = sqlx::QueryBuilder::new(
+            "SELECT COUNT(*)::int4 FROM saga.saga_states WHERE tenant_id = ",
+        );
         count_qb.push_bind(&params.tenant_id);
 
         if let Some(ref wn) = params.workflow_name {
@@ -294,8 +306,10 @@ impl SagaRepository for SagaPostgresRepository {
 
         tx.commit().await?;
 
-        let sagas: anyhow::Result<Vec<SagaState>> =
-            rows.into_iter().map(std::convert::TryInto::try_into).collect();
+        let sagas: anyhow::Result<Vec<SagaState>> = rows
+            .into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect();
 
         Ok((sagas?, total))
     }
@@ -328,7 +342,9 @@ impl SagaRepository for SagaPostgresRepository {
         .fetch_all(&self.pool)
         .await?;
 
-        rows.into_iter().map(std::convert::TryInto::try_into).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 }
 

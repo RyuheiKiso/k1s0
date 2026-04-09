@@ -13,7 +13,7 @@ pub struct GuardrailService {
 impl GuardrailService {
     /// 新しいガードレールサービスを生成する。
     /// デフォルトの検出パターンを初期化する。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         // プロンプトインジェクション検出パターン
         let pattern_strs = vec![

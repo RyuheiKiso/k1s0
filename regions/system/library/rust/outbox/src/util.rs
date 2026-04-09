@@ -1,7 +1,7 @@
 /// アウトボックスイベント処理で共通的に使用するユーティリティ関数群。
 /// ISO 8601 (RFC 3339) 文字列を `chrono::DateTime`<Utc> に変換する。
 /// 各サービスの `outbox_poller` で重複していた `parse_datetime` を共通化したもの。
-#[must_use] 
+#[must_use]
 pub fn parse_datetime(s: &str) -> Option<chrono::DateTime<chrono::Utc>> {
     chrono::DateTime::parse_from_rfc3339(s)
         .ok()
@@ -10,7 +10,7 @@ pub fn parse_datetime(s: &str) -> Option<chrono::DateTime<chrono::Utc>> {
 
 /// JSON ペイロードから文字列フィールドを取得するヘルパー。
 /// 指定キーが存在しない場合や文字列でない場合は空文字列を返す。
-#[must_use] 
+#[must_use]
 pub fn json_str(payload: &serde_json::Value, key: &str) -> String {
     payload
         .get(key)
@@ -21,7 +21,7 @@ pub fn json_str(payload: &serde_json::Value, key: &str) -> String {
 
 /// JSON ペイロードから i64 フィールドを取得するヘルパー。
 /// 指定キーが存在しない場合や数値でない場合は 0 を返す。
-#[must_use] 
+#[must_use]
 pub fn json_i64(payload: &serde_json::Value, key: &str) -> i64 {
     payload
         .get(key)
@@ -31,9 +31,10 @@ pub fn json_i64(payload: &serde_json::Value, key: &str) -> i64 {
 
 /// JSON ペイロードから i32 フィールドを取得するヘルパー。
 /// 指定キーが存在しない場合や数値でない場合は 0 を返す。
-#[must_use] 
+#[must_use]
 pub fn json_i32(payload: &serde_json::Value, key: &str) -> i32 {
-    json_i64(payload, key) as i32
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    i32::try_from(json_i64(payload, key)).unwrap_or(i32::MAX)
 }
 
 /// JSON ペイロードから日時フィールドを取得するヘルパー。

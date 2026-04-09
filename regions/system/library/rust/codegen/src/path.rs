@@ -5,7 +5,7 @@ use crate::config::Tier;
 /// Build the output path for a generated server.
 ///
 /// Pattern: `{base}/regions/{tier}/server/rust/{name}/`
-#[must_use] 
+#[must_use]
 pub fn build_output_path(base: &Path, tier: Tier, name: &str) -> PathBuf {
     base.join("regions")
         .join(tier.as_str())

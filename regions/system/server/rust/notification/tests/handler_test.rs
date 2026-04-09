@@ -40,7 +40,11 @@ impl StubChannelRepo {
 /// MEDIUM-RUST-001 監査対応: StubChannelRepo もトレイト変更に追従する。
 #[async_trait]
 impl NotificationChannelRepository for StubChannelRepo {
-    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationChannel>> {
+    async fn find_by_id(
+        &self,
+        id: &str,
+        _tenant_id: &str,
+    ) -> anyhow::Result<Option<NotificationChannel>> {
         Ok(self
             .channels
             .read()
@@ -245,13 +249,14 @@ async fn healthz_returns_ok() {
     assert_eq!(resp.json::<serde_json::Value>()["status"], "ok");
 }
 
-/// GET /readyz は 200 {"status":"ready"} を返す
+/// GET /readyz は 200 {"status":"healthy"} を返す（ADR-0068 対応: "ready" → "healthy" に統一済み）
 #[tokio::test]
 async fn readyz_returns_ready() {
     let server = TestServer::new(router(build_state())).unwrap();
     let resp = server.get("/readyz").await;
     resp.assert_status_ok();
-    assert_eq!(resp.json::<serde_json::Value>()["status"], "ready");
+    // ADR-0068 対応: status は "ready" ではなく "healthy" に統一されている
+    assert_eq!(resp.json::<serde_json::Value>()["status"], "healthy");
 }
 
 /// GET /api/v1/channels は空リストを返す（認証なしモード）

@@ -37,7 +37,7 @@ async fn rbac_check(
     Ok(next.run(req).await)
 }
 
-#[must_use] 
+#[must_use]
 pub fn has_action_permission(
     roles: &[String],
     action: &str,
@@ -61,7 +61,7 @@ pub fn has_action_permission(
         .is_some_and(|domain| check_domain_permission(roles, domain, action))
 }
 
-#[must_use] 
+#[must_use]
 pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     for role in roles {
         match role.as_str() {
@@ -82,7 +82,7 @@ pub fn check_system_permission(roles: &[String], action: &str) -> bool {
     false
 }
 
-#[must_use] 
+#[must_use]
 pub fn check_table_permission(roles: &[String], table: &TableDefinition, action: &str) -> bool {
     let required_roles = match action {
         "read" => &table.read_roles,
@@ -97,7 +97,7 @@ pub fn check_table_permission(roles: &[String], table: &TableDefinition, action:
             .any(|role| roles.iter().any(|r| r == role))
 }
 
-#[must_use] 
+#[must_use]
 pub fn check_domain_permission(roles: &[String], domain: &str, action: &str) -> bool {
     for role in roles {
         // sys_admin は全ドメインアクセス可

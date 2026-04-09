@@ -134,6 +134,8 @@ impl SendNotificationUseCase {
         }
     }
 
+    /// イベントパブリッシャーを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_event_publisher(
         mut self,
         event_publisher: Arc<dyn NotificationEventPublisher>,

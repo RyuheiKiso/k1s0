@@ -40,7 +40,11 @@ impl CreateAppUseCase {
     }
 
     // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
-    pub async fn execute(&self, tenant_id: &str, input: CreateAppInput) -> Result<App, CreateAppError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        input: CreateAppInput,
+    ) -> Result<App, CreateAppError> {
         if input.name.trim().is_empty() {
             return Err(CreateAppError::ValidationError(
                 "name must not be empty".to_string(),

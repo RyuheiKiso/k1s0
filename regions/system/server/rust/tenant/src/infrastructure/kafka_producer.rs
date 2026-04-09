@@ -20,7 +20,7 @@ pub struct TenantChangedEvent {
 }
 
 impl TenantChangedEvent {
-    #[must_use] 
+    #[must_use]
     pub fn from_tenant(tenant: &Tenant, action: &str) -> Self {
         Self {
             event_type: "TENANT_CHANGED".to_string(),
@@ -187,7 +187,7 @@ impl KafkaTenantEventPublisher {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -197,7 +197,7 @@ impl KafkaTenantEventPublisher {
     }
 
     /// 配信先トピック名を返す。
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }

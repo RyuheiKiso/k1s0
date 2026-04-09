@@ -70,8 +70,10 @@ mod tests {
     use crate::domain::entity::rule::Rule;
     use crate::domain::repository::rule_repository::MockRuleRepository;
 
+    /// テスト用ルール生成ヘルパー。CRITICAL-RUST-001 対応: tenant_id を第1引数に追加する。
     fn sample_rule(name: &str) -> Rule {
         Rule::new(
+            "test-tenant".to_string(),
             name.to_string(),
             "desc".to_string(),
             1,

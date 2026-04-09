@@ -97,7 +97,7 @@ impl KafkaWorkflowEventPublisher {
     }
 
     /// 配信先トピック名を返す。
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }
@@ -170,9 +170,7 @@ impl WorkflowEventPublisher for KafkaWorkflowEventPublisher {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish task completed event: {err}")
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish task completed event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic);

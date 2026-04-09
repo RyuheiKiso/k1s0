@@ -151,7 +151,7 @@ pub struct SessionGrpcService {
 }
 
 impl SessionGrpcService {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         create_uc: Arc<CreateSessionUseCase>,
         get_uc: Arc<GetSessionUseCase>,
@@ -186,10 +186,7 @@ impl SessionGrpcService {
             device_type: req.device_type,
             user_agent: req.user_agent,
             ip_address: req.ip_address,
-            ttl_seconds: req
-                .ttl_seconds
-                .map(i64::from)
-                .or(Some(self.default_ttl)),
+            ttl_seconds: req.ttl_seconds.map(i64::from).or(Some(self.default_ttl)),
             max_devices: req.max_devices,
             metadata: req.metadata,
         };
@@ -259,9 +256,7 @@ impl SessionGrpcService {
     ) -> Result<RefreshSessionResponse, GrpcError> {
         let input = RefreshSessionInput {
             id: req.session_id,
-            ttl_seconds: req
-                .ttl_seconds
-                .map_or(self.default_ttl, i64::from),
+            ttl_seconds: req.ttl_seconds.map_or(self.default_ttl, i64::from),
         };
 
         match self.refresh_uc.execute(&input).await {
@@ -342,7 +337,8 @@ impl SessionGrpcService {
 
         match self.list_uc.execute(&input).await {
             Ok(output) => {
-                let total = output.sessions.len() as u32;
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                let total = u32::try_from(output.sessions.len()).unwrap_or(u32::MAX);
                 let sessions = output
                     .sessions
                     .into_iter()

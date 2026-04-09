@@ -66,7 +66,7 @@ impl VersionPostgresRepository {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(pool: PgPool, metrics: Arc<k1s0_telemetry::metrics::Metrics>) -> Self {
         Self {
             pool,
@@ -100,7 +100,9 @@ impl VersionRepository for VersionPostgresRepository {
             );
         }
 
-        rows.into_iter().map(std::convert::TryInto::try_into).collect()
+        rows.into_iter()
+            .map(std::convert::TryInto::try_into)
+            .collect()
     }
 
     async fn create(&self, version: &AppVersion) -> anyhow::Result<AppVersion> {

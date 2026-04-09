@@ -35,6 +35,8 @@ pub enum GrpcError {
     Internal(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct EventMonitorGrpcService {
     list_events_uc: Arc<ListEventsUseCase>,
     trace_by_correlation_uc: Arc<TraceByCorrelationUseCase>,
@@ -53,7 +55,7 @@ pub struct EventMonitorGrpcService {
 
 impl EventMonitorGrpcService {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         list_events_uc: Arc<ListEventsUseCase>,
         trace_by_correlation_uc: Arc<TraceByCorrelationUseCase>,
@@ -95,8 +97,9 @@ impl EventMonitorGrpcService {
         source: Option<String>,
         status: Option<String>,
     ) -> Result<(Vec<EventRecord>, u64, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(1) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(20) };
 
         let output = self
             .list_events_uc
@@ -177,8 +180,9 @@ impl EventMonitorGrpcService {
         page_size: i32,
         domain: Option<String>,
     ) -> Result<(Vec<FlowDefinition>, u64, bool), GrpcError> {
-        let page = if page <= 0 { 1 } else { page as u32 };
-        let page_size = if page_size <= 0 { 20 } else { page_size as u32 };
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let page = if page <= 0 { 1 } else { u32::try_from(page).unwrap_or(1) };
+        let page_size = if page_size <= 0 { 20 } else { u32::try_from(page_size).unwrap_or(20) };
 
         let output = self
             .list_flows_uc

@@ -4,9 +4,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto = "../../../../../api/proto/k1s0/system/ratelimit/v1/ratelimit.proto";
     let include = "../../../../../api/proto";
     if !std::path::Path::new(proto).exists() {
-        println!(
-            "cargo:warning=Proto file not found, skipping tonic codegen: {proto}"
-        );
+        println!("cargo:warning=Proto file not found, skipping tonic codegen: {proto}");
         return Ok(());
     }
     match tonic_build::configure()

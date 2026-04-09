@@ -25,7 +25,7 @@ impl Action {
 
     /// Action を文字列スライスに変換する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &'static str {
         match self {
             Action::Read => "read",
@@ -59,14 +59,14 @@ impl Permission {
 
     /// 指定されたロールがこのパーミッションを持つかを判定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn is_allowed_for_role(&self, role: &str) -> bool {
         self.allowed_roles.iter().any(|r| r == role)
     }
 
     /// 指定されたロールのいずれかがこのパーミッションを持つかを判定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn is_allowed_for_any_role(&self, roles: &[String]) -> bool {
         roles.iter().any(|role| self.is_allowed_for_role(role))
     }

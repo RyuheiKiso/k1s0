@@ -34,7 +34,11 @@ impl GetSchemaUseCase {
     }
 
     // テナントスコープでスキーマと最新バージョンを取得する
-    pub async fn execute(&self, tenant_id: &str, name: &str) -> Result<GetSchemaOutput, GetSchemaError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        name: &str,
+    ) -> Result<GetSchemaOutput, GetSchemaError> {
         // テナント分離のため tenant_id を渡してリポジトリを呼び出す
         let schema = self
             .schema_repo

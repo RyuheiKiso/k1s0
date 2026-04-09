@@ -36,7 +36,7 @@ pub struct FileMetadata {
 impl FileMetadata {
     /// テナント分離対応: `tenant_id` を引数に追加。RLS `set_config` と合わせてテナント境界を強制する。
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         id: String,
         tenant_id: String,

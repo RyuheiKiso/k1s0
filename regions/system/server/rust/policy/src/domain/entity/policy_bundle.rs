@@ -15,7 +15,7 @@ pub struct PolicyBundle {
 }
 
 impl PolicyBundle {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         name: String,
         description: Option<String>,

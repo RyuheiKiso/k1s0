@@ -148,9 +148,8 @@ mod tests {
         let mut mock_exec = MockSchedulerExecutionRepository::new();
         let id = "job_running".to_string();
         let running_id = id.clone();
-        mock.expect_find_by_id().returning(|job_id, _| {
-            Ok(Some(make_test_job(job_id)))
-        });
+        mock.expect_find_by_id()
+            .returning(|job_id, _| Ok(Some(make_test_job(job_id))));
         mock_exec.expect_find_by_job_id().returning(move |_| {
             Ok(vec![SchedulerExecution {
                 id: "exec_running".to_string(),

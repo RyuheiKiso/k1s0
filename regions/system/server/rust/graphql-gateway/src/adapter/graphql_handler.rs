@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_graphql::dataloader::DataLoader;
-use async_graphql::futures_util::Stream;
+use async_graphql::futures_util::{Stream, StreamExt};
 use async_graphql::{Context, Data, ErrorExtensions, FieldResult, Object, Schema, Subscription};
 use async_graphql_axum::{GraphQLProtocol, GraphQLRequest, GraphQLResponse, GraphQLWebSocket};
 use axum::{
@@ -287,10 +287,12 @@ pub struct UpdateServiceInput {
 // --- Auth / Session Input types ---
 
 /// 監査ログ記録の入力型
+///
 /// H-15 監査対応: クライアントが userId/ipAddress/userAgent を送信できないよう入力型から除去する。
 /// - userId: JWT claims の sub フィールドから取得（なりすまし防止）
 /// - ipAddress: リクエストの X-Forwarded-For / `RemoteAddr` ヘッダから取得
 /// - userAgent: リクエストの User-Agent ヘッダから取得
+///
 /// HIGH-014 監査対応: `event_type/result` を String から型安全な enum へ変更する。
 #[derive(async_graphql::InputObject)]
 pub struct RecordAuditLogInput {
@@ -640,6 +642,8 @@ pub struct GatewayClients {
 }
 
 /// GraphQL リゾルバ群。QueryRoot / `MutationRoot` / `SubscriptionRoot` を構成する。
+// ユースケース種別（query/mutation）を明示する命名規則のため、同一サフィックスは意図的な設計
+#[allow(clippy::struct_field_names)]
 pub struct GatewayResolvers {
     pub tenant_query: Arc<TenantQueryResolver>,
     pub feature_flag_query: Arc<FeatureFlagQueryResolver>,
@@ -665,6 +669,8 @@ pub struct GatewayResolvers {
 
 // --- Query ---
 
+// クエリリゾルバの種別を明示する _query サフィックスは意図的な命名規則
+#[allow(clippy::struct_field_names)]
 pub struct QueryRoot {
     pub tenant_query: Arc<TenantQueryResolver>,
     pub feature_flag_query: Arc<FeatureFlagQueryResolver>,
@@ -878,13 +884,7 @@ impl QueryRoot {
         // ページネーション上限を 100 件にクランプしてサービス負荷を制限する（M-19 監査対応）
         let first = first.map(|n| n.clamp(1, 100));
         self.auth_query
-            .search_audit_logs(
-                first,
-                after,
-                user_id.as_deref(),
-                event_type,
-                result,
-            )
+            .search_audit_logs(first, after, user_id.as_deref(), event_type, result)
             .await
             .map_err(|e| gql_error(classify_domain_error(&e.to_string()), e.to_string()))
     }
@@ -1204,7 +1204,12 @@ impl MutationRoot {
         // JWT claims の owner_id よりも input.owner_id を優先する（スキーマ仕様に従う）。
         Ok(self
             .tenant_mutation
-            .create_tenant(&input.name, &input.display_name, &input.owner_id, &input.plan)
+            .create_tenant(
+                &input.name,
+                &input.display_name,
+                &input.owner_id,
+                &input.plan,
+            )
             .await)
     }
 
@@ -1827,7 +1832,6 @@ impl SubscriptionRoot {
             .map_err(|e| async_graphql::Error::new(e.to_string()))?;
 
         // tonic::Status エラーを async_graphql::Error に変換してサブスクライバーに伝播する
-        use async_graphql::futures_util::StreamExt;
         Ok(stream.map(|item| {
             item.map_err(|status| async_graphql::Error::new(format!("stream error: {status}")))
         }))
@@ -1928,8 +1932,9 @@ pub fn router(
             subscription: resolvers.subscription,
         },
     )
-    .limit_depth(graphql_cfg.max_depth as usize)
-    .limit_complexity(graphql_cfg.max_complexity as usize);
+    // LOW-008: 安全な型変換（オーバーフロー防止）
+    .limit_depth(usize::try_from(graphql_cfg.max_depth).unwrap_or(usize::MAX))
+    .limit_complexity(usize::try_from(graphql_cfg.max_complexity).unwrap_or(usize::MAX));
 
     if !graphql_cfg.introspection {
         builder = builder.disable_introspection();
@@ -1937,7 +1942,8 @@ pub fn router(
 
     let schema = builder.finish();
 
-    let query_timeout = std::time::Duration::from_secs(u64::from(graphql_cfg.query_timeout_seconds));
+    let query_timeout =
+        std::time::Duration::from_secs(u64::from(graphql_cfg.query_timeout_seconds));
     // 各 gRPC クライアントをポートトレイトオブジェクトにキャストし、DataLoader に渡す。
     // これにより domain 層はインフラ層の具象型に依存せず抽象に依存できる。
     let tenant_port: Arc<dyn TenantPort> = clients.tenant.clone();
@@ -2016,7 +2022,8 @@ async fn graphql_handler(
     let ip_address = headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split(',').next()).map_or_else(|| "unknown".to_string(), |s| s.trim().to_string());
+        .and_then(|v| v.split(',').next())
+        .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string());
     // H-15 監査対応: User-Agent ヘッダーからクライアントエージェント文字列を取得する
     let user_agent = headers
         .get("user-agent")
@@ -2073,6 +2080,17 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     // MED-005 対応: workflow など1サービスの障害で gateway 全体が not_ready になる問題を解消する。
     use std::time::Duration;
 
+    // Result<Result<T, E>, Elapsed> をステータス文字列に変換するローカルヘルパー関数
+    fn to_status<T, E: std::fmt::Display>(
+        r: Result<Result<T, E>, tokio::time::error::Elapsed>,
+    ) -> String {
+        match r {
+            Ok(Ok(_)) => "ok".to_string(),
+            Ok(Err(e)) => format!("error: {e}"),
+            Err(_) => "error: timeout".to_string(),
+        }
+    }
+
     // 各バックエンドチェックのタイムアウト（2秒）
     let timeout = Duration::from_secs(2);
 
@@ -2101,26 +2119,12 @@ async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
         tokio::time::timeout(timeout, state.config_client.health_check()),
         tokio::time::timeout(timeout, state.feature_flag_client.health_check()),
         tokio::time::timeout(timeout, state.navigation_client.health_check()),
-        tokio::time::timeout(
-            timeout,
-            state.service_catalog_client.healthz()
-        ),
+        tokio::time::timeout(timeout, state.service_catalog_client.healthz()),
         tokio::time::timeout(timeout, state.vault_client.health_check()),
         tokio::time::timeout(timeout, state.scheduler_client.health_check()),
         tokio::time::timeout(timeout, state.notification_client.health_check()),
         tokio::time::timeout(timeout, state.workflow_client.health_check()),
     );
-
-    // Result<Result<T, E>, Elapsed> をステータス文字列に変換するローカルヘルパー関数
-    fn to_status<T, E: std::fmt::Display>(
-        r: Result<Result<T, E>, tokio::time::error::Elapsed>,
-    ) -> String {
-        match r {
-            Ok(Ok(_)) => "ok".to_string(),
-            Ok(Err(e)) => format!("error: {e}"),
-            Err(_) => "error: timeout".to_string(),
-        }
-    }
 
     // 各サービスの結果をステータス文字列に変換する
     let auth_status = to_status(auth_result);
@@ -2255,13 +2259,13 @@ fn extract_bearer_token_from_connection_init(payload: &serde_json::Value) -> Opt
     }
 
     fn pick_token(value: &serde_json::Value) -> Option<String> {
+        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
+        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
+        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
         let token = value.as_str()?.trim();
         if token.is_empty() {
             return None;
         }
-        // RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
-        // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
-        const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
         if token.len() >= BEARER_PREFIX_LEN
             && token[..BEARER_PREFIX_LEN].eq_ignore_ascii_case("bearer ")
         {
@@ -2348,6 +2352,8 @@ mod tests {
 /// ダミー gRPC `クライアント（connect_lazy）でスキーマを構築し` SDL 文字列を返す。
 /// SDL 生成は async-graphql の型メタデータのみを使用するため、実際のネットワーク接続は確立しない。
 /// CI での使用例: `cargo run --bin schema-gen > /tmp/gen.graphql && diff api/graphql/schema.graphql /tmp/gen.graphql`
+// schema-gen バイナリからのみ呼び出されるため、通常のビルドでは未使用警告が出る
+#[allow(dead_code)]
 pub fn build_sdl() -> anyhow::Result<String> {
     use crate::infrastructure::config::BackendConfig;
 
@@ -2374,21 +2380,29 @@ pub fn build_sdl() -> anyhow::Result<String> {
     let schema = Schema::build(
         QueryRoot {
             tenant_query: Arc::new(TenantQueryResolver::new(tenant_client.clone())),
-            feature_flag_query: Arc::new(FeatureFlagQueryResolver::new(feature_flag_client.clone())),
+            feature_flag_query: Arc::new(FeatureFlagQueryResolver::new(
+                feature_flag_client.clone(),
+            )),
             config_query: Arc::new(ConfigQueryResolver::new(config_client.clone())),
             navigation_query: Arc::new(NavigationQueryResolver::new(navigation_client.clone())),
-            service_catalog_query: Arc::new(ServiceCatalogQueryResolver::new(service_catalog_client.clone())),
+            service_catalog_query: Arc::new(ServiceCatalogQueryResolver::new(
+                service_catalog_client.clone(),
+            )),
             auth_query: Arc::new(AuthQueryResolver::new(auth_client.clone())),
             session_query: Arc::new(SessionQueryResolver::new(session_client.clone())),
             vault_query: Arc::new(VaultQueryResolver::new(vault_client.clone())),
             scheduler_query: Arc::new(SchedulerQueryResolver::new(scheduler_client.clone())),
-            notification_query: Arc::new(NotificationQueryResolver::new(notification_client.clone())),
+            notification_query: Arc::new(NotificationQueryResolver::new(
+                notification_client.clone(),
+            )),
             workflow_query: Arc::new(WorkflowQueryResolver::new(workflow_client.clone())),
         },
         MutationRoot {
             tenant_mutation: Arc::new(TenantMutationResolver::new(tenant_client.clone())),
             feature_flag_client: feature_flag_client.clone(),
-            service_catalog_mutation: Arc::new(ServiceCatalogMutationResolver::new(service_catalog_client)),
+            service_catalog_mutation: Arc::new(ServiceCatalogMutationResolver::new(
+                service_catalog_client,
+            )),
             auth_mutation: Arc::new(AuthMutationResolver::new(auth_client)),
             session_mutation: Arc::new(SessionMutationResolver::new(session_client)),
             vault_mutation: Arc::new(VaultMutationResolver::new(vault_client)),

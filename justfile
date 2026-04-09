@@ -715,23 +715,29 @@ migrate-all-docker:
         db_dir=$(basename "$dir")
         # ディレクトリ名から実際のDB名への明示的マッピング（migrate-all と同様のロジック）
         # HIGH-006 監査対応: saga-db は k1s0_saga 専用 DB（ADR-0060で移行済み）。migrate-all と統一する。
+        # HIGH-013 監査対応: migrate-all の case と同じマッピングに統一する
+        #   event-monitor-db      → k1s0_event_monitor   (CRIT-001: k1s0_system から専用 DB に分離済み)
+        #   master-maintenance-db → k1s0_master_maintenance (CRIT-001: k1s0_system から専用 DB に分離済み)
         case "$db_dir" in
             dlq-manager-db)        db_name="dlq_db" ;;
-            event-monitor-db)      db_name="k1s0_system" ;;
-            master-maintenance-db) db_name="k1s0_system" ;;
+            event-monitor-db)      db_name="k1s0_event_monitor" ;;
+            master-maintenance-db) db_name="k1s0_master_maintenance" ;;
             saga-db)               db_name="k1s0_saga" ;;
             *)                     db_name=$(echo "$db_dir" | tr '-' '_') ;;
         esac
         echo "--- Migrating via Docker: $db_dir → $db_name ---"
+        # HIGH-013 監査対応: -p k1s0 でプロジェクト名を明示し postgres コンテナを確実に特定する
+        # プロジェクト名を省略すると docker compose がカレントディレクトリ名で推測するが、
+        # CI や異なるディレクトリからの実行時にコンテナが見つからない問題を防ぐ
         # 対象 DB の存在確認（存在しない場合はスキップ）
-        docker compose exec -T postgres psql \
+        docker compose --env-file .env.dev -f docker-compose.yaml exec -T postgres psql \
             -U "${PG_USER:-dev}" \
             -d "$db_name" \
             -c "SELECT 1" > /dev/null 2>&1 || { echo "  SKIP: $db_name not found"; continue; }
         # INFRA-04 監査対応: ファイル名は {N}.up.sql 形式のため *.up.sql パターンを使用する
         # 旧パターン *_up.sql はアンダースコア区切りのファイルのみにマッチし 0件だった
         for f in "$dir/migrations"/*.up.sql; do
-            [ -f "$f" ] && docker compose exec -T postgres psql \
+            [ -f "$f" ] && docker compose --env-file .env.dev -f docker-compose.yaml exec -T postgres psql \
                 -U "${PG_USER:-dev}" \
                 -d "$db_name" < "$f" && echo "  Applied: $(basename $f)"
         done

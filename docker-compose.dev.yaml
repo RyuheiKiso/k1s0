@@ -123,6 +123,11 @@ services:
     # 開発環境 read_only 回避: Kong は /usr/local/kong/sockets・logs 等の複数ディレクトリに書き込む。
     # 本番は read_only: true + tmpfs で対応するが、開発環境では read_only を無効にして
     # 起動の安定性を優先する（CRIT-003 監査対応は本番環境向けの設定）。
+    #
+    # MED-009: 開発環境では本番規模設定をオーバーライドしてメモリ使用量を削減する
+    # 本番 docker-compose.yaml の mem_limit（2GB）は開発環境では過剰であり OOM Kill リスクがある
+    # 開発用途では 512m で十分なトラフィックをさばけるため上限を下げる
+    mem_limit: 512m
     read_only: false
     tmpfs: []
     environment:

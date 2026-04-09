@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use crate::domain::entity::table_definition::{
     CreateTableDefinition, TableDefinition, UpdateTableDefinition,
 };
@@ -12,7 +14,7 @@ pub struct TableDefinitionPostgresRepository {
 }
 
 impl TableDefinitionPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -38,8 +40,9 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
             query.push_str(" AND is_active = true");
         }
         // カテゴリフィルタ（ユーザー入力のためパラメータ化必須）
+        // format! を避け write! でアロケーションを削減する
         if let Some(cat) = category {
-            query.push_str(&format!(" AND category = ${param_idx}"));
+            write!(query, " AND category = ${param_idx}").ok();
             bind_values.push(cat.to_string());
             param_idx += 1;
         }
@@ -50,7 +53,7 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
                 query.push_str(" AND domain_scope IS NULL");
             }
             DomainFilter::Domain(domain) => {
-                query.push_str(&format!(" AND domain_scope = ${param_idx}"));
+                write!(query, " AND domain_scope = ${param_idx}").ok();
                 bind_values.push(domain.clone());
             }
         }
@@ -242,6 +245,8 @@ impl TableDefinitionRepository for TableDefinitionPostgresRepository {
     }
 }
 
+// sqlx FromRow マッピング用の内部構造体（DBスキーマに合わせて権限制御用 bool フィールドが必要）
+#[allow(clippy::struct_excessive_bools)]
 #[derive(sqlx::FromRow)]
 struct TableDefinitionRow {
     id: Uuid,

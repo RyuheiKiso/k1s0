@@ -23,6 +23,8 @@ pub enum DeleteStreamError {
     Internal(String),
 }
 
+// リポジトリフィールドの命名規則として _repo サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct DeleteStreamUseCase {
     stream_repo: Arc<dyn EventStreamRepository>,
     event_repo: Arc<dyn EventRepository>,

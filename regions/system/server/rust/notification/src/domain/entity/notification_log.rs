@@ -17,7 +17,7 @@ pub struct NotificationLog {
 }
 
 impl NotificationLog {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         channel_id: String,
         recipient: String,

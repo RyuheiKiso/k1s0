@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use subtle::ConstantTimeEq;
 
 use crate::domain::repository::api_key_repository::ApiKeyRepository;
 
@@ -63,7 +64,6 @@ impl ValidateApiKeyUseCase {
 
         // H-008 監査対応: ハッシュ比較を定数時間で行い、タイミング攻撃を防止する
         // 通常の文字列比較（!=）は最初に不一致したバイトで短絡し、タイミングの差でハッシュを推測可能になる
-        use subtle::ConstantTimeEq;
         let computed_hash = hash_key(raw_key)?;
         if computed_hash
             .as_bytes()
@@ -107,6 +107,7 @@ fn hash_key(raw_key: &str) -> Result<String, ValidateApiKeyError> {
 fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
+    use std::fmt::Write;
     type HmacSha256 = Hmac<Sha256>;
 
     let mut mac =
@@ -117,7 +118,6 @@ fn compute_hmac_hex(raw_key: &str, pepper: &str) -> String {
 
     let mut out = String::with_capacity(digest.len() * 2);
     for b in digest {
-        use std::fmt::Write;
         let _ = write!(&mut out, "{b:02x}");
     }
     out

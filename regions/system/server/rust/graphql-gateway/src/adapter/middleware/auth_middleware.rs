@@ -28,7 +28,7 @@ pub struct Claims {
 }
 
 impl Claims {
-    #[must_use] 
+    #[must_use]
     pub fn roles(&self) -> Vec<String> {
         self.realm_access
             .as_ref()
@@ -45,11 +45,9 @@ pub struct RealmAccess {
 /// Authorization ヘッダーから Bearer トークンを抽出する。
 /// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
-    let auth_str = headers
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())?;
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_str = headers.get("Authorization").and_then(|v| v.to_str().ok())?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -71,7 +69,7 @@ pub struct AuthMiddlewareLayer {
 }
 
 impl AuthMiddlewareLayer {
-    #[must_use] 
+    #[must_use]
     pub fn new(verifier: Arc<JwksVerifier>) -> Self {
         Self { verifier }
     }
@@ -119,7 +117,8 @@ where
         Box::pin(async move {
             let token = extract_bearer_token(req.headers());
 
-            let token = if let Some(t) = token { t } else {
+            // let-else: トークンが存在しない場合は 401 を返す
+            let Some(token) = token else {
                 let request_id = uuid::Uuid::new_v4().to_string();
                 return Ok((
                     StatusCode::UNAUTHORIZED,

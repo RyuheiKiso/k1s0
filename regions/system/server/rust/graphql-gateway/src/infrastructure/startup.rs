@@ -90,11 +90,7 @@ pub async fn run() -> anyhow::Result<()> {
         .as_ref()
         .map(|j| j.url.as_str())
         .unwrap_or_default();
-    let jwks_cache_ttl_secs = cfg
-        .auth
-        .jwks
-        .as_ref()
-        .map_or(300, |j| j.cache_ttl_secs);
+    let jwks_cache_ttl_secs = cfg.auth.jwks.as_ref().map_or(300, |j| j.cache_ttl_secs);
     let jwks_verifier = Arc::new(
         JwksVerifier::new(jwks_url.to_string())?
             .with_cache_ttl(jwks_cache_ttl_secs)

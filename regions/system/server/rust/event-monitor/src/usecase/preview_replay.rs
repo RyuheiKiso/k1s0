@@ -83,7 +83,8 @@ impl PreviewReplayUseCase {
                 })
                 .collect();
 
-            let events_count = replay_events.len() as i32;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            let events_count = i32::try_from(replay_events.len()).unwrap_or(i32::MAX);
             total_events += events_count;
 
             for e in &replay_events {
@@ -96,7 +97,8 @@ impl PreviewReplayUseCase {
                 self.flow_def_repo
                     .find_by_id(&flow_id)
                     .await
-                    .map_err(|e| PreviewReplayError::Internal(e.to_string()))?.map_or_else(|| "unknown".to_string(), |f| f.name)
+                    .map_err(|e| PreviewReplayError::Internal(e.to_string()))?
+                    .map_or_else(|| "unknown".to_string(), |f| f.name)
             } else {
                 "unknown".to_string()
             };

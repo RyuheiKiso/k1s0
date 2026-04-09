@@ -22,7 +22,7 @@ impl Default for RetryConfig {
 }
 
 impl RetryConfig {
-    #[must_use] 
+    #[must_use]
     pub fn new(max_attempts: u32) -> Self {
         Self {
             max_attempts,
@@ -30,25 +30,25 @@ impl RetryConfig {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_initial_delay(mut self, delay: Duration) -> Self {
         self.initial_delay = delay;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_max_delay(mut self, delay: Duration) -> Self {
         self.max_delay = delay;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_multiplier(mut self, multiplier: f64) -> Self {
         self.multiplier = multiplier;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_jitter(mut self, jitter: bool) -> Self {
         self.jitter = jitter;
         self

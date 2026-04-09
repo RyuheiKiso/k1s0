@@ -1,5 +1,5 @@
 // service tier 統合テスト: スタブリポジトリを使いHTTPレイヤーを検証する。
-// auth パターンに倣い AppState をスタブで構築し、認証なしモードで動作確認を行う。
+// ハンドラーは Claims が必須のため、テスト用の fake Claims 注入ミドルウェアを使用する。
 // 実 DB 接続テストは #[cfg(feature = "db-tests")] で区分けする。
 use std::sync::Arc;
 
@@ -14,6 +14,38 @@ use k1s0_activity_server::domain::entity::activity::{
 };
 use k1s0_activity_server::domain::error::ActivityError;
 use k1s0_activity_server::domain::repository::activity_repository::ActivityRepository;
+
+/// テスト用の fake Claims 注入ミドルウェア。
+/// ハンドラーは `Option<Extension<Claims>>` が None の場合に 401 を返すため、
+/// テスト環境でも Claims を Extension として挿入する必要がある。
+async fn fake_claims_middleware(
+    mut req: axum::http::Request<Body>,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use std::collections::HashMap;
+    // テスト用の Claims を生成して Extension として挿入する
+    let claims = k1s0_auth::Claims {
+        sub: "test-user-uuid".to_string(),
+        iss: "test-issuer".to_string(),
+        aud: k1s0_auth::Audience(vec!["test-audience".to_string()]),
+        exp: u64::MAX,
+        iat: 0,
+        jti: None,
+        typ: None,
+        azp: None,
+        scope: None,
+        preferred_username: Some("test-user".to_string()),
+        email: None,
+        realm_access: Some(k1s0_auth::RealmAccess {
+            roles: vec!["service_user".to_string()],
+        }),
+        resource_access: Some(HashMap::new()),
+        tier_access: Some(vec!["service".to_string()]),
+        tenant_id: "test-tenant".to_string(),
+    };
+    req.extensions_mut().insert(claims);
+    next.run(req).await
+}
 
 // --- テスト用スタブリポジトリ ---
 
@@ -110,7 +142,7 @@ impl ActivityRepository for StubActivityRepository {
     }
 }
 
-/// スタブを使ってテスト用 AppState を構築する
+/// スタブを使ってテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app() -> axum::Router {
     let repo = Arc::new(StubActivityRepository::new());
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("activity-test"));
@@ -140,10 +172,11 @@ fn make_test_app() -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
-/// スタブにアクティビティを1件含んだ状態でテスト用 AppState を構築する
+/// スタブにアクティビティを1件含んだ状態でテスト用 AppState を構築する（fake Claims ミドルウェア付き）
 fn make_test_app_with_activity(activity: Activity) -> axum::Router {
     let repo = Arc::new(StubActivityRepository::with_activities(vec![activity]));
     let metrics = Arc::new(k1s0_telemetry::metrics::Metrics::new("activity-test"));
@@ -173,7 +206,8 @@ fn make_test_app_with_activity(activity: Activity) -> axum::Router {
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test")
             .expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    router(state)
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    router(state).layer(axum::middleware::from_fn(fake_claims_middleware))
 }
 
 // --- 統合テスト ---
@@ -401,7 +435,9 @@ async fn test_list_activities_total_count() {
         auth_state: None,
         db_pool: sqlx::PgPool::connect_lazy("postgres://localhost/test").expect("テスト用 lazy pool の作成に失敗しました"),
     };
-    let app = k1s0_activity_server::adapter::handler::router(state);
+    // fake Claims ミドルウェアを追加して、ハンドラーが Claims を取得できるようにする
+    let app = k1s0_activity_server::adapter::handler::router(state)
+        .layer(axum::middleware::from_fn(fake_claims_middleware));
 
     let req = Request::builder()
         .uri("/api/v1/activities")
@@ -495,9 +531,12 @@ async fn test_submit_activity() {
 }
 
 /// approve エンドポイント（PUT /api/v1/activities/{id}/approve）が 200 を返すことを確認する
+/// approve は Submitted → Approved の遷移なので、submitted 状態のアクティビティを使用する
 #[tokio::test]
 async fn test_approve_activity() {
-    let activity = sample_activity();
+    // Active → Approved は無効な遷移のため、submitted 状態のアクティビティを作成する
+    let mut activity = sample_activity();
+    activity.status = ActivityStatus::Submitted;
     let activity_id = activity.id;
     let app = make_test_app_with_activity(activity);
 
@@ -512,9 +551,12 @@ async fn test_approve_activity() {
 }
 
 /// reject エンドポイント（PUT /api/v1/activities/{id}/reject）が 200 を返すことを確認する
+/// reject は Submitted → Rejected の遷移なので、submitted 状態のアクティビティを使用する
 #[tokio::test]
 async fn test_reject_activity() {
-    let activity = sample_activity();
+    // Active → Rejected は無効な遷移のため、submitted 状態のアクティビティを作成する
+    let mut activity = sample_activity();
+    activity.status = ActivityStatus::Submitted;
     let activity_id = activity.id;
     let app = make_test_app_with_activity(activity);
 

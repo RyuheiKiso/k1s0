@@ -33,7 +33,7 @@ pub struct AiAgentServiceTonic {
 
 impl AiAgentServiceTonic {
     /// `新しいAiAgentServiceTonicを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<AiAgentGrpcService>) -> Self {
         Self { inner }
     }

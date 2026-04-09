@@ -95,12 +95,14 @@ impl EvaluateUseCase {
         let evaluation_id = Uuid::new_v4();
 
         // L-002 監査対応: evaluate_rules が async になったため .await が必要
-        let (matched_rules, result, default_applied) = self.evaluate_rules(
-            &rules,
-            &rule_set.evaluation_mode,
-            &input.input,
-            &rule_set.default_result,
-        ).await?;
+        let (matched_rules, result, default_applied) = self
+            .evaluate_rules(
+                &rules,
+                &rule_set.evaluation_mode,
+                &input.input,
+                &rule_set.default_result,
+            )
+            .await?;
 
         // Log evaluation (unless dry_run)
         if !input.dry_run {
@@ -201,7 +203,12 @@ impl EvaluateUseCase {
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    // format_collect: fold + write! でアロケーションを減らす
+    use std::fmt::Write as _;
+    bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut acc, b| {
+        write!(acc, "{b:02x}").expect("write to String never fails");
+        acc
+    })
 }
 
 mod hex {

@@ -48,7 +48,7 @@ pub struct AiAgentGrpcService {
 
 impl AiAgentGrpcService {
     /// `新しいAiAgentGrpcServiceを生成する`
-    #[must_use] 
+    #[must_use]
     pub fn new(
         execute_agent_uc: Arc<ExecuteAgentUseCase>,
         review_step_uc: Arc<ReviewStepUseCase>,

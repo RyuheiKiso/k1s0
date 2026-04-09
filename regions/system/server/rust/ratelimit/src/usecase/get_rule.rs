@@ -30,7 +30,11 @@ impl GetRuleUseCase {
     }
 
     /// CRIT-005 対応: `tenant_id` を渡して RLS セッション変数を設定してからルールを取得する。
-    pub async fn execute(&self, rule_id: &str, tenant_id: &str) -> Result<RateLimitRule, GetRuleError> {
+    pub async fn execute(
+        &self,
+        rule_id: &str,
+        tenant_id: &str,
+    ) -> Result<RateLimitRule, GetRuleError> {
         let id = Uuid::parse_str(rule_id)
             .map_err(|_| GetRuleError::InvalidRuleId(rule_id.to_string()))?;
 
@@ -83,7 +87,9 @@ mod tests {
             .returning(|_, _| Err(anyhow::anyhow!("not found")));
 
         let uc = GetRuleUseCase::new(Arc::new(repo));
-        let result = uc.execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a").await;
+        let result = uc
+            .execute("550e8400-e29b-41d4-a716-446655440000", "tenant-a")
+            .await;
 
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), GetRuleError::NotFound(_)));

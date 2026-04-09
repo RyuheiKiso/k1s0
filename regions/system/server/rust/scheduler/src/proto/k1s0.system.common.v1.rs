@@ -66,6 +66,8 @@ impl ChangeType {
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the `ProtoBuf` definition does not change) and safe for programmatic use.
+    // プロトバッファ自動生成コードの &self は Copy 型だが、prost 生成のシグネチャを変更できない
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     #[must_use] 
     pub fn as_str_name(&self) -> &'static str {
         match self {

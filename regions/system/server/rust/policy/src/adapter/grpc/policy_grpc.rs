@@ -191,6 +191,8 @@ pub enum GrpcError {
     Unimplemented(String),
 }
 
+// ユースケースフィールドの命名規則として _uc サフィックスを使用する（アーキテクチャ上の意図的な設計）
+#[allow(clippy::struct_field_names)]
 pub struct PolicyGrpcService {
     create_policy_uc: Arc<CreatePolicyUseCase>,
     get_policy_uc: Arc<GetPolicyUseCase>,
@@ -205,7 +207,7 @@ pub struct PolicyGrpcService {
 
 impl PolicyGrpcService {
     #[allow(clippy::too_many_arguments)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         create_policy_uc: Arc<CreatePolicyUseCase>,
         get_policy_uc: Arc<GetPolicyUseCase>,
@@ -307,11 +309,12 @@ impl PolicyGrpcService {
         &self,
         req: ListPoliciesRequest,
     ) -> Result<ListPoliciesResponse, GrpcError> {
-        let page = if req.page <= 0 { 1 } else { req.page as u32 };
+        // LOW-008: 安全な型変換（負の場合はデフォルト値を使用、プロトコルの不変条件）
+        let page = if req.page <= 0 { 1 } else { u32::try_from(req.page).unwrap_or(0) };
         let page_size = if req.page_size <= 0 {
             20
         } else {
-            req.page_size as u32
+            u32::try_from(req.page_size).unwrap_or(0)
         };
 
         let output = self
@@ -336,8 +339,9 @@ impl PolicyGrpcService {
         Ok(ListPoliciesResponse {
             policies: output.policies.into_iter().map(to_policy_data).collect(),
             total_count: output.total_count,
-            page: output.page as i32,
-            page_size: output.page_size as i32,
+            // LOW-008: 安全な型変換（page/page_size は正の値でありi32範囲内）
+            page: i32::try_from(output.page).unwrap_or(i32::MAX),
+            page_size: i32::try_from(output.page_size).unwrap_or(i32::MAX),
             has_next: output.has_next,
         })
     }
@@ -525,7 +529,8 @@ fn to_bundle_data(bundle: PolicyBundle) -> PolicyBundleData {
         name: bundle.name,
         description: bundle.description,
         enabled: bundle.enabled,
-        policy_count: bundle.policy_ids.len() as u32,
+        // LOW-008: 安全な型変換（ポリシー数は u32 範囲内が前提）
+        policy_count: u32::try_from(bundle.policy_ids.len()).unwrap_or(u32::MAX),
         policy_ids: bundle
             .policy_ids
             .into_iter()

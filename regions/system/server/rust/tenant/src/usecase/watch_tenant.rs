@@ -20,7 +20,7 @@ pub struct WatchTenantUseCase {
 impl WatchTenantUseCase {
     /// 新しい `WatchTenantUseCase` を生成する。
     /// `broadcast::Sender` も返し、更新系ユースケースが変更通知を発行できるようにする。
-    #[must_use] 
+    #[must_use]
     pub fn new() -> (Self, broadcast::Sender<TenantChangeEvent>) {
         let (tx, _) = broadcast::channel(256);
         let sender = tx.clone();
@@ -29,7 +29,7 @@ impl WatchTenantUseCase {
 
     /// 新しい Receiver を返す。各ストリーミング接続が個別に subscribe する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn subscribe(&self) -> broadcast::Receiver<TenantChangeEvent> {
         self.sender.subscribe()
     }

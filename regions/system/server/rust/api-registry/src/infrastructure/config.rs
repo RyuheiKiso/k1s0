@@ -88,7 +88,7 @@ fn default_conn_max_lifetime_secs() -> u64 {
 
 impl DatabaseConfig {
     // expose_secret() でパスワードを取り出す。戻り値の URL はログに出力しないこと。
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",

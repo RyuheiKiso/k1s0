@@ -38,7 +38,7 @@ impl DeleteFlagUseCase {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<FeatureFlagChangeEvent>,

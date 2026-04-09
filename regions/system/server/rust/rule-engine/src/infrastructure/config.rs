@@ -106,7 +106,7 @@ fn default_conn_max_lifetime() -> String {
 
 impl DatabaseConfig {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}?sslmode={}",
@@ -187,7 +187,8 @@ impl Default for CacheConfig {
 }
 
 fn default_max_entries() -> u64 {
-    100000
+    // 数値リテラルを読みやすくするためアンダースコア区切りを使用する
+    100_000
 }
 
 fn default_ttl_seconds() -> u64 {

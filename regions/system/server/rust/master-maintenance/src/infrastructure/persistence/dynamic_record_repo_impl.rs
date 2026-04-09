@@ -12,7 +12,7 @@ pub struct DynamicRecordPostgresRepository {
 }
 
 impl DynamicRecordPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -117,16 +117,12 @@ fn row_to_json(row: &PgRow, columns: &[ColumnDefinition]) -> Value {
             "real" | "float4" => row
                 .try_get::<f32, _>(col_name)
                 .map(|v| {
-                    serde_json::Number::from_f64(f64::from(v))
-                        .map_or(Value::Null, Value::Number)
+                    serde_json::Number::from_f64(f64::from(v)).map_or(Value::Null, Value::Number)
                 })
                 .unwrap_or(Value::Null),
             "double precision" | "float8" | "numeric" | "decimal" => row
                 .try_get::<f64, _>(col_name)
-                .map(|v| {
-                    serde_json::Number::from_f64(v)
-                        .map_or(Value::Null, Value::Number)
-                })
+                .map(|v| serde_json::Number::from_f64(v).map_or(Value::Null, Value::Number))
                 .unwrap_or(Value::Null),
             "json" | "jsonb" => row.try_get::<Value, _>(col_name).unwrap_or(Value::Null),
             "timestamp"

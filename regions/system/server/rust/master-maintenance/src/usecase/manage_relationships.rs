@@ -110,7 +110,10 @@ impl ManageRelationshipsUseCase {
         if let Some(display_name) = input.get("display_name").and_then(|v| v.as_str()) {
             relationship.display_name = Some(display_name.to_string());
         }
-        if let Some(cascade) = input.get("is_cascade_delete").and_then(serde_json::Value::as_bool) {
+        if let Some(cascade) = input
+            .get("is_cascade_delete")
+            .and_then(serde_json::Value::as_bool)
+        {
             relationship.is_cascade_delete = cascade;
         }
         if let Some(rel_type) = input.get("relationship_type") {

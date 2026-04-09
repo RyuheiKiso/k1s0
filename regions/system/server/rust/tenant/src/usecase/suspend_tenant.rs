@@ -31,12 +31,14 @@ impl SuspendTenantUseCase {
         }
     }
 
+    /// イベントパブリッシャーを設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_event_publisher(mut self, event_publisher: Arc<dyn TenantEventPublisher>) -> Self {
         self.event_publisher = event_publisher;
         self
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn with_watch_sender(
         mut self,
         sender: tokio::sync::broadcast::Sender<TenantChangeEvent>,

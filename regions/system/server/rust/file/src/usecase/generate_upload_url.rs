@@ -214,7 +214,10 @@ mod tests {
 
         match result.unwrap_err() {
             GenerateUploadUrlError::Validation(msg) => {
-                assert!(msg.contains("text/html"), "エラーメッセージに拒否対象の型が含まれること");
+                assert!(
+                    msg.contains("text/html"),
+                    "エラーメッセージに拒否対象の型が含まれること"
+                );
             }
             e => unreachable!("unexpected error: {:?}", e),
         }

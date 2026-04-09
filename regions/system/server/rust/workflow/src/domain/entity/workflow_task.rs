@@ -18,7 +18,7 @@ pub struct WorkflowTask {
 }
 
 impl WorkflowTask {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         id: String,
         instance_id: String,
@@ -49,12 +49,12 @@ impl WorkflowTask {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_reassignable(&self) -> bool {
         matches!(self.status.as_str(), "pending" | "assigned")
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_decidable(&self) -> bool {
         matches!(self.status.as_str(), "pending" | "assigned")
     }
@@ -81,7 +81,7 @@ impl WorkflowTask {
         self.updated_at = Utc::now();
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_overdue(&self) -> bool {
         match self.due_at {
             Some(due) => Utc::now() > due && self.is_decidable(),

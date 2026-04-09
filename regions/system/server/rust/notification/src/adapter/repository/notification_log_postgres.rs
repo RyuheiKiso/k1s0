@@ -12,7 +12,7 @@ pub struct NotificationLogPostgresRepository {
 }
 
 impl NotificationLogPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -49,7 +49,8 @@ impl From<NotificationLogRow> for NotificationLog {
             },
             body: r.body,
             status: r.status,
-            retry_count: r.retry_count.max(0) as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            retry_count: u32::try_from(r.retry_count.max(0)).unwrap_or(0),
             error_message: r.error_message,
             sent_at: r.sent_at,
             created_at: r.created_at,
@@ -109,9 +110,8 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let count_query = format!(
-            "SELECT COUNT(*) FROM notification.notification_logs {where_clause}"
-        );
+        let count_query =
+            format!("SELECT COUNT(*) FROM notification.notification_logs {where_clause}");
         let data_query = format!(
             "SELECT id, channel_id, template_id, recipient, subject, body, status, retry_count, error_message, sent_at, created_at, updated_at \
              FROM notification.notification_logs {} ORDER BY created_at DESC LIMIT ${} OFFSET ${}",
@@ -141,7 +141,8 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
 
         Ok((
             rows.into_iter().map(Into::into).collect(),
-            total_count as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            u64::try_from(total_count).unwrap_or(0),
         ))
     }
 
@@ -158,7 +159,8 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
         .bind(log.subject.as_deref().unwrap_or(""))
         .bind(&log.body)
         .bind(&log.status)
-        .bind(log.retry_count as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(log.retry_count).unwrap_or(i32::MAX))
         .bind(&log.error_message)
         .bind(log.sent_at)
         .bind(log.created_at)
@@ -175,7 +177,8 @@ impl NotificationLogRepository for NotificationLogPostgresRepository {
         )
         .bind(&log.id)
         .bind(&log.status)
-        .bind(log.retry_count as i32)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i32::try_from(log.retry_count).unwrap_or(i32::MAX))
         .bind(&log.error_message)
         .bind(log.sent_at)
         .execute(self.pool.as_ref())

@@ -100,7 +100,8 @@ impl SessionMutationResolver {
     pub async fn revoke_all_sessions(&self, user_id: &str) -> RevokeAllSessionsPayload {
         match self.client.revoke_all_sessions(user_id).await {
             Ok(count) => RevokeAllSessionsPayload {
-                revoked_count: count as i32,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                revoked_count: i32::try_from(count).unwrap_or(i32::MAX),
                 errors: vec![],
             },
             Err(e) => RevokeAllSessionsPayload {

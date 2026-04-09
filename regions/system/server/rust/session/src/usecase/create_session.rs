@@ -69,11 +69,15 @@ impl CreateSessionUseCase {
         let ttl = input.ttl_seconds.unwrap_or(self.default_ttl);
         SessionDomainService::validate_create_request(&input.device_id, ttl, self.max_ttl)?;
 
-        let max_devices = input.max_devices.unwrap_or(10).max(1) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let max_devices = usize::try_from(input.max_devices.unwrap_or(10).max(1)).unwrap_or(usize::MAX);
         let mut existing = self.repo.find_by_user_id(&input.user_id).await?;
         existing.sort_by_key(|s| s.created_at);
 
-        let valid_sessions: Vec<Session> = existing.into_iter().filter(super::super::domain::entity::session::Session::is_valid).collect();
+        let valid_sessions: Vec<Session> = existing
+            .into_iter()
+            .filter(super::super::domain::entity::session::Session::is_valid)
+            .collect();
         let revoke_count =
             SessionDomainService::compute_revoke_count(valid_sessions.len(), max_devices);
         if revoke_count > 0 {

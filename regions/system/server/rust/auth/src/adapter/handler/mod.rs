@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod api_key_handler;
 pub mod audit_handler;
 pub mod auth_handler;
@@ -51,7 +53,7 @@ pub struct AppState {
     pub permission_cache_refresh_on_miss: bool,
     pub role_permission_table: Option<Arc<RolePermissionTable>>,
     /// LOW-13 監査対応: Tier 階層を設定ファイルから注入（ハードコード解消）。
-    /// 上位 Tier から順に並べた文字列リスト。デフォルト: ["system", "business", "service"]。
+    /// 上位 Tier から順に並べた文字列リスト。デフォルト: \["system", "business", "service"\]。
     pub tier_hierarchy: Vec<String>,
 }
 
@@ -109,6 +111,8 @@ impl AppState {
     }
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(

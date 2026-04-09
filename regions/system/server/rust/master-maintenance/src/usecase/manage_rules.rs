@@ -156,20 +156,19 @@ impl ManageRulesUseCase {
                 serde_json::from_value(conditions_value.clone())?;
             let mut conditions = Vec::with_capacity(inputs.len());
             for condition in inputs {
-                let right_table_id =
-                    if let Some(right_table_name) = condition.right_table.as_deref() {
-                        Some(
-                            self.table_repo
-                                .find_by_name(right_table_name, domain_scope)
-                                .await?
-                                .ok_or_else(|| {
-                                    anyhow::anyhow!("Table '{right_table_name}' not found")
-                                })?
-                                .id,
-                        )
-                    } else {
-                        None
-                    };
+                let right_table_id = if let Some(right_table_name) =
+                    condition.right_table.as_deref()
+                {
+                    Some(
+                        self.table_repo
+                            .find_by_name(right_table_name, domain_scope)
+                            .await?
+                            .ok_or_else(|| anyhow::anyhow!("Table '{right_table_name}' not found"))?
+                            .id,
+                    )
+                } else {
+                    None
+                };
 
                 conditions.push(RuleCondition {
                     id: Uuid::new_v4(),

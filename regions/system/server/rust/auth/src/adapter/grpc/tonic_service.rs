@@ -69,7 +69,7 @@ pub struct AuthServiceTonic {
 }
 
 impl AuthServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<AuthGrpcService>) -> Self {
         Self { inner }
     }
@@ -146,7 +146,7 @@ pub struct AuditServiceTonic {
 }
 
 impl AuditServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<AuditGrpcService>) -> Self {
         Self { inner }
     }

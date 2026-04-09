@@ -16,7 +16,7 @@ pub struct PolicyEvaluation {
 }
 
 impl PolicyEvaluation {
-    #[must_use] 
+    #[must_use]
     pub fn new(
         policy_id: Option<Uuid>,
         package_path: String,

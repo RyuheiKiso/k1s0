@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+// テーブル定義エンティティは複数の権限制御用 boolean フィールドを持つ（DBスキーマとの整合性上必要）
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableDefinition {
     pub id: Uuid,

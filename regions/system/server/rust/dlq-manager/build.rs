@@ -5,9 +5,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_include = "../../../../../api/proto";
 
     if !std::path::Path::new(dlq_proto).exists() {
-        println!(
-            "cargo:warning=Proto file not found, skipping tonic codegen: {dlq_proto}"
-        );
+        println!("cargo:warning=Proto file not found, skipping tonic codegen: {dlq_proto}");
         return Ok(());
     }
 
@@ -21,9 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("cargo:warning=tonic-build succeeded for dlq proto");
         }
         Err(e) => {
-            println!(
-                "cargo:warning=tonic-build failed (protoc may not be installed): {e}"
-            );
+            println!("cargo:warning=tonic-build failed (protoc may not be installed): {e}");
         }
     }
     Ok(())

@@ -14,7 +14,7 @@ pub struct InstancePostgresRepository {
 }
 
 impl InstancePostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -61,7 +61,11 @@ impl From<InstanceRow> for WorkflowInstance {
 #[async_trait]
 impl WorkflowInstanceRepository for InstancePostgresRepository {
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからSELECTを実行する
-    async fn find_by_id(&self, tenant_id: &str, id: &str) -> anyhow::Result<Option<WorkflowInstance>> {
+    async fn find_by_id(
+        &self,
+        tenant_id: &str,
+        id: &str,
+    ) -> anyhow::Result<Option<WorkflowInstance>> {
         let mut tx = self.pool.begin().await?;
         // テナント分離: RLS のために現在のテナントIDをセッション変数に設定する
         // HIGH-006 監査対応: SET LOCAL は $1 パラメータバインドをサポートしないため set_config() を使用する
@@ -173,7 +177,8 @@ impl WorkflowInstanceRepository for InstancePostgresRepository {
 
         tx.commit().await?;
 
-        Ok((rows.into_iter().map(Into::into).collect(), count.0 as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((rows.into_iter().map(Into::into).collect(), u64::try_from(count.0).unwrap_or(0)))
     }
 
     // RUST-CRIT-001 対応: SET LOCAL でテナント分離を有効化してからINSERTを実行する

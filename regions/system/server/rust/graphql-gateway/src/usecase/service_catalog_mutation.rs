@@ -16,7 +16,7 @@ pub struct ServiceCatalogMutationResolver {
 }
 
 impl ServiceCatalogMutationResolver {
-    #[must_use] 
+    #[must_use]
     pub fn new(client: Arc<ServiceCatalogHttpClient>) -> Self {
         Self { client }
     }

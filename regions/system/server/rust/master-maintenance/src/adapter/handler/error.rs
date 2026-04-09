@@ -22,7 +22,7 @@ pub struct AppError {
 
 impl AppError {
     /// 404 Not Found レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn not_found(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
@@ -33,7 +33,7 @@ impl AppError {
     }
 
     /// 400 Bad Request レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn bad_request(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::BAD_REQUEST,
@@ -44,7 +44,7 @@ impl AppError {
     }
 
     /// 409 Conflict レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn conflict(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::CONFLICT,
@@ -55,7 +55,7 @@ impl AppError {
     }
 
     /// 401 Unauthorized レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn unauthorized(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::UNAUTHORIZED,
@@ -66,7 +66,7 @@ impl AppError {
     }
 
     /// 403 Forbidden レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn forbidden(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::FORBIDDEN,
@@ -77,7 +77,7 @@ impl AppError {
     }
 
     /// 500 Internal Server Error レスポンスを生成する。
-    #[must_use] 
+    #[must_use]
     pub fn internal(code: &str, message: &str) -> Self {
         Self {
             status: StatusCode::INTERNAL_SERVER_ERROR,
@@ -88,7 +88,7 @@ impl AppError {
     }
 
     /// エラー詳細情報を付与する。バリデーションエラーの errors/warnings に使用する。
-    #[must_use] 
+    #[must_use]
     pub fn with_details(mut self, details: serde_json::Value) -> Self {
         self.details = Some(details);
         self

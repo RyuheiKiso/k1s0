@@ -464,6 +464,21 @@ resource "vault_kubernetes_auth_backend_role" "app_registry" {
   token_policies                   = ["app-registry"]
 }
 
+# Kong API ゲートウェイ（kong）個別 Vault ロール
+# HIGH-004 監査対応: kong-secrets.yaml の roleName "kong" に対応する Terraform ロール定義を追加する
+# kong は DB パスワードのみ Vault から取得する（最小権限の原則に従い kong 専用ポリシーのみ付与）
+# Kong の ServiceAccount 名は "kong"（infra/kubernetes/rbac/service-accounts.yaml 参照）
+resource "vault_kubernetes_auth_backend_role" "kong" {
+  backend                          = vault_auth_backend.kubernetes.path
+  role_name                        = "kong"
+  bound_service_account_names      = ["kong"]
+  bound_service_account_namespaces = [var.k8s_namespace]
+  token_ttl                        = 3600
+  # M-18 監査対応: token_max_ttl を 4h(14400)に設定してセッション乗っ取りリスクを低減する
+  token_max_ttl                    = 14400
+  token_policies                   = ["kong"]
+}
+
 # API レジストリサービス（api-registry-rust）個別 Vault ロール
 # H-010 監査対応: "system" 共通ポリシーを削除し、api-registry 専用ポリシーのみを付与する
 # api-registry サービスは api-registry DB のみアクセス可能とする

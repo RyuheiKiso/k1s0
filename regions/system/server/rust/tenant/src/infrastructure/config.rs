@@ -219,7 +219,7 @@ pub struct DatabaseConfig {
 }
 
 impl DatabaseConfig {
-    #[must_use] 
+    #[must_use]
     pub fn connection_url(&self) -> String {
         format!(
             "postgresql://{}:{}@{}:{}/{}?sslmode={}",
@@ -254,17 +254,17 @@ fn default_db_ssl_mode() -> String {
     "disable".to_string()
 }
 
-#[must_use] 
+#[must_use]
 pub fn default_max_connections() -> u32 {
     25
 }
 
-#[must_use] 
+#[must_use]
 pub fn default_max_idle_conns() -> u32 {
     5
 }
 
-#[must_use] 
+#[must_use]
 pub fn default_conn_max_lifetime() -> String {
     "5m".to_string()
 }

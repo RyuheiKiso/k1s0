@@ -77,7 +77,10 @@ pub struct HttpWebhookClient {
 
 impl HttpWebhookClient {
     /// デフォルト設定で新しい `HttpWebhookClient` を生成する。
-    #[must_use] 
+    ///
+    /// # Panics
+    /// `reqwest::Client` のビルドに失敗した場合にパニックする（通常は発生しない）。
+    #[must_use]
     pub fn new() -> Self {
         Self {
             config: WebhookConfig::default(),
@@ -91,7 +94,10 @@ impl HttpWebhookClient {
     }
 
     /// リトライ設定付きの `HttpWebhookClient` を生成する。
-    #[must_use] 
+    ///
+    /// # Panics
+    /// `reqwest::Client` のビルドに失敗した場合にパニックする（通常は発生しない）。
+    #[must_use]
     pub fn with_config(config: WebhookConfig) -> Self {
         Self {
             config,
@@ -148,7 +154,8 @@ impl HttpWebhookClient {
                 warn!(
                     attempt = attempt + 1,
                     max_attempts = max_attempts,
-                    delay_ms = delay.as_millis() as u64,
+                    // LOW-008: 安全な型変換（オーバーフロー防止）
+                    delay_ms = u64::try_from(delay.as_millis()).unwrap_or(u64::MAX),
                     url = url,
                     "リトライ実行"
                 );

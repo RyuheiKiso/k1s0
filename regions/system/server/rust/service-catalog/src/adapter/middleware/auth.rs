@@ -16,10 +16,10 @@ fn error_response(status: StatusCode, code: &str, message: impl Into<String>) ->
 /// Authorization ヘッダーから Bearer トークンを取り出すヘルパー。
 /// RFC 7235: Authorization スキーム名は大文字小文字を区別しない（RUST-HIGH-001 対応）
 pub fn extract_bearer_token<B>(req: &Request<B>) -> Option<String> {
-    let auth_header = req.headers().get(axum::http::header::AUTHORIZATION)?;
-    let auth_str = auth_header.to_str().ok()?;
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
+    let auth_header = req.headers().get(axum::http::header::AUTHORIZATION)?;
+    let auth_str = auth_header.to_str().ok()?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -41,15 +41,13 @@ pub async fn auth_middleware(
     mut req: Request<axum::body::Body>,
     next: Next,
 ) -> Response {
-    let token = match extract_bearer_token(&req) {
-        Some(t) => t,
-        None => {
-            return error_response(
-                StatusCode::UNAUTHORIZED,
-                "SYS_SCAT_MISSING_TOKEN",
-                "Authorization header with Bearer token is required",
-            );
-        }
+    // let-else: トークンが存在しない場合は401を返す
+    let Some(token) = extract_bearer_token(&req) else {
+        return error_response(
+            StatusCode::UNAUTHORIZED,
+            "SYS_SCAT_MISSING_TOKEN",
+            "Authorization header with Bearer token is required",
+        );
     };
 
     match state.validate_token_uc.execute(&token).await {

@@ -47,7 +47,8 @@ impl StubJobRepository {
 
 #[async_trait]
 impl SchedulerJobRepository for StubJobRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<SchedulerJob>> {
+    // テナントスコープでIDによるジョブ検索（テスト用スタブ）
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<SchedulerJob>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -55,13 +56,15 @@ impl SchedulerJobRepository for StubJobRepository {
         Ok(jobs.iter().find(|j| j.id == id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<SchedulerJob>> {
+    // テナントスコープで全ジョブを取得（テスト用スタブ）
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<SchedulerJob>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
         Ok(self.jobs.read().await.clone())
     }
 
+    // ジョブを新規作成（テスト用スタブ）
     async fn create(&self, job: &SchedulerJob) -> anyhow::Result<()> {
         if self.should_fail {
             anyhow::bail!("db error");
@@ -70,6 +73,7 @@ impl SchedulerJobRepository for StubJobRepository {
         Ok(())
     }
 
+    // ジョブを更新（テスト用スタブ）
     async fn update(&self, job: &SchedulerJob) -> anyhow::Result<()> {
         if self.should_fail {
             anyhow::bail!("db error");
@@ -81,7 +85,8 @@ impl SchedulerJobRepository for StubJobRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    // テナントスコープでジョブを削除（テスト用スタブ）
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -91,6 +96,7 @@ impl SchedulerJobRepository for StubJobRepository {
         Ok(jobs.len() < len_before)
     }
 
+    // アクティブなジョブを全テナント横断で取得（テスト用スタブ）
     async fn find_active_jobs(&self) -> anyhow::Result<Vec<SchedulerJob>> {
         if self.should_fail {
             anyhow::bail!("db error");
@@ -284,6 +290,8 @@ mod create_job {
 
     fn default_input() -> CreateJobInput {
         CreateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "daily-backup".to_string(),
             description: Some("Run daily backup".to_string()),
             cron_expression: "0 2 * * *".to_string(),
@@ -429,7 +437,8 @@ mod get_job {
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
         let uc = GetJobUseCase::new(repo);
 
-        let result = uc.execute(&job_id).await;
+        // GetJobUseCase::execute は (id, tenant_id) の2引数シグネチャ（CRIT-005対応）
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().name, "test-job");
     }
@@ -439,7 +448,8 @@ mod get_job {
         let repo = Arc::new(StubJobRepository::new());
         let uc = GetJobUseCase::new(repo);
 
-        let result = uc.execute("nonexistent").await;
+        // テナント識別子を追加してテナントスコープで検索
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(matches!(result, Err(GetJobError::NotFound(ref id)) if id == "nonexistent"));
     }
 
@@ -448,7 +458,8 @@ mod get_job {
         let repo = Arc::new(StubJobRepository::failing());
         let uc = GetJobUseCase::new(repo);
 
-        let result = uc.execute("any-id").await;
+        // テナント識別子を追加してテナントスコープで検索
+        let result = uc.execute("any-id", "test-tenant").await;
         assert!(matches!(result, Err(GetJobError::Internal(_))));
     }
 }
@@ -472,6 +483,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: None,
             page: 1,
@@ -494,6 +507,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: Some("active".to_string()),
             name_prefix: None,
             page: 1,
@@ -515,6 +530,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: Some("workflow-".to_string()),
             page: 1,
@@ -536,6 +553,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: Some("active".to_string()),
             name_prefix: Some("workflow-".to_string()),
             page: 1,
@@ -555,6 +574,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: None,
             page: 1,
@@ -577,6 +598,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: None,
             page: 3,
@@ -594,6 +617,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: None,
             page: 1,
@@ -611,6 +636,8 @@ mod list_jobs {
         let uc = ListJobsUseCase::new(repo);
 
         let input = ListJobsInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             status: None,
             name_prefix: None,
             page: 1,
@@ -639,6 +666,8 @@ mod update_job {
         let uc = UpdateJobUseCase::new(repo.clone());
 
         let input = UpdateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: job_id.clone(),
             name: "updated-job".to_string(),
             description: Some("Updated description".to_string()),
@@ -674,6 +703,8 @@ mod update_job {
         let uc = UpdateJobUseCase::new(repo);
 
         let input = UpdateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "nonexistent".to_string(),
             name: "test".to_string(),
             description: None,
@@ -693,6 +724,8 @@ mod update_job {
         let uc = UpdateJobUseCase::new(repo);
 
         let input = UpdateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             description: None,
@@ -712,6 +745,8 @@ mod update_job {
         let uc = UpdateJobUseCase::new(repo);
 
         let input = UpdateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "some-id".to_string(),
             name: "test".to_string(),
             description: None,
@@ -731,6 +766,8 @@ mod update_job {
         let uc = UpdateJobUseCase::new(repo);
 
         let input = UpdateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             id: "any-id".to_string(),
             name: "test".to_string(),
             description: None,
@@ -761,7 +798,7 @@ mod delete_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = DeleteJobUseCase::new(repo.clone(), exec_repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
 
         let jobs = repo.jobs.read().await;
@@ -774,7 +811,7 @@ mod delete_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = DeleteJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(matches!(result, Err(DeleteJobError::NotFound(ref id)) if id == "nonexistent"));
     }
 
@@ -787,7 +824,7 @@ mod delete_job {
         let exec_repo = Arc::new(StubExecutionRepository::with_executions(vec![running_exec]));
         let uc = DeleteJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(matches!(result, Err(DeleteJobError::JobRunning(ref id)) if id == &job_id));
     }
 
@@ -802,7 +839,7 @@ mod delete_job {
         ]));
         let uc = DeleteJobUseCase::new(repo.clone(), exec_repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
 
         let jobs = repo.jobs.read().await;
@@ -818,7 +855,7 @@ mod delete_job {
         let exec_repo = Arc::new(StubExecutionRepository::with_executions(vec![failed_exec]));
         let uc = DeleteJobUseCase::new(repo.clone(), exec_repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
     }
 
@@ -828,7 +865,7 @@ mod delete_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = DeleteJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute("any-id").await;
+        let result = uc.execute("any-id", "test-tenant").await;
         assert!(
             matches!(result, Err(DeleteJobError::Internal(ref msg)) if msg.contains("db error"))
         );
@@ -850,7 +887,7 @@ mod pause_job {
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
         let uc = PauseJobUseCase::new(repo.clone());
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
 
         let paused = result.unwrap();
@@ -868,7 +905,7 @@ mod pause_job {
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
         let uc = PauseJobUseCase::new(repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, "paused");
     }
@@ -878,7 +915,7 @@ mod pause_job {
         let repo = Arc::new(StubJobRepository::new());
         let uc = PauseJobUseCase::new(repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(matches!(result, Err(PauseJobError::NotFound(ref id)) if id == "nonexistent"));
     }
 
@@ -887,7 +924,7 @@ mod pause_job {
         let repo = Arc::new(StubJobRepository::failing());
         let uc = PauseJobUseCase::new(repo);
 
-        let result = uc.execute("any-id").await;
+        let result = uc.execute("any-id", "test-tenant").await;
         assert!(matches!(result, Err(PauseJobError::Internal(_))));
     }
 }
@@ -907,7 +944,7 @@ mod resume_job {
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
         let uc = ResumeJobUseCase::new(repo.clone());
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
 
         let resumed = result.unwrap();
@@ -925,7 +962,7 @@ mod resume_job {
         let repo = Arc::new(StubJobRepository::with_jobs(vec![job]));
         let uc = ResumeJobUseCase::new(repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().status, "active");
     }
@@ -935,7 +972,7 @@ mod resume_job {
         let repo = Arc::new(StubJobRepository::new());
         let uc = ResumeJobUseCase::new(repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(matches!(result, Err(ResumeJobError::NotFound(ref id)) if id == "nonexistent"));
     }
 
@@ -944,7 +981,7 @@ mod resume_job {
         let repo = Arc::new(StubJobRepository::failing());
         let uc = ResumeJobUseCase::new(repo);
 
-        let result = uc.execute("any-id").await;
+        let result = uc.execute("any-id", "test-tenant").await;
         assert!(matches!(result, Err(ResumeJobError::Internal(_))));
     }
 }
@@ -1054,7 +1091,7 @@ mod trigger_job {
             publisher,
         );
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(result.is_ok());
 
         let execution = result.unwrap();
@@ -1077,7 +1114,7 @@ mod trigger_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = TriggerJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute("nonexistent").await;
+        let result = uc.execute("nonexistent", "test-tenant").await;
         assert!(matches!(result, Err(TriggerJobError::NotFound(ref id)) if id == "nonexistent"));
     }
 
@@ -1089,7 +1126,7 @@ mod trigger_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = TriggerJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(matches!(result, Err(TriggerJobError::NotActive(ref id)) if id == &job_id));
     }
 
@@ -1103,7 +1140,7 @@ mod trigger_job {
         let publisher = Arc::new(StubEventPublisher::new());
         let uc = TriggerJobUseCase::with_dependencies(repo, exec_repo, executor, publisher);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(
             matches!(result, Err(TriggerJobError::Internal(ref msg)) if msg.contains("target execution failed"))
         );
@@ -1119,7 +1156,7 @@ mod trigger_job {
         let publisher = Arc::new(StubEventPublisher::failing());
         let uc = TriggerJobUseCase::with_dependencies(repo, exec_repo, executor, publisher);
 
-        let result = uc.execute(&job_id).await;
+        let result = uc.execute(&job_id, "test-tenant").await;
         assert!(
             result.is_ok(),
             "trigger should succeed even if publisher fails"
@@ -1132,7 +1169,7 @@ mod trigger_job {
         let exec_repo = Arc::new(StubExecutionRepository::new());
         let uc = TriggerJobUseCase::new(repo, exec_repo);
 
-        let result = uc.execute("any-id").await;
+        let result = uc.execute("any-id", "test-tenant").await;
         assert!(matches!(result, Err(TriggerJobError::Internal(_))));
     }
 }
@@ -1160,6 +1197,8 @@ mod lifecycle {
         // 1. Create a job
         let create_uc = CreateJobUseCase::new(repo.clone(), publisher.clone());
         let input = CreateJobInput {
+            // テナント識別子（テスト用固定値）
+            tenant_id: "test-tenant".to_string(),
             name: "lifecycle-test".to_string(),
             description: Some("Full lifecycle test".to_string()),
             cron_expression: "0 * * * *".to_string(),
@@ -1174,12 +1213,12 @@ mod lifecycle {
 
         // 2. Get the job
         let get_uc = GetJobUseCase::new(repo.clone());
-        let retrieved = get_uc.execute(&job_id).await.unwrap();
+        let retrieved = get_uc.execute(&job_id, "test-tenant").await.unwrap();
         assert_eq!(retrieved.name, "lifecycle-test");
 
         // 3. Pause the job
         let pause_uc = PauseJobUseCase::new(repo.clone());
-        let paused = pause_uc.execute(&job_id).await.unwrap();
+        let paused = pause_uc.execute(&job_id, "test-tenant").await.unwrap();
         assert_eq!(paused.status, "paused");
 
         // 4. Trigger should fail when paused
@@ -1189,25 +1228,25 @@ mod lifecycle {
             executor.clone(),
             publisher.clone(),
         );
-        let trigger_result = trigger_uc.execute(&job_id).await;
+        let trigger_result = trigger_uc.execute(&job_id, "test-tenant").await;
         assert!(trigger_result.is_err());
 
         // 5. Resume the job
         let resume_uc = ResumeJobUseCase::new(repo.clone());
-        let resumed = resume_uc.execute(&job_id).await.unwrap();
+        let resumed = resume_uc.execute(&job_id, "test-tenant").await.unwrap();
         assert_eq!(resumed.status, "active");
 
         // 6. Trigger should succeed when active
-        let trigger_result = trigger_uc.execute(&job_id).await;
+        let trigger_result = trigger_uc.execute(&job_id, "test-tenant").await;
         assert!(trigger_result.is_ok());
 
         // 7. Delete the job
         let delete_uc = DeleteJobUseCase::new(repo.clone(), exec_repo.clone());
-        let delete_result = delete_uc.execute(&job_id).await;
+        let delete_result = delete_uc.execute(&job_id, "test-tenant").await;
         assert!(delete_result.is_ok());
 
         // 8. Verify deleted
-        let get_result = get_uc.execute(&job_id).await;
+        let get_result = get_uc.execute(&job_id, "test-tenant").await;
         assert!(get_result.is_err());
     }
 }

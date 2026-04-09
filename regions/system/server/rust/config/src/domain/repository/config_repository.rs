@@ -8,6 +8,8 @@ use uuid::Uuid;
 /// 実装は `PostgreSQL` を通じて設定値を管理する。
 /// STATIC-CRITICAL-001 監査対応: 全クエリに `tenant_id` フィルタを追加してテナント分離を強制する。
 #[cfg_attr(test, mockall::automock)]
+// テナント分離・バージョン管理・メタデータで引数が多くなるためアーキテクチャ上の制約として許容する
+#[allow(clippy::too_many_arguments)]
 #[async_trait]
 pub trait ConfigRepository: Send + Sync {
     /// `tenant_id` + namespace + key で設定値を取得する。
@@ -94,11 +96,7 @@ mod tests {
             });
 
         let result = mock
-            .find_by_namespace_and_key(
-                system_tenant(),
-                "system.auth.database",
-                "max_connections",
-            )
+            .find_by_namespace_and_key(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
         assert!(result.is_some());
@@ -167,11 +165,7 @@ mod tests {
             .returning(|_, _, _| Ok(true));
 
         let result = mock
-            .delete(
-                system_tenant(),
-                "system.auth.database",
-                "max_connections",
-            )
+            .delete(system_tenant(), "system.auth.database", "max_connections")
             .await
             .unwrap();
         assert!(result);

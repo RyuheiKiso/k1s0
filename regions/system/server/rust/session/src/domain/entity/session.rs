@@ -33,12 +33,12 @@ fn default_tenant_id() -> String {
 }
 
 impl Session {
-    #[must_use] 
+    #[must_use]
     pub fn is_valid(&self) -> bool {
         !self.revoked && !self.is_expired()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_expired(&self) -> bool {
         Utc::now() >= self.expires_at
     }

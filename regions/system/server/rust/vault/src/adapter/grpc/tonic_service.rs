@@ -50,7 +50,7 @@ pub struct VaultServiceTonic {
 }
 
 impl VaultServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<VaultGrpcService>) -> Self {
         Self { inner }
     }
@@ -61,7 +61,8 @@ fn to_proto_timestamp(
 ) -> crate::proto::k1s0::system::common::v1::Timestamp {
     crate::proto::k1s0::system::common::v1::Timestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     }
 }
 
@@ -245,7 +246,8 @@ impl VaultService for VaultServiceTonic {
         let pag = inner.pagination.unwrap_or_default();
         let req = ListAuditLogsRequest {
             after_id,
-            limit: pag.page_size.max(1) as u32,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            limit: u32::try_from(pag.page_size.max(1)).unwrap_or(0),
         };
         let resp = self
             .inner

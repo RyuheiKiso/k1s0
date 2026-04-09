@@ -58,7 +58,7 @@ pub async fn publish_change_event(state: &AppState, event: serde_json::Value) {
     }
 }
 
-#[must_use] 
+#[must_use]
 pub fn current_trace_id() -> Option<String> {
     let context = tracing::Span::current().context();
     let span = context.span();
@@ -129,20 +129,18 @@ fn require_route_permission(
     move |req: Request<Body>, next: Next| {
         let state = state.clone();
         Box::pin(async move {
-            let claims = match req.extensions().get::<k1s0_auth::Claims>() {
-                Some(claims) => claims,
-                None => {
-                    return (
-                        StatusCode::UNAUTHORIZED,
-                        Json(serde_json::json!({
-                            "error": {
-                                "code": "SYS_MM_MISSING_CLAIMS",
-                                "message": "Missing authentication claims",
-                            }
-                        })),
-                    )
-                        .into_response();
-                }
+            // let-else: 認証クレームが存在しない場合は401を返す
+            let Some(claims) = req.extensions().get::<k1s0_auth::Claims>() else {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({
+                        "error": {
+                            "code": "SYS_MM_MISSING_CLAIMS",
+                            "message": "Missing authentication claims",
+                        }
+                    })),
+                )
+                    .into_response();
             };
 
             let table_name = extract_table_name(req.uri().path()).map(str::to_string);
@@ -240,6 +238,8 @@ fn require_table_operation(
     }
 }
 
+// ルーター構築は全エンドポイントを定義するため行数が多くなる
+#[allow(clippy::too_many_lines)]
 pub fn router(state: AppState) -> Router {
     let public_routes = Router::new()
         .route("/healthz", get(table_handler::healthz))

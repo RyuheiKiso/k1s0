@@ -120,11 +120,7 @@ impl SnapshotRepository for StubSnapshotRepo {
     ) -> anyhow::Result<Option<Snapshot>> {
         Ok(None)
     }
-    async fn delete_by_stream(
-        &self,
-        _tenant_id: &str,
-        _stream_id: &str,
-    ) -> anyhow::Result<u64> {
+    async fn delete_by_stream(&self, _tenant_id: &str, _stream_id: &str) -> anyhow::Result<u64> {
         Ok(0)
     }
 }
@@ -188,6 +184,8 @@ fn make_test_app() -> axum::Router {
         event_publisher,
         metrics,
         auth_state: None,
+        // インメモリ（dev/test）モードでは DB 接続不要のため None を設定する
+        db_pool: None,
     };
 
     router(state)
@@ -273,6 +271,8 @@ async fn test_unauthorized_without_token() {
         event_publisher,
         metrics,
         auth_state: Some(auth_state),
+        // インメモリ（dev/test）モードでは DB 接続不要のため None を設定する
+        db_pool: None,
     };
 
     let app = router(state);

@@ -13,7 +13,7 @@ pub struct AccessLogPostgresRepository {
 }
 
 impl AccessLogPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: Arc<PgPool>) -> Self {
         Self { pool }
     }
@@ -43,7 +43,10 @@ fn action_from_str(s: &str) -> AccessAction {
 /// ADR-0109 対応: `key_path` の先頭セグメントからテナント ID を抽出する。
 /// `key_path` は "{`tenant_id`}/..." の形式であること。
 fn extract_tenant_id_from_path(path: &str) -> &str {
-    path.split('/').next().filter(|s| !s.is_empty()).unwrap_or("system")
+    path.split('/')
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("system")
 }
 
 #[async_trait]

@@ -75,7 +75,7 @@ pub struct GrpcDlqClient {
 impl GrpcDlqClient {
     /// `grpc_endpoint` と `timeout_ms` から新しい `GrpcDlqClient` を生成する。
     /// 接続は各 RPC 呼び出し時に遅延確立する（lazy connect）。
-    #[must_use] 
+    #[must_use]
     pub fn new(grpc_endpoint: String, timeout_ms: u64) -> Self {
         Self {
             endpoint: grpc_endpoint,
@@ -131,7 +131,8 @@ impl DlqManagerClient for GrpcDlqClient {
             });
             match client.list_messages(list_req).await {
                 Ok(resp) => {
-                    let count = resp.into_inner().messages.len() as i32;
+                    // LOW-008: 安全な型変換（メッセージ数は i32 範囲内が前提）
+                    let count = i32::try_from(resp.into_inner().messages.len()).unwrap_or(i32::MAX);
                     if count > 0 {
                         total_dlq_messages += count;
                         affected_topics.push(corr_id.clone());
@@ -149,7 +150,8 @@ impl DlqManagerClient for GrpcDlqClient {
 
         // total_events_to_replay は DLQ 件数と correlation_ids 件数の合計を返す。
         Ok(ReplayPreviewResponse {
-            total_events_to_replay: req.correlation_ids.len() as i32,
+            // LOW-008: 安全な型変換（correlation_ids 件数は i32 範囲内が前提）
+            total_events_to_replay: i32::try_from(req.correlation_ids.len()).unwrap_or(i32::MAX),
             affected_services: affected_topics,
             dlq_messages_found: total_dlq_messages,
             estimated_duration_seconds: total_dlq_messages * 2, // 1件あたり約2秒と見積もる
@@ -192,7 +194,8 @@ impl DlqManagerClient for GrpcDlqClient {
         Ok(ReplayResponse {
             replay_id,
             status: "completed".to_string(),
-            total_events: req.correlation_ids.len() as i32,
+            // LOW-008: 安全な型変換（correlation_ids 件数は i32 範囲内が前提）
+            total_events: i32::try_from(req.correlation_ids.len()).unwrap_or(i32::MAX),
             replayed_events: total_retried,
         })
     }

@@ -37,7 +37,7 @@ pub struct InMemoryFileClient {
 }
 
 impl InMemoryFileClient {
-    #[must_use] 
+    #[must_use]
     pub fn new(config: FileClientConfig) -> Self {
         Self {
             files: tokio::sync::Mutex::new(std::collections::HashMap::new()),
@@ -177,7 +177,8 @@ impl ServerFileClient {
     /// 新しい `ServerFileClient` を生成する。
     ///
     /// `config.server_url` が未設定の場合は `FileClientError::InvalidConfig` を返す。
-    pub async fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
+    // async は不要（.await 呼び出しがないため同期関数に変換する）
+    pub fn new(config: FileClientConfig) -> Result<Self, FileClientError> {
         let base_url = config.server_url.ok_or_else(|| {
             FileClientError::InvalidConfig("server_url が設定されていません".into())
         })?;
@@ -203,9 +204,7 @@ impl ServerFileClient {
         match status.as_u16() {
             401 | 403 => Err(FileClientError::Unauthorized(body)),
             404 => Err(FileClientError::NotFound(body)),
-            _ => Err(FileClientError::Internal(format!(
-                "HTTP {status}: {body}"
-            ))),
+            _ => Err(FileClientError::Internal(format!("HTTP {status}: {body}"))),
         }
     }
 }

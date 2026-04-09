@@ -75,7 +75,7 @@ func (m *mockOAuthClient) ClearDiscoveryCache() {
 // mockSessionStore は session.Store と session.ExchangeCodeStore の両インターフェースのテスト用モック。
 // インメモリの map でセッションおよび交換コードを管理する（H-5 監査対応）。
 type mockSessionStore struct {
-	sessions      map[string]*session.SessionData
+	sessions      map[string]*session.Data
 	exchangeCodes map[string]*session.ExchangeCodeData
 	counter       int
 	ecCounter     int
@@ -84,13 +84,13 @@ type mockSessionStore struct {
 // newMockSessionStore はテスト用のセッションストアを生成する。
 func newMockSessionStore() *mockSessionStore {
 	return &mockSessionStore{
-		sessions:      make(map[string]*session.SessionData),
+		sessions:      make(map[string]*session.Data),
 		exchangeCodes: make(map[string]*session.ExchangeCodeData),
 	}
 }
 
 // Create はセッションデータを保存し、連番の ID を返す。
-func (m *mockSessionStore) Create(_ context.Context, data *session.SessionData, _ time.Duration) (string, error) {
+func (m *mockSessionStore) Create(_ context.Context, data *session.Data, _ time.Duration) (string, error) {
 	m.counter++
 	id := fmt.Sprintf("test-session-id-%d", m.counter)
 	m.sessions[id] = data
@@ -98,7 +98,7 @@ func (m *mockSessionStore) Create(_ context.Context, data *session.SessionData, 
 }
 
 // Get は指定 ID のセッションデータを取得する。
-func (m *mockSessionStore) Get(_ context.Context, id string) (*session.SessionData, error) {
+func (m *mockSessionStore) Get(_ context.Context, id string) (*session.Data, error) {
 	if s, ok := m.sessions[id]; ok {
 		return s, nil
 	}
@@ -106,7 +106,7 @@ func (m *mockSessionStore) Get(_ context.Context, id string) (*session.SessionDa
 }
 
 // Update は指定 ID のセッションデータを更新する。
-func (m *mockSessionStore) Update(_ context.Context, id string, data *session.SessionData, _ time.Duration) error {
+func (m *mockSessionStore) Update(_ context.Context, id string, data *session.Data, _ time.Duration) error {
 	m.sessions[id] = data
 	return nil
 }
@@ -152,17 +152,17 @@ type errOnCreateSessionStore struct {
 }
 
 // Create は常にエラーを返してセッション保存失敗をシミュレートする。
-func (m *errOnCreateSessionStore) Create(_ context.Context, _ *session.SessionData, _ time.Duration) (string, error) {
+func (m *errOnCreateSessionStore) Create(_ context.Context, _ *session.Data, _ time.Duration) (string, error) {
 	return "", m.err
 }
 
 // Get は常に nil を返す（テストで呼ばれることはないが Store インターフェースを満たすために実装する）。
-func (m *errOnCreateSessionStore) Get(_ context.Context, _ string) (*session.SessionData, error) {
+func (m *errOnCreateSessionStore) Get(_ context.Context, _ string) (*session.Data, error) {
 	return nil, nil
 }
 
 // Update はセッション更新の空実装（テストで呼ばれることはない）。
-func (m *errOnCreateSessionStore) Update(_ context.Context, _ string, _ *session.SessionData, _ time.Duration) error {
+func (m *errOnCreateSessionStore) Update(_ context.Context, _ string, _ *session.Data, _ time.Duration) error {
 	return nil
 }
 
@@ -365,7 +365,7 @@ func TestLogout_WithSession(t *testing.T) {
 
 	store := newMockSessionStore()
 	// セッションを事前に作成
-	store.sessions["existing-session"] = &session.SessionData{
+	store.sessions["existing-session"] = &session.Data{
 		AccessToken: "access-token",
 		IDToken:     "id-token-for-logout",
 		Subject:     "user-001",
@@ -415,7 +415,7 @@ func TestSession_Valid(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 	// 有効なセッションを事前に作成する
-	store.sessions["valid-session"] = &session.SessionData{
+	store.sessions["valid-session"] = &session.Data{
 		AccessToken:        "access-token-123",
 		Subject:            "user-sub-001",
 		CSRFToken:          "csrf-token-abc",
@@ -492,7 +492,7 @@ func TestSession_Expired(t *testing.T) {
 	mock := &mockOAuthClient{}
 	store := newMockSessionStore()
 	// 期限切れのセッションを事前に作成する
-	store.sessions["expired-session"] = &session.SessionData{
+	store.sessions["expired-session"] = &session.Data{
 		AccessToken: "access-token-expired",
 		Subject:     "user-sub-002",
 		CSRFToken:   "csrf-token-xyz",
@@ -692,7 +692,7 @@ func TestExchange_Valid(t *testing.T) {
 	store := newMockSessionStore()
 
 	// 実セッションを事前作成する
-	store.sessions["real-session-id"] = &session.SessionData{
+	store.sessions["real-session-id"] = &session.Data{
 		AccessToken: "access-token-real",
 		Subject:     "user-sub-exchange",
 		CSRFToken:   "csrf-exchange-123",

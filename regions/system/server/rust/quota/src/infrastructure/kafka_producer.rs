@@ -105,7 +105,7 @@ impl KafkaQuotaProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -131,9 +131,7 @@ impl QuotaEventPublisher for KafkaQuotaProducer {
         self.producer
             .send(record, Duration::from_secs(5))
             .await
-            .map_err(|(err, _)| {
-                anyhow::anyhow!("failed to publish quota exceeded event: {err}")
-            })?;
+            .map_err(|(err, _)| anyhow::anyhow!("failed to publish quota exceeded event: {err}"))?;
 
         if let Some(ref m) = self.metrics {
             m.record_kafka_message_produced(&self.topic_exceeded);

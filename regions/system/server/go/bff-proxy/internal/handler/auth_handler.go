@@ -238,8 +238,8 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	}
 
 	// IdP ログアウト URL が構築できた場合はリダイレクトする
-	if out.IdPLogoutURL != "" {
-		c.Redirect(http.StatusFound, out.IdPLogoutURL)
+	if out.IDPLogoutURL != "" {
+		c.Redirect(http.StatusFound, out.IDPLogoutURL)
 		return
 	}
 

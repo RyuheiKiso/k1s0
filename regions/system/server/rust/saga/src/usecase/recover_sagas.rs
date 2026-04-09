@@ -163,7 +163,9 @@ steps:
             .returning(move |_| Ok(Some(workflow_clone.clone())));
 
         let mut mock_saga_repo2 = MockSagaRepository::new();
-        mock_saga_repo2.expect_find_by_id().returning(|_, _| Ok(None));
+        mock_saga_repo2
+            .expect_find_by_id()
+            .returning(|_, _| Ok(None));
 
         let mock_caller = MockGrpcStepCaller::new();
 

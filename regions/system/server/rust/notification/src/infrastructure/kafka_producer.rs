@@ -70,7 +70,7 @@ impl KafkaNotificationProducer {
 
     /// メトリクスを設定する。
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn with_metrics(
         mut self,
         metrics: std::sync::Arc<k1s0_telemetry::metrics::Metrics>,
@@ -80,7 +80,7 @@ impl KafkaNotificationProducer {
     }
 
     /// 配信先トピック名を返す。
-    #[must_use] 
+    #[must_use]
     pub fn topic(&self) -> &str {
         &self.topic
     }

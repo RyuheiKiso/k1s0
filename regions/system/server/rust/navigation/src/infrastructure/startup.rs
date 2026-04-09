@@ -95,7 +95,6 @@ pub async fn run() -> anyhow::Result<()> {
     ));
     let navigation_tonic = adapter::grpc::NavigationServiceTonic::new(grpc_svc);
 
-
     // REST (health/readyz/metrics only)
     let rest_state = adapter::handler::AppState {
         metrics: metrics.clone(),

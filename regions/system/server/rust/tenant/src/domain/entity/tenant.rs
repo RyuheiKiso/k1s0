@@ -19,7 +19,7 @@ pub enum TenantStatus {
 }
 
 impl TenantStatus {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             TenantStatus::Provisioning => "provisioning",
@@ -39,7 +39,7 @@ pub enum Plan {
 }
 
 impl Plan {
-    #[must_use] 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
             Plan::Free => "free",
@@ -81,7 +81,7 @@ pub struct Tenant {
 }
 
 impl Tenant {
-    #[must_use] 
+    #[must_use]
     pub fn new(name: String, display_name: String, plan: Plan, owner_id: Option<Uuid>) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -99,7 +99,7 @@ impl Tenant {
     }
 
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn activate(mut self) -> Self {
         self.status = TenantStatus::Active;
         self

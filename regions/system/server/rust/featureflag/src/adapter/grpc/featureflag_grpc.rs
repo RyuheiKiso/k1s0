@@ -27,7 +27,9 @@ fn parse_tenant_id(tenant_id_str: &str) -> Result<String, GrpcError> {
 /// HIGH-012 監査対応: "system" テナントへのフォールバックを廃止し、x-tenant-id が未設定の場合は
 /// UNAUTHENTICATED エラーを返す。x-tenant-id は Kong の JWT 検証後に認証ミドルウェアがセットする。
 /// フォールバックが存在すると認証バイパスや別テナントへの不正アクセスが可能になるため廃止した。
-pub fn tenant_id_from_metadata(metadata: &tonic::metadata::MetadataMap) -> Result<String, GrpcError> {
+pub fn tenant_id_from_metadata(
+    metadata: &tonic::metadata::MetadataMap,
+) -> Result<String, GrpcError> {
     let tenant_id_str = metadata
         .get("x-tenant-id")
         .and_then(|v| v.to_str().ok())
@@ -195,7 +197,7 @@ pub struct FeatureFlagGrpcService {
 
 impl FeatureFlagGrpcService {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new(
         list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
@@ -215,7 +217,7 @@ impl FeatureFlagGrpcService {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn new_with_watch(
         list_flags_uc: Arc<ListFlagsUseCase>,
         evaluate_flag_uc: Arc<EvaluateFlagUseCase>,
@@ -292,7 +294,11 @@ impl FeatureFlagGrpcService {
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープでフィーチャーフラグを取得する。
     pub async fn get_flag(&self, req: GetFlagRequest) -> Result<GetFlagResponse, GrpcError> {
-        match self.get_flag_uc.execute(&req.tenant_id, &req.flag_key).await {
+        match self
+            .get_flag_uc
+            .execute(&req.tenant_id, &req.flag_key)
+            .await
+        {
             Ok(flag) => Ok(GetFlagResponse {
                 id: flag.id.to_string(),
                 flag_key: flag.flag_key,
@@ -312,9 +318,13 @@ impl FeatureFlagGrpcService {
 
     /// STATIC-CRITICAL-001 監査対応: テナントスコープのフィーチャーフラグ一覧を取得する。
     pub async fn list_flags(&self, req: ListFlagsRequest) -> Result<ListFlagsResponse, GrpcError> {
-        let flags = self.list_flags_uc.execute(&req.tenant_id).await.map_err(|e| match e {
-            ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
-        })?;
+        let flags = self
+            .list_flags_uc
+            .execute(&req.tenant_id)
+            .await
+            .map_err(|e| match e {
+                ListFlagsError::Internal(msg) => GrpcError::Internal(msg),
+            })?;
 
         Ok(ListFlagsResponse {
             flags: flags
@@ -445,7 +455,7 @@ impl FeatureFlagGrpcService {
                 GetFlagError::NotFound(key) => {
                     GrpcError::NotFound(format!("flag not found: {key}"))
                 }
-                _ => GrpcError::Internal(e.to_string()),
+                GetFlagError::Internal(msg) => GrpcError::Internal(msg),
             })?;
 
         self.delete_flag_uc
@@ -596,7 +606,12 @@ mod tests {
         mock.expect_find_all().returning(|_| Ok(vec![]));
 
         let svc = make_service(mock);
-        let resp = svc.list_flags(ListFlagsRequest { tenant_id: system_tenant() }).await.unwrap();
+        let resp = svc
+            .list_flags(ListFlagsRequest {
+                tenant_id: system_tenant(),
+            })
+            .await
+            .unwrap();
         assert!(resp.flags.is_empty());
     }
 

@@ -183,7 +183,7 @@ pub struct JwksConfig {
     pub cache_ttl_secs: u64,
 }
 
-#[must_use] 
+#[must_use]
 pub fn default_cache_ttl_secs() -> u64 {
     600
 }

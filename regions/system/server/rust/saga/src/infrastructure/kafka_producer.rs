@@ -8,6 +8,11 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Deserialize)]
 pub struct KafkaConfig {
     pub brokers: Vec<String>,
+    /// Kafka コンシューマーグループ ID（INFRA-002 監査対応: テナント分離のため追加）
+    // consumer_group は設定ファイルからの読み込みに使用するが現在直接参照されていない
+    #[allow(dead_code)]
+    #[serde(default)]
+    pub consumer_group: String,
     #[serde(default = "default_security_protocol")]
     pub security_protocol: String,
     #[serde(default)]
@@ -46,10 +51,16 @@ impl Default for SaslConfig {
 
 /// `TopicsConfig` はトピック設定を表す。
 /// publish フィールドは `KafkaProducer::new()` でトピック名取得に使用する。
+/// subscribe フィールドはコンシューマーが購読するトピック一覧（INFRA-002 監査対応: 追加）。
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TopicsConfig {
     #[serde(default)]
     pub publish: Vec<String>,
+    /// コンシューマーが購読するトピック一覧（将来のコンシューマー実装で使用する）
+    // subscribe は将来のコンシューマー実装のために保持する
+    #[allow(dead_code)]
+    #[serde(default)]
+    pub subscribe: Vec<String>,
 }
 
 /// `SagaEventPublisher` はSagaイベント配信のためのトレイト。

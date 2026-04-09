@@ -57,9 +57,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // prost-build 生成の .rs ファイルをコピー（メッセージ型定義）
             let src_rs = format!("{gen_rust_base}/{subdir}/{pkg}.rs");
             let dst_rs = out_path.join(format!("{pkg}.rs"));
-            fs::copy(&src_rs, &dst_rs).map_err(|e| {
-                format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e)
-            })?;
+            fs::copy(&src_rs, &dst_rs)
+                .map_err(|e| format!("Failed to copy {} -> {}: {}", src_rs, dst_rs.display(), e))?;
 
             // tonic-build 生成の .tonic.rs ファイルをコピー（gRPC スタブ）
             // common/v1 は gRPC サービスを持たないためスキップ
@@ -84,7 +83,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // ローカル開発環境で protoc + buf/validate が利用可能な場合にのみ成功する。
         // Docker ビルドでは api/proto/gen/rust/ の生成済みファイルが必須。
         println!("cargo:warning=graphql-gateway: pre-generated files not found, falling back to tonic-build");
-        println!("cargo:warning=NOTE: Docker build requires pre-generated files in api/proto/gen/rust/");
+        println!(
+            "cargo:warning=NOTE: Docker build requires pre-generated files in api/proto/gen/rust/"
+        );
 
         let tenant_proto = "../../../../../api/proto/k1s0/system/tenant/v1/tenant.proto";
         let featureflag_proto =
@@ -97,8 +98,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let auth_proto = "../../../../../api/proto/k1s0/system/auth/v1/auth.proto";
         let session_proto = "../../../../../api/proto/k1s0/system/session/v1/session.proto";
         let vault_proto = "../../../../../api/proto/k1s0/system/vault/v1/vault.proto";
-        let scheduler_proto =
-            "../../../../../api/proto/k1s0/system/scheduler/v1/scheduler.proto";
+        let scheduler_proto = "../../../../../api/proto/k1s0/system/scheduler/v1/scheduler.proto";
         let notification_proto =
             "../../../../../api/proto/k1s0/system/notification/v1/notification.proto";
         let workflow_proto = "../../../../../api/proto/k1s0/system/workflow/v1/workflow.proto";

@@ -21,8 +21,8 @@ import (
 // PrepareProxyInput は PrepareProxy ユースケースの入力パラメータ。
 // handler が SessionMiddleware から取得した情報を保持する。
 type PrepareProxyInput struct {
-	// SessionData は SessionMiddleware が gin context に格納したセッションデータ。
-	SessionData *session.SessionData
+	// SessionData は SessionMiddleware が gin context に格納したセッションデータ（session.Data 型）。
+	SessionData *session.Data
 	// SessionID は gin context から取得したセッション ID。singleflight のキーに使用する。
 	SessionID string
 	// NeedsRefresh は SessionMiddleware が設定したサイレントリフレッシュ要否フラグ。
@@ -83,119 +83,119 @@ func (uc *ProxyUseCase) PrepareProxy(ctx context.Context, input PrepareProxyInpu
 	// SessionMiddleware が session_needs_refresh フラグを立てた場合のみ silent refresh を試みる。
 	// フラグは「期限切れ かつ refresh token あり」の場合のみ middleware が設定する。
 	if input.NeedsRefresh && uc.oauthClient != nil {
-		// G-03 対応: singleflight でセッション単位のリフレッシュ重複を排除する。
-		// 同一 sessionID に対して並行リクエストが殺到した場合、1 件のみ実際にリフレッシュし
-		// 残りは同じ結果を共有する。これにより RefreshToken のレート制限エラーを防ぐ。
-		type refreshResult struct {
-			tokenResp *oauth.TokenResponse
-		}
-		val, err, _ := uc.refreshGroup.Do(input.SessionID, func() (any, error) {
-			resp, e := uc.oauthClient.RefreshToken(ctx, sess.RefreshToken)
-			if e != nil {
-				return nil, e
-			}
-			return &refreshResult{tokenResp: resp}, nil
-		})
-		if err != nil {
-			if uc.logger != nil {
-				uc.logger.Warn("トークンリフレッシュに失敗しました。セッションを削除します",
-					slog.String("error", err.Error()),
-				)
-			}
-			// リフレッシュ失敗時に無効なセッションを削除し、再利用を防止する（H-003）
-			// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
-			if delErr := uc.sessionStore.Delete(ctx, input.SessionID); delErr != nil {
-				if uc.logger != nil {
-					uc.logger.Error("期限切れセッションの削除に失敗しました",
-						slog.String("error", delErr.Error()),
-						slog.String("session_id", util.MaskSessionID(input.SessionID)),
-					)
-				}
-				// L-003 監査対応: トークンリフレッシュ失敗後のセッション削除失敗をメトリクスに記録する
-				bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("token_refresh_fail").Inc()
-			}
-			return nil, &ProxyUseCaseError{Code: "BFF_PROXY_TOKEN_EXPIRED", Err: err}
-		}
-
-		tokenResp := val.(*refreshResult).tokenResp
-
-		// M-5 対応: Redis を先に更新し、成功後にのみメモリ上のセッションを更新する。
-		// Redis 更新前にメモリを変更すると、Redis 失敗時に状態が乖離してセッション不整合が生じる。
-
-		// 新しいセッションデータを一時オブジェクトに構築する（メモリはまだ変更しない）
-		updatedAccessToken := tokenResp.AccessToken
-		updatedRefreshToken := sess.RefreshToken
-		updatedIDToken := sess.IDToken
-		updatedExpiresAt := time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
-
-		// リフレッシュレスポンスに新しい refresh token / ID token が含まれる場合は上書きする
-		if tokenResp.RefreshToken != "" {
-			updatedRefreshToken = tokenResp.RefreshToken
-		}
-		if tokenResp.IDToken != "" {
-			updatedIDToken = tokenResp.IDToken
-		}
-
-		// H-10 監査対応: トークンリフレッシュ後に CSRF トークンを再生成する。
-		// 長期間同一の CSRF トークンが使われ続けるリスクを軽減する。
-		// MED-013 監査対応: 重複実装を util.GenerateRandomHex に一元化する
-		newCSRFToken, csrfErr := util.GenerateRandomHex(32)
-		if csrfErr != nil {
-			// CSRF 再生成に失敗しても既存トークンを継続使用し、処理は続行する
-			if uc.logger != nil {
-				uc.logger.Warn("リフレッシュ後の CSRF トークン再生成に失敗しました（既存トークンを継続使用）",
-					slog.String("error", csrfErr.Error()),
-				)
-			}
-			newCSRFToken = sess.CSRFToken
-		}
-
-		// 一時オブジェクトで Redis を先に更新する（shallow copy: SessionData にポインタフィールドなし）
-		refreshNow := time.Now()
-		tempSess := *sess
-		tempSess.AccessToken = updatedAccessToken
-		tempSess.RefreshToken = updatedRefreshToken
-		tempSess.IDToken = updatedIDToken
-		tempSess.ExpiresAt = updatedExpiresAt
-		// H-10 監査対応: 更新したセッションに新しい CSRF トークンを格納する
-		tempSess.CSRFToken = newCSRFToken
-		// H-12 監査対応: CSRF トークン再生成時に生成時刻も更新する
-		tempSess.CSRFTokenCreatedAt = refreshNow.Unix()
-
-		// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
-		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
-		if err := uc.sessionStore.Update(ctx, input.SessionID, &tempSess, uc.sessionTTL); err != nil {
-			if uc.logger != nil {
-				uc.logger.Error("リフレッシュ後のセッション更新に失敗しました",
-					slog.String("session_id", util.MaskSessionID(input.SessionID)),
-					slog.String("error", err.Error()),
-				)
-			}
-			return nil, &ProxyUseCaseError{Code: "BFF_PROXY_SESSION_UPDATE_FAILED", Err: err}
-		}
-
-		// Redis 更新成功後にメモリ上のセッションを更新する（M-10 監査対応）。
-		// tempSess ローカルコピーで Redis を先に更新し、成功後のみ元のポインタ (*sess) を変更する。
-		// これにより Redis 失敗時の状態乖離を防ぐ（副作用による不具合リスクを最小化する）。
-		sess.AccessToken = updatedAccessToken
-		sess.RefreshToken = updatedRefreshToken
-		sess.IDToken = updatedIDToken
-		sess.ExpiresAt = updatedExpiresAt
-		// H-10 監査対応: メモリ上のセッションにも新しい CSRF トークンを反映する
-		sess.CSRFToken = newCSRFToken
-		// H-12 監査対応: メモリ上の CSRF トークン生成時刻も更新する
-		sess.CSRFTokenCreatedAt = refreshNow.Unix()
-
-		return &PrepareProxyOutput{
-			AccessToken:    sess.AccessToken,
-			CSRFToken:      newCSRFToken,
-			TokenRefreshed: true,
-		}, nil
+		return uc.handleTokenRefresh(ctx, input.SessionID, sess)
 	}
 
 	return &PrepareProxyOutput{
 		AccessToken: sess.AccessToken,
 	}, nil
+}
+
+// handleTokenRefresh はトークンのサイレントリフレッシュとセッション更新を行う。
+// singleflight で重複リクエストを排除し、Redis に先に書き込んでから in-memory を更新する。
+func (uc *ProxyUseCase) handleTokenRefresh(ctx context.Context, sessionID string, sess *session.Data) (*PrepareProxyOutput, error) {
+	// G-03 対応: singleflight でセッション単位のリフレッシュ重複を排除する。
+	// 同一 sessionID に対して並行リクエストが殺到した場合、1 件のみ実際にリフレッシュし
+	// 残りは同じ結果を共有する。これにより RefreshToken のレート制限エラーを防ぐ。
+	type refreshResult struct {
+		tokenResp *oauth.TokenResponse
+	}
+	val, err, _ := uc.refreshGroup.Do(sessionID, func() (any, error) {
+		resp, e := uc.oauthClient.RefreshToken(ctx, sess.RefreshToken)
+		if e != nil {
+			return nil, e
+		}
+		return &refreshResult{tokenResp: resp}, nil
+	})
+	if err != nil {
+		if uc.logger != nil {
+			uc.logger.Warn("トークンリフレッシュに失敗しました。セッションを削除します",
+				slog.String("error", err.Error()),
+			)
+		}
+		// リフレッシュ失敗時に無効なセッションを削除し、再利用を防止する（H-003）
+		// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
+		if delErr := uc.sessionStore.Delete(ctx, sessionID); delErr != nil {
+			if uc.logger != nil {
+				uc.logger.Error("期限切れセッションの削除に失敗しました",
+					slog.String("error", delErr.Error()),
+					slog.String("session_id", util.MaskSessionID(sessionID)),
+				)
+			}
+			// L-003 監査対応: トークンリフレッシュ失敗後のセッション削除失敗をメトリクスに記録する
+			bffmetrics.SessionDeleteErrorsTotal.WithLabelValues("token_refresh_fail").Inc()
+		}
+		return nil, &ProxyUseCaseError{Code: "BFF_PROXY_TOKEN_EXPIRED", Err: err}
+	}
+
+	tokenResp := val.(*refreshResult).tokenResp
+
+	// M-5 対応: Redis を先に更新し、成功後にのみメモリ上のセッションを更新する。
+	// Redis 更新前にメモリを変更すると、Redis 失敗時に状態が乖離してセッション不整合が生じる。
+	newCSRFToken, refreshNow, err := uc.buildRefreshedSession(sess, tokenResp)
+	if err != nil {
+		return nil, err
+	}
+
+	// 一時オブジェクトで Redis を先に更新する（shallow copy: SessionData にポインタフィールドなし）
+	tempSess := *sess
+	tempSess.AccessToken = tokenResp.AccessToken
+	tempSess.RefreshToken = sess.RefreshToken
+	if tokenResp.RefreshToken != "" {
+		tempSess.RefreshToken = tokenResp.RefreshToken
+	}
+	tempSess.IDToken = sess.IDToken
+	if tokenResp.IDToken != "" {
+		tempSess.IDToken = tokenResp.IDToken
+	}
+	tempSess.ExpiresAt = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second).Unix()
+	// H-10 監査対応: 更新したセッションに新しい CSRF トークンを格納する
+	tempSess.CSRFToken = newCSRFToken
+	// H-12 監査対応: CSRF トークン再生成時に生成時刻も更新する
+	tempSess.CSRFTokenCreatedAt = refreshNow.Unix()
+
+	// Redis 更新失敗時はエラーを返し、メモリ上のセッションは変更しない
+	// セッション ID は漏洩防止のためマスクして出力する（HIGH-7 対応）
+	if err := uc.sessionStore.Update(ctx, sessionID, &tempSess, uc.sessionTTL); err != nil {
+		if uc.logger != nil {
+			uc.logger.Error("リフレッシュ後のセッション更新に失敗しました",
+				slog.String("session_id", util.MaskSessionID(sessionID)),
+				slog.String("error", err.Error()),
+			)
+		}
+		return nil, &ProxyUseCaseError{Code: "BFF_PROXY_SESSION_UPDATE_FAILED", Err: err}
+	}
+
+	// Redis 更新成功後にメモリ上のセッションを更新する（M-10 監査対応）。
+	// tempSess ローカルコピーで Redis を先に更新し、成功後のみ元のポインタ (*sess) を変更する。
+	// これにより Redis 失敗時の状態乖離を防ぐ（副作用による不具合リスクを最小化する）。
+	*sess = tempSess
+
+	return &PrepareProxyOutput{
+		AccessToken:    sess.AccessToken,
+		CSRFToken:      newCSRFToken,
+		TokenRefreshed: true,
+	}, nil
+}
+
+// buildRefreshedSession はリフレッシュ後のセッションに使用する CSRF トークンと生成時刻を返す。
+// CSRF 再生成に失敗した場合は既存トークンを継続使用し、エラーを返さない（処理は続行する）。
+func (uc *ProxyUseCase) buildRefreshedSession(sess *session.Data, _ *oauth.TokenResponse) (newCSRFToken string, refreshNow time.Time, err error) {
+	refreshNow = time.Now()
+	// H-10 監査対応: トークンリフレッシュ後に CSRF トークンを再生成する。
+	// 長期間同一の CSRF トークンが使われ続けるリスクを軽減する。
+	// MED-013 監査対応: 重複実装を util.GenerateRandomHex に一元化する
+	newCSRFToken, csrfErr := util.GenerateRandomHex(32)
+	if csrfErr != nil {
+		// CSRF 再生成に失敗しても既存トークンを継続使用し、処理は続行する
+		if uc.logger != nil {
+			uc.logger.Warn("リフレッシュ後の CSRF トークン再生成に失敗しました（既存トークンを継続使用）",
+				slog.String("error", csrfErr.Error()),
+			)
+		}
+		newCSRFToken = sess.CSRFToken
+	}
+	return newCSRFToken, refreshNow, nil
 }
 
 // ProxyUseCaseError は ProxyUseCase が返すエラー型。

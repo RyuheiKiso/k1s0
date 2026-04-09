@@ -30,7 +30,7 @@ pub struct CheckPermissionUseCase {
 
 impl CheckPermissionUseCase {
     #[allow(dead_code)]
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             user_repo: None,

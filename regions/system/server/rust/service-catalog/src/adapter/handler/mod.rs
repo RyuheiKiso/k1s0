@@ -1,3 +1,5 @@
+// OpenApi derive マクロが内部で for_each を使用するため、このモジュールで警告を抑制する
+#![allow(clippy::needless_for_each)]
 pub mod dependency;
 pub mod doc;
 pub mod health;
@@ -89,6 +91,8 @@ pub struct AppState {
     pub db_pool: Option<sqlx::PgPool>,
 }
 
+// OpenApi derive マクロが内部で for_each を使用するため警告を抑制する
+#[allow(clippy::needless_for_each)]
 #[derive(OpenApi)]
 #[openapi(
     paths(

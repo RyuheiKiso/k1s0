@@ -23,9 +23,7 @@ fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
     // HIGH-001 監査対応: const は文より前に定義する
     // "Bearer ", "bearer ", "BEARER " いずれも受け入れる
     const BEARER_PREFIX_LEN: usize = 7; // "bearer ".len()
-    let auth_str = headers
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())?;
+    let auth_str = headers.get("Authorization").and_then(|v| v.to_str().ok())?;
     if auth_str.len() < BEARER_PREFIX_LEN {
         return None;
     }
@@ -63,7 +61,7 @@ pub struct AuthMiddlewareLayer {
 }
 
 impl AuthMiddlewareLayer {
-    #[must_use] 
+    #[must_use]
     pub fn new(verifier: Arc<JwksVerifier>) -> Self {
         Self { verifier }
     }

@@ -75,7 +75,8 @@ impl ListQuotaPoliciesUseCase {
                 .find_all(fetch_page, fetch_page_size, &input.tenant_id)
                 .await
                 .map_err(|e| ListQuotaPoliciesError::Internal(e.to_string()))?;
-            fetched += items.len() as u64;
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            fetched += u64::try_from(items.len()).unwrap_or(u64::MAX);
 
             all_filtered.extend(items.into_iter().filter(|policy| {
                 if let Some(ref subject_type) = input.subject_type {
@@ -100,12 +101,14 @@ impl ListQuotaPoliciesUseCase {
             fetch_page += 1;
         }
 
-        let total_count = all_filtered.len() as u64;
-        let start = ((input.page.saturating_sub(1)) * input.page_size) as usize;
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        let total_count = u64::try_from(all_filtered.len()).unwrap_or(u64::MAX);
+        let start = usize::try_from(input.page.saturating_sub(1) * input.page_size).unwrap_or(0);
+        let take_count = usize::try_from(input.page_size).unwrap_or(usize::MAX);
         let quotas = all_filtered
             .into_iter()
             .skip(start)
-            .take(input.page_size as usize)
+            .take(take_count)
             .collect();
         let has_next = (u64::from(input.page) * u64::from(input.page_size)) < total_count;
 
@@ -126,8 +129,10 @@ mod tests {
     use crate::domain::entity::quota::{Period, SubjectType};
     use crate::domain::repository::quota_repository::MockQuotaPolicyRepository;
 
+    // テスト用ポリシーサンプルを生成するヘルパー関数（テナントIDを先頭引数に追加）
     fn sample_policy(name: &str) -> QuotaPolicy {
         QuotaPolicy::new(
+            "test-tenant".to_string(),
             name.to_string(),
             SubjectType::Tenant,
             "tenant-1".to_string(),

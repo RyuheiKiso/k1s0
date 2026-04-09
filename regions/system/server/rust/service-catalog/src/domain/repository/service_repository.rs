@@ -18,7 +18,11 @@ pub struct ServiceListFilters {
 #[async_trait]
 pub trait ServiceRepository: Send + Sync {
     /// テナントスコープでフィルタ条件を指定してサービス一覧を取得する。
-    async fn list(&self, tenant_id: &str, filters: ServiceListFilters) -> anyhow::Result<Vec<Service>>;
+    async fn list(
+        &self,
+        tenant_id: &str,
+        filters: ServiceListFilters,
+    ) -> anyhow::Result<Vec<Service>>;
 
     /// テナントスコープでサービス ID でサービスを取得する。
     async fn find_by_id(&self, tenant_id: &str, id: Uuid) -> anyhow::Result<Option<Service>>;

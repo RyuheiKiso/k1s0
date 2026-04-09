@@ -37,22 +37,22 @@ pub struct ValidationErrors {
 }
 
 impl ValidationErrors {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self { errors: Vec::new() }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.errors.is_empty()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn has_errors(&self) -> bool {
         !self.is_empty()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_errors(&self) -> &[ValidationError] {
         &self.errors
     }

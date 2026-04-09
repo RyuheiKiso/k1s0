@@ -45,7 +45,11 @@ impl UpdateAppUseCase {
     }
 
     // CRIT-004 監査対応: RLS テナント分離のため tenant_id を受け取りリポジトリに渡す。
-    pub async fn execute(&self, tenant_id: &str, input: UpdateAppInput) -> Result<App, UpdateAppError> {
+    pub async fn execute(
+        &self,
+        tenant_id: &str,
+        input: UpdateAppInput,
+    ) -> Result<App, UpdateAppError> {
         if input.name.trim().is_empty() {
             return Err(UpdateAppError::ValidationError(
                 "name must not be empty".to_string(),
@@ -97,7 +101,8 @@ mod tests {
     #[tokio::test]
     async fn test_update_app_success() {
         let mut mock = MockAppRepository::new();
-        mock.expect_find_by_id().returning(|_, _| Ok(Some(make_app())));
+        mock.expect_find_by_id()
+            .returning(|_, _| Ok(Some(make_app())));
         mock.expect_update().returning(|_, app| Ok(app.clone()));
 
         let uc = UpdateAppUseCase::new(Arc::new(mock));

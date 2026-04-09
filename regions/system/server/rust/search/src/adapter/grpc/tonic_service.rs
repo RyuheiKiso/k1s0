@@ -38,7 +38,8 @@ impl From<GrpcError> for Status {
 fn tenant_id_from_request<T>(request: &Request<T>) -> String {
     request
         .extensions()
-        .get::<Claims>().map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
+        .get::<Claims>()
+        .map_or_else(|| "system".to_string(), |c| c.tenant_id().to_string())
 }
 
 pub struct SearchServiceTonic {
@@ -46,7 +47,7 @@ pub struct SearchServiceTonic {
 }
 
 impl SearchServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<SearchGrpcService>) -> Self {
         Self { inner }
     }
@@ -165,9 +166,10 @@ impl SearchService for SearchServiceTonic {
         Ok(Response::new(ProtoSearchResponse {
             hits: proto_hits,
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
-                page: resp.page as i32,
-                page_size: resp.page_size as i32,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
+                page: i32::try_from(resp.page).unwrap_or(i32::MAX),
+                page_size: i32::try_from(resp.page_size).unwrap_or(i32::MAX),
                 has_next: resp.has_next,
             }),
             facets: resp
@@ -278,7 +280,11 @@ mod tests {
     async fn test_list_indices() {
         let mut mock = MockSearchRepository::new();
         // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_list_indices()
@@ -299,7 +305,11 @@ mod tests {
     async fn test_index_document() {
         let mut mock = MockSearchRepository::new();
         // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_find_index()
@@ -325,7 +335,11 @@ mod tests {
     async fn test_search() {
         let mut mock = MockSearchRepository::new();
         // テスト用のダミーインデックス（テナント IDは "tenant-a" を使用する）
-        let index = SearchIndex::new("products".to_string(), serde_json::json!({}), "tenant-a".to_string());
+        let index = SearchIndex::new(
+            "products".to_string(),
+            serde_json::json!({}),
+            "tenant-a".to_string(),
+        );
         let return_index = index.clone();
 
         mock.expect_find_index()

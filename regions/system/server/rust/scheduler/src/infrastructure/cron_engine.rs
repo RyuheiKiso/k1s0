@@ -35,7 +35,7 @@ impl CronSchedulerEngine {
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn start(&self) -> tokio::task::JoinHandle<()> {
         let job_repo = self.job_repo.clone();
         let execution_repo = self.execution_repo.clone();

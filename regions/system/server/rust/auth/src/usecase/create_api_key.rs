@@ -86,7 +86,7 @@ impl CreateApiKeyUseCase {
 }
 
 fn generate_random_key() -> String {
-    use rand::{RngCore, rngs::OsRng};
+    use rand::{rngs::OsRng, RngCore};
     use std::fmt::Write;
     // LOW-012 監査対応: UUID v4 バイトの流用を廃止し OsRng を直接使用する。
     // UUID v4 はバージョンビット・バリアントビットが固定されるため真の 192bit ランダムではない。

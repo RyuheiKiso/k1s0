@@ -47,7 +47,11 @@ impl StubSchemaRepository {
 #[async_trait]
 impl ApiSchemaRepository for StubSchemaRepository {
     // テナントスコープで検索するスタブ実装（テスト用のためテナント分離は省略）
-    async fn find_by_name(&self, _tenant_id: &str, name: &str) -> anyhow::Result<Option<ApiSchema>> {
+    async fn find_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchema>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -159,7 +163,11 @@ impl ApiSchemaVersionRepository for StubVersionRepository {
             .cloned())
     }
 
-    async fn find_latest_by_name(&self, _tenant_id: &str, name: &str) -> anyhow::Result<Option<ApiSchemaVersion>> {
+    async fn find_latest_by_name(
+        &self,
+        _tenant_id: &str,
+        name: &str,
+    ) -> anyhow::Result<Option<ApiSchemaVersion>> {
         if self.should_fail {
             anyhow::bail!("db error");
         }
@@ -1301,7 +1309,9 @@ mod delete_version {
         let version_repo = Arc::new(StubVersionRepository::with_versions(vec![v1, v2, v3]));
         let uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
 
-        let result = uc.execute("tenant-a", "tenant-api", 1, Some("admin".to_string())).await;
+        let result = uc
+            .execute("tenant-a", "tenant-api", 1, Some("admin".to_string()))
+            .await;
         assert!(result.is_ok());
 
         // Verify version deleted
@@ -1497,7 +1507,10 @@ mod lifecycle {
         // 7. Get specific version
         let get_ver_uc = GetSchemaVersionUseCase::new(version_repo.clone());
         // テナント分離のため tenant_id を渡す
-        let ver = get_ver_uc.execute("tenant-a", "lifecycle-api", 2).await.unwrap();
+        let ver = get_ver_uc
+            .execute("tenant-a", "lifecycle-api", 2)
+            .await
+            .unwrap();
         assert_eq!(ver.version, 2);
 
         // 8. Get diff between v1 and v2
@@ -1530,7 +1543,9 @@ mod lifecycle {
         // 10. Delete v1
         let delete_uc = DeleteVersionUseCase::new(schema_repo.clone(), version_repo.clone());
         // テナント分離のため tenant_id を渡す
-        let delete_result = delete_uc.execute("tenant-a", "lifecycle-api", 1, None).await;
+        let delete_result = delete_uc
+            .execute("tenant-a", "lifecycle-api", 1, None)
+            .await;
         assert!(delete_result.is_ok());
 
         // 11. Verify deletion

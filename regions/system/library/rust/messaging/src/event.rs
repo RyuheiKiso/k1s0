@@ -37,24 +37,28 @@ impl EventMetadata {
         }
     }
 
+    /// トレース ID を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_trace_id(mut self, trace_id: impl Into<String>) -> Self {
         self.trace_id = Some(trace_id.into());
         self
     }
 
+    /// 相関 ID を設定する（ビルダーパターン）。
+    #[must_use]
     pub fn with_correlation_id(mut self, correlation_id: impl Into<String>) -> Self {
         self.correlation_id = Some(correlation_id.into());
         self
     }
 
     /// timestamp を Unix epoch milliseconds に変換する。
-    #[must_use] 
+    #[must_use]
     pub fn to_unix_millis(&self) -> i64 {
         self.timestamp.timestamp_millis()
     }
 
     /// Unix epoch milliseconds から `DateTime`<Utc> へ変換する。
-    #[must_use] 
+    #[must_use]
     pub fn from_unix_millis(millis: i64) -> Option<DateTime<Utc>> {
         DateTime::from_timestamp_millis(millis)
     }

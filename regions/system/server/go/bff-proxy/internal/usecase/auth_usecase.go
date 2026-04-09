@@ -113,8 +113,9 @@ type LogoutInput struct {
 
 // LogoutOutput は Logout ユースケースの出力。
 type LogoutOutput struct {
-	// IdPLogoutURL は IdP のエンドセッション URL。空文字の場合は IdP ログアウト不要。
-	IdPLogoutURL string
+	// IDPLogoutURL は IdP のエンドセッション URL。空文字の場合は IdP ログアウト不要。
+	// LOW-005 監査対応: Go 命名規約（acronym は全大文字）に準拠して IdPLogoutURL → IDPLogoutURL に修正。
+	IDPLogoutURL string
 	// FallbackURI は IdP ログアウト URL が構築できなかった場合のフォールバック URI。
 	FallbackURI string
 }
@@ -313,7 +314,7 @@ func (uc *AuthUseCase) Callback(ctx context.Context, input CallbackInput) (*Call
 
 	// セッションデータを構築してストアに保存する
 	now := time.Now()
-	sessData := &session.SessionData{
+	sessData := &session.Data{
 		AccessToken:        tokenResp.AccessToken,
 		RefreshToken:       tokenResp.RefreshToken,
 		IDToken:            tokenResp.IDToken,
@@ -395,7 +396,7 @@ func (uc *AuthUseCase) Logout(ctx context.Context, input LogoutInput) (*LogoutOu
 	if sess != nil && sess.IDToken != "" {
 		logoutURL, err := uc.oauthClient.LogoutURL(sess.IDToken, input.PostLogoutURI)
 		if err == nil {
-			output.IdPLogoutURL = logoutURL
+			output.IDPLogoutURL = logoutURL
 		}
 	}
 

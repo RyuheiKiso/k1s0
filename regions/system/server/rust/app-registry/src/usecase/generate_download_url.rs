@@ -147,8 +147,8 @@ fn guess_content_type(filename: &str) -> String {
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("");
+    // "exe" アームと wildcard アームが同一の返り値のため統合する
     match ext {
-        "exe" => "application/octet-stream",
         "dmg" => "application/x-apple-diskimage",
         "AppImage" | "appimage" => "application/x-executable",
         "deb" => "application/vnd.debian.binary-package",

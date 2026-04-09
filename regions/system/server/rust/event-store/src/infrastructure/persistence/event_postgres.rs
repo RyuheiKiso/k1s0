@@ -11,7 +11,7 @@ pub struct EventPostgresRepository {
 }
 
 impl EventPostgresRepository {
-    #[must_use] 
+    #[must_use]
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -19,11 +19,11 @@ impl EventPostgresRepository {
     /// トランザクション内でイベントを一括INSERTする内部ヘルパー。
     /// 呼び出し元のトランザクション（tx）を受け取り、全件INSERTが成功した場合のみコミットは呼び出し元が行う。
     /// `tenant_id` を INSERT カラムに含め、RLS ポリシーに適合させる。
-    pub async fn append_in_tx<'a>(
+    pub async fn append_in_tx(
         tenant_id: &str,
         stream_id: &str,
         events: Vec<StoredEvent>,
-        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> anyhow::Result<Vec<StoredEvent>> {
         // トランザクション内でテナントIDを設定し、RLS ポリシーを有効化する
         // lessons.md: set_config は SELECT set_config('app.current_tenant_id', $1, true) パターンを使用する
@@ -103,7 +103,8 @@ impl From<StoredEventRow> for StoredEvent {
         StoredEvent {
             stream_id: row.stream_id,
             tenant_id: row.tenant_id,
-            sequence: row.sequence as u64,
+            // LOW-008: 安全な型変換（オーバーフロー防止）
+            sequence: u64::try_from(row.sequence).unwrap_or(0),
             event_type: row.event_type,
             version: row.version,
             payload: row.payload,
@@ -114,6 +115,8 @@ impl From<StoredEventRow> for StoredEvent {
     }
 }
 
+// EventRepository の実装はクエリ構築・テナント分離・ページング処理を含むため行数が多い
+#[allow(clippy::too_many_lines)]
 #[async_trait]
 impl EventRepository for EventPostgresRepository {
     /// テナント分離のため、トランザクション開始後に `set_config` を呼び出してから INSERT する。
@@ -270,7 +273,8 @@ impl EventRepository for EventPostgresRepository {
         tx.commit().await?;
 
         let events: Vec<StoredEvent> = rows.into_iter().map(Into::into).collect();
-        Ok((events, total as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((events, u64::try_from(total).unwrap_or(0)))
     }
 
     /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
@@ -336,7 +340,8 @@ impl EventRepository for EventPostgresRepository {
         tx.commit().await?;
 
         let events: Vec<StoredEvent> = rows.into_iter().map(Into::into).collect();
-        Ok((events, total as u64))
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        Ok((events, u64::try_from(total).unwrap_or(0)))
     }
 
     /// テナント分離のため、クエリ実行前に `set_config` でテナント ID を設定する。
@@ -361,7 +366,8 @@ impl EventRepository for EventPostgresRepository {
             ",
         )
         .bind(stream_id)
-        .bind(sequence as i64)
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        .bind(i64::try_from(sequence).unwrap_or(i64::MAX))
         .fetch_optional(&mut *tx)
         .await?;
 

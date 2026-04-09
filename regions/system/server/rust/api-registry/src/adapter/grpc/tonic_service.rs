@@ -45,10 +45,13 @@ impl From<GrpcError> for Status {
     }
 }
 
+// プロトの Timestamp フィールドは Option<ProtoTimestamp> 型を要求するため Option でラップする
+#[allow(clippy::unnecessary_wraps)]
 fn to_proto_timestamp(dt: &DateTime<Utc>) -> Option<ProtoTimestamp> {
     Some(ProtoTimestamp {
         seconds: dt.timestamp(),
-        nanos: dt.timestamp_subsec_nanos() as i32,
+        // LOW-008: 安全な型変換（オーバーフロー防止）
+        nanos: i32::try_from(dt.timestamp_subsec_nanos()).unwrap_or(i32::MAX),
     })
 }
 
@@ -127,7 +130,7 @@ pub struct ApiRegistryServiceTonic {
 }
 
 impl ApiRegistryServiceTonic {
-    #[must_use] 
+    #[must_use]
     pub fn new(inner: Arc<ApiRegistryGrpcService>) -> Self {
         Self { inner }
     }
@@ -140,9 +143,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         request: Request<ProtoListSchemasRequest>,
     ) -> Result<Response<ProtoListSchemasResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map_or((1, 20), |p| (p.page, p.page_size));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_schemas(ListSchemasRequest {
@@ -155,7 +156,8 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         Ok(Response::new(ProtoListSchemasResponse {
             schemas: resp.schemas.into_iter().map(to_proto_schema).collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,
@@ -205,9 +207,7 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
         request: Request<ProtoListVersionsRequest>,
     ) -> Result<Response<ProtoListVersionsResponse>, Status> {
         let inner = request.into_inner();
-        let (page, page_size) = inner
-            .pagination
-            .map_or((1, 20), |p| (p.page, p.page_size));
+        let (page, page_size) = inner.pagination.map_or((1, 20), |p| (p.page, p.page_size));
         let resp = self
             .inner
             .list_versions(ListVersionsRequest {
@@ -225,7 +225,8 @@ impl ApiRegistryService for ApiRegistryServiceTonic {
                 .map(to_proto_schema_version)
                 .collect(),
             pagination: Some(ProtoPaginationResult {
-                total_count: resp.total_count as i64,
+                // LOW-008: 安全な型変換（オーバーフロー防止）
+                total_count: i64::try_from(resp.total_count).unwrap_or(i64::MAX),
                 page: resp.page,
                 page_size: resp.page_size,
                 has_next: resp.has_next,

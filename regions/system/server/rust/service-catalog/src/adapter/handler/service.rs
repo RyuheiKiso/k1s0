@@ -49,7 +49,10 @@ pub async fn readyz(State(state): State<AppState>) -> impl IntoResponse {
     let mut overall_ok = true;
 
     if let Some(ref pool) = state.db_pool {
-        if let Ok(_) = sqlx::query("SELECT 1").execute(pool).await { db_status = "ok" } else {
+        // is_ok() を使って冗長なパターンマッチを避ける
+        if sqlx::query("SELECT 1").execute(pool).await.is_ok() {
+            db_status = "ok";
+        } else {
             db_status = "error";
             overall_ok = false;
         }
@@ -121,7 +124,11 @@ pub async fn list_services(
         tag: params.tag,
     };
 
-    match state.list_services_uc.execute(&claims.tenant_id, filters).await {
+    match state
+        .list_services_uc
+        .execute(&claims.tenant_id, filters)
+        .await
+    {
         Ok(services) => (StatusCode::OK, Json(services)).into_response(),
         Err(e) => {
             let err = ErrorResponse::new("SYS_SCAT_005", e.to_string());
@@ -176,7 +183,11 @@ pub async fn register_service(
     Extension(claims): Extension<Claims>,
     Json(input): Json<RegisterServiceInput>,
 ) -> impl IntoResponse {
-    match state.register_service_uc.execute(&claims.tenant_id, input).await {
+    match state
+        .register_service_uc
+        .execute(&claims.tenant_id, input)
+        .await
+    {
         Ok(service) => (StatusCode::CREATED, Json(service)).into_response(),
         Err(crate::usecase::register_service::RegisterServiceError::TeamNotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified team was not found");
@@ -212,7 +223,11 @@ pub async fn update_service(
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateServiceInput>,
 ) -> impl IntoResponse {
-    match state.update_service_uc.execute(&claims.tenant_id, id, input).await {
+    match state
+        .update_service_uc
+        .execute(&claims.tenant_id, id, input)
+        .await
+    {
         Ok(service) => (StatusCode::OK, Json(service)).into_response(),
         Err(crate::usecase::update_service::UpdateServiceError::NotFound(_)) => {
             let err = ErrorResponse::new("SYS_SCAT_001", "The specified service was not found");

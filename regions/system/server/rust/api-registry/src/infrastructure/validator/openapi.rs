@@ -11,7 +11,7 @@ pub struct OpenApiSubprocessValidator {
 }
 
 impl OpenApiSubprocessValidator {
-    #[must_use] 
+    #[must_use]
     pub fn new(validator_path: String, timeout_secs: u64) -> Self {
         Self {
             validator_path,
@@ -58,6 +58,8 @@ impl SchemaValidator for OpenApiSubprocessValidator {
     }
 }
 
+// 戻り値は常に Ok だが、呼び出し元の ? 演算子との一貫性のため Result を維持する
+#[allow(clippy::unnecessary_wraps)]
 fn validate_yaml(content: &str) -> anyhow::Result<Vec<ValidationError>> {
     match serde_yaml::from_str::<serde_json::Value>(content) {
         Ok(_) => Ok(vec![]),
