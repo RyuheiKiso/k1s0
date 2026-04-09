@@ -18,22 +18,25 @@ impl ListTemplatesUseCase {
         Self { repo }
     }
 
+    /// テナントスコープで全テンプレートを取得する
     #[allow(dead_code)]
-    pub async fn execute(&self) -> Result<Vec<NotificationTemplate>, ListTemplatesError> {
+    pub async fn execute(&self, tenant_id: &str) -> Result<Vec<NotificationTemplate>, ListTemplatesError> {
         self.repo
-            .find_all()
+            .find_all(tenant_id)
             .await
             .map_err(|e| ListTemplatesError::Internal(e.to_string()))
     }
 
+    /// テナントスコープでページネーション付きテンプレート一覧を取得する
     pub async fn execute_paginated(
         &self,
+        tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
     ) -> Result<(Vec<NotificationTemplate>, u64), ListTemplatesError> {
         self.repo
-            .find_all_paginated(page, page_size, channel_type)
+            .find_all_paginated(tenant_id, page, page_size, channel_type)
             .await
             .map_err(|e| ListTemplatesError::Internal(e.to_string()))
     }
@@ -48,10 +51,10 @@ mod tests {
     #[tokio::test]
     async fn success() {
         let mut mock = MockNotificationTemplateRepository::new();
-        mock.expect_find_all().returning(|| Ok(vec![]));
+        mock.expect_find_all().returning(|_| Ok(vec![]));
 
         let uc = ListTemplatesUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("tenant_a").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -60,10 +63,10 @@ mod tests {
     async fn internal_error() {
         let mut mock = MockNotificationTemplateRepository::new();
         mock.expect_find_all()
-            .returning(|| Err(anyhow::anyhow!("db error")));
+            .returning(|_| Err(anyhow::anyhow!("db error")));
 
         let uc = ListTemplatesUseCase::new(Arc::new(mock));
-        let result = uc.execute().await;
+        let result = uc.execute("tenant_a").await;
         assert!(result.is_err());
     }
 }

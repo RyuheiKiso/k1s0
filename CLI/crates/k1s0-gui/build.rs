@@ -11,13 +11,14 @@ fn main() {
     println!("cargo:rerun-if-changed=ui/package.json");
 
     if !ui_dist.exists() {
-        println!("cargo:warning=Frontend not built. Running 'npm run build' in ui/...");
-        let npm = if cfg!(windows) { "npm.cmd" } else { "npm" };
-        let status = std::process::Command::new(npm)
+        // LOW-004 監査対応: pnpm-lock.yaml と一致するよう npm → pnpm に統一する
+        println!("cargo:warning=Frontend not built. Running 'pnpm run build' in ui/...");
+        let pnpm = if cfg!(windows) { "pnpm.cmd" } else { "pnpm" };
+        let status = std::process::Command::new(pnpm)
             .args(["run", "build"])
             .current_dir(&ui_dir)
             .status()
-            .expect("Failed to run 'npm run build'. Is Node.js installed?");
+            .expect("Failed to run 'pnpm run build'. Is pnpm installed?");
         assert!(status.success(), "Frontend build failed");
     }
 

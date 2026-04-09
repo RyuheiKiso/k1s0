@@ -322,8 +322,12 @@ pub async fn run() -> anyhow::Result<()> {
         .await;
 
     let grpc_metrics = metrics;
-    let grpc_auth_layer =
-        crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    // HIGH-004 対応: server-common の GrpcAuthLayer に action_mapper を注入する
+    let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(
+        grpc_auth_state,
+        k1s0_server_common::middleware::rbac::Tier::System,
+        crate::adapter::middleware::grpc_auth::action_mapper,
+    );
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()

@@ -84,8 +84,11 @@ pub struct RetryNotificationResponse {
     pub notification: PbNotificationLog,
 }
 
+/// テナント分離対応: tenant_id を追加して通知ログのテナントスコープを設定する
 #[derive(Debug, Clone)]
 pub struct ListNotificationsRequest {
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub channel_id: Option<String>,
     pub status: Option<String>,
     pub page: u32,
@@ -202,8 +205,11 @@ pub struct PbTemplate {
     pub updated_at: String,
 }
 
+/// テナント分離対応: tenant_id を追加してテナント固有テンプレートのみ返す
 #[derive(Debug, Clone)]
 pub struct ListTemplatesRequest {
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub channel_type: Option<String>,
     pub page: u32,
     pub page_size: u32,
@@ -218,8 +224,11 @@ pub struct ListTemplatesResponse {
     pub has_next: bool,
 }
 
+/// テナント分離対応: tenant_id を追加してテンプレート作成時のテナントスコープを設定する
 #[derive(Debug, Clone)]
 pub struct CreateTemplateRequest {
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub name: String,
     pub channel_type: String,
     pub subject_template: Option<String>,
@@ -231,9 +240,12 @@ pub struct CreateTemplateResponse {
     pub template: PbTemplate,
 }
 
+/// テナント分離対応: tenant_id を追加してテナントスコープでテンプレートを検索する
 #[derive(Debug, Clone)]
 pub struct GetTemplateRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -241,9 +253,12 @@ pub struct GetTemplateResponse {
     pub template: PbTemplate,
 }
 
+/// テナント分離対応: tenant_id を追加して RLS を有効化する
 #[derive(Debug, Clone)]
 pub struct UpdateTemplateRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
     pub name: Option<String>,
     pub subject_template: Option<String>,
     pub body_template: Option<String>,
@@ -254,9 +269,12 @@ pub struct UpdateTemplateResponse {
     pub template: PbTemplate,
 }
 
+/// テナント分離対応: tenant_id を追加して RLS を有効化する
 #[derive(Debug, Clone)]
 pub struct DeleteTemplateRequest {
     pub id: String,
+    /// x-tenant-id メタデータから取得したテナント ID。
+    pub tenant_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -451,9 +469,10 @@ impl NotificationGrpcService {
         &self,
         req: GetNotificationRequest,
     ) -> Result<GetNotificationResponse, GrpcError> {
+        // テナントスコープで通知ログを検索する
         let log = self
             .log_repo
-            .find_by_id(&req.notification_id)
+            .find_by_id(&req.notification_id, &req.tenant_id)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?
             .ok_or_else(|| {
@@ -527,20 +546,19 @@ impl NotificationGrpcService {
             req.page_size
         };
 
+        // テナントスコープで通知ログ一覧を取得する
         let (logs, total) = self
             .log_repo
-            .find_all_paginated(page, page_size, req.channel_id, req.status)
+            .find_all_paginated(&req.tenant_id, page, page_size, req.channel_id, req.status)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
 
-        // MEDIUM-RUST-001 監査対応: list_notifications は通知ログの取得であり、
-        // チャンネル情報は補完的に取得する。req にテナント ID がないため "system" を使用する。
-        // 通知ログ API はテナントスコープ外（ログは全テナント管理者向け）として設計されている。
+        // テナントスコープでチャンネル情報を補完的に取得する
         let mut notifications = Vec::with_capacity(logs.len());
         for log in logs {
             let channel_type = self
                 .channel_repo
-                .find_by_id(&log.channel_id, "system")
+                .find_by_id(&log.channel_id, &req.tenant_id)
                 .await
                 .map_err(|e| GrpcError::Internal(e.to_string()))?
                 .map(|ch| ch.channel_type)
@@ -703,8 +721,9 @@ impl NotificationGrpcService {
         } else {
             req.page_size
         };
+        // テナントスコープでテンプレート一覧を取得する
         let (templates, total) = uc
-            .execute_paginated(page, page_size, req.channel_type)
+            .execute_paginated(&req.tenant_id, page, page_size, req.channel_type)
             .await
             .map_err(|e| GrpcError::Internal(e.to_string()))?;
         Ok(ListTemplatesResponse {
@@ -721,7 +740,9 @@ impl NotificationGrpcService {
         req: CreateTemplateRequest,
     ) -> Result<CreateTemplateResponse, GrpcError> {
         let uc = Self::require(&self.create_template_uc, "create_template")?;
+        // テナント ID を含めてテンプレートを作成する
         let input = CreateTemplateInput {
+            tenant_id: req.tenant_id,
             name: req.name,
             channel_type: req.channel_type,
             subject_template: req.subject_template,
@@ -736,13 +757,14 @@ impl NotificationGrpcService {
         })
     }
 
-    /// テンプレートを取得する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
+    /// テンプレートを取得する。テナントスコープで検索し、ユースケースエラー型で GrpcError へ変換する。
     pub async fn get_template(
         &self,
         req: GetTemplateRequest,
     ) -> Result<GetTemplateResponse, GrpcError> {
         let uc = Self::require(&self.get_template_uc, "get_template")?;
-        let template = uc.execute(&req.id).await.map_err(|e| {
+        // テナントスコープでテンプレートを検索する
+        let template = uc.execute(&req.id, &req.tenant_id).await.map_err(|e| {
             use crate::usecase::get_template::GetTemplateError;
             match e {
                 GetTemplateError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -759,8 +781,10 @@ impl NotificationGrpcService {
         req: UpdateTemplateRequest,
     ) -> Result<UpdateTemplateResponse, GrpcError> {
         let uc = Self::require(&self.update_template_uc, "update_template")?;
+        // テナント ID を含めてテンプレートを更新する
         let input = UpdateTemplateInput {
             id: req.id,
+            tenant_id: req.tenant_id,
             name: req.name,
             subject_template: req.subject_template,
             body_template: req.body_template,
@@ -778,13 +802,14 @@ impl NotificationGrpcService {
         })
     }
 
-    /// テンプレートを削除する。ユースケースエラー型で型ベースにGrpcErrorへ変換する。
+    /// テンプレートを削除する。テナントスコープで削除し、ユースケースエラー型で GrpcError へ変換する。
     pub async fn delete_template(
         &self,
         req: DeleteTemplateRequest,
     ) -> Result<DeleteTemplateResponse, GrpcError> {
         let uc = Self::require(&self.delete_template_uc, "delete_template")?;
-        uc.execute(&req.id).await.map_err(|e| {
+        // テナントスコープでテンプレートを削除する
+        uc.execute(&req.id, &req.tenant_id).await.map_err(|e| {
             use crate::usecase::delete_template::DeleteTemplateError;
             match e {
                 DeleteTemplateError::NotFound(msg) => GrpcError::NotFound(msg),
@@ -986,6 +1011,7 @@ mod tests {
         let mut log_mock_for_repo = MockNotificationLogRepository::new();
 
         let log = NotificationLog::new(
+            "tenant_test".to_string(),
             "ch_00000000000000000000000000000000".to_string(),
             "user@example.com".to_string(),
             Some("Subject".to_string()),
@@ -999,9 +1025,9 @@ mod tests {
             .expect_find_by_id()
             .withf({
                 let log_id = log_id.clone();
-                move |id| id == log_id.as_str()
+                move |id, _tenant_id| id == log_id.as_str()
             })
-            .returning(move |_| Ok(Some(return_log.clone())));
+            .returning(move |_, _| Ok(Some(return_log.clone())));
 
         let mut channel_mock_for_repo = MockNotificationChannelRepository::new();
         channel_mock_for_repo
@@ -1046,7 +1072,7 @@ mod tests {
 
         log_mock_for_repo
             .expect_find_by_id()
-            .returning(|_| Ok(None));
+            .returning(|_, _| Ok(None));
 
         let channel_mock_for_repo = MockNotificationChannelRepository::new();
 

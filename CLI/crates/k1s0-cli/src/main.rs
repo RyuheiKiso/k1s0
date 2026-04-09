@@ -226,7 +226,9 @@ fn main() {
                         } else {
                             "bash"
                         };
-                        match std::process::Command::new(shell).arg(&script_path).status() {
+                        // HIGH-003 監査対応: Windows パスを bash 互換パスに変換する
+                        let bash_script = to_bash_path(&script_path);
+                        match std::process::Command::new(shell).arg(&bash_script).status() {
                             Err(e) => Err(anyhow::anyhow!(
                                 "doctor.sh の実行に失敗しました（シェル: {shell}）: {e}"
                             )),
@@ -354,6 +356,30 @@ fn find_doctor_script() -> Option<PathBuf> {
     }
 
     None
+}
+
+/// Windows 環境でのみ有効。PathBuf を MSYS/Git Bash が解釈できる Unix 形式に変換する。
+/// 例: C:\work\github\k1s0\scripts\doctor.sh → /c/work/github/k1s0/scripts/doctor.sh
+/// \\?\ プレフィックス（canonicalize が付与する）も除去する。
+#[cfg(target_os = "windows")]
+fn to_bash_path(p: &std::path::Path) -> String {
+    let s = p.to_string_lossy();
+    // \\?\ プレフィックスを除去する
+    let s = s.strip_prefix(r"\\?\").unwrap_or(&s);
+    // ドライブレターを変換する: C:\ → /c/
+    if s.len() >= 3 && s.as_bytes()[1] == b':' {
+        let drive = s.as_bytes()[0].to_ascii_lowercase() as char;
+        let rest = s[2..].replace('\\', "/");
+        format!("/{drive}{rest}")
+    } else {
+        s.replace('\\', "/")
+    }
+}
+
+/// Windows 以外の環境では PathBuf を文字列にそのまま変換する。
+#[cfg(not(target_os = "windows"))]
+fn to_bash_path(p: &std::path::Path) -> String {
+    p.to_string_lossy().to_string()
 }
 
 // ============================================================================

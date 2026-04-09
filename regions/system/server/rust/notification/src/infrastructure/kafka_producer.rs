@@ -182,6 +182,7 @@ mod tests {
     fn make_test_log() -> NotificationLog {
         NotificationLog {
             id: format!("notif_{}", uuid::Uuid::new_v4().simple()),
+            tenant_id: "test_tenant".to_string(),
             channel_id: format!("ch_{}", uuid::Uuid::new_v4().simple()),
             template_id: None,
             recipient: "user@example.com".to_string(),

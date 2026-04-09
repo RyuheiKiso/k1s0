@@ -103,9 +103,10 @@ impl StubTemplateRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationTemplateRepository for StubTemplateRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         Ok(self
             .templates
             .read()
@@ -114,11 +115,12 @@ impl NotificationTemplateRepository for StubTemplateRepo {
             .find(|t| t.id == id)
             .cloned())
     }
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         Ok(self.templates.read().await.clone())
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_type: Option<String>,
@@ -138,7 +140,7 @@ impl NotificationTemplateRepository for StubTemplateRepo {
         }
         Ok(())
     }
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut templates = self.templates.write().await;
         let before = templates.len();
         templates.retain(|t| t.id != id);
@@ -162,12 +164,13 @@ impl StubLogRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationLogRepository for StubLogRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         Ok(self.logs.read().await.iter().find(|l| l.id == id).cloned())
     }
-    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         Ok(self
             .logs
             .read()
@@ -179,6 +182,7 @@ impl NotificationLogRepository for StubLogRepo {
     }
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         _page: u32,
         _page_size: u32,
         _channel_id: Option<String>,

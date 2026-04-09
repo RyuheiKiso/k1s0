@@ -1,5 +1,7 @@
 # service-target-server 実装設計
 
+> **注意（MED-020 対応）**: このサービスは未実装（設計書のみ）です。実装予定が確定した場合に `regions/service/target/` に実装されます。
+
 service-target-server の Rust 実装構成を定義する。概要・API 定義・アーキテクチャは [server.md](server.md) を参照。
 
 ---

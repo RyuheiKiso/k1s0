@@ -535,20 +535,23 @@ impl InMemoryNotificationTemplateRepository {
     }
 }
 
+/// InMemory 実装もトレイトシグネチャ変更に追従する。
+/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.get(id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.values().cloned().collect())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -591,7 +594,7 @@ impl NotificationTemplateRepository for InMemoryNotificationTemplateRepository {
         Ok(())
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         let mut templates = self.templates.write().await;
         Ok(templates.remove(id).is_some())
     }
@@ -609,14 +612,16 @@ impl InMemoryNotificationLogRepository {
     }
 }
 
+/// InMemory 実装もトレイトシグネチャ変更に追従する。
+/// tenant_id 引数は InMemory 実装ではフィルタリングに使用しない（テスト・開発環境向け）。
 #[async_trait::async_trait]
 impl NotificationLogRepository for InMemoryNotificationLogRepository {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs.get(id).cloned())
     }
 
-    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs
             .values()
@@ -627,6 +632,7 @@ impl NotificationLogRepository for InMemoryNotificationLogRepository {
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_id: Option<String>,

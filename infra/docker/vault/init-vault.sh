@@ -36,6 +36,11 @@ DB_PORT="${DB_PORT:-5432}"
 DB_USERNAME="${DB_USERNAME:-dev}"
 DB_PASSWORD="${DB_PASSWORD:-dev}"
 DB_NAME="${DB_NAME:-k1s0_system}"
+# CRITICAL-003 対応: サービス別 DB 名（infra/docker/init-db/01-create-databases.sql と一致させる）
+AUTH_DB_NAME="${AUTH_DB_NAME:-auth_db}"
+CONFIG_DB_NAME="${CONFIG_DB_NAME:-config_db}"
+SAGA_DB_NAME="${SAGA_DB_NAME:-k1s0_saga}"
+DLQ_DB_NAME="${DLQ_DB_NAME:-dlq_db}"
 AUTH_API_KEY="${AUTH_API_KEY:-dev-auth-api-key}"
 CONFIG_API_KEY="${CONFIG_API_KEY:-dev-config-api-key}"
 KAFKA_SASL_USERNAME="${KAFKA_SASL_USERNAME:-}"
@@ -104,30 +109,34 @@ vault_kv_put secret/k1s0/system/database \
   "{\"host\":\"${DB_HOST}\",\"port\":\"${DB_PORT}\",\"username\":\"${DB_USERNAME}\",\"password\":\"${DB_PASSWORD}\",\"name\":\"${DB_NAME}\"}"
 
 # === Auth Server ===
+# CRITICAL-003 対応: auth-server は auth_db に接続する（DB_NAME ではなく AUTH_DB_NAME を使用）
 echo "--- Auth Server シークレットを登録 ---"
 vault_kv_put secret/k1s0/system/auth-server/database \
-  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dauth,public\",\"password\":\"${DB_PASSWORD}\"}"
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${AUTH_DB_NAME}?options=-c%20search_path%3Dauth,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 vault_kv_put secret/k1s0/system/auth-server/api-key \
   "{\"key\":\"${AUTH_API_KEY}\"}"
 
 # === Config Server ===
+# CRITICAL-003 対応: config-server は config_db に接続する（DB_NAME ではなく CONFIG_DB_NAME を使用）
 echo "--- Config Server シークレットを登録 ---"
 vault_kv_put secret/k1s0/system/config-server/database \
-  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dconfig,public\",\"password\":\"${DB_PASSWORD}\"}"
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${CONFIG_DB_NAME}?options=-c%20search_path%3Dconfig,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 vault_kv_put secret/k1s0/system/config-server/api-key \
   "{\"key\":\"${CONFIG_API_KEY}\"}"
 
 # === Saga Server ===
+# CRITICAL-003 対応: saga-server は k1s0_saga に接続する（DB_NAME ではなく SAGA_DB_NAME を使用）
 echo "--- Saga Server シークレットを登録 ---"
 vault_kv_put secret/k1s0/system/saga-server/database \
-  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Dsaga,public\",\"password\":\"${DB_PASSWORD}\"}"
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${SAGA_DB_NAME}?options=-c%20search_path%3Dsaga,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 # === DLQ Manager ===
+# CRITICAL-003 対応: dlq-manager は dlq_db に接続する（DB_NAME ではなく DLQ_DB_NAME を使用）
 echo "--- DLQ Manager シークレットを登録 ---"
 vault_kv_put secret/k1s0/system/dlq-manager/database \
-  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?options=-c%20search_path%3Ddlq,public\",\"password\":\"${DB_PASSWORD}\"}"
+  "{\"url\":\"postgresql://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DLQ_DB_NAME}?options=-c%20search_path%3Ddlq,public\",\"password\":\"${DB_PASSWORD}\"}"
 
 # === Kafka 共通設定 ===
 echo "--- Kafka シークレットを登録 ---"

@@ -162,20 +162,22 @@ impl StubTemplateRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationTemplateRepository for StubTemplateRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.iter().find(|t| t.id == id).cloned())
     }
 
-    async fn find_all(&self) -> anyhow::Result<Vec<NotificationTemplate>> {
+    async fn find_all(&self, _tenant_id: &str) -> anyhow::Result<Vec<NotificationTemplate>> {
         let templates = self.templates.read().await;
         Ok(templates.clone())
     }
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_type: Option<String>,
@@ -224,7 +226,7 @@ impl NotificationTemplateRepository for StubTemplateRepo {
         }
     }
 
-    async fn delete(&self, id: &str) -> anyhow::Result<bool> {
+    async fn delete(&self, id: &str, _tenant_id: &str) -> anyhow::Result<bool> {
         if self.fail_on_write {
             return Err(anyhow::anyhow!("db write error"));
         }
@@ -267,14 +269,15 @@ impl StubLogRepo {
     }
 }
 
+/// テナント分離対応: トレイト変更に追従する。tenant_id 引数はスタブのため無視する。
 #[async_trait]
 impl NotificationLogRepository for StubLogRepo {
-    async fn find_by_id(&self, id: &str) -> anyhow::Result<Option<NotificationLog>> {
+    async fn find_by_id(&self, id: &str, _tenant_id: &str) -> anyhow::Result<Option<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs.iter().find(|l| l.id == id).cloned())
     }
 
-    async fn find_by_channel_id(&self, channel_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
+    async fn find_by_channel_id(&self, channel_id: &str, _tenant_id: &str) -> anyhow::Result<Vec<NotificationLog>> {
         let logs = self.logs.read().await;
         Ok(logs
             .iter()
@@ -285,6 +288,7 @@ impl NotificationLogRepository for StubLogRepo {
 
     async fn find_all_paginated(
         &self,
+        _tenant_id: &str,
         page: u32,
         page_size: u32,
         channel_id: Option<String>,
@@ -392,6 +396,7 @@ fn make_channel(name: &str, channel_type: &str, enabled: bool) -> NotificationCh
 
 fn make_template(name: &str, channel_type: &str) -> NotificationTemplate {
     NotificationTemplate::new(
+        "system".to_string(),
         name.to_string(),
         channel_type.to_string(),
         Some("Subject: {{title}}".to_string()),
@@ -401,6 +406,7 @@ fn make_template(name: &str, channel_type: &str) -> NotificationTemplate {
 
 fn make_failed_log(channel_id: &str) -> NotificationLog {
     let mut log = NotificationLog::new(
+        "system".to_string(),
         channel_id.to_string(),
         "user@example.com".to_string(),
         Some("Test Subject".to_string()),
@@ -843,6 +849,7 @@ mod create_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = CreateTemplateUseCase::new(repo.clone());
         let input = CreateTemplateInput {
+            tenant_id: "system".to_string(),
             name: "welcome-email".to_string(),
             channel_type: "email".to_string(),
             subject_template: Some("Welcome {{name}}".to_string()),
@@ -869,6 +876,7 @@ mod create_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = CreateTemplateUseCase::new(repo.clone());
         let input = CreateTemplateInput {
+            tenant_id: "system".to_string(),
             name: "slack-alert".to_string(),
             channel_type: "slack".to_string(),
             subject_template: None,
@@ -885,6 +893,7 @@ mod create_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = CreateTemplateUseCase::new(repo);
         let input = CreateTemplateInput {
+            tenant_id: "system".to_string(),
             name: "bad-template".to_string(),
             channel_type: "email".to_string(),
             subject_template: None,
@@ -906,6 +915,7 @@ mod create_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = CreateTemplateUseCase::new(repo);
         let input = CreateTemplateInput {
+            tenant_id: "system".to_string(),
             name: "bad-subject".to_string(),
             channel_type: "email".to_string(),
             subject_template: Some("Subject {{#if}}".to_string()),
@@ -925,6 +935,7 @@ mod create_template {
         let repo = Arc::new(StubTemplateRepo::failing());
         let uc = CreateTemplateUseCase::new(repo);
         let input = CreateTemplateInput {
+            tenant_id: "system".to_string(),
             name: "fail".to_string(),
             channel_type: "sms".to_string(),
             subject_template: None,
@@ -955,7 +966,7 @@ mod get_template {
         let repo = Arc::new(StubTemplateRepo::with_templates(vec![template]));
         let uc = GetTemplateUseCase::new(repo);
 
-        let result = uc.execute(&template_id).await;
+        let result = uc.execute(&template_id, "system").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().id, template_id);
     }
@@ -965,7 +976,7 @@ mod get_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = GetTemplateUseCase::new(repo);
 
-        let result = uc.execute("tpl_nonexistent").await;
+        let result = uc.execute("tpl_nonexistent", "system").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             GetTemplateError::NotFound(id) => assert_eq!(id, "tpl_nonexistent"),
@@ -985,7 +996,7 @@ mod list_templates {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = ListTemplatesUseCase::new(repo);
 
-        let result = uc.execute().await;
+        let result = uc.execute("system").await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }
@@ -996,7 +1007,7 @@ mod list_templates {
         let repo = Arc::new(StubTemplateRepo::with_templates(templates));
         let uc = ListTemplatesUseCase::new(repo);
 
-        let result = uc.execute().await;
+        let result = uc.execute("system").await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 2);
     }
@@ -1012,7 +1023,7 @@ mod list_templates {
         let uc = ListTemplatesUseCase::new(repo);
 
         let (items, total) = uc
-            .execute_paginated(1, 10, Some("email".to_string()))
+            .execute_paginated("system", 1, 10, Some("email".to_string()))
             .await
             .unwrap();
         assert_eq!(total, 2);
@@ -1029,11 +1040,11 @@ mod list_templates {
         let repo = Arc::new(StubTemplateRepo::with_templates(templates));
         let uc = ListTemplatesUseCase::new(repo);
 
-        let (items, total) = uc.execute_paginated(1, 2, None).await.unwrap();
+        let (items, total) = uc.execute_paginated("system", 1, 2, None).await.unwrap();
         assert_eq!(total, 3);
         assert_eq!(items.len(), 2);
 
-        let (items, _) = uc.execute_paginated(2, 2, None).await.unwrap();
+        let (items, _) = uc.execute_paginated("system", 2, 2, None).await.unwrap();
         assert_eq!(items.len(), 1);
     }
 }
@@ -1057,6 +1068,7 @@ mod update_template {
 
         let input = UpdateTemplateInput {
             id: template_id.clone(),
+            tenant_id: "system".to_string(),
             name: Some("new-name".to_string()),
             subject_template: None,
             body_template: Some("Updated body: {{content}}".to_string()),
@@ -1082,6 +1094,7 @@ mod update_template {
 
         let input = UpdateTemplateInput {
             id: template_id,
+            tenant_id: "system".to_string(),
             name: None,
             subject_template: Some("New Subject".to_string()),
             body_template: None,
@@ -1105,6 +1118,7 @@ mod update_template {
 
         let input = UpdateTemplateInput {
             id: template_id,
+            tenant_id: "system".to_string(),
             name: Some("renamed".to_string()),
             subject_template: None,
             body_template: None,
@@ -1121,6 +1135,7 @@ mod update_template {
 
         let input = UpdateTemplateInput {
             id: "tpl_nonexistent".to_string(),
+            tenant_id: "system".to_string(),
             name: Some("x".to_string()),
             subject_template: None,
             body_template: None,
@@ -1150,7 +1165,7 @@ mod delete_template {
         let repo = Arc::new(StubTemplateRepo::with_templates(vec![template]));
         let uc = DeleteTemplateUseCase::new(repo.clone());
 
-        let result = uc.execute(&template_id).await;
+        let result = uc.execute(&template_id, "system").await;
         assert!(result.is_ok());
 
         let stored = repo.templates.read().await;
@@ -1162,7 +1177,7 @@ mod delete_template {
         let repo = Arc::new(StubTemplateRepo::new());
         let uc = DeleteTemplateUseCase::new(repo);
 
-        let result = uc.execute("tpl_nonexistent").await;
+        let result = uc.execute("tpl_nonexistent", "system").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteTemplateError::NotFound(id) => assert_eq!(id, "tpl_nonexistent"),
@@ -1175,7 +1190,7 @@ mod delete_template {
         let repo = Arc::new(StubTemplateRepo::failing());
         let uc = DeleteTemplateUseCase::new(repo);
 
-        let result = uc.execute("tpl_any").await;
+        let result = uc.execute("tpl_any", "system").await;
         assert!(result.is_err());
         match result.unwrap_err() {
             DeleteTemplateError::Internal(msg) => assert!(msg.contains("db write error")),

@@ -49,9 +49,10 @@ impl RetryNotificationUseCase {
         &self,
         input: &RetryNotificationInput,
     ) -> Result<NotificationLog, RetryNotificationError> {
+        // テナントスコープで通知ログを検索する
         let mut log = self
             .log_repo
-            .find_by_id(&input.notification_id)
+            .find_by_id(&input.notification_id, &input.tenant_id)
             .await
             .map_err(|e| RetryNotificationError::Internal(e.to_string()))?
             .ok_or_else(|| RetryNotificationError::NotFound(input.notification_id.clone()))?;
@@ -95,6 +96,7 @@ mod tests {
 
     fn failed_log() -> NotificationLog {
         let mut log = NotificationLog::new(
+            "tenant_a".to_string(),
             "ch_00000000000000000000000000000000".to_string(),
             "user@example.com".to_string(),
             Some("Hello".to_string()),
@@ -117,7 +119,7 @@ mod tests {
 
         log_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(return_log.clone())));
+            .returning(move |_, _| Ok(Some(return_log.clone())));
         log_mock.expect_update().returning(|_| Ok(()));
 
         let channel = NotificationChannel::new(
@@ -151,7 +153,7 @@ mod tests {
         let mut log_mock = MockNotificationLogRepository::new();
         let channel_mock = MockNotificationChannelRepository::new();
 
-        log_mock.expect_find_by_id().returning(|_| Ok(None));
+        log_mock.expect_find_by_id().returning(|_, _| Ok(None));
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {
@@ -179,7 +181,7 @@ mod tests {
 
         log_mock
             .expect_find_by_id()
-            .returning(move |_| Ok(Some(return_log.clone())));
+            .returning(move |_, _| Ok(Some(return_log.clone())));
 
         let uc = RetryNotificationUseCase::new(Arc::new(log_mock), Arc::new(channel_mock));
         let input = RetryNotificationInput {

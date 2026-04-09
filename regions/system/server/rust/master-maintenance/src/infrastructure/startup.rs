@@ -11,7 +11,9 @@ use crate::usecase;
 
 use crate::adapter::handler::{self, AppState};
 use crate::adapter::middleware::auth::AuthState;
-use crate::adapter::middleware::grpc_auth::GrpcAuthLayer;
+// HIGH-004 対応: server-common の共通 GrpcAuthLayer を使用する
+use k1s0_server_common::middleware::grpc_auth::GrpcAuthLayer;
+use k1s0_server_common::middleware::rbac::Tier;
 use crate::infrastructure::config::{Config, DatabaseConfig};
 use crate::MIGRATOR;
 
@@ -259,7 +261,12 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_addr: SocketAddr = format!("{}:{}", cfg.server.host, cfg.server.grpc_port).parse()?;
     info!("gRPC server listening on {}", grpc_addr);
     let grpc_metrics = metrics.clone();
-    let grpc_auth_layer = GrpcAuthLayer::new(auth_state.clone());
+    // HIGH-004 対応: server-common の GrpcAuthLayer に action_mapper を注入する
+    let grpc_auth_layer = GrpcAuthLayer::new(
+        auth_state.clone(),
+        Tier::System,
+        crate::adapter::middleware::grpc_auth::action_mapper,
+    );
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let mut rest_shutdown_rx = shutdown_rx.clone();
     let mut grpc_shutdown_rx = shutdown_rx.clone();

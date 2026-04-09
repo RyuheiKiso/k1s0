@@ -183,8 +183,9 @@ impl SendNotificationUseCase {
             let repo = self.template_repo.as_ref().ok_or_else(|| {
                 SendNotificationError::Internal("template repository is not configured".to_string())
             })?;
+            // テナントスコープでテンプレートを検索する
             let template = repo
-                .find_by_id(template_id)
+                .find_by_id(template_id, &input.tenant_id)
                 .await
                 .map_err(|e| SendNotificationError::Internal(e.to_string()))?
                 .ok_or_else(|| SendNotificationError::TemplateNotFound(template_id.clone()))?;
@@ -209,7 +210,9 @@ impl SendNotificationUseCase {
             (base_subject, base_body)
         };
 
+        // テナント ID を含めて通知ログを生成する
         let mut log = NotificationLog::new(
+            input.tenant_id.clone(),
             input.channel_id.clone(),
             input.recipient.clone(),
             subject.clone(),

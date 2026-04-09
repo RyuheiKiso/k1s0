@@ -4,8 +4,11 @@ use crate::domain::entity::notification_template::NotificationTemplate;
 use crate::domain::repository::NotificationTemplateRepository;
 use crate::domain::service::NotificationDomainService;
 
+/// テンプレート作成の入力パラメータ。tenant_id でテナント分離を強制する。
 #[derive(Debug, Clone)]
 pub struct CreateTemplateInput {
+    /// RLS テナント分離に使用するテナント識別子
+    pub tenant_id: String,
     pub name: String,
     pub channel_type: String,
     pub subject_template: Option<String>,
@@ -41,7 +44,9 @@ impl CreateTemplateUseCase {
         NotificationDomainService::validate_template_body(&input.body_template)
             .map_err(CreateTemplateError::Validation)?;
 
+        // テナント ID を含めてテンプレートを生成する
         let template = NotificationTemplate::new(
+            input.tenant_id.clone(),
             input.name.clone(),
             input.channel_type.clone(),
             input.subject_template.clone(),
@@ -70,6 +75,7 @@ mod tests {
 
         let uc = CreateTemplateUseCase::new(Arc::new(mock));
         let input = CreateTemplateInput {
+            tenant_id: "tenant_a".to_string(),
             name: "welcome".to_string(),
             channel_type: "email".to_string(),
             subject_template: Some("Welcome {{name}}".to_string()),
@@ -91,6 +97,7 @@ mod tests {
 
         let uc = CreateTemplateUseCase::new(Arc::new(mock));
         let input = CreateTemplateInput {
+            tenant_id: "tenant_a".to_string(),
             name: "fail".to_string(),
             channel_type: "sms".to_string(),
             subject_template: None,

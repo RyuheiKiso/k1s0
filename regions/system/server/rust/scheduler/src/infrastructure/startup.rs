@@ -261,8 +261,12 @@ pub async fn run() -> anyhow::Result<()> {
     info!("gRPC server starting on {}", grpc_addr);
 
     let grpc_metrics = metrics;
-    let grpc_auth_layer =
-        crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(grpc_auth_state);
+    // HIGH-004 対応: server-common の GrpcAuthLayer に action_mapper を注入する
+    let grpc_auth_layer = crate::adapter::middleware::grpc_auth::GrpcAuthLayer::new(
+        grpc_auth_state,
+        k1s0_server_common::middleware::rbac::Tier::System,
+        crate::adapter::middleware::grpc_auth::action_mapper,
+    );
 
     // gRPC Health Check Protocol サービスを登録する。
     // readyz エンドポイントや Kubernetes の livenessProbe/readinessProbe が

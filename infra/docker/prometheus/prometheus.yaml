@@ -10,10 +10,11 @@ scrape_configs:
   # Prometheus 自身のメトリクス
   # HIGH-003 監査対応: web.yml で Basic Auth が有効化されているため、
   # セルフスクレイプにも basic_auth を設定して 401 エラーを防止する。
+  # MEDIUM-003 対応: ハードコードパスワードを廃止。docker-compose.yaml のシークレット/volume でパスワードファイルをマウントする
   - job_name: prometheus
     basic_auth:
       username: prometheus_admin
-      password: prometheus_admin
+      password_file: /run/secrets/prometheus_admin_password
     static_configs:
       - targets: ["localhost:9090"]
 

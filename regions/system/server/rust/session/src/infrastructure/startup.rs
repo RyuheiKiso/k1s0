@@ -354,8 +354,9 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
-            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
+            // MEDIUM-006 対応: レイヤー順序を標準パターンに修正する（認証→メトリクスの順）
             .layer(grpc_auth_layer)
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(health_service)
             .add_service(SessionServiceServer::new(session_tonic))
             .serve_with_shutdown(grpc_addr, async move {

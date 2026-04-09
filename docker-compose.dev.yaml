@@ -251,8 +251,9 @@ services:
     <<: *dev-auth-bypass
     environment:
       - ALLOW_INSECURE_NO_AUTH=true
+      # CRITICAL-002 対応: master-maintenance は k1s0_master_maintenance 専用 DB に接続する（01-create-databases.sql 参照）
       # INFRA-HIGH-003 対応: パスワードを .env.dev で一元管理する
-      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_system?sslmode=disable
+      - DATABASE_URL=postgres://${DEV_DB_USER:-dev}:${DEV_DB_PASSWORD:-dev}@postgres:5432/k1s0_master_maintenance?sslmode=disable
 
   navigation-rust:
     <<: *dev-auth-bypass

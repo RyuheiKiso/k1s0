@@ -254,10 +254,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListNotificationsRequest>,
     ) -> Result<Response<ProtoListNotificationsResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListNotificationsRequest {
+            tenant_id,
             channel_id: inner.channel_id,
             status: inner.status,
             // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
@@ -455,10 +458,13 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoListTemplatesRequest>,
     ) -> Result<Response<ProtoListTemplatesResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         // ページネーションパラメータを共通Paginationサブメッセージから取得
         let pagination = inner.pagination.unwrap_or_default();
         let req = ListTemplatesRequest {
+            tenant_id,
             channel_type: inner.channel_type,
             // LOW-008: 安全な型変換。ガード条件 <= 0 により正の値のみが変換される。
             page: if pagination.page <= 0 {
@@ -494,8 +500,11 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoCreateTemplateRequest>,
     ) -> Result<Response<ProtoCreateTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = CreateTemplateRequest {
+            tenant_id,
             name: inner.name,
             channel_type: inner.channel_type,
             subject_template: inner.subject_template,
@@ -515,8 +524,10 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoGetTemplateRequest>,
     ) -> Result<Response<ProtoGetTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = GetTemplateRequest { id: inner.id };
+        let req = GetTemplateRequest { id: inner.id, tenant_id };
         let resp = self
             .inner
             .get_template(req)
@@ -531,9 +542,12 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoUpdateTemplateRequest>,
     ) -> Result<Response<ProtoUpdateTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
         let req = UpdateTemplateRequest {
             id: inner.id,
+            tenant_id,
             name: inner.name,
             subject_template: inner.subject_template,
             body_template: inner.body_template,
@@ -552,8 +566,10 @@ impl NotificationService for NotificationServiceTonic {
         &self,
         request: Request<ProtoDeleteTemplateRequest>,
     ) -> Result<Response<ProtoDeleteTemplateResponse>, Status> {
+        // テナント分離対応: x-tenant-id メタデータからテナント ID を取得する
+        let tenant_id = tenant_id_from_metadata(request.metadata())?;
         let inner = request.into_inner();
-        let req = DeleteTemplateRequest { id: inner.id };
+        let req = DeleteTemplateRequest { id: inner.id, tenant_id };
         let resp = self
             .inner
             .delete_template(req)

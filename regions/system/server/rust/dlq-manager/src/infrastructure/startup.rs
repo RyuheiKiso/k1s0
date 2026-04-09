@@ -186,6 +186,9 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_auth_layer =
         GrpcAuthLayer::new(auth_state.clone(), Tier::System, dlq_manager_grpc_action);
 
+    // HIGH-007 対応: gRPC メトリクスレイヤー用に metrics を clone する
+    let grpc_metrics = metrics.clone();
+
     // AppState
     let mut state = AppState {
         list_messages_uc,
@@ -219,7 +222,10 @@ pub async fn run() -> anyhow::Result<()> {
     let grpc_shutdown = k1s0_server_common::shutdown::shutdown_signal();
     let grpc_future = async move {
         tonic::transport::Server::builder()
+            // HIGH-007 対応: gRPC メトリクスレイヤーを追加する
+            // レイヤー順序: grpc_auth_layer（外側: 認証を先に実行）→ GrpcMetricsLayer（内側: 認証成功後にメトリクス計上）
             .layer(grpc_auth_layer)
+            .layer(k1s0_telemetry::GrpcMetricsLayer::new(grpc_metrics))
             .add_service(DlqServiceServer::new(dlq_tonic))
             .serve_with_shutdown(grpc_addr, async move {
                 let _ = grpc_shutdown.await;

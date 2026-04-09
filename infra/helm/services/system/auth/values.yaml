@@ -72,9 +72,10 @@ autoscaling:
   # メモリ過負荷時の HPA スケーリングに使用する（設計書定義: 60%）
   targetMemoryUtilizationPercentage: 60
 
+# MEDIUM-007 対応: 絶対値に変更（k1s0-common デフォルトと統一）
 pdb:
   enabled: true
-  minAvailable: "50%"
+  minAvailable: 1
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "auth-rust" に変更する。
 # 最小権限の原則に従い、auth サービスは自サービスのシークレットにのみアクセス可能とする（ADR-0045 参照）。
@@ -122,10 +123,11 @@ config:
           audience: "k1s0-api"
 
       # DB パスワードは Vault 経由で /vault/secrets/db-password に注入される
+      # CRITICAL-003 対応: auth サービスは auth_db 専用 DB に接続する（01-create-databases.sql と一致）
       database:
         host: "postgres.k1s0-system.svc.cluster.local"
         port: 5432
-        name: "k1s0_system"
+        name: "auth_db"
         user: "app"
         password: ""
         ssl_mode: "require"

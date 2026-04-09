@@ -10,8 +10,9 @@ image:
 imagePullSecrets:
   - name: harbor-pull-secret
 
+# HIGH-001 対応: アプリケーションが 8102 でリッスンするため containerPort を合わせる
 container:
-  port: 8080
+  port: 8102
   grpcPort: 50051
 
 service:
@@ -70,9 +71,10 @@ autoscaling:
   # メモリ過負荷時の HPA スケーリングに使用する（設計書定義: 60%）
   targetMemoryUtilizationPercentage: 60
 
+# MEDIUM-007 対応: 絶対値に変更（k1s0-common デフォルトと統一）
 pdb:
   enabled: true
-  minAvailable: "50%"
+  minAvailable: 1
 
 # H-03 監査対応: 単一 "system" ロールから個別ロール "session-rust" に変更する（ADR-0045 参照）。
 vault:

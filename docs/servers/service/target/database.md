@@ -1,5 +1,7 @@
 # service-target-database 設計
 
+> **注意（MED-020 対応）**: このサービスは未実装（設計書のみ）です。実装予定が確定した場合に `regions/service/target/` に実装されます。
+
 service-target-server のデータベーススキーマ・マイグレーション・ER 図を定義する。
 配置先: `regions/service/board/database/postgres/`
 

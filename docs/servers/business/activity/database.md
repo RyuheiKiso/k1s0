@@ -1,9 +1,8 @@
 # business-activity-server データベース設計
 
-> **MED-021 監査対応 — 配置ティアの明確化**
-> task / board / activity は **service tier** に属するサービスであり、実装は `regions/service/activity/` にある。
-> `docs/servers/business/activity/` は旧来の配置ミスによる残存ファイルであり、DB 設計はここで管理するが、
-> サーバー設計・デプロイ設計は **[service tier 設計書](../../service/activity/server.md)** を参照すること。
+> **注意（MEDIUM-004 対応）**: このサービスは `regions/service/` に実装されており、正式な設計書は `docs/servers/service/activity/` にあります。
+> このファイルは移行経過として残存していますが、上記の service tier 設計書を参照してください。
+> ADR-0026「Service Tier DB 統合」を参照。
 
 business Tier のアクティビティサービスデータベース（k1s0_service DB の `activity_service` スキーマ）の設計を定義する。
 配置先: `regions/service/activity/database/postgres/`
