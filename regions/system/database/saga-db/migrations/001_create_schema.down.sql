@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS saga.update_updated_at();
-DROP SCHEMA IF EXISTS saga CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

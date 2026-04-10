@@ -1,9 +1,0 @@
-# grafana Helm チャート定義
-# K8S-MED-001 対応: Chart.yaml の欠落による helm lint 失敗を解消する
-# kube-prometheus-stack サブチャートとして、または standalone chart として使用する
-apiVersion: v2
-name: grafana
-description: Grafana observability chart for k1s0
-type: application
-version: 1.0.0
-appVersion: "11.3.2"

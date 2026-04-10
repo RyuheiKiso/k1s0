@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS quota.update_updated_at();
-DROP SCHEMA IF EXISTS quota CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

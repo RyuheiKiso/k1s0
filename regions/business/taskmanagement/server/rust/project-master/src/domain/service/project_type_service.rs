@@ -1,2 +1,0 @@
-// プロジェクトタイプドメインサービス。
-pub struct ProjectTypeService;

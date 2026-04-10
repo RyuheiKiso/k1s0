@@ -1,3 +1,0 @@
-{% raw %}
-{{- include "k1s0-common.service" . }}
-{% endraw %}

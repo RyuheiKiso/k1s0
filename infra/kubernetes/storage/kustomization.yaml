@@ -1,9 +1,0 @@
-# CRIT-007 監査対応: storage サブディレクトリの kustomization.yaml
-# ルート kustomization.yaml が "- storage/" を参照するため本ファイルが必須。
-# 欠落すると kubectl kustomize infra/kubernetes/ が全体でエラーになる。
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-resources:
-  # StorageClass 定義（local-path, fast-ssd 等）
-  - storage-classes.yaml

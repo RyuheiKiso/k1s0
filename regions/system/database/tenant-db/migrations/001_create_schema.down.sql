@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS tenant.update_updated_at();
-DROP SCHEMA IF EXISTS tenant CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

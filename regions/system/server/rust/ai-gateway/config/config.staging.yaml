@@ -1,9 +1,0 @@
-# MED-007 監査対応: 本番・ステージング環境固有設定ファイル
-app:
-  environment: "staging"
-
-observability:
-  log:
-    level: "info"
-  trace:
-    sample_rate: 0.5

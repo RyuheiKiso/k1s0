@@ -1,5 +1,0 @@
-DROP TRIGGER IF EXISTS trg_table_definitions_updated_at ON master_maintenance.table_definitions;
-DROP TRIGGER IF EXISTS trg_column_definitions_updated_at ON master_maintenance.column_definitions;
-DROP TRIGGER IF EXISTS trg_consistency_rules_updated_at ON master_maintenance.consistency_rules;
-DROP TRIGGER IF EXISTS trg_display_configs_updated_at ON master_maintenance.display_configs;
-DROP FUNCTION IF EXISTS master_maintenance.update_updated_at();

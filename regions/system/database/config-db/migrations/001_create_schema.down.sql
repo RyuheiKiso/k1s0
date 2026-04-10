@@ -1,3 +1,0 @@
-DROP FUNCTION IF EXISTS config.update_updated_at();
-DROP SCHEMA IF EXISTS config CASCADE;
-DROP EXTENSION IF EXISTS "pgcrypto";

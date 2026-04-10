@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS examples;
-DROP DATABASE IF EXISTS {{ service_name_snake }};

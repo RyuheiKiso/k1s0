@@ -1,8 +1,0 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-# cert-manager 関連リソース一覧
-# Let's Encrypt / 内部 CA のクラスター発行者を管理する。
-# HIGH-004 監査対応: kustomization.yaml が欠落していたため prod overlay 適用不可だった問題を修正。
-resources:
-  - cluster-issuer.yaml

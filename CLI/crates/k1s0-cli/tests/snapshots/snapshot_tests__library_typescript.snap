@@ -1,9 +1,0 @@
----
-source: tests/snapshot_tests.rs
-expression: sorted
----
-- README.md
-- package.json
-- src/index.ts
-- tests/index.test.ts
-- tsconfig.json

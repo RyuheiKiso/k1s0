@@ -1,8 +1,0 @@
--- このファイルは k1s0 CLI が自動生成しました。直接編集しないでください。
--- k1s0 generate-events で再生成できます。
---
--- Outbox テーブル削除: {{ domain }}.{{ service_name }}
-
-DROP INDEX IF EXISTS outbox.idx_outbox_messages_topic;
-DROP INDEX IF EXISTS outbox.idx_outbox_messages_pending;
-DROP TABLE IF EXISTS outbox.outbox_messages;

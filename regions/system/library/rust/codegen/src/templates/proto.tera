@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package k1s0.{{ tier }}.{{ name_snake }}.v1;
-
-option go_package = "github.com/k1s0-platform/api/gen/go/k1s0/{{ tier }}/{{ name_snake }}/v1;{{ name_snake }}v1";
-
-service {{ name_pascal }}Service {
-  // TODO: Add RPC methods
-}
